@@ -12,7 +12,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.TimeUnit;
-import org.lflang.validation.LFValidator;
+import org.lflang.validation.LFValidatorImpl;
 
 /**
  * A target properties along with a type and a list of supporting targets
@@ -362,7 +362,7 @@ public enum TargetProperty {
      * @param name The string to match against.
      */
     public static TargetProperty forName(String name) {
-        return (TargetProperty)Target.match(name, TargetProperty.values());
+        return Target.match(name, TargetProperty.values());
     }
 
     /**
@@ -395,7 +395,7 @@ public enum TargetProperty {
      * A dictionary type with a predefined set of possible keys and assignable
      * types.
      * 
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author {Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum DictionaryType implements TargetPropertyType {
@@ -427,7 +427,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public DictionaryElement forName(String name) {
-            return (DictionaryElement) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -435,7 +435,7 @@ public enum TargetProperty {
          * this dictionary.
          */
         @Override
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             KeyValuePairs kv = e.getKeyvalue();
             if (kv == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -532,7 +532,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public Enum<?> forName(String name) {
-            return (Enum<?>) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -540,7 +540,7 @@ public enum TargetProperty {
          * this union.
          */
         @Override
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             Optional<Enum<?>> match = this.match(e);
             if (match.isPresent()) {
                 // Go deeper if the element is an array or dictionary.
@@ -637,7 +637,7 @@ public enum TargetProperty {
          * its elements are all of the correct type.
          */
         @Override
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             Array array = e.getArray();
             if (array == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -765,7 +765,7 @@ public enum TargetProperty {
          * @param name The name of the target property.
          * @param v    A reference to the validator to report errors to.
          */
-        public void check(Element e, String name, LFValidator v);
+        public void check(Element e, String name, LFValidatorImpl v);
     
         /**
          * Helper function to produce an error during type checking.
@@ -775,8 +775,8 @@ public enum TargetProperty {
          * @param v           A reference to the validator to report errors to.
          */
         public static void produceError(String name, String description,
-                LFValidator v) {
-            v.targetPropertyErrors.add("Target property '" + name
+                LFValidatorImpl v) {
+            v.getTargetPropertyErrors().add("Target property '" + name
                     + "' is required to be " + description + ".");
         }
     }
@@ -867,7 +867,7 @@ public enum TargetProperty {
          * @param name   The name of the target property.
          * @param errors A list of errors to append to if problems are found.
          */
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             if (!this.validate(e)) {
                 TargetPropertyType.produceError(name, this.description, v);
             }

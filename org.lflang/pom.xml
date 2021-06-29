@@ -86,6 +86,45 @@
                 <groupId>org.eclipse.xtend</groupId>
                 <artifactId>xtend-maven-plugin</artifactId>
             </plugin>
+            <!-- Cleanup files duplicated by Xtext. -->
+            <!-- Currently we don't need to delete any generated files because
+                 we use the Java/Xtend implementations. However, if we commit
+                 to porting such files to Kotlin, we might to reintroduce the
+                 deletion mechanism below.-->
+            <!--plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>cleanup-xtend</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <delete>
+                                    <fileset dir="${project.basedir}/src" casesensitive="yes">
+                                        <include name="org/lflang/validation/LFValidator.java"/>
+                                        <include name="org/lflang/LFRuntimeModule.java"/>
+                                        <include name="org/lflang/LFStandaloneSetup.java"/>
+                                        <include name="org/lflang/generator/LFGenerator.java"/>
+                                        <include name="org/lflang/scoping/LFScopeProvider.java"/>
+                                    </fileset>
+                                </delete>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin-->
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-compiler-plugin</artifactId>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -166,4 +205,3 @@
     </build>
 
 </project>
-

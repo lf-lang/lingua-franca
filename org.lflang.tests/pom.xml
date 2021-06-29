@@ -36,6 +36,15 @@
             </plugin>
 
             <plugin>
+                <groupId>org.eclipse.xtend</groupId>
+                <artifactId>xtend-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
                 <!-- See https://github.com/eclipse/xtext-eclipse/issues/272 -->
                 <groupId>org.eclipse.tycho</groupId>
                 <artifactId>tycho-compiler-plugin</artifactId>
@@ -46,56 +55,6 @@
                 </configuration>
             </plugin>
 
-
-            <!-- configure a target platform to make sure all dependencies are available -->
-            <!--
-          <plugin>
-          <groupId>org.eclipse.tycho</groupId>
-          <artifactId>target-platform-configuration</artifactId>
-          </plugin>
-            -->
-
-            <!-- Compile Xtend-Classes -->
-            <!--
-           <plugin>
-           <groupId>org.eclipse.xtend</groupId>
-           <artifactId>xtend-maven-plugin</artifactId>
-           <version>2.8.3</version>
-           <executions>
-           <execution>
-           <goals>
-           <goal>compile</goal>
-           </goals>
-           <configuration>
-           <outputDirectory>xtend-gen</outputDirectory>
-           </configuration>
-           </execution>
-           </executions>
-           <dependencies>
-           <dependency>
-           <groupId>org.eclipse.jdt</groupId>
-           <artifactId>org.eclipse.jdt.core</artifactId>
-           <version>3.10.0</version>
-           </dependency>
-           <dependency>
-           <groupId>org.eclipse.jdt</groupId>
-           <artifactId>org.eclipse.jdt.launching</artifactId>
-           <version>3.10.0</version>
-           </dependency>
-           <dependency>
-           <groupId>org.eclipse.jdt</groupId>
-           <artifactId>org.eclipse.jdt.debug</artifactId>
-           <version>3.10.1</version>
-           </dependency>
-           </dependencies>
-           </plugin>
-
-            -->
-
-            <plugin>
-                <groupId>org.eclipse.xtend</groupId>
-                <artifactId>xtend-maven-plugin</artifactId>
-            </plugin>
 
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
@@ -147,4 +106,5 @@
 
         </plugins>
     </build>
+
 </project>

@@ -65,9 +65,9 @@ int host_is_big_endian();
  * @return The number of bytes read, or 0 if an EOF is received, or
  *  a negative number for an error.
  */
-int read_from_socket_errexit(
+ssize_t read_from_socket_errexit(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		char* format, ...);
 
@@ -82,7 +82,7 @@ int read_from_socket_errexit(
  * @param buffer The buffer into which to put the bytes.
  * @return The number of bytes read or 0 when EOF is received or negative for an error.
  */
-int read_from_socket(int socket, int num_bytes, unsigned char* buffer);
+ssize_t read_from_socket(int socket, size_t num_bytes, unsigned char* buffer);
 
 /**
  * Write the specified number of bytes to the specified socket from the
@@ -101,9 +101,9 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer);
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit_with_mutex(
+ssize_t write_to_socket_errexit_with_mutex(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		lf_mutex_t* mutex,
 		char* format, ...);
@@ -125,9 +125,9 @@ int write_to_socket_errexit_with_mutex(
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit(
+ssize_t write_to_socket_errexit(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		char* format, ...);
 
@@ -151,16 +151,23 @@ int write_to_socket2(int socket, int num_bytes, unsigned char* buffer);
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_ll(long long data, unsigned char* buffer);
+void encode_int64(int64_t data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
- *  order (lowest order byte first). This works for either int or
- *  unsigned int.
+ *  order (lowest order byte first). This works for int32_t.
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_int(int data, unsigned char* buffer);
+void encode_int32(int32_t data, unsigned char* buffer);
+
+/** Write the specified data as a sequence of bytes starting
+ *  at the specified address. This encodes the data in little-endian
+ *  order (lowest order byte first). This works for uint32_t.
+ *  @param data The data to write.
+ *  @param buffer The location to start writing.
+ */
+void encode_uint32(uint32_t data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
@@ -168,7 +175,7 @@ void encode_int(int data, unsigned char* buffer);
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_ushort(unsigned short data, unsigned char* buffer);
+void encode_uint16(uint16_t data, unsigned char* buffer);
 
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
@@ -180,7 +187,7 @@ void encode_ushort(unsigned short data, unsigned char* buffer);
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_big_endian_int(int src);
+int32_t swap_bytes_if_big_endian_int32(int32_t src);
 
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
@@ -192,7 +199,7 @@ int swap_bytes_if_big_endian_int(int src);
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-long long swap_bytes_if_big_endian_ll(long long src);
+int64_t swap_bytes_if_big_endian_int64(int64_t src);
 
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
@@ -204,25 +211,25 @@ long long swap_bytes_if_big_endian_ll(long long src);
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_big_endian_ushort(unsigned short src);
+uint16_t swap_bytes_if_big_endian_uint16(uint16_t src);
 
-/** Extract an int from the specified byte sequence.
+/** Extract an int32_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-int extract_int(unsigned char* bytes);
+int32_t extract_int32(unsigned char* bytes);
 
-/** Extract a long long from the specified byte sequence.
+/** Extract a int64_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-long long extract_ll(unsigned char* bytes);
+int64_t extract_int64(unsigned char* bytes);
 
-/** Extract an unsigned short from the specified byte sequence.
+/** Extract an uint16_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-unsigned short extract_ushort(unsigned char* bytes);
+uint16_t extract_uint16(unsigned char* bytes);
 
 /**
  * Extract the core header information that all messages between
@@ -236,9 +243,9 @@ unsigned short extract_ushort(unsigned char* bytes);
  */
 void extract_header(
         unsigned char* buffer,
-        unsigned short* port_id,
-        unsigned short* federate_id,
-        unsigned int* length
+        uint16_t* port_id,
+        uint16_t* federate_id,
+        size_t* length
 );
 
 /**
@@ -255,10 +262,36 @@ void extract_header(
  */
 void extract_timed_header(
         unsigned char* buffer,
-        unsigned short* port_id,
-        unsigned short* federate_id,
-        unsigned int* length,
+        uint16_t* port_id,
+        uint16_t* federate_id,
+        size_t* length,
 		tag_t* tag
+);
+
+/**
+ * Extract tag information from buffer.
+ *
+ * The tag is transmitted as a 64-bit (8 byte) signed integer for time and a
+ * 32-bit (4 byte) unsigned integer for microstep.
+ * 
+ * @param buffer The buffer to read from.
+ * @return The extracted tag.
+ */
+tag_t extract_tag(
+	unsigned char* buffer
+);
+
+/**
+ * Encode tag information into buffer.
+ * 
+ * Buffer must have been allocated externally.
+ * 
+ * @param buffer The buffer to encode into.
+ * @param tag The tag to encode into 'buffer'.
+ */
+void encode_tag(
+    unsigned char* buffer,
+	tag_t tag
 );
 
 #endif /* NET_UTIL_H */
