@@ -13,15 +13,15 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 package org.lflang.validation
@@ -84,19 +84,19 @@ import static extension org.lflang.ASTUtils.*
 
 /**
  * Custom validation checks for Lingua Franca programs.
- * 
+ *
  * Also see: https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
- *  
+ *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
- * 
+ *
  */
-class LFValidator extends AbstractLFValidator {
+class LFValidatorImpl extends AbstractLFValidator {
 
     var Target target
-    
+
     public var info = new ModelInfo()
 
     /**
@@ -108,22 +108,22 @@ class LFValidator extends AbstractLFValidator {
     /**
      * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
      * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
-     * of an embedded IPv4-address. 
+     * of an embedded IPv4-address.
      **/
-    static val ipv6Regex = 
+    static val ipv6Regex =
                 "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
-                "([0-9a-fA-F]{1,4}:){1,7}:|" + 
+                "([0-9a-fA-F]{1,4}:){1,7}:|" +
                 "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
-                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" + 
-                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|" + 
-                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|" + 
-                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|" + 
-                 "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|" + 
+                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" +
+                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|" +
+                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|" +
+                 "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|" +
                                  ":((:[0-9a-fA-F]{1,4}){1,7}|:)|" +
-        "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|" + 
-        "::(ffff(:0{1,4}){0,1}:){0,1}" + ipv4Regex + "|" + 
+        "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|" +
+        "::(ffff(:0{1,4}){0,1}:){0,1}" + ipv4Regex + "|" +
         "([0-9a-fA-F]{1,4}:){1,4}:"    + ipv4Regex + "|" +
-        "([0-9a-fA-F]{1,4}:){1,6}"     + ipv4Regex + ")"                          
+        "([0-9a-fA-F]{1,4}:){1,6}"     + ipv4Regex + ")"
 
     static val usernameRegex = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$"
 
@@ -133,9 +133,13 @@ class LFValidator extends AbstractLFValidator {
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
 
-    public val List<String> targetPropertyErrors = newLinkedList
-    
-    public val List<String> targetPropertyWarnings = newLinkedList
+    val List<String> targetPropertyErrors = newLinkedList
+
+    val List<String> targetPropertyWarnings = newLinkedList
+
+    def List<String> getTargetPropertyErrors() {
+        this.targetPropertyErrors
+    }
 
     @Check
     def checkImportedReactor(ImportedReactor reactor) {
@@ -161,9 +165,9 @@ class LFValidator extends AbstractLFValidator {
             error("Error loading resource.", Literals.IMPORT__IMPORT_URI) // FIXME: print specifics.
             return
         }
-        
+
         // FIXME: report error if resource cannot be resolved.
-        
+
         for (reactor : imp.reactorClasses) {
             if (!reactor.unused) {
                 return
@@ -198,7 +202,7 @@ class LFValidator extends AbstractLFValidator {
     /**
      * Report whether a given reactor has dependencies on a cyclic
      * instantiation pattern. This means the reactor has an instantiation
-     * in it -- directly or in one of its contained reactors -- that is 
+     * in it -- directly or in one of its contained reactors -- that is
      * self-referential.
      * @param reactor The reactor definition to find out whether it has any
      * dependencies on cyclic instantiations.
@@ -222,7 +226,7 @@ class LFValidator extends AbstractLFValidator {
         }
         return false
     }
-    
+
     /**
      * Report whether a given imported reactor is used in this resource or not.
      * @param reactor The imported reactor to check whether it is used.
@@ -241,12 +245,12 @@ class LFValidator extends AbstractLFValidator {
         }
         return false
     }
-    
+
 
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
-    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).    
+    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
 
     // //////////////////////////////////////////////////
     // // The following checks are in alphabetical order.
@@ -311,7 +315,7 @@ class LFValidator extends AbstractLFValidator {
         // FIXME": similar checks for decl/init
         // Specifically for C: list can only be literal or time lists
     }
-    
+
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
         if (this.target != Target.C && this.target != Target.CPP && this.target != Target.Python) {
@@ -325,7 +329,7 @@ class LFValidator extends AbstractLFValidator {
                     }
                 } else {
                     if (this.target != Target.C && this.target != Target.Python) {
-                        error("Parameterized widths are currently only supported by the C target.", 
+                        error("Parameterized widths are currently only supported by the C target.",
                                 Literals.WIDTH_SPEC__TERMS)
                     }
                 }
@@ -342,7 +346,7 @@ class LFValidator extends AbstractLFValidator {
                 for (rp : connection.rightPorts) {
                     var leftInCycle = false
                     val reactorName = (connection.eContainer as Reactor).name
-            
+
                     if ((lp.container === null && cycle.exists [
                         it.definition === lp.variable
                     ]) || cycle.exists [
@@ -358,7 +362,7 @@ class LFValidator extends AbstractLFValidator {
                     ]) {
                         if (leftInCycle) {
                             // Only report of _both_ referenced ports are in the cycle.
-                            error('''Connection in reactor «reactorName» creates ''' + 
+                            error('''Connection in reactor «reactorName» creates ''' +
                                     '''a cyclic dependency between «lp.toText» and ''' +
                                     '''«rp.toText».''', Literals.CONNECTION__DELAY
                             )
@@ -367,10 +371,9 @@ class LFValidator extends AbstractLFValidator {
                 }
             }
         }
-        
+
         // FIXME: look up all ReactorInstance objects that have a definition equal to the
         // container of this connection. For each of those occurrences, the widths have to match.
-        
         // For the C target, since C has such a weak type system, check that
         // the types on both sides of every connection match. For other languages,
         // we leave type compatibility that language's compiler or interpreter.
@@ -405,7 +408,7 @@ class LFValidator extends AbstractLFValidator {
                 }
             }
         }
-        
+
         // Check whether the total width of the left side of the connection
         // matches the total width of the right side. This cannot be determined
         // here if the width is not given as a constant. In that case, it is up
@@ -430,7 +433,7 @@ class LFValidator extends AbstractLFValidator {
                 rightWidth += width
             }
         }
-        
+
         if (leftWidth !== -1 && rightWidth !== -1 && leftWidth != rightWidth) {
             if (connection.isIterated) {
                 if (rightWidth % leftWidth != 0) {
@@ -450,9 +453,9 @@ class LFValidator extends AbstractLFValidator {
                 )
             }
         }
-        
+
         val reactor = connection.eContainer as Reactor
-        
+
         // Make sure the right port is not already an effect of a reaction.
         for (reaction : reactor.reactions) {
             for (effect : reaction.effects) {
@@ -486,7 +489,7 @@ class LFValidator extends AbstractLFValidator {
             }
         }
     }
-    
+
     /**
      * Return true if the two types match. Unfortunately, xtext does not
      * seem to create a suitable equals() method for Type, so we have to
@@ -527,8 +530,7 @@ class LFValidator extends AbstractLFValidator {
                 Literals.DEADLINE__DELAY)
         }
     }
-    
-    @Check(FAST)
+@Check(FAST)
     def checkSTPOffset(STP stp) {
         if (this.target == Target.C &&
             this.info.overflowingDeadlines.contains(stp)) {
@@ -538,7 +540,7 @@ class LFValidator extends AbstractLFValidator {
                 Literals.DEADLINE__DELAY)
         }
     }
-    
+
     @Check(NORMAL)
     def checkBuild(Model model) {
         val uri = model.eResource?.URI
@@ -570,7 +572,7 @@ class LFValidator extends AbstractLFValidator {
                 error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE)
             }
         }
-        
+
         // mutable has no meaning in C++
         if (input.mutable && this.target == Target.CPP) {
             warning(
@@ -579,7 +581,7 @@ class LFValidator extends AbstractLFValidator {
                 Literals.INPUT__MUTABLE
             )
         }
-        
+
         // Variable width multiports are not supported (yet?).
         if (input.widthSpec !== null && input.widthSpec.ofVariableLength) {
             error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
@@ -597,7 +599,7 @@ class LFValidator extends AbstractLFValidator {
                 Literals.INSTANTIATION__REACTOR_CLASS
             )
         }
-        
+
         // Report error if this instantiation is part of a cycle.
         // FIXME: improve error message.
         // FIXME: Also report if there exists a cycle within.
@@ -617,7 +619,7 @@ class LFValidator extends AbstractLFValidator {
             }
         }
         // Variable width multiports are not supported (yet?).
-        if (instantiation.widthSpec !== null 
+        if (instantiation.widthSpec !== null
                 && instantiation.widthSpec.ofVariableLength
         ) {
             if (this.target == Target.C) {
@@ -679,7 +681,7 @@ class LFValidator extends AbstractLFValidator {
                 error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
             }
         }
-        
+
         // Variable width multiports are not supported (yet?).
         if (output.widthSpec !== null && output.widthSpec.ofVariableLength) {
             error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
@@ -696,7 +698,7 @@ class LFValidator extends AbstractLFValidator {
             info.update(model, DefaultErrorReporter.DEFAULT)
         }
     }
-    
+
     @Check(NORMAL)
     def updateModelInfo(Model model) {
         info.update(model, DefaultErrorReporter.DEFAULT)
@@ -711,14 +713,14 @@ class LFValidator extends AbstractLFValidator {
             error("Parameter cannot be initialized using parameter.",
                 Literals.PARAMETER__INIT)
         }
-        
+
         if (param.init === null || param.init.size == 0) {
             // All parameters must be initialized.
             error("Uninitialized parameter.", Literals.PARAMETER__INIT)
         } else if (param.isOfTimeType) {
              // We do additional checks on types because we can make stronger
              // assumptions about them.
-             
+
              // If the parameter is not a list, cannot be initialized
              // using a one.
              if (param.init.size > 1 && param.type.arraySpec === null) {
@@ -739,7 +741,7 @@ class LFValidator extends AbstractLFValidator {
                                 Literals.PARAMETER__INIT)
                         }
                     }
-                } // If time is not null, we know that a unit is also specified.    
+                } // If time is not null, we know that a unit is also specified.
             }
         } else if (this.target.requiresTypes) {
             // Report missing target type.
@@ -895,7 +897,7 @@ class LFValidator extends AbstractLFValidator {
                     '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
                         reaction.eContainer,
                     Literals.REACTOR__REACTIONS,
-                    reactor.reactions.indexOf(reaction))    
+                    reactor.reactions.indexOf(reaction))
                 } else if (effects.size == 0) {
                     error(
                     '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
@@ -907,7 +909,7 @@ class LFValidator extends AbstractLFValidator {
                 // Moving them won't help solve the problem.
             }
         }
-    // FIXME: improve error message. 
+    // FIXME: improve error message.
     }
 
     @Check(FAST)
@@ -923,7 +925,7 @@ class LFValidator extends AbstractLFValidator {
             // Prevent NPE in tests below.
             return
         } else {
-            if (reactor.isFederated || reactor.isMain) {   
+            if (reactor.isFederated || reactor.isMain) {
                 if(!reactor.name.equals(name)) {
                     // Make sure that if the name is omitted, the reactor is indeed main.
                     error(
@@ -953,12 +955,12 @@ class LFValidator extends AbstractLFValidator {
                 )
             }
         }
-        
+
         // If there is a main reactor (with no name) then disallow other (non-main) reactors
         // matching the file name.
-        
+
         checkName(reactor.name, Literals.REACTOR_DECL__NAME)
-        
+
         // C++ reactors may not be called 'preamble'
         if (this.target == Target.CPP && reactor.name.equalsIgnoreCase("preamble")) {
             error(
@@ -966,11 +968,11 @@ class LFValidator extends AbstractLFValidator {
                 Literals.REACTOR_DECL__NAME
             )
         }
-        
+
         if (reactor.host !== null) {
             if (!reactor.isFederated) {
                 error(
-                    "Cannot assign a host to reactor '" + reactor.name + 
+                    "Cannot assign a host to reactor '" + reactor.name +
                     "' because it is not federated.",
                     Literals.REACTOR__HOST
                 )
@@ -982,11 +984,11 @@ class LFValidator extends AbstractLFValidator {
         variables.addAll(reactor.outputs)
         variables.addAll(reactor.actions)
         variables.addAll(reactor.timers)
-                
+
         // Perform checks on super classes.
         for (superClass : reactor.superClasses ?: emptyList) {
             var conflicts = new HashSet()
-            
+
             // Detect input conflicts
             checkConflict(superClass.toDefinition.inputs, reactor.inputs, variables, conflicts)
             // Detect output conflicts
@@ -1001,7 +1003,7 @@ class LFValidator extends AbstractLFValidator {
                     variables.add(timer)
                 }
             }
-            
+
             // Report conflicts.
             if (conflicts.size > 0) {
                 val names = new ArrayList();
@@ -1009,11 +1011,11 @@ class LFValidator extends AbstractLFValidator {
                 error(
                 '''Cannot extend «superClass.name» due to the following conflicts: «names.join(',')».''',
                 Literals.REACTOR__SUPER_CLASSES
-                )    
+                )
             }
         }
     }
-    /** 
+    /**
      * For each input, report a conflict if:
      *   1) the input exists and the type doesn't match; or
      *   2) the input has a name clash with variable that is not an input.
@@ -1238,12 +1240,12 @@ class LFValidator extends AbstractLFValidator {
             }
         }
     }
-    
+
     @Check(FAST)
     def checkTimer(Timer timer) {
         checkName(timer.name, Literals.VARIABLE__NAME)
     }
-    
+
     @Check(FAST)
     def checkType(Type type) {
         // FIXME: disallow the use of generics in C
@@ -1260,7 +1262,7 @@ class LFValidator extends AbstractLFValidator {
             }
         }
         else if (this.target == Target.Python) {
-            if (type !== null) {               
+            if (type !== null) {
                 error(
                     "Types are not allowed in the Python target",
                     Literals.TYPE__ID
@@ -1268,7 +1270,7 @@ class LFValidator extends AbstractLFValidator {
             }
         }
     }
-        
+
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
