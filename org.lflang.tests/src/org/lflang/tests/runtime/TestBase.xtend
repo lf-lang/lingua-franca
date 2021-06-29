@@ -30,7 +30,7 @@ import org.lflang.tests.TestRegistry.TestCategory
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
-import static extension org.junit.Assert.assertTrue
+import static extension org.junit.jupiter.api.Assertions.assertTrue
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LFInjectorProvider)

@@ -199,7 +199,7 @@ public class FileConfig {
      * found.
      * @throws IOException
      */
-    private IResource getIResource(Resource r) throws IOException {
+    public IResource getIResource(Resource r) throws IOException {
         IResource iResource = null;
         java.net.URI uri = toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
@@ -214,6 +214,49 @@ public class FileConfig {
             // FIXME: find the iResource outside Eclipse
         }
         return iResource;
+    }
+    
+    /**
+     * Get the specified path as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * 
+     */
+    public IResource getIResource(Path path) {
+        return getIResource(path.toUri());
+    }
+    
+    /**
+     * Get the specified path as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * 
+     */
+    public IResource getIResource(File file) {
+        return getIResource(file.toURI());
+    }
+    
+    /**
+     * Get the specified uri as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
+     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * files by referring to their file system location. Instead, you have to refer
+     * to them relative the workspace root. This is required, for example, when marking
+     * the file with errors or warnings or when deleting those marks. 
+     * 
+     * @param uri A java.net.uri of the form "file://path".
+     */
+    public IResource getIResource(java.net.URI uri) {
+        IResource resource = iResource; // Default resource.
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+         
+        IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+        if (files != null && files.length > 0 && files[0] != null) {
+            resource = files[0];
+        }
+        return resource;
     }
 
     /** 
@@ -584,5 +627,25 @@ public class FileConfig {
      
      public static String nameWithoutExtension(Resource r) throws IOException {
          return nameWithoutExtension(toPath(r.getURI()).toFile());
+     }
+     
+     /**
+      * Determine which mode the compiler is running in.
+      * Integrated mode means that it is running within an Eclipse IDE.
+      * Standalone mode means that it is running on the command line.
+      * 
+      * FIXME: Not sure if that us the right place for this function. But
+      *  the decision which mode we are in depends on a file (the resource),
+      *  thus it seems to fit here.
+      */
+     public Mode getCompilerMode() {
+         if (resource.getURI().isPlatform()) {
+             return Mode.INTEGRATED;
+         } else if (resource.getURI().isFile()) {
+             return Mode.STANDALONE;
+         } else {
+             System.err.println("ERROR: Source file protocol is not recognized: " + resource.getURI());
+             return Mode.UNDEFINED;
+         }
      }
 }

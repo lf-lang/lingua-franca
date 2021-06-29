@@ -59,7 +59,7 @@ import static extension org.lflang.ASTUtils.*
  * on how and when to use it.
  * @author Marten Lohstroh
  */
-class LFScopeProvider extends AbstractLFScopeProvider {
+class LFScopeProviderImpl extends AbstractLFScopeProvider {
 
     @Inject
     SimpleNameProvider nameProvider

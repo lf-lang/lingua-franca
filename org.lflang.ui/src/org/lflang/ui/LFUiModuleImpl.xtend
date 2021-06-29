@@ -34,7 +34,7 @@ import java.io.PrintStream
  * subclassing, and the code has no comments in it at all.
  */
 @FinalFieldsConstructor
-class LFUiModule extends AbstractLFUiModule {
+class LFUiModuleImpl extends AbstractLFUiModule {
     
     static var consoleInitialized = false
     

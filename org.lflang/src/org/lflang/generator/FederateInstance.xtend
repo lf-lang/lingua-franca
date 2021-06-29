@@ -45,6 +45,7 @@ import org.lflang.lf.VarRef
 import static extension org.lflang.ASTUtils.*
 import org.lflang.lf.Port
 import org.lflang.lf.Variable
+import org.lflang.ErrorReporter
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -64,18 +65,24 @@ class FederateInstance {
      *  or null if no federation has been defined.
      * @param id The federate ID.
      * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
-     * @param generator The generator (for reporting errors).
+     * @param generator The generator
+     * @param errorReporter The error reporter
+     * 
+     * FIXME: Do we really need to pass the complete generator here? It is only used 
+     *  to determine the number of federates.
      */
     protected new(
         Instantiation instantiation, 
         int id, 
         int bankIndex, 
-        GeneratorBase generator
+        GeneratorBase generator,
+        ErrorReporter errorReporter
     ) {
         this.instantiation = instantiation;
         this.id = id;
         this.generator = generator;
         this.bankIndex = bankIndex;
+        this.errorReporter = errorReporter;
                 
         if (instantiation !== null) {
             this.name = instantiation.name;
@@ -269,7 +276,7 @@ class FederateInstance {
                             referencesFederate = true;
                         } else {
                             if (referencesFederate) {
-                                generator.reportError(react, 
+                                errorReporter.reportError(react, 
                                 "Reaction mixes triggers and effects from" +
                                 " different federates. This is not permitted")
                             }
@@ -285,7 +292,7 @@ class FederateInstance {
                             referencesFederate = true;
                         } else {
                             if (referencesFederate) {
-                                generator.reportError(react, 
+                                errorReporter.reportError(react, 
                                 "Reaction mixes triggers and effects from" +
                                 " different federates. This is not permitted")
                             }
@@ -300,7 +307,7 @@ class FederateInstance {
                         referencesFederate = true;
                     } else {
                         if (referencesFederate) {
-                            generator.reportError(react,
+                            errorReporter.reportError(react,
                                 "Reaction mixes triggers and effects from" + 
                                 " different federates. This is not permitted")
                         }
@@ -353,6 +360,9 @@ class FederateInstance {
     
     /** The generator using this. */
     var generator = null as GeneratorBase
+    
+    /** An error reporter */
+    val ErrorReporter errorReporter
     
     /**
      * Find the nearest (shortest) path to a physical action trigger from this
