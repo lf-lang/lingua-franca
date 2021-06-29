@@ -50,6 +50,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
 
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
+    private val methods = CppMethodGenerator(reactor)
     private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
@@ -96,6 +97,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |  struct Inner: public lfutil::LFScope {
         ${" |    "..parameters.generateDeclarations()}
         ${" |    "..state.generateDeclarations()}
+        ${" |    "..methods.generateDeclarations()}
         ${" |    "..constructor.generateInnerDeclaration()}
         ${" |    "..reactions.generateBodyDeclarations()}
         ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
@@ -132,6 +134,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..constructor.generateInnerDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
+            |
+        ${" |"..methods.generateDefinitions()}
             |
         ${" |"..reactions.generateBodyDefinitions()}
         ${" |"..reactions.generateDeadlineHandlerDefinitions()}
