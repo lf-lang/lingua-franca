@@ -192,7 +192,7 @@ class CppAssembleMethodGenerator(
             ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<reactor::Input<$type>*> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx);
+                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
             """.trimMargin()
         }
     }
@@ -200,7 +200,6 @@ class CppAssembleMethodGenerator(
     private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String {
         val port = varRef.variable as Port
         val container = varRef.container
-        // FIXME, this does not support yet the (...)+ operator
         return if (port.isMultiport) {
             if (container?.isBank == true) {
                 // is multiport in a bank
