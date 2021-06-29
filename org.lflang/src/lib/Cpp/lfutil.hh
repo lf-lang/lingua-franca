@@ -25,6 +25,7 @@
 #pragma once
 
 #include <reactor-cpp/reactor-cpp.hh>
+#include <reactor-cpp/logging.hh>
 
 namespace lfutil {
 
@@ -66,6 +67,14 @@ void bind_multiple_ports(
 
   auto left_it = left_ports.begin();
   auto right_it = right_ports.begin();
+
+  if (left_ports.size() < right_ports.size()) {
+    reactor::log::Warn() << "There are more right ports than left ports. "
+                         << "Not all ports will be connected!";
+  } else if (left_ports.size() > right_ports.size()) {
+    reactor::log::Warn() << "There are more left ports than right ports. "
+                         << "Not all ports will be connected!";
+  }
 
   while (left_it != left_ports.end() && right_it != right_ports.end()) {
     auto left = *left_it;
