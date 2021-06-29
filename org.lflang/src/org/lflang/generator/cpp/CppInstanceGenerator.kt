@@ -44,20 +44,20 @@ class CppInstanceGenerator(
                 reactor.name
         }
 
-    private fun generateDeclaration(inst: Instantiation): String {
-        return if (inst.isBank)
-            "std::array<std::unique_ptr<${inst.cppType}>, ${inst.getValidWidth()}> ${inst.name};"
+    private fun generateDeclaration(inst: Instantiation): String = with(inst) {
+        return if (isBank)
+            "std::vector<std::unique_ptr<$cppType>> $name;"
         else
-            "std::unique_ptr<${inst.cppType}> ${inst.name};"
+            "std::unique_ptr<$cppType> $name;"
     }
 
-    private fun Instantiation.getParameterValue(param: Parameter, instanceId: Int? = null): String {
+    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
         val assignment = this.parameters.firstOrNull { it.lhs === param }
 
-        return if (instanceId != null && param.name == "instance") {
+        return if (isBankInstantiation && param.name == "instance") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
             // to the parameter named "instance"
-            instanceId.toString()
+            """__lf_idx"""
         } else if (assignment == null) {
             // If no assignment was found, then the parameter is not overwritten and we assign the
             // default value
@@ -70,26 +70,35 @@ class CppInstanceGenerator(
     }
 
     private fun generateInitializer(inst: Instantiation): String {
+        assert(!inst.isBank)
         val parameters = inst.reactor.parameters
-        return if (inst.isBank) {
-            val initializations = if (parameters.isEmpty()) {
-                (0 until inst.getValidWidth()).joinToString(", ") {
-                    """std::make_unique<${inst.cppType}>("${inst.name}_$it", this)"""
-                }
+        return if (parameters.isEmpty())
+            """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this))"""
+        else {
+            val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
+            """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, $params))"""
+        }
+    }
+
+    private fun generateConstructorInitializer(inst: Instantiation): String {
+        with(inst) {
+            assert(isBank)
+            val parameters = inst.reactor.parameters
+            val emplaceLine = if (parameters.isEmpty()) {
+                """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this));"""
             } else {
-                (0 until inst.getValidWidth()).joinToString(", ") {
-                    val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, it) }
-                    """std::make_unique<${inst.cppType}>("${inst.name}", this, $params)"""
+                val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, true) }
+                """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, $params));"""
+            }
+
+            return """
+                // initialize instance $name
+                ${name}.reserve(${getValidWidth()});
+                for (size_t __lf_idx = 0; __lf_idx < ${getValidWidth()}; __lf_idx++) {
+                  std::string __lf_inst_name = "${name}_" + std::to_string(__lf_idx);
+                  $emplaceLine
                 }
-            }
-            """, ${inst.name}{{$initializations}}"""
-        } else {
-            if (parameters.isEmpty())
-                """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this))"""
-            else {
-                val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
-                """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, $params))"""
-            }
+            """.trimIndent()
         }
     }
 
@@ -124,7 +133,11 @@ class CppInstanceGenerator(
         ) { generateDeclaration(it) }
     }
 
+    fun generateConstructorInitializers() =
+        reactor.instantiations.filter { it.isBank }.joinToString("\n") { generateConstructorInitializer(it) }
+
     /** Generate constructor initializers for all reactor instantiations */
     fun generateInitializers(): String =
-        reactor.instantiations.joinToString(prefix = "//reactor instances\n", separator = "\n") { generateInitializer(it) }
+        reactor.instantiations.filterNot { it.isBank }
+            .joinToString(prefix = "//reactor instances\n", separator = "\n") { generateInitializer(it) }
 }
