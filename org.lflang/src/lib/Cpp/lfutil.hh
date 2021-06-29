@@ -62,8 +62,21 @@ class LFScope {
 
 template<class T>
 void bind_multiple_ports(
-    const std::vector<reactor::Output<T>*>& left_ports,
-    const std::vector<reactor::Input<T>*>& right_ports) {
+    std::vector<reactor::Output<T>*>& left_ports,
+    std::vector<reactor::Input<T>*>& right_ports,
+    bool repeat_left) {
+
+  if (repeat_left) {
+    size_t l_size = left_ports.size();
+    size_t r_size = right_ports.size();
+    // divide and round up
+    size_t repetitions = r_size / l_size + (r_size % l_size != 0);
+    // repeat repetitions-1 times
+    left_ports.reserve(repetitions * l_size);
+    for (size_t i = 1; i < repetitions; i++) {
+      std::copy_n(left_ports.begin(), l_size, std::back_inserter(left_ports));
+    }
+  }
 
   auto left_it = left_ports.begin();
   auto right_it = right_ports.begin();
