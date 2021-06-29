@@ -9,13 +9,14 @@ dependencies {
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
 
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
 jacoco {
     toolVersion = "0.8.7"
     reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
 }
 
-apply plugin: 'java'
-apply plugin: 'jacoco'
 
 jacocoTestReport {
     reports {
