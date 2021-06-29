@@ -396,7 +396,7 @@ typedef struct lf_token_t {
     /** Size of the struct or array element. */
     size_t element_size;
     /** Length of the array or 1 for a struct. */
-    int length;
+    size_t length;
     /** The number of input ports that have not already reacted to the message. */
     int ref_count;
     /**
@@ -438,7 +438,7 @@ struct reaction_t {
     unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
     size_t pos;       // Current position in the priority queue. RUNTIME.
     reaction_t* last_enabling_reaction; // The last enabling reaction, or NULL if there is none. Used for optimization. INSTANCE.
-    int num_outputs;  // Number of outputs that may possibly be produced by this function. COMMON.
+    size_t num_outputs;  // Number of outputs that may possibly be produced by this function. COMMON.
     bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced. COMMON.
     int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
@@ -733,7 +733,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  * Variant of schedule_token that creates a token to carry the specified value.
  * The value is required to be malloc'd memory with a size equal to the
  * element_size of the specifies action times the length parameter.
- * See schedule_token() for details.
+ * See _lf_schedule_token() for details.
  * @param action The action to be triggered.
  * @param extra_delay Extra offset of the event release above that in the action.
  * @param value Dynamically allocated memory containing the value to send.
@@ -741,7 +741,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length);
+handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length);
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -749,14 +749,14 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
  * then it will be copied into newly allocated memory under the assumption
  * that its size is given in the trigger's token object's element_size field
  * multiplied by the specified length.
- * See schedule_token(), which this uses, for details.
+ * See _lf_schedule_token(), which this uses, for details.
  * @param action Pointer to an action on a self struct.
  * @param offset The time offset over and above that in the action.
  * @param value A pointer to the value to copy.
  * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length);
+handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length);
 
 /**
  * For a federated execution, send a STOP_REQUEST message
