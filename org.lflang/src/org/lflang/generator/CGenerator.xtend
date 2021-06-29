@@ -1953,41 +1953,34 @@ class CGenerator extends GeneratorBase {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.
                     if (!port.isMultiport) {
+                        // Not a multiport.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)» «port.name»;
                         ''')
                     } else {
+                        // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)»** «port.name»;
                             int «port.name»__width;
                         ''')
-                        // Add to the destructor code to free the malloc'd memory.
-                        // FIXME: Refactor so there is an array of pointers to free on the self struct.
-                        /* Following isn't right for multiports in banks.
-                        pr(port, destructorCode, '''
-                            free(self->__«containedReactor.name».«port.name»);
-                        ''')
-                        */
                     }
                 } else {
                     // Must be an output entry.
                     // Outputs of contained reactors are pointers to the source of data on the
                     // self struct of the container.
                     if (!port.isMultiport) {
+                        // Not a multiport.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)»* «port.name»;
                         ''')
                     } else {
+                        // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)»** «port.name»;
                             int «port.name»__width;
-                        ''')
-                        // Add to the destructor code to free the malloc'd memory.
-                        pr(port, destructorCode, '''
-                            free(self->__«containedReactor.name».«port.name»);
                         ''')
                     }
                     pr(port, body, '''
@@ -2048,6 +2041,24 @@ class CGenerator extends GeneratorBase {
                         pr(constructorCode, "}")
                     }
                 }
+                if (port.isMultiport) {
+                    // Add to the destructor code to free the malloc'd memory.
+                    if (containedReactor.widthSpec !== null) {
+                        pr(port, destructorCode, '''
+                            for (int j = 0; j < self->__«containedReactor.name»_width; j++) {
+                                for (int i = 0; i < self->__«containedReactor.name»[j].«port.name»__width; i++) {
+                                    free(self->__«containedReactor.name»[j].«port.name»[i]);
+                                }
+                            }
+                        ''')
+                    } else {
+                        pr(port, destructorCode, '''
+                            for (int i = 0; i < self->__«containedReactor.name».«port.name»__width; i++) {
+                                free(self->__«containedReactor.name».«port.name»[i]);
+                            }
+                        ''')
+                    }
+                }
             }
             unindent(body)
             pr(body, '''
@@ -2069,7 +2080,6 @@ class CGenerator extends GeneratorBase {
     def void generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
         // Do nothing
     }
-    
     
     /**
      * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
@@ -2669,7 +2679,9 @@ class CGenerator extends GeneratorBase {
                         decl)
                 } else if (trigger.variable instanceof Action) {
                     generateActionVariablesInReaction(
-                        reactionInitialization, trigger.variable as Action, decl
+                        reactionInitialization, 
+                        trigger.variable as Action, 
+                        decl
                     )
                     actionsAsTriggers.add(trigger.variable as Action);
                 }
@@ -4941,6 +4953,19 @@ class CGenerator extends GeneratorBase {
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
+        connectReactionsToPorts(instance, federate)
+        
+        pr('''// END Connect inputs and outputs for reactor «instance.getFullName».''')
+    }
+    
+    /**
+     * Connect inputs that get sent data from a reaction rather than from
+     * another contained reactor and reactions that are triggered by an
+     * output of a contained reactor.
+     * @param instance The reactor instance that contains the reactions.
+     * @param fedeate The federate instance.
+     */
+    private def connectReactionsToPorts(ReactorInstance instance, FederateInstance federate) {
         for (reaction : instance.reactions) {
             for (port : reaction.effects.filter(PortInstance)) {
                 if (port.definition instanceof Input && !(port instanceof MultiportInstance)) {
@@ -4970,33 +4995,60 @@ class CGenerator extends GeneratorBase {
                     // of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
                     if (reactorBelongsToFederate(port.parent, federate)) {
-                        val destStructType = variableStructType(
-                            port.definition as TypedVariable,
-                            port.parent.definition.reactorClass
-                        )
-                        if (!(port instanceof MultiportInstance)) {
-                            pr('''
-                                // Record output «port.getFullName», which triggers reaction «reaction.reactionIndex»
-                                // of «instance.getFullName», on its self struct.
-                                «reactionReference(port)» = («destStructType»*)«sourceReference(port)»;
-                            ''')
-                        } else {
-                            pr('''
-                                for (int i = 0; i < «reactionReference(port)»__width; i++) {
-                                    «reactionReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
+                        // The port may be deeper in the hierarchy.
+                        // Have to check for each instance port if it's a multiport.
+                        if (port instanceof MultiportInstance) {
+                            for (instancePort : port.instances) {
+                                val eventualPort = sourcePort(instancePort)
+                                val destStructType = variableStructType(
+                                    instancePort.definition as TypedVariable,
+                                    instancePort.parent.definition.reactorClass
+                                )
+                                if (!(eventualPort instanceof MultiportInstance)) {
+                                    pr('''
+                                        // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                        // of «instance.getFullName», on its self struct.
+                                        «reactionReference(instancePort)» = («destStructType»*)«sourceReference(eventualPort)»;
+                                    ''')
+                                } else {
+                                    pr('''
+                                        // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                        // of «instance.getFullName», on its self struct.
+                                        for (int i = 0; i < «reactionReference(eventualPort)»__width; i++) {
+                                            «reactionReference(instancePort)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
+                                        }
+                                    ''')
                                 }
-                            ''')
+                            }
+                        } else {
+                            val eventualPort = sourcePort(port)
+                            val destStructType = variableStructType(
+                                port.definition as TypedVariable,
+                                port.parent.definition.reactorClass
+                            )
+                            if (!(eventualPort instanceof MultiportInstance)) {
+                                pr('''
+                                    // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                    // of «instance.getFullName», on its self struct.
+                                    «reactionReference(port)» = («destStructType»*)«sourceReference(eventualPort)»;
+                                ''')
+                            } else {
+                                pr('''
+                                    for (int i = 0; i < «reactionReference(eventualPort)»__width; i++) {
+                                        «reactionReference(port)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
+                                    }
+                                ''')
+                            }
                         }
                     }
                 }
             }
         }
-        pr('''// END Connect inputs and outputs for reactor «instance.getFullName».''')
     }
     
     /**
-     * Given an input port instance, if it receives its data from a reaction somewhere up
-     * in the hierarchy, return the port to which the reaction actually writes.
+     * Given a port instance, if it receives its data from a reaction somewhere up or
+     * down in the hierarchy, return the port to which the reaction actually writes.
      * The returned port will be this same port if the parent's parent's reaction
      * writes directly to this port, but if this port is deeper in the hierarchy,
      * then this will be a port belonging to highest parent of this port where
@@ -5226,9 +5278,6 @@ class CGenerator extends GeneratorBase {
                     «portStructType»** «output.name»;
                     int «output.name»_width;
                 ''')
-                pr(builder, '''
-                    «reactorName».«output.name»_width = self->__«reactorName».«output.name»__width;
-                ''')
             }
 
             // Next, initialize the struct with the current values.
@@ -5238,12 +5287,24 @@ class CGenerator extends GeneratorBase {
                     for (int i = 0; i < «port.container.name»_width; i++) {
                         «reactorName»[i].«output.name» = self->__«reactorName»[i].«output.name»;
                     }
-                ''')                    
+                ''')
+                if (output.isMultiport) {
+                    pr(builder, '''
+                        for (int i = 0; i < «port.container.name»_width; i++) {
+                            «reactorName»[i].«output.name»_width = self->__«reactorName»[i].«output.name»__width;
+                        }
+                    ''')                    
+                }
             } else {
                  // Output is not in a bank.
                 pr(builder, '''
                     «reactorName».«output.name» = self->__«reactorName».«output.name»;
                 ''')                    
+                if (output.isMultiport) {
+                    pr(builder, '''
+                        «reactorName».«output.name»_width = self->__«reactorName».«output.name»__width;
+                    ''')                    
+                }
             }
         }
     }
