@@ -43,6 +43,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ASTUtils
+import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
@@ -329,9 +330,8 @@ class CGenerator extends GeneratorBase {
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
 
-
-    new () {
-        super()
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"
@@ -359,7 +359,7 @@ class CGenerator extends GeneratorBase {
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)        
 
-        if (generatorErrorsOccurred) return;
+        if (errorsOccurred) return;
 
         // Generate code for each reactor.
         val names = newLinkedHashSet
@@ -370,7 +370,7 @@ class CGenerator extends GeneratorBase {
             for (d : declarations) {
                 if (!names.add(d.name)) {
                     // Report duplicate declaration.
-                    reportError("Multiple declarations for reactor class '" + d.name + "'.")
+                    errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
                 }
                 generateReactorFederated(d, null)
             }
@@ -445,7 +445,7 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
             }
         } else {
-            reportError("Platform " + OS + " is not supported")
+            errorReporter.reportError("Platform " + OS + " is not supported")
         }
         
         
@@ -495,7 +495,7 @@ class CGenerator extends GeneratorBase {
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, this, 
+                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
                         this.unorderedReactions)
                     this.reactionGraph = new ReactionInstanceGraph(main)
                 }   
@@ -1472,7 +1472,7 @@ class CGenerator extends GeneratorBase {
         fOut.write(shCode.toString().getBytes())
         fOut.close()
         if (!file.setExecutable(true, false)) {
-            reportWarning(null, "Unable to make launcher script executable.")
+            errorReporter.reportWarning("Unable to make launcher script executable.")
         }
         
         // Write the distributor file.
@@ -1486,7 +1486,7 @@ class CGenerator extends GeneratorBase {
             fOut.write(distCode.toString().getBytes())
             fOut.close()
             if (!file.setExecutable(true, false)) {
-                reportWarning(null, "Unable to make distributor script executable.")
+                errorReporter.reportWarning("Unable to make distributor script executable.")
             }
         }
     }
@@ -1707,7 +1707,7 @@ class CGenerator extends GeneratorBase {
     protected def valueDeclaration(Port port) {
         if (port.type === null && target.requiresTypes === true) {
             // This should have been caught by the validator.
-            reportError(port, "Port is required to have a type: " + port.name)
+            errorReporter.reportError(port, "Port is required to have a type: " + port.name)
             return ''
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
@@ -2068,7 +2068,7 @@ class CGenerator extends GeneratorBase {
             // Check for targetBankIndex
             // FIXME: for now throw a reserved error
             if (parameter.name.equals(targetBankIndex)) {
-                reportError('''«targetBankIndex» is reserved.''')
+                errorReporter.reportError('''«targetBankIndex» is reserved.''')
             }
 
             prSourceLineNumber(builder, parameter)
@@ -2088,7 +2088,7 @@ class CGenerator extends GeneratorBase {
             // FIXME: for now throw a reserved error
             if(stateVar.name.equals(targetBankIndex))
             {
-                reportError('''«targetBankIndex» is reserved.''')
+                errorReporter.reportError('''«targetBankIndex» is reserved.''')
             }
             
             prSourceLineNumber(builder, stateVar)
@@ -2708,7 +2708,7 @@ class CGenerator extends GeneratorBase {
                             effect.variable as Input
                         )
                     } else {
-                        reportError(
+                        errorReporter.reportError(
                             reaction,
                             "In generateReaction(): " + effect.variable.name + " is neither an input nor an output."
                         )
@@ -3242,7 +3242,7 @@ class CGenerator extends GeneratorBase {
             targetConfig.compileLibraries.add('-l')
             targetConfig.compileLibraries.add('protobuf-c')    
         } else {
-            reportError("protoc-c returns error code " + returnCode)
+            errorReporter.reportError("protoc-c returns error code " + returnCode)
         }
     }
     
@@ -3841,7 +3841,7 @@ class CGenerator extends GeneratorBase {
             if (minDelay != TimeValue.MAX_VALUE) {
                 // Unless silenced, issue a warning.
                 if (targetConfig.coordinationOptions.advance_message_interval === null) {
-                    reportWarning(outputFound, '''
+                    errorReporter.reportWarning(outputFound, '''
                             Found a path from a physical action to output for reactor "«instance.name»". 
                             The amount of delay is «minDelay.toString()».
                             With centralized coordination, this can result in a large number of messages to the RTI.
@@ -5226,8 +5226,7 @@ class CGenerator extends GeneratorBase {
         ReactorDecl decl
     ) {
         if (output.type === null && target.requiresTypes === true) {
-            reportError(output,
-                "Output is required to have a type: " + output.name)
+            errorReporter.reportError(output, "Output is required to have a type: " + output.name)
         } else {
             val outputStructType = variableStructType(output, decl)
             // Unfortunately, for the SET macros to work out-of-the-box for
@@ -5485,7 +5484,7 @@ class CGenerator extends GeneratorBase {
     
     override getTargetTagIntervalType() '''tag_interval_t'''
 
-    override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
+    override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
     override getTargetFixedSizeListType(String baseType,
         Integer size) '''«baseType»[«size»]'''

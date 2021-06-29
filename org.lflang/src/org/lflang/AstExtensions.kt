@@ -24,6 +24,9 @@
 
 package org.lflang
 
+import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.generator.cpp.name
 import org.lflang.lf.*
 
 /**
@@ -100,7 +103,29 @@ val Reactor.allTimers: List<Timer> get() = collectInSupertypes { timers }
 private fun <T> Reactor.collectInSupertypes(collector: Reactor.() -> List<T>): List<T> =
     superClasses.orEmpty().mapNotNull { it.toDefinition().collectInSupertypes(collector) }.flatten() + this.collector()
 
+/**
+ * Check if the reactor class uses generics
+ * @receiver the reactor to check
+ * @true true if the reactor uses generics
+ */
+val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
+
+/**
+ * Report whether the given parameter has been declared a type or has been
+ * inferred to be a type. Note that if the parameter was declared to be a
+ * time, its initialization may still be faulty (assigning a value that is
+ * not actually a valid time).
+ * @see ASTUtils.isOfTimeType
+ * @return True if the receiver denotes a time, false otherwise.
+ */
 val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
+
+/**
+ * Report whether the given state variable denotes a time or not.
+ * @see ASTUtils.isOfTimeType
+ * @return True if the receiver denotes a time, false otherwise.
+ */
+val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation.
@@ -227,33 +252,17 @@ val String.isZero: Boolean get() = this.toIntOrNull() == 0
 
 val Code.isZero: Boolean get() = this.toText().isZero
 
-/**
- * Return whether the given [value] is zero or not.
- */
-fun isZero(value: Value): Boolean =
-    value.literal?.isZero
-        ?: value.code?.isZero
-        ?: false
 
 /**
- * Given the specification of the width of either a bank of reactors
- * or a multiport, return the width if it can be determined and otherwise
- * return -1. The width can be determined if it is given by one or more
- * literal constants or if the widthSpec is null (it is not a multiport
- * or reactor bank).
- *
- * IMPORTANT: This method should not be used you really need to
- * determine the width! It will not evaluate parameter values.
- *
- * @receiver The width specification.
- *
- * @return The width or null if it cannot be determined.
+ * Report whether the given value is zero or not.
+ * @receiver AST node to inspect.
+ * @return True if the given value denotes the constant `0`, false otherwise.
  */
-val WidthSpec.width: Int?
-    get() = ASTUtils.width(this, null).takeIf { it >= 0 }
-
-
-// more general extensions
+val Value.isZero: Boolean
+    get() =
+        this.literal?.isZero
+            ?: this.code?.isZero
+            ?: false
 
 /**
  * Parse and return an integer from this string, much
@@ -285,3 +294,122 @@ fun <T> List<T>.tail() = subList(1, size)
  * @throws NoSuchElementException if the list is empty
  */
 fun <T> List<T>.headAndTail() = Pair(first(), tail())
+
+/**
+ * Given an initialization list, return an inferred type. Only two types
+ * can be inferred: "time" and "timeList". Return the "undefined" type if
+ * neither can be inferred.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none could be inferred.
+ */
+val EList<Value>.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Given a parameter, return an inferred type. Only two types can be
+ * inferred: "time" and "timeList". Return the "undefined" type if
+ * neither can be inferred.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none could be inferred.
+ */
+val Parameter.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Given a state variable, return an inferred type. Only two types can be
+ * inferred: "time" and "timeList". Return the "undefined" type if
+ * neither can be inferred.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none could be inferred.
+ */
+val StateVar.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Construct an inferred type from an "action" AST node based
+ * on its declared type. If no type is declared, return the "undefined"
+ * type.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none was declared.
+ */
+val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Construct an inferred type from a "port" AST node based on its declared
+ * type. If no type is declared, return the "undefined" type.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none was declared.
+ */
+val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Report whether a state variable has been initialized or not.
+ * @receiver The state variable to be checked.
+ * @return True if the variable was initialized, false otherwise.
+ */
+val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
+
+/**
+ * Given the width specification of port or instantiation
+ * and an (optional) list of nested intantiations, return
+ * the width if it can be determined and -1 if not.
+ * It will not be able to be determined if either the
+ * width is variable (in which case you should use
+ * {@link inferPortWidth(VarRef, Connection, List<Instantiation>})
+ * or the list of instantiations is incomplete or missing.
+ * If there are parameter references in the width, they are
+ * evaluated to the extent possible given the instantiations list.
+ *
+ * The [instantiations] list is as in
+ * [ASTUtils.initialValue]
+ * If the spec belongs to an instantiation (for a bank of reactors),
+ * then the first element on this list should be the instantiation
+ * that contains this instantiation. If the spec belongs to a port,
+ * then the first element on the list should be the instantiation
+ * of the reactor that contains the port.
+ *
+ * @param instantiations The (optional) list of instantiations.
+ *
+ * @receiver The width, or -1 if the width could not be determined.
+ *
+ * @throws IllegalArgumentException If an instantiation provided is not as
+ *  given above or if the chain of instantiations is not nested.
+ */
+fun WidthSpec.getWidth(instantiations: List<Instantiation>? = null) = ASTUtils.width(this, instantiations)
+
+/** Get the LF Model of a resource */
+val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance<Model>().first()
+
+/** Get a label representing the receiving reaction.
+ *
+ * If the reaction is annotated with a label, then the label is returned. Otherwise, a reaction name
+ * is generated based on its priority.
+ */
+val Reaction.label get(): String = ASTUtils.label(this) ?: "reaction_$priority"
+
+/** Get the priority of a receiving reaction */
+val Reaction.priority
+    get(): Int {
+        val r = this.eContainer() as Reactor
+        return r.reactions.lastIndexOf(this) + 1
+    }
+
+/** Return true if the receiving action is logical */
+val Action.isLogical get() = this.origin == ActionOrigin.LOGICAL
+
+/** Return true if the receiving action is physical */
+val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
+
+/**
+ * Return true if the receiving is a multiport.
+ * FIXME This is a duplicate of GeneratorBase.isMultiport
+ */
+val Port.isMultiport get() = this.widthSpec != null
+
+/** Get the reactor that is instantiated in the receiving instantiation. */
+val Instantiation.reactor get() = this.reactorClass.toDefinition()
+
+/** Check if the receiver is a bank instantiation. */
+val Instantiation.isBank: Boolean get() = this.widthSpec != null
