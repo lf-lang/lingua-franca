@@ -103,6 +103,7 @@ class CppConstructorGenerator(
             ${" |  "..actions.generateInitializers()}
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
+            ${" |  "..instances.generateConstructorInitializers()}
                 |}
             """.trimMargin()
         }

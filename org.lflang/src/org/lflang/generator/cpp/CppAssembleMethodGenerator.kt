@@ -207,7 +207,7 @@ class CppAssembleMethodGenerator(
                 """
                     for (auto& __lf_instance : ${container.name}) {
                       for (auto& __lf_port : __lf_instance->${port.name}) {
-                        ${vectorName}.push_back(&${port.name});
+                        ${vectorName}.push_back(&__lf_port);
                       }
                     }
                 """.trimIndent()
