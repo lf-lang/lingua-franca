@@ -129,7 +129,7 @@ public class LFGenerator extends AbstractGenerator {
     /**
      * Create a C++ code generator
      * 
-     * Since the CppGenerator class is implemented in Kotlin, the class is is
+     * Since the CppGenerator class is implemented in Kotlin, the class is
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
