@@ -83,9 +83,9 @@ class CppReactionGenerator(
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
                 allReferencedContainers.map {
                     if (it.isReadOnly(this))
-                        "const ${getViewName(it)}* ${it.name}"
+                        "const ${getViewName(it)}& ${it.name}"
                     else
-                        "${getViewName(it)}* ${it.name}"
+                        "${getViewName(it)}& ${it.name}"
                 }
 
     private fun generateDeclaration(r: Reaction): String {
@@ -95,9 +95,9 @@ class CppReactionGenerator(
                     allUncontainedEffects.map { it.name } +
                     allReferencedContainers.map {
                         if (it.isReadOnly(r))
-                            "reinterpret_cast<const ${getViewName(it)}*>(${it.name}.get())"
+                            "reinterpret_cast<const ${getViewName(it)}&>(*${it.name})"
                         else
-                            "reinterpret_cast<${getViewName(it)}*>(${it.name}.get())"
+                            "reinterpret_cast<${getViewName(it)}&>(*${it.name})"
                     }
             val body = "void ${name}_body() { __lf_inner.${name}_body(${parameters.joinToString(", ")}); }"
             val deadlineHandler =
