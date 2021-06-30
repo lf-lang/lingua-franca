@@ -41,16 +41,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-/**
- * Fetch the value of clk_id and store it in tp.
- */
-int lf_clock_gettime(_lf_clock_t clk_id, _lf_time_spec_t* tp) {
-    return clock_gettime((clockid_t)clk_id, (struct timespec*) tp);
-}
+#include "lf_unix_clock_support.c"
 
 /**
  * Pause execution for a number of nanoseconds.
+ *
+ * A Linux-specific clock_nanosleep is used underneath that is supposedly more
+ * accurate.
+ *
+ * @return 0 for success, or -1 for failure. In case of failure, errno will be
+ *  set appropriately (see `man 2 clock_nanosleep`).
  */
-int lf_nanosleep(_lf_clock_t clk_id, const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
-    return clock_nanosleep(clk_id, 0, (const struct timespec*)requested_time, (struct timespec*)remaining);
+int lf_nanosleep(instant_t requested_time) {
+    const struct timespec tp = convert_ns_to_timespec(requested_time);
+    struct timespec remaining;
+    return clock_nanosleep(_LF_CLOCK, 0, (const struct timespec*)&tp, (struct timespec*)&remaining);
 }

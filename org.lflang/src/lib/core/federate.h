@@ -57,7 +57,7 @@ typedef struct federate_instance_t {
 	 * This can be either physical connections, or logical connections
 	 * in the decentralized coordination, or both.
 	 */
-	int number_of_inbound_p2p_connections;
+	size_t number_of_inbound_p2p_connections;
 
 	/**
 	 * Array of thread IDs for threads that listen for incoming messages.
@@ -71,7 +71,7 @@ typedef struct federate_instance_t {
 	 * This can be either physical connections, or logical connections
 	 * in the decentralized coordination, or both.
 	 */
-	int number_of_outbound_p2p_connections;
+	size_t number_of_outbound_p2p_connections;
 
 	/**
 	 * An array that holds the socket descriptors for inbound
@@ -215,7 +215,7 @@ typedef struct federate_instance_t {
 	 * to trigger these reaction at the beginning of every tag.
 	 */
 	trigger_t** triggers_for_network_input_control_reactions;
-	int triggers_for_network_input_control_reactions_size;
+	size_t triggers_for_network_input_control_reactions_size;
 
 
 	/**
