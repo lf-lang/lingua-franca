@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<introContent>
+    <page id="root" style="css/style.css" style-id="page">
+        <text>Welcome to the Lingua Franca Eclipse IDE!</text>
+        <link label="Wiki" url="https://github.com/icyphy/lingua-franca/wiki" id="orglflangui-introLink" style-id="content-link">
+        </link>
+    </page>
+</introContent>
