@@ -131,17 +131,35 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
+    private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
+    private val VarRef.isInBank get() = container?.isBank == true
+
+    /**
+     * Return the C++ type of a port.
+     *
+     * We cannot easily infer this type directly, because it might be used within a generic reactor. Instead of implementing
+     * complex logic for finding the actual type, we simply return a decltype statement and let the C++ compiler do the job.
+     */
+    private val VarRef.portType: String
+        get() = when {
+            isInBank && isMultiport  -> "decltype(${container.name}[0]->${variable.name})::value_type*"
+            isInBank && !isMultiport -> "decltype(${container.name}[0]->${variable.name})*"
+            !isInBank && isMultiport -> "decltype($name)::value_type*"
+            else                     -> "decltype($name)*"
+        }
+
     private fun declareMultiportConnection(c: Connection, idx: Int): String {
         // It should be safe to assume that all ports have the same type. Thus we just pick the
-        // first left port to determine the type of the entire connection
-        val type = (c.leftPorts[0].variable as Port).targetType
+        // first port to determine the type of the entire connection
+        val leftPortType = c.leftPorts[0].portType
+        val rightPortType = c.rightPorts[0].portType
 
         return with(PrependOperator) {
             """
                 |// connection $idx
-                |std::vector<reactor::Output<$type>*> __lf_left_ports_$idx;
+                |std::vector<$leftPortType> __lf_left_ports_$idx;
             ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                |std::vector<reactor::Input<$type>*> __lf_right_ports_$idx;
+                |std::vector<$rightPortType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
                 |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
             """.trimMargin()
