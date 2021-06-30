@@ -182,7 +182,7 @@ void set_stp_offset(interval_t offset) {
 void readable_time(char* buffer, instant_t time) {
     // If the number is negative or below 1000, just print it and return.
     if (time < 1000LL) {
-        sprintf(buffer, "%lld", time);
+        sprintf(buffer, "%lld", (long long)time);
         return;
     }
     int count = 0;
@@ -193,7 +193,7 @@ void readable_time(char* buffer, instant_t time) {
     }
     // Highest order clause should not be filled with zeros.
     instant_t to_print = clauses[--count] % 1000LL;
-    sprintf(buffer, "%lld", to_print);
+    sprintf(buffer, "%lld", (long long)to_print);
     if (to_print >= 100LL) {
         buffer += 3;
     } else if (to_print >= 10LL) {
@@ -203,7 +203,7 @@ void readable_time(char* buffer, instant_t time) {
     }
     while (count-- > 1) {
         to_print = clauses[count] % 1000LL;
-        sprintf(buffer, ",%03lld,", to_print);
+        sprintf(buffer, ",%03lld,", (long long)to_print);
         buffer += 4;
     }
     sprintf(buffer, ",%03lld", clauses[0] % 1000LL);
@@ -520,7 +520,7 @@ lf_token_t* create_token(size_t element_size) {
  * @return Either the specified token or a new one, in each case with a value
  *  field pointing to newly allocated memory.
  */
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int length) {
+lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length) {
     // assert(token != NULL);
 
     // If necessary, allocate memory for a new lf_token_t struct.
@@ -550,7 +550,7 @@ lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int le
  * @return Either the specified token or a new one, in each case with a value
  *  field pointing to newly allocated memory.
  */
-lf_token_t* __initialize_token(lf_token_t* token, int length) {
+lf_token_t* __initialize_token(lf_token_t* token, size_t length) {
     // assert(token != NULL);
 
     // Allocate memory for storing the array.
@@ -1425,7 +1425,7 @@ handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value) {
  * @return A pointer to the new or reused token or null if the template token
  *  is incompatible with this usage.
  */
-lf_token_t* __set_new_array_impl(lf_token_t* token, int length, int num_destinations) {
+lf_token_t* __set_new_array_impl(lf_token_t* token, size_t length, int num_destinations) {
     // If the template token cannot carry a payload, then it is incompatible.
     if (token->element_size == 0) {
         error_print("set_new_array: specified token cannot carry an array. It has zero element_size.");
@@ -1698,116 +1698,93 @@ int process_args(int argc, char* argv[]) {
             } else {
                 error_print("Invalid value for --fast: %s", fast_spec);
             }
-       } else if (strcmp(argv[i], "-o") == 0
-               || strcmp(argv[i], "--timeout") == 0
-               || strcmp(argv[i], "-timeout") == 0) {
-           // Tolerate -timeout for legacy uses.
-           if (argc < i + 3) {
-               error_print("--timeout needs time and units.");
-               usage(argc, argv);
-               return 0;
-           }
-           i++;
-           char* time_spec = argv[i++];
-           char* units = argv[i];
-           duration = atoll(time_spec);
-           // A parse error returns 0LL, so check to see whether that is what is meant.
-           if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
-        	   // Parse error.
-               error_print("Invalid time value: %s", time_spec);
-        	   usage(argc, argv);
-        	   return 0;
-           }
-           if (strncmp(units, "sec", 3) == 0) {
-        	   duration = SEC(duration);
-           } else if (strncmp(units, "msec", 4) == 0) {
-        	   duration = MSEC(duration);
-           } else if (strncmp(units, "usec", 4) == 0) {
-        	   duration = USEC(duration);
-           } else if (strncmp(units, "nsec", 4) == 0) {
-        	   duration = NSEC(duration);
-           } else if (strncmp(units, "min", 3) == 0) {
-        	   duration = MINUTE(duration);
-           } else if (strncmp(units, "hour", 4) == 0) {
-        	   duration = HOUR(duration);
-           } else if (strncmp(units, "day", 3) == 0) {
-        	   duration = DAY(duration);
-           } else if (strncmp(units, "week", 4) == 0) {
-        	   duration = WEEK(duration);
-           } else {
-        	   // Invalid units.
-               error_print("Invalid time units: %s", units);
-        	   usage(argc, argv);
-        	   return 0;
-           }
-       } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keepalive") == 0) {
-    	   if (argc < i + 2) {
-    	       error_print("--keepalive needs a boolean.");
-    		   usage(argc, argv);
-    		   return 0;
-    	   }
-    	   i++;
-    	   char* keep_spec = argv[i];
-    	   if (strcmp(keep_spec, "true") == 0) {
-    		   keepalive_specified = true;
-    	   } else if (strcmp(keep_spec, "false") == 0) {
-    		   keepalive_specified = false;
-    	   } else {
-    	       error_print("Invalid value for --keepalive: %s", keep_spec);
-    	   }
-       } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--threads") == 0) {
-    	   if (argc < i + 2) {
-    	       error_print("--threads needs an integer argument.s");
-    		   usage(argc, argv);
-    		   return 0;
-    	   }
-    	   i++;
-    	   char* threads_spec = argv[i++];
-    	   _lf_number_of_threads = atoi(threads_spec);
-    	   if (_lf_number_of_threads <= 0) {
-    	       error_print("Invalid value for --threads: %s", threads_spec);
-    	   }
-       } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
-           if (argc < i + 2) {
-               error_print("--id needs a string argument.");
-               usage(argc, argv);
-               return 0;
-           }
-           i++;
-           info_print("Federation ID for executable %s: %s", argv[0], argv[i]);
-           federation_id = argv[i++];
-       } else {
-           error_print("Unrecognized command-line argument: %s", argv[i]);
-    	   usage(argc, argv);
-    	   return 0;
-       }
+        } else if (strcmp(argv[i], "-o") == 0
+                || strcmp(argv[i], "--timeout") == 0
+                || strcmp(argv[i], "-timeout") == 0) {
+            // Tolerate -timeout for legacy uses.
+            if (argc < i + 3) {
+                error_print("--timeout needs time and units.");
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            char* time_spec = argv[i++];
+            char* units = argv[i];
+            duration = atoll(time_spec);
+            // A parse error returns 0LL, so check to see whether that is what is meant.
+            if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
+                // Parse error.
+                error_print("Invalid time value: %s", time_spec);
+                usage(argc, argv);
+                return 0;
+            }
+            if (strncmp(units, "sec", 3) == 0) {
+                duration = SEC(duration);
+            } else if (strncmp(units, "msec", 4) == 0) {
+                duration = MSEC(duration);
+            } else if (strncmp(units, "usec", 4) == 0) {
+                duration = USEC(duration);
+            } else if (strncmp(units, "nsec", 4) == 0) {
+                duration = NSEC(duration);
+            } else if (strncmp(units, "min", 3) == 0) {
+                duration = MINUTE(duration);
+            } else if (strncmp(units, "hour", 4) == 0) {
+                duration = HOUR(duration);
+            } else if (strncmp(units, "day", 3) == 0) {
+                duration = DAY(duration);
+            } else if (strncmp(units, "week", 4) == 0) {
+                duration = WEEK(duration);
+            } else {
+                // Invalid units.
+                error_print("Invalid time units: %s", units);
+                usage(argc, argv);
+                return 0;
+            }
+        } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keepalive") == 0) {
+            if (argc < i + 2) {
+                error_print("--keepalive needs a boolean.");
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            char* keep_spec = argv[i];
+            if (strcmp(keep_spec, "true") == 0) {
+                keepalive_specified = true;
+            } else if (strcmp(keep_spec, "false") == 0) {
+                keepalive_specified = false;
+            } else {
+                error_print("Invalid value for --keepalive: %s", keep_spec);
+            }
+        } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--threads") == 0) {
+            if (argc < i + 2) {
+                error_print("--threads needs an integer argument.s");
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            char* threads_spec = argv[i++];
+            int num_threads = atoi(threads_spec);
+            if (num_threads <= 0) {
+                error_print("Invalid value for --threads: %s. Using 1.", threads_spec);
+                num_threads = 1;
+            }
+            _lf_number_of_threads = (unsigned int)num_threads;
+        } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
+            if (argc < i + 2) {
+                error_print("--id needs a string argument.");
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            info_print("Federation ID for executable %s: %s", argv[0], argv[i]);
+            federation_id = argv[i++];
+        } else {
+            error_print("Unrecognized command-line argument: %s", argv[i]);
+            usage(argc, argv);
+            return 0;
+        }
     }
     return 1;
-}
-
-/**
- * Calculate the necessary offset to bring _LF_CLOCK in parity
- * with the epoch time.
- */
-void calculate_epoch_offset() {
-    if (_LF_CLOCK == CLOCK_REALTIME) {
-        // Set the epoch offset to zero (see tag.h)
-        _lf_epoch_offset = 0LL;
-    } else {
-        // Initialize _lf_epoch_offset to the difference between what is
-        // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC)
-        // and what is reported by CLOCK_REALTIME.
-        struct timespec physical_clock_snapshot, real_time_start;
-
-        clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
-        instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
-
-        clock_gettime(CLOCK_REALTIME, &real_time_start);
-        instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
-
-        _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
-    }
-    LOG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
 }
 
 /**

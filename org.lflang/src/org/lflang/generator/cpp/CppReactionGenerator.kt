@@ -78,7 +78,7 @@ class CppReactionGenerator(
         }
 
     private fun Reaction.getBodyParameters(): List<String> =
-        allUncontainedTriggers.map { "const ${it.cppType}& ${it.name}" } +
+        allUncontainedTriggers.map { "[[maybe_unused]] const ${it.cppType}& ${it.name}" } +
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
                 allReferencedContainers.map {
