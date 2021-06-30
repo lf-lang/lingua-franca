@@ -62,8 +62,8 @@ class LFScope {
 
 template<class T>
 void bind_multiple_ports(
-    std::vector<reactor::Output<T>*>& left_ports,
-    std::vector<reactor::Input<T>*>& right_ports,
+    std::vector<reactor::Port<T>*>& left_ports,
+    std::vector<reactor::Port<T>*>& right_ports,
     bool repeat_left) {
 
   if (repeat_left) {
