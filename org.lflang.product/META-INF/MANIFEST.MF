@@ -10,4 +10,5 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.ui,
  org.eclipse.ui.workbench,
- org.eclipse.ui.ide.application
+ org.eclipse.ui.ide.application,
+ org.eclipse.ui.intro
