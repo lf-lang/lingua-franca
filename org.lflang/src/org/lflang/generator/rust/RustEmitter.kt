@@ -25,6 +25,7 @@
 package org.lflang.generator.rust
 
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.rust.ReactorComponentEmitter.toBorrowedType
 import org.lflang.generator.rust.RustEmitter.rsLibPath
 import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
@@ -33,15 +34,16 @@ import org.lflang.withDQuotes
  * Generates Rust code
  */
 object RustEmitter {
-    const val rsLibPath = "reactorlib"
+    const val libImport = "use reactor_rust as _rr;\n"
+    const val rsLibPath = "_rr"
 
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
         fileConfig.emit("Cargo.toml") { makeCargoFile(gen) }
         fileConfig.emit("src/bin/main.rs") { makeMainFile(gen) }
-        fileConfig.emit("src/lib.rs") { makeMainFile(gen) }
+        fileConfig.emit("src/lib.rs") { makeRootLibFile(gen) }
         for (reactor in gen.reactors) {
-            fileConfig.emit("src/${gen.crate.name}/${reactor.modName}.rs") {
+            fileConfig.emit("src/${reactor.modName}.rs") {
                 makeReactorModule(reactor)
             }
         }
@@ -49,11 +51,13 @@ object RustEmitter {
     }
 
     private fun Emitter.makeReactorModule(reactor: ReactorInfo) {
-        val out = this
-        with(reactor) {
+        this += with(reactor) {
             with(ReactorComponentEmitter) {
                 with(PrependOperator) {
-                    out += """
+                    """
+                |$libImport
+                |use $rsLibPath::runtime::*;
+                |use $rsLibPath::*;
                 |
                 |struct $structName {
                 |    // TODO state vars
@@ -62,6 +66,8 @@ object RustEmitter {
                 |impl $structName {
                 |
                 |   // todo reaction worker functions
+${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
+                |   
                 |
                 |}
                 |
@@ -73,7 +79,7 @@ ${"             |    "..otherComponents.joinToString(",\n") { it.toStructField()
                 |
                 |reaction_ids!(
                 |  ${reactions.joinToString(", ", "enum $reactionIdName {", "}") { it.rustId }}
-                | );
+                |);
                 |
                 |impl $rsLibPath::ReactorDispatcher for $dispatcherName {
                 |    type ReactionId = $reactionIdName;
@@ -93,8 +99,6 @@ ${"             |            "..otherComponents.joinToString(",\n") { it.toField
 ${"             |            "..reactionWrappers(reactor)}
                 |        }
                 |    }
-                |
-                |
                 |}
         """.trimMargin()
                 }
@@ -105,12 +109,15 @@ ${"             |            "..reactionWrappers(reactor)}
     private fun reactionWrappers(reactor: ReactorInfo): String {
 
         fun joinDependencies(n: ReactionInfo): String =
-            n.depends.joinToString(", ") { with(ReactorComponentEmitter) { it.toBorrow() } }
+            if (n.depends.isEmpty()) ""
+            else n.depends.joinToString(", ", prefix = ", ") {
+                with(ReactorComponentEmitter) { it.toBorrow() }
+            }
 
         return reactor.reactions.joinToString { n: ReactionInfo ->
             """
                 ${reactor.reactionIdName}::${n.rustId} => {
-                    self._impl.${n.workerId}(ctx, ${joinDependencies(n)})
+                    self._impl.${n.workerId}(ctx${joinDependencies(n)})
                 }
             """
         }
@@ -118,11 +125,27 @@ ${"             |            "..reactionWrappers(reactor)}
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
-            |fn main() {
+            |#[macro_use]
+            |extern crate ${gen.crate.name};
             |
+            |$libImport
+            |
+            |fn main() {
+            | // todo
             |
             |}
         """.trimMargin()
+    }
+
+    private fun Emitter.makeRootLibFile(gen: GenerationInfo) {
+        this += with(PrependOperator) {
+            """
+            |//! Root of this crate
+            |
+${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
+            |
+        """.trimMargin()
+        }
     }
 
     private fun Emitter.makeCargoFile(gen: GenerationInfo) {
@@ -155,6 +178,10 @@ object ReactorComponentEmitter {
         is ActionData -> "&self.$name"
     }
 
+    fun ReactorComponent.toBorrowedType() =
+        if (this is PortData && !this.isInput) "&mut ${toType()}"
+        else "& ${toType()}"
+
     fun ReactorComponent.toType() = when (this) {
         is ActionData ->
             if (isLogical) "$rsLibPath::LogicalAction"
@@ -171,5 +198,18 @@ object ReactorComponentEmitter {
 
     fun ReactorComponent.toStructField() =
         "$name: ${toType()}"
+
+
+    fun ReactionInfo.toWorkerFunction() =
+        """
+            // todo metadata
+            fn ${this.workerId}(${reactionParams()}) {
+                ${this.body}
+            }
+        """.trimIndent()
+
+    fun ReactionInfo.reactionParams() =
+        depends.joinToString(", ") { "${it.name}: ${it.toBorrowedType()}" }
+
 
 }
