@@ -263,7 +263,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
                 // Only lower the inferred deadline (which is set to the max by default),
                 // if the declared deadline is earlier than the inferred one (based on
                 // some other downstream deadline).
-                if (r.deadline.isEarlierThan(r.declaredDeadline.maxDelay)) {
+                if (r.declaredDeadline.maxDelay !== null
+                    && r.declaredDeadline.maxDelay.isEarlierThan(r.deadline)
+                ) {
                     r.deadline = r.declaredDeadline.maxDelay
                 }
             }

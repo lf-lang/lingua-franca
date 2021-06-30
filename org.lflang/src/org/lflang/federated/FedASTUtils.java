@@ -366,10 +366,16 @@ public class FedASTUtils {
     }
     
     /** 
-     * Replace the specified connection with a communication between federates.
+     * Replace the specified connection with communication between federates.
      * @param connection The connection.
      * @param leftFederate The source federate.
+     * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
+     * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
      * @param rightFederate The destination federate.
+     * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
+     * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
+     * @param generator The generator.
+     * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      */
     public static void makeCommunication(
         Connection connection, 
