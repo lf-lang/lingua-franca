@@ -6,7 +6,7 @@ reactor Source2(width:int(2)) {
     // FIXME: replace '2' with 'width'.
     output[2] out:int;
     reaction (startup) -> out {=
-        for (int i = 0; i < out.size(); i++) {
+        for (size_t i = 0; i < out.size(); i++) {
             out[i].set(i);
         }
     =}
@@ -17,7 +17,7 @@ reactor Source3(width:int(3)) {
     // FIXME: replace '3' with 'width'.
     output[3] out:int;
     reaction (startup) -> out {=
-        for (int i = 0; i < out.size(); i++) {
+        for (size_t i = 0; i < out.size(); i++) {
             out[i].set(i);
         }
     =}
@@ -27,7 +27,7 @@ reactor Destination(width:int(2)) {
     // FIXME: replace '5' with 'width'.
     input[5] in:int;
     reaction (in) {=
-        for (int i = 0; i < in.size(); i++) {
+        for (size_t i = 0; i < in.size(); i++) {
             if (in[i].is_present()) {
                 int value = *in[i].get();
                 std::cout << "Received on channel " << i << ": " << value << '\n';

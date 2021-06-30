@@ -97,10 +97,10 @@ class CppConstructorGenerator(
                 |${reactor.templateLine}
                 |${reactor.templateName}::${outerSignature(false)}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
-                |  , __lf_inner(${innerParameters.joinToString(", ") })
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
+                |  , __lf_inner(${innerParameters.joinToString(", ") })
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
             ${" |  "..instances.generateConstructorInitializers()}
