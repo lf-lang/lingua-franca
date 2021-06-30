@@ -173,21 +173,11 @@
     <requirement
         name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
     <requirement
-        name="org.jetbrains.kotlin.weaving.feature.feature.group"/>
-    <requirement
         name="org.eclipse.ajdt.feature.group"/>
-    <requirement
-        name="org.eclipse.contribution.weaving.feature.group"/>
-    <requirement
-        name="org.eclipse.equinox.weaving.sdk.feature.group"/>
-    <requirement
-        name="org.scala-ide.equinox-weaving-launcher.feature.feature.group"/>
     <repository
         url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
     <repository
         url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
-    <repository
-        url="http://download.scala-ide.org/plugins/equinox-weaving-launcher/releases/site/"/>
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
@@ -358,12 +348,6 @@
         <requirement
             name="org.jetbrains.kotlin.feature.feature.group"/>
         <requirement
-            name="org.jetbrains.kotlin.weaving.feature.feature.group"/>
-        <requirement
-            name="org.eclipse.equinox.weaving.sdk.feature.group"/>
-        <requirement
-            name="org.eclipse.contribution.weaving.feature.group"/>
-        <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
             name="org.eclipse.elk.sdk.feature.feature.group"/>
@@ -396,13 +380,13 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2021-03"/>
+              url="http://download.eclipse.org/releases/2021-06"/>
           <repository
-              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
+              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20210602031627/repository/"/>
           <repository
-              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
           <repository
-              url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
+              url="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.0.0/"/>
           <repository

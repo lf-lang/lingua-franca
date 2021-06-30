@@ -34,15 +34,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "platform.h"
 
 /**
- * Offset to _LF_CLOCK that would convert it
- * to epoch time.
- * For CLOCK_REALTIME, this offset is always zero.
- * For CLOCK_MONOTONIC, it is the difference between those
- * clocks at the start of the execution.
- */
-interval_t _lf_epoch_offset = 0LL;
-
-/**
  * Current time in nanoseconds since January 1, 1970
  * This is not in scope for reactors.
  * This should only ever be accessed while holding the mutex lock.
@@ -193,10 +184,7 @@ instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
  */
 instant_t get_physical_time() {
     // Get the current clock value
-    struct timespec physicalTime;
-    lf_clock_gettime(_LF_CLOCK, &physicalTime);
-    _lf_last_reported_unadjusted_physical_time_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec)
-            + _lf_epoch_offset;
+    lf_clock_gettime(&_lf_last_reported_unadjusted_physical_time_ns);
     
     // Adjust the reported clock with the appropriate offsets
     instant_t adjusted_clock_ns = _lf_last_reported_unadjusted_physical_time_ns
