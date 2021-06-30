@@ -35,7 +35,8 @@ class CppConstructorGenerator(
     private val instances: CppInstanceGenerator,
     private val timers: CppTimerGenerator,
     private val actions: CppActionGenerator,
-    private val ports: CppPortGenerator
+    private val ports: CppPortGenerator,
+    private val reactions: CppReactionGenerator,
 ) {
 
     /**
@@ -100,6 +101,7 @@ class CppConstructorGenerator(
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
+            ${" |  "..reactions.generateReactionViewInitializers()}
                 |  , __lf_inner(${innerParameters.joinToString(", ") })
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
