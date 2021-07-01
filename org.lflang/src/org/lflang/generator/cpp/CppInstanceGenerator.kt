@@ -33,7 +33,6 @@ import org.lflang.lf.Reactor
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
-    private val errorReporter: ErrorReporter,
 ) {
 
     val Instantiation.cppType: String
@@ -91,32 +90,16 @@ class CppInstanceGenerator(
                 """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, $params));"""
             }
 
+            val width = inst.widthSpec.toCode()
             return """
                 // initialize instance $name
-                ${name}.reserve(${getValidWidth()});
-                for (size_t __lf_idx = 0; __lf_idx < ${getValidWidth()}; __lf_idx++) {
+                ${name}.reserve($width);
+                for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
                   std::string __lf_inst_name = "${name}_" + std::to_string(__lf_idx);
                   $emplaceLine
                 }
             """.trimIndent()
         }
-    }
-
-    /**
-     * Calculate the width of a multiport.
-     *
-     * This reports an error on the receiving port if the width is not given as a literal integer.
-     */
-    fun Instantiation.getValidWidth(): Int {
-        val width = widthSpec.getWidth()
-        if (width < 0) {
-            // TODO Support parameterized widths
-            errorReporter.reportError(
-                this,
-                "The C++ target only supports bank widths specified as literal integer values for now"
-            )
-        }
-        return width
     }
 
     /** Generate C++ include statements for each reactor that is instantiated */

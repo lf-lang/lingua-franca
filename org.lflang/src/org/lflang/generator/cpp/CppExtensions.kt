@@ -108,6 +108,9 @@ fun Value.toTime(outerContext: Boolean = false): String = when {
  */
 fun Value.toCode(): String = this.time?.toCode() ?: this.toText()
 
+/** Get the textual representation of a width in C++ code */
+fun WidthSpec.toCode(): String =  terms.joinToString(" + ") { it.parameter?.name ?: it.width.toString()}
+
 /** True if the preamble is public */
 val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 
