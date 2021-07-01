@@ -53,9 +53,9 @@ class CppInstanceGenerator(
     private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
         val assignment = this.parameters.firstOrNull { it.lhs === param }
 
-        return if (isBankInstantiation && param.name == "instance") {
+        return if (isBankInstantiation && param.name == "bank_index") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
-            // to the parameter named "instance"
+            // to the parameter named "bank_index"
             """__lf_idx"""
         } else if (assignment == null) {
             // If no assignment was found, then the parameter is not overwritten and we assign the
