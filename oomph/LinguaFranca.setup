@@ -135,7 +135,7 @@
   <setupTask
       xsi:type="setup:VariableTask"
       name="eclipse.target.platform"
-      defaultValue="2021-03"
+      value="2021-06"
       storageURI="scope://Workspace"/>
   <setupTask
       xsi:type="setup.p2:P2Task">
@@ -181,12 +181,12 @@
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
+      id="git.clone.lingua.franca.branch"
       name="git.clone.lingua.franca.branch"
-      value="master"
       defaultValue="master"
       storageURI="scope://Workspace"
-      label="">
-    <description></description>
+      label="Lingua Franca Branch (git clone)">
+    <description>The branch to check out at the initial clone of the repository.</description>
   </setupTask>
   <setupTask
       xsi:type="git:GitCloneTask"
