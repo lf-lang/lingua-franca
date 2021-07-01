@@ -334,7 +334,7 @@ class CGenerator extends GeneratorBase {
         super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "gcc"
-        targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"
+        targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
@@ -1065,7 +1065,8 @@ class CGenerator extends GeneratorBase {
                 return -1;
             }
             printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
-            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+            assert(NUMBER_OF_FEDERATES < UINT16_MAX);
+            for (uint16_t i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
                 «IF targetConfig.fastMode»
                     federates[i].mode = FAST;
