@@ -95,7 +95,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 /**
  * Prototype for the internal API. @see reactor_common.c
  **/
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int length);
+lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length);
 
 /**
  * Prototype for API function. @see lib/core/reactor_common.c
