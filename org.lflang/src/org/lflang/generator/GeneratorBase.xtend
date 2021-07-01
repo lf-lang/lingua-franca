@@ -2207,6 +2207,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     }
 
                     FedASTUtils.makeCommunication(
+                        source,
+                        destination,
                         connection,
                         leftFederate,
                         federate.bankIndex,
