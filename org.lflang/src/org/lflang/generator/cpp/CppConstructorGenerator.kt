@@ -106,6 +106,7 @@ class CppConstructorGenerator(
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
             ${" |  "..instances.generateConstructorInitializers()}
+            ${" |  "..reactions.generateReactionViewConstructorInitializers()}
                 |}
             """.trimMargin()
         }
