@@ -1091,6 +1091,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             return
         }
         
+        // If the reactor definition is null, give up here. Otherwise, diagram generation
+        // will fail an NPE.
+        if (reactorDefinition === null) {
+            reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.")
+            return
+        }
+        
         // Apply overrides and instantiate parameters for this reactor instance.
         for (parameter : reactorDefinition.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
