@@ -38,49 +38,71 @@ import org.lflang.lf.*
  */
 class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
-    private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
-        // check if the trigger is a multiport
-        if (trigger is VarRef && trigger.variable is Port) {
-            val port = trigger.variable as Port
-            if (port.widthSpec != null) {
-                return """
-                    for (unsigned i = 0; i < ${trigger.name}.size(); i++) {
-                      ${reaction.name}.declare_trigger(&${trigger.name}[i]);
-                    }
-                """.trimIndent()
+    private fun iterateOverAllPortsAndApply(varRef: VarRef, generateCode: (String) -> String): String {
+        val port = varRef.variable as Port
+        val container = varRef.container
+        return with(PrependOperator) {
+            if (port.isMultiport) {
+                if (container?.isBank == true) {
+                    """
+                        |for (auto& __lf_instance : ${container.name}) {
+                        |  for (auto& __lf_port : __lf_instance->${port.name}) {
+                    ${" |    "..generateCode("__lf_port")}
+                        |  }
+                        |}
+                    """.trimMargin()
+                } else {
+                    // is mulitport, but not in a bank
+                    """
+                        |for (auto& __lf_port : ${varRef.name}) {
+                    ${" |  "..generateCode("__lf_port")}
+                        |}
+                    """.trimMargin()
+                }
+            } else {
+                if (container?.isBank == true) {
+                    // is in a bank, but not a multiport
+                    """
+                        |for (auto& __lf_instance : ${container.name}) {
+                    ${" |  "..generateCode("__lf_instance->${port.name}")}
+                        |}
+                    """.trimMargin()
+                } else {
+                    // is just a normal port
+                    generateCode(varRef.name)
+                }
             }
         }
-        // treat as single trigger otherwise
-        return "${reaction.name}.declare_trigger(&${trigger.name});"
     }
 
-    private fun declareDependency(reaction: Reaction, dependency: VarRef): String {
-        val variable = dependency.variable
-        // check if the dependency is a multiport
-        if (variable is Port && variable.widthSpec != null) {
-            return """
-                for (unsigned i = 0; i < ${dependency.name}.size(); i++) {
-                  ${reaction.name}.declare_dependency(&${dependency.name}[i]);
-                }
-            """.trimIndent()
+    private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String =
+        if (trigger is VarRef && trigger.variable is Port) {
+            // if the trigger is a port, then it could be a multiport or contained in a bank
+            iterateOverAllPortsAndApply(trigger) { port: String -> "${reaction.name}.declare_trigger(&$port);" }
+        } else {
+            // treat as single trigger otherwise
+            "${reaction.name}.declare_trigger(&${trigger.name});"
         }
-        // treat as single dependency otherwise
-        return "${reaction.name}.declare_dependency(&${dependency.name});"
-    }
+
+    private fun declareDependency(reaction: Reaction, dependency: VarRef): String =
+        if (dependency.variable is Port) {
+            // if the trigger is a port, then it could be a multiport or contained in a bank
+            iterateOverAllPortsAndApply(dependency) { port: String -> "${reaction.name}.declare_dependency(&$port);" }
+        } else {
+            // treat as single dependency otherwise
+            "${reaction.name}.declare_dependency(&${dependency.name});"
+        }
 
     private fun declareAntidependency(reaction: Reaction, antidependency: VarRef): String {
         val variable = antidependency.variable
-        // check if the dependency is a multiport
-        if (variable is Port && variable.widthSpec != null) {
-            return """
-                for (unsigned i = 0; i < ${antidependency.name}.size(); i++) {
-                  ${reaction.name}.declare_antidependency(&${antidependency.name}[i]);
-                }
-            """.trimIndent()
+        return if (variable is Port) {
+            // if the trigger is a port, then it could be a multiport or contained in a bank
+            iterateOverAllPortsAndApply(antidependency) { port: String -> "${reaction.name}.declare_antidependency(&$port);" }
+        } else {
+            // treat as single antidependency otherwise
+            if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
+            else "${reaction.name}.declare_antidependency(&${antidependency.name});"
         }
-        // treat as single antidependency otherwise
-        return if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
-        else "${reaction.name}.declare_antidependency(&${antidependency.name});"
     }
 
     private fun setDeadline(reaction: Reaction): String =
@@ -165,42 +187,8 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String {
-        val port = varRef.variable as Port
-        val container = varRef.container
-        return if (port.isMultiport) {
-            if (container?.isBank == true) {
-                // is multiport in a bank
-                // FIXME: iterate over banks or ports first?
-                """
-                    for (auto& __lf_instance : ${container.name}) {
-                      for (auto& __lf_port : __lf_instance->${port.name}) {
-                        ${vectorName}.push_back(&__lf_port);
-                      }
-                    }
-                """.trimIndent()
-            } else {
-                // is mulitport, but not in a bank
-                """
-                   for (auto& __lf_port : ${varRef.name}) {
-                     ${vectorName}.push_back(&__lf_port);
-                   }
-                """.trimIndent()
-            }
-        } else {
-            if (container?.isBank == true) {
-                // is in a bank, but not a multiport
-                """
-                    for (auto& __lf_instance : ${container.name}) {
-                      ${vectorName}.push_back(&__lf_instance->${port.name});
-                    }
-                """.trimIndent()
-            } else {
-                // is just a normal port
-                "${vectorName}.push_back(&${varRef.name});"
-            }
-        }
-    }
+    private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String =
+        iterateOverAllPortsAndApply(varRef) { port: String -> "${vectorName}.push_back(&$port);" }
 
     /**
      * Generate the definition of the reactor's assemble() method
