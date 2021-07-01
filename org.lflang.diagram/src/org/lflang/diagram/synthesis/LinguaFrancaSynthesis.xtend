@@ -858,6 +858,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         if (reactorInstance.mainOrFederated) {
             b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
+        } else if (reactorInstance.reactorDefinition === null) {
+            // There is an error in the graph.
+            b.append("UNKNOWN")
         } else {
             b.append(reactorInstance.reactorDefinition.name)
             // TODO reactivate error handling
