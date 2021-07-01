@@ -24,15 +24,13 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.ErrorReporter
-import org.lflang.getWidth
 import org.lflang.isMultiport
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.Reactor
 
-class CppPortGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
+class CppPortGenerator(private val reactor: Reactor) {
 
     private fun generateDeclaration(port: Port): String = with(port) {
         return if (isMultiport) {
