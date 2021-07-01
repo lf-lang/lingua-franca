@@ -59,28 +59,12 @@ class CppPortGenerator(private val reactor: Reactor, private val errorReporter: 
             }
         }
 
-    /**
-     * Calculate the width of a multiport.
-     *
-     * This reports an error on the receiving port if the width is not given as a literal integer.
-     */
-    fun Port.getValidWidth(): Int {
-        val width = widthSpec.getWidth()
-        if (width < 0) {
-            errorReporter.reportError(
-                this,
-                "The C++ target only supports multiport widths specified as literal integer values for now"
-            )
-            // TODO Support parameterized widths
-        }
-        return width
-    }
-
     private fun generateConstructorInitializer(port: Port) = with(port) {
+        val width = port.widthSpec.toCode()
         """
             // initialize port $name
-            ${name}.reserve(${getValidWidth()});
-            for (size_t __lf_idx = 0; __lf_idx < ${getValidWidth()}; __lf_idx++) {
+            ${name}.reserve($width);
+            for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
               std::string __lf_port_name = "${name}_" + std::to_string(__lf_idx);
               ${name}.emplace_back(__lf_port_name, this);
             }

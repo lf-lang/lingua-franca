@@ -328,8 +328,8 @@ class LFValidatorImpl extends AbstractLFValidator {
                         error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else {
-                    if (this.target != Target.C && this.target != Target.Python) {
-                        error("Parameterized widths are currently only supported by the C target.",
+                    if (this.target != Target.C && this.target != Target.Python && this.target != Target.CPP) {
+                        error("Parameterized widths are not supported by this target.",
                                 Literals.WIDTH_SPEC__TERMS)
                     }
                 }

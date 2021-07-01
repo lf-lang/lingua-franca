@@ -50,7 +50,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
 
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
-    private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
+    private val instances = CppInstanceGenerator(reactor, fileConfig)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
     private val ports = CppPortGenerator(reactor, errorReporter)
