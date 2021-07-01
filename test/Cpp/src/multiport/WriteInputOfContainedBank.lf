@@ -1,0 +1,30 @@
+// Test writing inputs to a contained reactor bank
+target Cpp;
+reactor Contained(instance:size_t(0)) {
+    input in:unsigned;
+    state count:int(0);
+    reaction(in)  {=
+        unsigned result = *in.get();
+        std::cout << "Instance " << instance << " received " << result << '\n';
+        if (result != instance * 42) {
+            std::cout << "FAILURE: expected " << 42 * instance << '\n';
+            exit(2);
+        }
+        count++;
+    =}
+    reaction(shutdown) {=
+        if (count != 1) {
+            std::cerr << "ERROR: One of the reactions failed to trigger.\n";
+            exit(1);
+        }
+    =}
+}
+
+main reactor {
+    c = new[4] Contained();
+    reaction(startup) -> c.in {=
+        for (size_t i = 0; i < c.size(); i++) {
+            c[i].in.set(i*42);
+        }
+  	=}
+}
