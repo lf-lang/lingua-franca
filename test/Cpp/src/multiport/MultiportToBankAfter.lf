@@ -15,7 +15,7 @@ reactor Sink(bank_index:size_t(0)) {
     
     reaction (in) {=
         std::cout << "Received " << *in.get() << '\n';
-        if (*in.get() != instance) {
+        if (*in.get() != bank_index) {
             std::cerr << "Error: expected " << bank_index << "!\n";
             exit(1);
         }

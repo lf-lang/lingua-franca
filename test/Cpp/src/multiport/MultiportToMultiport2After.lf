@@ -12,7 +12,7 @@ reactor Source(width:size_t(2)) {
 }
 
 reactor Destination(width:size_t(2)) {
-    input[width] in:int;
+    input[width] in:size_t;
     reaction (in) {=
         for (size_t i = 0; i < in.size(); i++) {
             if (in[i].is_present()) {
