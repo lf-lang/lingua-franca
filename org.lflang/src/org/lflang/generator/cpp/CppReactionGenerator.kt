@@ -56,9 +56,8 @@ class CppReactionGenerator(
     private fun Reaction.getAllReferencedVariablesForContainer(container: Instantiation) =
         allVariableReferences.filter { it.container == container }.distinct()
 
-    private fun Instantiation.isReadOnly(r: Reaction) = r.effects.none { it.container == this }
-
-    private fun Reaction.getViewName(container: Instantiation) = "View_of_${name}_on_${container.name}"
+    private fun Reaction.getViewClassName(container: Instantiation) = "__lf_view_of_${name}_on_${container.name}_t"
+    private fun Reaction.getViewInstanceName(container: Instantiation) = "__lf_view_of_${name}_on_${container.name}"
 
     private val VarRef.cppType
         get() =
@@ -81,24 +80,14 @@ class CppReactionGenerator(
         allUncontainedTriggers.map { "[[maybe_unused]] const ${it.cppType}& ${it.name}" } +
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
-                allReferencedContainers.map {
-                    if (it.isReadOnly(this))
-                        "const ${getViewName(it)}& ${it.name}"
-                    else
-                        "${getViewName(it)}& ${it.name}"
-                }
+                allReferencedContainers.map { "${getViewClassName(it)}& ${it.name}" }
 
     private fun generateDeclaration(r: Reaction): String {
         with(r) {
             val parameters = allUncontainedTriggers.map { it.name } +
                     allUncontainedSources.map { it.name } +
                     allUncontainedEffects.map { it.name } +
-                    allReferencedContainers.map {
-                        if (it.isReadOnly(r))
-                            "reinterpret_cast<const ${getViewName(it)}&>(*${it.name})"
-                        else
-                            "reinterpret_cast<${getViewName(it)}&>(*${it.name})"
-                    }
+                    allReferencedContainers.map { getViewInstanceName(it) }
             val body = "void ${name}_body() { __lf_inner.${name}_body(${parameters.joinToString(", ")}); }"
             val deadlineHandler =
                 "void ${name}_deadline_handler() { __lf_inner.${name}_deadline_handler(${parameters.joinToString(", ")}); }"
@@ -171,13 +160,24 @@ class CppReactionGenerator(
     }
 
     private fun generateViewForContainer(r: Reaction, container: Instantiation): String {
-        val cppType = with(instanceGenerator) { container.cppType }
+        val reactorClass = with(instanceGenerator) { container.cppType }
         val variables = r.getAllReferencedVariablesForContainer(container)
+        val instantiations = variables.map {
+            if (it.isEffectOf(r))
+                "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
+            else
+                "const ${it.cppType}& ${it.variable.name};"
+        }
+        val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
         return with(PrependOperator) {
             """
-                |struct ${r.getViewName(container)} : protected $cppType {
-            ${" |  "..variables.joinToString("\n") { "using $cppType::${it.variable.name};" }}
+                |struct ${r.getViewClassName(container)} {
+            ${" |  "..instantiations.joinToString("\n")}
+                |  ${r.getViewClassName(container)}($reactorClass* reactor) :
+            ${" |    "..initializers.joinToString(",\n")}
+                |  {}
                 |};
+                |${r.getViewClassName(container)} ${r.getViewInstanceName(container)};
             """.trimMargin()
         }
     }
@@ -185,8 +185,16 @@ class CppReactionGenerator(
     private fun generateViews(r: Reaction) =
         r.allReferencedContainers.joinToString("\n") { generateViewForContainer(r, it) }
 
+    private fun generateViewInitializers(r: Reaction) =
+        r.allReferencedContainers.joinToString("\n") { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
+
     fun generateReactionViews() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") { generateViews(it) }
+
+    fun generateReactionViewInitializers() =
+        reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {
+            generateViewInitializers(it)
+        }
 
     /** Get all reaction declarations. */
     fun generateDeclarations() =
