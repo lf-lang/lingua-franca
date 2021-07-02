@@ -2948,7 +2948,9 @@ class CGenerator extends GeneratorBase {
                                 // reactions in the container of this port's container.
                                 if (port.dependentReactions.size > 0) {
                                     portsWithDependentReactions.add(port)
-                                    numberOfTriggerTObjects += port.dependentReactions.size
+                                    // There will be only one trigger object for all these dependent reactions
+                                    // because they will all be triggered by the same trigger object.
+                                    numberOfTriggerTObjects += 1
                                 }
                             } else {
                                 // The port is the input port of a contained reactor,
@@ -3015,16 +3017,32 @@ class CGenerator extends GeneratorBase {
                                             «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
                                         ''')
                                     }
+                                    if (destinationCount > numberOfTriggerTObjects) {
+                                        // This should not happen, but rather than generate incorrect code, throw an exception.
+                                        throw new Exception("Internal error: Assigning a trigger beyond the end of the array!")
+                                    }
                                 }
                                 for (portWithDependentReactions : portsWithDependentReactions) {
+                                    // Check whether at least one reaction belongs to this federate.
+                                    var belongs = false
                                     for (destinationReaction : portWithDependentReactions.dependentReactions) {
                                         if (reactorBelongsToFederate(destinationReaction.parent, federate)) {
-                                            pr(initializeTriggerObjectsEnd, '''
-                                                // Port «port.getFullName» has reactions in its parent's parent.
-                                                // Point to the trigger struct for those reactions.
-                                                «triggerArray»[«destinationCount++»] = &«triggerStructName(portWithDependentReactions, destinationReaction)»;
-                                            ''')
+                                            belongs = true
                                         }
+                                    }
+                                    if (belongs) {
+                                        pr(initializeTriggerObjectsEnd, '''
+                                            // Port «port.getFullName» has reactions in its parent's parent.
+                                            // Point to the trigger struct for those reactions.
+                                            «triggerArray»[«destinationCount++»] = &«triggerStructName(
+                                                portWithDependentReactions, 
+                                                portWithDependentReactions.parent.parent
+                                            )»;
+                                        ''')
+                                    }
+                                    if (destinationCount > numberOfTriggerTObjects) {
+                                        // This should not happen, but rather than generate incorrect code, throw an exception.
+                                        throw new Exception("Internal error 2: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                             }
@@ -3483,14 +3501,14 @@ class CGenerator extends GeneratorBase {
     }
     
     /** Return a reference to the trigger_t struct for the specified output
-     *  port of a contained reactor that triggers the specified reaction.
+     *  port of a contained reactor that triggers a reaction in the specified reactor.
      *  @param port The output port of a contained reactor.
      *  @param reaction The reaction triggered by this port.
      *  @return The name of the trigger struct, which is in the self struct
      *   of the container of the reaction.
      */
-    static def triggerStructName(PortInstance port, ReactionInstance reaction) {
-        return '''«selfStructName(reaction.parent)»->__«port.parent.name».«port.name»_trigger;'''
+    static def triggerStructName(PortInstance port, ReactorInstance reactor) {
+        return '''«selfStructName(reactor)»->__«port.parent.name».«port.name»_trigger'''
     }
     
     /**
@@ -3519,9 +3537,8 @@ class CGenerator extends GeneratorBase {
      * @param member The member's name(e.g., is_present)
      * @return Generated code
      */
-    def getStackPortMember(String portName, String member) '''
-        «portName».«member»
-    '''
+    def getStackPortMember(String portName, String member) '''«portName».«member»'''
+    
     /**
      * Return the full name of the specified instance without
      * the leading name of the top-level reactor, unless this
