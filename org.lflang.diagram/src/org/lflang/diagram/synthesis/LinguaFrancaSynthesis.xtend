@@ -860,12 +860,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
         } else if (reactorInstance.reactorDefinition === null) {
             // There is an error in the graph.
-            b.append("UNKNOWN")
+            b.append("<Unresolved Reactor>")
         } else {
             b.append(reactorInstance.reactorDefinition.name)
-            // TODO reactivate error handling
-//                reactor === null ? "<NULL>" : reactor.name ?:
-//                    "<Unresolved Reactor>")
         }
         if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
             // If the reactor is a bank, then obtain the details from the first
