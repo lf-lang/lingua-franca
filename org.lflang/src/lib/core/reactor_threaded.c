@@ -1266,7 +1266,19 @@ void start_threads() {
     }
 }
 
-int main(int argc, char* argv[]) {
+/**
+ * The main loop of the LF program.
+ * 
+ * An unambiguous function name that can be called
+ * by external libraries.
+ * 
+ * Note: In target languages that use the C core library,
+ * there should be an unambiguous way to execute the LF
+ * program's main function that will not conflict with
+ * other main functions that might get resolved and linked
+ * at compile time.
+ */
+int lf_reactor_c_main(int argc, char* argv[]) {
     // Invoke the function that optionally provides default command-line options.
     __set_default_command_line_options();
     
@@ -1346,4 +1358,9 @@ int main(int argc, char* argv[]) {
     } else {
         return -1;
     }
+}
+
+
+int main(int argc, char* argv[]) {
+    return lf_reactor_c_main(argc, argv);
 }
