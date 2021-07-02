@@ -1,13 +1,13 @@
 // Test writing inputs to a contained reactor bank
 target Cpp;
-reactor Contained(instance:size_t(0)) {
+reactor Contained(bank_index:size_t(0)) {
     input in:unsigned;
     state count:int(0);
     reaction(in)  {=
         unsigned result = *in.get();
-        std::cout << "Instance " << instance << " received " << result << '\n';
-        if (result != instance * 42) {
-            std::cout << "FAILURE: expected " << 42 * instance << '\n';
+        std::cout << "Instance " << bank_index << " received " << result << '\n';
+        if (result != bank_index * 42) {
+            std::cout << "FAILURE: expected " << 42 * bank_index << '\n';
             exit(2);
         }
         count++;
