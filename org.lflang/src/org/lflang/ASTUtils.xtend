@@ -68,6 +68,7 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
+import org.eclipse.emf.ecore.util.EcoreUtil
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -106,13 +107,8 @@ class ASTUtils {
                     val generic = generator.supportsGenerics
                             ? generator.getTargetType(InferredType.fromAST(type))
                             : ""
-                    // If the left or right has a multiport or bank, then create a bank
-                    // of delays with an inferred width.
-                    // FIXME: If the connection already uses an inferred width on
-                    // the left or right, then this will fail because you cannot
-                    // have an inferred width on both sides.
-                    val isWide = connection.isWide
-                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic, isWide)
+                    val delayInstance = getDelayInstance(delayClass, connection, generic,
+                        !generator.generateAfterDelaysWithVariableWidth)
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
@@ -233,13 +229,17 @@ class ASTUtils {
      * performed in this method in order to avoid causing concurrent
      * modification exceptions. 
      * @param delayClass The class to create an instantiation for
-     * @param value A time interval corresponding to the desired delay
+     * @param connection The connection to create a delay instantiation foe
      * @param generic A string that denotes the appropriate type parameter, 
      *  which should be null or empty if the target does not support generics.
-     * @param isWide True to create a variable-width width specification.
+     * @param defineWidthFromConnection If this is true and if the connection 
+     *  is a wide connection, then instantiate a bank of delays where the width
+     *  is given by ports involved in the connection. Otherwise, the width will
+     *  be  unspecified indicating a variable length.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Delay delay, String generic, boolean isWide) {
+            Connection connection, String generic, Boolean defineWidthFromConnection) {
+        val delay = connection.delay
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
@@ -247,10 +247,23 @@ class ASTUtils {
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
         }
-        if (isWide) {
+        if (connection.isWide) {
             val widthSpec = factory.createWidthSpec
+            if (defineWidthFromConnection) {
+                // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.
+                // This allows the code generator to later infer the width from the involved ports.
+                // We only consider the right ports here, as the right hand side should always have a well-defined
+                // width. On the left hand side, we might use the broadcast operator from which we cannot infer
+                // the width.
+                for (port : connection.rightPorts) {
+                    val term = factory.createWidthTerm()
+                    term.port = EcoreUtil.copy(port) as VarRef
+                    widthSpec.terms.add(term)
+                }   
+            } else {
+                widthSpec.ofVariableLength = true    
+            }
             delayInstance.widthSpec = widthSpec
-            widthSpec.ofVariableLength = true
         }
         val assignment = factory.createAssignment
         assignment.lhs = delayClass.parameters.get(0)

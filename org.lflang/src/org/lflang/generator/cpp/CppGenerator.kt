@@ -38,7 +38,11 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class CppGenerator(private val cppFileConfig: CppFileConfig, errorReporter: ErrorReporter, private val scopeProvider: LFGlobalScopeProvider) :
+class CppGenerator(
+    private val cppFileConfig: CppFileConfig,
+    errorReporter: ErrorReporter,
+    private val scopeProvider: LFGlobalScopeProvider
+) :
     GeneratorBase(cppFileConfig, errorReporter) {
 
     companion object {
@@ -217,6 +221,8 @@ class CppGenerator(private val cppFileConfig: CppFileConfig, errorReporter: Erro
     }
 
     override fun generateDelayGeneric() = "T"
+
+    override fun generateAfterDelaysWithVariableWidth() = false
 
     override fun supportsGenerics() = true
 
