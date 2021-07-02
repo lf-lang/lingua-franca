@@ -4,7 +4,7 @@ main reactor {
   
   	state foo:int(2);
   	
-  	const method getFoo() -> int {=
+  	const method getFoo(): int {=
 		return foo;
 	=}
 	

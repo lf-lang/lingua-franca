@@ -147,7 +147,7 @@ TargetDecl:
 Method:
     const?='const'? 'method' name=ID
     '(' (arguments+=MethodArgument (',' arguments+=MethodArgument)*)? ')'
-    ('->' return=Type)?
+    (':' return=Type)?
     code=Code
     ';'?
 ;
