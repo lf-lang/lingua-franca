@@ -143,11 +143,21 @@ class PythonGenerator extends CGenerator {
      * @return A value string in the target language
      */
     private def getPythonTargetValue(Value v) {
+        var String returnValue = "";
         switch(v.toText) {
-            case "false": return "False"
-            case "true": return "True"
-            default: return super.getTargetValue(v)
+            case "false": returnValue = "False"
+            case "true": returnValue = "True"
+            default: returnValue = super.getTargetValue(v)
         }
+        
+        // Parameters in Python are always prepended with a 'self.'
+        // predicate. Therefore, we need to append the returned value
+        // if it is a parameter.
+        if (v.parameter !== null) {
+            returnValue = "self." + returnValue;
+        }
+        
+        return returnValue;
     }
     
     /**
@@ -183,7 +193,7 @@ class PythonGenerator extends CGenerator {
      */
      protected def String getPythonInitializer(StateVar state) throws Exception {        
             if (state.init.size > 1) {
-                // parameters are initialized as mutable lists
+                // state variables are initialized as mutable lists
                 return state.init.join('[', ', ', ']', [it.pythonTargetValue])
             } else if (state.isInitialized) {
                 return state.init.get(0).getPythonTargetValue
@@ -400,6 +410,8 @@ class PythonGenerator extends CGenerator {
             if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
 
                 pythonClasses.append('''
+                                    
+                    # Python class for reactor «className»
                     class _«className»:
                 ''');
 
@@ -411,44 +423,14 @@ class PythonGenerator extends CGenerator {
 
                 val reactor = decl.toDefinition
 
-                // Handle parameters first
-                for (param : decl.toDefinition.allParameters) {
-                    if (!param.inferredType.targetType.equals("PyObject*")) {
-                        // If type is given, use it
-                        pythonClasses.
-                            append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
-                            ''')
-                    } else {
-                        // If type is not given, just pass along the initialization
-                        pythonClasses.append('''    «param.name» = «param.pythonInitializer»
-                        ''')
-
-                    }
-                }
-
-                // Next, handle state variables
-                for (stateVar : reactor.allStateVars) {
-                    if (!stateVar.inferredType.targetType.equals("PyObject*")) {
-                        // If type is given, use it
-                        pythonClasses.
-                            append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
-                            ''')
-                    } else if (stateVar.isInitialized) {
-                        // If type is not given, pass along the initialization directly if it is present
-                        pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
-                        ''')
-                    } else {
-                        // If neither the type nor the initialization is given, use None
-                        pythonClasses.append('''    «stateVar.name» = None
-                        ''')                        
-                    }
-                }
-
                 // Handle runtime initializations
                 pythonClasses.append('''    
                     «'    '»def __init__(self, **kwargs):
-                        «'    '»self.__dict__.update(kwargs)
                 ''')
+                
+                
+                pythonClasses.append(generateParametersAndStateVariables(decl))
+                
 
                 var reactionIndex = 0
                 for (reaction : reactor.allReactions) {
@@ -462,6 +444,7 @@ class PythonGenerator extends CGenerator {
                     pythonClasses.append('''        «reaction.code.toText»
                     ''')
                     pythonClasses.append('''        return 0
+                    
                     ''')
 
                     // Now generate code for the deadline violation function, if there is one.
@@ -483,6 +466,79 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
+     * Generate code that instantiates and initializes parameters and state variables for a reactor 'decl'.
+     * 
+     * @param decl The reactor declaration
+     * @return The generated code as a StringBuilder
+     */
+    protected def StringBuilder generateParametersAndStateVariables(ReactorDecl decl) {
+        val reactor = decl.toDefinition
+        var StringBuilder temporary_code = new StringBuilder()
+        
+        temporary_code.append('''        #Define parameters and their default values
+        ''')
+        
+        for (param : decl.toDefinition.allParameters) {
+            if (!param.inferredType.targetType.equals("PyObject*")) {
+                // If type is given, use it
+                temporary_code.
+                    append('''        self._«param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                    ''')
+            } else {
+                // If type is not given, just pass along the initialization
+                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
+                ''')
+        
+            }
+        }
+        
+        // Handle parameters that are set in instantiation
+        temporary_code.append('''        # Handle parameters that are set in instantiation
+        ''')
+        temporary_code.append('''        self.__dict__.update(kwargs)
+        
+        ''')
+        
+        
+        temporary_code.append('''        # Define state variables
+        ''')
+        // Next, handle state variables
+        for (stateVar : reactor.allStateVars) {
+            if (!stateVar.inferredType.targetType.equals("PyObject*")) {
+                // If type is given, use it
+                temporary_code.
+                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                    ''')
+            } else if (stateVar.isInitialized) {
+                // If type is not given, pass along the initialization directly if it is present
+                temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
+                ''')
+            } else {
+                // If neither the type nor the initialization is given, use None
+                temporary_code.append('''        self.«stateVar.name» = None
+                ''')                        
+            }
+        }        
+        
+        temporary_code.append('''
+        
+        ''') 
+        
+        // Next, create getters for parameters
+        for (param : decl.toDefinition.allParameters) {
+            temporary_code.append('''    @property
+            ''') 
+            temporary_code.append('''    def «param.name»(self):
+            ''')
+            temporary_code.append('''        return self._«param.name»
+            
+            ''')
+        }
+        
+        return temporary_code;
+    }
+    
+    /**
      * Generate the function that is executed whenever the deadline of the reaction
      * with the given reaction index is missed
      * @param reaction The reaction to generate deadline miss code for
@@ -495,6 +551,7 @@ class PythonGenerator extends CGenerator {
         def «deadlineFunctionName»(self «reactionParameters»):
             «reaction.deadline.code.toText»
             return 0
+        
     '''
     
     /**
@@ -553,8 +610,7 @@ class PythonGenerator extends CGenerator {
         
         
         // Do not instantiate delay reactors in Python
-        if(className.contains(GEN_DELAY_CLASS_NAME))
-        {
+        if(className.contains(GEN_DELAY_CLASS_NAME)) {
             return
         }
 
@@ -565,11 +621,18 @@ class PythonGenerator extends CGenerator {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
-                    append('''«instance.uniqueID»_lf = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/», «FOR param : member.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
+                    append('''
+                    «instance.uniqueID»_lf = \
+                        [«FOR member : instance.bankMembers SEPARATOR ", \\\n"»\
+                            _«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/»,\
+                                «FOR param : member.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
                     ''')
                 return
             } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                pythonClassesInstantiation.append('''«instance.uniqueID»_lf = [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», «FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
+                pythonClassesInstantiation.append('''
+                    «instance.uniqueID»_lf = \
+                        [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», \
+                            «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
                 ''')
             }
 
@@ -1393,11 +1456,18 @@ class PythonGenerator extends CGenerator {
             pr(pyThreadMutexLockCode(0, reactor))
         }
         
-        pr('''PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+        pr('''
+            DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
+            PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
         ''')
         pr('''
             if (rValue == NULL) {
-                fprintf(stderr, "Failed to call reaction «pythonFunctionName».\n");
+                error_print("FATAL: Calling reaction «decl.name».«pythonFunctionName» failed.");
+                if (PyErr_Occurred()) {
+                    PyErr_PrintEx(0);
+                    PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                }
+                exit(1);
             }
         ''')
         
@@ -1425,11 +1495,20 @@ class PythonGenerator extends CGenerator {
                 pr(pyThreadMutexLockCode(0, reactor))
             }
             
-            pr('''PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+            pr('''
+                DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
+                PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
             ''')
             pr('''
                 if (rValue == NULL) {
-                    fprintf(stderr, "Failed to call reaction «deadlineFunctionName».\n");
+                    error_print("FATAL: Calling reaction «decl.name».«deadlineFunctionName» failed.\n");
+                    if (rValue == NULL) {
+                        if (PyErr_Occurred()) {
+                            PyErr_PrintEx(0);
+                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                        }
+                    }
+                    exit(1);
                 }
             ''')
 
@@ -1448,7 +1527,7 @@ class PythonGenerator extends CGenerator {
         
     
     /**
-     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
+     * Generate code for parameter variables of a reactor in the form "parameter.type parameter.name;"
      * 
      * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
      * port widths for now.
@@ -1484,29 +1563,37 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Generate runtime initialization code for parameters of a given reactor instance
-     * All parameters are initialized in Python code
+     * Generate runtime initialization code in C for parameters of a given reactor instance.
+     * All parameters are also initialized in Python code, but those parameters that are
+     * used as width must be also initialized in C.
      * 
-     * FIXME: To allow for parameterized port widths, we assume that all parameters are int
-     * in C and try to assign the value. We don't need to do this for list types as they
-     * cannot be used to delineate port widths.
+     * FIXME: Here, we use a hack: we attempt to convert the parameter initialization to an integer.
+     * If it succeeds, we proceed with the C initialization. If it fails, we defer initialization
+     * to Python.
      * 
      * @param builder The StringBuilder used to append the initialization code to
      * @param instance The reactor instance
      * @return initialization code
      */
     override generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
-       var nameOfSelfStruct = selfStructName(instance)
-        for (parameter : instance.parameters) {            
-            if (parameter.init.size > 1) {
-                // Ignore the initialization in C for arrays
-                // The actual initialization will be done in Python
-            } else {
+        // Mostly ignore the initialization in C
+        // The actual initialization will be done in Python
+        // Except if the parameter is a width (an integer)
+        // Here, we attempt to convert the parameter value to 
+        // integer. If it succeeds, we also initialize it in C.
+        // If it fails, we defer the initialization to Python.
+        var nameOfSelfStruct = selfStructName(instance)
+        for (parameter : instance.parameters) {
+            val initializer =  parameter.getInitializer
+            try {
+                // Attempt to convert it to integer
+                val number = Integer.parseInt(initializer);
                 pr(builder, '''
-                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
+                    «nameOfSelfStruct»->«parameter.name» = «number»;
                 ''')
+            } catch (NumberFormatException ex){
+                // Ignore initialization in C for this parameter
             }
-
         }
     }
     
@@ -1543,23 +1630,37 @@ class PythonGenerator extends CGenerator {
         var reactor = instance.definition.reactorClass.toDefinition
         
          // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((instance.definition.reactorClass === this.mainDef?.reactorClass) && reactor.isFederated))
-        {
+        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) || 
+            ((instance.definition.reactorClass === this.mainDef?.reactorClass) 
+                && reactor.isFederated)
+        ) {
             return
         }
         
         // Initialize the name field to the unique name of the instance
-        pr(initializationCode, '''«nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+        pr(initializationCode, '''
+            «nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
         ''');
         
-        for (reaction : instance.reactions)
-        {
+        for (reaction : instance.reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
             // Create a PyObject for each reaction
-            pr(initializationCode, '''«nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = get_python_function("«topLevelName»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"«pythonFunctionName»");''')
+            pr(initializationCode, '''
+                «nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = 
+                    get_python_function("«topLevelName»", 
+                        «nameOfSelfStruct»->__lf_name,
+                        «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
+                        "«pythonFunctionName»");
+                ''')
         
             if (reaction.definition.deadline !== null) {
-                pr(initializationCode, '''«nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = get_python_function("«topLevelName»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"deadline_function_«reaction.reactionIndex»");''')
+                pr(initializationCode, '''
+                «nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = 
+                    get_python_function("«topLevelName»", 
+                        «nameOfSelfStruct»->__lf_name,
+                        «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
+                        "deadline_function_«reaction.reactionIndex»");
+                ''')
             }
         
         }
