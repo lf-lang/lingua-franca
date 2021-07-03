@@ -42,11 +42,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <signal.h>     // Defines sigaction.
 #include "net_util.c"   // Defines network functions.
-#include "rti.h"        // Defines message types, etc.
+#include "net_common.h" // Defines message types, etc.
 #include "reactor.h"    // Defines instant_t.
 #include "platform.h"
-#include "clock-sync.c"      // Defines clock synchronization functions.
-#include "federate.h"    // Defines federate_instance_t
+#include "clock-sync.c" // Defines clock synchronization functions.
+#include "federate.h"   // Defines federate_instance_t
 
 // Error messages.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
