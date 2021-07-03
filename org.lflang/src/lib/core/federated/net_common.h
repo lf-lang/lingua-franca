@@ -1,6 +1,7 @@
 /**
  * @file
  * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Soroush Bateni (soroush@utdallas.edu)
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley.
@@ -26,7 +27,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * Header file for the runtime infrastructure for distributed Lingua Franca programs.
+ * Header file for common message types for distributed Lingua Franca programs.
  *
  * This file defines the message types for the federate to communicate with the RTI.
  * Each message type has a unique one-byte ID.
@@ -614,67 +615,5 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Connected to the wrong server. */
 #define WRONG_SERVER 5
-
-/////////////////////////////////////////////
-//// Data structures
-
-typedef enum socket_type_t {
-    TCP,
-    UDP
-} socket_type_t;
-
-/** Mode of execution of a federate. */
-typedef enum execution_mode_t {
-    FAST,
-    REALTIME
-} execution_mode_t;
-
-/** State of a federate during execution. */
-typedef enum fed_state_t {
-    NOT_CONNECTED,  // The federate has not connected.
-    GRANTED,        // Most recent MSG_TYPE_NEXT_EVENT_TAG has been granted.
-    PENDING         // Waiting for upstream federates.
-} fed_state_t;
-
-/**
- * Information about a federate known to the RTI, including its runtime state,
- * mode of execution, and connectivity with other federates.
- * The list of upstream and downstream federates does not include
- * those that are connected via a "physical" connection (one
- * denoted with ~>) because those connections do not impose
- * any scheduling constraints.
- */
-typedef struct federate_t {
-    uint16_t id;            // ID of this federate.
-    pthread_t thread_id;    // The ID of the thread handling communication with this federate.
-    int socket;             // The TCP socket descriptor for communicating with this federate.
-    struct sockaddr_in UDP_addr;           // The UDP address for the federate.
-    bool clock_synchronization_enabled;    // Indicates the status of clock synchronization 
-                                           // for this federate. Enabled by default.
-    tag_t completed;        // The largest logical tag completed by the federate (or NEVER if no LTC has been received).
-    tag_t last_granted;     // The maximum TAG that has been granted so far (or NEVER if none granted)
-    tag_t last_provisionally_granted;      // The maximum PTAG that has been provisionally granted (or NEVER if none granted)
-    tag_t next_event;       // Most recent NET received from the federate (or NEVER if none received).
-    instant_t time_advance; // Most recent TAN received from the federate (or NEVER if none received).
-    fed_state_t state;      // State of the federate.
-    int* upstream;          // Array of upstream federate ids.
-    interval_t* upstream_delay;    // Minimum delay on connections from upstream federates.
-    							   // Here, NEVER encodes no delay. 0LL is a microstep delay.
-    int num_upstream;              // Size of the array of upstream federates and delays.
-    int* downstream;        // Array of downstream federate ids.
-    int num_downstream;     // Size of the array of downstream federates.
-    execution_mode_t mode;  // FAST or REALTIME.
-    char server_hostname[INET_ADDRSTRLEN]; // Human-readable IP address and
-    int32_t server_port;    // port number of the socket server of the federate
-                            // if it has any incoming direct connections from other federates.
-                            // The port number will be -1 if there is no server or if the
-                            // RTI has not been informed of the port number.
-    struct in_addr server_ip_addr; // Information about the IP address of the socket
-                                // server of the federate.
-    bool requested_stop;    // Indicates that the federate has requested stop or has replied
-                            // to a request for stop from the RTI. Used to prevent double-counting
-                            // a federate when handling request_stop().
-} federate_t;
-
 
 #endif /* NET_COMMON_H */
