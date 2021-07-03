@@ -131,7 +131,7 @@ class PythonGenerator extends CGenerator {
     //// Public methods
     override printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** Mode: ' + mode)
+        println('******** Mode: ' + fileConfig.compilerMode)
         println('******** Generated sources: ' + fileConfig.getSrcGenPath)
     }
     
