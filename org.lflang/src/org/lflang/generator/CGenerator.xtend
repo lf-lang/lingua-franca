@@ -394,7 +394,21 @@ class CGenerator extends GeneratorBase {
         // Note that net_util.h/c are not used by the infrastructure
         // unless the program is federated, but they are often useful for user code,
         // so we include them anyway.
-        var coreFiles = newArrayList("net_util.c", "net_util.h", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c", "platform.h")
+        var coreFiles = newArrayList(
+            "federated" + File.separator + "net_util.c",
+            "federated" + File.separator + "net_util.h",
+            "reactor_common.c",
+            "reactor.h",
+            "pqueue.c",
+            "pqueue.h",
+            "tag.h",
+            "tag.c",
+            "trace.h",
+            "trace.c",
+            "util.h", 
+            "util.c", 
+            "platform.h"
+            );
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
@@ -408,41 +422,50 @@ class CGenerator extends GeneratorBase {
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_macos_support.c")            
-            coreFiles.add("platform/lf_macos_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_macos_support.c")            
+            coreFiles.add("platform" + File.separator + "lf_macos_support.h")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_macos_support.c")
+                targetConfig.compileAdditionalSources.add(
+                    fileConfig.getSrcGenPath + File.separator + "core" 
+                    + File.separator + "platform" + File.separator + "lf_macos_support.c"
+                );
             }
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_windows_support.c")
-            coreFiles.add("platform/lf_windows_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_windows_support.c")
+            coreFiles.add("platform" + File.separator + "lf_windows_support.h")
             // For 64-bit epoch time
-            coreFiles.add("platform/lf_unix_clock_support.c")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_windows_support.c")
+                targetConfig.compileAdditionalSources.add(
+                    fileConfig.getSrcGenPath + File.separator + "core" 
+                    + File.separator + "platform" + File.separator + "lf_windows_support.c"
+                )
             }
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_linux_support.c")
-            coreFiles.add("platform/lf_linux_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_linux_support.c")
+            coreFiles.add("platform" + File.separator + "lf_linux_support.h")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
+                targetConfig.compileAdditionalSources.add(
+                    fileConfig.getSrcGenPath + File.separator + "core" 
+                    + File.separator + "platform" + File.separator + "lf_linux_support.c"
+                )
             }
         } else {
             errorReporter.reportError("Platform " + OS + " is not supported")
@@ -452,7 +475,15 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
-            coreFiles.addAll("rti.c", "rti.h", "federate.c", "federate.h", "clock-sync.h", "clock-sync.c")
+            coreFiles.addAll(
+                "federated" + File.separator + "RTI" + File.separator + "rti.c",
+                "federated" + File.separator + "RTI" + File.separator + "rti.h",  
+                "federated" + File.separator + "net_common.h", 
+                "federated" + File.separator + "federate.c", 
+                "federated" + File.separator + "federate.h", 
+                "federated" + File.separator + "clock-sync.h", 
+                "federated" + File.separator + "clock-sync.c"
+            );
             createFederateRTI()
             createLauncher(coreFiles)
         }
@@ -1341,7 +1372,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h tag.c tag.h util.h util.c net_util.h net_util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
+                scp federated/RTI/rti.c federated/rti.h tag.c tag.h util.h util.c federated/net_util.h federated/net_util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"

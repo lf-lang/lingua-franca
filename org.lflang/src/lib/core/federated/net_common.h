@@ -163,8 +163,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
-#ifndef RTI_H
-#define RTI_H
+#ifndef NET_COMMON_H
+#define NET_COMMON_H
 
 #include <pthread.h>
 #include "reactor.h"
@@ -677,4 +677,4 @@ typedef struct federate_t {
 } federate_t;
 
 
-#endif /* RTI_H */
+#endif /* NET_COMMON_H */
