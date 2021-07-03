@@ -60,6 +60,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tag.c"        // Time-related types and functions.
 #include "rti.h"
 
+/**
+ * The state of this RTI instance.
+ */
 RTI_instance_t _RTI = {
     .rti_mutex = PTHREAD_MUTEX_INITIALIZER,
     .received_start_times = PTHREAD_COND_INITIALIZER,
@@ -73,7 +76,8 @@ RTI_instance_t _RTI = {
     .final_port_TCP = 0,
     .socket_descriptor_TCP = -1,
     .final_port_UDP = USHRT_MAX,
-    .socket_descriptor_UDP = -1
+    .socket_descriptor_UDP = -1,
+    .clock_sync_global_status = clock_sync_off
 };
 
 /**
@@ -436,7 +440,7 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
  *  this should be fed->next_event).
  * @param visited An array of booleans indicating which federates
  *  have been visited (for the first invocation, this should be
- *  an array of falses of size NUMBER_OF_FEDERATES).
+ *  an array of falses of size _RTI.number_of_federates).
  */
 tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
     if (visited[fed->id] || fed->state == NOT_CONNECTED) {
@@ -535,7 +539,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
 
             // To handle cycles, need to create a boolean array to keep
             // track of which upstream federates have been visited.
-            bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+            bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
 
             // Find the (transitive) next event tag upstream.
             tag_t upstream_next_event = transitive_next_event(
@@ -616,7 +620,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
 
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
-    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
 
     // Find the tag of the earliest possible incoming message from
     // upstream federates.
@@ -760,7 +764,7 @@ void handle_next_event_tag(federate_t* fed) {
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
-    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
     transitive_send_TAG_if_appropriate(fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
@@ -803,7 +807,7 @@ void handle_time_advance_notice(federate_t* fed) {
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
-    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
     transitive_send_TAG_if_appropriate(fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
@@ -833,7 +837,7 @@ void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
     ENCODE_STOP_GRANTED(outgoing_buffer, _RTI.max_stop_tag.time, _RTI.max_stop_tag.microstep);
 
     // Iterate over federates and send each the message.
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+    for (int i = 0; i < _RTI.number_of_federates; i++) {
         if (_RTI.federates[i].state == NOT_CONNECTED) {
             continue;
         }
@@ -869,7 +873,7 @@ void mark_federate_requesting_stop(federate_t* fed) {
         _RTI.num_feds_handling_stop++;
         fed->requested_stop = true;
     }
-    if (_RTI.num_feds_handling_stop == NUMBER_OF_FEDERATES) {
+    if (_RTI.num_feds_handling_stop == _RTI.number_of_federates) {
         // We now have information about the stop time of all
         // federates.
         _lf_rti_broadcast_stop_time_to_federates_already_locked();
@@ -918,7 +922,7 @@ void handle_stop_request_message(federate_t* fed) {
     // for a stop, add it to the tally.
     mark_federate_requesting_stop(fed);
 
-    if (_RTI.num_feds_handling_stop == NUMBER_OF_FEDERATES) {
+    if (_RTI.num_feds_handling_stop == _RTI.number_of_federates) {
         // We now have information about the stop time of all
         // federates. This is extremely unlikely, but it can occur
         // all federates call request_stop() at the same tag.
@@ -932,7 +936,7 @@ void handle_stop_request_message(federate_t* fed) {
 
     // Iterate over federates and send each the MSG_TYPE_STOP_REQUEST message
     // if we do not have a stop_time already for them.
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+    for (int i = 0; i < _RTI.number_of_federates; i++) {
         if (_RTI.federates[i].id != fed->id && _RTI.federates[i].requested_stop == false) {
             if (_RTI.federates[i].state == NOT_CONNECTED) {
                 mark_federate_requesting_stop(&_RTI.federates[i]);
@@ -1081,13 +1085,13 @@ void handle_timestamp(federate_t *my_fed) {
     if (timestamp > _RTI.max_start_time) {
         _RTI.max_start_time = timestamp;
     }
-    if (_RTI.num_feds_proposed_start == NUMBER_OF_FEDERATES) {
+    if (_RTI.num_feds_proposed_start == _RTI.number_of_federates) {
         // All federates have proposed a start time.
         pthread_cond_broadcast(&_RTI.received_start_times);
     } else {
         // Some federates have not yet proposed a start time.
         // wait for a notification.
-        while (_RTI.num_feds_proposed_start < NUMBER_OF_FEDERATES) {
+        while (_RTI.num_feds_proposed_start < _RTI.number_of_federates) {
             // FIXME: Should have a timeout here?
             pthread_cond_wait(&_RTI.received_start_times, &_RTI.rti_mutex);
         }
@@ -1194,10 +1198,9 @@ void handle_physical_clock_sync_message(federate_t* my_fed, socket_type_t socket
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
 
-#ifdef _LF_CLOCK_SYNC_ON
 /**
  * A (quasi-)periodic thread that performs clock synchronization with each
- * federate. It starts by waiting a time given by _LF_CLOCK_SYNC_PERIOD_NS
+ * federate. It starts by waiting a time given by _RTI.clock_sync_period_ns
  * and then iterates over the federates, performing a complete clock synchronization
  * interaction with each federate before proceeding to the next federate.
  * The interaction starts with this RTI sending a snapshot of its physical clock
@@ -1211,7 +1214,7 @@ void* clock_synchronization_thread(void* noargs) {
     // Wait until all federates have been notified of the start time.
     // FIXME: Use lf_ version of this when merged with master.
     pthread_mutex_lock(&_RTI.rti_mutex);
-    while (_RTI.num_feds_proposed_start < NUMBER_OF_FEDERATES) {
+    while (_RTI.num_feds_proposed_start < _RTI.number_of_federates) {
         pthread_cond_wait(&_RTI.received_start_times, &_RTI.rti_mutex);
     }
     pthread_mutex_unlock(&_RTI.rti_mutex);
@@ -1226,9 +1229,9 @@ void* clock_synchronization_thread(void* noargs) {
         nanosleep(&wait_time, &rem_time);
     }
 
-    // Initiate a clock synchronization every _LF_CLOCK_SYNC_PERIOD_NS
-    struct timespec sleep_time = {(time_t) _LF_CLOCK_SYNC_PERIOD_NS / BILLION,
-                                  _LF_CLOCK_SYNC_PERIOD_NS % BILLION};
+    // Initiate a clock synchronization every _RTI.clock_sync_period_ns
+    struct timespec sleep_time = {(time_t) _RTI.clock_sync_period_ns / BILLION,
+                                  _RTI.clock_sync_period_ns % BILLION};
     struct timespec remaining_time;
 
     bool any_federates_connected = true;
@@ -1236,7 +1239,7 @@ void* clock_synchronization_thread(void* noargs) {
         // Sleep
         nanosleep(&sleep_time, &remaining_time); // Can be interrupted
         any_federates_connected = false;
-        for (int fed = 0; fed < NUMBER_OF_FEDERATES; fed++) {
+        for (int fed = 0; fed < _RTI.number_of_federates; fed++) {
             if (_RTI.federates[fed].state == NOT_CONNECTED) {
                 // FIXME: We need better error handling here, but clock sync failure
                 // should not stop execution.
@@ -1302,7 +1305,6 @@ void* clock_synchronization_thread(void* noargs) {
     }
     return NULL;
 }
-#endif // _LF_CLOCK_SYNC_ON
 
 /**
  * A function to handle messages labeled
@@ -1349,7 +1351,7 @@ void handle_federate_resign(federate_t *my_fed) {
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
-    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
     transitive_send_TAG_if_appropriate(my_fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
@@ -1463,7 +1465,7 @@ int32_t receive_and_check_fed_id_message(int socket_id, struct sockaddr_in* clie
     // FIXME: This should not exit with error but rather should just reject the connection.
     read_from_socket_errexit(socket_id, length, buffer, "RTI failed to read from accepted socket.");
 
-    uint16_t fed_id = NUMBER_OF_FEDERATES; // Initialize to an invalid value.
+    uint16_t fed_id = _RTI.number_of_federates; // Initialize to an invalid value.
 
     // First byte received is the message type.
     if (buffer[0] != MSG_TYPE_FED_IDS) {
@@ -1509,7 +1511,7 @@ int32_t receive_and_check_fed_id_message(int socket_id, struct sockaddr_in* clie
             send_reject(socket_id, FEDERATION_ID_DOES_NOT_MATCH);
             return -1;
         } else {
-            if (fed_id >= NUMBER_OF_FEDERATES) {
+            if (fed_id >= _RTI.number_of_federates) {
                 // Federate ID is out of range.
                 error_print("RTI received federate ID %d, which is out of range.", fed_id);
                 send_reject(socket_id, FEDERATE_ID_OUT_OF_RANGE);
@@ -1584,53 +1586,53 @@ int receive_udp_message_and_set_up_clock_sync(int socket_id, uint16_t fed_id) {
         send_reject(socket_id, UNEXPECTED_MESSAGE);
         return 0;
     } else {
-#ifdef _LF_CLOCK_SYNC_INITIAL // If no initial clock sync, no need perform initial clock sync.
-        uint16_t federate_UDP_port_number = extract_uint16(&(response[1]));
+        if (_RTI.clock_sync_global_status == clock_sync_init) {// If no initial clock sync, no need perform initial clock sync.
+            uint16_t federate_UDP_port_number = extract_uint16(&(response[1]));
 
-        // A port number of USHRT_MAX means initial clock sync should not be performed.
-        if (federate_UDP_port_number != USHRT_MAX) {
-            // Perform the initialization clock synchronization with the federate.
-            // Send the required number of messages for clock synchronization
-            for (int i=0; i < _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL; i++) {
-                // Send the RTI's current physical time T1 to the federate.
-                send_physical_clock(MSG_TYPE_CLOCK_SYNC_T1, &_RTI.federates[fed_id], TCP);
+            // A port number of USHRT_MAX means initial clock sync should not be performed.
+            if (federate_UDP_port_number != USHRT_MAX) {
+                // Perform the initialization clock synchronization with the federate.
+                // Send the required number of messages for clock synchronization
+                for (int i=0; i < _RTI.clock_sync_exchanges_per_interval; i++) {
+                    // Send the RTI's current physical time T1 to the federate.
+                    send_physical_clock(MSG_TYPE_CLOCK_SYNC_T1, &_RTI.federates[fed_id], TCP);
 
-                // Listen for reply message, which should be T3.
-                size_t message_size = 1 + sizeof(int32_t);
-                unsigned char buffer[message_size];
-                read_from_socket_errexit(socket_id, message_size, buffer,
-                        "Socket to federate %d unexpectedly closed.", fed_id);
-                if (buffer[0] == MSG_TYPE_CLOCK_SYNC_T3) {
-                    int32_t fed_id = extract_int32(&(buffer[1]));
-                    assert(fed_id > -1);
-                    assert(fed_id < 65536);
-                    DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
-                    handle_physical_clock_sync_message(&_RTI.federates[fed_id], TCP);
-                } else {
-                    error_print("Unexpected message %u from federate %d.", buffer[0], fed_id);
-                    send_reject(socket_id, UNEXPECTED_MESSAGE);
-                    return 0;
+                    // Listen for reply message, which should be T3.
+                    size_t message_size = 1 + sizeof(int32_t);
+                    unsigned char buffer[message_size];
+                    read_from_socket_errexit(socket_id, message_size, buffer,
+                            "Socket to federate %d unexpectedly closed.", fed_id);
+                    if (buffer[0] == MSG_TYPE_CLOCK_SYNC_T3) {
+                        int32_t fed_id = extract_int32(&(buffer[1]));
+                        assert(fed_id > -1);
+                        assert(fed_id < 65536);
+                        DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
+                        handle_physical_clock_sync_message(&_RTI.federates[fed_id], TCP);
+                    } else {
+                        error_print("Unexpected message %u from federate %d.", buffer[0], fed_id);
+                        send_reject(socket_id, UNEXPECTED_MESSAGE);
+                        return 0;
+                    }
                 }
+                DEBUG_PRINT("RTI finished initial clock synchronization with federate %d.", fed_id);
             }
-            DEBUG_PRINT("RTI finished initial clock synchronization with federate %d.", fed_id);
+            if (_RTI.clock_sync_global_status == clock_sync_on) { // If no runtime clock sync, no need to set up the UDP port.
+                    if (federate_UDP_port_number > 0) {
+                        // Initialize the UDP_addr field of the federate struct
+                        _RTI.federates[fed_id].UDP_addr.sin_family = AF_INET;
+                        _RTI.federates[fed_id].UDP_addr.sin_port = htons(federate_UDP_port_number);
+                        _RTI.federates[fed_id].UDP_addr.sin_addr = _RTI.federates[fed_id].server_ip_addr;
+                    }
+            } else {
+                    // Disable clock sync after initial round.
+                    _RTI.federates[fed_id].clock_synchronization_enabled = false;
+            }
+        } else { // No clock synchronization at all.
+            // Clock synchronization is universally disabled via the clock-sync target parameter
+            // (#define _LF_CLOCK_SYNC was not generated for the RTI).
+            // Note that the federates are still going to send a MSG_TYPE_UDP_PORT message but with a payload (port) of -1.
+            _RTI.federates[fed_id].clock_synchronization_enabled = false;
         }
-#ifdef _LF_CLOCK_SYNC_ON // If no runtime clock sync, no need to set up the UDP port.
-        if (federate_UDP_port_number > 0) {
-            // Initialize the UDP_addr field of the federate struct
-            _RTI.federates[fed_id].UDP_addr.sin_family = AF_INET;
-            _RTI.federates[fed_id].UDP_addr.sin_port = htons(federate_UDP_port_number);
-            _RTI.federates[fed_id].UDP_addr.sin_addr = _RTI.federates[fed_id].server_ip_addr;
-        }
-#else
-        // Disable clock sync after initial round.
-        _RTI.federates[fed_id].clock_synchronization_enabled = false;
-#endif
-#else // No clock synchronization at all.
-        // Clock synchronization is universally disabled via the clock-sync target parameter
-        // (#define _LF_CLOCK_SYNC was not generated for the RTI).
-        // Note that the federates are still going to send a MSG_TYPE_UDP_PORT message but with a payload (port) of -1.
-        _RTI.federates[fed_id].clock_synchronization_enabled = false;
-#endif
     }
     return 1;
 }
@@ -1643,7 +1645,7 @@ int receive_udp_message_and_set_up_clock_sync(int socket_id, uint16_t fed_id) {
  * @param socket_descriptor The socket on which to accept connections.
  */
 void connect_to_federates(int socket_descriptor) {
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+    for (int i = 0; i < _RTI.number_of_federates; i++) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
@@ -1687,7 +1689,7 @@ void connect_to_federates(int socket_descriptor) {
     // over the UDP channel, but only if the UDP channel is open and at least one
     // federate is performing runtime clock synchronization.
     bool clock_sync_enabled = false;
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+    for (int i = 0; i < _RTI.number_of_federates; i++) {
     	if (_RTI.federates[i].clock_synchronization_enabled) {
     		clock_sync_enabled = true;
     		break;
@@ -1756,27 +1758,6 @@ void initialize_federate(uint16_t id) {
     _RTI.federates[id].requested_stop = false;
 }
 
-/**
- * Initialize logical time to match the physical clock.
- */
-void initialize_clock() {
-    // Initialize logical time to match physical clock.
-    struct timespec actualStartTime;
-    clock_gettime(_LF_CLOCK, &actualStartTime);
-    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
-    
-    // Set the epoch offset to zero (see tag.h)
-    _lf_epoch_offset = 0LL;
-    if (_LF_CLOCK != CLOCK_REALTIME) {
-        struct timespec real_time_start;
-        clock_gettime(CLOCK_REALTIME, &real_time_start);
-        int64_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
-        // If the clock is not CLOCK_REALTIME, find the necessary epoch offset
-        _lf_epoch_offset = real_time_start_ns - physical_start_time;
-        DEBUG_PRINT("Setting epoch offset to %lld.", _lf_epoch_offset);
-    }
-}
-
 /** 
  * Start the socket server for the runtime infrastructure (RTI) and
  * return the socket descriptor.
@@ -1790,7 +1771,7 @@ int32_t start_rti_server(uint16_t port) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
-    initialize_clock();
+    lf_initialize_clock();
     // Create the TCP socket server
     _RTI.socket_descriptor_TCP = create_server(specified_port, port, TCP);
     info_print("RTI: Listening for federates.");
@@ -1823,7 +1804,7 @@ void wait_for_federates(int socket_descriptor) {
 
     // Wait for federate threads to exit.
     void* thread_exit_status;
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+    for (int i = 0; i < _RTI.number_of_federates; i++) {
         info_print("RTI: Waiting for thread handling federate %d.", _RTI.federates[i].id);
         pthread_join(_RTI.federates[i].thread_id, &thread_exit_status);
         info_print("RTI: Federate %d thread exited.", _RTI.federates[i].id);
@@ -1895,6 +1876,18 @@ void usage(int argc, char* argv[]) {
     printf("\nCommand-line arguments: \n\n");
     printf("  -i, --id <n>\n");
     printf("   The ID of the federation that this RTI will control.\n\n");
+    printf("  -n, --number_of_federates <n>\n");
+    printf("   The number of federates in the federation that this RTI will control.\n\n");
+    printf("  -c, --clock_sync [off|init|on] [clock_sync_period=<n>] [clock_sync_exchanges_per_interval=<n>]\n");
+    printf("   The status of clock synchronization for this federate.\n");
+    printf("       - off (default): Clock synchronization is off.\n");
+    printf("       - init: Clock synchronization is done only during startup.\n");
+    printf("       - on: Clock synchronization is done both at startup and during the execution.\n");
+    printf("   Relevant parameters that can be set: \n");
+    printf("       - clock_sync_period (in nanoseconds): Controls how often a clock synchronization attempt is made\n");
+    printf("          (period in nanoseconds, default is 5 msec). Only applies to 'on'.\n");
+    printf("       - clock_sync_exchanges_per_interval: How many messages are exchanged for each clock sync attempt.\n");
+    printf("          (default is 10). Applies to 'init' and 'on'.\n");
 
     printf("Command given:\n");
     for (int i = 0; i < argc; i++) {
@@ -1919,6 +1912,12 @@ int process_args(int argc, char* argv[]) {
            i++;
            printf("Federation ID at RTI: %s\n", argv[i]);
            _RTI.federation_id = argv[i++];
+       } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--number_of_federates") == 0) {
+           if (argc < i + 2) {
+               fprintf(stderr, "Error: --id needs an int argument.\n");
+               usage(argc, argv);
+               return 0;
+           }
        } else {
            fprintf(stderr, "Error: Unrecognized command-line argument: %s\n", argv[i]);
            usage(argc, argv);
