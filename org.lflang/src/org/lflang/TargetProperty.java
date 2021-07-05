@@ -223,7 +223,7 @@ public enum TargetProperty {
      * Directive to not invoke the target compiler.
      */
     NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config, value) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
