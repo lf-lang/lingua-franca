@@ -115,7 +115,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * If clock synchronization is enabled, then the federate will also
  * start a thread to listen for incoming UDP messages from the RTI.
- * With period given by _LF_CLOCK_SYNC_PERIOD_NS, the RTI
+ * With period given by the `-c on period <n>` command-line argument, the RTI
  * will initiate a clock synchronization round by sending to the
  * federate a MSG_TYPE_CLOCK_SYNC_T1 message. A similar
  * protocol to that above is followed to estimate the average clock
