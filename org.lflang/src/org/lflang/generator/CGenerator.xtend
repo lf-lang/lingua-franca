@@ -1315,18 +1315,20 @@ class CGenerator extends GeneratorBase {
             // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
-            val executeCommand = '''RTI -i '$FEDERATION_ID' \
-                            -n «federates.size» \
-                            -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                             period «targetConfig.clockSyncOptions.period.toNanoSeconds» \
-                             exchanges-per-interval «targetConfig.clockSyncOptions.trials» «ENDIF»'''
+            val executeCommand = '''
+            RTI -i '$FEDERATION_ID' \
+            -n «federates.size» \
+            -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+             period «targetConfig.clockSyncOptions.period.toNanoSeconds» \
+             exchanges-per-interval «targetConfig.clockSyncOptions.trials» «ENDIF»'''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 # FIXME: Killing this ssh does not kill the remote process.
                 # A double -t -t option to ssh forces creation of a virtual terminal, which
                 # fixes the problem, but then the ssh command does not execute. The remote
                 # federate does not start!
-                ssh «target» 'echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+                ssh «target» 'mkdir -p log; \
+                    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                     date >> «logFileName»; \
                     echo "Executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                     # First, check if the RTI is on the PATH
