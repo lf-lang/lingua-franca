@@ -63,8 +63,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * When the federation IDs match, the RTI will respond with an
  * MSG_TYPE_ACK.
+ * 
+ * The next message to the RTI will be a MSG_TYPE_NEIGHBOR_STRUCTURE message
+ * that informs the RTI about the relayed (through the RTI) logical connections
+ * this federate has to downstream and upstream federates. The burden is on the
+ * federates to inform the RTI about relevant connections. For example, in a
+ * decentralized coordination scheme, the RTI does not need to know about the
+ * connection structure of the federation since it is only involved in startup
+ * and shutdown coordination. As another example, the RTI does not need to know
+ * about any physical connection regardless of coordination mode.
  *
- * The next message to the RTI will a MSG_TYPE_UDP_PORT message, which has
+ * The next message to the RTI will be a MSG_TYPE_UDP_PORT message, which has
  * payload USHRT_MAX if clock synchronization is disabled altogether, 0 if
  * only initial clock synchronization is enabled, and a port number for
  * UDP communication if runtime clock synchronization is enabled.
@@ -168,7 +177,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NET_COMMON_H
 
 #include <pthread.h>
-#include "reactor.h"
 
 /**
  * The timeout time in ns for TCP operations.
@@ -592,6 +600,29 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define MSG_TYPE_PORT_ABSENT 23
 
+
+
+/**
+ * A message that contains information about a federate's upstream and
+ * downstream relayed (through the RTI) logical connections to other federates
+ * (1 level up and down the architecture).
+ *
+ * The next 4 bytes is the number of upstream federates. 
+ * The next 4 bytes is the number of downstream federates.
+ * 
+ * Depending on the first four bytes, the next bytes are pairs of (fed ID (2
+ * bytes), delay (8 bytes)) for this federate's connection to upstream federates
+ * (by direct connection).
+ *
+ * Depending on the second four bytes, the next bytes are fed IDs (2
+ * bytes each), of this federate's downstream federates (by direct connection).
+ *
+ * @note The upstream and downstream connections are transmitted on the same
+ *  message to prevent (at least to some degree) the scenario where the RTI has
+ *  information about one, but not the other (which is a critical error).
+ */
+#define MSG_TYPE_NEIGHBOR_STRUCTURE 24
+#define MSG_TYPE_NEIGHBOR_STRUCTURE_HEADER_SIZE 9
 
 /////////////////////////////////////////////
 //// Rejection codes

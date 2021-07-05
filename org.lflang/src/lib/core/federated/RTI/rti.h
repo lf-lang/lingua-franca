@@ -34,6 +34,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RTI_H
 #define RTI_H
 
+#include "reactor.h"
+
 /////////////////////////////////////////////
 //// Data structures
 
@@ -154,6 +156,9 @@ typedef struct RTI_instance_t {
     char* federation_id;
 
     /************* TCP server information *************/
+    /** The desired port specified by the user on the command line. */
+    uint16_t user_specified_port;
+
     /** The final port number that the TCP socket server ends up using. */
     uint16_t final_port_TCP;
 
