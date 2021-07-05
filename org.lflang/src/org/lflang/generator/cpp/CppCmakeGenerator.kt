@@ -74,7 +74,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |
             ${
                 if (targetConfig.externalRuntimePath != null) """
-                    |find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath}")
+                    |find_package(reactor-cpp PATHS "${targetConfig.externalRuntimePath}")
                 """.trimIndent() else """
                     |if(NOT REACTOR_CPP_BUILD_DIR)
                     |    set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
