@@ -70,18 +70,22 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    generic_port_instance_struct* port = PyCapsule_GetPointer(p->port, "port");
+    generic_port_instance_struct* port = 
+        PyCapsule_GetPointer(p->port, "port");
     if (port == NULL) {
         error_print("Null pointer received.");
         exit(1);
     }
     
-    if (val) {   
+    if (val) {
+        DEBUG_PRINT("Setting value %p.", port->value);
         tmp = port->value;
         Py_INCREF(val);
+        // Call the core lib API to set the port
         _LF_SET(port, val);
 
-        // Also set the values for the port capsule.       
+        Py_INCREF(val);
+        // Also set the values for the port capsule.      
         p->value = val;
         p->is_present = true;
         //Py_XDECREF(tmp); // Since value is allocated in Python, the Python garbage collector will manage and free this memory
@@ -215,9 +219,17 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
 }
 
 /**
+ * Return the start time in nanoseconds.
+ */
+instant_t get_start_time();
+static PyObject* py_get_start_time(PyObject *self, PyObject *args) {
+    return PyLong_FromLong(get_start_time());
+}
+
+/**
  * Prototype for the main function.
  */
-int main(int argc, char *argv[]);
+int lf_reactor_c_main(int argc, char *argv[]);
 
 /**
  * Prototype for request_stop().
@@ -240,7 +252,9 @@ static PyObject* py_request_stop(PyObject *self) {
 //////////////////////////////////////////////////////////////
 ///////////// Main function callable from Python code
 static PyObject* py_main(PyObject *self, PyObject *args) {
-    main(1, NULL);
+    DEBUG_PRINT("Initializing main.");
+    const char *argv[] = {TOSTRING(MODULE_NAME), NULL };
+    lf_reactor_c_main(1, argv);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -286,7 +300,8 @@ port_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     self = (generic_port_capsule_struct *) type->tp_alloc(type, 0);
     if (self != NULL) {
         self->port = NULL;
-        self->value = NULL;
+        Py_INCREF(Py_None);
+        self->value = Py_None;
         self->is_present = false;
         self->current_index = 0;
         self->width = -2;
@@ -364,29 +379,27 @@ port_iter_next(PyObject *self) {
 static PyObject *
 port_capsule_get_item(PyObject *self, PyObject *item) {
     generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
-    generic_port_capsule_struct* pyport = (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
+    generic_port_capsule_struct* pyport = 
+        (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
     long long index = -3;
 
     // Port is not a multiport
-    if (port->width == -2)
-    {
+    if (port->width == -2) {
         return self;
     }
 
     index = PyLong_AsLong(item);
-    if (index == -3)
-    {
+    if (index == -3) {
         PyErr_Format(PyExc_TypeError,
                      "multiport indices must be integers, not %.200s",
                      Py_TYPE(item)->tp_name);
         return NULL;
     }
     
-    if (index != -3 && port->width > 0)
-    {
-        generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
-        if (cport == NULL)
-        {
+    if (index != -3 && port->width > 0) {
+        generic_port_instance_struct **cport = 
+            (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
+        if (cport == NULL) {
             error_print_and_exit("Null pointer received.");
         }
 
@@ -396,11 +409,12 @@ port_capsule_get_item(PyObject *self, PyObject *item) {
         pyport->is_present = cport[index]->is_present;
         pyport->width = -2;
 
+
+        LOG_PRINT("Getting item index %d. Is present is %d.", index, pyport->is_present);
     }
 
     
-    if (pyport->value == NULL)
-    {
+    if (pyport->value == NULL) {
         Py_INCREF(Py_None);
         pyport->value = Py_None;
     }
@@ -714,6 +728,7 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
   {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
+  {"get_start_time", py_get_start_time, METH_NOARGS, NULL},
   {"request_stop", py_request_stop, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
@@ -829,8 +844,9 @@ PyObject* convert_C_port_to_py(void* port, int width) {
         // Not a multiport
         cport = (generic_port_instance_struct *)port;
     }
-    // Create the action struct in Python
-    PyObject* cap = PyObject_GC_New(generic_port_capsule_struct, &port_capsule_t);
+    // Create the port struct in Python
+    PyObject* cap = 
+        PyObject_GC_New(generic_port_capsule_struct, &port_capsule_t);
     if (cap == NULL) {
         error_print_and_exit("Failed to convert port.");
     }
@@ -846,7 +862,8 @@ PyObject* convert_C_port_to_py(void* port, int width) {
     ((generic_port_capsule_struct*)cap)->width = width;
 
     if (width == -2) {
-        ((generic_port_capsule_struct*)cap)->is_present = cport->is_present;
+        ((generic_port_capsule_struct*)cap)->is_present = 
+            cport->is_present;
 
 
         if (cport->value == NULL) {
@@ -858,8 +875,7 @@ PyObject* convert_C_port_to_py(void* port, int width) {
 
         //Py_INCREF(cport->value);
         ((generic_port_capsule_struct*)cap)->value = cport->value;
-    }
-    else {
+    } else {
         // Value is absent
         Py_INCREF(Py_None);
         ((generic_port_capsule_struct*)cap)->value = Py_None;
