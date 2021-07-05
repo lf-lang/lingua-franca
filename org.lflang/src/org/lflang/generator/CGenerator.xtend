@@ -757,7 +757,9 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
                 
-                pr(generateFederateNeighborStructure(federate).toString());
+                if (isFederated) {
+                    pr(generateFederateNeighborStructure(federate).toString());
+                }
                                 
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
@@ -1284,7 +1286,12 @@ class CGenerator extends GeneratorBase {
                 # The RTI will be brought back to foreground
                 # to be responsive to user inputs after all federates
                 # are launched.
-                RTI -i $FEDERATION_ID -n «federates.size» &
+                RTI -i $FEDERATION_ID \
+                 -n «federates.size» \
+                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+                  period «targetConfig.clockSyncOptions.period.toNanoSeconds» \
+                  exchanges-per-interval «targetConfig.clockSyncOptions.trials» «ENDIF» \
+                  &
                 # Store the PID of the RTI
                 RTI=$!
                 # Wait for the RTI to boot up before
