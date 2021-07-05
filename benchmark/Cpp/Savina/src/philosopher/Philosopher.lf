@@ -116,7 +116,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
     =}
     
     reaction(sendMessages) -> outPhilosophers {=
-        for(int i = 0; i < messagesToSend.size(); i++) {
+        for(size_t i = 0; i < messagesToSend.size(); i++) {
             outPhilosophers[messagesToSend[i].first].set(messagesToSend[i].second);
         }
         messagesToSend.clear();
@@ -125,7 +125,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
     reaction(inPhilosophers) -> outFinished, sendMessages {=
         
         // the order of checking the inputs gives the philosophers a priority
-        for(int i = 0; i < inPhilosophers.size(); i++) {
+        for(size_t i = 0; i < inPhilosophers.size(); i++) {
             if(inPhilosophers[i].is_present()) {
                 if(inPhilosophers[i].get()->type == HungryMsg) {
                     
@@ -163,7 +163,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
     =}
 }
 
-reactor PhilosopherReactor(instance:int(0), rounds:int(10000)) {
+reactor PhilosopherReactor(rounds:int(10000)) {
     
     state localCounter:long(0); // count failed tries
     state roundsSoFar:int(0); // count successful tries
@@ -179,7 +179,7 @@ reactor PhilosopherReactor(instance:int(0), rounds:int(10000)) {
         outArbitrator.set(Message{HungryMsg});
     =}
     
-    reaction(finish) -> outArbitrator {=
+    reaction(finish) -> outArbitrator, outCounterDenied {=
         outArbitrator.set(Message{ExitMsg});
         outCounterDenied.set(localCounter);
     =}
@@ -233,7 +233,7 @@ reactor CounterReactor(numLocalCounters:int(20)) {
     =}
     
     reaction(inLocalCounters) {=
-        for(int i = 0; i < inLocalCounters.size(); i++) {
+        for(size_t i = 0; i < inLocalCounters.size(); i++) {
             if(inLocalCounters[i].is_present()) {
                 counter += *(inLocalCounters[i].get());
                 receivedLocalCounts += 1;
