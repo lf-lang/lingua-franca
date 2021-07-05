@@ -95,6 +95,14 @@ jobs:
 #           vcpkgGitCommitId: $(vcpkgGitRef)
 #           vcpkgGitURL: https://github.com/microsoft/vcpkg/
 #         if: runner.os == 'Windows'
+      - name: Install RTI;
+        run: |
+          cd org.lflang/src/lib/core/federated/RTI
+          mkdir build
+          cd build
+          cmake ../
+          make
+          make install
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
