@@ -60,6 +60,41 @@
 					</products>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.5</version>
+				<executions>
+					<!-- Move icons in the correct location for tycho build -->
+					<!-- Fix for broken product icons. The problem is that the product file 
+						contains paths to icons that are interpreted differently by the Eclipse PDE 
+						and Maven/Tycho. To fix this, we use Maven's resources plugin to copy the 
+						files to the location they have to be in for Tycho to find them. Yes, this 
+						is ugly. -->
+					<execution>
+						<id>copy-icons</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${basedir}/org.lflang.product/icons</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${basedir}/../org.lflang.product/icons</directory>
+									<includes>
+							          <include>**/*.png</include>
+                                      <include>**/*.bmp</include>
+                                      <include>**/*.xpm</include>
+                                      <include>**/*.icns</include>
+                                      <include>**/*.ico</include>
+							        </includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>
