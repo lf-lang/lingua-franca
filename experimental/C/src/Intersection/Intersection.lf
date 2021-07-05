@@ -2,8 +2,8 @@
  * Model of a smart intersection with a road-side unit (RSU)
  * that regulates the flow of automated vehicles through the
  * intersection. Vehicles that are approaching the intersection
- * send an initial message to the RTU with their speed and
- * distance to the intersection. The RTU responds with a
+ * send an initial message to the RSU with their speed and
+ * distance to the intersection. The RSU responds with a
  * reservation for when the vehicle can enter the intersection
  * and what its average speed through the intersection should be.
  * 
