@@ -42,9 +42,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * to swap bytes.
  */
 
-
-#define LOG_LEVEL 4
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>      // Defines perror(), errno
@@ -1666,7 +1663,7 @@ int receive_udp_message_and_set_up_clock_sync(int socket_id, uint16_t fed_id) {
         send_reject(socket_id, UNEXPECTED_MESSAGE);
         return 0;
     } else {
-        if (_RTI.clock_sync_global_status == clock_sync_init) {// If no initial clock sync, no need perform initial clock sync.
+        if (_RTI.clock_sync_global_status >= clock_sync_init) {// If no initial clock sync, no need perform initial clock sync.
             uint16_t federate_UDP_port_number = extract_uint16(&(response[1]));
 
             // A port number of UINT16_MAX means initial clock sync should not be performed.
@@ -1696,7 +1693,7 @@ int receive_udp_message_and_set_up_clock_sync(int socket_id, uint16_t fed_id) {
                 }
                 DEBUG_PRINT("RTI finished initial clock synchronization with federate %d.", fed_id);
             }
-            if (_RTI.clock_sync_global_status == clock_sync_on) { // If no runtime clock sync, no need to set up the UDP port.
+            if (_RTI.clock_sync_global_status >= clock_sync_on) { // If no runtime clock sync, no need to set up the UDP port.
                     if (federate_UDP_port_number > 0) {
                         // Initialize the UDP_addr field of the federate struct
                         _RTI.federates[fed_id].UDP_addr.sin_family = AF_INET;
@@ -1708,8 +1705,8 @@ int receive_udp_message_and_set_up_clock_sync(int socket_id, uint16_t fed_id) {
                     _RTI.federates[fed_id].clock_synchronization_enabled = false;
             }
         } else { // No clock synchronization at all.
-            // Clock synchronization is universally disabled via the clock-sync target parameter
-            // (#define _LF_CLOCK_SYNC was not generated for the RTI).
+            // Clock synchronization is universally disabled via the clock-sync command-line parameter
+            // (-c off was passed to the RTI).
             // Note that the federates are still going to send a MSG_TYPE_UDP_PORT message but with a payload (port) of -1.
             _RTI.federates[fed_id].clock_synchronization_enabled = false;
         }
@@ -1765,21 +1762,21 @@ void connect_to_federates(int socket_descriptor) {
     // All federates have connected.
     DEBUG_PRINT("All federates have connected to RTI.");
 
-#ifdef _LF_CLOCK_SYNC_ON
-    // Create the thread that performs periodic PTP clock synchronization sessions
-    // over the UDP channel, but only if the UDP channel is open and at least one
-    // federate is performing runtime clock synchronization.
-    bool clock_sync_enabled = false;
-    for (int i = 0; i < _RTI.number_of_federates; i++) {
-    	if (_RTI.federates[i].clock_synchronization_enabled) {
-    		clock_sync_enabled = true;
-    		break;
-    	}
+    if (_RTI.clock_sync_global_status >= clock_sync_on) {
+        // Create the thread that performs periodic PTP clock synchronization sessions
+        // over the UDP channel, but only if the UDP channel is open and at least one
+        // federate is performing runtime clock synchronization.
+        bool clock_sync_enabled = false;
+        for (int i = 0; i < _RTI.number_of_federates; i++) {
+            if (_RTI.federates[i].clock_synchronization_enabled) {
+                clock_sync_enabled = true;
+                break;
+            }
+        }
+        if (_RTI.final_port_UDP != UINT16_MAX && clock_sync_enabled) {
+            pthread_create(&_RTI.clock_thread, NULL, clock_synchronization_thread, NULL);
+        }
     }
-    if (_RTI.final_port_UDP != UINT16_MAX && clock_sync_enabled) {
-        pthread_create(&clock_thread, NULL, clock_synchronization_thread, NULL);
-    }
-#endif // _LF_CLOCK_SYNC_ON
 }
 
 /**
@@ -1858,9 +1855,9 @@ int32_t start_rti_server(uint16_t port) {
     info_print("RTI: Listening for federates.");
     // Create the UDP socket server
     // Try to get the _RTI.final_port_TCP + 1 port
-#ifdef _LF_CLOCK_SYNC_ON
-    _RTI.socket_descriptor_UDP = create_server(specified_port, _RTI.final_port_TCP + 1, UDP);
-#endif // _LF_CLOCK_SYNC_ON
+    if (_RTI.clock_sync_global_status >= clock_sync_on) {
+        _RTI.socket_descriptor_UDP = create_server(specified_port, _RTI.final_port_TCP + 1, UDP);
+    }
     return _RTI.socket_descriptor_TCP;
 }
 
