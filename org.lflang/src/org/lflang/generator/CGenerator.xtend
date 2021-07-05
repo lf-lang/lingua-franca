@@ -484,7 +484,6 @@ class CGenerator extends GeneratorBase {
                 "federated" + File.separator + "clock-sync.h", 
                 "federated" + File.separator + "clock-sync.c"
             );
-            createFederateRTI()
             createLauncher(coreFiles)
         }
         
@@ -757,6 +756,8 @@ class CGenerator extends GeneratorBase {
                         «ENDIF»
                     }
                 ''')
+                
+                pr(generateFederateNeighborStructure(federate).toString());
                                 
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
@@ -805,9 +806,6 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand()
-            } else if (isFederated) {
-                // Compile the RTI files if there is more than one federate.
-                compileRTI()
             }
         }
         
@@ -1040,189 +1038,124 @@ class CGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Code generators.
     
-    /** Create the runtime infrastructure (RTI) source file.
+    /**
+     * Generate code that sends the neighbor structure message to the RTI.
+     * 
+     * @param federate The federate that is sending its neighbor structure
      */
-    override createFederateRTI() {
-        // Derive target filename from the .lf filename.
-        var cFilename = getTargetFileName(fileConfig.RTIBinName)
-        
-        
+    def generateFederateNeighborStructure(FederateInstance federate) {
 
-        // Delete source previously produced by the LF compiler.
-        var file = fileConfig.getSrcGenPath.resolve(cFilename).toFile
-        if (file.exists) {
-            file.delete
-        }
-
-        // Delete binary previously produced by the C compiler.
-        file = fileConfig.binPath.resolve(topLevelName).toFile
-        if (file.exists) {
-            file.delete
-        }
-        
-        val rtiCode = new StringBuilder()
-        pr(rtiCode, this.defineLogLevel)
-        
-        if (targetConfig.clockSync == ClockSyncMode.INITIAL) {
-            pr(rtiCode, '''
-                #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.toNanoSeconds»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
-            ''')
-        } else if (targetConfig.clockSync == ClockSyncMode.ON) {
-            pr(rtiCode, '''
-                #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_ON
-                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.toNanoSeconds»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
-            ''')
-        }
+        val rtiCode = new StringBuilder();
         pr(rtiCode, '''
-            #ifdef NUMBER_OF_FEDERATES
-            #undefine NUMBER_OF_FEDERATES
-            #endif
-            #define NUMBER_OF_FEDERATES «federates.size»
-            #include "core/rti.c"
-            int main(int argc, char* argv[]) {
+            /**
+             * Generated function that sends information about this federate's
+             * relayed (through the RTI) logical connections to the RTI.
+             * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
+             */
+            void send_neighbor_structure_to_RTI(int rti_socket) {
         ''')
-        indent(rtiCode)
-        
-        // Initialize the array of information that the RTI has about the
-        // federates.
-        // FIXME: No support below for some federates to be FAST and some REALTIME.
+
+        indent(rtiCode);
+
+        // Initialize the array of information about the federate's immediate upstream
+        // and downstream relayed (through the RTI) logical connections, to send to the
+        // RTI.
         pr(rtiCode, '''
-            if (!process_args(argc, argv)) {
-                // Processing command-line arguments failed.
-                return -1;
-            }
-            printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
-            assert(NUMBER_OF_FEDERATES < UINT16_MAX);
-            for (uint16_t i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                initialize_federate(i);
-                «IF targetConfig.fastMode»
-                    federates[i].mode = FAST;
-                «ENDIF»
-            }
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wunused-variable"
             interval_t candidate_tmp;
-            #pragma GCC diagnostic pop
+            size_t buffer_size = 1 + 8 + 
+                            «federate.dependsOn.keySet.size» * ( sizeof(uint16_t) + sizeof(int64_t) ) +
+                            «federate.sendsTo.keySet.size» * sizeof(uint16_t);
+            unsigned char buffer_to_send[buffer_size];
+            
+            size_t message_head = 0;
+            buffer_to_send[message_head] = MSG_TYPE_NEIGHBOR_STRUCTURE;
+            message_head++;
+            encode_int32((int32_t)«federate.dependsOn.keySet.size», &(buffer_to_send[message_head]));
+            message_head+=sizeof(int32_t);
+            encode_int32((int32_t)«federate.sendsTo.keySet.size», &(buffer_to_send[message_head]));
+            message_head+=sizeof(int32_t);
         ''')
-        // Initialize the arrays indicating connectivity to upstream and downstream federates.
-        for(federate : federates) {
-            if (!federate.dependsOn.keySet.isEmpty) {
-                // Federate receives non-physical messages from other federates.
-                // Initialize the upstream and upstream_delay arrays.
-                val numUpstream = federate.dependsOn.keySet.size
-                // Allocate memory for the arrays storing the connectivity information.
+
+        if (!federate.dependsOn.keySet.isEmpty) {
+            // Next, populate these arrays.
+            // Find the minimum delay in the process.
+            // FIXME: Zero delay is not really the same as a microstep delay.
+            for (upstreamFederate : federate.dependsOn.keySet) {
                 pr(rtiCode, '''
-                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
-                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
-                    federates[«federate.id»].num_upstream = «numUpstream»;
+                    encode_uint16((uint16_t)«upstreamFederate.id», &(buffer_to_send[message_head]));
+                    message_head += sizeof(uint16_t);
                 ''')
-                // Next, populate these arrays.
-                // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
-                var count = 0;
-                for (upstreamFederate : federate.dependsOn.keySet) {
+                // The minimum delay calculation needs to be made in the C code because it
+                // may depend on parameter values.
+                // FIXME: These would have to be top-level parameters, which don't really
+                // have any support yet. Ideally, they could be overridden on the command line.
+                // When that is done, they will need to be in scope here.
+                val delays = federate.dependsOn.get(upstreamFederate)
+                if (delays !== null) {
+                    // There is at least one delay, so find the minimum.
+                    // If there is no delay at all, this is encoded as NEVER.
                     pr(rtiCode, '''
-                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
+                        candidate_tmp = FOREVER;
                     ''')
-                    // The minimum delay calculation needs to be made in the C code because it
-                    // may depend on parameter values.
-                    // FIXME: These would have to be top-level parameters, which don't really
-                    // have any support yet. Ideally, they could be overridden on the command line.
-                    // When that is done, they will need to be in scope here.
-                    val delays = federate.dependsOn.get(upstreamFederate)
-                    if (delays !== null) {
-                        // There is at least one delay, so find the minimum.
-                        // If there is no delay at all, this is encoded as NEVER.
-                        pr(rtiCode, '''
-                            federates[«federate.id»].upstream_delay[«count»] = NEVER;
-                            candidate_tmp = FOREVER;
-                        ''')
-                        for (delay : delays) {
-                            if (delay === null) {
-                                // Use NEVER to encode no delay at all.
-                                pr(rtiCode, '''
-                                    candidate_tmp = NEVER;
-                                ''')
-                            } else {
-                                var delayTime = delay.getTargetTime
-                                if (delay.parameter !== null) {
-                                    // The delay is given as a parameter reference. Find its value.
-                                    delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
+                    for (delay : delays) {
+                        if (delay === null) {
+                            // Use NEVER to encode no delay at all.
+                            pr(rtiCode, '''
+                                candidate_tmp = NEVER;
+                            ''')
+                        } else {
+                            var delayTime = delay.getTargetTime
+                            if (delay.parameter !== null) {
+                                // The delay is given as a parameter reference. Find its value.
+                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
+                            }
+                            pr(rtiCode, '''
+                                if («delayTime» < candidate_tmp) {
+                                    candidate_tmp = «delayTime»;
                                 }
-                                pr(rtiCode, '''
-                                    if («delayTime» < candidate_tmp) {
-                                        candidate_tmp = «delayTime»;
-                                    }
-                                ''')
-                            }
+                            ''')
                         }
-                        pr(rtiCode, '''
-                            if (candidate_tmp < FOREVER) {
-                                federates[«federate.id»].upstream_delay[«count»] = candidate_tmp;
-                            }
-                        ''')
-                    } else {
-                        // Use NEVER to encode no delay at all.
-                        pr(rtiCode, '''
-                            federates[«federate.id»].upstream_delay[«count»] = NEVER;
-                        ''')
                     }
-                    count++;
-                }
-            }
-            // Next, set up the downstream array.
-            if (!federate.sendsTo.keySet.isEmpty) {
-                // Federate sends non-physical messages to other federates.
-                // Initialize the downstream array.
-                val numDownstream = federate.sendsTo.keySet.size
-                // Allocate memory for the array.
-                pr(rtiCode, '''
-                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
-                    federates[«federate.id»].num_downstream = «numDownstream»;
-                ''')
-                // Next, populate the array.
-                // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
-                var count = 0;
-                for (downstreamFederate : federate.sendsTo.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
+                    pr(rtiCode, '''                            
+                        encode_int64((int64_t)candidate_tmp, &(buffer_to_send[message_head]));
+                        message_head += sizeof(int64_t);
                     ''')
-                    count++;
+                } else {
+                    // Use NEVER to encode no delay at all.
+                    pr(rtiCode, '''
+                        encode_int64(NEVER, &(buffer_to_send[message_head]));
+                        message_head += sizeof(int64_t);
+                    ''')
                 }
             }
         }
         
-        // Start the RTI server before launching the federates because if it
-        // fails, e.g. because the port is not available, then we don't want to
-        // launch the federates.
-        // Also, generate code that blocks until the federates resign.
-        pr(rtiCode, '''
-            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
-            wait_for_federates(socket_descriptor);
-        ''')
+        // Next, set up the downstream array.
+        if (!federate.sendsTo.keySet.isEmpty) {
+            // Next, populate the array.
+            // Find the minimum delay in the process.
+            // FIXME: Zero delay is not really the same as a microstep delay.
+            for (downstreamFederate : federate.sendsTo.keySet) {
+                pr(rtiCode, '''
+                    encode_uint16(«downstreamFederate.id», &(buffer_to_send[message_head]));
+                    message_head += sizeof(uint16_t);
+                ''')
+            }
+        }
         
-        // Handle RTI's exit
         pr(rtiCode, '''
-            printf("RTI is exiting.\n");
-            return 0;
+            write_to_socket_errexit(
+                rti_socket, 
+                buffer_size,
+                buffer_to_send,
+                "Failed to send the neighbor structure message to the RTI."
+            );
         ''')
 
         unindent(rtiCode)
         pr(rtiCode, "}")
 
-        var fOut = new FileOutputStream(fileConfig.getSrcGenPath.resolve(cFilename).toFile);
-        fOut.write(rtiCode.toString().getBytes())
-        fOut.close()
-        
-        // Write a Dockerfile for the RTI.
-        if (targetConfig.dockerOptions !== null) {
-            writeDockerFile(fileConfig.RTIBinName)
-        }
+        return rtiCode;
     }
     
     /**
@@ -1339,12 +1272,19 @@ class CGenerator extends GeneratorBase {
             // FIXME: the paths below will not work on Windows
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
+                # First, check if the RTI is on the PATH
+                if ! command -v RTI &> /dev/null
+                then
+                    echo "RTI could not be found."
+                    echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+                    exit
+                fi                
                 # The RTI is started first to allow proper boot-up
                 # before federates will try to connect.
                 # The RTI will be brought back to foreground
                 # to be responsive to user inputs after all federates
                 # are launched.
-                «fileConfig.binPath.resolve(topLevelName) + FileConfig.RTI_BIN_SUFFIX» -i $FEDERATION_ID &
+                RTI -i $FEDERATION_ID -n «federates.size» &
                 # Store the PID of the RTI
                 RTI=$!
                 # Wait for the RTI to boot up before
@@ -4770,7 +4710,7 @@ class CGenerator extends GeneratorBase {
             pr("#include \"core/reactor.c\"")
         }
         if (isFederated) {
-            pr("#include \"core/federate.c\"")
+            pr("#include \"core/federated/federate.c\"")
         }
     }
 

@@ -43,8 +43,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>     // Defines sigaction.
 #include "net_util.c"   // Defines network functions.
 #include "net_common.h" // Defines message types, etc.
-#include "reactor.h"    // Defines instant_t.
-#include "platform.h"
+#include "../reactor.h"    // Defines instant_t.
+#include "../platform.h"
 #include "clock-sync.c" // Defines clock synchronization functions.
 #include "federate.h"   // Defines federate_instance_t
 
@@ -94,6 +94,14 @@ federate_instance_t _fed = {
  *  This procedure frees the memory pointed to before returning.
  */
 void* listen_to_federates(void* args);
+
+
+/**
+ * Generated external function that sends information about this federate's
+ * relayed (through the RTI) logical connections to the RTI.
+ * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
+ */
+void send_neighbor_structure_to_RTI(int rti_socket);
 
 /** 
  * Create a server to listen to incoming physical
@@ -759,9 +767,9 @@ void connect_to_federate(uint16_t remote_federate_id) {
             size_t buffer_length = 1 + sizeof(uint16_t) + 1;
             unsigned char buffer[buffer_length];
             buffer[0] = MSG_TYPE_P2P_SENDING_FED_ID;
-            if (_lf_my_fed_id > USHRT_MAX) {
+            if (_lf_my_fed_id > UINT16_MAX) {
                 // This error is very unlikely to occur.
-                error_print_and_exit("Too many federates! More than %d.", USHRT_MAX);
+                error_print_and_exit("Too many federates! More than %d.", UINT16_MAX);
             }
             encode_uint16((uint16_t)_lf_my_fed_id, (unsigned char*)&(buffer[1]));
             unsigned char federation_id_length = (unsigned char)strnlen(federation_id, 255);
@@ -922,8 +930,8 @@ void connect_to_rti(char* hostname, int port) {
             // Send the message type first.
             buffer[0] = MSG_TYPE_FED_IDS;
             // Next send the federate ID.
-            if (_lf_my_fed_id > USHRT_MAX) {
-                error_print_and_exit("Too many federates! More than %d.", USHRT_MAX);
+            if (_lf_my_fed_id > UINT16_MAX) {
+                error_print_and_exit("Too many federates! More than %d.", UINT16_MAX);
             }
             encode_uint16((uint16_t)_lf_my_fed_id, &buffer[1]);
             // Next send the federation ID length.
@@ -961,6 +969,12 @@ void connect_to_rti(char* hostname, int port) {
                         "%d. Error code: %d. Federate quits.\n", response, cause);
             } else if (response == MSG_TYPE_ACK) {
                 LOG_PRINT("Received acknowledgment from the RTI.");
+
+                // Call a generated (external) function that sends information
+                // about this federate's downstream and upstream relayed logical
+                // connections to the RTI (@see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h)
+                send_neighbor_structure_to_RTI(_fed.socket_TCP_RTI);
+
                 uint16_t udp_port = setup_clock_synchronization_with_rti();
 
                 // Write the returned port number to the RTI
