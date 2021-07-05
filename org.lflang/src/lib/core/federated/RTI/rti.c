@@ -42,6 +42,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * to swap bytes.
  */
 
+
+#define LOG_LEVEL 4
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>      // Defines perror(), errno
@@ -54,7 +57,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
 #include <sys/wait.h>   // Defines wait() for process to change state.
-#include "util.c"   // Defines network functions.
+#include "platform.h"   // Platform-specific types and functions
+#include "util.c"       // Defines network functions.
 #include "net_util.c"   // Defines network functions.
 #include "net_common.h" // Defines message types, etc. Includes <pthread.h> and "reactor.h".
 #include "tag.c"        // Time-related types and functions.
@@ -69,15 +73,19 @@ RTI_instance_t _RTI = {
     .sent_start_time = PTHREAD_COND_INITIALIZER,
     .max_stop_tag = NEVER_TAG,
     .max_start_time = 0LL,
+    .number_of_federates = 0,
     .num_feds_proposed_start = 0,
     .num_feds_handling_stop = 0,
     .all_federates_exited = false,
     .federation_id = "Unidentified Federation",
+    .user_specified_port = 0,
     .final_port_TCP = 0,
     .socket_descriptor_TCP = -1,
-    .final_port_UDP = USHRT_MAX,
+    .final_port_UDP = UINT16_MAX,
     .socket_descriptor_UDP = -1,
-    .clock_sync_global_status = clock_sync_off
+    .clock_sync_global_status = clock_sync_init,
+    .clock_sync_period_ns = MSEC(10),
+    .clock_sync_exchanges_per_interval = 10
 };
 
 /**
@@ -1561,10 +1569,82 @@ int32_t receive_and_check_fed_id_message(int socket_id, struct sockaddr_in* clie
 }
 
 /**
+ * Listen for a MSG_TYPE_NEIGHBOR_STRUCTURE message, and upon receiving it, fill
+ * out the relevant information in the federate's struct.
+ */
+int receive_connection_information(int socket_id, uint16_t fed_id) {
+    DEBUG_PRINT("RTI waiting for MSG_TYPE_NEIGHBOR_STRUCTURE from federate %d.", fed_id);
+    unsigned char connection_info_header[MSG_TYPE_NEIGHBOR_STRUCTURE_HEADER_SIZE];
+    read_from_socket_errexit(
+        socket_id, 
+        MSG_TYPE_NEIGHBOR_STRUCTURE_HEADER_SIZE, 
+        connection_info_header,
+        "RTI failed to read MSG_TYPE_NEIGHBOR_STRUCTURE message header from federate %d.",
+        fed_id
+    );
+
+    if (connection_info_header[0] != MSG_TYPE_NEIGHBOR_STRUCTURE) {
+        error_print("RTI was expecting a MSG_TYPE_UDP_PORT message from federate %d. Got %u instead. "
+                "Rejecting federate.", fed_id, connection_info_header[0]);
+        send_reject(socket_id, UNEXPECTED_MESSAGE);
+        return 0;
+    } else {
+        // Read the number of upstream and downstream connections
+        _RTI.federates[fed_id].num_upstream = extract_int32(&(connection_info_header[1]));
+        _RTI.federates[fed_id].num_downstream = extract_int32(&(connection_info_header[1 + sizeof(int32_t)]));
+        DEBUG_PRINT(
+            "RTI got %d upstreams and %d downstreams from federate %d.",
+            _RTI.federates[fed_id].num_upstream,
+            _RTI.federates[fed_id].num_downstream,
+            fed_id);
+
+        // Allocate memory for the upstream and downstream pointers
+        _RTI.federates[fed_id].upstream = (int*)malloc(sizeof(federate_t*) * _RTI.federates[fed_id].num_upstream);
+        _RTI.federates[fed_id].downstream = (int*)malloc(sizeof(federate_t*) * _RTI.federates[fed_id].num_downstream);
+        
+        // Allocate memory for the upstream delay pointers
+        _RTI.federates[fed_id].upstream_delay = 
+            (interval_t*)malloc(
+                sizeof(interval_t) * _RTI.federates[fed_id].num_upstream
+            );    
+
+        size_t connections_info_body_size = ((sizeof(uint16_t) + sizeof(int64_t)) *
+            _RTI.federates[fed_id].num_upstream) + (sizeof(uint16_t) * _RTI.federates[fed_id].num_downstream);
+        unsigned char* connections_info_body = (unsigned char*)malloc(connections_info_body_size);
+        read_from_socket_errexit(
+            socket_id, 
+            connections_info_body_size, 
+            connections_info_body,
+            "RTI failed to read MSG_TYPE_NEIGHBOR_STRUCTURE message body from federate %d.",
+            fed_id
+        );
+
+        // Keep track of where we are in the buffer
+        size_t message_head = 0;
+        // First, read the info about upstream federates
+        for (int i=0; i<_RTI.federates[fed_id].num_upstream; i++) {
+            _RTI.federates[fed_id].upstream[i] = extract_uint16(&(connections_info_body[message_head]));
+            message_head += sizeof(uint16_t);
+            _RTI.federates[fed_id].upstream_delay[i] = extract_int64(&(connections_info_body[message_head]));
+            message_head += sizeof(int64_t);
+        }
+
+        // Next, read the info about downstream federates
+        for (int i=0; i<_RTI.federates[fed_id].num_downstream; i++) {
+            _RTI.federates[fed_id].downstream[i] = extract_uint16(&(connections_info_body[message_head]));
+            message_head += sizeof(uint16_t);
+        }
+
+        free(connections_info_body);
+        return 1;
+    }
+}
+
+/**
  * Listen for a MSG_TYPE_UDP_PORT message, and upon receiving it, set up
  * clock synchronization and perform the initial clock synchronization.
  * Initial clock synchronization is performed only if the MSG_TYPE_UDP_PORT message
- * payload is not USHRT_MAX. If it is also not 0, then this function sets
+ * payload is not UINT16_MAX. If it is also not 0, then this function sets
  * up to perform runtime clock synchronization using the UDP port number
  * specified in the payload to communicate with the federate's clock
  * synchronization logic.
@@ -1589,8 +1669,8 @@ int receive_udp_message_and_set_up_clock_sync(int socket_id, uint16_t fed_id) {
         if (_RTI.clock_sync_global_status == clock_sync_init) {// If no initial clock sync, no need perform initial clock sync.
             uint16_t federate_UDP_port_number = extract_uint16(&(response[1]));
 
-            // A port number of USHRT_MAX means initial clock sync should not be performed.
-            if (federate_UDP_port_number != USHRT_MAX) {
+            // A port number of UINT16_MAX means initial clock sync should not be performed.
+            if (federate_UDP_port_number != UINT16_MAX) {
                 // Perform the initialization clock synchronization with the federate.
                 // Send the required number of messages for clock synchronization
                 for (int i=0; i < _RTI.clock_sync_exchanges_per_interval; i++) {
@@ -1668,6 +1748,7 @@ void connect_to_federates(int socket_descriptor) {
         // The first message from the federate should contain its ID and the federation ID.
         int32_t fed_id = receive_and_check_fed_id_message(socket_id, (struct sockaddr_in*)&client_fd);
         if (fed_id >= 0
+                && receive_connection_information(socket_id, (uint16_t)fed_id)
         		&& receive_udp_message_and_set_up_clock_sync(socket_id, (uint16_t)fed_id)) {
 
             // Create a thread to communicate with the federate.
@@ -1695,7 +1776,7 @@ void connect_to_federates(int socket_descriptor) {
     		break;
     	}
     }
-    if (_RTI.final_port_UDP != USHRT_MAX && clock_sync_enabled) {
+    if (_RTI.final_port_UDP != UINT16_MAX && clock_sync_enabled) {
         pthread_create(&clock_thread, NULL, clock_synchronization_thread, NULL);
     }
 #endif // _LF_CLOCK_SYNC_ON
@@ -1878,16 +1959,18 @@ void usage(int argc, char* argv[]) {
     printf("   The ID of the federation that this RTI will control.\n\n");
     printf("  -n, --number_of_federates <n>\n");
     printf("   The number of federates in the federation that this RTI will control.\n\n");
+    printf("  -p, --port <n>\n");
+    printf("   The port number to use for the RTI. Must be larger than 0 and smaller than %d. Default is %d.\n\n", UINT16_MAX, STARTING_PORT);
     printf("  -c, --clock_sync [off|init|on] [clock_sync_period=<n>] [clock_sync_exchanges_per_interval=<n>]\n");
     printf("   The status of clock synchronization for this federate.\n");
-    printf("       - off (default): Clock synchronization is off.\n");
-    printf("       - init: Clock synchronization is done only during startup.\n");
+    printf("       - off: Clock synchronization is off.\n");
+    printf("       - init (default): Clock synchronization is done only during startup.\n");
     printf("       - on: Clock synchronization is done both at startup and during the execution.\n");
     printf("   Relevant parameters that can be set: \n");
-    printf("       - clock_sync_period (in nanoseconds): Controls how often a clock synchronization attempt is made\n");
+    printf("       - clock_sync_period <n>(in nanoseconds): Controls how often a clock synchronization attempt is made\n");
     printf("          (period in nanoseconds, default is 5 msec). Only applies to 'on'.\n");
-    printf("       - clock_sync_exchanges_per_interval: How many messages are exchanged for each clock sync attempt.\n");
-    printf("          (default is 10). Applies to 'init' and 'on'.\n");
+    printf("       - clock_sync_exchanges_per_interval <n>: Controls the number of messages that are exchanged for each\n");
+    printf("          clock sync attempt (default is 10). Applies to 'init' and 'on'.\n");
 
     printf("Command given:\n");
     for (int i = 0; i < argc; i++) {
@@ -1897,32 +1980,157 @@ void usage(int argc, char* argv[]) {
 }
 
 /**
+ * Process command-line arguments related to clock synchronization. Will return
+ * the last read position of argv if all related arguments are parsed or an
+ * invalid argument is read.
+ *
+ * @param argc: Number of arguments in the list
+ * @param argv: The list of arguments as a string
+ * @return Current position (head) of argv;
+ */
+int process_clock_sync_args(int argc, char* argv[]) {
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[0], "off") == 0) {
+            i++;
+            _RTI.clock_sync_global_status = clock_sync_off;
+        } else if (strcmp(argv[0], "init") == 0) {
+            i++;
+            _RTI.clock_sync_global_status = clock_sync_init;
+        } else if (strcmp(argv[0], "on") == 0) {
+            i++;
+            _RTI.clock_sync_global_status = clock_sync_on;
+        } else if (strcmp(argv[0], "clock_sync_period") == 0) {
+            if (_RTI.clock_sync_global_status != clock_sync_on) {
+                fprintf(stderr, "Error: clock_sync_period can only be set if --clock-sync is set to on.\n");
+                usage(argc, argv);
+                continue; // Try to parse the rest of the arguments as clock sync args.
+            } else if (argc < i + 2) {
+                fprintf(stderr, "Error: clock_sync_period needs a time (in nanoseconds) argument.\n");
+                usage(argc, argv);
+                continue;
+            }
+            i++;
+            int64_t period_ns = (int64_t)strtoll(argv[i++], NULL, 10);
+            if (period_ns == 0LL || period_ns == LLONG_MAX ||  period_ns == LLONG_MIN) {
+                fprintf(stderr, "Error: clock_sync_period value is invalid.\n");
+                continue; // Try to parse the rest of the arguments as clock sync args.
+            }
+            _RTI.clock_sync_period_ns = period_ns;
+        } else if (strcmp(argv[0], "clock_sync_exchanges_per_interval") == 0) {
+            if (_RTI.clock_sync_global_status != clock_sync_on && _RTI.clock_sync_global_status != clock_sync_init) {
+                fprintf(stderr, "Error: clock_sync_exchanges_per_interval can only be set if\n");
+                fprintf(stderr, "--clock-sync is set to on or init.\n");
+                usage(argc, argv);
+                continue; // Try to parse the rest of the arguments as clock sync args.
+            } else if (argc < i + 2) {
+                fprintf(stderr, "Error: clock_sync_exchanges_per_interval needs an integer argument.\n");
+                usage(argc, argv);
+                continue; // Try to parse the rest of the arguments as clock sync args.
+            }
+            i++;
+            int32_t exchanges = (int32_t)strtol(argv[i++], NULL, 10);
+            if (exchanges == 0L || exchanges == LONG_MAX ||  exchanges == LONG_MIN) {
+                 fprintf(stderr, "Error: clock_sync_period value is invalid.\n");
+                 continue; // Try to parse the rest of the arguments as clock sync args.
+             }
+            _RTI.clock_sync_exchanges_per_interval = exchanges;
+        } else {
+            // Either done with the clock sync args or there is an invalid
+            // character. In  either case, let the parent function deal with
+            // the rest of the characters;
+            return i;            
+        }
+    }
+}
+
+/**
  * Process the command-line arguments. If the command line arguments are not
  * understood, then print a usage message and return 0. Otherwise, return 1.
  * @return 1 if the arguments processed successfully, 0 otherwise.
  */
 int process_args(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
-       if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
-           if (argc < i + 2) {
-               fprintf(stderr, "Error: --id needs a string argument.\n");
+        if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
+            if (argc < i + 2) {
+                fprintf(stderr, "Error: --id needs a string argument.\n");
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            printf("RTI: Federation ID: %s\n", argv[i]);
+            _RTI.federation_id = argv[i];
+        } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--number_of_federates") == 0) {
+            if (argc < i + 2) {
+                fprintf(stderr, "Error: --number_of_federates needs an integer argument.\n");
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            int32_t num_federates = (int32_t)strtol(argv[i], NULL, 10);
+            if (num_federates == 0L || num_federates == LONG_MAX ||  num_federates == LONG_MIN) {
+                fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
+                usage(argc, argv);
+                return 0;
+            }
+            printf("RTI: Number of federates: %d\n", num_federates);
+            _RTI.number_of_federates = num_federates;
+        } else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--port") == 0) {
+            if (argc < i + 2) {
+                fprintf(
+                    stderr, 
+                    "Error: --port needs a short unsigned integer argument ( > 0 and < %d).\n", 
+                    UINT16_MAX
+                );
+                usage(argc, argv);
+                return 0;
+            }
+            i++;
+            uint32_t RTI_port = (uint32_t)strtoul(argv[i], NULL, 10);
+            if (RTI_port <= 0 || RTI_port >= UINT16_MAX) {
+                fprintf(
+                    stderr, 
+                    "Error: --port needs a short unsigned integer argument ( > 0 and < %d).\n", 
+                    UINT16_MAX
+                );
+                usage(argc, argv);
+                return 0;
+            }
+            _RTI.user_specified_port = (uint16_t)RTI_port;
+        } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--clock_sync") == 0) {
+            if (argc < i + 2) {
+               fprintf(stderr, "Error: --clock-sync needs off|init|on.\n");
                usage(argc, argv);
                return 0;
            }
            i++;
-           printf("Federation ID at RTI: %s\n", argv[i]);
-           _RTI.federation_id = argv[i++];
-       } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--number_of_federates") == 0) {
-           if (argc < i + 2) {
-               fprintf(stderr, "Error: --id needs an int argument.\n");
-               usage(argc, argv);
-               return 0;
-           }
+           i = process_clock_sync_args((argc-i), &argv[i]);
        } else {
            fprintf(stderr, "Error: Unrecognized command-line argument: %s\n", argv[i]);
            usage(argc, argv);
            return 0;
        }
     }
+    if (_RTI.number_of_federates == 0) {
+        fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
+        usage(argc, argv);
+        return 0;
+    }
     return 1;
+}
+
+int main(int argc, char* argv[]) {
+    if (!process_args(argc, argv)) {
+        // Processing command-line arguments failed.
+        return -1;
+    }
+    printf("Starting RTI for %d federates in federation ID %s\n", _RTI.number_of_federates, _RTI.federation_id);
+    assert(_RTI.number_of_federates < UINT16_MAX);
+    _RTI.federates = (federate_t*)calloc(_RTI.number_of_federates, sizeof(federate_t));
+    for (uint16_t i = 0; i < _RTI.number_of_federates; i++) {
+        initialize_federate(i);
+    }
+    int socket_descriptor = start_rti_server(_RTI.user_specified_port);
+    wait_for_federates(socket_descriptor);
+    printf("RTI is exiting.\n");
+    return 0;
 }
