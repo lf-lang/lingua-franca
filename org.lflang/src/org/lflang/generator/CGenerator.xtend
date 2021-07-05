@@ -432,8 +432,7 @@ class CGenerator extends GeneratorBase {
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
                 targetConfig.compileAdditionalSources.add(
-                    fileConfig.getSrcGenPath + File.separator + "core" 
-                    + File.separator + "platform" + File.separator + "lf_macos_support.c"
+                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
             }
         } else if (OS.indexOf("win") >= 0) {
@@ -447,8 +446,7 @@ class CGenerator extends GeneratorBase {
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
                 targetConfig.compileAdditionalSources.add(
-                    fileConfig.getSrcGenPath + File.separator + "core" 
-                    + File.separator + "platform" + File.separator + "lf_windows_support.c"
+                    "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 )
             }
         } else if (OS.indexOf("nux") >= 0) {
@@ -463,8 +461,7 @@ class CGenerator extends GeneratorBase {
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
                 targetConfig.compileAdditionalSources.add(
-                    fileConfig.getSrcGenPath + File.separator + "core" 
-                    + File.separator + "platform" + File.separator + "lf_linux_support.c"
+                    "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
                 )
             }
         } else {
@@ -475,9 +472,7 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
-            coreFiles.addAll(
-                "federated" + File.separator + "RTI" + File.separator + "rti.c",
-                "federated" + File.separator + "RTI" + File.separator + "rti.h",  
+            coreFiles.addAll(  
                 "federated" + File.separator + "net_common.h", 
                 "federated" + File.separator + "federate.c", 
                 "federated" + File.separator + "federate.h", 
@@ -1263,7 +1258,7 @@ class CGenerator extends GeneratorBase {
         var target = host
 
         var path = federationRTIProperties.get('dir')
-        if(path === null) path = 'LinguaFrancaRemote'
+        if(path === null) path = '''LinguaFrancaRemote'''
 
         var user = federationRTIProperties.get('user')
         if (user !== null) {
@@ -1306,32 +1301,6 @@ class CGenerator extends GeneratorBase {
             if (distCode.length === 0) pr(distCode, distHeader)
             
             val logFileName = '''log/«topLevelName»_RTI.log'''
-            val compileCommand = '''«this.targetConfig.compiler» «targetConfig.compilerFlags.join(" ")» src-gen/«topLevelName»_RTI.c -o bin/«topLevelName»_RTI -pthread'''
-            
-            // The mkdir -p flag below creates intermediate directories if needed.
-            pr(distCode, '''
-                cd «path»
-                echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» '\
-                    mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
-                    echo "--------------" >> «path»/«logFileName»; \
-                    date >> «path»/«logFileName»; \
-                '
-                pushd src-gen/core > /dev/null
-                echo "Copying LF core files for RTI to host «target»"
-                scp federated/RTI/rti.c federated/rti.h tag.c tag.h util.h util.c federated/net_util.h federated/net_util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
-                popd > /dev/null
-                pushd src-gen > /dev/null
-                echo "Copying source files for RTI to host «target»"
-                scp «topLevelName»_RTI.c ctarget.h «target»:«path»/src-gen
-                popd > /dev/null
-                echo "Compiling on host «target» using: «targetConfig.compiler» «targetConfig.compilerFlags.join(" ")» «path»/src-gen/«topLevelName»_RTI.c -o «path»/bin/«fileConfig.RTIBinName» -pthread"
-                ssh «target» ' \
-                    cd «path»; \
-                    echo "In «path» compiling RTI with: «compileCommand»" >> «logFileName» 2>&1; \
-                    # Capture the output in the log file and stdout.
-                    «compileCommand» 2>&1 | tee -a «logFileName»;'
-            ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
             // The -t argument to ssh creates a virtual terminal, which is needed by screen.
@@ -1346,17 +1315,27 @@ class CGenerator extends GeneratorBase {
             // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
-            val executeCommand = '''bin/«fileConfig.RTIBinName» -i '$FEDERATION_ID' '''
+            val executeCommand = '''RTI -i '$FEDERATION_ID' \
+                            -n «federates.size» \
+                            -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+                             period «targetConfig.clockSyncOptions.period.toNanoSeconds» \
+                             exchanges-per-interval «targetConfig.clockSyncOptions.trials» «ENDIF»'''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 # FIXME: Killing this ssh does not kill the remote process.
                 # A double -t -t option to ssh forces creation of a virtual terminal, which
                 # fixes the problem, but then the ssh command does not execute. The remote
                 # federate does not start!
-                ssh «target» 'cd «path»; \
-                    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+                ssh «target» 'echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                     date >> «logFileName»; \
-                    echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                    echo "Executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                    # First, check if the RTI is on the PATH
+                    if ! command -v RTI &> /dev/null
+                    then
+                        echo "RTI could not be found."
+                        echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+                        exit
+                    fi 
                     «executeCommand» 2>&1 | tee -a «logFileName»' &
                 # Store the PID of the channel to RTI
                 RTI=$!
@@ -1373,29 +1352,27 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«topLevelName»_«federate.name».log'''
-                val compileCommand = '''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
+                val compileCommand = compileCCommand('''«topLevelName»_«federate.name»''', false).command.join(" ")
+                //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
-                    echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
+                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.host»"
                     # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
                     ssh «federate.host» '\
-                        mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
+                        mkdir -p «path»/src-gen/federated/«topLevelName»/core «path»/bin «path»/log «path»/src-gen/core/federated; \
                         echo "--------------" >> «path»/«logFileName»; \
                         date >> «path»/«logFileName»;
                     '
-                    pushd src-gen/core > /dev/null
+                    pushd «fileConfig.srcGenPath» > /dev/null
                     echo "Copying LF core files to host «federate.host»"
-                    scp «coreFiles.join(" ")» «federate.host»:«path»/src-gen/core
-                    popd > /dev/null
-                    pushd src-gen > /dev/null
+                    scp -r core «federate.host»:«path»/src-gen/federated/«topLevelName»
                     echo "Copying source files to host «federate.host»"
-                    scp «topLevelName»_«federate.name».c «FOR file:targetConfig.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
+                    scp «topLevelName»_«federate.name».c «FOR file:targetConfig.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen/federated/«topLevelName»
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «compileCommand»"
-                    ssh «federate.host» '\
-                        cd «path»; \
+                    ssh «federate.host» 'cd «path»; \
                         echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
-                        # Capture the output in the log file and stdout.
+                        # Capture the output in the log file and stdout. \
                         «compileCommand» 2>&1 | tee -a «logFileName»;'
                 ''')
                 val executeCommand = '''bin/«topLevelName»_«federate.name» -i '$FEDERATION_ID' '''
