@@ -814,7 +814,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
         
         var compileArgs = newArrayList
         compileArgs.add(relSrcPathString)
-        compileArgs.addAll(targetConfig.compileAdditionalSources)
+        for (file: targetConfig.compileAdditionalSources) {
+            var relativePath = fileConfig.outPath.relativize(
+                fileConfig.getSrcGenPath.resolve(Paths.get(file)))
+            compileArgs.add(FileConfig.toUnixString(relativePath))
+        }
         compileArgs.addAll(targetConfig.compileLibraries)
 
         // Only set the output file name if it hasn't already been set
