@@ -36,7 +36,7 @@ target Cpp;
  * 
  * @author Hannes Klein
  */
-reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIteration:bool(false)) {
+reactor BenchmarkRunner(numIterations:size_t(12), useInit:bool(false), useCleanupIteration:bool(false)) {
     
     private preamble {=
         #include <algorithm>
@@ -64,7 +64,7 @@ reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIt
     logical action finish:void;
     
     /** Number of iterations already executed. */
-    state count:unsigned(0);
+    state count:size_t(0);
     /** Start time for runtime measurement. */
     state startTime:{=reactor::TimePoint=};
     /** Runtime measurements. */
