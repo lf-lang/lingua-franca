@@ -1961,16 +1961,16 @@ void usage(int argc, char* argv[]) {
     printf("   The number of federates in the federation that this RTI will control.\n\n");
     printf("  -p, --port <n>\n");
     printf("   The port number to use for the RTI. Must be larger than 0 and smaller than %d. Default is %d.\n\n", UINT16_MAX, STARTING_PORT);
-    printf("  -c, --clock_sync [off|init|on] [clock_sync_period=<n>] [clock_sync_exchanges_per_interval=<n>]\n");
+    printf("  -c, --clock_sync [off|init|on] [clock_sync_period <n>] [clock_sync_exchanges_per_interval <n>]\n");
     printf("   The status of clock synchronization for this federate.\n");
     printf("       - off: Clock synchronization is off.\n");
     printf("       - init (default): Clock synchronization is done only during startup.\n");
     printf("       - on: Clock synchronization is done both at startup and during the execution.\n");
     printf("   Relevant parameters that can be set: \n");
-    printf("       - clock_sync_period <n>(in nanoseconds): Controls how often a clock synchronization attempt is made\n");
+    printf("       - period <n>(in nanoseconds): Controls how often a clock synchronization attempt is made\n");
     printf("          (period in nanoseconds, default is 5 msec). Only applies to 'on'.\n");
-    printf("       - clock_sync_exchanges_per_interval <n>: Controls the number of messages that are exchanged for each\n");
-    printf("          clock sync attempt (default is 10). Applies to 'init' and 'on'.\n");
+    printf("       - exchanges-per-interval <n>: Controls the number of messages that are exchanged for each\n");
+    printf("          clock sync attempt (default is 10). Applies to 'init' and 'on'.\n\n");
 
     printf("Command given:\n");
     for (int i = 0; i < argc; i++) {
@@ -1990,50 +1990,56 @@ void usage(int argc, char* argv[]) {
  */
 int process_clock_sync_args(int argc, char* argv[]) {
     for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[0], "off") == 0) {
-            i++;
+        if (strcmp(argv[i], "off") == 0) {
             _RTI.clock_sync_global_status = clock_sync_off;
-        } else if (strcmp(argv[0], "init") == 0) {
-            i++;
+            printf("RTI: Clock sync: off\n");
+        } else if (strcmp(argv[i], "init") == 0 || strcmp(argv[i], "initial") == 0) {
             _RTI.clock_sync_global_status = clock_sync_init;
-        } else if (strcmp(argv[0], "on") == 0) {
-            i++;
+            printf("RTI: Clock sync: init\n");
+        } else if (strcmp(argv[i], "on") == 0) {
             _RTI.clock_sync_global_status = clock_sync_on;
-        } else if (strcmp(argv[0], "clock_sync_period") == 0) {
+            printf("RTI: Clock sync: on\n");
+        } else if (strcmp(argv[i], "period") == 0) {
             if (_RTI.clock_sync_global_status != clock_sync_on) {
-                fprintf(stderr, "Error: clock_sync_period can only be set if --clock-sync is set to on.\n");
+                fprintf(stderr, "Error: clock sync period can only be set if --clock-sync is set to on.\n");
                 usage(argc, argv);
+                i++;
                 continue; // Try to parse the rest of the arguments as clock sync args.
             } else if (argc < i + 2) {
-                fprintf(stderr, "Error: clock_sync_period needs a time (in nanoseconds) argument.\n");
+                fprintf(stderr, "Error: clock sync period needs a time (in nanoseconds) argument.\n");
                 usage(argc, argv);
                 continue;
             }
             i++;
-            int64_t period_ns = (int64_t)strtoll(argv[i++], NULL, 10);
+            int64_t period_ns = (int64_t)strtoll(argv[i], NULL, 10);
             if (period_ns == 0LL || period_ns == LLONG_MAX ||  period_ns == LLONG_MIN) {
-                fprintf(stderr, "Error: clock_sync_period value is invalid.\n");
+                fprintf(stderr, "Error: clock sync period value is invalid.\n");
                 continue; // Try to parse the rest of the arguments as clock sync args.
             }
             _RTI.clock_sync_period_ns = period_ns;
-        } else if (strcmp(argv[0], "clock_sync_exchanges_per_interval") == 0) {
+            printf("RTI: Clock sync period: %lld\n", (long long int)period_ns);
+        } else if (strcmp(argv[i], "exchanges-per-interval") == 0) {
             if (_RTI.clock_sync_global_status != clock_sync_on && _RTI.clock_sync_global_status != clock_sync_init) {
-                fprintf(stderr, "Error: clock_sync_exchanges_per_interval can only be set if\n");
+                fprintf(stderr, "Error: clock sync exchanges-per-interval can only be set if\n");
                 fprintf(stderr, "--clock-sync is set to on or init.\n");
                 usage(argc, argv);
                 continue; // Try to parse the rest of the arguments as clock sync args.
             } else if (argc < i + 2) {
-                fprintf(stderr, "Error: clock_sync_exchanges_per_interval needs an integer argument.\n");
+                fprintf(stderr, "Error: clock sync exchanges-per-interval needs an integer argument.\n");
                 usage(argc, argv);
                 continue; // Try to parse the rest of the arguments as clock sync args.
             }
             i++;
-            int32_t exchanges = (int32_t)strtol(argv[i++], NULL, 10);
+            int32_t exchanges = (int32_t)strtol(argv[i], NULL, 10);
             if (exchanges == 0L || exchanges == LONG_MAX ||  exchanges == LONG_MIN) {
                  fprintf(stderr, "Error: clock_sync_period value is invalid.\n");
                  continue; // Try to parse the rest of the arguments as clock sync args.
              }
             _RTI.clock_sync_exchanges_per_interval = exchanges;
+            printf("RTI: Clock sync exchanges per interval: %d\n", exchanges);
+        } else if (strcmp(argv[i], " ") == 0) {
+            // Tolerate spaces
+            continue;
         } else {
             // Either done with the clock sync args or there is an invalid
             // character. In  either case, let the parent function deal with
@@ -2103,8 +2109,11 @@ int process_args(int argc, char* argv[]) {
                return 0;
            }
            i++;
-           i = process_clock_sync_args((argc-i), &argv[i]);
-       } else {
+           i += process_clock_sync_args((argc-i), &argv[i]);
+        } else if (strcmp(argv[i], " ") == 0) {
+            // Tolerate spaces
+            continue;
+        }  else {
            fprintf(stderr, "Error: Unrecognized command-line argument: %s\n", argv[i]);
            usage(argc, argv);
            return 0;
