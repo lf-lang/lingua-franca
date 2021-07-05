@@ -1,4 +1,4 @@
-This folder contains the source code for the RunTime Infrastructure (RTI) that
+This folder contains the source code for the Run-Time Infrastructure (RTI) that
 is necessary for federated Lingua Franca programs. To compile and install, do:
 
 ```bash
@@ -7,3 +7,14 @@ cmake ../
 make
 sudo make install
 ```
+
+**Note:** To enable DEBUG messages, use the following build commands instead:
+
+```bash
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=DEBUG ../
+make
+sudo make install
+```
+
+If you would like to go back to the non-DEBUG mode, you would have to remove all contents of the `build` folder.
