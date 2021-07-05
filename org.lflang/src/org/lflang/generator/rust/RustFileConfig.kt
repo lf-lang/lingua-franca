@@ -49,11 +49,9 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGene
         deleteDirectory(outPath.resolve("target"))
     }
 
-    inline fun emit(p: Path, f: Emitter.() -> Unit) = Emitter(p).use { it.f() }
+    inline fun emit(p: Path, f: Emitter.() -> Unit): Unit = Emitter(p).use { it.f() }
 
-    fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit) = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
-
-    val srcGenRoot: Path get() = srcGenPath
+    inline fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
 
 }
 
