@@ -118,58 +118,17 @@ public class FileConfig {
      */
     public final Path srcPath;
     
-    // Protected fields.
+    // Private fields. See doc on getters.
     
-    /**
-     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional 
-     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources, 
-     * which means that such directories should be created relative to the path assigned to this class variable.
-     * 
-     * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
-     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
-     */
-    protected Path outPath;
+    private final Path outPath;
    
-    /**
-     * Path representation of srcGenRoot, the root directory for generated
-     * sources.
-     */
-    protected Path srcGenBasePath;
+    private final Path srcGenBasePath;
     
-    /**
-     * The directory in which to put the generated sources.
-     * This takes into account the location of the source file relative to the
-     * package root. Specifically, if the source file is x/y/Z.lf relative
-     * to the package root, then the generated sources will be put in x/y/Z
-     * relative to srcGenBasePath.
-     */
     private Path srcGenPath;
     
-    /**
-     * The directory that denotes the root of the package to which the
-     * generated sources belong. Even if the target language does not have a
-     * notion of packages, this directory groups all files associated with a 
-     * single main reactor.
-     * of packages.
-     */
-    protected Path srcGenPkgPath;
-    
-    // Protected fields.
-    
-    /**
-     * URI representation of the directory that is the parent of the specified
-     * directory in which to store generated sources.
-     */
-    protected final URI outputRoot;
+    private final Path srcGenPkgPath;
 
-    /**
-     * URI representation of the directory in which to store generated sources.
-     * This is the root, meaning that if the source file is x/y/Z.lf relative
-     * to the package root, then the generated sources will be put in x/y/Z
-     * relative to this URI.
-     */
-    protected final URI srcGenRoot;
-    
+
     public FileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
         this.resource = resource;
         this.fsa = fsa;
@@ -179,15 +138,14 @@ public class FileConfig {
         
         this.srcPath = srcFile.toPath().getParent();
         this.srcPkgPath = getPkgPath(resource, context);
-        
-        this.srcGenRoot = getSrcGenRoot(fsa);
-        this.srcGenBasePath = toPath(this.srcGenRoot);
-        this.outputRoot = getOutputRoot(this.srcGenRoot);
+
+        URI srcGenRoot = getSrcGenRoot(fsa);
+        this.srcGenBasePath = toPath(srcGenRoot);
         this.name = nameWithoutExtension(this.srcFile);
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = toPath(this.outputRoot);
+        this.outPath = toPath(getOutputRoot(srcGenRoot));
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -277,20 +235,47 @@ public class FileConfig {
     public Path getDirectory(Resource r) throws IOException {
         return getSubPkgPath(this.srcPkgPath, toPath(r).getParent());
     }
-    
+
+    /**
+     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
+     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
+     * which means that such directories should be created relative to the path assigned to this class variable.
+     *
+     * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
+     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     */
     public Path getOutPath() {
         return outPath;
     }
- 
+
+    /**
+     * The directory in which to put the generated sources.
+     * This takes into account the location of the source file relative to the
+     * package root. Specifically, if the source file is x/y/Z.lf relative
+     * to the package root, then the generated sources will be put in x/y/Z
+     * relative to srcGenBasePath.
+     */
     public Path getSrcGenPath() {
         return srcGenPath;
     }
 
-    
+
+    /**
+     * Path representation of srcGenRoot, the root directory for generated
+     * sources. This is the root, meaning that if the source file is x/y/Z.lf
+     * relative to the package root, then the generated sources will be put in x/y/Z
+     * relative to this URI.
+     */
     public Path getSrcGenBasePath() {
         return srcGenBasePath;
     }
 
+    /**
+     * The directory that denotes the root of the package to which the
+     * generated sources belong. Even if the target language does not have a
+     * notion of packages, this directory groups all files associated with a
+     * single main reactor.
+     */
     public Path getSrcGenPkgPath() {
         return srcGenPkgPath;
     }
