@@ -12,7 +12,7 @@ public class TypeScriptFileConfig extends FileConfig {
     public TypeScriptFileConfig(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) throws IOException {
         super(resource, fsa, context);
-        this.srcGenPath = this.srcGenPath.resolve("src");
+        this.setSrcGenPath(this.getSrcGenPath().resolve("src"));
     }
 
 }

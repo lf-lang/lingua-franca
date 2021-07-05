@@ -143,7 +143,7 @@ public class FileConfig {
      * to the package root, then the generated sources will be put in x/y/Z
      * relative to srcGenBasePath.
      */
-    protected Path srcGenPath;
+    private Path srcGenPath;
     
     /**
      * The directory that denotes the root of the package to which the
@@ -191,9 +191,14 @@ public class FileConfig {
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
-    
+
     // Getters to be overridden in derived classes.
-    
+
+    protected void setSrcGenPath(Path srcGenPath) {
+        this.srcGenPath = srcGenPath;
+    }
+
+
     /**
      * Get the iResource corresponding to the provided resource if it can be
      * found.
