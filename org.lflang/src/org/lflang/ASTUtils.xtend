@@ -888,7 +888,11 @@ class ASTUtils {
                     for (s : type.stars ?: emptyList) {
                         stars += s
                     }
-                    return type.id + stars
+                    if (!type.typeParms.isNullOrEmpty) {
+                        return '''«type.id»<«FOR p : type.typeParms SEPARATOR ", "»«p.toText»«ENDFOR»>''' 
+                    } else {
+                        return type.id + stars                        
+                    }
                 }
             }
         }
