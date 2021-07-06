@@ -33,6 +33,7 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.generator.cpp.name
 import org.lflang.lf.Action
 import org.lflang.lf.Reaction
+import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 
 /**
@@ -84,7 +85,13 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
         val reactions = reactor.reactions.map { n: Reaction ->
             val dependencies = (n.effects + n.sources).mapTo(LinkedHashSet()) { components[it.name]!! }
-            ReactionInfo(idx = n.indexInContainer, depends = dependencies, body = n.code.body)
+            ReactionInfo(
+                idx = n.indexInContainer,
+                depends = dependencies,
+                body = n.code.body,
+                isStartup = n.triggers.any { it.isStartup },
+                isShutdown = n.triggers.any { it.isShutdown }
+            )
         }
 
         ReactorInfo(

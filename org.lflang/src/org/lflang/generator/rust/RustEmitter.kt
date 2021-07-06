@@ -60,18 +60,19 @@ object RustEmitter {
                 |// ${generatedByHeader()}
                 |use std::sync::{Arc, Mutex};
                 |
+                |// todo link to source
                 |struct $structName {
                 |    // TODO state vars
                 |}
                 |
                 |impl $structName {
                 |
-                |   fn react_startup(link: $rsRuntime::SchedulerLink, ctx: &mut $rsRuntime::LogicalCtx) {
-                |       // todo 
-                |   }
+                |    // TODO change this generation logic. There may be several reactions invoked on startup
+                |    fn react_startup(link: $rsRuntime::SchedulerLink, ctx: &mut $rsRuntime::LogicalCtx) {
+${"             |       "..reactions.firstOrNull { it.isStartup }?.body.orEmpty()}
+                |    }
                 |
 ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
-                |   
                 |
                 |}
                 |

@@ -69,7 +69,11 @@ data class ReactionInfo(
     /** Dependencies declared by the reaction, which are served to the worker function. */
     val depends: Set<ReactorComponent>,
     /** Target code for the reaction body. */
-    val body: String
+    val body: String,
+    /** Whether the reaction is triggered by the startup event. */
+    val isStartup: Boolean,
+    /** Whether the reaction is triggered by the shutdown event. */
+    val isShutdown: Boolean,
 )
 
 
