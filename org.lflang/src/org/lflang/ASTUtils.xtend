@@ -69,6 +69,8 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
 
+import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
+
 /**
  * A helper class for modifying and analyzing the AST.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -415,18 +417,7 @@ class ASTUtils {
         }
         return name + suffix
     }
-    
-    /**
-     * Given a AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-    static def <T extends EObject> T getCopy (T original) {
-        if (original !== null) {
-            return EcoreUtil.copy(original) as T
-        }
-    }
-        
+   
     ////////////////////////////////
     //// Utility functions for supporting inheritance
     
