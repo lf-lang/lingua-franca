@@ -311,7 +311,7 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (stars+='*')* (arraySpec=ArraySpec)?) | code=Code);
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?) | code=Code);
 
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
