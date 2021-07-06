@@ -33,11 +33,11 @@ import org.lflang.withDQuotes
  * Generates Rust code
  */
 object RustEmitter {
-    /**
-     * Name given to the Rust runtime crate within generated code,
-     * can be used to qualify names.
-     */
-    const val rsRuntime = "_rr"
+    /** Alias of the rust runtime in the generated code. */
+    const val rsRuntimeIdent = "_rr"
+
+    /** Qualification prefix to refer to a member of the runtime library crate. */
+    const val rsRuntime = "::$rsRuntimeIdent"
 
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
@@ -182,7 +182,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             |// ${generatedByHeader()}
             |#[allow(unused_imports)]
             |#[macro_use]
-            |extern crate ${gen.crate.name} as $rsRuntime;
+            |extern crate ${gen.crate.name} as $rsRuntimeIdent;
             |
             |fn main() {
             | // todo
@@ -197,7 +197,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             |// ${generatedByHeader()}
             |//! Root of this crate
             |#[macro_use]
-            |extern crate reactor_rust as $rsRuntime;
+            |extern crate reactor_rust as $rsRuntimeIdent;
             |
 ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
             |
