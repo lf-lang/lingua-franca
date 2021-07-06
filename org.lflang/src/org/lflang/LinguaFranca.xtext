@@ -137,8 +137,8 @@ TargetDecl:
  StateVar:
     'state' name=ID (
         (':' (type=Type))? 
-        (parens+='(' (init+=Value 
-                (','  init+=Value)*)? parens+=')'
+        ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
+            | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
         )?
     ) ';'?
 ;
@@ -274,8 +274,9 @@ Assignment:
  */
 Parameter:
     name=ID (':' (type=Type))? 
-    (parens+='(' (init+=Value                   // FIXME: rename Value to Expr
-            (','  init+=Value)*)? parens+=')'
+    // FIXME: rename Value to Expr
+    ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
+        | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
     )?
 ;
 
