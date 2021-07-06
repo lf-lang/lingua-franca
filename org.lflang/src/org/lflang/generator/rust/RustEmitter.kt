@@ -172,8 +172,13 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         }
     }
 
+    /**
+     * Returns a list of the reactions which need to be triggered
+     * when the [component] is set at a specific time step. Eg if
+     * the component is a port, the reactions to trigger are all
+     * those which have registered a dependency on that port.
+     */
     private fun ReactorInfo.influencedReactionsOf(component: ReactorComponent): List<ReactionInfo> =
-        // todo transitive closure
         reactions.filter {
             component in it.depends
         }
