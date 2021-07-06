@@ -2008,13 +2008,13 @@ int process_clock_sync_args(int argc, char* argv[]) {
                 continue;
             }
             i++;
-            int64_t period_ns = (int64_t)strtoll(argv[i], NULL, 10);
-            if (period_ns == 0LL || period_ns == LLONG_MAX ||  period_ns == LLONG_MIN) {
+            long long period_ns = strtoll(argv[i], NULL, 10);
+            if (period_ns == 0LL || period_ns == LLONG_MAX || period_ns == LLONG_MIN) {
                 fprintf(stderr, "Error: clock sync period value is invalid.\n");
                 continue; // Try to parse the rest of the arguments as clock sync args.
             }
-            _RTI.clock_sync_period_ns = period_ns;
-            printf("RTI: Clock sync period: %lld\n", (long long int)period_ns);
+            _RTI.clock_sync_period_ns = (int64_t)period_ns;
+            printf("RTI: Clock sync period: %lld\n", (long long int)_RTI.clock_sync_period_ns);
         } else if (strcmp(argv[i], "exchanges-per-interval") == 0) {
             if (_RTI.clock_sync_global_status != clock_sync_on && _RTI.clock_sync_global_status != clock_sync_init) {
                 fprintf(stderr, "Error: clock sync exchanges-per-interval can only be set if\n");
@@ -2027,13 +2027,13 @@ int process_clock_sync_args(int argc, char* argv[]) {
                 continue; // Try to parse the rest of the arguments as clock sync args.
             }
             i++;
-            int32_t exchanges = (int32_t)strtol(argv[i], NULL, 10);
+            long exchanges = (long)strtol(argv[i], NULL, 10);
             if (exchanges == 0L || exchanges == LONG_MAX ||  exchanges == LONG_MIN) {
-                 fprintf(stderr, "Error: clock_sync_period value is invalid.\n");
+                 fprintf(stderr, "Error: clock sync exchanges-per-interval value is invalid.\n");
                  continue; // Try to parse the rest of the arguments as clock sync args.
              }
-            _RTI.clock_sync_exchanges_per_interval = exchanges;
-            printf("RTI: Clock sync exchanges per interval: %d\n", exchanges);
+            _RTI.clock_sync_exchanges_per_interval = (int32_t)exchanges; // FIXME: Loses numbers on 64-bit machines
+            printf("RTI: Clock sync exchanges per interval: %d\n", _RTI.clock_sync_exchanges_per_interval);
         } else if (strcmp(argv[i], " ") == 0) {
             // Tolerate spaces
             continue;
@@ -2044,6 +2044,7 @@ int process_clock_sync_args(int argc, char* argv[]) {
             return i;            
         }
     }
+    return argc;
 }
 
 /**
@@ -2069,14 +2070,14 @@ int process_args(int argc, char* argv[]) {
                 return 0;
             }
             i++;
-            int32_t num_federates = (int32_t)strtol(argv[i], NULL, 10);
+            long num_federates = strtol(argv[i], NULL, 10);
             if (num_federates == 0L || num_federates == LONG_MAX ||  num_federates == LONG_MIN) {
                 fprintf(stderr, "Error: --number_of_federates needs a valid positive integer argument.\n");
                 usage(argc, argv);
                 return 0;
             }
-            printf("RTI: Number of federates: %d\n", num_federates);
-            _RTI.number_of_federates = num_federates;
+            _RTI.number_of_federates = (int32_t)num_federates; // FIXME: Loses numbers on 64-bit machines
+            printf("RTI: Number of federates: %d\n", _RTI.number_of_federates);
         } else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--port") == 0) {
             if (argc < i + 2) {
                 fprintf(
