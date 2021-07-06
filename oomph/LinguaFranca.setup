@@ -463,7 +463,7 @@
           <repository
               url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
           <repository
-              url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
+              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
         </repositoryList>
       </targlet>
     </setupTask>
