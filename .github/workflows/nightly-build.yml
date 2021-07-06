@@ -30,18 +30,27 @@ jobs:
         run: mvn compile
       - name: Package IDE
         run: mvn package
+      # move artifacts to a specific folder for easier upload & to ensure overwriting the old files
+      - name: Move packages
+        run: |
+          mkdir upload_data
+          mv org.lflang.rca/target/products/lingua_franca_rca_*-linux.gtk.x86_64.tar.gz upload_data/epoch-ide_linux_gtk_x86_64.tar.gz
+          mv org.lflang.rca/target/products/lingua_franca_rca_*-macosx.cocoa.x86_64.tar.gz upload_data/epoch-ide_macos_cocoa_x86_64.tar.gz
+          mv org.lflang.rca/target/products/lingua_franca_rca_*-win32.win32.x86_64.zip upload_data/epoch-ide_windows_x86_64.zip
+        shell: bash
       # create a release with the nightly builds.
       - name: Create Nightly Release
-        uses: ncipollo/release-action@v1.8.6
+        uses: ncipollo/release-action@v1
         with:
           allowUpdates: true # overwrite existing releases by that name
           artifactErrorsFailBuild: true # no artifacts? No nightly.
-          artifacts: "org.lflang.rca/target/products/*.zip,org.lflang.rca/target/products/*.tar.gz"
+          artifacts: "upload_data/*"
           body: "## Epoch IDE Nightly Build
 
-This is a Nightly release of the Lingua Franca IDE, Epoch.
+This is the continuously updated Nightly release of the Lingua Franca IDE, Epoch.
 Expect instabilities and bugs; use at your own discretion."
           commit: master
+          tag: nightly
           name: "Epoch IDE Nightly Release"
           prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
