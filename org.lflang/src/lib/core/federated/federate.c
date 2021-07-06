@@ -97,8 +97,10 @@ void* listen_to_federates(void* args);
 
 
 /**
- * Generated external function that sends information about this federate's
- * relayed (through the RTI) logical connections to the RTI.
+ * Generated function that sends information about connections between this federate and
+ * other federates where messages are routed through the RTI. Currently, this
+ * only includes logical connections when the coordination is centralized. This
+ * information is needed for the RTI to perform the centralized coordination.
  * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
  */
 void send_neighbor_structure_to_RTI(int rti_socket);
@@ -971,8 +973,9 @@ void connect_to_rti(char* hostname, int port) {
                 LOG_PRINT("Received acknowledgment from the RTI.");
 
                 // Call a generated (external) function that sends information
-                // about this federate's downstream and upstream relayed logical
-                // connections to the RTI (@see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h)
+                // about connections between this federate and other federates
+                // where messages are routed through the RTI.
+                // @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
                 send_neighbor_structure_to_RTI(_fed.socket_TCP_RTI);
 
                 uint16_t udp_port = setup_clock_synchronization_with_rti();
