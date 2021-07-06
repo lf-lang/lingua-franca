@@ -607,9 +607,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * only includes logical connections when the coordination is centralized. This
  * information is needed for the RTI to perform the centralized coordination.
  * 
- * @note Only information about the immidate neighbors is required. The RTI can
+ * @note Only information about the immediate neighbors is required. The RTI can
  * transitively obtain the structure of the federation based on each federate's
- * immidiate neighbor information.
+ * immediate neighbor information.
  *
  * The next 4 bytes is the number of upstream federates. 
  * The next 4 bytes is the number of downstream federates.
