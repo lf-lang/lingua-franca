@@ -25,7 +25,8 @@ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR B
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+*/
+/**
  * @section DESCRIPTION
  * Header file for common message types for distributed Lingua Franca programs.
  *
@@ -65,13 +66,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * MSG_TYPE_ACK.
  * 
  * The next message to the RTI will be a MSG_TYPE_NEIGHBOR_STRUCTURE message
- * that informs the RTI about the relayed (through the RTI) logical connections
- * this federate has to downstream and upstream federates. The burden is on the
- * federates to inform the RTI about relevant connections. For example, in a
- * decentralized coordination scheme, the RTI does not need to know about the
- * connection structure of the federation since it is only involved in startup
- * and shutdown coordination. As another example, the RTI does not need to know
- * about any physical connection regardless of coordination mode.
+ * that informs the RTI about connections between this federate and other
+ * federates where messages are routed through the RTI. Currently, this only
+ * includes logical connections when the coordination is centralized. This
+ * information is needed for the RTI to perform the centralized coordination.
+ * The burden is on the federates to inform the RTI about relevant connections.
  *
  * The next message to the RTI will be a MSG_TYPE_UDP_PORT message, which has
  * payload USHRT_MAX if clock synchronization is disabled altogether, 0 if
@@ -603,16 +602,22 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * A message that contains information about a federate's upstream and
- * downstream relayed (through the RTI) logical connections to other federates
- * (1 level up and down the architecture).
+ * A message that informs the RTI about connections between this federate and
+ * other federates where messages are routed through the RTI. Currently, this
+ * only includes logical connections when the coordination is centralized. This
+ * information is needed for the RTI to perform the centralized coordination.
+ * 
+ * @note Only information about the immidate neighbors is required. The RTI can
+ * transitively obtain the structure of the federation based on each federate's
+ * immidiate neighbor information.
  *
  * The next 4 bytes is the number of upstream federates. 
  * The next 4 bytes is the number of downstream federates.
  * 
  * Depending on the first four bytes, the next bytes are pairs of (fed ID (2
  * bytes), delay (8 bytes)) for this federate's connection to upstream federates
- * (by direct connection).
+ * (by direct connection). The delay is the minimum "after" delay of all
+ * connections from the upstream federate.
  *
  * Depending on the second four bytes, the next bytes are fed IDs (2
  * bytes each), of this federate's downstream federates (by direct connection).
