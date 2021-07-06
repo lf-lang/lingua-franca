@@ -58,6 +58,7 @@ object RustEmitter {
                 with(PrependOperator) {
                     """
                 |// ${generatedByHeader()}
+                |use std::sync::{Arc, Mutex};
                 |
                 |struct $structName {
                 |    // TODO state vars
@@ -65,7 +66,10 @@ object RustEmitter {
                 |
                 |impl $structName {
                 |
-                |   // todo reaction worker functions
+                |   fn react_startup(link: $rsRuntime::SchedulerLink, ctx: &mut $rsRuntime::LogicalCtx) {
+                |       // todo 
+                |   }
+                |
 ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
                 |   
                 |
@@ -100,6 +104,39 @@ ${"             |            "..reactionWrappers(reactor)}
                 |        }
                 |    }
                 |}
+                |
+                |struct $assemblerName {
+                |   _rstate: Arc<Mutex<$dispatcherName>>,
+${"             |   "..reactionObjects(reactor)}
+                |}
+                |
+                |impl $rsRuntime::ReactorAssembler for $assemblerName {
+                |    type RState = $dispatcherName;
+                |
+                |    fn start(&mut self, link: $rsRuntime::SchedulerLink, ctx: &mut $rsRuntime::LogicalCtx) {
+                |       let state = &self._rstate.lock().unwrap();
+                |       $structName::react_startup(link, ctx, /*todo dependencies*/);
+                |    }
+                |
+                |    fn assemble(reactor_id: &mut $rsRuntime::ReactorId, args: <Self::RState as $rsRuntime::ReactorDispatcher>::Params) -> Self {
+                |       let mut _rstate = Arc::new(Mutex::new(<Self::RState as $rsRuntime::ReactorDispatcher>::assemble(args)));
+                |       let this_reactor = reactor_id.get_and_increment();
+                |       let mut reaction_id = 0;
+                |
+${"             |       "..reactionObjectInitializers(reactor)}
+                |
+                |       { // declare local dependencies
+                |           let mut statemut = _rstate.lock().unwrap();
+                |
+${"             |           "..localDependencyDeclarations(reactor)}
+                |       }
+                |
+                |       Self {
+                |           _rstate,
+${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
+                |       }
+                |    }
+                |}
         """.trimMargin()
                 }
             }
@@ -122,6 +159,32 @@ ${"             |            "..reactionWrappers(reactor)}
             """
         }
     }
+
+    private fun reactionObjects(reactor: ReactorInfo): String =
+        reactor.reactions.joinToString(",\n") {
+            it.invokerId + ": Arc<$rsRuntime::ReactionInvoker>"
+        }
+
+    private fun localDependencyDeclarations(reactor: ReactorInfo): String {
+        fun vecOfReactions(list: List<ReactionInfo>) =
+            list.joinToString(", ", "vec![", "]") { it.invokerId + ".clone()" }
+
+        return reactor.otherComponents.joinToString(",\n") {
+            "statemut.${it.name}.set_downstream(${vecOfReactions(reactor.influencedReactionsOf(it))}.into());"
+        }
+    }
+
+    private fun ReactorInfo.influencedReactionsOf(component: ReactorComponent): List<ReactionInfo> =
+        // todo transitive closure
+        reactions.filter {
+            component in it.depends
+        }
+
+
+    private fun reactionObjectInitializers(reactor: ReactorInfo): String =
+        reactor.reactions.joinToString("\n") {
+            "let ${it.invokerId} = new_reaction!(this_reactor, reaction_id, _rstate, ${it.rustId});"
+        }
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
