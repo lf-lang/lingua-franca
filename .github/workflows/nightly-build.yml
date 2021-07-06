@@ -53,4 +53,4 @@ Expect instabilities and bugs; use at your own discretion."
           tag: nightly
           name: "Epoch IDE Nightly Release"
           prerelease: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.NIGHTLY_BUILD }}
