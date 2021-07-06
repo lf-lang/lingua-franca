@@ -48,12 +48,14 @@ class CppParameterGenerator(private val reactor: Reactor) {
         val Parameter.targetType get():String = this.inferredType.targetType
 
         /** Get a parameter instantiated from the given initializer list */
-        fun Parameter.generateInstance(initializers: List<String>) =
-            when {
-                initializers.size > 1  -> "$targetType{${initializers.joinToString(", ")}}"
+        fun Parameter.generateInstance(initializers: List<String>): String {
+            val leftParen = if (!parens.isNullOrEmpty()) "(" else "{"
+            val rightParen = if (!parens.isNullOrEmpty()) ")" else "}"
+            return when {
+                initializers.size > 1  -> "$targetType$leftParen${initializers.joinToString(", ")}$rightParen"
                 initializers.size == 1 -> initializers[0]
-                else                   -> "$targetType{}"
-            }
+                else                   -> "$targetType()"
+            }}
 
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String get() = generateInstance(getInitializerList())
