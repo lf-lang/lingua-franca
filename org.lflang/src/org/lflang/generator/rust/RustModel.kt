@@ -53,6 +53,7 @@ data class ReactorInfo(
     val modName = lfName.toLowerCase(Locale.ROOT) // note: toLowercase is deprecated in kotlin 1.5.0
     val structName get() = lfName
     val dispatcherName = "${structName}Dispatcher"
+    val assemblerName = "${structName}Assembler"
     val reactionIdName = "${structName}Reactions"
 }
 
@@ -63,6 +64,8 @@ data class ReactionInfo(
     val rustId: String = "R$idx",
     /** The name of the worker function for this reaction. */
     val workerId: String = "react_$idx",
+    /** The name of the ReactionInvoker field for this reaction. */
+    val invokerId: String = "react_$idx",
     /** Dependencies declared by the reaction, which are served to the worker function. */
     val depends: Set<ReactorComponent>,
     /** Target code for the reaction body. */
