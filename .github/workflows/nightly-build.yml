@@ -43,4 +43,4 @@ This is a Nightly release of the Lingua Franca IDE, Epoch.
 Expect instabilities and bugs; use at your own discretion."
           name: "Epoch IDE Nightly Release"
           prerelease: true
-          token: ${{ secrets.DEPLOY_KEY }}
+          token: ${{ secrets.GITHUB_TOKEN }}
