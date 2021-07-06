@@ -375,7 +375,7 @@
           <repository
               url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
           <repository
-              url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
+              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last/"/>
           <repository
               url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
         </repositoryList>
