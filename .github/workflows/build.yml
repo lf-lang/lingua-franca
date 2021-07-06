@@ -100,7 +100,7 @@ jobs:
           cd org.lflang/src/lib/core/federated/RTI
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=DEBUG ../
+          cmake ../
           make
           sudo make install
       - name: Run C tests;
