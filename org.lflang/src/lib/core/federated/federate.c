@@ -109,13 +109,13 @@ void send_neighbor_structure_to_RTI(int rti_socket);
  * only handles the creation of the server socket.
  * The reserved port for the server socket is then
  * sent to the RTI by sending an MSG_TYPE_ADDRESS_ADVERTISEMENT message
- * (@see rti.h). This function expects no response
+ * (@see net_common.h). This function expects no response
  * from the RTI.
  * 
  * If a port is specified by the user, that will be used
  * as the only possibility for the server. This function
  * will fail if that port is not available. If a port is not
- * specified, the STARTING_PORT (@see rti.h) will be used.
+ * specified, the STARTING_PORT (@see net_common.h) will be used.
  * The function will keep incrementing the port in this case 
  * until the number of tries reaches PORT_RANGE_LIMIT.
  * 
@@ -198,7 +198,7 @@ void create_server(int specified_port) {
     _fed.server_port = port;
 
     // Send the server port number to the RTI
-    // on an MSG_TYPE_ADDRESS_ADVERTISEMENT message (@see rti.h).
+    // on an MSG_TYPE_ADDRESS_ADVERTISEMENT message (@see net_common.h).
     unsigned char buffer[sizeof(int32_t) + 1];
     buffer[0] = MSG_TYPE_ADDRESS_ADVERTISEMENT;
     encode_int32(_fed.server_port, &(buffer[1]));
@@ -965,7 +965,7 @@ void connect_to_rti(char* hostname, int port) {
                     result = -1;
                     continue;
                 }
-                error_print_and_exit("RTI Rejected MSG_TYPE_FED_IDS message with response (see rti.h): "
+                error_print_and_exit("RTI Rejected MSG_TYPE_FED_IDS message with response (see net_common.h): "
                         "%d. Error code: %d. Federate quits.\n", response, cause);
             } else if (response == MSG_TYPE_ACK) {
                 LOG_PRINT("Received acknowledgment from the RTI.");
@@ -984,7 +984,7 @@ void connect_to_rti(char* hostname, int port) {
                 write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(uint16_t), UDP_port_number,
                             "Failed to send the UDP port number to the RTI.");
             } else {
-                error_print_and_exit("Received unexpected response %u from the RTI (see rti.h).",
+                error_print_and_exit("Received unexpected response %u from the RTI (see net_common.h).",
                         response);
             }
             info_print("Connected to RTI at %s:%d.", hostname, uport);
@@ -1016,7 +1016,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 
     // First byte received is the message ID.
     if (buffer[0] != MSG_TYPE_TIMESTAMP) {
-        error_print_and_exit("Expected a MSG_TYPE_TIMESTAMP message from the RTI. Got %u (see rti.h).",
+        error_print_and_exit("Expected a MSG_TYPE_TIMESTAMP message from the RTI. Got %u (see net_common.h).",
                              buffer[0]);
     }
 
@@ -2192,7 +2192,7 @@ void terminate_execution() {
 /** 
  * Thread that listens for inputs from other federates.
  * This thread listens for messages of type MSG_TYPE_P2P_MESSAGE,
- * MSG_TYPE_P2P_TAGGED_MESSAGE, or MSG_TYPE_PORT_ABSENT (@see rti.h) from the specified
+ * MSG_TYPE_P2P_TAGGED_MESSAGE, or MSG_TYPE_PORT_ABSENT (@see net_common.h) from the specified
  * peer federate and calls the appropriate handling function for
  * each message type. If an error occurs or an EOF is received
  * from the peer, then this procedure sets the corresponding 

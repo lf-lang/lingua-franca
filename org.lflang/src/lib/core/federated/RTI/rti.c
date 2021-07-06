@@ -198,7 +198,7 @@ int create_server(int32_t specified_port, uint16_t port, socket_type_t socket_ty
     if (result != 0) {
         if (specified_port == 0) {
             error_print_and_exit("Failed to bind the RTI socket. Cannot find a usable port. "
-                    "Consider increasing PORT_RANGE_LIMIT in rti.h.");
+                    "Consider increasing PORT_RANGE_LIMIT in net_common.h.");
         } else {
             error_print_and_exit("Failed to bind the RTI socket. Specified port is not available. "
                     "Consider leaving the port unspecified");
@@ -990,7 +990,7 @@ void handle_stop_request_reply(federate_t* fed) {
 
 /** 
  * Handle address query messages.
- * This function reads the body of a MSG_TYPE_ADDRESS_QUERY (@see rti.h) message
+ * This function reads the body of a MSG_TYPE_ADDRESS_QUERY (@see net_common.h) message
  * which is the requested destination federate ID and replies with the stored
  * port value for the socket server of that federate. The port values
  * are initialized to -1. If no MSG_TYPE_ADDRESS_ADVERTISEMENT message has been received from
@@ -1033,7 +1033,7 @@ void handle_address_query(uint16_t fed_id) {
 }
 
 /**
- * Handle address advertisement messages (@see MSG_TYPE_ADDRESS_ADVERTISEMENT in rti.h).
+ * Handle address advertisement messages (@see MSG_TYPE_ADDRESS_ADVERTISEMENT in net_common.h).
  * The federate is expected to send its server port number as the next
  * byte. The RTI will keep a record of this number in the .server_port
  * field of the _RTI.federates[federate_id] array of structs.
@@ -1137,7 +1137,7 @@ void handle_timestamp(federate_t *my_fed) {
  * 
  * This version assumes the caller holds the mutex lock.
  * 
- * @param message_type The type of the clock sync message (see rti.h).
+ * @param message_type The type of the clock sync message (see net_common.h).
  * @param fed The federate to send the physical time to.
  * @param socket_type The socket type (TCP or UDP).
  */
@@ -1486,7 +1486,7 @@ int32_t receive_and_check_fed_id_message(int socket_id, struct sockaddr_in* clie
         } else {
         	send_reject(socket_id, UNEXPECTED_MESSAGE);
         }
-        error_print("RTI expected a MSG_TYPE_FED_IDS message. Got %u (see rti.h).", buffer[0]);
+        error_print("RTI expected a MSG_TYPE_FED_IDS message. Got %u (see net_common.h).", buffer[0]);
         return -1;
     } else {
         // Received federate ID.
@@ -1958,7 +1958,7 @@ void usage(int argc, char* argv[]) {
     printf("   The number of federates in the federation that this RTI will control.\n\n");
     printf("  -p, --port <n>\n");
     printf("   The port number to use for the RTI. Must be larger than 0 and smaller than %d. Default is %d.\n\n", UINT16_MAX, STARTING_PORT);
-    printf("  -c, --clock_sync [off|init|on] [clock_sync_period <n>] [clock_sync_exchanges_per_interval <n>]\n");
+    printf("  -c, --clock_sync [off|init|on] [period <n>] [exchanges-per-interval <n>]\n");
     printf("   The status of clock synchronization for this federate.\n");
     printf("       - off: Clock synchronization is off.\n");
     printf("       - init (default): Clock synchronization is done only during startup.\n");

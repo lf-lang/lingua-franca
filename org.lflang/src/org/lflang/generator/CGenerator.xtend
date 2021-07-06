@@ -1037,6 +1037,7 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate code that sends the neighbor structure message to the RTI.
+     * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
      * 
      * @param federate The federate that is sending its neighbor structure
      */
@@ -1045,8 +1046,10 @@ class CGenerator extends GeneratorBase {
         val rtiCode = new StringBuilder();
         pr(rtiCode, '''
             /**
-             * Generated function that sends information about this federate's
-             * relayed (through the RTI) logical connections to the RTI.
+             * Generated function that sends information about connections between this federate and
+             * other federates where messages are routed through the RTI. Currently, this
+             * only includes logical connections when the coordination is centralized. This
+             * information is needed for the RTI to perform the centralized coordination.
              * @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h
              */
             void send_neighbor_structure_to_RTI(int rti_socket) {
@@ -1245,7 +1248,7 @@ class CGenerator extends GeneratorBase {
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
-            echo "Federate «topLevelName» in Federation ID "$FEDERATION_ID
+            echo "Federate «topLevelName» in Federation ID '$FEDERATION_ID'"
             # Launch the federates:
         ''')
         val distHeader = '''
@@ -1264,6 +1267,16 @@ class CGenerator extends GeneratorBase {
         if (user !== null) {
             target = user + '@' + host
         }
+        
+        var RTILaunchString = '''
+        RTI -i ${FEDERATION_ID} \
+                         -n «federates.size» \
+                         -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+                          period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
+                          exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
+                          &
+        '''
+        
         // Launch the RTI in the foreground.
         if (host == 'localhost' || host == '0.0.0.0') {
             // FIXME: the paths below will not work on Windows
@@ -1281,12 +1294,7 @@ class CGenerator extends GeneratorBase {
                 # The RTI will be brought back to foreground
                 # to be responsive to user inputs after all federates
                 # are launched.
-                RTI -i $FEDERATION_ID \
-                 -n «federates.size» \
-                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                  period «targetConfig.clockSyncOptions.period.toNanoSeconds» \
-                  exchanges-per-interval «targetConfig.clockSyncOptions.trials» «ENDIF» \
-                  &
+                «RTILaunchString»
                 # Store the PID of the RTI
                 RTI=$!
                 # Wait for the RTI to boot up before
@@ -1315,12 +1323,15 @@ class CGenerator extends GeneratorBase {
             // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
-            val executeCommand = '''
-            RTI -i '$FEDERATION_ID' \
-            -n «federates.size» \
-            -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-             period «targetConfig.clockSyncOptions.period.toNanoSeconds» \
-             exchanges-per-interval «targetConfig.clockSyncOptions.trials» «ENDIF»'''
+            RTILaunchString = '''
+                RTI -i '${FEDERATION_ID}' \
+                                 -n «federates.size» \
+                                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+                                  period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
+                                  exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
+                                  &
+            '''
+            
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 # FIXME: Killing this ssh does not kill the remote process.
@@ -1330,15 +1341,15 @@ class CGenerator extends GeneratorBase {
                 ssh «target» 'mkdir -p log; \
                     echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                     date >> «logFileName»; \
-                    echo "Executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                    echo "Executing RTI: «RTILaunchString»" 2>&1 | tee -a «logFileName»; \
                     # First, check if the RTI is on the PATH
                     if ! command -v RTI &> /dev/null
                     then
                         echo "RTI could not be found."
                         echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
                         exit
-                    fi 
-                    «executeCommand» 2>&1 | tee -a «logFileName»' &
+                    fi
+                    «RTILaunchString» 2>&1 | tee -a «logFileName»' &
                 # Store the PID of the channel to RTI
                 RTI=$!
                 # Wait for the RTI to boot up before
