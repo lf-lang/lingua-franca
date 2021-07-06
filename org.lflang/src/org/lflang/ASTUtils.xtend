@@ -417,51 +417,13 @@ class ASTUtils {
     }
     
     /**
-     * Given a "type" AST node, return a deep copy of that node.
+     * Given a AST node, return a deep copy of that node.
      * @param original The original to create a deep copy of.
      * @return A deep copy of the given AST node.
      */
-    private static def getCopy(TypeParm original) {
-        val clone = factory.createTypeParm
-        if (!original.literal.isNullOrEmpty) {
-            clone.literal = original.literal
-        } else if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-        }
-        return clone
-    }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-     static def getCopy(Type original) {
+    static def <T extends EObject> T getCopy (T original) {
         if (original !== null) {
-            val clone = factory.createType
-            
-            clone.id = original.id
-            // Set the type based on the argument type.
-            if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-            } 
-            if (original.stars !== null) {
-                original.stars?.forEach[clone.stars.add(it)]
-            }
-                
-            if (original.arraySpec !== null) {
-                clone.arraySpec = factory.createArraySpec
-                clone.arraySpec.ofVariableLength = original.arraySpec.
-                    ofVariableLength
-                clone.arraySpec.length = original.arraySpec.length
-            }
-            clone.time = original.time
-            
-            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
-            
-            return clone
+            return EcoreUtil.copy(original) as T
         }
     }
         
