@@ -126,6 +126,9 @@ ${"             |            "..reactionWrappers(reactor)}
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
             |// ${generatedByHeader()}
+            |#[allow(unused_imports)]
+            |#[macro_use]
+            |extern crate ${gen.crate.name} as $rsRuntime;
             |
             |fn main() {
             | // todo
@@ -140,7 +143,7 @@ ${"             |            "..reactionWrappers(reactor)}
             |// ${generatedByHeader()}
             |//! Root of this crate
             |#[macro_use]
-            |extern crate ${gen.crate.name} as $rsRuntime;
+            |extern crate reactor_rust as $rsRuntime;
             |
 ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
             |
