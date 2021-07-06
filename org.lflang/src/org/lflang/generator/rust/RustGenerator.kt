@@ -71,7 +71,6 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
         return GenerationInfo(
             crate = CrateInfo("mycrate_todo", "0.0.0", authors = listOf("todo")),
-            runtime = makeRuntimeInfo(),
             reactors = reactors,
             mainReactor = mainReactor,
             executableName = mainReactor.modName
@@ -102,11 +101,6 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             otherComponents = components.values.toList(),
             isMain = reactor.isMain
         )
-    }
-
-    private fun makeRuntimeInfo(): RuntimeInfo {
-        // fixme
-        return RuntimeInfo(local_crate_path = "/home/clem/Documents/Cours/rust-reactors")
     }
 
 

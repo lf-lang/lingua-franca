@@ -220,7 +220,7 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use s
     }
 
     private fun Emitter.makeCargoTomlFile(gen: GenerationInfo) {
-        val (crate, _) = gen
+        val (crate) = gen
         this += """
             |#-- ${generatedByHeader()} --#
             |[package]

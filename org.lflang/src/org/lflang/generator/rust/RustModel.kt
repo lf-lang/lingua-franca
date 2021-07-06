@@ -38,7 +38,6 @@ import java.util.*
 
 data class GenerationInfo(
     val crate: CrateInfo,
-    val runtime: RuntimeInfo,
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: String
@@ -83,12 +82,6 @@ data class CrateInfo(
     val version: String,
     val authors: List<String>,
 )
-
-data class RuntimeInfo(
-    val local_crate_path: String
-    // options, etc
-)
-
 
 /*
 TODO do we really need the following classes?
