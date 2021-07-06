@@ -185,8 +185,14 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             |extern crate ${gen.crate.name} as $rsRuntimeIdent;
             |
             |fn main() {
-            | // todo
+            |   let mut reactor_id = ReactorId::first();
             |
+            |    let mut scheduler = $rsRuntime::SyncScheduler::new();
+            |    scheduler.startup(|mut starter| {
+            |        starter.start(&mut gcell);
+            |        starter.start(&mut pcell);
+            |    });
+            |    scheduler.launch_async(Duration::from_secs(10)).join().unwrap();
             |}
         """.trimMargin()
     }
