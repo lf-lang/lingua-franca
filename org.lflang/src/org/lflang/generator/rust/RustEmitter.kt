@@ -42,10 +42,10 @@ object RustEmitter {
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
         fileConfig.emit("Cargo.toml") { makeCargoFile(gen) }
-        fileConfig.emit("src/bin/main.rs") { makeMainFile(gen) }
-        fileConfig.emit("src/lib.rs") { makeRootLibFile(gen) }
+        fileConfig.emit("src/main.rs") { makeMainFile(gen) }
+        fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
         for (reactor in gen.reactors) {
-            fileConfig.emit("src/${reactor.modName}.rs") {
+            fileConfig.emit("src/reactors/${reactor.modName}.rs") {
                 makeReactorModule(reactor)
             }
         }
@@ -58,10 +58,12 @@ object RustEmitter {
                 with(PrependOperator) {
                     """
                 |// ${generatedByHeader()}
+                |#[allow(unused)]
+                |
                 |use std::sync::{Arc, Mutex};
                 |
                 |// todo link to source
-                |struct $structName {
+                |pub struct $structName {
                 |    // TODO state vars
                 |}
                 |
@@ -76,14 +78,14 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }
                 |
                 |}
                 |
-                |struct $dispatcherName {
+                |pub struct $dispatcherName {
                 |    _impl: $structName,
 ${"             |    "..otherComponents.joinToString(",\n") { it.toStructField() }}
                 |}
                 |
                 |
                 |reaction_ids!(
-                |  ${reactions.joinToString(", ", "enum $reactionIdName {", "}") { it.rustId }}
+                |  ${reactions.joinToString(", ", "pub enum $reactionIdName {", "}") { it.rustId }}
                 |);
                 |
                 |impl $rsRuntime::ReactorDispatcher for $dispatcherName {
@@ -106,7 +108,7 @@ ${"             |            "..reactionWrappers(reactor)}
                 |    }
                 |}
                 |
-                |struct $assemblerName {
+                |pub struct $assemblerName {
                 |   _rstate: Arc<Mutex<$dispatcherName>>,
 ${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
                 |}
@@ -180,32 +182,33 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
             |// ${generatedByHeader()}
-            |#[allow(unused_imports)]
             |#[macro_use]
-            |extern crate ${gen.crate.name} as $rsRuntimeIdent;
+            |extern crate reactor_rust as $rsRuntimeIdent;
+            |
+            |mod reactors;
+            |
+            |use $rsRuntime::*;
+            |use std::time::Duration;
             |
             |fn main() {
-            |   let mut reactor_id = ReactorId::first();
-            |
-            |    let mut scheduler = $rsRuntime::SyncScheduler::new();
+            |    let mut reactor_id = ReactorId::first();
+            |    let mut topcell = <self::reactors::${gen.mainReactor.assemblerName} as ReactorAssembler>::assemble(&mut reactor_id, (/*todo params*/));
+            |    let mut scheduler = SyncScheduler::new();
             |    scheduler.startup(|mut starter| {
-            |        starter.start(&mut gcell);
-            |        starter.start(&mut pcell);
+            |        starter.start(&mut topcell);
             |    });
-            |    scheduler.launch_async(Duration::from_secs(10)).join().unwrap();
+            |    let timeout = Duration::from_secs(10); 
+            |    scheduler.launch_async(timeout).join().unwrap();
             |}
         """.trimMargin()
     }
 
-    private fun Emitter.makeRootLibFile(gen: GenerationInfo) {
+    private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {
         this += with(PrependOperator) {
             """
             |// ${generatedByHeader()}
-            |//! Root of this crate
-            |#[macro_use]
-            |extern crate reactor_rust as $rsRuntimeIdent;
             |
-${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
+${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use self::${it.modName}::${it.assemblerName};" }}
             |
         """.trimMargin()
         }
@@ -228,6 +231,10 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
             |# See https://doc.rust-lang.org/cargo/appendix/git-authentication.html#ssh-authentication
             |# git = "ssh://git@github.com:icyphy/reactor-rust.git"
             |path = "/home/clem/Documents/Cours/rust-reactors"
+            |
+            |[[bin]]
+            |name = "a-reactor-program"
+            |path = "src/main.rs"
         """.trimMargin()
     }
 
