@@ -25,19 +25,19 @@
 package org.lflang.generator.rust
 
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.rust.ReactorComponentEmitter.toBorrowedType
-import org.lflang.generator.rust.RustEmitter.rsLibPath
+import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
-import java.time.Instant
-import java.util.*
 
 /**
  * Generates Rust code
  */
 object RustEmitter {
-    const val rsLibPath = "_rr"
-    const val libImport = "use reactor_rust as $rsLibPath;\n"
+    /**
+     * Name given to the Rust runtime crate within generated code,
+     * can be used to qualify names.
+     */
+    const val rsRuntime = "_rr"
 
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
@@ -58,7 +58,6 @@ object RustEmitter {
                 with(PrependOperator) {
                     """
                 |// ${generatedByHeader()}
-                |$libImport
                 |
                 |struct $structName {
                 |    // TODO state vars
@@ -82,7 +81,7 @@ ${"             |    "..otherComponents.joinToString(",\n") { it.toStructField()
                 |  ${reactions.joinToString(", ", "enum $reactionIdName {", "}") { it.rustId }}
                 |);
                 |
-                |impl $rsLibPath::ReactorDispatcher for $dispatcherName {
+                |impl $rsRuntime::ReactorDispatcher for $dispatcherName {
                 |    type ReactionId = $reactionIdName;
                 |    type Wrapped = $structName;
                 |    type Params = (${ctorParamTypes.joinWithCommas()});
@@ -95,7 +94,7 @@ ${"             |            "..otherComponents.joinToString(",\n") { it.toField
                 |        }
                 |    }
                 |
-                |    fn react(&mut self, ctx: &mut $rsLibPath::LogicalCtx, rid: Self::ReactionId) {
+                |    fn react(&mut self, ctx: &mut $rsRuntime::LogicalCtx, rid: Self::ReactionId) {
                 |        match rid {
 ${"             |            "..reactionWrappers(reactor)}
                 |        }
@@ -127,10 +126,6 @@ ${"             |            "..reactionWrappers(reactor)}
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
             |// ${generatedByHeader()}
-            |#[macro_use]
-            |extern crate ${gen.crate.name};
-            |
-            |$libImport
             |
             |fn main() {
             | // todo
@@ -144,6 +139,8 @@ ${"             |            "..reactionWrappers(reactor)}
             """
             |// ${generatedByHeader()}
             |//! Root of this crate
+            |#[macro_use]
+            |extern crate ${gen.crate.name} as $rsRuntime;
             |
 ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
             |
@@ -193,11 +190,11 @@ object ReactorComponentEmitter {
 
     fun ReactorComponent.toType() = when (this) {
         is ActionData ->
-            if (isLogical) "$rsLibPath::LogicalAction"
-            else "$rsLibPath::PhysicalAction"
+            if (isLogical) "$rsRuntime::LogicalAction"
+            else "$rsRuntime::PhysicalAction"
         is PortData   ->
-            if (isInput) "$rsLibPath::InputPort<$dataType>"
-            else "$rsLibPath::OutputPort<$dataType>"
+            if (isInput) "$rsRuntime::InputPort<$dataType>"
+            else "$rsRuntime::OutputPort<$dataType>"
     }
 
     fun ReactorComponent.toFieldInitializer() = when (this) {
