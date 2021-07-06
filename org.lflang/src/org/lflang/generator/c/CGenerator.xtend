@@ -24,7 +24,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator.c
 
 import java.io.File
 import java.io.FileOutputStream
@@ -70,7 +70,18 @@ import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.ReactionInstanceGraph
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.FederateInstance
+import org.lflang.generator.PortInstance
+import org.lflang.generator.MultiportInstance
+import org.lflang.generator.TimerInstance
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.TriggerInstance
+import org.lflang.generator.ReactionInstance
 import static extension org.lflang.ASTUtils.*
+import org.lflang.generator.ParameterInstance
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -3877,15 +3888,15 @@ class CGenerator extends GeneratorBase {
                 // Create the entry in the output_produced array for this port.
                 // If the port is a multiport, then we need to create an entry for each
                 // individual port.
-                if (effect.multiport !== null && !handledMultiports.contains(effect.multiport)) {
+                if (effect.getMultiportInstance() !== null && !handledMultiports.contains(effect.getMultiportInstance())) {
                     // The effect is a port within a multiport that has not been handled yet.
-                    handledMultiports.add(effect.multiport);
+                    handledMultiports.add(effect.getMultiportInstance());
                     var allocate = false
-                    if (!portAllocatedAlready.contains(effect.multiport)) {
+                    if (!portAllocatedAlready.contains(effect.getMultiportInstance())) {
                         // Prevent allocating memory more than once for the same port.
                         // It may have been allocated by a previous reaction that also
                         // has this port as an effect.
-                        portAllocatedAlready.add(effect.multiport)
+                        portAllocatedAlready.add(effect.getMultiportInstance())
                         allocate = true
                     }
                     // Allocate memory where the data produced by the reaction will be stored
@@ -3902,14 +3913,14 @@ class CGenerator extends GeneratorBase {
                         )
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->__«effect.name»__width = «effect.multiport.width»;
+                                «nameOfSelfStruct»->__«effect.name»__width = «effect.getMultiportInstance().width»;
                                 // Allocate memory to store output of reaction.
                                 «nameOfSelfStruct»->__«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
                                     * «nameOfSelfStruct»->__«effect.name»__width); 
                             ''')
                         }
                         pr(initialization, '''
-                            for (int i = 0; i < «effect.multiport.width»; i++) {
+                            for (int i = 0; i < «effect.getMultiportInstance().width»; i++) {
                                 «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
                                         = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.name»[i]''', "is_present")»;
                             }
@@ -3921,7 +3932,7 @@ class CGenerator extends GeneratorBase {
                             effect.parent.definition.reactorClass)
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->__«containerName».«effect.name»__width = «effect.multiport.width»;
+                                «nameOfSelfStruct»->__«containerName».«effect.name»__width = «effect.getMultiportInstance().width»;
                                 // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
                                 «nameOfSelfStruct»->__«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
                                     * «nameOfSelfStruct»->__«containerName».«effect.name»__width);
@@ -3937,8 +3948,8 @@ class CGenerator extends GeneratorBase {
                             }
                         ''')
                     }
-                    outputCount += effect.multiport.getWidth();
-                } else if (effect.multiport === null && !(effect instanceof MultiportInstance)) {
+                    outputCount += effect.getMultiportInstance().getWidth();
+                } else if (effect.getMultiportInstance() === null && !(effect instanceof MultiportInstance)) {
                     // The effect is not a multiport nor a port contained by a multiport.
                     if (effect.parent === reaction.parent) {
                         // The port belongs to the same reactor as the reaction.
@@ -4014,7 +4025,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
                         // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
-                        if (instance.bank !== null) {
+                        if (instance.getBank() !== null) {
                             temporaryVariableName += "_" + instance.bankIndex
                         }
                         // Array type has to be handled specially because C doesn't accept

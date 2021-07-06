@@ -128,6 +128,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The current target configuration.
      */
     protected var TargetConfig targetConfig = new TargetConfig()
+    def TargetConfig getTargetConfig() { return this.targetConfig;}
     
     /**
      * The current file configuration.
@@ -1262,6 +1263,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
+     * Parsed error message from a compiler is returned here.
+     */
+    static class ErrorFileAndLine {
+        public var filepath = null as String
+        public var line = "1"
+        public var character = "0"
+        public var message = ""
+        public var isError = true // false for a warning.
+    }
+
+    /**
      * Generate any preamble code that appears in the code generated
      * file before anything else.
      */
@@ -1428,17 +1440,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def prComment(String comment) {
         pr(code, '// ' + comment);
-    }
-
-    /**
-     * Parsed error message from a compiler is returned here.
-     */
-    protected static class ErrorFileAndLine {
-        public var filepath = null as String
-        public var line = "1"
-        public var character = "0"
-        public var message = ""
-        public var isError = true // false for a warning.
     }
 
     /**
