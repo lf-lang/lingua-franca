@@ -28,14 +28,12 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
-import org.lflang.lf.Reactor
-import org.lflang.name
 import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Files
-import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.system.measureTimeMillis
 
 class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
     FileConfig(resource, fsa, context) {
@@ -49,7 +47,14 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGene
         deleteDirectory(outPath.resolve("target"))
     }
 
-    inline fun emit(p: Path, f: Emitter.() -> Unit): Unit = Emitter(p).use { it.f() }
+    inline fun emit(p: Path, f: Emitter.() -> Unit) {
+        // todo remove println
+        System.err.println("Generating file ${srcGenPath.relativize(p)}...")
+        val milliTime = measureTimeMillis {
+            Emitter(p).use { it.f() }
+        }
+        System.err.println("Done in $milliTime ms.")
+    }
 
     inline fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
 
@@ -67,10 +72,7 @@ class Emitter(
 
     override fun close() {
         Files.createDirectories(output.parent)
-        Files.newBufferedWriter(output, StandardOpenOption.CREATE)
-            .use {
-                it.write(sb.toString())
-            }
+        Files.writeString(output, sb)
     }
 }
 
