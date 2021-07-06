@@ -58,7 +58,7 @@ object RustEmitter {
                 with(PrependOperator) {
                     """
                 |// ${generatedByHeader()}
-                |#[allow(unused)]
+                |#![allow(unused)]
                 |
                 |use std::sync::{Arc, Mutex};
                 |
