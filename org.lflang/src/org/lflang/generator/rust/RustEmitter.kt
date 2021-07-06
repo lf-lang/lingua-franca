@@ -107,7 +107,7 @@ ${"             |            "..reactionWrappers(reactor)}
                 |
                 |struct $assemblerName {
                 |   _rstate: Arc<Mutex<$dispatcherName>>,
-${"             |   "..reactionObjects(reactor)}
+${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
                 |}
                 |
                 |impl $rsRuntime::ReactorAssembler for $assemblerName {
@@ -123,7 +123,7 @@ ${"             |   "..reactionObjects(reactor)}
                 |       let this_reactor = reactor_id.get_and_increment();
                 |       let mut reaction_id = 0;
                 |
-${"             |       "..reactionObjectInitializers(reactor)}
+${"             |       "..reactor.reactions.joinToString("\n") { it.reactionInvokerInitializer() }}
                 |
                 |       { // declare local dependencies
                 |           let mut statemut = _rstate.lock().unwrap();
@@ -160,11 +160,6 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         }
     }
 
-    private fun reactionObjects(reactor: ReactorInfo): String =
-        reactor.reactions.joinToString(",\n") {
-            it.invokerId + ": Arc<$rsRuntime::ReactionInvoker>"
-        }
-
     private fun localDependencyDeclarations(reactor: ReactorInfo): String {
         fun vecOfReactions(list: List<ReactionInfo>) =
             list.joinToString(", ", "vec![", "]") { it.invokerId + ".clone()" }
@@ -180,11 +175,6 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             component in it.depends
         }
 
-
-    private fun reactionObjectInitializers(reactor: ReactorInfo): String =
-        reactor.reactions.joinToString("\n") {
-            "let ${it.invokerId} = new_reaction!(this_reactor, reaction_id, _rstate, ${it.rustId});"
-        }
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
@@ -240,7 +230,7 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};" }}
 }
 
 
-object ReactorComponentEmitter {
+private object ReactorComponentEmitter {
 
 
     fun ReactorComponent.toBorrow() = when (this) {
@@ -271,6 +261,11 @@ object ReactorComponentEmitter {
     fun ReactorComponent.toStructField() =
         "$name: ${toType()}"
 
+    fun ReactionInfo.reactionInvokerInitializer() =
+        "let $invokerId = new_reaction!(this_reactor, reaction_id, _rstate, $rustId);"
+
+    fun ReactionInfo.invokerFieldDeclaration() =
+        "$invokerId: Arc<$rsRuntime::ReactionInvoker>"
 
     fun ReactionInfo.toWorkerFunction() =
         """
