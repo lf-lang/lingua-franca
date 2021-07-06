@@ -67,12 +67,14 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
     private fun makeGenerationInfo(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): GenerationInfo {
         val reactors = makeReactorInfos()
+        val mainReactor = reactors.lastOrNull { it.isMain } ?: reactors.last()
 
         return GenerationInfo(
             crate = CrateInfo("mycrate_todo", "0.0.0", authors = listOf("todo")),
             runtime = makeRuntimeInfo(),
             reactors = reactors,
-            mainReactor = reactors.first { it.isMain }
+            mainReactor = mainReactor,
+            executableName = mainReactor.modName
         )
     }
 
@@ -110,13 +112,19 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
     private fun invokeRustCompiler() {
         val cargoBuilder = createCommand(
-            "cargo", listOf("build"),
+            "cargo", listOf(
+                "+nightly",
+                "build",
+                "--release",
+                // note that this option is unstable for now and requires rust nightly ...
+                "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
+                "-Z", "unstable-options" // ... and that feature flag
+            ),
             fileConfig.srcGenPath,
             "The Rust target requires Cargo in the path. " +
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
             true
         ) ?: return
-
 
         val cargoReturnCode = executeCommand(cargoBuilder)
 
