@@ -41,7 +41,7 @@ object RustEmitter {
 
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
-        fileConfig.emit("Cargo.toml") { makeCargoFile(gen) }
+        fileConfig.emit("Cargo.toml") { makeCargoTomlFile(gen) }
         fileConfig.emit("src/main.rs") { makeMainFile(gen) }
         fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
         for (reactor in gen.reactors) {
@@ -219,7 +219,7 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use s
         }
     }
 
-    private fun Emitter.makeCargoFile(gen: GenerationInfo) {
+    private fun Emitter.makeCargoTomlFile(gen: GenerationInfo) {
         val (crate, _) = gen
         this += """
             |#-- ${generatedByHeader()} --#
@@ -238,7 +238,7 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use s
             |path = "/home/clem/Documents/Cours/rust-reactors"
             |
             |[[bin]]
-            |name = "a-reactor-program"
+            |name = "${gen.executableName}"
             |path = "src/main.rs"
         """.trimMargin()
     }

@@ -341,7 +341,8 @@ abstract class TestBase {
         switch(test.target) {
             case C,
             case CPP,
-            case CCPP: {
+            case CCPP,
+            case Rust: {
                 val binPath = test.fileConfig.binPath
                 var binaryName = nameOnly
                 // Adjust binary extension if running on Window

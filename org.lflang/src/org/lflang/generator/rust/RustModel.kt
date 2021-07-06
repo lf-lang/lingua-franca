@@ -40,7 +40,8 @@ data class GenerationInfo(
     val crate: CrateInfo,
     val runtime: RuntimeInfo,
     val reactors: List<ReactorInfo>,
-    val mainReactor: ReactorInfo // it's also in the list
+    val mainReactor: ReactorInfo, // it's also in the list
+    val executableName: String
 )
 
 data class ReactorInfo(
