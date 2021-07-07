@@ -1,5 +1,5 @@
 /*************
- * Copyright (c) 2019-2022, The University of California at Berkeley.
+ * Copyright (c) 2019-2021, The University of California at Berkeley.
 
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -118,7 +118,7 @@ class CCmakeGenerator {
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
             cMakeCode.append("# Set the number of workers to enable threading\n");
-            cMakeCode.append("target_compile_definitions(RTI PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")\n");
+            cMakeCode.append("target_compile_definitions("+executableName+" PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")\n");
             cMakeCode.append("\n");
         }
         
