@@ -81,7 +81,7 @@ import org.lflang.generator.TriggerInstance
 import org.lflang.generator.ReactionInstance
 import static extension org.lflang.ASTUtils.*
 import org.lflang.generator.ParameterInstance
-import org.lflang.federated.FedLauncher
+import org.lflang.federated.FedCLauncher
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -846,11 +846,10 @@ class CGenerator extends GeneratorBase {
      *  copied to the remote machines.
      */
     def createFederatedLauncher(ArrayList<String> coreFiles) {
-        val launcher = new FedLauncher(
+        val launcher = new FedCLauncher(
             targetConfig,
             fileConfig,
-            topLevelName,
-            this
+            errorReporter
         );
         launcher.createLauncher(
             coreFiles,
