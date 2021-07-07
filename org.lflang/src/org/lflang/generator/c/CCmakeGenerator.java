@@ -26,8 +26,6 @@
 package org.lflang.generator.c;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -47,7 +45,7 @@ class CCmakeGenerator {
     FileConfig fileConfig;
     TargetConfig targetConfig;
     
-    CCmakeGenerator(FileConfig fileConfig, TargetConfig targetConfig) {
+    CCmakeGenerator(TargetConfig targetConfig, FileConfig fileConfig) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
     }
@@ -61,7 +59,7 @@ class CCmakeGenerator {
      * @param errorReporter Used to report errors.
      * @return The content of the CMakeLists.txt
      */
-    StringBuilder generateCMakeCode(List<Path> sources, String executableName, ErrorReporter errorReporter) {
+    StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
         StringBuilder cMakeCode = new StringBuilder();
         
         // Resolve path to the cmake include file if one was provided
@@ -72,11 +70,6 @@ class CCmakeGenerator {
             } catch (Exception e) {
                 errorReporter.reportError(e.getMessage());
             }
-        }
-        
-        List<String> stringSources = new ArrayList<String>();
-        for (Path source: sources) {
-            stringSources.add(FileConfig.toUnixString(source));
         }
         
         cMakeCode.append("cmake_minimum_required(VERSION 3.5)\n");
@@ -109,7 +102,7 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         cMakeCode.append("# Declare a new executable target and list all its sources\n");
-        cMakeCode.append("add_executable( "+executableName+" "+String.join("\n", stringSources)+" ${LF_PLATFORM_FILE})\n");
+        cMakeCode.append("add_executable( "+executableName+" "+String.join("\n", sources)+" ${LF_PLATFORM_FILE})\n");
         cMakeCode.append("\n");
 
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {

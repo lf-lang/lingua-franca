@@ -842,16 +842,6 @@ class PythonGenerator extends CGenerator {
         }
     }
     
-    /**
-     * Do nothing. The Python generator handles compiling differently.
-     */
-    override runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        // Note that this function is deliberately left empty to prevent the CGenerator from
-        // compiling this code. The Python generator will create a setup.py and compile generated
-        // C code appropriately.
-        return true
-    }
-    
     /** 
      * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
@@ -1056,8 +1046,15 @@ class PythonGenerator extends CGenerator {
         if(isFederated) {
             targetConfig.threads = 1;
         }
-
+        
+        // Prevent the CGenerator from compiling the C code.
+        // The PythonGenerator will compiler it.
+        val compileStatus = targetConfig.noCompile;
+        targetConfig.noCompile = true;
+        
         super.doGenerate(resource, fsa, context)
+        
+        targetConfig.noCompile = compileStatus
 
         if (errorsOccurred) return;
 
