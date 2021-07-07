@@ -1,0 +1,45 @@
+/** A Star Savina Benchmark (C) 
+* Parallelism benchmark from the Savina benchmark suite 
+*
+*@author Matthew Chorlian
+*
+*/
+
+target C {
+
+}
+
+reactor Master( numWorkers:int(20), gridSize:int(30)) {
+
+
+    state numWorkersTerminated:int(0);
+    state numWorkSent:int(0);
+    state numWorkCompleted:int(0);
+
+    // ask about cog stuff in C++ benchmark
+    state workersWorking
+    state workList
+
+    state shortestPathIsFound:bool(false);
+
+    input inStart:void;
+    output outFinished:void;
+    input inInitializeStart:void;
+    output outInitializeFinished:void;
+    input inCleanupIteration:void;
+    output outCleanupIterationFinished:void;
+
+    // ask about the role of cog 
+    output[20] outWorkersWork:{=WorkMessage=};
+    input[20] inWorkersWork:{=std::list<WorkMessage>=};
+    output[20] outWorkers:{=Message=};
+    input[20] inWorkers:{=Message=};
+
+
+    logical action sendWork:void;
+    logical action shutdownWorkers:void;
+
+    reaction(inInitializeStart) -> outInitializeFinished {=
+    
+    =}
+}
