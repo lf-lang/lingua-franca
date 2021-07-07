@@ -437,7 +437,7 @@ class LFValidatorImpl extends AbstractLFValidator {
 
         if (leftWidth !== -1 && rightWidth !== -1 && leftWidth != rightWidth) {
             if (connection.isIterated) {
-                if (rightWidth % leftWidth != 0) {
+                if (leftWidth == 0 || rightWidth % leftWidth != 0) {
                     // FIXME: The second argument should be Literals.CONNECTION, but
                     // stupidly, xtext will not accept that. There seems to be no way to
                     // report an error for the whole connection statement.

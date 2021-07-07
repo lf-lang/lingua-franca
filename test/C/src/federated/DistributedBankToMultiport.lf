@@ -1,0 +1,31 @@
+// Check multiport to bank connections between federates.
+target C {
+    timeout: 3 sec
+};
+
+import Count from "../lib/Count.lf";
+ 
+reactor Destination {
+    input[2] in:int;
+    state count:int(1);
+    reaction(in) {=
+        for (int i = 0; i < in_width; i++) {
+        	info_print("Received %d.", in[i]->value);  
+        	if (self->count != in[i]->value) {
+            	error_print_and_exit("Expected %d.", self->count);
+        	}   
+      	}  
+        self->count++;         
+    =}
+    reaction(shutdown) {=
+        if (self->count == 0) {
+            error_print_and_exit("No data received.");
+        }
+    =}
+}
+
+federated reactor {
+    s = new[2] Count();
+    d = new Destination();
+    s.out -> d.in;
+} 
