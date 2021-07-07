@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -90,7 +91,44 @@ class CCompiler {
     }
     
     /**
-     * Return a command to compile the specified C file.
+     * Return a command to compile the specified C file using CMake.
+     * This produces a C specific compile command.
+     * 
+     * @param fileToCompile The C filename without the .c extension.
+     * @param doNotLinkIfNoMain If true, the compile command will have a
+     *  `-c` flag when there is no main reactor. If false, the compile command
+     *  will never have a `-c` flag.
+     * @param errorReporter Used to report errors to the user.
+     */
+    ProcessBuilder compileCmakeCommand(
+            String fileToCompile, 
+            boolean doNotLinkIfNoMain, 
+            ErrorReporter errorReporter
+    ) {
+        ExecutionEnvironment env = generator.findCommandEnv(
+                targetConfig.compiler, 
+                "The C target requires GCC >= 7 to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+                true
+        );
+        
+        return generator.createCommand(
+                "cmake", List.of(
+                        "-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
+                        "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
+                                fileConfig.getOutPath().relativize(
+                                        fileConfig.binPath
+                                        )
+                                ),
+                        FileConfig.toUnixString(fileConfig.getSrcGenPath())
+                    ),
+                fileConfig.getOutPath(), 
+                env);
+    }
+    
+    /**
+     * Return a command to compile the specified C file using a native compiler 
+     * (generally gcc unless overriden by the user).
      * This produces a C specific compile command.
      * 
      * @param fileToCompile The C filename without the .c extension.
