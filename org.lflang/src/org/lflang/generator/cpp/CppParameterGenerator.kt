@@ -47,18 +47,11 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Type of the parameter in C++ code */
         val Parameter.targetType get():String = this.inferredType.targetType
 
-        /** Get a parameter instantiated from the given initializer list */
-        fun Parameter.generateInstance(initializers: List<String>): String {
-            val leftParen = if (!parens.isNullOrEmpty()) "(" else "{"
-            val rightParen = if (!parens.isNullOrEmpty()) ")" else "}"
-            return when {
-                initializers.size > 1  -> "$targetType$leftParen${initializers.joinToString(", ")}$rightParen"
-                initializers.size == 1 -> initializers[0]
-                else                   -> "$targetType()"
-            }}
-
         /** Get the default value of the receiver parameter in C++ code */
-        val Parameter.defaultValue: String get() = generateInstance(getInitializerList())
+        val Parameter.defaultValue: String
+            get() =
+                if (braces?.size == 2) "$targetType{${getInitializerList().joinToString(", ")}}"
+                else "$targetType(${getInitializerList().joinToString(", ")})"
 
         /** Get a C++ type that is a const reference to the parameter type */
         val Parameter.constRefType: String
