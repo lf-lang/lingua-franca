@@ -1,5 +1,5 @@
 /*************
- * Copyright (c) 2019-2022, The University of California at Berkeley.
+ * Copyright (c) 2019-2021, The University of California at Berkeley.
 
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -48,13 +48,13 @@ import org.lflang.generator.GeneratorBase.ExecutionEnvironment;
  *  the GeneratorBase contains a lot of unrelated functions that need to be factored out
  *  into separate classes.
  */
-class CCompiler {
+public class CCompiler {
 
     FileConfig fileConfig;
     TargetConfig targetConfig;
     GeneratorBase generator;
     
-    CCompiler(TargetConfig targetConfig, FileConfig fileConfig, GeneratorBase generator) {
+    public CCompiler(TargetConfig targetConfig, FileConfig fileConfig, GeneratorBase generator) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
         this.generator = generator;
@@ -70,7 +70,7 @@ class CCompiler {
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    boolean runCCompiler(String file, boolean doNotLinkIfNoMain, ErrorReporter errorReporter) {
+    public boolean runCCompiler(String file, boolean doNotLinkIfNoMain, ErrorReporter errorReporter) {
         ProcessBuilder compile = compileCCommand(file, doNotLinkIfNoMain, errorReporter);
         if (compile == null) {
             return false;
@@ -100,7 +100,7 @@ class CCompiler {
      *  will never have a `-c` flag.
      * @param errorReporter Used to report errors to the user.
      */
-    ProcessBuilder compileCmakeCommand(
+    public ProcessBuilder compileCmakeCommand(
             String fileToCompile, 
             boolean doNotLinkIfNoMain, 
             ErrorReporter errorReporter
@@ -137,7 +137,7 @@ class CCompiler {
      *  will never have a `-c` flag.
      * @param errorReporter Used to report errors to the user.
      */
-    ProcessBuilder compileCCommand(
+    public ProcessBuilder compileCCommand(
             String fileToCompile, 
             boolean doNotLinkIfNoMain, 
             ErrorReporter errorReporter
