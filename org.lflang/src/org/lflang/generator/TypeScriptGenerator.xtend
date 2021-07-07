@@ -38,6 +38,7 @@ import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
@@ -106,8 +107,8 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     var mainParameters = new HashSet<Parameter>()
 
-    new () {
-        super()
+    new(TypeScriptFileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // Set defaults for federate compilation.
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2")
@@ -126,7 +127,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         super.doGenerate(resource, fsa, context)
         
-        if (generatorErrorsOccurred) return;
+        if (errorsOccurred) return;
         
         // Generate imports for protocol buffer definitions
         // Note that the preamble is generated as part of
@@ -224,7 +225,8 @@ class TypeScriptGenerator extends GeneratorBase {
         if (pnpmInstall !== null) {
             val ret = pnpmInstall.executeCommand(installErrors)
             if (ret !== 0) {
-                reportError(resource.findTarget, "ERROR: pnpm install command failed: " + installErrors.toString)
+                errorReporter.reportError(resource.findTarget,
+                    "ERROR: pnpm install command failed: " + installErrors.toString)
             }
         } else {
             val npmInstall = createCommand("npm", #["install"], fileConfig.getSrcGenPkgPath,
@@ -232,10 +234,10 @@ class TypeScriptGenerator extends GeneratorBase {
                     "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.", true)
             if (npmInstall !== null && npmInstall.executeCommand(installErrors) !== 0) {
-                reportError(resource.findTarget, "ERROR: npm install command failed: " + installErrors.toString)
-                reportError(resource.findTarget,
-                    "ERROR: npm install command failed." +
-                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+                errorReporter.reportError(resource.findTarget,
+                    "ERROR: npm install command failed: " + installErrors.toString)
+                errorReporter.reportError(resource.findTarget, "ERROR: npm install command failed." +
+                    "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
         }
@@ -281,7 +283,7 @@ class TypeScriptGenerator extends GeneratorBase {
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
             } else {
-                reportError("protoc returns error code " + returnCode)    
+                errorReporter.reportError("protoc returns error code " + returnCode)    
             }
             // FIXME: report errors from this command.
         } else {
@@ -323,11 +325,11 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (babel.executeCommand() == 0) {
                         println("SUCCESS (compiling generated TypeScript code)")                
                     } else {
-                        reportError("Compiler failed.")
+                        errorReporter.reportError("Compiler failed.")
                     }   
                 }
             } else {
-                reportError("Type checking failed.")
+                errorReporter.reportError("Type checking failed.")
             }
         }
 
@@ -560,7 +562,7 @@ class TypeScriptGenerator extends GeneratorBase {
             var leftPortName = ""
             // FIXME: Add support for multiports.
             if (connection.leftPorts.length > 1) {
-                reportError(connection, "Multiports are not yet supported in the TypeScript target.")
+                errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
                 if (connection.leftPorts.get(0).container !== null) {
                     leftPortName += connection.leftPorts.get(0).container.name + "."
@@ -569,7 +571,7 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             var rightPortName = ""
             if (connection.leftPorts.length > 1) {
-                reportError(connection, "Multiports are not yet supported in the TypeScript target.")
+                errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
                 if (connection.rightPorts.get(0).container !== null) {
                     rightPortName += connection.rightPorts.get(0).container.name + "."
@@ -712,7 +714,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 var functArg = ""                
                 var reactSignatureElement = "" + effect.generateArg
                 if (effect.variable instanceof Timer) {
-                    reportError("A timer cannot be an effect of a reaction")
+                    errorReporter.reportError("A timer cannot be an effect of a reaction")
                 } else if (effect.variable instanceof Action){
                     reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                     schedActionSet.add(effect.variable as Action)
@@ -1372,7 +1374,7 @@ class TypeScriptGenerator extends GeneratorBase {
     def private String getTargetInitializerHelper(Parameter param,
         List<String> list) {
         if (list.size == 0) {
-            param.reportError("Parameters must have a default value!")
+            errorReporter.reportError(param, "Parameters must have a default value!")
         } else if (list.size == 1) {
             return list.get(0)
         } else {
@@ -1406,10 +1408,6 @@ class TypeScriptGenerator extends GeneratorBase {
         } else {
             return "undefined"
         }
-    }
-
-    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new TypeScriptFileConfig(resource, fsa, context)
     }
 
     override String getTargetTimeType() {

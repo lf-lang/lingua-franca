@@ -104,11 +104,10 @@ class LinguaFrancaDependencyAnalysisTest {
             }
         }
         
-        var gen = new CGenerator()
         var message = ""
         try {
             new ReactionInstanceGraph(
-                new ReactorInstance(mainDef.reactorClass.toDefinition, gen))
+                new ReactorInstance(mainDef.reactorClass.toDefinition, new DefaultErrorReporter()))
         } catch(Exception e) {
             message = e.message
         }

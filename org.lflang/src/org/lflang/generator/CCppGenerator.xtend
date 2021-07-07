@@ -32,10 +32,12 @@ import java.util.ArrayList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.lf.ReactorDecl
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.FileConfig
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -260,8 +262,8 @@ import static extension org.lflang.ASTUtils.*
  */
 class CCppGenerator extends CGenerator {
 
-    new () {
-        super()
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "g++"
         targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"
@@ -589,7 +591,7 @@ class CCppGenerator extends CGenerator {
         fOut.write(shCode.toString().getBytes())
         fOut.close()
         if (!file.setExecutable(true, false)) {
-            reportWarning(null, "Unable to make launcher script executable.")
+            errorReporter.reportWarning("Unable to make launcher script executable.")
         }
         
         // Write the distributor file.
@@ -603,7 +605,7 @@ class CCppGenerator extends CGenerator {
             fOut.write(distCode.toString().getBytes())
             fOut.close()
             if (!file.setExecutable(true, false)) {
-                reportWarning(null, "Unable to make distributor script executable.")
+                errorReporter.reportWarning("Unable to make distributor script executable.")
             }
         }
     }

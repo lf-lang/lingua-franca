@@ -61,7 +61,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
@@ -74,7 +74,7 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length) {
+handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     if (value == NULL) {
         return schedule_token(action, offset, NULL);
@@ -120,9 +120,9 @@ int wait_until(instant_t logical_time_ns) {
 
 void print_snapshot() {
     if(LOG_LEVEL > 3) {
-        DEBUG_PRINT(">>> START Snapshot\n");
+        DEBUG_PRINT(">>> START Snapshot");
         pqueue_dump(reaction_q, reaction_q->prt);
-        DEBUG_PRINT(">>> END Snapshot\n");
+        DEBUG_PRINT(">>> END Snapshot");
     }
 }
 
@@ -148,7 +148,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
 int _lf_do_step() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
-        print_snapshot();
+        // print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         
         LOG_PRINT("Invoking reaction %s at elapsed logical tag (%lld, %d).",
@@ -312,14 +312,27 @@ bool _lf_is_blocked_by_executing_reaction() {
     return false;
 }
 
-
-int main(int argc, char* argv[]) {
+/**
+ * The main loop of the LF program.
+ * 
+ * An unambiguous function name that can be called
+ * by external libraries.
+ * 
+ * Note: In target languages that use the C core library,
+ * there should be an unambiguous way to execute the LF
+ * program's main function that will not conflict with
+ * other main functions that might get resolved and linked
+ * at compile time.
+ */
+int lf_reactor_c_main(int argc, char* argv[]) {
     // Invoke the function that optionally provides default command-line options.
     __set_default_command_line_options();
 
+    DEBUG_PRINT("Processing command line arguments.");
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
-
+        DEBUG_PRINT("Processed command line arguments.");
+        DEBUG_PRINT("Registering the termination function.");
         if (atexit(termination) != 0) {
             warning_print("Failed to register termination function!");
         }
@@ -328,6 +341,7 @@ int main(int argc, char* argv[]) {
         // and cause it to call exit.
         signal(SIGINT, exit);
 
+        DEBUG_PRINT("Initializing.");
         initialize(); // Sets start_time.
         current_tag = (tag_t){.time = start_time, .microstep = 0u};
         _lf_execution_started = true;
@@ -339,6 +353,7 @@ int main(int argc, char* argv[]) {
         if (compare_tags(current_tag, stop_tag) >= 0) {
             __trigger_shutdown_reactions(); // __trigger_shutdown_reactions();
         }
+        DEBUG_PRINT("Running the program's main loop.");
         // Handle reactions triggered at time (T,m).
         if (_lf_do_step()) {
             while (next() != 0);
@@ -347,4 +362,8 @@ int main(int argc, char* argv[]) {
     } else {
         return -1;
     }
+}
+
+int main(int argc, char* argv[]) {
+    return lf_reactor_c_main(argc, argv);
 }
