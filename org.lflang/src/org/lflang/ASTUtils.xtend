@@ -1456,7 +1456,7 @@ class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens.size == 2) {
+        if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
             return true
         }
         return false
