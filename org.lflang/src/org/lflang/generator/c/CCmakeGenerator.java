@@ -77,12 +77,14 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         cMakeCode.append("# Require C11\n");
-        cMakeCode.append("set(CMAKE_C_STANDARD 11\n");
+        cMakeCode.append("set(CMAKE_C_STANDARD 11)\n");
         cMakeCode.append("set(CMAKE_C_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("set(CMAKE_C_EXTENSIONS OFF)\n");
         cMakeCode.append("\n");
         
         cMakeCode.append("set(CoreLib "+fileConfig.getSrcGenPath()+File.separator+"core)\n");
+        cMakeCode.append("\n");
+        
         cMakeCode.append("# Check which system we are running on to select the correct platform support\n");
         cMakeCode.append("# file and assign the file's path to LF_PLATFORM_FILE\n");
         cMakeCode.append("if(${CMAKE_SYSTEM_NAME} STREQUAL \"Linux\")\n");
@@ -92,7 +94,8 @@ class CCmakeGenerator {
         cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Windows\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_windows_support.c)\n");
         cMakeCode.append("else()\n");
-        cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported! RTI supports Linux and MacOS.\"\n");
+        cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported!"+
+                " The C target supports Linux, MacOS and Windows.\")\n");
         cMakeCode.append("endif()\n");
         cMakeCode.append("\n");
         
@@ -123,7 +126,7 @@ class CCmakeGenerator {
         cMakeCode.append("install(TARGETS "+executableName+"\n");
         cMakeCode.append("        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})\n");
         
-        if (includeFile != null) {
+        if (!includeFile.isBlank()) {
             cMakeCode.append("include("+includeFile+")\n");
         }
         
