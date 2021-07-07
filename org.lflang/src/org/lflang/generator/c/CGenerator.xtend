@@ -792,6 +792,19 @@ class CGenerator extends GeneratorBase {
             val targetFile = fileConfig.getSrcGenPath + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
+            
+            // Generate the cmake script
+            val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
+            val cmakeFile = fileConfig.getSrcGenPath + File.separator + "CMakeLists.txt"
+            writeSourceCodeToFile(
+                cmakeGenerator.generateCMakeCode(
+                    #[cFilename], 
+                    topLevelName, 
+                    errorReporter
+                ).toString().getBytes(),
+                cmakeFile
+            )
+            
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
                 writeDockerFile(topLevelName)
@@ -799,8 +812,9 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
+            val cCompiler = new CCompiler(targetConfig, fileConfig, this);
             if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
-                if (!runCCompiler(topLevelName, true)) {
+                if (!cCompiler.runCCompiler(topLevelName, true, errorReporter)) {
                     compilationSucceeded = false
                 }
                 writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
@@ -1376,7 +1390,8 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«topLevelName»_«federate.name».log'''
-                val compileCommand = compileCCommand('''«topLevelName»_«federate.name»''', false).command.join(" ")
+                val cCompiler = new CCompiler(targetConfig, fileConfig, this);
+                val compileCommand = cCompiler.compileCCommand('''«topLevelName»_«federate.name»''', false, errorReporter).command.join(" ")
                 //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''

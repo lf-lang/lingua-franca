@@ -146,6 +146,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * reactor.
      */
     protected Instantiation mainDef
+    def getMainDef() { return mainDef; }
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
@@ -696,38 +697,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    /** 
-     * Run the C compiler.
-     * 
-     * This is required here in order to allow any target to compile the RTI.
-     * 
-     * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * 
-     * @return true if compilation succeeds, false otherwise. 
-     */
-    def runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        val compile = compileCCommand(file, doNotLinkIfNoMain)
-        if (compile === null) {
-            return false
-        }
-
-        val stderr = new ByteArrayOutputStream()
-        val returnCode = compile.executeCommand(stderr)
-
-        if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
-            errorReporter.reportError('''«targetConfig.compiler» returns error code «returnCode»''')
-        }
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
-            reportCommandErrors(stderr.toString())
-        }
-        return (returnCode == 0)
-    }
-
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
@@ -778,87 +747,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
     
-    /**
-     * Return a command to compile the specified C file.
-     * This produces a C specific compile command. Since this command is
-     * used across targets to build the RTI, it needs to be available in
-     * GeneratorBase.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     */
-    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val env = findCommandEnv(
-            targetConfig.compiler, 
-            "The C target requires GCC >= 7 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
-        )
-        
-        val cFilename = getTargetFileName(fileToCompile);
-
-        var relativeSrcPath = fileConfig.outPath.relativize(
-            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
-        var relativeBinPath = fileConfig.outPath.relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
-
-        // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        var relSrcPathString = FileConfig.toUnixString(relativeSrcPath)
-        var relBinPathString = FileConfig.toUnixString(relativeBinPath)
-        
-        // If there is no main reactor, then generate a .o file not an executable.
-        if (mainDef === null) {
-            relBinPathString += ".o";
-        }
-        
-        var compileArgs = newArrayList
-        compileArgs.add(relSrcPathString)
-        for (file: targetConfig.compileAdditionalSources) {
-            var relativePath = fileConfig.outPath.relativize(
-                fileConfig.getSrcGenPath.resolve(Paths.get(file)))
-            compileArgs.add(FileConfig.toUnixString(relativePath))
-        }
-        compileArgs.addAll(targetConfig.compileLibraries)
-
-        // Only set the output file name if it hasn't already been set
-        // using a target property or Args line flag.
-        if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relBinPathString)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads !== 0 || targetConfig.tracing !== null) {
-            compileArgs.add("-pthread")
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add('''-DNUMBER_OF_WORKERS=«targetConfig.threads»''')
-        }
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags)
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && main === null) {
-            compileArgs.add("-c") // FIXME: revisit
-            if (fileConfig.compilerMode === Mode.STANDALONE) {
-                errorReporter.reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
+    
+    /** Produces the filename including the target-specific extension */
+    def getTargetFileName(String fileName) {
+        return fileName + ".c"; // FIXME: Does not belong in the base class.
     }
 
     // //////////////////////////////////////////
     // // Protected methods.
-    /** Produces the filename including the target-specific extension */
-    protected def getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
-    }
 
     /**
      * Clear the buffer of generated code.
@@ -912,7 +808,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param errStream a stream object to forward the commands error messages to
      * @return the commands return code
      */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
+    def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
         return cmd.executeCommand(errStream, null)
     }
 
@@ -998,7 +894,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @see findCommandEnv(String, Path)
      */
-    protected def findCommandEnv(String cmd, String messageIfNotFound, boolean failError) {
+    def findCommandEnv(String cmd, String messageIfNotFound, boolean failError) {
         return findCommandEnv(cmd, null, messageIfNotFound, failError)
     }
 
@@ -1095,7 +991,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
-    protected def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
+    def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
         var builder = null as ProcessBuilder
         if (env == ExecutionEnvironment.NATIVE) {
             builder = new ProcessBuilder(#[cmd] + args)
@@ -1503,7 +1399,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param stderr The output on standard error of executing a command.
      */
-    protected def reportCommandErrors(String stderr) {
+    def reportCommandErrors(String stderr) {
         // First, split the message into lines.
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
