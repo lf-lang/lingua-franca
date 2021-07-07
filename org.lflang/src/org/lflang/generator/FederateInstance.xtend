@@ -360,6 +360,7 @@ class FederateInstance {
     
     /** The generator using this. */
     var generator = null as GeneratorBase
+    def getGenerator() { return generator; }
     
     /** An error reporter */
     val ErrorReporter errorReporter
