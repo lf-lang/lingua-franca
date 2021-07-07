@@ -310,6 +310,11 @@ class LFValidatorImpl extends AbstractLFValidator {
                     Literals.ASSIGNMENT__RHS)
             }
         }
+
+        if(!assignment.braces.isNullOrEmpty() && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.ASSIGNMENT__BRACES)
+        }
+
         // FIXME: lhs is list => rhs is list
         // lhs is fixed with size n => rhs is fixed with size n
         // FIXME": similar checks for decl/init

@@ -267,7 +267,12 @@ VarRef:
     | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
-    (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
+    (lhs=[Parameter] (
+        (equals='=' rhs+=Value)
+        | ((equals='=')? (
+            parens+='(' (rhs+=Value (',' rhs+=Value)*)? parens+=')'
+            | braces+='{' (rhs+=Value (',' rhs+=Value)*)? braces+='}'))
+    ));
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
