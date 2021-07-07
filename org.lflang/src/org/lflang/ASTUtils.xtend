@@ -308,10 +308,13 @@ class ASTUtils {
         
         delayParameter.name = "delay"
         delayParameter.type = factory.createType
-        delayParameter.type.id = generator.targetTimeType
+        delayParameter.type.id = "time"
+        delayParameter.type.time = true
+        val defaultTime = factory.createTime
+        defaultTime.unit = TimeUnit.NONE
+        defaultTime.interval = 0
         val defaultValue = factory.createValue
-        defaultValue.literal = generator.timeInTargetLanguage(
-            new TimeValue(0, TimeUnit.NONE))
+        defaultValue.time = defaultTime
         delayParameter.init.add(defaultValue)
         
         // Name the newly created action; set its delay and type.

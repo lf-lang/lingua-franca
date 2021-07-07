@@ -130,7 +130,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * server to listen for incoming connections from those federates.
  * It attempts to create the server at the port given by STARTING_PORT,
  * and if this fails, increments the port number from there until a
- * port is available. It then sends to the RTI an MSG_TYPE_ADDRESS_AD message
+ * port is available. It then sends to the RTI an MSG_TYPE_ADDRESS_ADVERTISEMENT message
  * with the port number as a payload. The federate then creates a thread
  * to listen for incoming socket connections and messages.
  *
@@ -187,7 +187,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This is used by both the federates and the rti, so message lengths
  * should generally match.
  */
-#define FED_COM_BUFFER_SIZE 256
+#define FED_COM_BUFFER_SIZE 256u
 
 /**
  * Number of seconds that elapse between a federate's attempts
@@ -228,7 +228,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * try again. The number of increments is limited by PORT_RANGE_LIMIT.
  * FIXME: Clarify what happens if a specific port has been given in "at".
  */
-#define STARTING_PORT 15045
+#define STARTING_PORT 15045u
 
 /**
  * Number of ports to try to connect to. Unless the LF program specifies
@@ -308,6 +308,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * time as a message of this type.
  s*/
 #define MSG_TYPE_TIMESTAMP 2
+#define MSG_TYPE_TIMESTAMP_LENGTH (1 + sizeof(int64_t))
 
 /** Byte identifying a message to forward to another federate.
  *  The next two bytes will be the ID of the destination port.
@@ -324,11 +325,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MSG_TYPE_RESIGN 4
 
 /** Byte identifying a timestamped message to forward to another federate.
- *  The next two bytes will be the ID of the destination port.
+ *  The next two bytes will be the ID of the destination reactor port.
  *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
- *  The next eight bytes will be the timestamp.
- *  The next four bytes will be the microstep of the sender.
+ *  The next eight bytes will be the timestamp of the message.
+ *  The next four bytes will be the microstep of the message.
  *  The remaining bytes are the message.
  *
  *  With centralized coordination, all such messages flow through the RTI.
@@ -430,11 +431,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * other federate, then it should be possible to respect its requested stop tag.
  */
 #define MSG_TYPE_STOP_REQUEST 10
-#define STOP_REQUEST_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define MSG_TYPE_STOP_REQUEST_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST; \
-    encode_ll(time, &(buffer[1])); \
-    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int64(time, &(buffer[1])); \
+    assert(microstep >= 0); \
+    encode_int32((int32_t)microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -446,11 +448,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 4 bytes will be the microstep.
  */
 #define MSG_TYPE_STOP_REQUEST_REPLY 11
-#define STOP_REQUEST_REPLY_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define MSG_TYPE_STOP_REQUEST_REPLY_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST_REPLY; \
-    encode_ll(time, &(buffer[1])); \
-    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int64(time, &(buffer[1])); \
+    assert(microstep >= 0); \
+    encode_int32((int32_t)microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -461,11 +464,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 4 bytes will be the microstep at which the federates will stop..
  */
 #define MSG_TYPE_STOP_GRANTED 12
-#define STOP_GRANTED_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define MSG_TYPE_STOP_GRANTED_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_GRANTED; \
-    encode_ll(time, &(buffer[1])); \
-    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int64(time, &(buffer[1])); \
+    assert(microstep >= 0); \
+    encode_int32((int32_t)microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /////////// End of request_stop() messages ////////////////
@@ -474,21 +478,22 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Byte identifying a address query message, sent by a federate to RTI
  * to ask for another federate's address and port number.
  * The next two bytes are the other federate's ID.
- * The reply from the RTI will a port number (an int), which is -1
- * if the RTI does not know yet (it has not received MSG_TYPE_ADDRESS_AD from
+ * The reply from the RTI will a port number (an int32_t), which is -1
+ * if the RTI does not know yet (it has not received MSG_TYPE_ADDRESS_ADVERTISEMENT from
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
 #define MSG_TYPE_ADDRESS_QUERY 13
 
 /**
- * Byte identifying a message advertising the port for the physical connection server
- * of a federate.
- * The next four bytes (or sizeof(int)) will be the port number.
+ * Byte identifying a message advertising the port for the TCP connection server
+ * of a federate. This is utilized in decentralized coordination as well as for physical
+ * connections in centralized coordination.
+ * The next four bytes (or sizeof(int32_t)) will be the port number.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define MSG_TYPE_ADDRESS_AD 14
+#define MSG_TYPE_ADDRESS_ADVERTISEMENT 14
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
@@ -640,7 +645,7 @@ typedef enum fed_state_t {
  * any scheduling constraints.
  */
 typedef struct federate_t {
-    int id;                 // ID of this federate.
+    uint16_t id;            // ID of this federate.
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The TCP socket descriptor for communicating with this federate.
     struct sockaddr_in UDP_addr;           // The UDP address for the federate.
@@ -660,7 +665,7 @@ typedef struct federate_t {
     int num_downstream;     // Size of the array of downstream federates.
     execution_mode_t mode;  // FAST or REALTIME.
     char server_hostname[INET_ADDRSTRLEN]; // Human-readable IP address and
-    int server_port;        // port number of the socket server of the federate
+    int32_t server_port;    // port number of the socket server of the federate
                             // if it has any incoming direct connections from other federates.
                             // The port number will be -1 if there is no server or if the
                             // RTI has not been informed of the port number.

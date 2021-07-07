@@ -1,5 +1,5 @@
 /* Static information about targets. */
-/** 
+/**
  * Copyright (c) 2019, The University of California at Berkeley.
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -336,41 +336,41 @@ public enum Target {
             "_Static_assert", // (since C11)
             "_Thread_local" // (since C11)
             )
-    );
-    
+            );
+
     /**
      * String representation of this target.
      */
     private final String description;
-        
+
     /**
      * Whether or not this target requires types.
      */
     public final boolean requiresTypes;
-    
+
     /**
      * Reserved words in the target language.
      */
     public final List<String> keywords;
-    
+
     /**
      * Return an array of all known targets.
      */
     public final static Target[] ALL = Target.values();
-    
+
     /**
      * Private constructor for targets.
-     * 
+     *
      * @param name String representation of this target.
      * @param requires Types Whether this target requires type annotations or not.
      * @param keywords List of reserved strings in the target language.
      */
-    private Target(String description, boolean requiresTypes, List<String> keywords) {
+    Target(String description, boolean requiresTypes, List<String> keywords) {
         this.description = description;
         this.requiresTypes = requiresTypes;
         this.keywords = keywords;
     }
-    
+
     /**
      * Check whether a given string corresponds with the name of a valid target.
      * @param name The string for which to determine whether there is a match.
@@ -385,12 +385,12 @@ public enum Target {
 
     /**
      * Return the target that matches the given string.
-     * 
+     *
      * @param name The string to match against.
      * @return The matching target (or null if there is none).
      */
     public static Target forName(String name) {
-        return (Target)Target.match(name, Target.values());
+        return Target.match(name, Target.values());
     }
 
     /**
@@ -398,19 +398,34 @@ public enum Target {
      */
     @Override
     public String toString() {
-        return this.description;
+        return description;
     }
-    
+
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
-     * 
+     *
      * @param string     The string to match against candidates.
      * @param candidates The candidates to match the string against.
      */
-    public static Object match(final String string, final Object[] candidates) {
-        return Arrays.stream(candidates)
-                .filter(e -> (e.toString().equalsIgnoreCase(string)))
-                .findAny().orElse(null);
+    public static <T> T match(final String string, final Iterable<T> candidates) {
+        // kotlin: candidates.firstOrNull { it.toString().equalsIgnoreCase(string) }
+        for (T candidate : candidates) {
+            if (candidate.toString().equalsIgnoreCase(string)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Given a string and a list of candidate objects, return the first
+     * candidate that matches, or null if no candidate matches.
+     *
+     * @param string     The string to match against candidates.
+     * @param candidates The candidates to match the string against.
+     */
+    public static <T> T match(final String string, final T[] candidates) {
+        return match(string, Arrays.asList(candidates));
     }
 }

@@ -1,14 +1,16 @@
 buildscript {
+	ext.kotlinVersion = "1.4.10" // sync with pom.xml
 	repositories {
 		mavenCentral()
 	}
 	dependencies {
 		classpath 'org.xtext:xtext-gradle-plugin:2.0.8'
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 	}
 }
 
 plugins {
-    id "com.github.johnrengelman.shadow" version "6.0.0"
+	id 'com.github.johnrengelman.shadow' version '6.0.0'
 	id 'java'
 	id 'jacoco'
 }
@@ -19,19 +21,34 @@ subprojects {
 		mavenCentral()
 	}
 	
-	apply plugin: 'java'
+	apply plugin: 'kotlin'
+	compileKotlin {
+		destinationDir = compileJava.destinationDir
+		kotlinOptions {
+			jvmTarget = "1.8"
+		}
+	}
+
 	dependencies {
 		implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
 		// https://mvnrepository.com/artifact/com.google.inject/guice
 		implementation group: 'com.google.inject', name: 'guice', version: '5.0.1'
 		// https://mvnrepository.com/artifact/commons-cli/commons-cli
 		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
-	}
+    }
+    dependencies {
+        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
+        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
+    }
+
 
 	apply plugin: 'org.xtext.xtend'
 	apply from: "${rootDir}/gradle/source-layout.gradle"
 	apply plugin: 'eclipse'
-	
+
+	// generate xtend sources before kotlin compilation
+	compileKotlin.dependsOn("generateXtext")
+
 	group = 'org.lflang'
 	version = '0.1.0-SNAPSHOT'
 	
@@ -40,5 +57,12 @@ subprojects {
 
 	configurations.all {
 		exclude group: 'asm'
+	}
+
+	// Delete generated sources on `gradle clean`
+	clean.doFirst {
+		project.logger.info("Deleting ${projectDir}/xtend-gen, src-gen")
+		delete "${projectDir}/xtend-gen/"
+		delete "${projectDir}/src-gen/"
 	}
 }
