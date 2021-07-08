@@ -38,8 +38,8 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorBase.ExecutionEnvironment;
 
 /**
- * Responsible for creating and executing the necessary command to compile code that is generated
- * by the CGenerator.
+ * Responsible for creating and executing the necessary native command to compile code that is generated
+ * by the CGenerator. This class invokes a compiler directly.
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
  *
