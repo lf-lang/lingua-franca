@@ -425,59 +425,8 @@ class CGenerator extends GeneratorBase {
         } else {
             coreFiles.add("reactor_threaded.c")
         }
-        // Check the operating system
-        val OS = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
-        // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/core/platform.h
-        // for more detail.
-        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-            // Mac support
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_macos_support.c")            
-            coreFiles.add("platform" + File.separator + "lf_macos_support.h")
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(
-                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
-                );
-            }
-        } else if (OS.indexOf("win") >= 0) {
-            // Windows support
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_windows_support.c")
-            coreFiles.add("platform" + File.separator + "lf_windows_support.h")
-            // For 64-bit epoch time
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(
-                    "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
-                )
-            }
-        } else if (OS.indexOf("nux") >= 0) {
-            // Linux support
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_linux_support.c")
-            coreFiles.add("platform" + File.separator + "lf_linux_support.h")
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(
-                    "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
-                )
-            }
-        } else {
-            errorReporter.reportError("Platform " + OS + " is not supported")
-        }
+        
+        addPlatformFiles(coreFiles);
         
         
         // If there are federates, copy the required files for that.
@@ -511,7 +460,13 @@ class CGenerator extends GeneratorBase {
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (isFederated) {
-                topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
+                topLevelName = federate.name + File.separator + baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
+                
+                // Make sure the appropriate folder exists for the federate                
+                var pathToFile = fileConfig.getSrcGenPath.resolve(federate.name);             
+                // Make sure the directory with the same name as the federate exists in the srcGenPath.
+                FileConfig.createDirectories(pathToFile);
+                
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
@@ -540,8 +495,9 @@ class CGenerator extends GeneratorBase {
             // Derive target filename from the .lf filename.
             val cFilename = getTargetFileName(topLevelName);
 
-            // Delete source previously produced by the LF compiler.
+
             var file = fileConfig.getSrcGenPath.resolve(cFilename).toFile
+            // Delete source previously produced by the LF compiler.
             if (file.exists) {
                 file.delete
             }
@@ -812,8 +768,12 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            val cCompiler = new CCompiler(targetConfig, fileConfig, this);
             if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
+                var cCompiler = new CCompiler(targetConfig, fileConfig, this);
+                if (targetConfig.useCmake) {
+                    // Use CMake if requested.
+                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, this);
+                }
                 if (!cCompiler.runCCompiler(topLevelName, true, errorReporter)) {
                     compilationSucceeded = false
                 }
@@ -837,6 +797,63 @@ class CGenerator extends GeneratorBase {
         }
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    def addPlatformFiles(ArrayList<String> coreFiles) {
+        // Check the operating system
+        val OS = System.getProperty("os.name").toLowerCase();
+        // FIXME: allow for cross-compiling
+        // Based on the detected operating system, copy the required files
+        // to enable platform-specific functionality. See lib/core/platform.h
+        // for more detail.
+        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+            // Mac support
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_macos_support.c")            
+            coreFiles.add("platform" + File.separator + "lf_macos_support.h")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
+                );
+            }
+        } else if (OS.indexOf("win") >= 0) {
+            // Windows support
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_windows_support.c")
+            coreFiles.add("platform" + File.separator + "lf_windows_support.h")
+            // For 64-bit epoch time
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if the use of CMake is requested, the platform file to use is automatically selected.
+            if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
+                )
+            }
+        } else if (OS.indexOf("nux") >= 0) {
+            // Linux support
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_linux_support.c")
+            coreFiles.add("platform" + File.separator + "lf_linux_support.h")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
+                )
+            }
+        } else {
+            errorReporter.reportError("Platform " + OS + " is not supported")
+        }
     }
     
     /**
@@ -3010,8 +3027,10 @@ class CGenerator extends GeneratorBase {
         val returnCode = protoc.executeCommand()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
-            targetConfig.compileAdditionalSources.add(this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
-
+            targetConfig.compileAdditionalSources.add(
+                this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString
+            )
+            
             targetConfig.compileLibraries.add('-l')
             targetConfig.compileLibraries.add('protobuf-c')    
         } else {
