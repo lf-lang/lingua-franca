@@ -2973,7 +2973,8 @@ class CGenerator extends GeneratorBase {
             )
             
             targetConfig.compileLibraries.add('-l')
-            targetConfig.compileLibraries.add('protobuf-c')    
+            targetConfig.compileLibraries.add('protobuf-c')
+            targetConfig.compilerFlags.add('-lprotobuf-c');  
         } else {
             errorReporter.reportError("protoc-c returns error code " + returnCode)
         }
