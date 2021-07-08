@@ -51,6 +51,18 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
+import org.lflang.federated.FedCLauncher
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.FederateInstance
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.MultiportInstance
+import org.lflang.generator.ParameterInstance
+import org.lflang.generator.PortInstance
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactionInstanceGraph
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.TimerInstance
+import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
@@ -69,19 +81,8 @@ import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.ReactionInstanceGraph
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.FederateInstance
-import org.lflang.generator.PortInstance
-import org.lflang.generator.MultiportInstance
-import org.lflang.generator.TimerInstance
-import org.lflang.generator.ActionInstance
-import org.lflang.generator.TriggerInstance
-import org.lflang.generator.ReactionInstance
 import static extension org.lflang.ASTUtils.*
-import org.lflang.generator.ParameterInstance
-import org.lflang.federated.FedCLauncher
+import org.lflang.federated.FedFileConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -441,10 +442,6 @@ class CGenerator extends GeneratorBase {
             );
             createFederatedLauncher(coreFiles);
         }
-        
-        copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
-        
-        copyTargetHeaderFile()
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = topLevelName
@@ -452,20 +449,17 @@ class CGenerator extends GeneratorBase {
         var commonCode = code;
         var commonStartTimers = startTimers;
         var compilationSucceeded = true
+        val oldFileConfig = fileConfig;
         for (federate : federates) {
+            fileConfig = oldFileConfig;
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
-            
             
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (isFederated) {
-                topLevelName = federate.name + File.separator + baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
-                
-                // Make sure the appropriate folder exists for the federate                
-                var pathToFile = fileConfig.getSrcGenPath.resolve(federate.name);             
-                // Make sure the directory with the same name as the federate exists in the srcGenPath.
-                FileConfig.createDirectories(pathToFile);
+                topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
+                fileConfig = new FedFileConfig(fileConfig, federate.name);
                 
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
@@ -479,6 +473,13 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
             }
+            
+            
+            // Copy the core lib
+            copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            
+            // Copy the header files
+            copyTargetHeaderFile()
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
@@ -496,7 +497,7 @@ class CGenerator extends GeneratorBase {
             val cFilename = getTargetFileName(topLevelName);
 
 
-            var file = fileConfig.getSrcGenPath.resolve(cFilename).toFile
+            var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
             // Delete source previously produced by the LF compiler.
             if (file.exists) {
                 file.delete
@@ -745,13 +746,13 @@ class CGenerator extends GeneratorBase {
                     pr("void terminate_execution() {}");
                 }
             }
-            val targetFile = fileConfig.getSrcGenPath + File.separator + cFilename
+            val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             
             // Generate the cmake script
             val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
-            val cmakeFile = fileConfig.getSrcGenPath + File.separator + "CMakeLists.txt"
+            val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
             writeSourceCodeToFile(
                 cmakeGenerator.generateCMakeCode(
                     #[cFilename], 
