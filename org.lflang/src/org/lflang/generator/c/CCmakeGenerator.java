@@ -26,6 +26,8 @@
 package org.lflang.generator.c;
 
 import java.io.File;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -55,9 +57,9 @@ class CCmakeGenerator {
      * reported in the 'errorReporter'.
      * 
      * @param sources A list of .c files to build.
-     * @param executableName The name of the output executable
+     * @param executableName The name of the output executable.
      * @param errorReporter Used to report errors.
-     * @return The content of the CMakeLists.txt
+     * @return The content of the CMakeLists.txt.
      */
     StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
         StringBuilder cMakeCode = new StringBuilder();
@@ -72,6 +74,14 @@ class CCmakeGenerator {
             }
         }
         
+        List<String> additionalSources = new ArrayList<String>();
+        for (String file: targetConfig.compileAdditionalSources) {
+            var relativePath = fileConfig.getOutPath().relativize(
+                fileConfig.getSrcGenPath().resolve(Paths.get(file)));
+            additionalSources.add(FileConfig.toUnixString(relativePath));
+        }
+        // additionalSources.addAll(targetConfig.compileLibraries);
+        
         cMakeCode.append("cmake_minimum_required(VERSION 3.5)\n");
         cMakeCode.append("project("+executableName+"1.0.0 LANGUAGES C)\n");
         cMakeCode.append("\n");
@@ -79,7 +89,6 @@ class CCmakeGenerator {
         cMakeCode.append("# Require C11\n");
         cMakeCode.append("set(CMAKE_C_STANDARD 11)\n");
         cMakeCode.append("set(CMAKE_C_STANDARD_REQUIRED ON)\n");
-        cMakeCode.append("set(CMAKE_C_EXTENSIONS OFF)\n");
         cMakeCode.append("\n");
         
         cMakeCode.append("set(CoreLib "+fileConfig.getSrcGenPath()+File.separator+"core)\n");
@@ -105,7 +114,8 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         cMakeCode.append("# Declare a new executable target and list all its sources\n");
-        cMakeCode.append("add_executable( "+executableName+" "+String.join("\n", sources)+" ${LF_PLATFORM_FILE})\n");
+        cMakeCode.append("add_executable( "+executableName+" "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
+                           String.join("\n", additionalSources)+")\n");
         cMakeCode.append("\n");
 
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {
@@ -126,9 +136,17 @@ class CCmakeGenerator {
         cMakeCode.append("install(TARGETS "+executableName+"\n");
         cMakeCode.append("        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})\n");
         
+        // Add the include file
         if (!includeFile.isBlank()) {
             cMakeCode.append("include("+includeFile+")\n");
         }
+        
+        // Set the compiler flags
+        if (!targetConfig.compilerFlags.isEmpty()) {
+            cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+String.join(
+                    " ", 
+                    targetConfig.compilerFlags)+"\")\n");
+        }        
         
         return cMakeCode;
     }
