@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -192,6 +193,28 @@ public class FileConfig {
         this.iResource = getIResource(resource);
     }
     
+    protected FileConfig(FileConfig fileConfig) throws IOException {
+        this.resource = fileConfig.resource;
+        this.fsa = fileConfig.fsa;
+        this.context = fileConfig.context;
+        
+        this.srcFile = fileConfig.srcFile;
+        
+        this.srcPath = srcFile.toPath().getParent();
+        this.srcPkgPath = fileConfig.srcPkgPath;
+        
+        this.srcGenRoot = fileConfig.srcGenRoot;
+        this.srcGenBasePath = toPath(this.srcGenRoot);
+        this.outputRoot = getOutputRoot(this.srcGenRoot);
+        this.name = nameWithoutExtension(this.srcFile);
+        this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
+                this.srcPath, name);
+        this.srcGenPkgPath = this.srcGenPath;
+        this.outPath = toPath(this.outputRoot);
+        this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
+        this.iResource = getIResource(resource);
+    }
+    
     // Getters to be overridden in derived classes.
     
     /**
@@ -337,7 +360,7 @@ public class FileConfig {
         return srcGenURI;
     }
     
-    private static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
+    protected static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
             Path srcPath, String name) throws IOException {
         return srcGenRootPath.resolve(getSubPkgPath(pkgPath, srcPath)).resolve(name);
     }
@@ -352,7 +375,7 @@ public class FileConfig {
      * @param srcPath The path to the source.
      * @return
      */
-    private static Path getSubPkgPath(Path pkgPath, Path srcPath) {
+    protected static Path getSubPkgPath(Path pkgPath, Path srcPath) {
         Path relSrcPath = pkgPath.relativize(srcPath);
         if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
             int segments = relSrcPath.getNameCount(); 
@@ -372,6 +395,45 @@ public class FileConfig {
         File file = path.toFile();
         if (!file.exists()) {
             file.mkdirs();
+        }
+    }
+    
+    /**
+     * Copy a given directory from 'src' to 'dest'.
+     * 
+     * @param src The source directory path.
+     * @param dest The destination directory path.
+     * @throws IOException if copy fails.
+     */
+    public static void copyDirectory(Path src, Path dest) throws IOException {
+        try (Stream<Path> stream = Files.walk(src)) {
+            stream.forEach(source -> copyFile(source, dest.resolve(src.relativize(source))));
+        }
+    }
+
+    /**
+     * Copy a given file from 'src' to 'dest'.
+     * 
+     * @param source The source file path string.
+     * @param dest The destination file path string.
+     * @throws RuntimeException if copy fails.
+     */
+    public static void copyFile(String src, String dest) {
+        copyFile(Paths.get(src), Paths.get(dest));
+    }
+
+    /**
+     * Copy a given file from 'src' to 'dest'.
+     * 
+     * @param source The source file path.
+     * @param dest The destination file path.
+     * @throws RuntimeException if copy fails.
+     */
+    public static void copyFile(Path src, Path dest) {
+        try {
+            Files.copy(src, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
