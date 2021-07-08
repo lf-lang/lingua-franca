@@ -25,7 +25,6 @@
 
 package org.lflang.generator.c;
 
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +90,7 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_C_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
-        cMakeCode.append("set(CoreLib "+fileConfig.getSrcGenPath()+File.separator+"core)\n");
+        cMakeCode.append("set(CoreLib core)\n");
         cMakeCode.append("\n");
         
         cMakeCode.append("# Check which system we are running on to select the correct platform support\n");
