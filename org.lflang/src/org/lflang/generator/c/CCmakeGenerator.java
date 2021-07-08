@@ -75,7 +75,7 @@ class CCmakeGenerator {
         
         List<String> additionalSources = new ArrayList<String>();
         for (String file: targetConfig.compileAdditionalSources) {
-            var relativePath = fileConfig.getOutPath().relativize(
+            var relativePath = fileConfig.getSrcGenPath().relativize(
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileConfig.toUnixString(relativePath));
         }
@@ -130,6 +130,25 @@ class CCmakeGenerator {
             cMakeCode.append("target_compile_definitions("+executableName+" PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")\n");
             cMakeCode.append("\n");
         }
+
+        
+        // Set the compiler flags
+        // We can detect a few common libraries and use the proper target_link_libraries to find them            
+        for (String compilerFlag : targetConfig.compilerFlags) {
+            switch(compilerFlag) {
+                case "-lm":
+                    cMakeCode.append("target_link_libraries("+executableName+" m)\n");
+                    break;
+                case "-lprotobuf-c":
+                    cMakeCode.append("include(FindProtobuf)\n");
+                    cMakeCode.append("find_package(Protobuf REQUIRED)\n");
+                    cMakeCode.append("INCLUDE_DIRECTORIES(${PROTOBUF_INCLUDE_DIR})\n");
+                    cMakeCode.append("target_link_libraries("+executableName+" protobuf-c ${PROTOBUF_LIBRARY})\n");
+                    break;
+                default:
+                    cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");  
+            }
+        }  
         
         // Add the install option
         cMakeCode.append("install(TARGETS "+executableName+"\n");
@@ -138,14 +157,7 @@ class CCmakeGenerator {
         // Add the include file
         if (!includeFile.isBlank()) {
             cMakeCode.append("include("+includeFile+")\n");
-        }
-        
-        // Set the compiler flags
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+String.join(
-                    " ", 
-                    targetConfig.compilerFlags)+"\")\n");
-        }        
+        }  
         
         return cMakeCode;
     }
