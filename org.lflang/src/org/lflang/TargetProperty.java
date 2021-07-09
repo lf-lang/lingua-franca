@@ -96,7 +96,7 @@ public enum TargetProperty {
      * can be adjusted in the included file.
      */
     CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.CPP, Target.C), (config, value) -> {
                 config.cmakeInclude = ASTUtils.toText(value);
             }),
     
