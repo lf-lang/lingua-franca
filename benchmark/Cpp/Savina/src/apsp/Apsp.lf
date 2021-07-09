@@ -82,130 +82,57 @@ public preamble {=
     };
 =}
 
-reactor ApspFloydWarshallBlock(bank_index:size_t{0}, graphSize:size_t{300}, blockSize:size_t{50}) {
-    
-    // initialized state
-    state neighborDataPerIteration:{=std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>=};
-    state numBlocksInSingleDim:int(-1);
-    state numNeighbors:int(-1);
-    state rowOffset:int(-1); // row offset of the block of this reactor
-    state colOffset:int(-1); // column offset of the block of this reactor
-    state currentIterData:{=reactor::ImmutableValuePtr<MatrixOfLong>=};
-    state k:int(-1); // iteration counter
-    state reportedFinish:{=bool=}(false);
-    
-    state inNeighborsRow:{=std::vector<reactor::Input<ApspResultMessage> *>=};
-    state inNeighborsCol:{=std::vector<reactor::Input<ApspResultMessage> *>=};
-    
-    output outNeighborsBroadcast:{=ApspResultMessage=};
-    
-    /* [[[cog
-      for i in range(numBlocksInSingleDim):
-        cog.outl(f'input inNeighborRow{i}:{{=ApspResultMessage=}};')
-      for i in range(numBlocksInSingleDim):
-        cog.outl(f'input inNeighborCol{i}:{{=ApspResultMessage=}};')
-    ]]] */
-    input inNeighborRow0:{=ApspResultMessage=};
-    input inNeighborRow1:{=ApspResultMessage=};
-    input inNeighborRow2:{=ApspResultMessage=};
-    input inNeighborRow3:{=ApspResultMessage=};
-    input inNeighborRow4:{=ApspResultMessage=};
-    input inNeighborRow5:{=ApspResultMessage=};
-    input inNeighborCol0:{=ApspResultMessage=};
-    input inNeighborCol1:{=ApspResultMessage=};
-    input inNeighborCol2:{=ApspResultMessage=};
-    input inNeighborCol3:{=ApspResultMessage=};
-    input inNeighborCol4:{=ApspResultMessage=};
-    input inNeighborCol5:{=ApspResultMessage=};
-    // [[[end]]]
-    
-    input inInitializeMatrix:{=MatrixOfLong=};
-    output outFinished:void;
+reactor ApspFloydWarshallBlock(
+    bank_index: size_t{0},
+    row_index: size_t{0},
+    graphSize:size_t{300},
+    blockSize:size_t{50},
+    dimension:size_t{6})
+{
+    state neighborDataPerIteration: {=std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>=};
+    state numNeighbors: {=const size_t=}{{=2 * (dimension - 1)=}};
+    state rowOffset: {=const size_t=}{{=row_index * blockSize=}}; // row offset of the block of this reactor
+    state colOffset: {=const size_t=}{{=bank_index * blockSize=}}; // column offset of the block of this reactor
+    state currentIterData: {=reactor::ImmutableValuePtr<MatrixOfLong>=}{{=nullptr=}};
+    state k: int{-1}; // iteration counter
+    state reportedFinish: bool {false};
+
+	input matrix: MatrixOfLong;
+
+    input[dimension] fromRow: ApspResultMessage;
+    input[dimension] fromCol: ApspResultMessage;
+
+    output toNeighbors: ApspResultMessage;    
+    output finished: void;
     
     logical action notifyNeighbors;
     
-    reaction(startup) {=
-        
-        // one time initializations
-        numBlocksInSingleDim = graphSize / blockSize;
-        numNeighbors = 2 * (numBlocksInSingleDim - 1);
-        rowOffset = (myBlockId / numBlocksInSingleDim) * blockSize;
-        colOffset = (myBlockId % numBlocksInSingleDim) * blockSize;
-        
-        // init collection of ports
-        /* [[[cog
-          cog.outl(f'inNeighborsRow = std::vector<reactor::Input<ApspResultMessage> *>({numBlocksInSingleDim});')
-          cog.outl(f'inNeighborsCol = std::vector<reactor::Input<ApspResultMessage> *>({numBlocksInSingleDim});')
-          for i in range(numBlocksInSingleDim):
-            cog.outl(f'inNeighborsRow[{i}] = &inNeighborRow{i};')
-            cog.outl(f'inNeighborsCol[{i}] = &inNeighborCol{i};')
-        ]]] */
-        inNeighborsRow = std::vector<reactor::Input<ApspResultMessage> *>(6);
-        inNeighborsCol = std::vector<reactor::Input<ApspResultMessage> *>(6);
-        inNeighborsRow[0] = &inNeighborRow0;
-        inNeighborsCol[0] = &inNeighborCol0;
-        inNeighborsRow[1] = &inNeighborRow1;
-        inNeighborsCol[1] = &inNeighborCol1;
-        inNeighborsRow[2] = &inNeighborRow2;
-        inNeighborsCol[2] = &inNeighborCol2;
-        inNeighborsRow[3] = &inNeighborRow3;
-        inNeighborsCol[3] = &inNeighborCol3;
-        inNeighborsRow[4] = &inNeighborRow4;
-        inNeighborsCol[4] = &inNeighborCol4;
-        inNeighborsRow[5] = &inNeighborRow5;
-        inNeighborsCol[5] = &inNeighborCol5;
-        // [[[end]]]
-    =}
-    
-    reaction(inInitializeMatrix) -> notifyNeighbors {=
-        
-        currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(getBlock(inInitializeMatrix.get(), myBlockId, graphSize, blockSize));
+    reaction(matrix) -> notifyNeighbors {=
+        currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(
+            getBlock(matrix.get(), row_index * dimension + bank_index, graphSize, blockSize)
+        );
         
         // reset local state
         neighborDataPerIteration.clear();
         k = -1;
-        reportedFinish =false;
+        reportedFinish = false;
         
         // start execution
         notifyNeighbors.schedule();
     =}
     
-    reaction(notifyNeighbors) -> outNeighborsBroadcast {=
-        
+    reaction(notifyNeighbors) -> toNeighbors {=
         //notify all neighbors
         reactor::ImmutableValuePtr<ApspResultMessage> resultMessage =
-          reactor::make_immutable_value<ApspResultMessage>(k, myBlockId, currentIterData);
-        outNeighborsBroadcast.set(resultMessage);
+          reactor::make_immutable_value<ApspResultMessage>(k, row_index * dimension + bank_index, currentIterData);
+        toNeighbors.set(resultMessage);
     =}
     
-    reaction(
-        /* [[[cog
-          for i in range(numBlocksInSingleDim):
-            cog.outl(f'inNeighborRow{i},')
-            cog.out(f'inNeighborCol{i}')
-            if(i < numBlocksInSingleDim-1):
-              cog.outl(',')
-            else:
-              cog.outl('')
-        ]]] */
-        inNeighborRow0,
-        inNeighborCol0,
-        inNeighborRow1,
-        inNeighborCol1,
-        inNeighborRow2,
-        inNeighborCol2,
-        inNeighborRow3,
-        inNeighborCol3,
-        inNeighborRow4,
-        inNeighborCol4,
-        inNeighborRow5,
-        inNeighborCol5
-        // [[[end]]]
-      ) -> notifyNeighbors, outFinished {=
+    reaction(fromRow, fromCol) -> notifyNeighbors, finished {=
         
         // do nothing if complete
         if(k == graphSize - 1) {
-            if(doPrint && !printed && myBlockId == 0) {
+            if(doPrint && !printed && bank_index == 0 && row_index == 0) {
                 // debugging and result checking
                 // print(*currentIterData);
                 printed = 1;
@@ -215,14 +142,14 @@ reactor ApspFloydWarshallBlock(bank_index:size_t{0}, graphSize:size_t{300}, bloc
         
         // collect all input messages
         bool haveAllData = false;
-        for(int i = 0; i < inNeighborsRow.size(); ++i) {
-            if(inNeighborsRow[i]->is_present()) {
-                haveAllData |= storeIterationData(inNeighborsRow[i]->get(), neighborDataPerIteration, numNeighbors);
+        for (auto& port : fromRow) {
+            if(port.is_present()) {
+                haveAllData |= storeIterationData(port.get(), neighborDataPerIteration, dimension);
             }
         }
-        for(int i = 0; i < inNeighborsCol.size(); ++i) {
-            if(inNeighborsCol[i]->is_present()) {
-                haveAllData |= storeIterationData(inNeighborsCol[i]->get(), neighborDataPerIteration, numNeighbors);
+        for (auto& port : fromCol) {
+            if(port.is_present()) {
+                haveAllData |= storeIterationData(port.get(), neighborDataPerIteration, dimension);
             }
         }
         
@@ -241,19 +168,20 @@ reactor ApspFloydWarshallBlock(bank_index:size_t{0}, graphSize:size_t{300}, bloc
                 
                 long newIterData =
                     elementAt(gi, k, k - 1, currentIterData,
-                        blockSize, numBlocksInSingleDim, myBlockId, neighborDataPerIteration) +
+                        blockSize, dimension, row_index * dimension + bank_index, neighborDataPerIteration) +
                     elementAt(k, gj, k - 1, currentIterData,
-                        blockSize, numBlocksInSingleDim, myBlockId, neighborDataPerIteration);
+                        blockSize, dimension, row_index * dimension + bank_index, neighborDataPerIteration);
                 (*nextIterData)[i][j] = std::min((*currentIterData)[i][j], newIterData);
             }
         }
         
-        currentIterData = reactor::ImmutableValuePtr(std::move(nextIterData));
+        // FIXME This should work without the explicit conversion t
+        currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(std::move(nextIterData));
         neighborDataPerIteration.clear();
         notifyNeighbors.schedule();
         
         if(k == graphSize - 1) {
-            outFinished.set();
+            finished.set();
         }
     =}
     
@@ -292,10 +220,10 @@ reactor ApspFloydWarshallBlock(bank_index:size_t{0}, graphSize:size_t{300}, bloc
         }
         
         long elementAt(int row, int col, int srcIter, const reactor::ImmutableValuePtr<MatrixOfLong>& prevIterData,
-            int blockSize, int numBlocksInSingleDim, int myBlockId,
+            int blockSize, int dimension, int myBlockId,
             std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration) {
             
-            int destBlockId = ((row / blockSize) * numBlocksInSingleDim) + (col / blockSize);
+            int destBlockId = ((row / blockSize) * dimension) + (col / blockSize);
             int localRow = row % blockSize;
             int localCol = col % blockSize;
             
@@ -322,50 +250,75 @@ reactor ApspFloydWarshallBlock(bank_index:size_t{0}, graphSize:size_t{300}, bloc
 reactor ApspRow(
     blockSize: size_t{50},
     numNodes: size_t{300},
-    dimension: size_t{{=numNodes / blockSize=}}) {
+    dimension: size_t{6}) {
         
-    blocks = new[dimension] ApspFloydWarshallBlock(blockSize=blockSize, graphSize=numNodes);
-}
+    input matrix: MatrixOfLong;
+    output[dimension] finished: void;
 
+    input[dimension] fromCol: ApspResultMessage;
+    output toCol: ApspResultMessage;
+        
+    blocks = new[dimension] ApspFloydWarshallBlock(blockSize=blockSize, graphSize=numNodes, dimension=dimension);
+    
+    // connect all blocks within the row
+    (blocks.toNeighbors)+ -> blocks.fromRow;
+    
+    // block output to all column neighbours
+    blocks.toNeighbors -> toCol;
+    // block input from all column neighbours
+    (fromCol)+ -> blocks.fromCol;
+    
+    // broadcast the incoming matrix to all blocks
+    (matrix)+ -> blocks.matrix;
+    // collect and forward finished signals from all blocks
+    blocks.finished -> finished;
+}
 
 reactor ApspMatrix(
     blockSize: size_t{50},
     numNodes: size_t{300},
-    dimension: size_t(6)) {
-
+    dimension: size_t{6})
+{
 	input matrix: MatrixOfLong;
-	output finished: void;
+	// FIXME!
+	output[36] finished: void;
 	
 	rows = new[dimension] ApspRow(blockSize=blockSize, numNodes=numNodes, dimension=dimension);
+	
+	// broadcast the incoming matrix to all rows
+    (matrix)+ -> rows.matrix;
+    // collect and forward finished signals from all blocks
+    //rows.finished -> finished;
+    
+    (rows.toCol)+ -> rows.fromCol;
 }
-
 
 main reactor (
     numIterations: size_t{12},
     maxEdgeWeight: size_t{100},
     blockSize: size_t{50},
-    numNodes: size_t{300},
-    dimension: size_t{6}) {
-    // FIXME dimension: size_t{{=numNodes / blockSize=}}) {
+    numNodes: size_t{300}) {
 	
 	state graphData: {=reactor::ImmutableValuePtr<MatrixOfLong>=};
     state numBlocksFinished: int{0};
 	
 	runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
-	matrix = new ApspMatrix(blockSize=blockSize, numNodes=numNodes, dimension=dimension);
+	//matrix = new ApspMatrix(blockSize=blockSize, numNodes=numNodes, dimension=6);
+	// FIXME!
+	matrix = new ApspMatrix(blockSize=blockSize, numNodes=numNodes, dimension={=numNodes / blockSize=});
     
     reaction(runner.outInitializeStart) -> runner.inInitializeFinish {=
         // initialization of graph is not measured
-        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(graphSize, maxEdgeWeight));
-        inInitializeFinish.set();
+        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(numNodes, maxEdgeWeight));
+        runner.inInitializeFinish.set();
     =}
     
     reaction(runner.outCleanupIterationStart) -> runner.inCleanupIterationFinish {=
         //TODO check if result is correct
         
         // initialization of the graph for the next iteration
-        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(graphSize, maxEdgeWeight));
-        runner.inCleanupIterationFinished.set();
+        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(numNodes, maxEdgeWeight));
+        runner.inCleanupIterationFinish.set();
     =}
 
     reaction(runner.outIterationStart) -> matrix.matrix {=
@@ -376,6 +329,7 @@ main reactor (
         matrix.matrix.set(graphData);
 	=}
 
+	// FIXME
 	matrix.finished -> runner.inIterationFinish;
     
     private preamble {=  
