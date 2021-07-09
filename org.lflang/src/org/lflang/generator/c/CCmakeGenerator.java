@@ -90,6 +90,11 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_C_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
+        cMakeCode.append("# Require C++17\n");
+        cMakeCode.append("set(CMAKE_CXX_STANDARD 17)\n");
+        cMakeCode.append("set(CMAKE_CXX_STANDARD_REQUIRED ON)\n");
+        cMakeCode.append("\n");
+        
         cMakeCode.append("set(CoreLib core)\n");
         cMakeCode.append("\n");
         
@@ -112,8 +117,9 @@ class CCmakeGenerator {
         cMakeCode.append("include_directories(${CoreLib}/federated)\n");
         cMakeCode.append("\n");
         
+        cMakeCode.append("set(LF_MAIN_TARGET "+executableName+")\n");
         cMakeCode.append("# Declare a new executable target and list all its sources\n");
-        cMakeCode.append("add_executable( "+executableName+" "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
+        cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
                            String.join("\n", additionalSources)+")\n");
         cMakeCode.append("\n");
 
@@ -121,38 +127,66 @@ class CCmakeGenerator {
             // If threaded computation is requested, add a the threads option.
             cMakeCode.append("# Find threads and link to it\n");
             cMakeCode.append("find_package(Threads REQUIRED)\n");
-            cMakeCode.append("target_link_libraries("+executableName+" Threads::Threads)");
+            cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
             cMakeCode.append("\n");
             
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
             cMakeCode.append("# Set the number of workers to enable threading\n");
-            cMakeCode.append("target_compile_definitions("+executableName+" PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")\n");
+            cMakeCode.append("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.threads+")\n");
             cMakeCode.append("\n");
         }
-
+        
+        boolean CPPRequested = false;
+        if (targetConfig.compiler != null) {
+            if (targetConfig.compiler.equals("g++")) {
+                CPPRequested = true;
+                // Interpret this as the user wanting their .c programs to be treated as
+                // C++ files. 
+                // First enable the CXX language
+                cMakeCode.append("enable_language(CXX)\n");
+                cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+                // We can't just simply use g++ to compile C code. We use a 
+                // specific CMake flag to set the language of all .c files to C++.
+                for (String source: sources) {
+                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
+                }
+                // Also convert any additional sources
+                for (String source: additionalSources) {
+                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
+                }
+                cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+            } else {
+                cMakeCode.append("set(CMAKE_C_COMPILER "+targetConfig.compiler+")\n");
+            }
+            
+            // cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
+        }
         
         // Set the compiler flags
         // We can detect a few common libraries and use the proper target_link_libraries to find them            
         for (String compilerFlag : targetConfig.compilerFlags) {
             switch(compilerFlag) {
                 case "-lm":
-                    cMakeCode.append("target_link_libraries("+executableName+" m)\n");
+                    cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} m)\n");
                     break;
                 case "-lprotobuf-c":
-                    cMakeCode.append("include(FindProtobuf)\n");
-                    cMakeCode.append("find_package(Protobuf REQUIRED)\n");
-                    cMakeCode.append("INCLUDE_DIRECTORIES(${PROTOBUF_INCLUDE_DIR})\n");
-                    cMakeCode.append("target_link_libraries("+executableName+" protobuf-c ${PROTOBUF_LIBRARY})\n");
+                    cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} protobuf-c)\n");
                     break;
                 default:
-                    cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");  
+                    cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");
+                    if (CPPRequested) {
+                        // Pass the requested flags to the compiler
+                        cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} "+compilerFlag+"\")\n");
+                    }
             }
-        }  
+        }
+        cMakeCode.append("\n");
         
         // Add the install option
-        cMakeCode.append("install(TARGETS "+executableName+"\n");
+        cMakeCode.append("install(TARGETS ${LF_MAIN_TARGET}\n");
         cMakeCode.append("        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})\n");
+        cMakeCode.append("\n");
         
         // Add the include file
         if (!includeFile.isBlank()) {

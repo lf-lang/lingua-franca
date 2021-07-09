@@ -86,6 +86,21 @@ class CCmakeCompiler extends CCompiler {
         FileConfig.createDirectories(buildPath);
         compile.directory(buildPath.toFile());
 
+        // Use the user-specified compiler if any
+        if (targetConfig.compiler != null) {
+            var cmakeEnv = compile.environment();
+            // cmakeEnv.remove("CXX");
+            if (targetConfig.compiler.equals("g++")) {
+                // Interpret this as the user wanting their .c programs to be treated as
+                // C++ files. We can't just simply use g++ to compile C code. We use a 
+                // specific CMake flag to set the language of all .c files to C++.
+            } else {
+                cmakeEnv.remove("CC");
+                cmakeEnv.put("CC", targetConfig.compiler);
+            }
+            // cmakeEnv.put("CXX", targetConfig.compiler);
+        }
+        
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         int cMakeReturnCode = generator.executeCommand(compile, stderr);
         
@@ -192,7 +207,7 @@ class CCmakeCompiler extends CCompiler {
         return generator.createCommand(
                 "cmake", List.of(
                         "--build", ".", "--target", "install", "--parallel", cores, "--config",
-                        ((targetConfig.cmakeBuildType!=null) ? toString() : "Release")
+                        ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release")
                     ),
                 fileConfig.getOutPath(), 
                 env);
