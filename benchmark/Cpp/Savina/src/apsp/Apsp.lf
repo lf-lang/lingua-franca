@@ -94,7 +94,7 @@ reactor ApspFloydWarshallBlock(
     state rowOffset: {=const size_t=}{{=row_index * blockSize=}}; // row offset of the block of this reactor
     state colOffset: {=const size_t=}{{=bank_index * blockSize=}}; // column offset of the block of this reactor
     state currentIterData: {=reactor::ImmutableValuePtr<MatrixOfLong>=}{{=nullptr=}};
-    state k: int{-1}; // iteration counter
+    state k: size_t{0}; // iteration counter
     state reportedFinish: bool {false};
 
 	input matrix: MatrixOfLong;
@@ -114,7 +114,7 @@ reactor ApspFloydWarshallBlock(
         
         // reset local state
         neighborDataPerIteration.clear();
-        k = -1;
+        k = 0;
         reportedFinish = false;
         
         // start execution
@@ -131,7 +131,7 @@ reactor ApspFloydWarshallBlock(
     reaction(fromRow, fromCol) -> notifyNeighbors, finished {=
         
         // do nothing if complete
-        if(k == graphSize - 1) {
+        if(k == graphSize) {
             if(doPrint && !printed && bank_index == 0 && row_index == 0) {
                 // debugging and result checking
                 // print(*currentIterData);
@@ -142,12 +142,12 @@ reactor ApspFloydWarshallBlock(
         
         // collect all input messages
         bool haveAllData = false;
-        for (auto& port : fromRow) {
+        for(auto& port : fromRow) {
             if(port.is_present()) {
                 haveAllData |= storeIterationData(port.get(), neighborDataPerIteration, dimension);
             }
         }
-        for (auto& port : fromCol) {
+        for(auto& port : fromCol) {
             if(port.is_present()) {
                 haveAllData |= storeIterationData(port.get(), neighborDataPerIteration, dimension);
             }
@@ -155,21 +155,19 @@ reactor ApspFloydWarshallBlock(
         
         if(!haveAllData) return;
         
-        k += 1;
-        
         // perform computation
         reactor::MutableValuePtr<MatrixOfLong> nextIterData =
           reactor::make_mutable_value<MatrixOfLong>(blockSize, std::vector<long>(blockSize, 0));
         
-        for(int i = 0; i < blockSize; i++) {
-            for(int j = 0; j < blockSize; j++) {
+        for(size_t i = 0; i < blockSize; i++) {
+            for(size_t j = 0; j < blockSize; j++) {
                 int gi = rowOffset + i;
                 int gj = colOffset + j;
                 
                 long newIterData =
-                    elementAt(gi, k, k - 1, currentIterData,
+                    elementAt(gi, k, currentIterData,
                         blockSize, dimension, row_index * dimension + bank_index, neighborDataPerIteration) +
-                    elementAt(k, gj, k - 1, currentIterData,
+                    elementAt(k, gj, currentIterData,
                         blockSize, dimension, row_index * dimension + bank_index, neighborDataPerIteration);
                 (*nextIterData)[i][j] = std::min((*currentIterData)[i][j], newIterData);
             }
@@ -180,11 +178,14 @@ reactor ApspFloydWarshallBlock(
         neighborDataPerIteration.clear();
         notifyNeighbors.schedule();
         
-        if(k == graphSize - 1) {
+        k++;
+        
+        if(k == graphSize) {
             finished.set();
         }
     =}
     
+    // FIXME: This should be methods!
     private preamble {=
         
         // invisible local state for debugging
@@ -213,13 +214,13 @@ reactor ApspFloydWarshallBlock(
         
         bool storeIterationData(const reactor::ImmutableValuePtr<ApspResultMessage>& inData,
           std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration,
-          int numNeighbors) {
+          size_t numNeighbors) {
           neighborDataPerIteration.insert(
                 std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->myBlockId, inData->initData));
             return neighborDataPerIteration.size() == numNeighbors;
         }
         
-        long elementAt(int row, int col, int srcIter, const reactor::ImmutableValuePtr<MatrixOfLong>& prevIterData,
+        long elementAt(int row, int col, const reactor::ImmutableValuePtr<MatrixOfLong>& prevIterData,
             int blockSize, int dimension, int myBlockId,
             std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration) {
             
@@ -321,6 +322,7 @@ main reactor (
         runner.inCleanupIterationFinish.set();
     =}
 
+	// FIXME This should not produce an unused variable warning
     reaction(runner.outIterationStart) -> matrix.matrix {=
         // reset local state
         numBlocksFinished = 0;
