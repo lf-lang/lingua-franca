@@ -82,7 +82,7 @@ public preamble {=
     };
 =}
 
-reactor ApspFloydWarshallBlockReactor(myBlockId:int(-1), graphSize:int(300), blockSize:int(50)) {
+reactor ApspFloydWarshallBlock(bank_index:size_t{0}, graphSize:size_t{300}, blockSize:size_t{50}) {
     
     // initialized state
     state neighborDataPerIteration:{=std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>=};
@@ -319,14 +319,24 @@ reactor ApspFloydWarshallBlockReactor(myBlockId:int(-1), graphSize:int(300), blo
 }
 
 
-reactor ApspMatrix(
-    maxEdgeWeight: size_t{100},
+reactor ApspRow(
     blockSize: size_t{50},
     numNodes: size_t{300},
-    dimensions: size_t{{=numNodes / blockSize=}}) {
+    dimension: size_t{{=numNodes / blockSize=}}) {
+        
+    blocks = new[dimension] ApspFloydWarshallBlock(blockSize=blockSize, graphSize=numNodes);
+}
+
+
+reactor ApspMatrix(
+    blockSize: size_t{50},
+    numNodes: size_t{300},
+    dimension: size_t(6)) {
 
 	input matrix: MatrixOfLong;
 	output finished: void;
+	
+	rows = new[dimension] ApspRow(blockSize=blockSize, numNodes=numNodes, dimension=dimension);
 }
 
 
@@ -335,18 +345,14 @@ main reactor (
     maxEdgeWeight: size_t{100},
     blockSize: size_t{50},
     numNodes: size_t{300},
-    dimensions: size_t{{=numNodes / blockSize=}}) {
+    dimension: size_t{6}) {
+    // FIXME dimension: size_t{{=numNodes / blockSize=}}) {
 	
 	state graphData: {=reactor::ImmutableValuePtr<MatrixOfLong>=};
     state numBlocksFinished: int{0};
 	
 	runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
-	matrix = new ApspMatrix(
-        maxEdgeWeight=maxEdgeWeight, 
-        blockSize=blockSize,
-        numNodes=numNodes,
-        dimensions=dimensions
-    )
+	matrix = new ApspMatrix(blockSize=blockSize, numNodes=numNodes, dimension=dimension);
     
     reaction(runner.outInitializeStart) -> runner.inInitializeFinish {=
         // initialization of graph is not measured
