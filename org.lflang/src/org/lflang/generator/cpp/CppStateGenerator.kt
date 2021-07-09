@@ -45,9 +45,12 @@ class CppStateGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun generateInitializer(state: StateVar): String {
-        return "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
-    }
+    private fun generateInitializer(state: StateVar): String =
+        if (state.parens.isNullOrEmpty())
+            "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
+        else
+            "${state.name}(${getInitializerList(state).joinToString(separator = ", ")})"
+
 
     /** Get all state declarations */
     fun generateDeclarations() =

@@ -310,6 +310,11 @@ class LFValidatorImpl extends AbstractLFValidator {
                     Literals.ASSIGNMENT__RHS)
             }
         }
+
+        if(!assignment.braces.isNullOrEmpty() && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.ASSIGNMENT__BRACES)
+        }
+
         // FIXME: lhs is list => rhs is list
         // lhs is fixed with size n => rhs is fixed with size n
         // FIXME": similar checks for decl/init
@@ -758,6 +763,11 @@ class LFValidatorImpl extends AbstractLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.PARAMETER__INIT)
         }
+        
+        if(!param.braces.isNullOrEmpty && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.PARAMETER__BRACES)
+        }
+        
     }
 
     @Check(FAST)
@@ -1131,7 +1141,10 @@ class LFValidatorImpl extends AbstractLFValidator {
                     Literals.STATE_VAR__INIT)
             }
         }
-
+        
+        if(!stateVar.braces.isNullOrEmpty && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.STATE_VAR__BRACES)
+        }
     }
 
     @Check(FAST)
