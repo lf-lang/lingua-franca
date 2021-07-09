@@ -69,7 +69,7 @@ class TargetConfig {
      * 
      * The default is disabled.
      */
-    public boolean useCmake = false;
+    public boolean useCmake = true;
 
     /**
      * The compiler to invoke, unless a build command has been specified.
