@@ -18,7 +18,9 @@ target C {
     threads: 4,
     tracing: true
 };
+
 import BenchmarkRunner from "BenchmarkRunner.lf";
+
 reactor SleepingBarber(
     cut_time:time(1 sec), // (Logical) time spent serving a customer.
     num_chairs:int(5),
