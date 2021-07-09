@@ -1050,6 +1050,8 @@ class PythonGenerator extends CGenerator {
         // The PythonGenerator will compiler it.
         val compileStatus = targetConfig.noCompile;
         targetConfig.noCompile = true;
+        targetConfig.useCmake = false; // Force disable the CMake because 
+                                       // it interferes with the Python target functionality
         
         super.doGenerate(resource, fsa, context)
         
