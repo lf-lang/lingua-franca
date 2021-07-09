@@ -142,7 +142,7 @@ reactor MQTTPublisher (
         
         // Append the current timestamp to the message.
         // This is always last, after the physical timestamp if it is included.
-        encode_ll(get_logical_time(), 
+        encode_int64(get_logical_time(), 
             (unsigned char*)(self->inflight.message + length - sizeof(instant_t))
         );
         // printf("DEBUG: Timestamp of sending message: %lld.\n", *timestamp);
@@ -161,7 +161,7 @@ reactor MQTTPublisher (
         // As close as possible to the publishing of the message, insert
         // the physical timestamp if it has been requested.
         if (self->include_physical_timestamp) {
-            encode_ll(get_physical_time(),
+            encode_int64(get_physical_time(),
                 (unsigned char*)(self->inflight.message + length - 2 * sizeof(instant_t))
             );
         }        
