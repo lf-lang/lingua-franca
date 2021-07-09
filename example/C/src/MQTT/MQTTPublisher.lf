@@ -5,7 +5,9 @@
  * @author Ravi Akella
  * @author Edward A. Lee
  */
-target C;
+target C {
+    threads: 1  // This makes sure pthreads is included and gives access to the mutex.
+};
 
 /**
  * Reactor that publishes strings to a specified MQTT topic.
@@ -42,6 +44,7 @@ reactor MQTTPublisher (
     preamble {=
         #include "MQTTClient.h"
         #include "core/net_util.h"
+        #include <pthread.h>
         
         // Timeout for completion of message sending in milliseconds.
         #define TIMEOUT     10000L
