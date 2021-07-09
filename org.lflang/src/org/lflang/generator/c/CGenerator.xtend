@@ -750,17 +750,19 @@ class CGenerator extends GeneratorBase {
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             
-            // Generate the cmake script
-            val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
-            val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
-            writeSourceCodeToFile(
-                cmakeGenerator.generateCMakeCode(
-                    #[cFilename], 
-                    topLevelName, 
-                    errorReporter
-                ).toString().getBytes(),
-                cmakeFile
-            )
+            if (targetConfig.useCmake) {
+                // If cmake is requested, generated the CMakeLists.txt
+                val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
+                val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
+                writeSourceCodeToFile(
+                    cmakeGenerator.generateCMakeCode(
+                        #[cFilename], 
+                        topLevelName, 
+                        errorReporter
+                    ).toString().getBytes(),
+                    cmakeFile
+                )
+            }
             
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
@@ -817,6 +819,8 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform" + File.separator + "lf_macos_support.h")
             coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
@@ -831,7 +835,8 @@ class CGenerator extends GeneratorBase {
             // For 64-bit epoch time
             coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if the use of CMake is requested, the platform file to use is automatically selected.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
@@ -847,6 +852,8 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform" + File.separator + "lf_linux_support.h")
             coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
             if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
