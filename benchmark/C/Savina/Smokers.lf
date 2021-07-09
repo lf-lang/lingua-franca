@@ -68,19 +68,24 @@ reactor Arbiter(
 reactor Smoker(ingredient_supply:int(0),smoke_time:time(1 sec)){
     input complementary_ingredient:int;
     logical action make_cigarette;
+    state busy:bool;
     output smoking:bool;
+    
     
     reaction(startup) {=
         self->ingredient_supply = self->bank_index;
+        self->busy = false;
     =}
     reaction(complementary_ingredient) -> make_cigarette{=
-        if(complementary_ingredient->value == self->ingredient_supply){
+        if(complementary_ingredient->value == self->ingredient_supply && self->busy == false){
+			self->busy = true;
             schedule(make_cigarette,self->smoke_time);
             printf("Smoker %d received their ingredients.\n", self->ingredient_supply);
         }
     =}
     reaction(make_cigarette)-> smoking{=
         SET(smoking,true);
+        self->busy = false;
     =}
 }
 main reactor (
