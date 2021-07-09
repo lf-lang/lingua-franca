@@ -23,7 +23,6 @@ targets:
       - "${lf_path}/benchmark/Cpp/Savina/src/philosopher"
     lf_file: "philosopher/Philosopher.lf"
     binary: "Philosopher"
-    gen_args:
-      philosophers: ["-D", "numPhilosophers=<value>"]
     run_args:
+      philosophers: ["--numPhilosophers", "<value>"]
       eating_rounds: ["--numEatingRounds", "<value>"]

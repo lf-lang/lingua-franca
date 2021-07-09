@@ -7,51 +7,14 @@
  * or work done when a philosopher is thinking or eating.
  * 
  * @author Hannes Klein
+ * @author Christian Menard
  */
-
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numPhilosophers=20
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numPhilosophers' in globals():
-    numPhilosophers = int(numPhilosophers)
-  else:
-    globals()['numPhilosophers'] = 20
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numPhilosophers = {numPhilosophers}')
-]]] */
-// Generated file with the following parameters:
-// numPhilosophers = 20
-// [[[end]]]
 
 target Cpp {
     build-type : RelWithDebInfo
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
-
 
 public preamble {=
     enum MsgType {
@@ -69,35 +32,23 @@ public preamble {=
     };
 =}
 
-reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
+reactor ArbitratorReactor(numPhilosophers:size_t(20)) {
     
-    public preamble {=
-        #include <bitset>
-    =}
+    state messagesToSend: std::vector<std::pair<int,Message>>;
+    state forks: std::vector<bool>;
+    state numExitedPhilosophers: size_t{0};
     
-    state messagesToSend:{=std::vector<std::pair<int,Message>>=};
-    /* [[[cog
-      cog.outl(f'state forks:{{=std::bitset<{numPhilosophers}>=}};')
-    ]]] */
-    state forks:{=std::bitset<20>=};
-    // [[[end]]]
-    state numExitedPhilosophers:int(0);
+    input inStart: void;
+    output outFinished: void;
     
-    input inStart:void;
-    output outFinished:void;
+    output[numPhilosophers] outPhilosophers: Message;
+    input[numPhilosophers] inPhilosophers: Message;
+    output outCounter: void;
     
-    /* [[[cog
-      cog.outl(f'output[{numPhilosophers}] outPhilosophers:{{=Message=}};')
-      cog.outl(f'input[{numPhilosophers}] inPhilosophers:{{=Message=}};')
-    ]]] */
-    output[20] outPhilosophers:{=Message=};
-    input[20] inPhilosophers:{=Message=};
-    // [[[end]]]
-    output outCounter:void;
-    
-    logical action sendMessages:void;
+    logical action sendMessages: void;
     
     reaction(startup) {=
+        forks.resize(numPhilosophers, false);
         messagesToSend.reserve(numPhilosophers);
     =}
     
@@ -106,7 +57,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
         // reset state
         messagesToSend.clear();
         numExitedPhilosophers = 0;
-        forks.reset();
+        std::fill(forks.begin(), forks.end(), false);
         
         // reset other reactors and start execution
         for(auto& p: outPhilosophers) {
@@ -130,7 +81,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
                 if(inPhilosophers[i].get()->type == HungryMsg) {
                     
                     bool leftFork = forks[i];
-                    bool rightFork = forks[(i + 1) % numForks];
+                    bool rightFork = forks[(i + 1) % numPhilosophers];
                     
                     if(leftFork || rightFork) {
                         // someone else has access to the fork
@@ -138,7 +89,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
                         messagesToSend.push_back(std::pair{i, Message{DeniedMsg}});
                     } else {
                         forks[i] = true;
-                        forks[(i + 1) % numForks] = true;
+                        forks[(i + 1) % numPhilosophers] = true;
                         //outPhilosophers[i].set(Message{EatMsg});
                         messagesToSend.push_back(std::pair{i, Message{EatMsg}});
                     }
@@ -146,12 +97,12 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
                 } else if(inPhilosophers[i].get()->type == DoneMsg) {
                     
                     forks[i] = false;
-                    forks[(i + 1) % numForks] = false;
+                    forks[(i + 1) % numPhilosophers] = false;
                     
                 } else if(inPhilosophers[i].get()->type == ExitMsg) {
                     
                     numExitedPhilosophers += 1;
-                    if(numForks == numExitedPhilosophers) {
+                    if(numPhilosophers == numExitedPhilosophers) {
                         outFinished.set();
                     }
                 }
@@ -163,17 +114,17 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
     =}
 }
 
-reactor PhilosopherReactor(rounds:int(10000)) {
+reactor PhilosopherReactor(rounds:size_t(10000)) {
     
-    state localCounter:long(0); // count failed tries
-    state roundsSoFar:int(0); // count successful tries
+    state localCounter: size_t(0); // count failed tries
+    state roundsSoFar: size_t(0); // count successful tries
     
-    input inArbitrator:{=Message=};
-    output outArbitrator:{=Message=};
-    output outCounterDenied:long;
+    input inArbitrator: Message;
+    output outArbitrator: Message;
+    output outCounterDenied: size_t;
     
-    logical action requestToEat:void;
-    logical action finish:void;
+    logical action requestToEat: void;
+    logical action finish: void;
     
     reaction(requestToEat) -> outArbitrator {=
         outArbitrator.set(Message{HungryMsg});
@@ -210,21 +161,17 @@ reactor PhilosopherReactor(rounds:int(10000)) {
     =}
 }
 
-reactor CounterReactor(numLocalCounters:int(20)) {
+reactor CounterReactor(numLocalCounters:size_t(20)) {
     
     private preamble {=
         #include "reactor-cpp/logging.hh"
     =}
     
-    state counter:long(0);
-    state receivedLocalCounts:int(0);
+    state counter: size_t(0);
+    state receivedLocalCounts: size_t(0);
     
-    /* [[[cog
-      cog.outl(f'input[{numPhilosophers}] inLocalCounters:long;')
-    ]]] */
-    input[20] inLocalCounters:long;
-    // [[[end]]]
-    input inController:void;
+    input[numLocalCounters] inLocalCounters: size_t;
+    input inController: void;
     
     reaction(inController) {=
         //reset local state
@@ -246,13 +193,9 @@ reactor CounterReactor(numLocalCounters:int(20)) {
     =}
 }
 
-main reactor (numIterations:int(12), numEatingRounds:int(10000)) {
+main reactor (numIterations:size_t(12), numEatingRounds:size_t(10000), numPhilosophers:size_t(20)) {
     
-    /* [[[cog
-      cog.outl(f'arbitrator = new ArbitratorReactor(numPhilosophers={numPhilosophers}, numForks={numPhilosophers});')
-    ]]] */
-    arbitrator = new ArbitratorReactor(numPhilosophers=20, numForks=20);
-    // [[[end]]]
+    arbitrator = new ArbitratorReactor(numPhilosophers=numPhilosophers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> arbitrator.inStart;
@@ -260,21 +203,13 @@ main reactor (numIterations:int(12), numEatingRounds:int(10000)) {
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("PhilosopherReactorLFCppBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", {numPhilosophers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", 20);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", numPhilosophers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'philosophers = new[{numPhilosophers}] PhilosopherReactor(rounds=numEatingRounds);')
-    ]]] */
-    philosophers = new[20] PhilosopherReactor(rounds=numEatingRounds);
-    // [[[end]]]
-    counter = new CounterReactor(numLocalCounters=20);
+    philosophers = new[numPhilosophers] PhilosopherReactor(rounds=numEatingRounds);
+    counter = new CounterReactor(numLocalCounters=numPhilosophers);
     
     arbitrator.outPhilosophers -> philosophers.inArbitrator;
     philosophers.outArbitrator -> arbitrator.inPhilosophers;
