@@ -1,7 +1,11 @@
 /**
  * A simple source-sink example that uses the federated Lingua Franca runtime to
  * send ROS messages of type std_msgs::msg::Int32. The serialization/deserialization
- * techniques are exposed here in the sender/receiver reactions.  
+ * techniques are exposed here in the sender/receiver reactions. This mechanism should
+ * work for any ROS2 message type.
+ * 
+ * Note: the terminal must be properly sourced for ROS2. See 
+ * https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
  */
 target C {
     coordination: decentralized,
