@@ -85,6 +85,7 @@ jobs:
         if: runner.os == 'Linux'
       - name: Install Dependencies OS X
         run: |
+          brew install protobuf
           brew install protobuf-c
           brew install coreutils
         if: runner.os == 'macOS'
