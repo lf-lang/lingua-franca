@@ -127,7 +127,7 @@ class CCmakeGenerator {
             // If threaded computation is requested, add a the threads option.
             cMakeCode.append("# Find threads and link to it\n");
             cMakeCode.append("find_package(Threads REQUIRED)\n");
-            cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
+            cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)\n");
             cMakeCode.append("\n");
             
             // If the LF program itself is threaded or if tracing is enabled, we need to define
@@ -170,14 +170,9 @@ class CCmakeGenerator {
                 case "-lm":
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} m)\n");
                     break;
-                case "-lprotobuf-c":
-                    cMakeCode.append("include(FindProtobuf)\n");
-                    cMakeCode.append("find_package(Protobuf REQUIRED)\n");
-                    cMakeCode.append("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${Protobuf_INCLUDE_DIRS} )\n");
-                    cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} protobuf-c)\n");
-                    break;
                 default:
                     cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");
+                    cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} "+compilerFlag+")\n");
                     if (CPPRequested) {
                         // Pass the requested flags to the compiler
                         cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} "+compilerFlag+"\")\n");
