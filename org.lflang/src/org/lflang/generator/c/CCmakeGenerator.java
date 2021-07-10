@@ -171,6 +171,7 @@ class CCmakeGenerator {
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} m)\n");
                     break;
                 case "-lprotobuf-c":
+                    cMakeCode.append("include(FindProtobuf)\n");
                     cMakeCode.append("find_package(Protobuf REQUIRED)\n");
                     cMakeCode.append("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${Protobuf_INCLUDE_DIRS} )\n");
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} protobuf-c)\n");
