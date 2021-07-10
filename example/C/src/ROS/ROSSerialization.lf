@@ -1,0 +1,82 @@
+/**
+ * A simple source-sink example that uses the federated Lingua Franca runtime to
+ * send ROS messages of type std_msgs::msg::Int32. The serialization/deserialization
+ * techniques are exposed here in the sender/receiver reactions.  
+ */
+target C {
+    coordination: decentralized,
+    timeout: 10 sec,
+    cmake-include: "include/CMakeListsExtension.txt",
+    files: ["include/ament_target_dependencies.cmake"],
+    cmake: true,
+    flags: ["-Wno-write-strings"],
+    compiler: "g++"
+};
+
+preamble {=
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/int32.hpp"
+   	#include "rcutils/allocator.h"
+    #include "rclcpp/rclcpp.hpp"
+    #include "rclcpp/serialization.hpp"
+    
+    
+    #include "rclcpp/serialized_message.hpp"
+	
+	#include "rosidl_typesupport_cpp/message_type_support.hpp"    
+=}
+
+reactor Clock(offset:time(0), period:time(1 sec)) {
+	output y:uint8_t*;
+	
+	timer t(0, period);
+	state count:int(0);
+    state serialized_msg:rclcpp::SerializedMessage({=0u=});
+	reaction(t) -> y {=
+        
+		(self->count)++;
+       	
+       	auto msg = std::make_shared<std_msgs::msg::Int32>();
+        msg->data = self->count;
+        
+        auto message_header_length = 8u;
+        auto message_payload_length = 10u;
+        self->serialized_msg.reserve(message_header_length + message_payload_length);
+        
+        static rclcpp::Serialization<std_msgs::msg::Int32> serializer;
+        serializer.serialize_message(msg.get(), &self->serialized_msg);
+        
+        SET_NEW_ARRAY(y, self->serialized_msg.size());
+        y->value = self->serialized_msg.get_rcl_serialized_message().buffer;
+	=}
+}
+reactor Destination {
+	input x:uint8_t*;
+	
+	state s:int(1);
+	reaction(x) {=
+		rclcpp::SerializedMessage* msg = new rclcpp::SerializedMessage(x->token->length, rcl_get_default_allocator());
+		msg->get_rcl_serialized_message().buffer = x->value;
+		msg->get_rcl_serialized_message().buffer_length = x->token->length;
+		msg->get_rcl_serialized_message().buffer_capacity = x->token->length;
+		msg->get_rcl_serialized_message().allocator = rcl_get_default_allocator();
+		
+        // In order to deserialize the message we have to manually create a ROS2
+        // message in which we want to convert the serialized data.
+        std_msgs::msg::Int32 int_msg;
+        auto serializer = rclcpp::Serialization<std_msgs::msg::Int32>();
+        serializer.deserialize_message(msg, &int_msg);
+		
+		info_print("Received %d.", int_msg.data);
+		if (int_msg.data != self->s) {
+		    warning_print("Expected %d and got %d.", self->s, int_msg.data);
+		}
+		self->s++;
+        free(msg);
+	=}
+}
+federated reactor (period:time(1 sec)) {
+	c = new Clock(period = period);
+	d = new Destination();
+	c.y -> d.x;
+}
