@@ -170,6 +170,16 @@ class CCmakeGenerator {
                 case "-lm":
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} m)\n");
                     break;
+                case "-lprotobuf-c":
+                    cMakeCode.append("include(FindPackageHandleStandardArgs)\n");
+                    cMakeCode.append("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)\n");
+                    cMakeCode.append("find_library(PROTOBUF_LIBRARY \n"+
+                                     "NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll\n"+
+                                     ")\n");
+                    cMakeCode.append("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)\n");
+                    cMakeCode.append("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )\n");
+                    cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})\n");
+                    break;
                 default:
                     cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} "+compilerFlag+")\n");
