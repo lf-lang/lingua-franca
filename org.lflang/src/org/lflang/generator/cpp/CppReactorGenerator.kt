@@ -53,9 +53,9 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
-    private val reactions = CppReactionGenerator(reactor)
     private val ports = CppPortGenerator(reactor, errorReporter)
-    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions)
+    private val reactions = CppReactionGenerator(reactor, ports, instances)
+    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, reactions)
     private val assemble = CppAssembleMethodGenerator(reactor, ports, instances)
 
     private fun publicPreamble() =
@@ -74,34 +74,45 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |#pragma once
             |
             |#include "reactor-cpp/reactor-cpp.hh"
+            |#include "lfutil.hh"
             |
             |using namespace std::chrono_literals;
             |
             |#include "$preambleHeaderFile"
             |
-        ${" |  "..instances.generateIncludes()}
+        ${" |"..instances.generateIncludes()}
             |
-        ${" |  "..publicPreamble()}
+        ${" |"..publicPreamble()}
             |
             |${reactor.templateLine}
-            |class ${reactor.name} : public reactor::Reactor {
+            |class ${reactor.name}: public reactor::Reactor {
             | private:
-        ${" |  "..parameters.generateDeclarations()}
-        ${" |  "..state.generateDeclarations()}
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
         ${" |  "..actions.generateDeclarations()}
+        ${" |  "..reactions.generateReactionViews()}
         ${" |  "..reactions.generateDeclarations()}
-        ${" |  "..reactions.generateBodyDeclarations()}
-        ${" |  "..reactions.generateDeadlineHandlerDeclarations()}
+            |
+            |  class Inner: public lfutil::LFScope {
+        ${" |    "..parameters.generateDeclarations()}
+        ${" |    "..state.generateDeclarations()}
+        ${" |    "..constructor.generateInnerDeclaration()}
+        ${" |    "..reactions.generateBodyDeclarations()}
+        ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
+            |
+            |   friend ${reactor.name};
+            |  };
+            |
+            |  Inner __lf_inner;
+            |
             | public:
         ${" |  "..ports.generateDeclarations()}
-        ${" |  "..constructor.generateDeclaration()}
+        ${" |  "..constructor.generateOuterDeclaration()}
             |
             |  void assemble() override;
             |};
             |
-        ${" |".. if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
+        ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
         """.trimMargin()
     }
 
@@ -111,13 +122,16 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..fileComment}
             |
             |${if (!reactor.isGeneric) """#include "$headerFile"""" else ""}
-            |#include "lfutil.hh"
             |
             |using namespace reactor::operators;
             |
         ${" |  "..privatePreamble()}
             |
-        ${" |"..constructor.generateDefinition()}
+            |// outer constructor
+        ${" |"..constructor.generateOuterDefinition()}
+            |
+            |// inner constructor
+        ${" |"..constructor.generateInnerDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
             |
