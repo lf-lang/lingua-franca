@@ -29,6 +29,6 @@ main reactor {
     =}
     reaction (done) {=
         console.log('No more data in response.');
-        util.requestShutdown();
+        util.requestStop();
     =}
 }
