@@ -109,9 +109,26 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (source : definition.sources) {
             if (source.variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance(source)
-                this.sources.add(portInstance)
-                this.reads.add(portInstance)
-                portInstance.dependentReactions.add(this)
+                // If the trigger is the port of a contained bank, then the
+                // portInstance will be null and we have to instead search for
+                // each port instance in the bank.
+                if (portInstance !== null) {
+                    this.sources.add(portInstance)
+                    this.reads.add(portInstance)
+                    portInstance.dependentReactions.add(this)
+                } else if (source.container !== null) {
+                    val bankInstance = parent.lookupReactorInstance(source.container)
+                    if (bankInstance !== null && bankInstance.bankMembers !== null) {
+                        for (bankMember : bankInstance.bankMembers) {
+                            portInstance = bankMember.lookupPortInstance(source.variable as Port)
+                            if (portInstance !== null) {
+                                this.sources.add(portInstance)
+                                portInstance.dependentReactions.add(this)
+                                this.reads.add(portInstance)
+                            }
+                        }
+                    }
+                }
             }
         }
 

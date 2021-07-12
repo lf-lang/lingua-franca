@@ -250,6 +250,11 @@ class FederateInstance {
         
         if (!reactor.reactions.contains(reaction)) return false;
         
+        val reactionBankIndex = generator.getReactionBankIndex(reaction)
+        if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
+            return false;
+        }
+        
         // If this has been called before, then the result of the
         // following check is cached.
         if (excludeReactions !== null) {
@@ -327,9 +332,9 @@ class FederateInstance {
      * has been defined or that there is only one federate.
      * @return True if no federation has been defined or there is only one federate.
      */
-     def isSingleton() {
-         return ((instantiation === null) || (generator.federates.size <= 1))
-     }
+    def isSingleton() {
+        return ((instantiation === null) || (generator.federates.size <= 1))
+    }
      
     /**
      * Find output ports that are connected to a physical action trigger upstream
@@ -338,19 +343,23 @@ class FederateInstance {
      * @param instance The reactor instance containing the output ports
      * @return A LinkedHashMap<Output, TimeValue>
      */
-     def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
-         var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
-         // Find reactions that write to the output port of the reactor
-         for (output : instance.outputs) {
-             for (reaction : output.dependsOnReactions) {
-                 var minDelay = findNearestPhysicalActionTrigger(reaction)
-                 if (minDelay != TimeValue.MAX_VALUE) {
-                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)                 
-                 }
-             }
-         }
-         return physicalActionToOutputMinDelay
-     }
+    def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
+        var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
+        // Find reactions that write to the output port of the reactor
+        for (output : instance.outputs) {
+            for (reaction : output.dependsOnReactions) {
+                var minDelay = findNearestPhysicalActionTrigger(reaction)
+                if (minDelay != TimeValue.MAX_VALUE) {
+                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)
+                }
+            }
+        }
+        return physicalActionToOutputMinDelay
+    }
+    
+    override toString() {
+        "Federate " + this.id + ": " + instantiation.name
+    }
 
     /////////////////////////////////////////////
     //// Private Fields

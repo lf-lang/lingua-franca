@@ -970,20 +970,34 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     this + " nor any of its children."
             )
         }
-        // If the port is an input port, then include it in the result.
-        if (source.isInput) {
-            destinations.add(source)
-        }
-        var localDestinations = this.destinations.get(source)
+        // If the port is a multiport, then iterate over its contained ordinary ports instead.
+        if (source instanceof MultiportInstance) {
+            for (port : source.instances) {
+                transitiveClosure(port, destinations)
+            }
+        } else {
+            // The port is not a multiport.
+            // If the port is an input port, then include it in the result.
+            if (source.isInput) {
+                destinations.add(source)
+            }
+            var localDestinations = this.destinations.get(source)
 
-        for (destination : localDestinations ?: emptyList) {
-            destinations.add(destination)
-            if (destination.isInput) {
-                // Destination may have further destinations lower in the hierarchy.
-                destination.parent.transitiveClosure(destination, destinations)
-            } else if (destination.parent.parent !== null) {
-                // Destination may have further destinations higher in the hierarchy.
-                destination.parent.parent.transitiveClosure(destination, destinations)
+            if (localDestinations !== null) {
+                for (destination : localDestinations) {
+                    if (destination instanceof MultiportInstance) {
+                        destinations.addAll(destination.instances)
+                    } else {
+                        destinations.add(destination)
+                        if (destination.isInput) {
+                            // Destination may have further destinations lower in the hierarchy.
+                            destination.parent.transitiveClosure(destination, destinations)
+                        } else if (destination.parent.parent !== null) {
+                            // Destination may have further destinations higher in the hierarchy.
+                            destination.parent.parent.transitiveClosure(destination, destinations)
+                        }
+                    }
+                }
             }
         }
     }
@@ -1088,6 +1102,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             } else {
                 reporter.reportError(definition, "Cannot infer width.")
             }
+            return
+        }
+        
+        // If the reactor definition is null, give up here. Otherwise, diagram generation
+        // will fail an NPE.
+        if (reactorDefinition === null) {
+            reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.")
             return
         }
         

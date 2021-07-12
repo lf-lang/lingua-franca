@@ -34,21 +34,30 @@ import org.lflang.lf.Reactor
 
 class CppPortGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
 
-    private fun generateDeclaration(port: Port): String {
-        val portType = when (port) {
-            is Input  -> "reactor::Input"
-            is Output -> "reactor::Output"
-            else      -> throw AssertionError()
-        }
-
-        return if (port.isMultiport) {
-            val width = port.getValidWidth()
-            val initializerLists = (0 until width).joinToString(", ") { """{"${port.name}_$it", this}""" }
-            """std::array<$portType<${port.targetType}>, ${port.getValidWidth()}> ${port.name}{{$initializerLists}};"""
+    private fun generateDeclaration(port: Port): String = with(port) {
+        return if (isMultiport) {
+            val initializerLists = (0 until getValidWidth()).joinToString(", ") { """{"${name}_$it", this}""" }
+            """$cppType $name{{$initializerLists}};"""
         } else {
-            """$portType<${port.targetType}> ${port.name}{"${port.name}", this};"""
+            """$cppType $name{"$name", this};"""
         }
     }
+
+    /** Get the C++ type for the receiving port. */
+    val Port.cppType: String
+        get() {
+            val portType = when (this) {
+                is Input  -> "reactor::Input"
+                is Output -> "reactor::Output"
+                else      -> throw AssertionError()
+            }
+
+            return if (isMultiport) {
+                "std::array<$portType<$targetType>, ${getValidWidth()}>"
+            } else {
+                "$portType<$targetType>"
+            }
+        }
 
     /**
      * Calculate the width of a multiport.
