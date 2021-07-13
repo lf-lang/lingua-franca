@@ -1,7 +1,7 @@
-target Rust {
+target Rust /*{
     // timeout: 2 sec,
     // fast: true
-};
+}*/;
 main reactor SimpleTimer {
     state i:i32(0);
     timer t;
