@@ -38,7 +38,7 @@ reactor BrakePedal {
     state thread: std::thread;
     
     reaction(startup) -> pedal {=
-        this->thread = std::thread([this] () {
+        this->thread = std::thread([&] () {
             // press the brake pedal roughly every second
 			while (true) {
 				std::this_thread::sleep_for(1005ms);

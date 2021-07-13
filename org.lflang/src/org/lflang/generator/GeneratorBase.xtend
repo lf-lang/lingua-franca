@@ -184,7 +184,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
-    
+
+    /**
+     * Map from reactions to bank indices
+     */
+    protected var Map<Reaction,Integer> reactionBankIndices = null
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -639,6 +643,36 @@ abstract class GeneratorBase extends AbstractLFValidator {
             unorderedReactions = new LinkedHashSet<Reaction>()
         }
         unorderedReactions.add(reaction)
+    }
+
+    /**
+     * Mark the specified reaction to belong to only the specified
+     * bank index. This is needed because reactions cannot declare
+     * a specific bank index as an effect or trigger. Reactions that
+     * send messages between federates, including absent messages,
+     * need to be specific to a bank member.
+     * @param The reaction.
+     * @param bankIndex The bank index, or -1 if there is no bank.
+     */
+    def setReactionBankIndex(Reaction reaction, int bankIndex) {
+        if (bankIndex >= 0) {
+            if (reactionBankIndices === null) {
+                reactionBankIndices = new LinkedHashMap<Reaction,Integer>()
+            }  
+            reactionBankIndices.put(reaction, bankIndex)
+        }
+    }
+
+    /**
+     * Return the reaction bank index.
+     * @see setReactionBankIndex(Reaction reaction, int bankIndex)
+     * @param The reaction.
+     * @return The reaction bank index, if one has been set, and -1 otherwise.
+     */
+    def int getReactionBankIndex(Reaction reaction) {
+        if (reactionBankIndices === null) return -1
+        if (reactionBankIndices.get(reaction) === null) return -1
+        return reactionBankIndices.get(reaction)
     }
     
     /**
@@ -1931,6 +1965,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     }
 
                     FedASTUtils.makeCommunication(
+                        source,
+                        destination,
                         connection,
                         leftFederate,
                         federate.bankIndex,

@@ -181,6 +181,8 @@ class CCmakeGenerator {
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})\n");
                     break;
                 default:
+                    errorReporter.reportWarning("Using the flags target property with cmake is dangerous.\n"+
+                                                " Use cmake-include instead.");
                     cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} "+compilerFlag+")\n");
                     if (CPPRequested) {
