@@ -6,6 +6,6 @@ main reactor Preamble {
         }
     =}
     reaction(startup) {=
-        printf("42 plus 42 is %d.\n", add_42(42));
+        println!("42 plus 42 is {}.\n", add_42(42));
     =}
 }
