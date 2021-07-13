@@ -291,12 +291,14 @@ private object ReactorComponentEmitter {
         "$invokerId: Arc<$rsRuntime::ReactionInvoker>"
 
     fun ReactionInfo.toWorkerFunction() =
-        """
-            // todo metadata
-            fn ${this.workerId}(&mut self, ctx: &mut _rr::LogicalCtx, ${reactionParams()}) {
-                ${this.body}
-            }
-        """.trimIndent()
+        with(PrependOperator) {
+            """
+            |// todo reproduce header & metadata here
+            |fn $workerId(&mut self, ctx: &mut _rr::LogicalCtx, ${reactionParams()}) {
+${"         |    "..body}
+            |}
+        """.trimMargin()
+        }
 
     private fun ReactionInfo.reactionParams() =
         depends.joinToString(", ") { "${it.name}: ${it.toBorrowedType()}" }

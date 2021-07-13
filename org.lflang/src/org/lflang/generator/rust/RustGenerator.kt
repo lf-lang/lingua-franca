@@ -90,7 +90,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             ReactionInfo(
                 idx = n.indexInContainer,
                 depends = dependencies,
-                body = n.code.body,
+                body = n.code.toText(),
                 isStartup = n.triggers.any { it.isStartup },
                 isShutdown = n.triggers.any { it.isShutdown }
             )
