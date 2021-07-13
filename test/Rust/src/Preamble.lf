@@ -1,0 +1,11 @@
+target Rust;
+main reactor Preamble {
+    preamble {=
+        fn add_42(i: i32) -> i32 {
+            return i + 42;
+        }
+    =}
+    reaction(startup) {=
+        printf("42 plus 42 is %d.\n", add_42(42));
+    =}
+}
