@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.*
+import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -64,8 +65,22 @@ class CppInstanceGenerator(
             with(CppParameterGenerator) { param.defaultValue }
         } else {
             // Otherwise, we use the assigned value.
-            val initializers = assignment.rhs.map { if (param.isOfTimeType) it.toTime() else it.toCode() }
-            with(CppParameterGenerator) { param.generateInstance(initializers) }
+            if (assignment.equals == "=") {
+                if (!assignment.braces.isNullOrEmpty()) {
+                    "{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
+                } else if (!assignment.parens.isNullOrEmpty()) {
+                    "(${assignment.rhs.joinToString(", ") { it.toCode() }})"
+                } else {
+                    assert(assignment.rhs.size == 1)
+                    assignment.rhs[0].toCode()
+                }
+            } else {
+                if (!assignment.braces.isNullOrEmpty()) {
+                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
+                } else {
+                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCode() }})"
+                }
+            }
         }
     }
 
