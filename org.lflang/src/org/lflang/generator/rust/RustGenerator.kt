@@ -74,7 +74,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             crate = CrateInfo("mycrate_todo", "0.0.0", authors = listOf("todo")),
             reactors = reactors,
             mainReactor = mainReactor,
-            executableName = mainReactor.modName
+            executableName = mainReactor.lfName
         )
     }
 
