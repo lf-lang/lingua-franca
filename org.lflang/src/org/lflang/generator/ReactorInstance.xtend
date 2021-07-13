@@ -150,8 +150,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * port on the right, as obtained by the nextPort() function.
      */
     def establishPortConnections() {
-        // FIXME: Replication of this logic exists in GeneratorBase.analyzeFederates
         for (connection : reactorDefinition.allConnections) {
+            // For each connection, start fresh with any banks and multiports on the left or right.
+            nextBankTable.clear()
+            nextPortTable.clear()
+            
             var leftPort = connection.leftPorts.get(0)
             var leftPortCount = 1
             for (rightPort : connection.rightPorts) {
