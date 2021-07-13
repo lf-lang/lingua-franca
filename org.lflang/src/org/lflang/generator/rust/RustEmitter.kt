@@ -199,17 +199,19 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             |mod reactors;
             |
             |use $rsRuntime::*;
-            |use std::time::Duration;
             |
             |fn main() {
             |    let mut reactor_id = ReactorId::first();
             |    let mut topcell = <self::reactors::${gen.mainReactor.assemblerName} as ReactorAssembler>::assemble(&mut reactor_id, (/*todo params*/));
-            |    let mut scheduler = SyncScheduler::new();
+            |    let options = SchedulerOptions {
+            |       timeout: None,
+            |       keep_alive: false
+            |    };
+            |    let mut scheduler = SyncScheduler::new(options);
             |    scheduler.startup(|mut starter| {
             |        starter.start(&mut topcell);
             |    });
-            |    let timeout = Duration::from_secs(10); 
-            |    scheduler.launch_async(timeout).join().unwrap();
+            |    scheduler.launch_async().join().unwrap();
             |}
         """.trimMargin()
     }
