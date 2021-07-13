@@ -242,8 +242,7 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use s
             |[dependencies.$runtimeCrateFullName]
             |#-- The reactor runtime --#
             |# See https://doc.rust-lang.org/cargo/appendix/git-authentication.html#ssh-authentication
-            |# git = "ssh://git@github.com:icyphy/reactor-rust.git"
-            |path = "/home/clem/Documents/Cours/rust-reactors"
+            |git = "ssh://git@github.com/icyphy/reactor-rust.git"
             |
             |[[bin]]
             |name = "${gen.executableName}"
