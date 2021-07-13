@@ -71,11 +71,6 @@ ${"             |    "..reactor.stateVars.joinToString(",\n") { it.lfName + ": "
                 |
                 |impl $structName {
                 |
-                |    // TODO change this generation logic. There may be several reactions invoked on startup
-                |    fn react_startup(link: $rsRuntime::SchedulerLink, ctx: &mut $rsRuntime::LogicalCtx) {
-${"             |       "..reactions.firstOrNull { it.isStartup }?.body.orEmpty()}
-                |    }
-                |
 ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
                 |
                 |}
@@ -112,21 +107,28 @@ ${"             |            "..reactionWrappers(reactor)}
                 |    }
                 |}
                 |
+                |use $rsRuntime::*; // after this point there's no user-written code
+                |
                 |pub struct $assemblerName {
                 |   _rstate: Arc<Mutex<$dispatcherName>>,
 ${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
                 |}
                 |
-                |impl $rsRuntime::ReactorAssembler for $assemblerName {
+                |impl ReactorAssembler for $assemblerName {
                 |    type RState = $dispatcherName;
                 |
-                |    fn start(&mut self, link: $rsRuntime::SchedulerLink, ctx: &mut $rsRuntime::LogicalCtx) {
-                |       let state = &self._rstate.lock().unwrap();
-                |       $structName::react_startup(link, ctx, /*todo dependencies*/);
+                |    fn start(&mut self, link: SchedulerLink, ctx: &mut LogicalCtx) {
+                |       let dispatcher = &mut self._rstate.lock().unwrap();
+${"             |       "..reactor.reactions.filter { it.isStartup }.joinToString("\n") { 
+                        "dispatcher.react(ctx, $reactionIdName::${it.rustId});" 
+}}
                 |    }
                 |
-                |    fn assemble(reactor_id: &mut $rsRuntime::ReactorId, args: <Self::RState as $rsRuntime::ReactorDispatcher>::Params) -> Self {
-                |       let mut _rstate = Arc::new(Mutex::new(<Self::RState as $rsRuntime::ReactorDispatcher>::assemble(args)));
+                |    fn assemble(
+                |       reactor_id: &mut ReactorId, 
+                |       args: <Self::RState as ReactorDispatcher>::Params
+                |    ) -> Self {
+                |       let mut _rstate = Arc::new(Mutex::new(Self::RState::assemble(args)));
                 |       let this_reactor = reactor_id.get_and_increment();
                 |       let mut reaction_id = 0;
                 |
