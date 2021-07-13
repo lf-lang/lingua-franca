@@ -105,7 +105,7 @@ reactor MQTTSubscriber (
             // locks held by the current thread when waiting for signals.
             pthread_mutex_lock(&mutex);
             
-            instant_t timestamp = extract_ll((unsigned char*)message->payload + message->payloadlen - sizeof(instant_t));
+            instant_t timestamp = extract_int64((unsigned char*)message->payload + message->payloadlen - sizeof(instant_t));
             interval_t delay = timestamp - get_logical_time();
             // printf("DEBUG: MQTTSubscriber.message_arrived: received timestamp that is %lld ahead of current_time %lld.\n", *timestamp - start_time, current_time);
             // printf("DEBUG: MQTTSubscriber.message_arrived: physical time is ahead of current logical time by: %lld.\n", receive_physical_time - current_time);
@@ -232,7 +232,7 @@ reactor MQTTSubscriber (
         size_t string_length = strlen(incoming_message->value); // Assumes null-terminated string.
         if (incoming_message->token->length == string_length + 1 + 2*sizeof(instant_t)) {
             instant_t receive_physical_time = get_physical_time();
-            instant_t physical_timestamp = extract_ll((unsigned char*)(incoming_message->value + string_length + 1));
+            instant_t physical_timestamp = extract_int64((unsigned char*)(incoming_message->value + string_length + 1));
             latency = receive_physical_time - physical_timestamp;
             // printf("DEBUG: MQTTReceiver.reaction: Reacted to message after measured latency of %lld nsec (assuming synchronized clocks).\n", latency);
         }
