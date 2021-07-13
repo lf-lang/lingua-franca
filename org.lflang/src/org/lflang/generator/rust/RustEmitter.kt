@@ -62,9 +62,11 @@ object RustEmitter {
                 |
                 |use std::sync::{Arc, Mutex};
                 |
+${"             |"..reactor.preambles.joinToString("\n\n")}
+                |
                 |// todo link to source
                 |pub struct $structName {
-                |    // TODO state vars
+${"             |    "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + it.type }}
                 |}
                 |
                 |impl $structName {
@@ -96,7 +98,9 @@ ${"             |    "..otherComponents.joinToString(",\n") { it.toStructField()
                 |
                 |    fn assemble(_params: Self::Params) -> Self {
                 |        Self {
-                |            _impl: $structName {/*todo*/},
+                |            _impl: $structName {
+${"             |                "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + (it.init ?: "Default::default()") }}
+                |            },
 ${"             |            "..otherComponents.joinToString(",\n") { it.toFieldInitializer() }}
                 |        }
                 |    }

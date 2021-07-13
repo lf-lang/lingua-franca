@@ -48,7 +48,9 @@ data class ReactorInfo(
     val reactions: List<ReactionInfo>,
     val isMain: Boolean,
     val otherComponents: List<ReactorComponent>,
-    val ctorParamTypes: List<String> = emptyList()
+    val ctorParamTypes: List<String> = emptyList(),
+    val preambles: List<String>,
+    val stateVars: List<StateVarInfo>
 ) {
     val modName = lfName.toLowerCase(Locale.ROOT) // note: toLowercase is deprecated in kotlin 1.5.0
     val structName get() = lfName
@@ -56,6 +58,8 @@ data class ReactorInfo(
     val assemblerName = "${structName}Assembler"
     val reactionIdName = "${structName}Reactions"
 }
+
+data class StateVarInfo(val lfName: String, val type: String, val init: String?)
 
 data class ReactionInfo(
     /** Index in the containing reactor. */

@@ -31,6 +31,7 @@ import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.cpp.name
+import org.lflang.generator.cpp.targetType
 import org.lflang.lf.Action
 import org.lflang.lf.Reaction
 import org.lflang.lf.TriggerRef
@@ -99,7 +100,9 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             lfName = reactor.name,
             reactions = reactions,
             otherComponents = components.values.toList(),
-            isMain = reactor.isMain
+            isMain = reactor.isMain,
+            preambles = reactor.preambles.map { it.code.toText() },
+            stateVars = reactor.stateVars.map { StateVarInfo(it.name, it.targetType, init = it.init.singleOrNull()?.toText()) }
         )
     }
 
