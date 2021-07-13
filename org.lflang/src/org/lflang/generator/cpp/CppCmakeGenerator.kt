@@ -131,6 +131,12 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |)
                 |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
                 |
+                |if(MSVC)
+                |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
+                |else()
+                |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE -Wall -Wextra -pedantic)
+                |endif()
+                |
                 |install(TARGETS $S{LF_MAIN_TARGET}
                 |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
                 |)

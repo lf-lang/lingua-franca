@@ -1,0 +1,38 @@
+/**
+ * This tests an output that is broadcast back to a multiport input of a bank.
+ */
+target C {
+    timeout: 1 sec
+};
+reactor SenderAndReceiver {
+    output out:int;
+    input[2] in:int;
+    state received:bool(false);
+    
+    reaction(startup) -> out {=
+        SET(out, 42);
+    =}
+    
+    r = new Receiver();
+    in -> r.in;
+}
+reactor Receiver {
+    input[2] in:int;
+    state received:bool(false);
+    
+    reaction(in) {=
+        if (in[0]->is_present && in[1]->is_present && in[0]->value == 42 && in[1]->value == 42) {
+            info_print("SUCCESS");
+            self->received = true;
+        }
+    =}
+    reaction(shutdown) {=
+        if (!self->received == true) {
+            error_print_and_exit("Failed to receive broadcast");
+        }
+    =}
+}
+federated reactor {
+    s = new[2] SenderAndReceiver();
+    (s.out)+ -> s.in;
+}
