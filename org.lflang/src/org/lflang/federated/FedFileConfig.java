@@ -32,7 +32,8 @@ import org.lflang.FileConfig;
 
 /**
  * A child class of @see FileConfig that extends the base functionality to add support
- * for federated execution. Each federate should instantiate this class.
+ * for federated execution. The code generator should create one instance of this class 
+ * for each federate.
  * 
  * @author Soroush Bateni
  *

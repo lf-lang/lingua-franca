@@ -193,6 +193,13 @@ public class FileConfig {
         this.iResource = getIResource(resource);
     }
     
+    /**
+     * A copy constructor for FileConfig objects. Children of this class can
+     * use this constructor to obtain a copy of a parent object.
+     * 
+     * @param fileConfig An object of FileConfig
+     * @throws IOException
+     */
     protected FileConfig(FileConfig fileConfig) throws IOException {
         this.resource = fileConfig.resource;
         this.fsa = fileConfig.fsa;
@@ -407,7 +414,27 @@ public class FileConfig {
      */
     public static void copyDirectory(Path src, Path dest) throws IOException {
         try (Stream<Path> stream = Files.walk(src)) {
-            stream.forEach(source -> copyFile(source, dest.resolve(src.relativize(source))));
+            stream.forEach(source -> {
+                // Handling checked exceptions in lambda expressions is
+                // hard. See 
+                // https://www.baeldung.com/java-lambda-exceptions#handling-checked-exceptions.
+                // An alternative would be to create a custom Consumer interface and use that
+                // here.
+                try {
+                    copyFile(source, dest.resolve(src.relativize(source)));
+                } catch (Exception e) {
+                    try {
+                        // Handle IOExceptions specifically as
+                        // a checked exception.
+                        IOException ex = (IOException)e;
+                        throw ex;
+                    } catch (Exception exp) {
+                        // Every other exception is thrown as a
+                        // RuntimeException
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
         }
     }
 
@@ -416,10 +443,14 @@ public class FileConfig {
      * 
      * @param source The source file path string.
      * @param dest The destination file path string.
-     * @throws RuntimeException if copy fails.
+     * @throws IOException if copy fails.
      */
-    public static void copyFile(String src, String dest) {
-        copyFile(Paths.get(src), Paths.get(dest));
+    public static void copyFile(String src, String dest)  throws IOException {
+        try {
+            copyFile(Paths.get(src), Paths.get(dest));
+        } catch (IOException e) {
+            throw e;
+        }
     }
 
     /**
@@ -427,13 +458,13 @@ public class FileConfig {
      * 
      * @param source The source file path.
      * @param dest The destination file path.
-     * @throws RuntimeException if copy fails.
+     * @throws IOException if copy fails.
      */
-    public static void copyFile(Path src, Path dest) {
+    public static void copyFile(Path src, Path dest)  throws IOException {
         try {
             Files.copy(src, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage(), e);
+        } catch (IOException e) {
+            throw e;
         }
     }
 
