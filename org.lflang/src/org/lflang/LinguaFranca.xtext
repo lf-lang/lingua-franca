@@ -90,6 +90,7 @@ Reactor:
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
+        | (methods+=Method)
         | (inputs+=Input)
         | (outputs+=Output)
         | (timers+=Timer)
@@ -141,6 +142,18 @@ TargetDecl:
                 (','  init+=Value)*)? parens+=')'
         )?
     ) ';'?
+;
+
+Method:
+    const?='const'? 'method' name=ID
+    '(' (arguments+=MethodArgument (',' arguments+=MethodArgument)*)? ')'
+    (':' return=Type)?
+    code=Code
+    ';'?
+;
+
+MethodArgument:
+    name=ID (':' type=Type)?
 ;
 
 Input:
@@ -457,7 +470,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' | 'as' | 'from' |
+    'new' | 'federated' | 'at' | 'as' | 'from' | 'const' | 'method' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
