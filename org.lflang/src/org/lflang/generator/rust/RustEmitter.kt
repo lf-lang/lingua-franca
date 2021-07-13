@@ -33,11 +33,11 @@ import org.lflang.withDQuotes
  * Generates Rust code
  */
 object RustEmitter {
-    /** Alias of the rust runtime in the generated code. */
-    const val rsRuntimeIdent = "_rr"
+    /** Name of the runtime crate that is in its Cargo.toml.*/
+    const val runtimeCrateFullName = "reactor_rt"
 
     /** Qualification prefix to refer to a member of the runtime library crate. */
-    const val rsRuntime = "::$rsRuntimeIdent"
+    const val rsRuntime = "::$runtimeCrateFullName"
 
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
@@ -192,7 +192,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         this += """
             |// ${generatedByHeader()}
             |#[macro_use]
-            |extern crate reactor_rust as $rsRuntimeIdent;
+            |extern crate $runtimeCrateFullName;
             |
             |mod reactors;
             |
@@ -235,7 +235,7 @@ ${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use s
 
             |# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-            |[dependencies.reactor_rust]
+            |[dependencies.$runtimeCrateFullName]
             |#-- The reactor runtime --#
             |# See https://doc.rust-lang.org/cargo/appendix/git-authentication.html#ssh-authentication
             |# git = "ssh://git@github.com:icyphy/reactor-rust.git"
@@ -294,7 +294,7 @@ private object ReactorComponentEmitter {
         with(PrependOperator) {
             """
             |// todo reproduce header & metadata here
-            |fn $workerId(&mut self, ctx: &mut _rr::LogicalCtx, ${reactionParams()}) {
+            |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, ${reactionParams()}) {
 ${"         |    "..body}
             |}
         """.trimMargin()
