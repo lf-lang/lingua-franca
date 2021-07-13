@@ -695,149 +695,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    // //////////////////////////////////////////
-    // Protected methods for code generation
-    // of the RTI.
-    // FIXME: Allow target code generators to specify the directory
-    // structure for the generated C RTI?
-    /** Create the runtime infrastructure (RTI) source file.
-     */
-    def createFederateRTI() {
-        // Derive target filename from the .lf filename.
-        var cFilename = fileConfig.name + "_RTI.c"
-
-        // Delete source previously produced by the LF compiler.
-        // 
-        var file = fileConfig.RTISrcPath.resolve(cFilename).toFile
-        if (file.exists) {
-            file.delete
-        }
-        
-        // Also make sure the directory exists.
-        if (!file.parentFile.exists || !file.parentFile.isDirectory) {
-            file.mkdirs
-        }
-
-        // Delete binary previously produced by the C compiler.
-        file = fileConfig.RTIBinPath.resolve(fileConfig.name).toFile
-        if (file.exists) {
-            file.delete
-        }
-
-        val rtiCode = new StringBuilder()
-        pr(rtiCode, '''
-            #ifdef NUMBER_OF_FEDERATES
-            #undefine NUMBER_OF_FEDERATES
-            #endif
-            #define NUMBER_OF_FEDERATES «federates.size»
-            #include "rti.c"
-            int main(int argc, char* argv[]) {
-        ''')
-        indent(rtiCode)
-
-        // Initialize the array of information that the RTI has about the
-        // federates.
-        // FIXME: No support below for some federates to be FAST and some REALTIME.
-        pr(rtiCode, '''
-            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                initialize_federate(i);
-                «IF targetConfig.fastMode»
-                    federates[i].mode = FAST;
-                «ENDIF»
-            }
-        ''')
-        // Initialize the arrays indicating connectivity to upstream and downstream federates.
-        for (federate : federates) {
-            if (federate.dependsOn.size > 0) {
-                // Federate receives non-physical messages from other federates.
-                // Initialize the upstream and upstream_delay arrays.
-                val numUpstream = federate.dependsOn.size
-                // Allocate memory for the arrays storing the connectivity information.
-                pr(rtiCode, '''
-                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
-                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
-                    federates[«federate.id»].num_upstream = «numUpstream»;
-                ''')
-                // Next, populate these arrays.
-                // Find the minimum delay in the process.
-                // No delay is encoded as NEVER.
-                var count = 0;
-                for (upstreamFederate : federate.dependsOn.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
-                        federates[«federate.id»].upstream_delay[«count»] = NEVER;
-                    ''')
-                    // The minimum delay calculation needs to be made in the C code because it
-                    // may depend on parameter values.
-                    // FIXME: These would have to be top-level parameters, which don't really
-                    // have any support yet. Ideally, they could be overridden on the command line.
-                    // When that is done, they will need to be in scope here.
-                    val delays = federate.dependsOn.get(upstreamFederate)
-                    if (delays !== null) {
-                        for (delay : delays) {
-                            // If delay is null, use the default, NEVER. Otherwise, override if less than seen.
-                            if (delay !== null) {
-                                pr(rtiCode, '''
-                                    if (federates[«federate.id»].upstream_delay[«count»] < «delay.getRTITime») {
-                                        federates[«federate.id»].upstream_delay[«count»] = «delay.getRTITime»;
-                                    }
-                                ''')
-                            }
-                        }
-                    }
-                    count++;
-                }
-            }
-            // Next, set up the downstream array.
-            if (!federate.sendsTo.keySet.isEmpty) {
-                // Federate sends non-physical messages to other federates.
-                // Initialize the downstream array.
-                val numDownstream = federate.sendsTo.keySet.size
-                // Allocate memory for the array.
-                pr(rtiCode, '''
-                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
-                    federates[«federate.id»].num_downstream = «numDownstream»;
-                ''')
-                // Next, populate the array.
-                // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
-                var count = 0;
-                for (downstreamFederate : federate.sendsTo.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
-                    ''')
-                    count++;
-                }
-            }
-        }
-
-        // Start the RTI server before launching the federates because if it
-        // fails, e.g. because the port is not available, then we don't want to
-        // launch the federates.
-        // Also generate code that blocks until the federates resign.
-        pr(rtiCode, '''
-            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
-            wait_for_federates(socket_descriptor);
-        ''')
-
-        unindent(rtiCode)
-        pr(rtiCode, "}")
-
-        var fOut = new FileOutputStream(fileConfig.RTISrcPath.resolve(cFilename).toFile);
-        fOut.write(rtiCode.toString().getBytes())
-        fOut.close()
-    }
-
-    /** 
-     * Invoke the C compiler on the generated RTI 
-     * The C RTI is used across targets. Thus we need to be able to compile 
-     * it from GeneratorBase. 
-     */
-    def compileRTI() {
-        var fileToCompile = fileConfig.name + '_RTI'
-        runCCompiler(fileToCompile, false)
-    }
-
     /** 
      * Run the C compiler.
      * 
@@ -957,7 +814,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
         
         var compileArgs = newArrayList
         compileArgs.add(relSrcPathString)
-        compileArgs.addAll(targetConfig.compileAdditionalSources)
+        for (file: targetConfig.compileAdditionalSources) {
+            var relativePath = fileConfig.outPath.relativize(
+                fileConfig.getSrcGenPath.resolve(Paths.get(file)))
+            compileArgs.add(FileConfig.toUnixString(relativePath))
+        }
         compileArgs.addAll(targetConfig.compileLibraries)
 
         // Only set the output file name if it hasn't already been set
