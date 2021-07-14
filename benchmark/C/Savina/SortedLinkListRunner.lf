@@ -1,0 +1,185 @@
+/**
+ * Upon startup, the LinkedList actor initializes a
+ * link list with random elements. Upon startup the 
+ * Worker actors would send either a `read` or `write`
+ * request to the LinkList, which respond by sending
+ * a `result` signal. When Worker receive this signal,
+ * if they've hit their target requests amount will 
+ * send a `finish` message otherwise will continue 
+ * to query the LinkList.
+ */
+ 
+target C {
+    fast: true,
+    threads: 4,
+    tracing: true
+};
+
+import BenchmarkRunner from "BenchmarkRunner.lf";
+
+reactor LinkedList(num_workers:int(20)){
+    preamble {=
+        typedef struct listnode {
+            int val;
+            struct listnode * next;
+        } linklist;
+        void insert (linklist **head, int val){
+            linklist * node = NULL;
+            node = (linklist *) malloc(sizeof(linklist));
+            node->val = val;
+            node-> next = NULL;
+            
+            if (*head == NULL || (*head)->val > val){
+                node->next = *head;
+                *head = node;
+          		return;
+            }
+            linklist * curr = *head;
+            while (curr->next != NULL && curr->next->val < val) {
+        		curr = curr->next;
+    		}
+    		linklist * temp = curr->next;
+    		curr->next = node;
+            curr->next->next = temp;
+            return;
+        }
+        bool lookup (linklist *head, int val){
+            linklist * curr = head;
+            while (curr != NULL){
+                if (curr->val == val){
+                    return true;
+                }
+                curr = curr->next;
+            }
+            return false;
+        }
+        void printlist(linklist * head) {
+   			linklist * current = head;
+
+    		while (current != NULL) {
+        		printf("%d ", current->val);
+        		current = current->next;
+    		}
+    		printf("\n");
+		}
+    =}
+    
+    input[num_workers] read:int;
+    input[num_workers] write:int;
+    input start:bool;
+    input[num_workers] workers_finish:bool;
+    
+    state list:{=linklist*=};
+  	state workers_done:int;
+    output[num_workers] result:bool;
+    output[num_workers] start_workers:bool;
+    output finish:bool;
+    
+    reaction(start)->start_workers{=
+        // initialize linked list with random elements
+        self->list = (linklist*) NULL;
+        for (int i = 0; i < 10; i ++){
+            insert(&(self->list),rand()%100);
+        }
+        for (int i = 0; i<self->num_workers; i++){
+        	SET(start_workers[i],true);
+        }
+        self->workers_done = 0;
+    =}
+    reaction(write)->result{=
+    	for (int i = 0; i < self->num_workers; i++){
+            if(write[i]->is_present){
+                insert(&(self->list),write[i]->value);
+           //     printf("List content after insert: ");
+           //     printlist(self->list);
+                SET(result[i],true);
+            }
+        }
+	=}
+	reaction(read)->result{=
+		for (int i = 0; i < self->num_workers; i++){
+            if(read[i]->is_present){
+                bool found = lookup(self->list,read[i]->value);
+            //    printf("Result of looking up %d: %d \n",read[i]->value, found);
+                SET(result[i],true);
+            }
+        }
+    =}
+    reaction (workers_finish)->finish{=
+        for (int i = 0; i < self->num_workers; i++){
+            if(workers_finish[i]->is_present){
+                self->workers_done++;
+          //      printf("Workers %d is done. \n", i);
+            }
+            if (self->workers_done == self->num_workers){
+                SET(finish,true);
+            }
+        }
+    =}
+}
+
+reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
+    input start:bool;
+    input result:bool;
+    
+    state requests_sent:int;
+    logical action request;
+    
+    output read:int;
+    output write:int;
+    output finish:bool;
+    
+    reaction(start)->request{=
+        self->instance = self->bank_index;
+        self->requests_sent = 0;
+        schedule(request,0);
+    =}
+    reaction(request)->read, write{=
+        int coin = rand()%100;
+ 		int val = rand()%100;
+ 		if (coin <= self->write_percentage){
+            SET(write,val);
+         //   printf("Worker %d sent write request for %d \n", self->instance, val);
+        }else{
+            SET(read,val);
+         //   printf("Worker %d sent read request for %d \n", self->instance, val);
+        }
+        self->requests_sent++;
+	=}
+	
+	reaction(result)->request,finish{=
+        if (self->requests_sent>=self->num_requests){
+            SET(finish,true);
+        }else{
+            schedule(request,0);
+        }
+    =}
+}
+
+main reactor(num_workers:int(10),
+    num_requests:int(10),
+    write_percentance:int(10),
+    numIterations:int(12), 
+    count:unsigned(1000000)
+){
+    list = new LinkedList(num_workers=num_workers);
+	workers = new[num_workers] Worker(num_requests=num_requests,write_percentage=write_percentance);
+	runner = new BenchmarkRunner(numIterations=numIterations);
+	runner.outIterationStart -> list.start;
+	list.finish -> runner.inIterationFinish;
+	
+	reaction(startup) -> runner.inStart {=
+        printf("SortedLinkedListBenchmark\n");
+        printf("numIterations: %d, count: %d\n", self->numIterations, self->count);
+        printSystemInfo(); 
+        SET(runner.inStart, true);
+    =}
+    
+	workers.read -> list.read;
+	workers.write ->list.write;
+	workers.finish -> list.workers_finish;
+	list.result -> workers.result;
+	list.start_workers ->workers.start;
+
+}    
+    
