@@ -1287,6 +1287,7 @@ class CGenerator extends GeneratorBase {
                 then
                     echo "RTI could not be found."
                     echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+                    echo "Follow the instructions in README.md in that directory."
                     exit
                 fi                
                 # The RTI is started first to allow proper boot-up
@@ -1347,6 +1348,7 @@ class CGenerator extends GeneratorBase {
                     then
                         echo "RTI could not be found."
                         echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+                        echo "Follow the instructions in README.md in that directory."
                         exit
                     fi
                     «RTILaunchString» 2>&1 | tee -a «logFileName»' &
