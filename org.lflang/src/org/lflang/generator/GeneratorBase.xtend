@@ -430,8 +430,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
         
         if (!enabledSerializations.isNullOrEmpty) {
             // If serialization support is
-            // requested by the programmer. Therefore,
-            // we would need to enable support for them.
+            // requested by the programmer 
+            // enable support for them.
             enableSupportForSerialization();            
         }
     }
