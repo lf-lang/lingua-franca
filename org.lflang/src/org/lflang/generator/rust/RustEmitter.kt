@@ -200,10 +200,11 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
     private fun reactionWrappers(reactor: ReactorInfo): String {
 
         fun joinDependencies(n: ReactionInfo): String =
-            if (n.depends.isEmpty()) ""
-            else n.depends.joinToString(", ", prefix = ", ") {
-                with(ReactorComponentEmitter) { it.toBorrow() }
-            }
+            n.allDependencies
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(", ", prefix = ", ") {
+                    with(ReactorComponentEmitter) { it.toBorrow() }
+                }.orEmpty()
 
         return reactor.reactions.joinToString { n: ReactionInfo ->
             """
@@ -231,7 +232,7 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
      */
     private fun ReactorInfo.influencedReactionsOf(component: ReactorComponent): List<ReactionInfo> =
         reactions.filter {
-            component in it.depends
+            component in it.triggers
         }
 
 
@@ -357,7 +358,7 @@ ${"         |    "..body}
         }
 
     private fun ReactionInfo.reactionParams() =
-        depends.joinToString(", ") { "${it.lfName}: ${it.toBorrowedType()}" }
+        allDependencies.joinToString(", ") { "${it.lfName}: ${it.toBorrowedType()}" }
 
 
 }

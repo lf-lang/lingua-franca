@@ -141,13 +141,22 @@ data class ReactionInfo(
     val idx: Int,
     /** Target code for the reaction body. */
     val body: TargetCode,
-    /** Dependencies declared by the reaction, which are served to the worker function. */
-    val depends: Set<ReactorComponent>,
+
+    /** Dependencies that trigger the reaction. */
+    val triggers: Set<ReactorComponent>,
+    /** Dependencies that the reaction may use, but which do not trigger it. */
+    val uses: Set<ReactorComponent>,
+    /** Dependencies that the reaction may write to/schedule. */
+    val effects: Set<ReactorComponent>,
+
     /** Whether the reaction is triggered by the startup event. */
     val isStartup: Boolean,
     /** Whether the reaction is triggered by the shutdown event. */
     val isShutdown: Boolean,
 ) {
+
+    val allDependencies get() = triggers + uses + effects
+
     // those are implementation details
 
     /** The ID of the reaction in the reaction enum. */
@@ -251,11 +260,16 @@ object RustModelBuilder {
                 components[irObj.lfName] = irObj
             }
 
+
             val reactions = reactor.reactions.map { n: Reaction ->
-                val dependencies = (n.effects + n.sources).mapTo(LinkedHashSet()) { components[it.name]!! }
+                fun makeDeps(depKind: Reaction.() -> List<VarRef>) =
+                    n.depKind().mapTo(LinkedHashSet()) { components[it.name]!! }
+
                 ReactionInfo(
                     idx = n.indexInContainer,
-                    depends = dependencies,
+                    effects = makeDeps { effects },
+                    uses = makeDeps { sources },
+                    triggers = makeDeps { triggers.filterIsInstance<VarRef>() },
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it.isStartup },
                     isShutdown = n.triggers.any { it.isShutdown }
