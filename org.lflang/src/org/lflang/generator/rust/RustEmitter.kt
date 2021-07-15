@@ -164,8 +164,9 @@ ${"             |       "..assembleChildReactors()}
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
                 |       }
-                |       {// declare connections between children
-${"             |       "..declareChildConnections()}
+                |       {
+                |           // declare connections between children
+${"             |           "..declareChildConnections()}
                 |       }
                 |       Self {
                 |           _rstate,
@@ -183,10 +184,7 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
 
     private fun ReactorInfo.assembleChildReactors(): String =
         nestedInstances.joinToString("\n") {
-            """
-               |#[allow(non_snake_case)]
-               |let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, (/*todo params*/));
-            """.trimMargin()
+            "let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, (/*todo params*/));"
         }
 
 
@@ -196,7 +194,7 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
         }
 
         // todo bind_ports
-        return declarations
+        return declarations + "\n// TODO bind_ports(...)"
     }
 
 
@@ -243,6 +241,7 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
         this += """
             |${generatedByComment("//")}
             |#![allow(unused_imports)]
+            |#![allow(non_snake_case)]
             |
             |#[macro_use]
             |extern crate $runtimeCrateFullName;
