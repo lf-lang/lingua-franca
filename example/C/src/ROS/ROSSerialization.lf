@@ -37,6 +37,9 @@ preamble {=
 
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:uint8_t*;
+	// output y:std_msg::msg::Int32; // serialized-by ROS
+	// output y2:int;   // Native
+	// output y3:Hello; // Protobuf
 	
 	timer t(0, period);
 	state count:int(0);
@@ -44,6 +47,8 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	reaction(t) -> y {=
         
 		(self->count)++;
+		
+		// From https://github.com/ros2/demos/blob/master/demo_nodes_cpp/src/topics/talker_serialized_message.cpp
        	
        	auto msg = std::make_shared<std_msgs::msg::Int32>();
         msg->data = self->count;

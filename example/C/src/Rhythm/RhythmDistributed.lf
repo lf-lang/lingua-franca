@@ -25,9 +25,9 @@
  */
 target C {
     coordination: centralized,
-    build: ["./compile.sh RhythmDistributed_RTI", 
-    		"./compile.sh RhythmDistributed_player1",
-    		"./compile.sh RhythmDistributed_player2"],
+    build: ["./compile.sh RhythmDistributed_player1",
+    		"./compile.sh RhythmDistributed_player2",
+    		"./compile.sh RhythmDistributed_player3"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
@@ -58,8 +58,11 @@ reactor Player {
 federated reactor {
     player1 = new Player();
     player2 = new Player();
+    player3 = new Player();
     player1.rhythm_change -> player2.rhythm_change_in;
     player1.tempo_change -> player2.tempo_change_in;
-    player2.rhythm_change -> player1.rhythm_change_in;
-    player2.tempo_change -> player1.tempo_change_in;
+    player2.rhythm_change -> player3.rhythm_change_in;
+    player2.tempo_change -> player3.tempo_change_in;
+    player3.rhythm_change -> player1.rhythm_change_in;
+    player3.tempo_change -> player1.tempo_change_in;
 }

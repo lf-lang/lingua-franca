@@ -473,6 +473,14 @@ public class FedASTUtils {
         // Add the action to the reactor.
         parent.getActions().add(action);
         
+        // Get the serialization method
+        var serialization = SERIALIZATION.NATIVE;
+        if (connection.getSerialization() != null) {
+            serialization = SERIALIZATION.valueOf(
+                    connection.getSerialization().getSerialization().toUpperCase()
+            );
+        }
+        
         // Configure the sending reaction.
         r1.getTriggers().add(sourceRef);
         r1.setCode(factory.createCode());
@@ -486,7 +494,8 @@ public class FedASTUtils {
             rightFederate,
             ASTUtils.getInferredType(action),
             connection.isPhysical(),
-            connection.getDelay()
+            connection.getDelay(),
+            serialization
         ));
               
         // Add the sending reaction to the parent.
@@ -530,7 +539,8 @@ public class FedASTUtils {
             rightBankIndex,
             rightChannelIndex,
             ASTUtils.getInferredType(action),
-            connection.isPhysical()
+            connection.isPhysical(),
+            serialization
         ));
         
         // Add the receiver reaction to the parent

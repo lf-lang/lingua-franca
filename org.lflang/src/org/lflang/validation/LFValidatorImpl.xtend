@@ -67,6 +67,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.Serialization
 import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
@@ -81,6 +82,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SERIALIZATION
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -1082,6 +1084,26 @@ class LFValidatorImpl extends AbstractLFValidator {
                 "Invalid host name or fully qualified domain name.",
                 Literals.HOST__ADDR
             )
+        }
+    }
+    
+    /**
+     * Check if the requested serialization is supported.
+     */
+    @Check(FAST)
+    def checkSerialization(Serialization serialization) {
+        var boolean isValidSerialization = false;
+        for (SERIALIZATION method : SERIALIZATION.values()) {
+          if (method.name().equalsIgnoreCase(serialization.serialization)){
+              isValidSerialization = true;
+          }          
+        }
+        
+        if (!isValidSerialization) {
+            error(
+                "Serialization can be " + SERIALIZATION.values.toList, 
+                Literals.SERIALIZATION__SERIALIZATION
+            );
         }
     }
 

@@ -58,6 +58,7 @@ import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 import java.io.ByteArrayOutputStream
+import org.lflang.federated.SERIALIZATION
 
 /** Generator for TypeScript target.
  *
@@ -952,6 +953,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serialization The serialization method used on the connection.
      */
     override generateNetworkReceiverBody(
         Action action,
@@ -963,7 +965,8 @@ class TypeScriptGenerator extends GeneratorBase {
         int receivingBankIndex,
         int receivingChannelIndex,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        SERIALIZATION serialization
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
@@ -989,6 +992,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
+     * @param serialization The serialization method used on the connection.
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     override String generateNetworkSenderBody(
@@ -1001,7 +1005,8 @@ class TypeScriptGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay
+        Delay delay,
+        SERIALIZATION serialization
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
