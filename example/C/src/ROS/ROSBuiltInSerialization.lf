@@ -59,7 +59,7 @@ reactor Receiver {
             "Serialized integer after deserialization: %d", 
             in->value.data
         );
-	=}
+    =}
 }
 
 federated reactor {
