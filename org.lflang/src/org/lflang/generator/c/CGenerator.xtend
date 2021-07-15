@@ -4487,6 +4487,13 @@ class CGenerator extends GeneratorBase {
         
         // Make sure src-gen directory exists.
         fileConfig.getSrcGenPath.toFile.mkdirs
+        
+        // FIXME: Probably not the best place to do 
+        // this.
+        if (!targetConfig.protoFiles.isNullOrEmpty) {
+            // Enable support for proto serialization
+            enabledSerializations.add(SERIALIZATION.PROTO)
+        }
     }
     
     /**

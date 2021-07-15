@@ -427,6 +427,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
+        
+        if (!enabledSerializations.isNullOrEmpty) {
+            // If serialization support is
+            // requested by the programmer. Therefore,
+            // we would need to enable support for them.
+            enableSupportForSerialization();            
+        }
     }
 
     /**
@@ -1888,13 +1895,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // The action will be physical for physical connections and logical
             // for logical connections.
             replaceFederateConnectionsWithActions()
-        }
-        
-        if (!enabledSerializations.isNullOrEmpty) {
-            // If serialization support is
-            // requested by the programmer. Therefore,
-            // we would need to enable support for them.
-            enableSupportForSerialization();            
         }
     }
     
