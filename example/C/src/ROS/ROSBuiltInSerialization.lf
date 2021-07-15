@@ -51,7 +51,7 @@ reactor Sender {
 
 
 reactor Receiver {
-	input in:std_msgs::msg::Int32;
+    input in:std_msgs::msg::Int32;
         
     reaction (in) {=        
         // Print the ROS2 message data
