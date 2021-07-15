@@ -1887,7 +1887,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
             replaceFederateConnectionsWithActions()
         }
         
-        enableSupportForSerialization();
+        if (isFederated) {
+            // If the program is federated, some
+            // serialization support might have been
+            // requested by the programmer. Therefore,
+            // we would need to enable support for them.
+            enableSupportForSerialization();            
+        }
     }
     
     /**
