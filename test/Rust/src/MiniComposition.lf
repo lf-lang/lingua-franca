@@ -1,0 +1,19 @@
+
+target Rust;
+reactor Component1 {
+  reaction(startup) {=
+    println!("c1 woke up");
+  =}
+}
+reactor Component2 {
+  reaction(startup) {=
+    println!("c2 woke up");
+  =}
+}
+main reactor MiniComposition {
+      c1 = new Component1();
+      c2 = new Component2();
+      reaction(startup) {=
+        println!("parent woke up");
+      =}
+}

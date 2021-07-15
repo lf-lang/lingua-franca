@@ -12,6 +12,7 @@ main reactor StructAsState {
     // todo
     // state s: Hello(name= "Earth".into(), value= 42);
     // state s: Hello(name: "Earth".into(), value: 42);
+    // state s: Hello { name: "Earth".into(), value: 42 };
     state s: Hello ({= Hello { name: "Earth".into(), value: 42 } =});
 
     reaction(startup) {=
