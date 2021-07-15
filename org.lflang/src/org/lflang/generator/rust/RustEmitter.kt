@@ -123,9 +123,10 @@ ${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDe
                 |impl ReactorAssembler for $assemblerName {
                 |    type RState = $dispatcherName;
                 |
-                |    fn start(&mut self, link: SchedulerLink, ctx: &mut LogicalCtx) {
+                |    fn start(&mut self, startup_ctx: &mut StartupCtx) {
                 |        if ${reactor.reactions.any { it.isStartup }} {
                 |            let dispatcher = &mut self._rstate.lock().unwrap();
+                |            let ctx = startup_ctx.logical_ctx();
                 |
                 |            // Execute reactions triggered by startup in order.
 ${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString("\n") { 
@@ -172,7 +173,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         nestedInstances.joinToString("\n") {
             """
                |#[allow(non_snake_case)]
-               |let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(&mut rid, (/*todo params*/));
+               |let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, (/*todo params*/));
             """.trimMargin()
         }
 
@@ -246,7 +247,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             |    };
             |    let mut scheduler = SyncScheduler::new(options);
             |    scheduler.startup(|mut starter| {
-            |        starter.start(&mut topcell);
+            |        topcell.start(&mut starter);
             |    });
             |    scheduler.launch_async().join().unwrap();
             |}
