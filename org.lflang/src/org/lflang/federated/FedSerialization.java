@@ -22,4 +22,8 @@ public interface FedSerialization {
     public StringBuilder generateNetworkSerialzerCode(String portName, String portType);
     
     public StringBuilder generateNetworkDeserializerCode(String portName, String portType);
+    
+    public StringBuilder generatePreambleForSupport();
+    
+    public StringBuilder generateCompilerExtensionForSupport();
 }

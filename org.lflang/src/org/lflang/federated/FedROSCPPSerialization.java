@@ -3,7 +3,7 @@ package org.lflang.federated;
 import org.lflang.Target;
 import org.lflang.generator.GeneratorBase;
 
-public class FedROSSerialization implements FedSerialization {
+public class FedROSCPPSerialization implements FedSerialization {
 
     /**
      * Check whether the current generator is compatible with the given
@@ -71,10 +71,44 @@ public class FedROSSerialization implements FedSerialization {
         deserializerCode.append(
                 "MessageT "+deserializedVarName+";\n"
               + "auto serializer = rclcpp::Serialization<MessageT>();\n"
-              + "serializer.deserialize_message(msg.get(), &"+deserializedVarName+");"
+              + "serializer.deserialize_message(msg.get(), &"+deserializedVarName+");\n"
         );
         
         return deserializerCode;
+    }
+
+    @Override
+    public StringBuilder generatePreambleForSupport() {
+        StringBuilder preamble = new StringBuilder();
+        
+        preamble.append(
+            "#include \"rcutils/allocator.h\"\n"
+          + "#include \"rclcpp/rclcpp.hpp\"\n"
+          + "#include \"rclcpp/serialization.hpp\"\n"
+          + "#include \"rclcpp/serialized_message.hpp\"\n"
+        );
+        
+        return preamble;        
+    }
+
+    @Override
+    public StringBuilder generateCompilerExtensionForSupport() {
+        StringBuilder cMakeExtension = new StringBuilder();
+        
+        cMakeExtension.append(
+            "enable_language(CXX)\n"
+          + "set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings -O2\")\n"
+          + "\n"
+          + "find_package(ament_cmake REQUIRED)\n"
+          + "find_package(rclcpp REQUIRED)\n"
+          + "find_package(rclcpp_components REQUIRED)\n"
+          + "find_package(rcutils)\n"
+          + "find_package(rmw REQUIRED)\n"
+          + "\n"
+          + "ament_target_dependencies( ${LF_MAIN_TARGET} rclcpp rmw)"
+        );
+        
+        return cMakeExtension;
     }
 
 }
