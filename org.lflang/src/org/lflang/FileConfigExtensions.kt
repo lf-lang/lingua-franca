@@ -25,6 +25,7 @@
 package org.lflang
 
 import org.eclipse.emf.ecore.resource.Resource
+import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -43,7 +44,9 @@ fun Resource.toPath() = FileConfig.toPath(this)
 fun Path.toUnixString(): String = FileConfig.toUnixString(this)
 
 /**
- * Create nested directories if the given path does not exist.
+ * Create parent directories if they do not exist.
  */
-fun Path.createDirectories() = FileConfig.createDirectories(this)
+fun Path.createDirectories() {
+    parent?.let(Files::createDirectories)
+}
 
