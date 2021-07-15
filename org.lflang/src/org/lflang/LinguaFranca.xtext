@@ -389,6 +389,11 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 @Override
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
+@Override
+terminal STRING:
+            '"' ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|'"') )* '"'
+        ;
+
 Kebab: (ID|"physical")('-'ID)*;
 
 terminal NEGINT:
@@ -509,5 +514,7 @@ Token:
     // Percentage
     '%' |
     // Annotation
-    '@'
+    '@' |
+    // Single quotes
+    "'"
 ;
