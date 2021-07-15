@@ -68,7 +68,7 @@ object RustEmitter {
                 |
                 |use std::sync::{Arc, Mutex};
                 |
-${"             |"..reactor.preambles.joinToString("\n\n")}
+${"             |"..reactor.preambles.joinToString("\n\n") {"// preamble {=\n${it.trimIndent()}\n// =}"}}
                 |
                 |// todo link to source
                 |pub struct $structName {
