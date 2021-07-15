@@ -77,7 +77,9 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             ),
             reactors = reactors,
             mainReactor = mainReactor,
-            executableName = mainReactor.lfName
+            // Rust exec names are snake case, otherwise we get a cargo warning
+            // https://github.com/rust-lang/rust/issues/45127
+            executableName = mainReactor.lfName.camelToSnakeCase()
         )
     }
 

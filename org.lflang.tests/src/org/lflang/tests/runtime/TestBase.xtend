@@ -19,6 +19,7 @@ import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.validation.IResourceValidator
 import org.eclipse.xtext.xbase.lib.Functions.Function1
 import org.lflang.ASTUtils
+import org.lflang.CommonExtensionsKt
 import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.generator.StandaloneContext
@@ -345,6 +346,11 @@ abstract class TestBase {
             case Rust: {
                 val binPath = test.fileConfig.binPath
                 var binaryName = nameOnly
+                if (test.target == Target.Rust) {
+                    // Rust exec names are snake case, otherwise we get a cargo warning
+                    // https://github.com/rust-lang/rust/issues/45127
+                    binaryName = CommonExtensionsKt.camelToSnakeCase(binaryName)
+                }
                 // Adjust binary extension if running on Window
                 if (System.getProperty("os.name").startsWith("Windows")) {
                     binaryName = nameOnly + ".exe"
