@@ -83,6 +83,8 @@ import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedFileConfig
+import org.lflang.federated.SERIALIZATION
+import org.lflang.federated.FedROSSerialization
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -4107,6 +4109,7 @@ class CGenerator extends GeneratorBase {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serialization The serialization method used on the connection.
      */
     override generateNetworkReceiverBody(
         Action action,
@@ -4118,7 +4121,8 @@ class CGenerator extends GeneratorBase {
         int receivingBankIndex,
         int receivingChannelIndex,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        SERIALIZATION serialization
     ) {
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
@@ -4146,10 +4150,32 @@ class CGenerator extends GeneratorBase {
                 SET_TOKEN(«receiveRef», «action.name»->token);
             ''')
         } else {
-            // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-            // So passing it downstream should be OK.
+            var value = "";
+            switch (serialization) {
+                case NATIVE: {
+                    // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+                    // So passing it downstream should be OK.
+                    value = '''«action.name»->value''';
+                }
+                case PROTO: {
+                    throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+                }
+                case ROS2: {
+                    val ROSDeserializer = new FedROSSerialization()
+                    value = FedROSSerialization.deserializedVarName;
+                    result.append(
+                        ROSDeserializer.generateNetworkDeserializerCode(
+                            "networkMessage",
+                            (receivingPort.variable as Port).type.targetType
+                        )
+                    );
+                }
+                
+            }
+            
+            
             result.append('''
-                SET(«receiveRef», «action.name»->value);
+                SET(«receiveRef», «value»);
             ''')
         }
         
@@ -4169,6 +4195,7 @@ class CGenerator extends GeneratorBase {
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
+     * @param serialization The serialization method used on the connection.
      */
     override generateNetworkSenderBody(
         VarRef sendingPort,
@@ -4180,13 +4207,15 @@ class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay
+        Delay delay,
+        SERIALIZATION serialization
     ) { 
         var sendRef = generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
         val receiveRef = generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+            info_print("Here.");
         ''')
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
         // If the connection is logical and the coordination mode is centralized, send via RTI.
@@ -4237,21 +4266,42 @@ class CGenerator extends GeneratorBase {
                 «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
             ''')
         } else {
-            // Handle native types.
-            // string types need to be dealt with specially because they are hidden pointers.
-            // void type is odd, but it avoids generating non-standard expression sizeof(void),
-            // which some compilers reject.
-            var lengthExpression = switch(type.targetType) {
-                case 'string': '''strlen(«sendRef»->value) + 1'''
-                case 'void': '0'
-                default: '''sizeof(«type.targetType»)'''
+            var lengthExpression = "";
+            var pointerExpression = "";
+            switch (serialization) {
+                case NATIVE: {
+                    // Handle native types.
+                    // string types need to be dealt with specially because they are hidden pointers.
+                    // void type is odd, but it avoids generating non-standard expression sizeof(void),
+                    // which some compilers reject.
+                    lengthExpression = switch(type.targetType) {
+                        case 'string': '''strlen(«sendRef»->value) + 1'''
+                        case 'void': '0'
+                        default: '''sizeof(«type.targetType»)'''
+                    }
+                    pointerExpression = switch(type.targetType) {
+                        case 'string': '''(unsigned char*) «sendRef»->value'''
+                        default: '''(unsigned char*)&«sendRef»->value'''
+                    }
+                }
+                case PROTO: {
+                    throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+                }
+                case ROS2: {
+                    val ROSSerializer = new FedROSSerialization();
+                    lengthExpression = ROSSerializer.serializedVarLength();
+                    pointerExpression = ROSSerializer.seializedVarBuffer();
+                    result.append(
+                        ROSSerializer.generateNetworkSerialzerCode(sendRef, type.targetType)
+                    );
+                }
+                
             }
-            var pointerExpression = switch(type.targetType) {
-                case 'string': '''(unsigned char*) «sendRef»->value'''
-                default: '''(unsigned char*)&«sendRef»->value'''
-            }
+            
+
             result.append('''
             size_t message_length = «lengthExpression»;
+            info_print("%d", message_length);
             «sendingFunction»(«commonArgs», «pointerExpression»);
             ''')
         }

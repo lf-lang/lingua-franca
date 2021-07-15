@@ -87,6 +87,7 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SERIALIZATION
 
 /**
  * Generator base class for shared code between code generators.
@@ -1085,6 +1086,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serialization The serialization method used on the connection.
      */
     def String generateNetworkReceiverBody(
         Action action,
@@ -1096,7 +1098,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingBankIndex,
         int receivingChannelIndex,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        SERIALIZATION serialization
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -1115,6 +1118,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param serialization The serialization method used on the connection.
      */
     def String generateNetworkSenderBody(
         VarRef sendingPort,
@@ -1126,7 +1130,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay
+        Delay delay,
+        SERIALIZATION serialization
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
