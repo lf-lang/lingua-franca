@@ -25,17 +25,13 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.*
+import org.lflang.generator.cpp.name
 import org.lflang.generator.cpp.targetType
-import org.lflang.isInput
-import org.lflang.isLogical
 import org.lflang.lf.*
 import java.util.*
 
-/*
-    Model classes that serve as "intermediary representation" between the rust generator and emitter.
- */
-
-
+/** Root model class for the entire generation. */
 data class GenerationInfo(
     val crate: CrateInfo,
     val reactors: List<ReactorInfo>,
@@ -43,47 +39,106 @@ data class GenerationInfo(
     val executableName: String
 )
 
+/**
+ * Model class for a reactor class. This will be emitted as
+ * several structs in a Rust module.
+ */
 data class ReactorInfo(
+    /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
     val lfName: String,
-    val reactions: List<ReactionInfo>,
+    /** Whether this is the main reactor. */
     val isMain: Boolean,
+    /** A list of reactions, in order of their [ReactionInfo.idx]. */
+    val reactions: List<ReactionInfo>,
+    /** List of state variables. */
+    val stateVars: List<StateVarInfo>,
+    /** Other reactor components, like actions & timers. */
     val otherComponents: List<ReactorComponent>,
-    val ctorParamTypes: List<String> = emptyList(),
+    /** List of ctor parameters. */
+    val ctorParams: List<CtorParamInfo> = emptyList(),
+    /** List of preambles, will be outputted at the top of the file. */
     val preambles: List<String>,
-    val stateVars: List<StateVarInfo>
 ) {
-    val modName = lfName.toLowerCase(Locale.ROOT) // note: toLowercase is deprecated in kotlin 1.5.0
+    /** Name of the rust module (also of its containing file). */
+    val modName = lfName.camelToSnakeCase()
+
+    /** Name of the "user struct", which contains state
+     * variables as fields, and which the user manipulates in reactions.
+     */
     val structName get() = lfName
+
+    // Names of other implementation-detailistic structs.
+
     val dispatcherName = "${structName}Dispatcher"
     val assemblerName = "${structName}Assembler"
     val reactionIdName = "${structName}Reactions"
+
+    val ctorParamsTupleType: @TargetCode String
+        get() = "(${ctorParams.map { it.type }.joinWithCommas()})"
 }
 
-data class StateVarInfo(val lfName: String, val type: String, val init: String?)
+/**
+ * Model class for the parameters of a reactor constructor.
+ */
+data class CtorParamInfo(
+    val lfName: String,
+    val type: @TargetCode String,
+    val defaultValue: (@TargetCode String)?
+)
 
+/** Model class for a state variable. */
+data class StateVarInfo(
+    /**
+     * Identifier of the state var. From within a reaction
+     * body, the state var is accessible as a field with type
+     * [type] declared on the `self` struct.
+     */
+    val lfName: String,
+    /** Rust static type of the struct field. Must be `Sized`. */
+    val type: @TargetCode String,
+    /**
+     * The field initializer, a Rust expression. If null,
+     * will default to `Default::default()`.
+     */
+    val init: (@TargetCode String)?
+)
+
+/**
+ * Model class for a single reaction.
+ */
 data class ReactionInfo(
     /** Index in the containing reactor. */
     val idx: Int,
-    /** The ID of the reaction in the reaction enum. */
-    val rustId: String = "R$idx",
-    /** The name of the worker function for this reaction. */
-    val workerId: String = "react_$idx",
-    /** The name of the ReactionInvoker field for this reaction. */
-    val invokerId: String = "react_$idx",
+    /** Target code for the reaction body. */
+    val body: @TargetCode String,
     /** Dependencies declared by the reaction, which are served to the worker function. */
     val depends: Set<ReactorComponent>,
-    /** Target code for the reaction body. */
-    val body: String,
     /** Whether the reaction is triggered by the startup event. */
     val isStartup: Boolean,
     /** Whether the reaction is triggered by the shutdown event. */
     val isShutdown: Boolean,
-)
+) {
+    // those are implementation details
 
+    /** The ID of the reaction in the reaction enum. */
+    val rustId: String = "R$idx"
 
+    /** The name of the worker function for this reaction. */
+    val workerId: String = "react_$idx"
+
+    /** The name of the `ReactionInvoker` field for this reaction. */
+    val invokerId: String = "react_$idx"
+}
+
+/**
+ * Metadata about the generated crate. Mostly doesn't matter.
+ */
 data class CrateInfo(
+    /** Name of the crate. According to Rust conventions this should be a snake_case name. */
     val name: String,
+    /** Version of the crate. */
     val version: String,
+    /** List of names of the credited authors. */
     val authors: List<String>,
 )
 
@@ -100,7 +155,7 @@ TODO do we really need the following classes?
 
 
 sealed class ReactorComponent {
-    abstract val name: String
+    abstract val lfName: String
 
     companion object {
         /**
@@ -109,8 +164,8 @@ sealed class ReactorComponent {
          * have another interface.
          */
         fun from(v: Variable): ReactorComponent? = when (v) {
-            is Port   -> PortData(name = v.name, isInput = v.isInput, dataType = v.targetType)
-            is Action -> ActionData(name = v.name, isLogical = v.isLogical)
+            is Port   -> PortData(lfName = v.name, isInput = v.isInput, dataType = v.targetType)
+            is Action -> ActionData(lfName = v.name, isLogical = v.isLogical)
             else      -> TODO("Unsupported: ${v.javaClass.simpleName} $v")
         }
     }
@@ -119,7 +174,84 @@ sealed class ReactorComponent {
 /**
  * @property dataType A piece of target code
  */
-data class PortData(override val name: String, val isInput: Boolean, val dataType: String) : ReactorComponent()
+data class PortData(
+    override val lfName: String,
+    val isInput: Boolean,
+    /** Rust data type of the code. */
+    val dataType: @TargetCode String
+) : ReactorComponent()
 
-data class ActionData(override val name: String, val isLogical: Boolean) : ReactorComponent()
+data class ActionData(
+    override val lfName: String,
+    val isLogical: Boolean
+) : ReactorComponent()
+
+@Target(AnnotationTarget.TYPE)
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+annotation class TargetCode
+
+/**
+ * Produce model classes from the AST.
+ */
+object RustModelBuilder {
+
+    /**
+     * Given the input to the generator, produce the model classes.
+     */
+    fun makeGenerationInfo(reactors: List<Reactor>): GenerationInfo {
+        val reactorsInfos = makeReactorInfos(reactors)
+        // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
+        val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
+
+        return GenerationInfo(
+            crate = CrateInfo(
+                name = mainReactor.lfName.camelToSnakeCase(),
+                version = "1.0.0",
+                authors = listOf(System.getProperty("user.name"))
+            ),
+            reactors = reactorsInfos,
+            mainReactor = mainReactor,
+            // Rust exec names are snake case, otherwise we get a cargo warning
+            // https://github.com/rust-lang/rust/issues/45127
+            executableName = mainReactor.lfName.camelToSnakeCase()
+        )
+    }
+
+    private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
+        reactors.map { reactor ->
+            val components = mutableMapOf<String, ReactorComponent>()
+            for (component in reactor.allOutputs + reactor.allInputs + reactor.allActions) {
+                val irObj = ReactorComponent.from(component) ?: continue
+                components[irObj.lfName] = irObj
+            }
+
+            val reactions = reactor.reactions.map { n: Reaction ->
+                val dependencies = (n.effects + n.sources).mapTo(LinkedHashSet()) { components[it.name]!! }
+                ReactionInfo(
+                    idx = n.indexInContainer,
+                    depends = dependencies,
+                    body = n.code.toText(),
+                    isStartup = n.triggers.any { it.isStartup },
+                    isShutdown = n.triggers.any { it.isShutdown }
+                )
+            }
+
+            ReactorInfo(
+                lfName = reactor.name,
+                reactions = reactions,
+                otherComponents = components.values.toList(),
+                isMain = reactor.isMain,
+                preambles = reactor.preambles.map { it.code.toText() },
+                stateVars = reactor.stateVars.map {
+                    StateVarInfo(
+                        it.name,
+                        it.targetType,
+                        init = it.init.singleOrNull()?.toText()
+                    )
+                }
+            )
+        }
+}
+
 

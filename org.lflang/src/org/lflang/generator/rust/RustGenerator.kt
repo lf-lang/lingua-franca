@@ -37,7 +37,17 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.VarRef
 
 /**
- * Generates Rust code.
+ * Generator for the Rust target language. The generation is
+ * organized around a sort of intermediate representation
+ * that is constructed from the AST in a first step, then
+ * handed off to the [RustEmitter]. This makes the emitter
+ * simpler, as it takes fewer design decisions. This is also
+ * meant to make it easier to port the emitter to a bunch of
+ * templates written in a template language like Velocity.
+ *
+ * See [GenerationInfo] for the main model class.
+ *
+ * @author Clément Fournier
  */
 class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : GeneratorBase(fileConfig, errorReporter) {
 
@@ -53,10 +63,12 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             return
         }
 
+        val fileConfig = fileConfig as RustFileConfig
+
         fileConfig.srcGenPath.createDirectories()
 
-        val gen = makeGenerationInfo(resource, fsa, context)
-        RustEmitter.generateFiles(fileConfig as RustFileConfig, gen)
+        val gen = RustModelBuilder.makeGenerationInfo(this.reactors)
+        RustEmitter.generateFiles(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
@@ -64,54 +76,6 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             invokeRustCompiler()
         }
     }
-
-    private fun makeGenerationInfo(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): GenerationInfo {
-        val reactors = makeReactorInfos()
-        // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
-        val mainReactor = reactors.lastOrNull { it.isMain } ?: reactors.last()
-
-        return GenerationInfo(
-            crate = CrateInfo(
-                name = mainReactor.lfName.camelToSnakeCase(),
-                version = "1.0.0",
-                authors = listOf(System.getProperty("user.name"))
-            ),
-            reactors = reactors,
-            mainReactor = mainReactor,
-            // Rust exec names are snake case, otherwise we get a cargo warning
-            // https://github.com/rust-lang/rust/issues/45127
-            executableName = mainReactor.lfName.camelToSnakeCase()
-        )
-    }
-
-    private fun makeReactorInfos() = reactors.map { reactor ->
-        val components = mutableMapOf<String, ReactorComponent>()
-        for (component in reactor.allOutputs + reactor.allInputs + reactor.allActions) {
-            val irObj = ReactorComponent.from(component) ?: continue
-            components[irObj.name] = irObj
-        }
-
-        val reactions = reactor.reactions.map { n: Reaction ->
-            val dependencies = (n.effects + n.sources).mapTo(LinkedHashSet()) { components[it.name]!! }
-            ReactionInfo(
-                idx = n.indexInContainer,
-                depends = dependencies,
-                body = n.code.toText(),
-                isStartup = n.triggers.any { it.isStartup },
-                isShutdown = n.triggers.any { it.isShutdown }
-            )
-        }
-
-        ReactorInfo(
-            lfName = reactor.name,
-            reactions = reactions,
-            otherComponents = components.values.toList(),
-            isMain = reactor.isMain,
-            preambles = reactor.preambles.map { it.code.toText() },
-            stateVars = reactor.stateVars.map { StateVarInfo(it.name, it.targetType, init = it.init.singleOrNull()?.toText()) }
-        )
-    }
-
 
     private fun invokeRustCompiler() {
         val cargoBuilder = createCommand(
