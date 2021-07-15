@@ -116,7 +116,7 @@ ${"             |            "..reactionWrappers(reactor)}
                 |use $rsRuntime::*; // after this point there's no user-written code
                 |
                 |pub struct $assemblerName {
-                |   _rstate: Arc<Mutex<$dispatcherName>>,
+                |   pub(in super) _rstate: Arc<Mutex<$dispatcherName>>,
 ${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
                 |}
                 |
@@ -153,9 +153,9 @@ ${"             |       "..assembleChildReactors()}
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
                 |       }
-                |
+                |       {// declare connections between children
 ${"             |       "..declareChildConnections()}
-                |
+                |       }
                 |       Self {
                 |           _rstate,
 ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
@@ -178,14 +178,14 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         }
 
 
-    private fun ReactorInfo.declareChildConnections(): String =
-        nestedInstances.joinToString("\n") {
-            """
-               |{
-               |
-               |}
-            """.trimMargin()
+    private fun ReactorInfo.declareChildConnections(): String {
+        val declarations = nestedInstances.joinToString("\n") {
+            "let mut ${it.lfName} = ${it.lfName}._rstate.lock().unwrap();"
         }
+
+        // todo bind_ports
+        return declarations
+    }
 
 
     private fun reactionWrappers(reactor: ReactorInfo): String {
