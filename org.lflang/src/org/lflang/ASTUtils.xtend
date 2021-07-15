@@ -69,6 +69,8 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
 
+import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
+
 /**
  * A helper class for modifying and analyzing the AST.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -415,56 +417,7 @@ class ASTUtils {
         }
         return name + suffix
     }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-    private static def getCopy(TypeParm original) {
-        val clone = factory.createTypeParm
-        if (!original.literal.isNullOrEmpty) {
-            clone.literal = original.literal
-        } else if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-        }
-        return clone
-    }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-     static def getCopy(Type original) {
-        if (original !== null) {
-            val clone = factory.createType
-            
-            clone.id = original.id
-            // Set the type based on the argument type.
-            if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-            } 
-            if (original.stars !== null) {
-                original.stars?.forEach[clone.stars.add(it)]
-            }
-                
-            if (original.arraySpec !== null) {
-                clone.arraySpec = factory.createArraySpec
-                clone.arraySpec.ofVariableLength = original.arraySpec.
-                    ofVariableLength
-                clone.arraySpec.length = original.arraySpec.length
-            }
-            clone.time = original.time
-            
-            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
-            
-            return clone
-        }
-    }
-        
+   
     ////////////////////////////////
     //// Utility functions for supporting inheritance
     
@@ -825,7 +778,7 @@ class ASTUtils {
      * @param spec The array spec to be converted
      * @return A textual representation
      */
-    def static toText(ArraySpec spec) {
+    def static String toText(ArraySpec spec) {
         if (spec !== null) {
             return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
         }
@@ -837,7 +790,7 @@ class ASTUtils {
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    def static toText(Type type) {
+    def static String toText(Type type) {
         if (type !== null) {
             val base = type.baseType
             val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
@@ -888,7 +841,11 @@ class ASTUtils {
                     for (s : type.stars ?: emptyList) {
                         stars += s
                     }
-                    return type.id + stars
+                    if (!type.typeParms.isNullOrEmpty) {
+                        return '''«type.id»<«FOR p : type.typeParms SEPARATOR ", "»«p.toText»«ENDFOR»>''' 
+                    } else {
+                        return type.id + stars                        
+                    }
                 }
             }
         }
@@ -1265,6 +1222,7 @@ class ASTUtils {
         val values = initialValue(parameter, instantiations);
         var result = 0;
         for (value: values) {
+            if (value.literal === null) return null;
             try {
                 result += Integer.decode(value.literal);
             } catch (NumberFormatException ex) {
@@ -1499,7 +1457,7 @@ class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens.size == 2) {
+        if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
             return true
         }
         return false

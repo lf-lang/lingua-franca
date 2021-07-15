@@ -90,6 +90,7 @@ Reactor:
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
+        | (methods+=Method)
         | (inputs+=Input)
         | (outputs+=Output)
         | (timers+=Timer)
@@ -137,10 +138,22 @@ TargetDecl:
  StateVar:
     'state' name=ID (
         (':' (type=Type))? 
-        (parens+='(' (init+=Value 
-                (','  init+=Value)*)? parens+=')'
+        ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
+            | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
         )?
     ) ';'?
+;
+
+Method:
+    const?='const'? 'method' name=ID
+    '(' (arguments+=MethodArgument (',' arguments+=MethodArgument)*)? ')'
+    (':' return=Type)?
+    code=Code
+    ';'?
+;
+
+MethodArgument:
+    name=ID (':' type=Type)?
 ;
 
 Input:
@@ -267,15 +280,21 @@ VarRef:
     | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
-    (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
+    (lhs=[Parameter] (
+        (equals='=' rhs+=Value)
+        | ((equals='=')? (
+            parens+='(' (rhs+=Value (',' rhs+=Value)*)? parens+=')'
+            | braces+='{' (rhs+=Value (',' rhs+=Value)*)? braces+='}'))
+    ));
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
     name=ID (':' (type=Type))? 
-    (parens+='(' (init+=Value                   // FIXME: rename Value to Expr
-            (','  init+=Value)*)? parens+=')'
+    // FIXME: rename Value to Expr
+    ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
+        | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
     )?
 ;
 
@@ -311,7 +330,10 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
+   time?='time' (arraySpec=ArraySpec)? 
+   | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)? 
+   | code=Code
+;
 
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
@@ -457,7 +479,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' | 'as' | 'from' |
+    'new' | 'federated' | 'at' | 'as' | 'from' | 'const' | 'method' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
