@@ -338,12 +338,19 @@ public enum Target {
             )
     ),
     Rust("Rust", true, Arrays.asList(
-            "as",
-            "fn",
-            "trait",
-            "impl",
-            "struct"
-            // todo
+        // https://doc.rust-lang.org/reference/keywords.html
+        "as", "break", "const", "continue", "crate", "else",
+        "enum", "extern", "false", "fn", "for", "if", "impl",
+        "in", "let", "loop", "match", "mod", "move", "mut",
+        "pub", "ref", "return", "self", "Self", "static",
+        "struct", "super", "trait", "true", "type", "unsafe",
+        "use", "where", "while",
+        // reserved kws
+        "abstract", "async", "await", "dyn", "become", "box",
+        "do", "final", "macro", "override", "priv", "typeof",
+        "unsized", "virtual", "yield", "try",
+        // "weak" keywords, disallow them anyway
+        "union", "dyn"
     )
     );
 
