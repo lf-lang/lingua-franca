@@ -53,7 +53,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             return
         }
 
-        FileConfig.createDirectories(fileConfig.srcGenPath)
+        fileConfig.srcGenPath.createDirectories()
 
         val gen = makeGenerationInfo(resource, fsa, context)
         RustEmitter.generateFiles(fileConfig as RustFileConfig, gen)
@@ -67,6 +67,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
     private fun makeGenerationInfo(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): GenerationInfo {
         val reactors = makeReactorInfos()
+        // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactors.lastOrNull { it.isMain } ?: reactors.last()
 
         return GenerationInfo(

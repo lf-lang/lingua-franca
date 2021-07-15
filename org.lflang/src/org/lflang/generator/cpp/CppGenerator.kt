@@ -126,7 +126,7 @@ class CppGenerator(private val cppFileConfig: CppFileConfig, errorReporter: Erro
         val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
 
         // make sure the build directory exists
-        FileConfig.createDirectories(buildPath)
+        buildPath.createDirectories()
 
         val cores = Runtime.getRuntime().availableProcessors()
 

@@ -354,16 +354,6 @@ public class FileConfig {
         }
         return relSrcPath;
     }
-    
-    /**
-     * Create nested directories if the given path does not exist.
-     */
-    public static void createDirectories(Path path) {
-        File file = path.toFile();
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-    }
 
     /**
      * Check if a clean was requested from the standalone compiler and perform
