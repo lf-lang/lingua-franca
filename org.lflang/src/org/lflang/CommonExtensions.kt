@@ -24,6 +24,8 @@
 
 package org.lflang
 
+import java.util.Locale
+
 /**
  * Parse and return an integer from this string, much
  * like [String.toIntOrNull], but allows any radix.
@@ -75,3 +77,19 @@ internal fun String.withoutQuotes(): String {
  * of members is used. Space must be irrelevant.
  */
 internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
+
+
+/**
+ * Convert a string in Camel case to snake case. E.g.
+ * `MinimalReactor` will be converted to `minimal_reactor`.
+ * The string is assumed to be a single camel case identifier
+ * (no whitespace).
+ */
+fun String.camelToSnakeCase():String {
+    val words = this.split(Regex("(?<![A-Z])(?=[A-Z])"))
+        .map { it.toLowerCase(Locale.ROOT) }
+        .filter { it.isNotEmpty() }
+
+    return words.joinToString("_")
+}
+

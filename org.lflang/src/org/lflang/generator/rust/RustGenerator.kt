@@ -34,7 +34,6 @@ import org.lflang.generator.cpp.name
 import org.lflang.generator.cpp.targetType
 import org.lflang.lf.Action
 import org.lflang.lf.Reaction
-import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 
 /**
@@ -71,7 +70,11 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
         val mainReactor = reactors.lastOrNull { it.isMain } ?: reactors.last()
 
         return GenerationInfo(
-            crate = CrateInfo("mycrate_todo", "0.0.0", authors = listOf("todo")),
+            crate = CrateInfo(
+                name = mainReactor.lfName.camelToSnakeCase(),
+                version = "1.0.0",
+                authors = listOf(System.getProperty("user.name"))
+            ),
             reactors = reactors,
             mainReactor = mainReactor,
             executableName = mainReactor.lfName
