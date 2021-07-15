@@ -135,7 +135,7 @@ ${"             |    "..reactor.reactions.joinToString(",\n") { it.invokerFieldD
                 |        if ${reactor.reactions.any { it.isStartup }} {
                 |            // Startup this reactor
                 |            let dispatcher = &mut self._rstate.lock().unwrap();
-                |            let ctx = startup_ctx.logical_ctx();
+                |            let ctx = &mut startup_ctx.logical_ctx();
                 |
                 |            // Execute reactions triggered by startup in order.
 ${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString("\n") { 
@@ -351,8 +351,12 @@ private object ReactorComponentEmitter {
         else          -> "Default::default()"
     }
 
-    fun ReactorComponent.toStructField() =
-        "$lfName: ${toType()}"
+    fun ReactorComponent.toStructField(): String {
+        val fieldVisibility = if (this is PortData) "pub " else ""
+
+        return "$fieldVisibility$lfName: ${toType()}"
+    }
+
 
     fun NestedReactorInstance.toStructField() =
         "$lfName: ${names.modulePath}::${names.assemblerName}" // Arc<Mutex<${names.modulePath}::${names.dispatcherName}>>
