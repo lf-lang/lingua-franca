@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.camelToSnakeCase
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinWithCommas
