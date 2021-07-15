@@ -104,7 +104,7 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |            _impl: $structName {
 ${"             |                "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
-${"             |            "..otherComponents.joinToString(",\n") { it.toFieldInitializer() }}
+${"             |            "..otherComponents.joinToString(",\n") {  it.lfName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |
@@ -329,7 +329,7 @@ private object ReactorComponentEmitter {
             else "$rsRuntime::OutputPort<$dataType>"
     }
 
-    fun ReactorComponent.toFieldInitializer() = when (this) {
+    fun ReactorComponent.initialExpression() = when (this) {
         is ActionData -> toType() + " (None, ${lfName.withDQuotes()})"
         else          -> "Default::default()"
     }

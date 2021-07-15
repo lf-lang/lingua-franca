@@ -1,24 +1,24 @@
 
 target Rust;
 reactor Source {
-  output out: i32;
-  reaction(startup) {
-    out.set(76600)
-  }
+    output out: i32;
+    reaction(startup) -> out {=
+        ctx.set(out, 76600)
+    =}
 }
 reactor Sink {
-  input in: i32;
-  reaction(in) {=
-    if let Some(value) = in {
+  input inport: i32;
+  reaction(inport) {=
+    if let Some(value) = inport {
         println!("received {}", value);
     } else {
         unreachable!()
     }
   =}
 }
-main reactor MiniComposition {
-      c1 = new Component1();
-      c2 = new Component2();
+main reactor PortComposition {
+      source = new Source();
+      sink = new Sink();
 
-      c1.out -> c2.in;
+      source.out -> sink.inport;
 }
