@@ -24,10 +24,8 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.camelToSnakeCase
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.rsRuntime
-import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
 import java.time.LocalDateTime
 
@@ -95,7 +93,7 @@ ${"             |    "..otherComponents.joinToString(",\n") { it.toStructField()
                 |impl $rsRuntime::ReactorDispatcher for $dispatcherName {
                 |    type ReactionId = $reactionIdName;
                 |    type Wrapped = $structName;
-                |    type Params = (${ctorParamTypes.joinWithCommas()});
+                |    type Params = $ctorParamsTupleType;
                 |
                 |
                 |    fn assemble(_params: Self::Params) -> Self {
@@ -186,7 +184,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             list.joinToString(", ", "vec![", "]") { it.invokerId + ".clone()" }
 
         return reactor.otherComponents.joinToString(",\n") {
-            "statemut.${it.name}.set_downstream(${vecOfReactions(reactor.influencedReactionsOf(it))}.into());"
+            "statemut.${it.lfName}.set_downstream(${vecOfReactions(reactor.influencedReactionsOf(it))}.into());"
         }
     }
 
@@ -275,9 +273,9 @@ private object ReactorComponentEmitter {
 
     fun ReactorComponent.toBorrow() = when (this) {
         is PortData   ->
-            if (isInput) "&self.$name"
-            else "&mut self.$name"
-        is ActionData -> "&self.$name"
+            if (isInput) "&self.$lfName"
+            else "&mut self.$lfName"
+        is ActionData -> "&self.$lfName"
     }
 
     fun ReactorComponent.toBorrowedType() =
@@ -294,12 +292,12 @@ private object ReactorComponentEmitter {
     }
 
     fun ReactorComponent.toFieldInitializer() = when (this) {
-        is ActionData -> toType() + " (None, ${name.withDQuotes()})"
+        is ActionData -> toType() + " (None, ${lfName.withDQuotes()})"
         else          -> "Default::default()"
     }
 
     fun ReactorComponent.toStructField() =
-        "$name: ${toType()}"
+        "$lfName: ${toType()}"
 
     fun ReactionInfo.reactionInvokerInitializer() =
         "let $invokerId = new_reaction!(this_reactor, reaction_id, _rstate, $rustId);"
@@ -318,7 +316,7 @@ ${"         |    "..body}
         }
 
     private fun ReactionInfo.reactionParams() =
-        depends.joinToString(", ") { "${it.name}: ${it.toBorrowedType()}" }
+        depends.joinToString(", ") { "${it.lfName}: ${it.toBorrowedType()}" }
 
 
 }
