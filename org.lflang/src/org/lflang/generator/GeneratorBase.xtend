@@ -1184,7 +1184,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * enable the requested serializations in 'enabledSerializations'
      */   
     def void enableSupportForSerialization() {
-        throw new UnsupportedOperationException("Serialization is target-specific.");
+        throw new UnsupportedOperationException(
+            "Serialization is target-specific "+
+            " and is not implemented for the "+target.toString+" target."
+        );
     }
     
     /**
@@ -1887,9 +1890,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
             replaceFederateConnectionsWithActions()
         }
         
-        if (isFederated) {
-            // If the program is federated, some
-            // serialization support might have been
+        if (!enabledSerializations.isNullOrEmpty) {
+            // If serialization support is
             // requested by the programmer. Therefore,
             // we would need to enable support for them.
             enableSupportForSerialization();            
