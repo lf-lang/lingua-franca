@@ -65,20 +65,28 @@ data class ReactorInfo(
     val nestedInstances: List<NestedReactorInstance>
 
 ) {
+    /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
-
-    // Names of other implementation-detailistic structs.
-
-    val assemblerName: Ident get() = names.assemblerName
-    val reactionIdName: Ident get() = names.reactionIdName
 
     val ctorParamsTupleType: TargetCode
         get() = "(${ctorParams.map { it.type }.joinWithCommas()})"
 }
 
-class ReactorNames(private val lfName: Ident) {
+class ReactorNames(
+    /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
+    private val lfName: Ident
+) {
+
+    /** Name of the rust module (also of its containing file). */
     val modName: Ident = lfName.camelToSnakeCase()
+
+    /** Name of the "user struct", which contains state
+     * variables as fields, and which the user manipulates in reactions.
+     */
     val structName: Ident get() = lfName
+
+    // Names of other implementation-detailistic structs.
+
     val dispatcherName: Ident = "${structName}Dispatcher"
     val assemblerName: Ident = "${structName}Assembler"
     val reactionIdName: Ident = "${structName}Reactions"
@@ -89,7 +97,7 @@ data class NestedReactorInstance(
     val reactorLfName: String,
     val params: ParamList
 ) {
-    val names = ReactorNames(lfName)
+    val names = ReactorNames(reactorLfName)
 }
 
 sealed class ParamList {
