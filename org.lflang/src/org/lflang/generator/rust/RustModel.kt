@@ -90,6 +90,8 @@ class ReactorNames(
     val dispatcherName: Ident = "${structName}Dispatcher"
     val assemblerName: Ident = "${structName}Assembler"
     val reactionIdName: Ident = "${structName}Reactions"
+
+    val modulePath = "crate::reactors::$modName"
 }
 
 data class NestedReactorInstance(
@@ -183,7 +185,7 @@ TODO do we really need the following classes?
 
 
 sealed class ReactorComponent {
-    abstract val lfName: String
+    abstract val lfName: Ident
 
     companion object {
         /**
@@ -203,14 +205,14 @@ sealed class ReactorComponent {
  * @property dataType A piece of target code
  */
 data class PortData(
-    override val lfName: String,
+    override val lfName: Ident,
     val isInput: Boolean,
     /** Rust data type of the code. */
     val dataType: TargetCode
 ) : ReactorComponent()
 
 data class ActionData(
-    override val lfName: String,
+    override val lfName: Ident,
     val isLogical: Boolean
 ) : ReactorComponent()
 

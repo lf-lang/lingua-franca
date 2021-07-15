@@ -82,8 +82,10 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }
                 |}
                 |
                 |pub struct $dispatcherName {
+                |    // state struct
                 |    _impl: $structName,
-${"             |    "..otherComponents.joinToString(",\n") { it.toStructField() }}
+                |    // other components
+${"             |    "..otherComponents.joinToString("\n") { it.toStructField() + "," }}
                 |}
                 |
                 |
@@ -116,8 +118,11 @@ ${"             |            "..reactionWrappers(reactor)}
                 |use $rsRuntime::*; // after this point there's no user-written code
                 |
                 |pub struct $assemblerName {
-                |   pub(in super) _rstate: Arc<Mutex<$dispatcherName>>,
-${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
+                |    pub(in super) _rstate: Arc<Mutex<$dispatcherName>>,
+                |    // nested reactors
+${"             |    "..nestedInstances.joinToString("\n") { it.toStructField() + "," }}
+                |    // self reactions
+${"             |    "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
                 |}
                 |
                 |impl ReactorAssembler for $assemblerName {
@@ -125,6 +130,7 @@ ${"             |   "..reactor.reactions.joinToString(",\n") { it.invokerFieldDe
                 |
                 |    fn start(&mut self, startup_ctx: &mut StartupCtx) {
                 |        if ${reactor.reactions.any { it.isStartup }} {
+                |            // Startup this reactor
                 |            let dispatcher = &mut self._rstate.lock().unwrap();
                 |            let ctx = startup_ctx.logical_ctx();
                 |
@@ -133,6 +139,8 @@ ${"             |            "..reactor.reactions.filter { it.isStartup }.joinTo
                         "dispatcher.react(ctx, $reactionIdName::${it.rustId});" 
 }}
                 |        }
+                |        // Startup children reactors
+${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfName}.start(startup_ctx);" }}
                 |    }
                 |
                 |    fn assemble(
@@ -158,7 +166,8 @@ ${"             |       "..declareChildConnections()}
                 |       }
                 |       Self {
                 |           _rstate,
-${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
+${"             |           "..nestedInstances.joinToString("\n") { it.lfName + "," }}
+${"             |           "..reactions.joinToString("\n") { it.invokerId + "," }}
                 |       }
                 |    }
                 |}
@@ -327,6 +336,9 @@ private object ReactorComponentEmitter {
 
     fun ReactorComponent.toStructField() =
         "$lfName: ${toType()}"
+
+    fun NestedReactorInstance.toStructField() =
+        "$lfName: ${names.modulePath}::${names.assemblerName}" // Arc<Mutex<${names.modulePath}::${names.dispatcherName}>>
 
     fun ReactionInfo.reactionInvokerInitializer() =
         "let $invokerId = new_reaction!(this_reactor, reaction_id, _rstate, $rustId);"
