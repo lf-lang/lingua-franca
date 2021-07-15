@@ -144,12 +144,16 @@ ${"             |            "..reactor.reactions.filter { it.isStartup }.joinTo
                 |
 ${"             |       "..reactor.reactions.joinToString("\n") { it.reactionInvokerInitializer() }}
                 |
+${"             |       "..assembleChildReactors()}
+                |
                 |       if ${reactor.otherComponents.any()} {
                 |           // declare local dependencies
                 |           let mut statemut = _rstate.lock().unwrap();
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
                 |       }
+                |
+${"             |       "..declareChildConnections()}
                 |
                 |       Self {
                 |           _rstate,
@@ -164,6 +168,25 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         }
     }
 
+    private fun ReactorInfo.assembleChildReactors(): String =
+        nestedInstances.joinToString("\n") {
+            """
+               |#[allow(non_snake_case)]
+               |let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(&mut rid, (/*todo params*/));
+            """.trimMargin()
+        }
+
+
+    private fun ReactorInfo.declareChildConnections(): String =
+        nestedInstances.joinToString("\n") {
+            """
+               |{
+               |
+               |}
+            """.trimMargin()
+        }
+
+
     private fun reactionWrappers(reactor: ReactorInfo): String {
 
         fun joinDependencies(n: ReactionInfo): String =
@@ -174,7 +197,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
 
         return reactor.reactions.joinToString { n: ReactionInfo ->
             """
-                ${reactor.reactionIdName}::${n.rustId} => {
+                ${reactor.names.reactionIdName}::${n.rustId} => {
                     self._impl.${n.workerId}(ctx${joinDependencies(n)})
                 }
             """
