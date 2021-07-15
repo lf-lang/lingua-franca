@@ -1,0 +1,70 @@
+/**
+ * This example showcases the infrastructure that is built into LF
+ * C runtime that can automatically serialize and deserialize ROS2
+ * messages.
+ * 
+ * This an example of a sender-receiver federated program in which  
+ * the 'sender' federate sends a std_msgs::msg::Int32 message to the
+ * 'receiver' federate.
+ * 
+ * To run this example, make sure that your terminal is properly sourced
+ * for ROS2. See 
+ * https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
+ * 
+ * Then you can use lfc to compile this program:
+ * 
+ * lfc ROSBuiltInSerialization.lf
+ * 
+ * And launch the federated program:
+ * 
+ * 
+ * @author Soroush Bateni
+ */
+ target C {
+    cmake: true,  // Only CMake is supported
+    cmake-include: "include/CMakeListsExtension.txt",
+    threads: 1,
+    flags: ["-Wno-write-strings"],
+    compiler: "g++"
+};
+
+preamble {=
+    #include "std_msgs/msg/int32.hpp"
+    
+=}
+
+reactor Sender {
+    output out:std_msgs::msg::Int32;
+    
+    // state serialized_msg_pcl:rclcpp::SerializedMessage({=0u=});
+    state count:int(0);
+    
+    timer t (0, 1 sec);
+    
+    reaction (t) -> out {=
+          std_msgs::msg::Int32 ros_message;
+          ros_message.data = self->count++;
+          SET(out, ros_message);
+        
+    =}
+}
+
+
+reactor Receiver {
+	input in:std_msgs::msg::Int32;
+        
+    reaction (in) {=        
+        // Print the ROS2 message data
+        info_print(
+            "Serialized integer after deserialization: %d", 
+            in->value.data
+        );
+	=}
+}
+
+federated reactor {
+    sender = new Sender();
+    receiver = new Receiver();
+    
+    sender.out -> receiver.in serialized "ros2";
+}
