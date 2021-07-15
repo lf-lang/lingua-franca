@@ -84,7 +84,7 @@ import org.lflang.lf.Variable
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedFileConfig
 import org.lflang.federated.SERIALIZATION
-import org.lflang.federated.FedROSSerialization
+import org.lflang.federated.FedROSCPPSerialization
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -763,7 +763,8 @@ class CGenerator extends GeneratorBase {
                 writeSourceCodeToFile(
                     cmakeGenerator.generateCMakeCode(
                         #[cFilename], 
-                        topLevelName, 
+                        topLevelName,
+                        cMakeExtras,
                         errorReporter
                     ).toString().getBytes(),
                     cmakeFile
@@ -4161,8 +4162,8 @@ class CGenerator extends GeneratorBase {
                     throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
                 }
                 case ROS2: {
-                    val ROSDeserializer = new FedROSSerialization()
-                    value = FedROSSerialization.deserializedVarName;
+                    val ROSDeserializer = new FedROSCPPSerialization()
+                    value = FedROSCPPSerialization.deserializedVarName;
                     result.append(
                         ROSDeserializer.generateNetworkDeserializerCode(
                             "networkMessage",
@@ -4215,7 +4216,6 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            info_print("Here.");
         ''')
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
         // If the connection is logical and the coordination mode is centralized, send via RTI.
@@ -4288,7 +4288,7 @@ class CGenerator extends GeneratorBase {
                     throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
                 }
                 case ROS2: {
-                    val ROSSerializer = new FedROSSerialization();
+                    val ROSSerializer = new FedROSCPPSerialization();
                     lengthExpression = ROSSerializer.serializedVarLength();
                     pointerExpression = ROSSerializer.seializedVarBuffer();
                     result.append(
@@ -4301,7 +4301,6 @@ class CGenerator extends GeneratorBase {
 
             result.append('''
             size_t message_length = «lengthExpression»;
-            info_print("%d", message_length);
             «sendingFunction»(«commonArgs», «pointerExpression»);
             ''')
         }
@@ -4389,7 +4388,42 @@ class CGenerator extends GeneratorBase {
         
         return result.toString();
                
-    }  
+    }
+    
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */  
+    override enableSupportForSerialization() {
+        for (serialization : enabledSerializations) {
+            switch (serialization) {
+                case NATIVE: {
+                    // No need to do anything at this point.
+                }
+                case PROTO: {
+                    // Handle .proto files.
+                    for (file : targetConfig.protoFiles) {
+                        this.processProtoFile(file)
+                        val dotIndex = file.lastIndexOf('.')
+                        var rootFilename = file
+                        if (dotIndex > 0) {
+                            rootFilename = file.substring(0, dotIndex)
+                        }
+                        pr('#include "' + rootFilename + '.pb-c.h"')
+                    }
+                }
+                case ROS2: {
+                    val ROSSerializer = new FedROSCPPSerialization();
+                    pr(ROSSerializer.generatePreambleForSupport.toString);
+                    cMakeExtras = '''
+                        «cMakeExtras»
+                        «ROSSerializer.generateCompilerExtensionForSupport»
+                    '''
+                }
+                
+            }
+        }
+    }
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
@@ -4453,17 +4487,6 @@ class CGenerator extends GeneratorBase {
         
         // Make sure src-gen directory exists.
         fileConfig.getSrcGenPath.toFile.mkdirs
-        
-        // Handle .proto files.
-        for (file : targetConfig.protoFiles) {
-            this.processProtoFile(file)
-            val dotIndex = file.lastIndexOf('.')
-            var rootFilename = file
-            if (dotIndex > 0) {
-                rootFilename = file.substring(0, dotIndex)
-            }
-            pr('#include "' + rootFilename + '.pb-c.h"')
-        }
     }
     
     /**
@@ -5393,6 +5416,11 @@ class CGenerator extends GeneratorBase {
         = '// **** Do not include initialization code in this reaction.'
         
     public static var UNDEFINED_MIN_SPACING = -1
+    
+    /**
+     * Extra lines that need to go into the generated CMakeLists.txt.
+     */
+    var String cMakeExtras;
     
        
     /** Returns the Target enum for this generator */

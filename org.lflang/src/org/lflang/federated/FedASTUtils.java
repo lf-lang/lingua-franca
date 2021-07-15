@@ -479,6 +479,8 @@ public class FedASTUtils {
             serialization = SERIALIZATION.valueOf(
                     connection.getSerialization().getSerialization().toUpperCase()
             );
+            // Add it to the list of enabled serializations
+            generator.enabledSerializations.add(serialization);
         }
         
         // Configure the sending reaction.

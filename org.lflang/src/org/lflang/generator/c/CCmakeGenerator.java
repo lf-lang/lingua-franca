@@ -57,10 +57,16 @@ class CCmakeGenerator {
      * 
      * @param sources A list of .c files to build.
      * @param executableName The name of the output executable.
+     * @param extras Add any custom extra syntax to the CMakeLists.txt file
      * @param errorReporter Used to report errors.
      * @return The content of the CMakeLists.txt.
      */
-    StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
+    StringBuilder generateCMakeCode(
+            List<String> sources, 
+            String executableName,
+            String extras,
+            ErrorReporter errorReporter
+        ) {
         StringBuilder cMakeCode = new StringBuilder();
         
         // Resolve path to the cmake include file if one was provided
@@ -197,6 +203,10 @@ class CCmakeGenerator {
         cMakeCode.append("install(TARGETS ${LF_MAIN_TARGET}\n");
         cMakeCode.append("        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})\n");
         cMakeCode.append("\n");
+        
+        if (!extras.isBlank()) {
+            cMakeCode.append(extras+"\n");
+        }
         
         // Add the include file
         if (!includeFile.isBlank()) {

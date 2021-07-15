@@ -88,6 +88,7 @@ import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.SERIALIZATION
+import java.util.HashSet
 
 /**
  * Generator base class for shared code between code generators.
@@ -190,6 +191,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Map from reactions to bank indices
      */
     protected var Map<Reaction,Integer> reactionBankIndices = null
+    
+    /**
+     * Keep a unique list of enabled serializations
+     */
+    public var HashSet<SERIALIZATION> enabledSerializations = new HashSet<SERIALIZATION>();
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -1171,7 +1177,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Delay delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
-    }  
+    }
+    
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */   
+    def void enableSupportForSerialization() {
+        throw new UnsupportedOperationException("Serialization is target-specific.");
+    }
     
     /**
      * Returns true if the program is federated and uses the decentralized
@@ -1872,6 +1886,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // for logical connections.
             replaceFederateConnectionsWithActions()
         }
+        
+        enableSupportForSerialization();
     }
     
     /**
