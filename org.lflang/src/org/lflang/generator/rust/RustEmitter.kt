@@ -50,7 +50,7 @@ object RustEmitter {
         fileConfig.emit("src/main.rs") { makeMainFile(gen) }
         fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
         for (reactor in gen.reactors) {
-            fileConfig.emit("src/reactors/${reactor.modName}.rs") {
+            fileConfig.emit("src/reactors/${reactor.names.modName}.rs") {
                 makeReactorModule(reactor)
             }
         }
@@ -59,6 +59,7 @@ object RustEmitter {
 
     private fun Emitter.makeReactorModule(reactor: ReactorInfo) {
         this += with(reactor) {
+            with (reactor.names) {
             with(ReactorComponentEmitter) {
                 with(PrependOperator) {
                     """
@@ -159,6 +160,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
         """.trimMargin()
                 }
             }
+            }
         }
     }
 
@@ -214,7 +216,7 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
             |
             |fn main() {
             |    let mut reactor_id = ReactorId::first();
-            |    let mut topcell = <self::reactors::${gen.mainReactor.assemblerName} as ReactorAssembler>::assemble(&mut reactor_id, (/*todo params*/));
+            |    let mut topcell = <self::reactors::${gen.mainReactor.names.assemblerName} as ReactorAssembler>::assemble(&mut reactor_id, (/*todo params*/));
             |    let options = SchedulerOptions {
             |       timeout: None,
             |       keep_alive: false
@@ -229,11 +231,14 @@ ${"             |           "..reactions.joinToString(",\n") { it.invokerId }}
     }
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {
+        fun ReactorNames.modDecl() =
+            "mod $modName;\npub use self::$modName::$assemblerName;"
+
         this += with(PrependOperator) {
             """
             |${generatedByComment("//")}
             |
-${"         |"..gen.reactors.joinToString("\n") { "mod ${it.modName};\npub use self::${it.modName}::${it.assemblerName};" }}
+${"         |"..gen.reactors.joinToString("\n") { it.names.modDecl() }}
             |
         """.trimMargin()
         }

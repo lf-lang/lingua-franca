@@ -31,12 +31,15 @@ import org.lflang.generator.cpp.targetType
 import org.lflang.lf.*
 import java.util.*
 
+private typealias Ident = String
+private typealias TargetCode = String
+
 /** Root model class for the entire generation. */
 data class GenerationInfo(
     val crate: CrateInfo,
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
-    val executableName: String
+    val executableName: Ident
 )
 
 /**
@@ -45,7 +48,7 @@ data class GenerationInfo(
  */
 data class ReactorInfo(
     /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
-    val lfName: String,
+    val lfName: Ident,
     /** Whether this is the main reactor. */
     val isMain: Boolean,
     /** A list of reactions, in order of their [ReactionInfo.idx]. */
@@ -57,33 +60,50 @@ data class ReactorInfo(
     /** List of ctor parameters. */
     val ctorParams: List<CtorParamInfo> = emptyList(),
     /** List of preambles, will be outputted at the top of the file. */
-    val preambles: List<String>,
-) {
-    /** Name of the rust module (also of its containing file). */
-    val modName = lfName.camelToSnakeCase()
+    val preambles: List<TargetCode>,
 
-    /** Name of the "user struct", which contains state
-     * variables as fields, and which the user manipulates in reactions.
-     */
-    val structName get() = lfName
+    val nestedInstances: List<NestedReactorInstance>
+
+) {
+    val names = ReactorNames(lfName)
 
     // Names of other implementation-detailistic structs.
 
-    val dispatcherName = "${structName}Dispatcher"
-    val assemblerName = "${structName}Assembler"
-    val reactionIdName = "${structName}Reactions"
+    val assemblerName: Ident get() = names.assemblerName
+    val reactionIdName: Ident get() = names.reactionIdName
 
-    val ctorParamsTupleType: @TargetCode String
+    val ctorParamsTupleType: TargetCode
         get() = "(${ctorParams.map { it.type }.joinWithCommas()})"
+}
+
+class ReactorNames(private val lfName: Ident) {
+    val modName: Ident = lfName.camelToSnakeCase()
+    val structName: Ident get() = lfName
+    val dispatcherName: Ident = "${structName}Dispatcher"
+    val assemblerName: Ident = "${structName}Assembler"
+    val reactionIdName: Ident = "${structName}Reactions"
+}
+
+data class NestedReactorInstance(
+    val lfName: Ident,
+    val reactorLfName: String,
+    val params: ParamList
+) {
+    val names = ReactorNames(lfName)
+}
+
+sealed class ParamList {
+    data class Positional(val list: List<TargetCode>) : ParamList()
+    data class Named(val map: Map<Ident, TargetCode>) : ParamList()
 }
 
 /**
  * Model class for the parameters of a reactor constructor.
  */
 data class CtorParamInfo(
-    val lfName: String,
-    val type: @TargetCode String,
-    val defaultValue: (@TargetCode String)?
+    val lfName: Ident,
+    val type: TargetCode,
+    val defaultValue: (TargetCode)?
 )
 
 /** Model class for a state variable. */
@@ -95,12 +115,12 @@ data class StateVarInfo(
      */
     val lfName: String,
     /** Rust static type of the struct field. Must be `Sized`. */
-    val type: @TargetCode String,
+    val type: TargetCode,
     /**
      * The field initializer, a Rust expression. If null,
      * will default to `Default::default()`.
      */
-    val init: (@TargetCode String)?
+    val init: (TargetCode)?
 )
 
 /**
@@ -110,7 +130,7 @@ data class ReactionInfo(
     /** Index in the containing reactor. */
     val idx: Int,
     /** Target code for the reaction body. */
-    val body: @TargetCode String,
+    val body: TargetCode,
     /** Dependencies declared by the reaction, which are served to the worker function. */
     val depends: Set<ReactorComponent>,
     /** Whether the reaction is triggered by the startup event. */
@@ -178,18 +198,13 @@ data class PortData(
     override val lfName: String,
     val isInput: Boolean,
     /** Rust data type of the code. */
-    val dataType: @TargetCode String
+    val dataType: TargetCode
 ) : ReactorComponent()
 
 data class ActionData(
     override val lfName: String,
     val isLogical: Boolean
 ) : ReactorComponent()
-
-@Target(AnnotationTarget.TYPE)
-@MustBeDocumented
-@Retention(AnnotationRetention.SOURCE)
-annotation class TargetCode
 
 /**
  * Produce model classes from the AST.
@@ -249,9 +264,20 @@ object RustModelBuilder {
                         it.targetType,
                         init = it.init.singleOrNull()?.toText()
                     )
-                }
+                },
+                nestedInstances = reactor.instantiations.map { it.toModel() }
             )
         }
+
+    private fun Instantiation.toModel(): NestedReactorInstance {
+        val params = ParamList.Positional(emptyList()) // fixme
+
+        return NestedReactorInstance(
+            lfName = this.name,
+            params = params,
+            reactorLfName = this.reactorClass.name
+        )
+    }
 }
 
 
