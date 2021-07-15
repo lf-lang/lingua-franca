@@ -5420,7 +5420,7 @@ class CGenerator extends GeneratorBase {
     /**
      * Extra lines that need to go into the generated CMakeLists.txt.
      */
-    var String cMakeExtras;
+    var String cMakeExtras = "";
     
        
     /** Returns the Target enum for this generator */
