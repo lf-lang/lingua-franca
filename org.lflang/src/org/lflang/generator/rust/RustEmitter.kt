@@ -24,20 +24,14 @@
 
 package org.lflang.generator.rust
 
-import org.eclipse.emf.ecore.EObject
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
-import org.lflang.toTextTokenBased
 import org.lflang.withDQuotes
-import java.lang.IllegalStateException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
-
 import java.time.format.DateTimeFormatter
-
-
 
 
 /**
@@ -45,7 +39,7 @@ import java.time.format.DateTimeFormatter
  */
 object RustEmitter {
     /** Name of the runtime crate that is in its Cargo.toml.*/
-    const val runtimeCrateFullName = "reactor_rt"
+    private const val runtimeCrateFullName = "reactor_rt"
 
     /** Qualification prefix to refer to a member of the runtime library crate. */
     const val rsRuntime = "::$runtimeCrateFullName"
@@ -186,7 +180,10 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
 
     private fun ReactorInfo.assembleChildReactors(): String =
         nestedInstances.joinToString("\n") {
-            "let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, (/*todo params*/));"
+            """
+                ${it.loc.lfTextComment()}
+                let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, (/*todo params*/));
+            """.trimIndent()
         }
 
 

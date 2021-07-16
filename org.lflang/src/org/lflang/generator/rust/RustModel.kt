@@ -45,7 +45,11 @@ data class GenerationInfo(
 )
 
 /** Info about the location of an LF node. */
-data class LocationInfo(val line: Int, val fileName: String, val lfText: String)
+data class LocationInfo(val line: Int, val fileName: String, val lfText: String) {
+    companion object {
+        val MISSING = LocationInfo(line = 1, fileName = "<missing file>", lfText = "<missing text>")
+    }
+}
 
 /**
  * Model class for a reactor class. This will be emitted as
@@ -115,7 +119,8 @@ class ReactorNames(
 data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
-    val params: ParamList
+    val params: ParamList,
+    val loc: LocationInfo
 ) {
     val names = ReactorNames(reactorLfName)
 }
@@ -328,19 +333,11 @@ object RustModelBuilder {
         return NestedReactorInstance(
             lfName = this.name,
             params = params,
-            reactorLfName = this.reactorClass.name
+            reactorLfName = this.reactorClass.name,
+            loc = this.locationInfo()
         )
     }
 }
-
-fun Reaction.headerToString(): String =
-    buildString {
-        append("reaction")
-        triggers.joinTo(this, ", ", "(", ")") { it.toText() }
-        sources.joinTo(this, ", ") { it.toText() }
-        append(" -> ")
-        effects.joinTo(this, ", ") { it.toText() }
-    }
 
 
 fun EObject.locationInfo(): LocationInfo {
