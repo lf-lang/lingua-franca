@@ -25,6 +25,8 @@
 
 package org.lflang.generator.rust
 
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
 import org.lflang.generator.cpp.name
 import org.lflang.generator.cpp.targetType
@@ -41,6 +43,9 @@ data class GenerationInfo(
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident
 )
+
+/** Info about the location of an LF node. */
+data class LocationInfo(val line: Int, val fileName: String, val lfText: String)
 
 /**
  * Model class for a reactor class. This will be emitted as
@@ -166,6 +171,9 @@ data class ReactionInfo(
     val isStartup: Boolean,
     /** Whether the reaction is triggered by the shutdown event. */
     val isShutdown: Boolean,
+
+    /** Location metadata. */
+    val loc: LocationInfo
 ) {
 
     val allDependencies get() = triggers + uses + effects
@@ -238,6 +246,9 @@ data class ActionData(
     val isLogical: Boolean
 ) : ReactorComponent()
 
+/** Regex to match a target code block, captures the insides as $1. */
+private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
+
 /**
  * Produce model classes from the AST.
  */
@@ -285,7 +296,11 @@ object RustModelBuilder {
                     triggers = makeDeps { triggers.filterIsInstance<VarRef>() },
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it.isStartup },
-                    isShutdown = n.triggers.any { it.isShutdown }
+                    isShutdown = n.triggers.any { it.isShutdown },
+                    loc = n.locationInfo().let {
+                        // remove code block
+                        it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{=...=}"))
+                    }
                 )
             }
 
@@ -318,4 +333,22 @@ object RustModelBuilder {
     }
 }
 
+fun Reaction.headerToString(): String =
+    buildString {
+        append("reaction")
+        triggers.joinTo(this, ", ", "(", ")") { it.toText() }
+        sources.joinTo(this, ", ") { it.toText() }
+        append(" -> ")
+        effects.joinTo(this, ", ") { it.toText() }
+    }
+
+
+fun EObject.locationInfo(): LocationInfo {
+    val node = NodeModelUtils.getNode(this)
+    return LocationInfo(
+        line = node.startLine,
+        fileName = this.eResource().toPath().toUnixString(),
+        lfText = toTextTokenBased() ?: ""
+    )
+}
 

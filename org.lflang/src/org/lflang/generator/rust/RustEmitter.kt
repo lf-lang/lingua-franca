@@ -24,8 +24,11 @@
 
 package org.lflang.generator.rust
 
+import org.eclipse.emf.ecore.EObject
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.rsRuntime
+import org.lflang.joinLines
+import org.lflang.toTextTokenBased
 import org.lflang.withDQuotes
 import java.lang.IllegalStateException
 import java.nio.file.Files
@@ -159,13 +162,12 @@ ${"             |       "..reactor.reactions.joinToString("\n") { it.reactionInv
 ${"             |       "..assembleChildReactors()}
                 |
                 |       if ${reactor.otherComponents.any()} {
-                |           // declare local dependencies
+                |           // Declare local dependencies
                 |           let mut statemut = _rstate.lock().unwrap();
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
                 |       }
                 |       {
-                |           // declare connections between children
 ${"             |           "..declareChildConnections()}
                 |       }
                 |       Self {
@@ -195,11 +197,10 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
 
         return declarations + "\n" +
                 connections.joinToString("\n", "// Declare connections\n") {
-                    "// todo helpful comment\n" +
-                    PortEmitter.declareConnection(it)
+                    it.locationInfo().lfTextComment() + "\n" +
+                            PortEmitter.declareConnection(it)
                 }
     }
-
 
     private fun reactionWrappers(reactor: ReactorInfo): String {
 
@@ -373,7 +374,7 @@ private object ReactorComponentEmitter {
     fun ReactionInfo.toWorkerFunction() =
         with(PrependOperator) {
             """
-            |// todo reproduce header & metadata here
+            |${loc.lfTextComment()}
             |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, ${reactionParams()}) {
 ${"         |    "..body}
             |}
@@ -385,3 +386,12 @@ ${"         |    "..body}
 
 
 }
+
+/**
+ * Produce a commented out version of the text of this AST node.
+ * This is helpful to figure out how the rust code corresponds to
+ * the LF code.
+ */
+private fun LocationInfo.lfTextComment() =
+    "// --- ${lfText.joinLines()}"
+

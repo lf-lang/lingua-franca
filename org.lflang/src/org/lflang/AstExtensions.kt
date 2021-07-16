@@ -25,8 +25,9 @@
 package org.lflang
 
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.generator.cpp.name
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
 
 /**
@@ -162,9 +163,14 @@ fun Delay.toText(): String =
  * on in which form the variable reference was given.
  * @receiver The variable reference.
  */
-fun VarRef.toText(): String =
-    if (container != null) "${container.name}.${variable.name}"
-    else variable.name
+fun TriggerRef.toText(): String =
+    when {
+        this is VarRef && container != null -> "${container.name}.${variable.name}"
+        this is VarRef                      -> variable.name
+        isStartup                           -> "startup"
+        isShutdown                          -> "shutdown"
+        else                                -> throw UnsupportedOperationException("What's this ref: $this")
+    }
 
 
 /**
@@ -385,3 +391,16 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 /** Returns true if this is an input port (not an output port). */
 val Port.isInput get() = this is Input
 
+
+/**
+ * Produce the text of the given node in the source LF file.
+ * May be null if the node model is unavailable (please blame eclipse).
+ */
+fun EObject.toTextTokenBased(): String? {
+    val node = NodeModelUtils.getNode(this) ?: return null
+    val builder = StringBuilder(node.totalLength.coerceAtLeast(1))
+    for (leaf in node.leafNodes) {
+        builder.append(leaf.text)
+    }
+    return builder.trim().toString()
+}
