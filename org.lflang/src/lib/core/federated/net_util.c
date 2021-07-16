@@ -30,7 +30,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Utility functions for a federate in a federated execution.
  */
 
-#include "util.h"
+#include "../util.h"
 #include "net_util.h"
 #include <errno.h>
 #include <stdio.h>
@@ -489,8 +489,7 @@ void extract_header(
     *federate_id = extract_uint16(&(buffer[sizeof(uint16_t)]));
 
     // printf("DEBUG: Message for port %d of federate %d.\n", *port_id, *federate_id);
-    // FIXME: Better error handling needed here.
-    assert(*federate_id < NUMBER_OF_FEDERATES);
+    
     // The next four bytes are the message length.
     int32_t local_length_signed = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t)]));
     if (local_length_signed < 0) {

@@ -38,8 +38,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NET_UTIL_H
 #define NET_UTIL_H
 
-#include "platform.h"  // defines lf_mutex_t
-#include "tag.h"       // Defines tag_t
+#include "../platform.h"  // defines lf_mutex_t
+#include "../tag.h"       // Defines tag_t
 
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2

@@ -335,7 +335,6 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // If this is a federated execution, generate C code for the RTI.
         if (isFederated) {
-            createFederateRTI()
 
             // Copy the required library files into the target file system.
             // This will overwrite previous versions.
@@ -347,7 +346,6 @@ class TypeScriptGenerator extends GeneratorBase {
                     fileConfig.getSrcGenPath.toString + File.separator + file
                 )
             }
-            compileRTI()
         }
     }
     
