@@ -62,7 +62,20 @@ data class ReactorInfo(
     /** List of preambles, will be outputted at the top of the file. */
     val preambles: List<TargetCode>,
 
-    val nestedInstances: List<NestedReactorInstance>
+    /**
+     * List of reactor instances that are directly created by this reactor.
+     * Each of them is a named item accessible from the assemble method (well,
+     * their ports are anyway).
+     */
+    val nestedInstances: List<NestedReactorInstance>,
+
+    /**
+     * List of connections between ports that are made within
+     * the body of this reactor instance.
+     *
+     * todo Connection doesn't have its own model class
+     */
+    val connections: List<Connection>
 
 ) {
     /** Identifiers for the different Rust constructs that this reactor class generates. */
@@ -289,7 +302,8 @@ object RustModelBuilder {
                         init = it.init.singleOrNull()?.toText()
                     )
                 },
-                nestedInstances = reactor.instantiations.map { it.toModel() }
+                nestedInstances = reactor.instantiations.map { it.toModel() },
+                connections = reactor.connections
             )
         }
 
