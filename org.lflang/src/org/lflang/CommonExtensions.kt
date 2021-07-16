@@ -85,7 +85,7 @@ internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
  * The string is assumed to be a single camel case identifier
  * (no whitespace).
  */
-fun String.camelToSnakeCase():String {
+fun String.camelToSnakeCase(): String {
     val words = this.split(Regex("(?<![A-Z])(?=[A-Z])"))
         .map { it.toLowerCase(Locale.ROOT) }
         .filter { it.isNotEmpty() }
@@ -93,3 +93,9 @@ fun String.camelToSnakeCase():String {
     return words.joinToString("_")
 }
 
+private val nlPattern = Regex("\\R\\s+")
+
+/**
+ * Replace newlines with a single space.
+ */
+fun String.joinLines(): String = replace(nlPattern, " ")
