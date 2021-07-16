@@ -135,7 +135,7 @@ sealed class ParamList {
 data class CtorParamInfo(
     val lfName: Ident,
     val type: TargetCode,
-    val defaultValue: (TargetCode)?
+    val defaultValue: TargetCode?
 )
 
 /** Model class for a state variable. */
@@ -152,7 +152,7 @@ data class StateVarInfo(
      * The field initializer, a Rust expression. If null,
      * will default to `Default::default()`.
      */
-    val init: (TargetCode)?
+    val init: TargetCode?
 )
 
 /**
@@ -325,7 +325,7 @@ object RustModelBuilder {
                     isShutdown = n.triggers.any { it.isShutdown },
                     loc = n.locationInfo().let {
                         // remove code block
-                        it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{=...=}"))
+                        it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{= ... =}"))
                     }
                 )
             }

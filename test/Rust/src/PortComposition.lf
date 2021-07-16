@@ -13,7 +13,7 @@ reactor Sink {
         println!("received {}", value);
         assert_eq!(76600, value);
     } else {
-        unreachable!()
+        unreachable!();
     }
   =}
 }
