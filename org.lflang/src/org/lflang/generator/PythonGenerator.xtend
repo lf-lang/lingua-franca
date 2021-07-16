@@ -56,6 +56,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SERIALIZATION
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -910,16 +911,43 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
-        // Handle .proto files.
-        for (name : targetConfig.protoFiles) {
-            this.processProtoFile(name)
-            val dotIndex = name.lastIndexOf('.')
-            var rootFilename = name
-            if (dotIndex > 0) {
-                rootFilename = name.substring(0, dotIndex)
+        
+        // FIXME: Probably not the best place to do 
+        // this.
+        if (!targetConfig.protoFiles.isNullOrEmpty) {
+            // Enable support for proto serialization
+            enabledSerializations.add(SERIALIZATION.PROTO)
+        }
+    }
+    
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */  
+    override enableSupportForSerialization() {
+        for (serialization : enabledSerializations) {
+            switch (serialization) {
+                case NATIVE: {
+                    // No need to do anything at this point.
+                }
+                case PROTO: {
+                    // Handle .proto files.
+                    for (name : targetConfig.protoFiles) {
+                        this.processProtoFile(name)
+                        val dotIndex = name.lastIndexOf('.')
+                        var rootFilename = name
+                        if (dotIndex > 0) {
+                            rootFilename = name.substring(0, dotIndex)
+                        }
+                        pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»
+                        ''')
+                    }
+                }
+                case ROS2: {
+                    // FIXME: Not supported yet
+                }
+                
             }
-            pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»
-            ''')
         }
     }
     
