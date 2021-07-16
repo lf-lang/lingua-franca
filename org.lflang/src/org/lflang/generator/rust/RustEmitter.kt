@@ -70,8 +70,10 @@ object RustEmitter {
                 |#![allow(unused)]
                 |
                 |use std::sync::{Arc, Mutex};
+                |use $rsRuntime::{LogicalInstant, PhysicalInstant, Duration};
+                |use $rsRuntime::Offset::{After, Asap};
                 |
-${"             |"..reactor.preambles.joinToString("\n\n") {"// preamble {=\n${it.trimIndent()}\n// =}"}}
+${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |
                 |// todo link to source
                 |pub struct $structName {
@@ -224,7 +226,7 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
         fun vecOfReactions(list: List<ReactionInfo>) =
             list.joinToString(", ", "vec![", "]") { it.invokerId + ".clone()" }
 
-        return reactor.otherComponents.joinToString(",\n") {
+        return reactor.otherComponents.joinToString("\n") {
             "statemut.${it.lfName}.set_downstream(${vecOfReactions(reactor.influencedReactionsOf(it))}.into());"
         }
     }
@@ -351,7 +353,10 @@ private object ReactorComponentEmitter {
     }
 
     fun ReactorComponent.initialExpression() = when (this) {
-        is ActionData -> toType() + " (None, ${lfName.withDQuotes()})"
+        is ActionData -> {
+            val delay = minDelay?.let { "Some($it)" } ?: "None"
+            toType() + "::new($delay, ${lfName.withDQuotes()})"
+        }
         else          -> "Default::default()"
     }
 

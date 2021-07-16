@@ -1,0 +1,49 @@
+// Test logical action with delay.
+target Rust;
+
+reactor GeneratedDelay {
+    input y_in: i32;
+    output y_out: i32;
+    state y_state: i32(0);
+    logical action act(100 msec): void;
+    reaction(y_in) -> act {=
+        self.y_state = ctx.get(y_in).unwrap();
+        ctx.schedule(act, Asap);
+    =}
+
+    reaction(act) -> y_out {=
+        ctx.set(y_out, self.y_state);
+    =}
+}
+
+reactor Source {
+    output out: i32;
+    reaction(startup) -> out {=
+        ctx.set(out, 1);
+    =} 
+}
+
+reactor Sink {
+	input inp: i32;
+	reaction(inp) {=
+        let elapsed_logical = ctx.get_elapsed_logical_time();
+        let logical = ctx.get_logical_time();
+        // let physical = ctx.get_physical_time();
+
+        println!("logical time: {}", logical);
+        println!("elapsed physical time: {} ms", ctx.get_elapsed_physical_time().as_millis());
+        println!("elapsed logical time: {} ms", elapsed_logical.as_millis());
+
+        // the framework appears precise to e-4 s so we can't use Duration#Eq
+        assert_eq!(100, elapsed_logical.as_millis(), "Expected 100 ms elapsed");
+	=}
+}
+
+main reactor ActionDelay {
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
+    
+    source.out -> g.y_in;
+    g.y_out -> sink.inp;
+}

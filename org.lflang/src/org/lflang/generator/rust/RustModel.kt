@@ -229,7 +229,7 @@ sealed class ReactorComponent {
          */
         fun from(v: Variable): ReactorComponent? = when (v) {
             is Port   -> PortData(lfName = v.name, isInput = v.isInput, dataType = v.targetType)
-            is Action -> ActionData(lfName = v.name, isLogical = v.isLogical)
+            is Action -> ActionData(lfName = v.name, isLogical = v.isLogical, minDelay = v.minDelay?.time?.toRustTimeExpr())
             else      -> TODO("Unsupported: ${v.javaClass.simpleName} $v")
         }
     }
@@ -247,8 +247,28 @@ data class PortData(
 
 data class ActionData(
     override val lfName: Ident,
-    val isLogical: Boolean
+    val isLogical: Boolean,
+    // The minimal delay (in Rust)
+    val minDelay: TargetCode?
 ) : ReactorComponent()
+
+
+private fun Time.toRustTimeExpr(): TargetCode = when (unit) {
+    TimeUnit.NSEC,
+    TimeUnit.NSECS                -> "Duration::from_nanos($interval)"
+    TimeUnit.USEC,
+    TimeUnit.USECS                -> "Duration::from_micros($interval)"
+    TimeUnit.MSEC,
+    TimeUnit.MSECS                -> "Duration::from_millis($interval)"
+    TimeUnit.MIN,
+    TimeUnit.MINS,
+    TimeUnit.MINUTE,
+    TimeUnit.MINUTES              -> "Duration::from_secs(${interval * 60})"
+    TimeUnit.HOUR, TimeUnit.HOURS -> "Duration::from_secs(${interval * 3600})"
+    TimeUnit.DAY, TimeUnit.DAYS   -> "Duration::from_secs(${interval * 3600 * 24})"
+    TimeUnit.WEEK, TimeUnit.WEEKS -> "Duration::from_secs(${interval * 3600 * 24 * 7})"
+    else                          -> "Duration::from_secs($interval)"
+}
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
