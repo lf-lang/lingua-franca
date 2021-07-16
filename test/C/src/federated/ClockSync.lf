@@ -22,7 +22,7 @@ target C {
         period: 5 msec,            // Period with which runtime clock sync is performed.
         trials: 10,                // Number of messages exchanged to perform clock sync.
         attenuation: 10            // Attenuation applied to runtime clock sync adjustments.
-    },
+    }
 };
 
 /**
