@@ -15,8 +15,9 @@
  * 
  * lfc ROSBuiltInSerialization.lf
  * 
- * And launch the federated program:
+ * And launch the federated program in the `bin` folder:
  * 
+ * example/C/bin/ROSBuiltInSerialization
  * 
  * @author Soroush Bateni
  */
