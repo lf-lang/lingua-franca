@@ -778,7 +778,7 @@ class ASTUtils {
      * @param spec The array spec to be converted
      * @return A textual representation
      */
-    def static toText(ArraySpec spec) {
+    def static String toText(ArraySpec spec) {
         if (spec !== null) {
             return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
         }
