@@ -193,8 +193,11 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
             "let mut ${it.lfName} = ${it.lfName}._rstate.lock().unwrap();"
         }
 
-        // todo bind_ports
-        return declarations + "\n// TODO bind_ports(...)"
+        return declarations + "\n" +
+                connections.joinToString("\n", "// Declare connections\n") {
+                    "// todo helpful comment\n" +
+                    PortEmitter.declareConnection(it)
+                }
     }
 
 
