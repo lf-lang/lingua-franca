@@ -291,7 +291,9 @@ object RustModelBuilder {
 
             val reactions = reactor.reactions.map { n: Reaction ->
                 fun makeDeps(depKind: Reaction.() -> List<VarRef>) =
-                    n.depKind().mapTo(LinkedHashSet()) { components[it.name]!! }
+                    n.depKind().mapTo(LinkedHashSet()) {
+                        components[it.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                    }
 
                 ReactionInfo(
                     idx = n.indexInContainer,

@@ -116,6 +116,6 @@ object PortEmitter {
      */
     private fun WidthSpec.getValidWidth(): Int =
         getWidth().takeIf { it >= 0 }
-            ?: throw UnsupportedOperationException("The Rust target only supports multiport widths specified as literal integer values for now")
+            ?: throw UnsupportedGeneratorFeatureException("Non-literal multiport widths")
 
 }
