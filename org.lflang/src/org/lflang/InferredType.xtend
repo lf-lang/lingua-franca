@@ -90,7 +90,7 @@ class InferredType {
      * 
      * @return Textual representation of this inferred type without list qualifiers
      */
-    def baseType() {
+    def String baseType() {
         if (astType !== null) {
             return astType.baseType
         } else if (isTime) {
