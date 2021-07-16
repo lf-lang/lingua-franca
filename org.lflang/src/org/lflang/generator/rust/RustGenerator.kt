@@ -27,13 +27,11 @@ package org.lflang.generator.rust
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.*
+import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.createDirectories
 import org.lflang.generator.GeneratorBase
-import org.lflang.generator.cpp.name
-import org.lflang.generator.cpp.targetType
 import org.lflang.lf.Action
-import org.lflang.lf.Reaction
 import org.lflang.lf.VarRef
 
 /**
@@ -68,7 +66,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
         fileConfig.srcGenPath.createDirectories()
 
         val gen = RustModelBuilder.makeGenerationInfo(this.reactors)
-        RustEmitter.generateFiles(fileConfig, gen)
+        RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")

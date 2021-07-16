@@ -31,7 +31,6 @@ import org.lflang.*
 import org.lflang.generator.cpp.name
 import org.lflang.generator.cpp.targetType
 import org.lflang.lf.*
-import java.util.*
 
 private typealias Ident = String
 private typealias TargetCode = String

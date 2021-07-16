@@ -25,6 +25,7 @@
 package org.lflang.generator.rust
 
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
 import org.lflang.withDQuotes
@@ -35,7 +36,9 @@ import java.time.format.DateTimeFormatter
 
 
 /**
- * Generates Rust code
+ * Part of the Rust generator that emits the actual Rust code,
+ * including its project structure. Its entry point is
+ * [generateRustProject].
  */
 object RustEmitter {
     /** Name of the runtime crate that is in its Cargo.toml.*/
@@ -44,7 +47,7 @@ object RustEmitter {
     /** Qualification prefix to refer to a member of the runtime library crate. */
     const val rsRuntime = "::$runtimeCrateFullName"
 
-    fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
+    fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
         fileConfig.emit("Cargo.toml") { makeCargoTomlFile(gen) }
         fileConfig.emit("src/main.rs") { makeMainFile(gen) }

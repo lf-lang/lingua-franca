@@ -32,7 +32,6 @@ import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import kotlin.system.measureTimeMillis
 
 class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
