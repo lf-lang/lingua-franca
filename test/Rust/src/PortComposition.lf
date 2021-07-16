@@ -11,6 +11,7 @@ reactor Sink {
   reaction(inport) {=
     if let Some(value) = ctx.get(inport) {
         println!("received {}", value);
+        assert_eq!(76600, value);
     } else {
         unreachable!()
     }
