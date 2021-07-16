@@ -791,7 +791,7 @@ class ASTUtils {
      * @param spec The array spec to be converted
      * @return A textual representation
      */
-    def static toText(ArraySpec spec) {
+    def static String toText(ArraySpec spec) {
         if (spec !== null) {
             return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
         }
@@ -803,7 +803,7 @@ class ASTUtils {
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    def static toText(Type type) {
+    def static String toText(Type type) {
         if (type !== null) {
             val base = type.baseType
             val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
@@ -1235,6 +1235,7 @@ class ASTUtils {
         val values = initialValue(parameter, instantiations);
         var result = 0;
         for (value: values) {
+            if (value.literal === null) return null;
             try {
                 result += Integer.decode(value.literal);
             } catch (NumberFormatException ex) {
