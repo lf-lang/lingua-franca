@@ -94,6 +94,8 @@ data class ReactorInfo(
 
     val ctorParamsTupleType: TargetCode
         get() = "(${ctorParams.map { it.type }.joinWithCommas()})"
+
+    val timers: List<TimerData> get()  = otherComponents.filterIsInstance<TimerData>()
 }
 
 class ReactorNames(

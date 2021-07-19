@@ -1,0 +1,12 @@
+target Rust {
+    timeout: 2 sec,
+    // fast: true
+};
+main reactor TimerPeriodic {
+    state i: i32(0);
+    timer t(0, 40 msec);
+    reaction(t) {=
+        println!("Tick {} after {}", self.i, ctx.get_elapsed_physical_time());
+        self.i += 1;
+    =}
+}
