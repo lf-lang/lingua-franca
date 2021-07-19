@@ -6,7 +6,7 @@ main reactor TimerPeriodic {
     state i: i32(0);
     timer t(0, 40 msec);
     reaction(t) {=
-        println!("Tick {} after {}", self.i, ctx.get_elapsed_physical_time());
+        println!("Tick {} after {} ms", self.i, ctx.get_elapsed_physical_time().as_millis());
         self.i += 1;
     =}
 }
