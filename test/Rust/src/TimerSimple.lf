@@ -1,0 +1,9 @@
+target Rust;
+main reactor SimpleTimer {
+    state i: i32(0);
+    timer t;
+    reaction(t) {=
+        println!("Tick {} after {}", self.i, ctx.get_elapsed_physical_time());
+        self.i += 1;
+    =}
+}

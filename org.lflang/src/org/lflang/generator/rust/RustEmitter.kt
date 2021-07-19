@@ -33,7 +33,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.contracts.contract
 
 
 /**
@@ -135,12 +134,16 @@ ${"             |    "..reactor.reactions.joinToString(",\n") { it.invokerFieldD
                 |    type RState = $dispatcherName;
                 |
                 |    fn start(&mut self, startup_ctx: &mut StartupCtx) {
-                |        if ${reactor.reactions.any { it.isStartup }} {
+                |        if ${reactor.hasSelfStartupLogic()} {
                 |            // Startup this reactor
                 |            let dispatcher = &mut self._rstate.lock().unwrap();
                 |            let ctx = &mut startup_ctx.logical_ctx();
                 |
-                |            // Execute reactions triggered by startup in order.
+                |            // Startup timers
+${"             |            "..reactor.timers.joinToString("\n" ) {
+                        "startup_ctx.start_timer(&dispatcher.${it.lfName});"
+}}
+                |            // Execute reactions triggered by startup in order. FIXME use enqueue
 ${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString("\n") { 
                         "dispatcher.react(ctx, $reactionIdName::${it.rustId});" 
 }}
@@ -184,6 +187,9 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
         }
     }
 
+    private fun ReactorInfo.hasSelfStartupLogic() =
+        reactions.any { it.isStartup } || otherComponents.any { it is TimerData }
+
     private fun ReactorInfo.assembleChildReactors(): String =
         nestedInstances.joinToString("\n") {
             """
@@ -224,11 +230,19 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
     }
 
     private fun localDependencyDeclarations(reactor: ReactorInfo): String {
-        fun vecOfReactions(list: List<ReactionInfo>) =
-            list.joinToString(", ", "vec![", "]") { it.invokerId + ".clone()" }
+        fun allDownstreamDeps(component: ReactorComponent) =
+            reactor.influencedReactionsOf(component).map {
+                it.invokerId + ".clone()"
+            }.let { base ->
+                if (component is TimerData) base + "reschedule_self_timer!(this_reactor, _rstate, 1000)"
+                else base
+            }
+
+        fun vecLiteral(list: List<String>) =
+            list.joinToString(", ", "vec![", "]")
 
         return reactor.otherComponents.joinToString("\n") {
-            "statemut.${it.lfName}.set_downstream(${vecOfReactions(reactor.influencedReactionsOf(it))}.into());"
+            "statemut.${it.lfName}.set_downstream(${vecLiteral(allDownstreamDeps(it))}.into());"
         }
     }
 
