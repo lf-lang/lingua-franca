@@ -153,28 +153,28 @@ ${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfNa
                 |       reactor_id: &mut ReactorId, 
                 |       args: <Self::RState as ReactorDispatcher>::Params
                 |    ) -> Self {
-                |       let mut _rstate = Arc::new(Mutex::new(Self::RState::assemble(args)));
-                |       let this_reactor = reactor_id.get_and_increment();
-                |       let mut reaction_id = 0;
+                |        let mut _rstate = Arc::new(Mutex::new(Self::RState::assemble(args)));
+                |        let this_reactor = reactor_id.get_and_increment();
+                |        let mut reaction_id = 0;
                 |
-${"             |       "..reactor.reactions.joinToString("\n") { it.reactionInvokerInitializer() }}
+${"             |        "..reactor.reactions.joinToString("\n") { it.reactionInvokerInitializer() }}
                 |
-${"             |       "..assembleChildReactors()}
+${"             |        "..assembleChildReactors()}
                 |
-                |       if ${reactor.otherComponents.any()} {
-                |           // Declare local dependencies
-                |           let mut statemut = _rstate.lock().unwrap();
+                |        if ${reactor.otherComponents.any()} {
+                |            // Declare local dependencies
+                |            let mut statemut = _rstate.lock().unwrap();
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
-                |       }
-                |       {
-${"             |           "..declareChildConnections()}
-                |       }
-                |       Self {
-                |           _rstate,
-${"             |           "..nestedInstances.joinToString("\n") { it.lfName + "," }}
-${"             |           "..reactions.joinToString("\n") { it.invokerId + "," }}
-                |       }
+                |        }
+                |        {
+${"             |            "..declareChildConnections()}
+                |        }
+                |        Self {
+                |            _rstate,
+${"             |            "..nestedInstances.joinToString("\n") { it.lfName + "," }}
+${"             |            "..reactions.joinToString("\n") { it.invokerId + "," }}
+                |        }
                 |    }
                 |}
         """.trimMargin()
