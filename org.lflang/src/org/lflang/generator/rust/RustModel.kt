@@ -40,7 +40,13 @@ data class GenerationInfo(
     val crate: CrateInfo,
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
-    val executableName: Ident
+    val executableName: Ident,
+    val properties: RustTargetProperties
+)
+
+data class RustTargetProperties(
+    val keepAlive: Boolean = false,
+    val timeout: TargetCode? = null
 )
 
 /** Info about the location of an LF node. */
@@ -250,7 +256,7 @@ sealed class ReactorComponent {
                 code != null      -> code.toText()
                 literal != null   ->
                     literal.toIntOrNull()
-                        ?.let { toRustTimeExpr(it, DEFAULT_TIME_UNIT_IN_TIMER) }
+                        ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
                         ?: throw InvalidSourceException("Not an integer literal", this)
                 else              -> unreachable()
             }
@@ -281,9 +287,10 @@ data class TimerData(
 ) : ReactorComponent()
 
 
-private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval, unit)
+private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
+private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
-private fun toRustTimeExpr(interval: Int, unit: TimeUnit) = when (unit) {
+private fun toRustTimeExpr(interval: Long, unit: TimeUnit) = when (unit) {
     TimeUnit.NSEC,
     TimeUnit.NSECS                -> "Duration::from_nanos($interval)"
     TimeUnit.USEC,
@@ -311,7 +318,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(reactors: List<Reactor>): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -326,9 +333,16 @@ object RustModelBuilder {
             mainReactor = mainReactor,
             // Rust exec names are snake case, otherwise we get a cargo warning
             // https://github.com/rust-lang/rust/issues/45127
-            executableName = mainReactor.lfName.camelToSnakeCase()
+            executableName = mainReactor.lfName.camelToSnakeCase(),
+            properties = targetConfig.toRustProperties()
         )
     }
+
+    private fun TargetConfig.toRustProperties(): RustTargetProperties =
+        RustTargetProperties(
+            keepAlive = this.keepalive,
+            timeout = this.timeout?.toRustTimeExpr()
+        )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
         reactors.map { reactor ->

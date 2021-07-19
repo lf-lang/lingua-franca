@@ -275,8 +275,8 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
             |    let mut reactor_id = ReactorId::first();
             |    let mut topcell = <self::reactors::${gen.mainReactor.names.assemblerName} as ReactorAssembler>::assemble(&mut reactor_id, (/*todo params*/));
             |    let options = SchedulerOptions {
-            |       timeout: None,
-            |       keep_alive: false
+            |       timeout: ${gen.properties.timeout.toRustOption()},
+            |       keep_alive: ${gen.properties.keepAlive}
             |    };
             |    let mut scheduler = SyncScheduler::new(options);
             |    scheduler.startup(|mut starter| {
@@ -386,9 +386,6 @@ private object ReactorComponentEmitter {
         else          -> "Default::default()"
     }
 
-    private fun TargetCode?.toRustOption(): TargetCode =
-        if (this == null) "None"
-        else "Some($this)"
 
     fun ReactorComponent.toStructField(): TargetCode {
         val fieldVisibility = if (this is PortData) "pub " else ""
@@ -436,3 +433,6 @@ ${"             |    "..body}
 private fun LocationInfo.lfTextComment() =
     "// --- ${lfText.joinLines()}"
 
+private fun TargetCode?.toRustOption(): TargetCode =
+    if (this == null) "None"
+    else "Some($this)"

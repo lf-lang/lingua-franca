@@ -65,7 +65,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
         fileConfig.srcGenPath.createDirectories()
 
-        val gen = RustModelBuilder.makeGenerationInfo(this.reactors)
+        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors)
         RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
