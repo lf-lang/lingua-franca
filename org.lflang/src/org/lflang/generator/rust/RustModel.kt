@@ -33,7 +33,7 @@ import org.lflang.generator.cpp.targetType
 import org.lflang.lf.*
 
 private typealias Ident = String
-private typealias TargetCode = String
+typealias TargetCode = String
 
 /** Root model class for the entire generation. */
 data class GenerationInfo(
@@ -45,6 +45,9 @@ data class GenerationInfo(
 
 /** Info about the location of an LF node. */
 data class LocationInfo(val line: Int, val fileName: String, val lfText: String) {
+
+    fun display() = "$fileName:$line"
+
     companion object {
         val MISSING = LocationInfo(line = 1, fileName = "<missing file>", lfText = "<missing text>")
     }
@@ -222,6 +225,9 @@ sealed class ReactorComponent {
     abstract val lfName: Ident
 
     companion object {
+
+        private val DEFAULT_TIME_UNIT_IN_TIMER: TimeUnit = TimeUnit.MSEC
+
         /**
          * Convert an AST node for a reactor component to the corresponding dependency type.
          * Since there's no reasonable common supertype we use [Variable], but maybe we should
@@ -230,8 +236,22 @@ sealed class ReactorComponent {
         fun from(v: Variable): ReactorComponent? = when (v) {
             is Port   -> PortData(lfName = v.name, isInput = v.isInput, dataType = v.targetType)
             is Action -> ActionData(lfName = v.name, isLogical = v.isLogical, minDelay = v.minDelay?.time?.toRustTimeExpr())
-            else      -> TODO("Unsupported: ${v.javaClass.simpleName} $v")
+            is Timer  -> TimerData(lfName = v.name, offset = v.offset.toTimerTimeValue(), period = v.period.toTimerTimeValue())
+            else      -> throw UnsupportedGeneratorFeatureException("Dependency on ${v.javaClass.simpleName} $v")
         }
+
+        private fun Value?.toTimerTimeValue(): TargetCode =
+            when {
+                this == null      -> "Duration::from_millis(0)"
+                parameter != null -> "${parameter.name}.clone()"
+                time != null      -> time.toRustTimeExpr()
+                code != null      -> code.toText()
+                literal != null   ->
+                    literal.toIntOrNull()
+                        ?.let { toRustTimeExpr(it, DEFAULT_TIME_UNIT_IN_TIMER) }
+                        ?: throw InvalidSourceException("Not an integer literal", this)
+                else              -> unreachable()
+            }
     }
 }
 
@@ -252,8 +272,16 @@ data class ActionData(
     val minDelay: TargetCode?
 ) : ReactorComponent()
 
+data class TimerData(
+    override val lfName: Ident,
+    val offset: TargetCode,
+    val period: TargetCode,
+) : ReactorComponent()
 
-private fun Time.toRustTimeExpr(): TargetCode = when (unit) {
+
+private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval, unit)
+
+private fun toRustTimeExpr(interval: Int, unit: TimeUnit) = when (unit) {
     TimeUnit.NSEC,
     TimeUnit.NSECS                -> "Duration::from_nanos($interval)"
     TimeUnit.USEC,
@@ -303,7 +331,8 @@ object RustModelBuilder {
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
         reactors.map { reactor ->
             val components = mutableMapOf<String, ReactorComponent>()
-            for (component in reactor.allOutputs + reactor.allInputs + reactor.allActions) {
+            val allComponents: List<Variable> = reactor.allComponents()
+            for (component in allComponents) {
                 val irObj = ReactorComponent.from(component) ?: continue
                 components[irObj.lfName] = irObj
             }

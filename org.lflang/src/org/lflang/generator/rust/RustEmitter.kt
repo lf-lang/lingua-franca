@@ -33,6 +33,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.contracts.contract
 
 
 /**
@@ -209,9 +210,9 @@ ${"             |           "..reactions.joinToString("\n") { it.invokerId + ","
         fun joinDependencies(n: ReactionInfo): String =
             n.allDependencies
                 .takeIf { it.isNotEmpty() }
-                ?.joinToString(", ", prefix = ", ") {
-                    with(ReactorComponentEmitter) { it.toBorrow() }
-                }.orEmpty()
+                ?.mapNotNull { with(ReactorComponentEmitter) { it.toBorrow() } }
+                ?.joinToString(", ", prefix = ", ")
+                .orEmpty()
 
         return reactor.reactions.joinToString { n: ReactionInfo ->
             """
@@ -332,35 +333,50 @@ ${"         |"..gen.reactors.joinToString("\n") { it.names.modDecl() }}
 private object ReactorComponentEmitter {
 
 
-    fun ReactorComponent.toBorrow() = when (this) {
+    /**
+     * Returns null if there is no need to manipulate the
+     * dependency within the reaction.
+     */
+    fun ReactorComponent.toBorrow(): TargetCode? = when (this) {
         is PortData   ->
             if (isInput) "&self.$lfName"
             else "&mut self.$lfName"
         is ActionData -> "&self.$lfName"
+        is TimerData  -> null
     }
 
-    fun ReactorComponent.toBorrowedType() =
+    fun ReactorComponent.isInjectedInReaction(): Boolean =
+        this !is TimerData
+
+    fun ReactorComponent.toBorrowedType(): TargetCode =
         if (this is PortData && !this.isInput) "&mut ${toType()}"
         else "& ${toType()}"
 
-    fun ReactorComponent.toType() = when (this) {
+    fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData ->
             if (isLogical) "$rsRuntime::LogicalAction"
             else "$rsRuntime::PhysicalAction"
         is PortData   ->
             if (isInput) "$rsRuntime::InputPort<$dataType>"
             else "$rsRuntime::OutputPort<$dataType>"
+        is TimerData  -> "$rsRuntime::Timer"
     }
 
-    fun ReactorComponent.initialExpression() = when (this) {
+    fun ReactorComponent.initialExpression(): TargetCode = when (this) {
         is ActionData -> {
-            val delay = minDelay?.let { "Some($it)" } ?: "None"
-            toType() + "::new($delay, ${lfName.withDQuotes()})"
+            val delay = minDelay.toRustOption()
+            toType() + "::new(${lfName.withDQuotes()}, $delay)"
         }
+        is TimerData  -> toType() + "::new(${lfName.withDQuotes()}, $offset, $period)"
+        // todo missing name for Ports
         else          -> "Default::default()"
     }
 
-    fun ReactorComponent.toStructField(): String {
+    private fun TargetCode?.toRustOption(): TargetCode =
+        if (this == null) "None"
+        else "Some($this)"
+
+    fun ReactorComponent.toStructField(): TargetCode {
         val fieldVisibility = if (this is PortData) "pub " else ""
 
         return "$fieldVisibility$lfName: ${toType()}"
@@ -376,18 +392,24 @@ private object ReactorComponentEmitter {
     fun ReactionInfo.invokerFieldDeclaration() =
         "$invokerId: Arc<$rsRuntime::ReactionInvoker>"
 
-    fun ReactionInfo.toWorkerFunction() =
-        with(PrependOperator) {
-            """
-            |${loc.lfTextComment()}
-            |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, ${reactionParams()}) {
-${"         |    "..body}
-            |}
-        """.trimMargin()
-        }
+    fun ReactionInfo.toWorkerFunction(): String {
+        fun ReactionInfo.reactionParams() =
+            allDependencies
+                .filter { it.isInjectedInReaction() }
+                .joinToString(", ") {
+                    "${it.lfName}: ${it.toBorrowedType()}"
+                }
 
-    private fun ReactionInfo.reactionParams() =
-        allDependencies.joinToString(", ") { "${it.lfName}: ${it.toBorrowedType()}" }
+        return with(PrependOperator) {
+            """
+                |${loc.lfTextComment()}
+                |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, ${reactionParams()}) {
+${"             |    "..body}
+                |}
+            """.trimMargin()
+        }
+    }
+
 
 
 }

@@ -99,3 +99,10 @@ private val nlPattern = Regex("\\R\\s+")
  * Replace newlines with a single space.
  */
 fun String.joinLines(): String = replace(nlPattern, " ")
+
+/**
+ * Something to throw to convince the compiler a branch is
+ * unreachable.
+ */
+fun unreachable(message: String? = null): Nothing =
+    throw AssertionError("Unreachable branch" + message?.let { ": $it" }.orEmpty())
