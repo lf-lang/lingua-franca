@@ -31,8 +31,8 @@ reactor Sink {
         // let physical = ctx.get_physical_time();
 
         println!("logical time: {}", logical);
-        println!("elapsed physical time: {} ms", ctx.get_elapsed_physical_time().as_millis());
-        println!("elapsed logical time: {} ms", elapsed_logical.as_millis());
+        println!("elapsed physical time: {} ns", ctx.get_elapsed_physical_time().as_nanos());
+        println!("elapsed logical time: {} ns", elapsed_logical.as_nanos());
 
         // the framework appears precise to e-4 s so we can't use Duration#Eq
         assert_eq!(100, elapsed_logical.as_millis(), "Expected 100 ms elapsed");
