@@ -24,6 +24,8 @@
 
 package org.lflang.generator.rust
 
+import org.eclipse.emf.ecore.EObject
+
 /**
  * An exception that occurred during code generation. May also
  * wrap another exception.
@@ -38,8 +40,16 @@ open class GenerationException : RuntimeException { // note that this is an unch
  * Signals that the code generator does not support a particular
  * feature of the source language.
  */
-class UnsupportedGeneratorFeatureException(feature: String): GenerationException(feature) {
+class UnsupportedGeneratorFeatureException(feature: String) : GenerationException(feature) {
     override fun toString(): String {
         return "Unsupported generator feature: ${message!!.decapitalize()}"
     }
 }
+
+class InvalidSourceException(message: String, node: EObject) :
+    GenerationException("at ${node.locationInfo().display()}: $message") {
+    override fun toString(): String {
+        return "[error]: ${message!!.decapitalize()}"
+    }
+}
+

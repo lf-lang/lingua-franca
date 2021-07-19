@@ -7,5 +7,6 @@ main reactor SimpleTimer {
     timer t;
     reaction(t) {=
         println!("Tick {}", self.i);
+        self.i += 1;
     =}
 }

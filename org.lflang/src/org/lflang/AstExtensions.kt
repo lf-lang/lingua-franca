@@ -105,6 +105,15 @@ private fun <T> Reactor.collectInSupertypes(collector: Reactor.() -> List<T>): L
     superClasses.orEmpty().mapNotNull { it.toDefinition().collectInSupertypes(collector) }.flatten() + this.collector()
 
 /**
+ * Return all components declared within this reactor in an
+ * unspecified order.
+ */
+fun Reactor.allComponents(): List<Variable> =
+    collectInSupertypes {
+        outputs + inputs + actions + timers
+    }
+
+/**
  * Check if the reactor class uses generics
  * @receiver the reactor to check
  * @true true if the reactor uses generics
