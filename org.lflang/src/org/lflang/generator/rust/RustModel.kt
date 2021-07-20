@@ -25,6 +25,7 @@
 
 package org.lflang.generator.rust
 
+import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
@@ -127,19 +128,10 @@ class ReactorNames(
 data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
-    val params: ParamList,
+    val args: List<TargetCode>,
     val loc: LocationInfo
 ) {
     val names = ReactorNames(reactorLfName)
-}
-
-sealed class ParamList {
-    data class Positional(val list: List<TargetCode>) : ParamList()
-
-    // todo note that currently the Named ParamList is not used
-    //  as the model cannot map an argument's name to a position
-    //  in the list.
-    data class Named(val map: Map<Ident, TargetCode>) : ParamList()
 }
 
 /**
@@ -405,23 +397,27 @@ object RustModelBuilder {
         }
 
     private fun Instantiation.toModel(): NestedReactorInstance {
-        // todo argument names are ignored
-        val params = ParamList.Positional(
-            parameters
-                .map { it.rhs.singleOrNull() ?: throw InvalidSourceException("Initializer with several values", it) }
-                .map { it.toText() }
-        )
 
-        this.reactor
+        val byName = parameters.associateBy { it.lhs.name }
+        val args = reactor.parameters.map { ithParam ->
+            // use provided argument
+            byName[ithParam.name]?.let { it.rhs.toSingleRustExpr(it) }
+                ?: ithParam.init?.takeIf { it.isNotEmpty() }?.toSingleRustExpr(this)
+                ?: throw InvalidSourceException("Cannot find value of parameter ${ithParam.name}", this)
+        }
 
         return NestedReactorInstance(
             lfName = this.name,
-            params = params,
+            args = args,
             reactorLfName = this.reactorClass.name,
             loc = this.locationInfo()
         )
     }
 }
+
+fun EList<Value>.toSingleRustExpr(node: EObject) =
+    singleOrNull()?.toText()
+        ?: throw InvalidSourceException("Initializer with several values", node)
 
 
 fun EObject.locationInfo(): LocationInfo {
