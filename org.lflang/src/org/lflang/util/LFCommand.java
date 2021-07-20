@@ -91,8 +91,10 @@ public class LFCommand {
             do {
                 try {
                     len = process.getInputStream().read(buffer);
-                    output.write(buffer, 0, len);
-                    System.out.write(buffer, 0, len);
+                    if (len > 0) {
+                        output.write(buffer, 0, len);
+                        System.out.write(buffer, 0, len);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
@@ -121,8 +123,10 @@ public class LFCommand {
             do {
                 try {
                     len = process.getErrorStream().read(buffer);
-                    errors.write(buffer, 0, len);
-                    System.err.write(buffer, 0, len);
+                    if (len > 0) {
+                        errors.write(buffer, 0, len);
+                        System.err.write(buffer, 0, len);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
