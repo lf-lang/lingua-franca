@@ -1,5 +1,5 @@
 target Rust;
-main reactor SimpleTimer {
+main reactor TimerSimple {
     state i: i32(0);
     timer t;
     reaction(t) {=
