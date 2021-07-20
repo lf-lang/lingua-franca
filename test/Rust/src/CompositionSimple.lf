@@ -13,7 +13,7 @@ reactor Component2 {
         println!("c2 woke up");
     =}
 }
-main reactor MiniComposition {
+main reactor Composition {
     c1 = new Component1();
     c2 = new Component2();
     reaction(startup) {=
