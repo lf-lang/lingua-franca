@@ -25,8 +25,6 @@
 package org.lflang.generator.rust
 
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.rust.ParamList.Named
-import org.lflang.generator.rust.ParamList.Positional
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
@@ -106,6 +104,7 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |    type Wrapped = $structName;
                 |    type Params = $ctorParamsTupleType;
                 |
+                |    #[inline]
                 |    fn assemble(params: Self::Params) -> Self {
                 |        let $ctorParamsDeconstructor = params;
                 |        Self {
@@ -195,15 +194,11 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
         reactions.any { it.isStartup } || otherComponents.any { it is TimerData }
 
     private fun ReactorInfo.assembleChildReactors(): String {
-        fun paramsToRust(paramList: ParamList, instance: NestedReactorInstance): String = when (paramList) {
-            is Positional -> paramList.list.joinToString(", ", "(", ")")
-            is Named      -> throw UnsupportedGeneratorFeatureException("Named constructor parameters")
-        }
 
         return nestedInstances.joinToString("\n") {
             """
                     ${it.loc.lfTextComment()}
-                    let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, ${paramsToRust(it.params, it)});
+                    let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, ${it.args.joinToString(", ", "(", ")")});
                 """.trimIndent()
         }
     }
