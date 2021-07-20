@@ -38,19 +38,33 @@ import org.lflang.lf.*
  */
 class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
-    private fun iterateOverAllPortsAndApply(varRef: VarRef, generateCode: (String) -> String): String {
+    private fun iterateOverAllPortsAndApply(
+        varRef: VarRef,
+        iteratePortsFirst: Boolean = false,
+        generateCode: (String) -> String
+    ): String {
         val port = varRef.variable as Port
         val container = varRef.container
         return with(PrependOperator) {
             if (port.isMultiport) {
                 if (container?.isBank == true) {
-                    """
-                        |for (auto& __lf_instance : ${container.name}) {
-                        |  for (auto& __lf_port : __lf_instance->${port.name}) {
-                    ${" |    "..generateCode("__lf_port")}
-                        |  }
-                        |}
-                    """.trimMargin()
+                    if (iteratePortsFirst) {
+                        """
+                            |for (auto& __lf_port : __lf_instance->${port.name}) {
+                            |  for (auto& __lf_instance : ${container.name}) {
+                        ${" |    "..generateCode("__lf_port")}
+                            |  }
+                            |}
+                        """.trimMargin()
+                    } else {
+                        """
+                            |for (auto& __lf_instance : ${container.name}) {
+                            |  for (auto& __lf_port : __lf_instance->${port.name}) {
+                        ${" |    "..generateCode("__lf_port")}
+                            |  }
+                            |}
+                        """.trimMargin()
+                    }
                 } else {
                     // is mulitport, but not in a bank
                     """
@@ -175,20 +189,23 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // first left port to determine the type of the entire connection
         val portType = c.leftPorts[0].portType
 
+        // Generate code which adds all left hand ports and all right hand ports to a vector each. If we are handling multiports
+        // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
+        // if the connection is a cross connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
             """
                 |// connection $idx
                 |std::vector<$portType> __lf_left_ports_$idx;
             ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
-            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx", c.isCross) }}
                 |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
             """.trimMargin()
         }
     }
 
-    private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String =
-        iterateOverAllPortsAndApply(varRef) { port: String -> "${vectorName}.push_back(&$port);" }
+    private fun addAllPortsToVector(varRef: VarRef, vectorName: String, iteratePortsFirst: Boolean = false): String =
+        iterateOverAllPortsAndApply(varRef, iteratePortsFirst) { port: String -> "${vectorName}.push_back(&$port);" }
 
     /**
      * Generate the definition of the reactor's assemble() method
