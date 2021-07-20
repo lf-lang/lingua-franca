@@ -50,9 +50,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                 if (container?.isBank == true) {
                     if (iteratePortsFirst) {
                         """
-                            |for (auto& __lf_port : __lf_instance->${port.name}) {
+                            |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->${port.name}.size(); __lf_port_idx++) {
                             |  for (auto& __lf_instance : ${container.name}) {
-                        ${" |    "..generateCode("__lf_port")}
+                        ${" |    "..generateCode("__lf_instance->${port.name}[__lf_port_idx]")}
                             |  }
                             |}
                         """.trimMargin()
