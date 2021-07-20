@@ -66,6 +66,12 @@ public class LFCommand {
 
 
     /**
+     * Get a String representation of the stored command
+     */
+    public String toString() { return String.join(" ", processBuilder.command()); }
+
+
+    /**
      * A runnable that collects the output from a running process, prints it and stores it in the output stream
      */
     private class OutputCollector implements Runnable {
