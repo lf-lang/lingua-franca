@@ -80,7 +80,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             "cargo", listOf(
                 "+nightly",
                 "build",
-                "--release",
+                "--release", // enable optimisations
                 // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
                 "-Z", "unstable-options" // ... and that feature flag

@@ -28,6 +28,7 @@ package org.lflang.generator.rust
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
+import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.generator.cpp.name
 import org.lflang.generator.cpp.targetType
 import org.lflang.lf.*
@@ -75,7 +76,7 @@ data class ReactorInfo(
     /** Other reactor components, like actions & timers. */
     val otherComponents: List<ReactorComponent>,
     /** List of ctor parameters. */
-    val ctorParams: List<CtorParamInfo> = emptyList(),
+    val ctorParams: List<CtorParamInfo>,
     /** List of preambles, will be outputted at the top of the file. */
     val preambles: List<TargetCode>,
 
@@ -97,9 +98,6 @@ data class ReactorInfo(
 ) {
     /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
-
-    val ctorParamsTupleType: TargetCode
-        get() = "(${ctorParams.map { it.type }.joinWithCommas()})"
 
     val timers: List<TimerData> get()  = otherComponents.filterIsInstance<TimerData>()
 }
@@ -137,6 +135,10 @@ data class NestedReactorInstance(
 
 sealed class ParamList {
     data class Positional(val list: List<TargetCode>) : ParamList()
+
+    // todo note that currently the Named ParamList is not used
+    //  as the model cannot map an argument's name to a position
+    //  in the list.
     data class Named(val map: Map<Ident, TargetCode>) : ParamList()
 }
 
@@ -292,19 +294,21 @@ private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong()
 
 private fun toRustTimeExpr(interval: Long, unit: TimeUnit) = when (unit) {
     TimeUnit.NSEC,
-    TimeUnit.NSECS                -> "Duration::from_nanos($interval)"
+    TimeUnit.NSECS                    -> "Duration::from_nanos($interval)"
     TimeUnit.USEC,
-    TimeUnit.USECS                -> "Duration::from_micros($interval)"
+    TimeUnit.USECS                    -> "Duration::from_micros($interval)"
     TimeUnit.MSEC,
-    TimeUnit.MSECS                -> "Duration::from_millis($interval)"
+    TimeUnit.MSECS                    -> "Duration::from_millis($interval)"
     TimeUnit.MIN,
     TimeUnit.MINS,
     TimeUnit.MINUTE,
-    TimeUnit.MINUTES              -> "Duration::from_secs(${interval * 60})"
-    TimeUnit.HOUR, TimeUnit.HOURS -> "Duration::from_secs(${interval * 3600})"
-    TimeUnit.DAY, TimeUnit.DAYS   -> "Duration::from_secs(${interval * 3600 * 24})"
-    TimeUnit.WEEK, TimeUnit.WEEKS -> "Duration::from_secs(${interval * 3600 * 24 * 7})"
-    else                          -> "Duration::from_secs($interval)"
+    TimeUnit.MINUTES                  -> "Duration::from_secs(${interval * 60})"
+    TimeUnit.HOUR, TimeUnit.HOURS     -> "Duration::from_secs(${interval * 3600})"
+    TimeUnit.DAY, TimeUnit.DAYS       -> "Duration::from_secs(${interval * 3600 * 24})"
+    TimeUnit.WEEK, TimeUnit.WEEKS     -> "Duration::from_secs(${interval * 3600 * 24 * 7})"
+    TimeUnit.NONE, // default is the second
+    TimeUnit.SEC, TimeUnit.SECS,
+    TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($interval)"
 }
 
 /** Regex to match a target code block, captures the insides as $1. */
@@ -383,18 +387,32 @@ object RustModelBuilder {
                 preambles = reactor.preambles.map { it.code.toText() },
                 stateVars = reactor.stateVars.map {
                     StateVarInfo(
-                        it.name,
-                        it.targetType,
+                        lfName = it.name,
+                        type = it.targetType,
                         init = it.init.singleOrNull()?.toText()
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
-                connections = reactor.connections
+                connections = reactor.connections,
+                ctorParams = reactor.parameters.map {
+                    CtorParamInfo(
+                        lfName = it.name,
+                        type = it.targetType,
+                        defaultValue = it.init.singleOrNull()?.toText()
+                    )
+                }
             )
         }
 
     private fun Instantiation.toModel(): NestedReactorInstance {
-        val params = ParamList.Positional(emptyList()) // fixme
+        // todo argument names are ignored
+        val params = ParamList.Positional(
+            parameters
+                .map { it.rhs.singleOrNull() ?: throw InvalidSourceException("Initializer with several values", it) }
+                .map { it.toText() }
+        )
+
+        this.reactor
 
         return NestedReactorInstance(
             lfName = this.name,
