@@ -69,8 +69,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         addNodesAndEdges(main)
             // Assign a level to each reaction. 
             // If there are cycles present in the graph, it will be detected here.
-            if (!assignLevels()) {
+            val leftoverReactions = assignLevels()
+            if (leftoverReactions !== null) {
                 main.reporter.reportError("Reactions form a cycle!");
+                System.err.println(leftoverReactions.toString());
                 throw new Exception("Reactions form a cycle!")
             }
             // Traverse the graph again, now starting from the leaves,
@@ -123,12 +125,13 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * Rather than establishing a total order, we establish a partial order.
      * In this order, the level of each reaction is the least upper bound of
      * the levels of the reactions it depends on.
-     * If any cycles are present in the dependency graph, an exception is
-     * thrown. This method should be called only on the top-level (main) reactor.
+     * If any cycles are present in the dependency graph, then a graph
+     * containing the nodes in the cycle is returned. Otherwise, null is
+     * returned. This method should be called only on the top-level (main) reactor.
      * @return true if the assignment was successful, false if it was not, 
      * meaning the graph has at least one cycle in it.
      */
-    protected def assignLevels() {
+    protected def DirectedGraph<ReactionInstance> assignLevels() {
         val graph = this.copy
         var start = new ArrayList(graph.rootNodes)
         
@@ -169,10 +172,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         // If, after all of this, there are still any nodes left, 
         // then the graph must be cyclic.
         if (graph.nodeCount != 0) {
-            return false
+            return graph
         }
 
-        return true
+        return null as DirectedGraph<ReactionInstance>;
     }
     
     /**
