@@ -17,19 +17,18 @@ class CppMainGenerator(
     private fun generateParameterParser(param: Parameter): String {
         with(CppParameterGenerator) {
             with(param) {
-                val result = """
-                $targetType $name = $defaultValue;
-                auto opt_$name = app.add_option("--$name", $name, "The $name parameter passed to the main reactor ${main.name}.");
-            """.trimIndent()
-
-                return if (!inferredType.isTime)
-                    result
-                else {
-                    // need additional code for parsing times
-                    result + """
+                return if(inferredType.isTime) {
+                    """
+                        $targetType $name = $defaultValue;
+                        auto opt_$name = app.add_option("--$name", $name, "The $name parameter passed to the main reactor ${main.name}.");
                         opt_$name->check([](const std::string& val){ return validate_time_string(val); });
                         opt_$name->type_name("'FLOAT UNIT'");
                         opt_$name->default_str(time_to_quoted_string($name)); 
+                    """.trimIndent()
+                } else {
+                    """
+                        $targetType $name = $defaultValue;
+                        app.add_option("--$name", $name, "The $name parameter passed to the main reactor ${main.name}.");
                     """.trimIndent()
                 }
             }
