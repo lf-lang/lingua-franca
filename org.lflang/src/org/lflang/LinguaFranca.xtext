@@ -342,7 +342,9 @@ WidthSpec:
     ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
     
 WidthTerm:
-    width=INT | parameter=[Parameter];
+    width=INT 
+    | parameter=[Parameter] 
+    | 'widthof(' port=VarRef ')';
 
 IPV4Host:
     (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
@@ -479,7 +481,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' | 'as' | 'from' | 'const' | 'method' |
+    'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

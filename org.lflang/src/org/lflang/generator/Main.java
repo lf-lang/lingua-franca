@@ -28,6 +28,7 @@ import org.apache.commons.cli.ParseException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
@@ -577,10 +578,17 @@ public class Main {
             
             final List<Issue> issues = this.validator.validate(resource,
                     CheckMode.ALL, CancelIndicator.NullImpl);
-            if (!issues.isEmpty()) {
+            Boolean hasErrors = false;
+            for(Issue issue : issues) {
+                if (issue.getSeverity() == Severity.ERROR)
+                    hasErrors = true;
+            }
+            if (hasErrors) {
                 printFatalError("Unable to validate resource. Reason:");
-                issues.forEach(issue -> System.err.println(issue));
+                issues.forEach(issue -> System.err.println(issue.getMessage()));
                 System.exit(1);
+            } else {
+                issues.forEach(issue -> System.err.println(issue.getMessage()));
             }
             
             StandaloneContext context = new StandaloneContext();
