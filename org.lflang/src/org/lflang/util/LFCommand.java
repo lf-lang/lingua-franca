@@ -253,17 +253,21 @@ public class LFCommand {
         cmdList.add(cmd);
         cmdList.addAll(args);
 
+        ProcessBuilder builder = null;
+
         // First, see if the command is a local executable file
         final File cmdFile = dir.resolve(cmd).toFile();
         if (cmdFile.exists() && cmdFile.canExecute()) {
-            final ProcessBuilder builder = new ProcessBuilder(cmdList);
-            builder.directory(dir.toFile());
+            builder = new ProcessBuilder(cmdList);
         } else if (checkIfCommandIsOnPath(cmd, dir)) {
-            final ProcessBuilder builder = new ProcessBuilder(cmdList);
-            builder.directory(dir.toFile());
+            builder = new ProcessBuilder(cmdList);
         } else if (checkIfCommandIsExecutableWithBash(cmd, dir)) {
-            final ProcessBuilder builder = new ProcessBuilder("bash", "--login", "-c", String.join(" ", cmdList));
+            builder = new ProcessBuilder("bash", "--login", "-c", String.join(" ", cmdList));
+        }
+
+        if (builder != null) {
             builder.directory(dir.toFile());
+            return new LFCommand(builder);
         }
 
         return null;
