@@ -17,7 +17,7 @@ reactor Sink {
     }
   =}
 }
-main reactor PortComposition {
+main reactor CompositionWithPorts {
       source = new Source();
       sink = new Sink();
 
