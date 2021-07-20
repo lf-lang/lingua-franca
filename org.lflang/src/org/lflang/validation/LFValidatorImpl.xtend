@@ -345,6 +345,10 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkConnection(Connection connection) {
+        
+        if (connection.cross && this.target != Target.CPP) {
+            error("This target does not support cross connections", Literals.CONNECTION__CROSS)
+        }
 
         // Report if connection is part of a cycle.
         for (cycle : this.info.topologyGraph.cycles) {
