@@ -1,0 +1,31 @@
+// In this pattern, each node can send broadcast messages to all other nodes
+
+target Cpp {
+    threads: 1
+}
+
+reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
+    input[num_nodes] in: size_t
+    output out: size_t
+    
+    reaction (startup) -> out{=
+     	std::cout << "Hello from node " << bank_index << "!\n";
+     	// broadcast my ID to everyone
+     	out.set(bank_index);    
+    =}
+    
+    reaction (in) {=
+        std::cout << "Node " << bank_index << " received messages from ";
+     	for (auto& port : in) {
+            if (port.is_present()) {
+                std::cout << *port.get() << ", ";
+            }
+        }   
+        std::cout << '\n';
+    =}
+}
+
+main reactor(num_nodes: size_t(4)) {
+    nodes = new[num_nodes] Node(num_nodes=num_nodes);
+    (nodes.out)+ -> nodes.in;
+}
