@@ -14,37 +14,46 @@ jobs:
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Install jq # for pruning old release assets
+        run: |
+          apt update
+          apt -y install jq
       # Setup Build dependencies
       - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
+        uses: actions/setup-java@v2
         with:
-          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
+          distribution: zulu
       - name: Set up Maven
         uses: stCarolas/setup-maven@v4
         with:
           maven-version: 3.8.1
+      - name: Gradle Wrapper Validation
+        uses: gradle/wrapper-validation-action@v1
+
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - uses: actions/checkout@v2
+
+      ## Build products
+      - name: Build the lfc compiler
+        run: .github/scripts/package_lfc.sh
       - name: Build Eclipse product
         run: mvn compile
       - name: Package IDE
         run: mvn package
-      # move artifacts to a specific folder for easier upload & to ensure overwriting the old files
-      - name: Move packages
-        run: |
-          mkdir upload_data
-          mv org.lflang.rca/target/products/lingua_franca_rca_*-linux.gtk.x86_64.tar.gz upload_data/epoch-ide_linux_gtk_x86_64.tar.gz
-          mv org.lflang.rca/target/products/lingua_franca_rca_*-macosx.cocoa.x86_64.tar.gz upload_data/epoch-ide_macos_cocoa_x86_64.tar.gz
-          mv org.lflang.rca/target/products/lingua_franca_rca_*-win32.win32.x86_64.zip upload_data/epoch-ide_windows_x86_64.zip
-        shell: bash
-      # create a release with the nightly builds.
+
+      # delete old assets
+      - name: Delete old release assets
+        run: .github/scripts/delete_old_nightly_assets.sh
+        env: 
+          GITHUB_TOKEN: ${{ secrets.NIGHTLY_BUILD }}
+      # create a new release with the nightly builds.
       - name: Create Nightly Release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true # overwrite existing releases by that name
           artifactErrorsFailBuild: true # no artifacts? No nightly.
-          artifacts: "upload_data/*"
+          artifacts: "org.lflang.rca/target/products/*.tar.gz,org.lflang.rca/target/products/*.zip,build_upload/*"
           body: "## Epoch IDE Nightly Build
 
 This is the continuously updated Nightly release of the Lingua Franca IDE, Epoch.
