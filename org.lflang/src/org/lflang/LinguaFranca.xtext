@@ -396,12 +396,12 @@ terminal NEGINT:                  '-' ('0'..'9')+;
 terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
-terminal LT_ANNOT: "'" ID;
+terminal LT_ANNOT: "'" ID?;
 
 terminal STRING:
-              '"' ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )* '"'
+              '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
             // This branch matches only char literals, ie, needs exactly one character.
-            | "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') ) "'"
+            | "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'"
         ;
 
 terminal TRUE:  'true' | 'True';
