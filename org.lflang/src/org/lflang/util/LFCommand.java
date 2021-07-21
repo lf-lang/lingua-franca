@@ -1,5 +1,6 @@
 /*************
- Copyright (c) 2021 TU Dresden
+ Copyright (c) 2019-2021 TU Dresden
+ Copyright (c) 2019-2021 UC Berkeley
 
  Redistribution and use in source and binary forms, with or without modification,
  are permitted provided that the following conditions are met:
@@ -204,7 +205,7 @@ public class LFCommand {
 
 
     /**
-     * Create a LFCommand instance form a given command and argument list in the current working directory.
+     * Create a LFCommand instance from a given command and argument list in the current working directory.
      *
      * @see #get(String, List, Path)
      */
@@ -214,7 +215,7 @@ public class LFCommand {
 
 
     /**
-     * Create a LFCommand instance form a given command, an argument list and a directory.
+     * Create a LFCommand instance from a given command, an argument list and a directory.
      * <p>
      * This will check first if the command can actually be found and executed. If the command is not found, null is
      * returned. In order to find the command, different methods are applied in the following order:
