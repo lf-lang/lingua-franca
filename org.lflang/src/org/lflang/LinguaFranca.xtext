@@ -388,7 +388,11 @@ Literal:
 //// keywords for every string literal, eg 'reaction'.
 
 terminal WS: (' '|'\t'|'\r'|'\n')+;
+
+terminal TRUE:  'true' | 'True';
+terminal FALSE: 'false' | 'False';
 terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+
 terminal INT returns ecore::EInt:     ('0'..'9')+;
 terminal NEGINT:                  '-' ('0'..'9')+;
 
@@ -403,9 +407,6 @@ terminal STRING:
             // This branch matches only char literals, ie, needs exactly one character.
             | "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'"
         ;
-
-terminal TRUE:  'true' | 'True';
-terminal FALSE: 'false' | 'False';
 
 terminal ANY_OTHER: .;
 
