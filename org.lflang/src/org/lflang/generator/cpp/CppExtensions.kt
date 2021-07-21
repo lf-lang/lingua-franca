@@ -105,6 +105,23 @@ fun Value.toTime(outerContext: Boolean = false): String = when {
  */
 fun Value.toCode(): String = this.time?.toCode() ?: this.toText()
 
+/** Get the textual representation of a width in C++ code */
+fun WidthSpec.toCode(): String =  terms.joinToString(" + ") {
+    when {
+        it.parameter != null -> it.parameter.name
+        it.port != null      -> with(it.port) {
+            if (container?.isBank == true) {
+                if ((variable as Port).isMultiport) "(${container.name}.size() * ${container.name}[0]->${variable.name}.size())"
+                else "${container.name}.size()"
+            } else {
+                if ((variable as Port).isMultiport) "${name}.size()"
+                else "1"
+            }
+        }
+        else                 -> it.width.toString()
+    }
+}
+
 /** True if the preamble is public */
 val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 
