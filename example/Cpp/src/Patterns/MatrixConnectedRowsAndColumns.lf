@@ -1,0 +1,75 @@
+// This pattern creates a matrix of nodes, where each of the nodes can send 
+// messages to all other nodes in the same row or in the same column. Since
+// banks in LF are one dimensional, we use hierachy to implement the two 
+// dimension. Nodes are organized in Rows which are grouped to form the matrix.
+
+target Cpp {
+    threads: 1
+};
+
+public preamble {=
+    struct Pos {
+      size_t col;
+      size_t row;  
+    };
+    
+    std::ostream& operator<<(std::ostream& os, const Pos& pos);
+=}
+
+private preamble {=    
+    std::ostream& operator<<(std::ostream& os, const Pos& pos) {
+    	os << '(' << pos.col << ',' << pos.row << ')';
+    	return os;
+	}
+=}
+
+reactor Node(bank_index: size_t(0), row_index: size_t(0), num_rows: size_t(4), num_cols:size_t(4)) {
+    input[num_cols] fromRow: Pos
+    input[num_rows] fromCol: Pos
+
+    output toRowAndCol: Pos
+    
+    state pos: Pos{bank_index, row_index}
+    
+    reaction (startup) -> toRowAndCol {=
+        std::cout << "Hello from " << pos << '\n';
+        // send my position to everyone else in my row and column
+        toRowAndCol.set(pos);
+    =}
+    
+    reaction (fromRow) {=
+        std::cout << pos << " received row messages from: ";
+        for (auto& port : fromRow) {
+            if (port.is_present()) {
+                std::cout << *port.get() << ", ";
+            }
+        }
+        std::cout << '\n';
+    =}
+    
+    reaction (fromCol) {=
+        std::cout << pos << " received col messages from: ";
+        for (auto& port : fromCol) {
+            if (port.is_present()) {
+                std::cout << *port.get() << ", ";
+            }
+        }
+        std::cout << '\n';
+    =}
+}
+
+reactor Row(bank_index: size_t(0), num_rows:size_t(4), num_cols:size_t(4)) {
+    nodes = new[num_cols] Node(row_index=bank_index, num_rows=num_rows, num_cols=num_cols)
+    
+    input[16] fromCol: Pos
+    output[num_cols] toCol: Pos
+    
+    (nodes.toRowAndCol)+ -> nodes.fromRow
+    nodes.toRowAndCol -> toCol 
+    fromCol -x-> nodes.fromCol
+}
+
+main reactor (num_rows:size_t(4), num_cols:size_t(4)) {
+    rows = new[num_rows] Row(num_rows=num_rows, num_cols=num_cols)
+    (rows.toCol)+ -> rows.fromCol;
+}
