@@ -1,5 +1,6 @@
 /*************
- Copyright (c) 2021 TU Dresden
+ Copyright (c) 2019-2021 TU Dresden
+ Copyright (c) 2019-2021 UC Berkeley
 
  Redistribution and use in source and binary forms, with or without modification,
  are permitted provided that the following conditions are met:
@@ -56,7 +57,7 @@ public class GeneratorCommandFactory {
 
 
     /**
-     * Create a LFCommand instance form a given command and an argument list.
+     * Create a LFCommand instance from a given command and an argument list.
      * <p>
      * The command will be executed in the CWD and if the command cannot be found an error message is shown.
      *
@@ -71,7 +72,7 @@ public class GeneratorCommandFactory {
 
 
     /**
-     * Create a LFCommand instance form a given command, an argument list and a directory.
+     * Create a LFCommand instance from a given command, an argument list and a directory.
      *
      * @param cmd         the command to look up
      * @param args        a list of arguments
@@ -86,7 +87,7 @@ public class GeneratorCommandFactory {
 
 
     /**
-     * Create a LFCommand instance form a given command, an argument list and a directory.
+     * Create a LFCommand instance from a given command, an argument list and a directory.
      * <p>
      * The command will be executed in the CWD and if the command cannot be found an error message is shown.
      *
@@ -102,7 +103,7 @@ public class GeneratorCommandFactory {
 
 
     /**
-     * Create a LFCommand instance form a given command, an argument list and a directory.
+     * Create a LFCommand instance from a given command, an argument list and a directory.
      * <p>
      * This will check first if the command can actually be found and executed. If the command is not found, null is
      * returned. In addition, an error message will be shown if failOnError is true. Otherwise, a warning will be
