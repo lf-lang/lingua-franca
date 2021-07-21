@@ -1367,7 +1367,7 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«topLevelName»_«federate.name».log'''
-                val compileCommand = compileCCommand('''«topLevelName»_«federate.name»''', false).command.join(" ")
+                val compileCommand = compileCCommand('''«topLevelName»_«federate.name»''', false).toString()
                 //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
@@ -3256,16 +3256,15 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand(
+        val protoc = commandFactory.createCommand(
             "protoc-c",
             #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename],
-            fileConfig.srcPath,
-            "Processing .proto files requires proto-c >= 1.3.3.",
-            true)
+            fileConfig.srcPath)
         if (protoc === null) {
+            errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.")
             return
         }
-        val returnCode = protoc.executeCommand()
+        val returnCode = protoc.run()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
             targetConfig.compileAdditionalSources.add(this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)

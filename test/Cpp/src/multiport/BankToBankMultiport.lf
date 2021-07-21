@@ -3,24 +3,22 @@ target Cpp {
     timeout: 2 sec,
     fast: true
 };
-reactor Source(width:int(1)) {
+reactor Source(width:size_t(1)) {
     timer t(0, 200 msec);
-    // FIXME: replace '4' with 'width'.
-    output[4] out:int;
+    output[width] out:int;
     state s:int(0);
     reaction(t) -> out {=
-        for(int i = 0; i < out.size(); i++) {
+        for(size_t i = 0; i < out.size(); i++) {
             out[i].set(s++);
         }
     =}
 }
-reactor Destination(width:int(1)) {
+reactor Destination(width:size_t(1)) {
     state s:int(6);
-    // FIXME: replace '4' with 'width'.
-    input[4] in:int;
+    input[width] in:int;
     reaction(in) {=
         int sum = 0;
-        for (int i = 0; i < in.size(); i++) {
+        for (size_t i = 0; i < in.size(); i++) {
             if (in[i].is_present()) sum += *in[i].get();
         }
         std::cout << "Sum of received: " << sum << ".\n";
@@ -38,9 +36,8 @@ reactor Destination(width:int(1)) {
         std::cout << "Success.\n";
     =}
 }
-main reactor BankToBankMultiport(bank_width:int(4)) {
-    // FIXME: Should use bank_width instead of 4.
-	a = new[4] Source(width = 4);
-	b = new[4] Destination(width = 4);
+main reactor (bank_width:size_t(4)) {
+	a = new[bank_width] Source(width = 4);
+	b = new[bank_width] Destination(width = 4);
 	a.out -> b.in;
 }
