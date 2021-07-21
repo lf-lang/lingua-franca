@@ -50,13 +50,14 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
 
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
-    private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
+    private val methods = CppMethodGenerator(reactor)
+    private val instances = CppInstanceGenerator(reactor, fileConfig)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
-    private val ports = CppPortGenerator(reactor, errorReporter)
+    private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
-    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, reactions)
-    private val assemble = CppAssembleMethodGenerator(reactor, ports, instances)
+    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, ports, reactions)
+    private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
@@ -96,6 +97,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |  class Inner: public lfutil::LFScope {
         ${" |    "..parameters.generateDeclarations()}
         ${" |    "..state.generateDeclarations()}
+        ${" |    "..methods.generateDeclarations()}
         ${" |    "..constructor.generateInnerDeclaration()}
         ${" |    "..reactions.generateBodyDeclarations()}
         ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
@@ -134,6 +136,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..constructor.generateInnerDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
+            |
+        ${" |"..methods.generateDefinitions()}
             |
         ${" |"..reactions.generateBodyDefinitions()}
         ${" |"..reactions.generateDeadlineHandlerDefinitions()}

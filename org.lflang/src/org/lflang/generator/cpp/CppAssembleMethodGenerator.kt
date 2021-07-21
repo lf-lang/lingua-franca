@@ -28,7 +28,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
-import kotlin.math.ceil
 
 /**
  * A code generator for the assemble() method of a C++ reactor class
@@ -37,55 +36,73 @@ import kotlin.math.ceil
  * responsible for declaring all triggers, dependencies and effects (antidependencies) of reactions.
  * It is also responsible for creating all connections within the reactor.
  */
-class CppAssembleMethodGenerator(
-    private val reactor: Reactor,
-    private val portGenerator: CppPortGenerator,
-    private val instanceGenerator: CppInstanceGenerator,
-) {
+class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
-    private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
-        // check if the trigger is a multiport
-        if (trigger is VarRef && trigger.variable is Port) {
-            val port = trigger.variable as Port
-            if (port.widthSpec != null) {
-                return """
-                    for (unsigned i = 0; i < ${trigger.name}.size(); i++) {
-                      ${reaction.name}.declare_trigger(&${trigger.name}[i]);
-                    }
-                """.trimIndent()
+    private fun iterateOverAllPortsAndApply(varRef: VarRef, generateCode: (String) -> String): String {
+        val port = varRef.variable as Port
+        val container = varRef.container
+        return with(PrependOperator) {
+            if (port.isMultiport) {
+                if (container?.isBank == true) {
+                    """
+                        |for (auto& __lf_instance : ${container.name}) {
+                        |  for (auto& __lf_port : __lf_instance->${port.name}) {
+                    ${" |    "..generateCode("__lf_port")}
+                        |  }
+                        |}
+                    """.trimMargin()
+                } else {
+                    // is mulitport, but not in a bank
+                    """
+                        |for (auto& __lf_port : ${varRef.name}) {
+                    ${" |  "..generateCode("__lf_port")}
+                        |}
+                    """.trimMargin()
+                }
+            } else {
+                if (container?.isBank == true) {
+                    // is in a bank, but not a multiport
+                    """
+                        |for (auto& __lf_instance : ${container.name}) {
+                    ${" |  "..generateCode("__lf_instance->${port.name}")}
+                        |}
+                    """.trimMargin()
+                } else {
+                    // is just a normal port
+                    generateCode(varRef.name)
+                }
             }
         }
-        // treat as single trigger otherwise
-        return "${reaction.name}.declare_trigger(&${trigger.name});"
     }
 
-    private fun declareDependency(reaction: Reaction, dependency: VarRef): String {
-        val variable = dependency.variable
-        // check if the dependency is a multiport
-        if (variable is Port && variable.widthSpec != null) {
-            return """
-                for (unsigned i = 0; i < ${dependency.name}.size(); i++) {
-                  ${reaction.name}.declare_dependency(&${dependency.name}[i]);
-                }
-            """.trimIndent()
+    private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String =
+        if (trigger is VarRef && trigger.variable is Port) {
+            // if the trigger is a port, then it could be a multiport or contained in a bank
+            iterateOverAllPortsAndApply(trigger) { port: String -> "${reaction.name}.declare_trigger(&$port);" }
+        } else {
+            // treat as single trigger otherwise
+            "${reaction.name}.declare_trigger(&${trigger.name});"
         }
-        // treat as single dependency otherwise
-        return "${reaction.name}.declare_dependency(&${dependency.name});"
-    }
+
+    private fun declareDependency(reaction: Reaction, dependency: VarRef): String =
+        if (dependency.variable is Port) {
+            // if the trigger is a port, then it could be a multiport or contained in a bank
+            iterateOverAllPortsAndApply(dependency) { port: String -> "${reaction.name}.declare_dependency(&$port);" }
+        } else {
+            // treat as single dependency otherwise
+            "${reaction.name}.declare_dependency(&${dependency.name});"
+        }
 
     private fun declareAntidependency(reaction: Reaction, antidependency: VarRef): String {
         val variable = antidependency.variable
-        // check if the dependency is a multiport
-        if (variable is Port && variable.widthSpec != null) {
-            return """
-                for (unsigned i = 0; i < ${antidependency.name}.size(); i++) {
-                  ${reaction.name}.declare_antidependency(&${antidependency.name}[i]);
-                }
-            """.trimIndent()
+        return if (variable is Port) {
+            // if the trigger is a port, then it could be a multiport or contained in a bank
+            iterateOverAllPortsAndApply(antidependency) { port: String -> "${reaction.name}.declare_antidependency(&$port);" }
+        } else {
+            // treat as single antidependency otherwise
+            if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
+            else "${reaction.name}.declare_antidependency(&${antidependency.name});"
         }
-        // treat as single antidependency otherwise
-        return if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
-        else "${reaction.name}.declare_antidependency(&${antidependency.name});"
     }
 
     private fun setDeadline(reaction: Reaction): String =
@@ -101,70 +118,77 @@ class CppAssembleMethodGenerator(
         """.trimMargin()
     }
 
-    /** A data class for holding all information that is relevant for reverencing one specific port
-     *
-     * The port could be a member of a bank instance and it could be an instance of a multiport.
-     * Thus, the information in this class includes a bank and port index. If the bank (or port)
-     * index is null, then the referenced port is not part of a bank (or multiport).
-     */
-    private data class PortReference(val port: Port, val portIndex: Int?, val container: Instantiation?, val containerIndex: Int?)
+    private val Connection.isMultiportConnection: Boolean
+        get() {
+            // if there are multiple ports listed on the left or right side, this is a multiport connection
+            if (leftPorts.size > 1 || rightPorts.size > 1)
+                return true
 
-    private fun PortReference.toCode(): String {
-        val portRef = if (port.isMultiport) "${port.name}[$portIndex]" else port.name
-        return if (container != null) {
-            val containerRef = if (container.isBank) "${container.name}[$containerIndex]" else container.name
-            "$containerRef->$portRef"
+            // if the ports on either side are multiports, this is a multiport connection
+            val leftPort = leftPorts[0].variable as Port
+            val rightPort = rightPorts[0].variable as Port
+            if (leftPort.isMultiport || rightPort.isMultiport)
+                return true
+
+            // if the containers on either side are banks, this is a multiport connection
+            val leftContainer = leftPorts[0].container
+            val rightContainer = rightPorts[0].container
+            if (leftContainer?.isBank == true || rightContainer?.isBank == true)
+                return true
+
+            return false
+        }
+
+    private fun declareConnection(c: Connection, idx: Int): String {
+        if (c.isMultiportConnection) {
+            return declareMultiportConnection(c, idx);
         } else {
-            portRef
+            val leftPort = c.leftPorts[0]
+            val rightPort = c.rightPorts[0]
+
+            return """
+                // connection $idx
+                ${leftPort.name}.bind_to(&${rightPort.name});
+            """.trimIndent()
         }
     }
 
-    /** Get a list of PortReferences for the given list of variables
+    private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
+    private val VarRef.isInBank get() = container?.isBank == true
+
+    /**
+     * Return the C++ type of a port.
      *
-     * This checks whether the variable refers to a multiport and generated an instance of
-     * PortReferrence for each port instance in the multiport. If the port is containe in a
-     * multiport, the result includes instances PortReference for each pair of bank and multiport
-     * instance.
+     * We cannot easily infer this type directly, because it might be used within a generic reactor. Instead of implementing
+     * complex logic for finding the actual type, we return a decltype statement and let the C++ compiler do the job.
      */
-    private fun enumerateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
-        val ports = mutableListOf<PortReference>()
-
-        for (ref in references) {
-            val container = ref.container
-            val port = ref.variable as Port
-            val bankIndexes =
-                if (container?.isBank == true) with(instanceGenerator) { (0 until container.getValidWidth()) }
-                else listOf<Int?>(null)
-            val portIndexes =
-                if (port.isMultiport) with(portGenerator) { (0 until port.getValidWidth()) }
-                else listOf<Int?>(null)
-            // calculate the Cartesian product af both index lists defined above
-            // TODO iterate over banks or ports first?
-            val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
-            ports.addAll(indexPairs.map { PortReference(port, it.first, container, it.second) })
-        }
-        return ports
-    }
-
-    private fun declareConnection(c: Connection): String {
-        val lhsPorts = enumerateAllPortsFromReferences(c.leftPorts)
-        val rhsPorts = enumerateAllPortsFromReferences(c.rightPorts)
-
-        // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
-        // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
-        // ports
-        val iteratedLhsPorts = if (c.isIsIterated) {
-            val numIterations = ceil(rhsPorts.size.toDouble() / lhsPorts.size.toDouble()).toInt()
-            (1..numIterations).flatMap { lhsPorts }
-        } else {
-            lhsPorts
+    private val VarRef.portType: String
+        get() = when {
+            isInBank && isMultiport  -> "reactor::Port<std::remove_reference<decltype(${container.name}[0]->${variable.name}[0])>::type::value_type>*"
+            isInBank && !isMultiport -> "reactor::Port<std::remove_reference<decltype(${container.name}[0]->${variable.name})>::type::value_type>*"
+            !isInBank && isMultiport -> "reactor::Port<std::remove_reference<decltype($name[0])>::type::value_type>*"
+            else                     -> "reactor::Port<std::remove_reference<decltype($name)>::type::value_type>*"
         }
 
-        // bind each pair of lhs and rhs ports individually
-        return (iteratedLhsPorts zip rhsPorts).joinToString("\n") {
-            "${it.first.toCode()}.bind_to(&${it.second.toCode()});"
+    private fun declareMultiportConnection(c: Connection, idx: Int): String {
+        // It should be safe to assume that all ports have the same type. Thus we just pick the
+        // first left port to determine the type of the entire connection
+        val portType = c.leftPorts[0].portType
+
+        return with(PrependOperator) {
+            """
+                |// connection $idx
+                |std::vector<$portType> __lf_left_ports_$idx;
+            ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                |std::vector<$portType> __lf_right_ports_$idx;
+            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
+            """.trimMargin()
         }
     }
+
+    private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String =
+        iterateOverAllPortsAndApply(varRef) { port: String -> "${vectorName}.push_back(&$port);" }
 
     /**
      * Generate the definition of the reactor's assemble() method
@@ -172,11 +196,12 @@ class CppAssembleMethodGenerator(
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
     fun generateDefinition() = with(PrependOperator) {
+        val indexedConnections = reactor.connections.withIndex()
         """
             |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {
-        ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
-        ${" |  "..reactor.connections.joinToString(separator = "\n", prefix = "// connections\n") { declareConnection(it) }}
+        ${" |  "..reactor.reactions.joinToString("\n\n") { assembleReaction(it) }}
+        ${" |  "..indexedConnections.joinToString("\n", prefix = "// connections\n") { declareConnection(it.value, it.index) }}
             |}
         """.trimMargin()
     }
