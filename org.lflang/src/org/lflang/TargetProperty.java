@@ -817,22 +817,16 @@ public enum TargetProperty {
             } else {
                 return true;
             }
-        }), 
-        STRING("a string", v -> {
-            if (v.getLiteral() == null && v.getId() == null) {
-                return false;
-            }
-            return true;
-        }), 
-        FILE("a path to a file", v -> {
-            return STRING.validator.test(v);
-        });
-    
+        }),
+        STRING("a string",
+               v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
+        FILE("a path to a file", STRING.validator);
+
         /**
          * A description of this type, featured in error messages.
          */
         private final String description;
-    
+
         /**
          * A predicate for determining whether a given Element conforms to this
          * type.
@@ -893,6 +887,13 @@ public enum TargetProperty {
         @Override
         public String toString() {
             return this.description;
+        }
+
+
+        private static boolean isCharLiteral(String s) {
+            return s.length() > 2
+                && '\'' == s.charAt(0)
+                && '\'' == s.charAt(s.length() - 1);
         }
     }
 

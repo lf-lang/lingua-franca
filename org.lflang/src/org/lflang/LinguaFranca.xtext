@@ -377,7 +377,7 @@ SignedInt:
 ;
 
 Literal:
-    STRING | SignedFloat | SignedInt | Boolean;
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean;
 
 /////////// Elementary components
 
@@ -402,11 +402,8 @@ terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
 terminal LT_ANNOT: "'" ID?;
 
-terminal STRING:
-              '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
-            // This branch matches only char literals, ie, needs exactly one character.
-            | "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'"
-        ;
+terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"';
+terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
 terminal ANY_OTHER: .;
 
@@ -492,8 +489,8 @@ Body:
 // language tokens that is not featured in this production, this will demarcate
 // the end of a target-code segment.
 Token:
-    // Imported terminals
-    ID | INT | LT_ANNOT | STRING | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    // Non-constant terminals
+    ID | INT | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
