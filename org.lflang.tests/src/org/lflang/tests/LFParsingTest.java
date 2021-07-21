@@ -10,7 +10,6 @@ import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -92,7 +91,6 @@ public class LFParsingTest {
         assertNoParsingErrorsIn(makeLfTargetCode("C", "char c0 = '\\n';"));
     }
 
-    @NotNull
     private String makeLfTargetCode(final String target, final String code) {
         return "target " + target + ";\n"
             + "reactor Foo {\n"
