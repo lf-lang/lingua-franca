@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.isBank
 import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
@@ -80,7 +81,10 @@ class CppReactionGenerator(
         allUncontainedTriggers.map { "[[maybe_unused]] const ${it.cppType}& ${it.name}" } +
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
-                allReferencedContainers.map { "${getViewClassName(it)}& ${it.name}" }
+                allReferencedContainers.map {
+                    if (it.isBank) "const std::vector<${getViewClassName(it)}>& ${it.name}"
+                    else "${getViewClassName(it)}& ${it.name}"
+                }
 
     private fun generateDeclaration(r: Reaction): String {
         with(r) {
@@ -135,7 +139,6 @@ class CppReactionGenerator(
     }
 
     private fun generateBodyDefinition(reaction: Reaction): String {
-        // TODO this doesn't work for banks
         return with(PrependOperator) {
             """
                 |// reaction ${reaction.label}
@@ -149,7 +152,6 @@ class CppReactionGenerator(
     }
 
     private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(PrependOperator) {
-        // TODO this doesn't work for banks
         return """
             |${reactor.templateLine}
         ${" |"..getFunctionDefinitionSignature(reaction, "deadline_handler")} {
@@ -161,6 +163,9 @@ class CppReactionGenerator(
 
     private fun generateViewForContainer(r: Reaction, container: Instantiation): String {
         val reactorClass = with(instanceGenerator) { container.cppType }
+        val viewClass = r.getViewClassName(container)
+        val viewInstance = r.getViewInstanceName(container)
+
         val variables = r.getAllReferencedVariablesForContainer(container)
         val instantiations = variables.map {
             if (it.isEffectOf(r))
@@ -169,15 +174,20 @@ class CppReactionGenerator(
                 "const ${it.cppType}& ${it.variable.name};"
         }
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
+
+        val viewDeclaration =
+            if (container.isBank) "std::vector<$viewClass> $viewInstance;"
+            else "$viewClass $viewInstance;"
+
         return with(PrependOperator) {
             """
-                |struct ${r.getViewClassName(container)} {
+                |struct $viewClass {
             ${" |  "..instantiations.joinToString("\n")}
-                |  ${r.getViewClassName(container)}($reactorClass* reactor) :
+                |  $viewClass($reactorClass* reactor) :
             ${" |    "..initializers.joinToString(",\n")}
                 |  {}
                 |};
-                |${r.getViewClassName(container)} ${r.getViewInstanceName(container)};
+                |$viewDeclaration
             """.trimMargin()
         }
     }
@@ -186,7 +196,20 @@ class CppReactionGenerator(
         r.allReferencedContainers.joinToString("\n") { generateViewForContainer(r, it) }
 
     private fun generateViewInitializers(r: Reaction) =
-        r.allReferencedContainers.joinToString("\n") { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
+        r.allReferencedContainers.filterNot { it.isBank }
+            .joinToString("\n") { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
+
+    private fun generateViewConstructorInitializers(r: Reaction) =
+        r.allReferencedContainers.filter { it.isBank }
+            .joinToString("\n") {
+                val viewInstance = r.getViewInstanceName(it)
+                """
+                    $viewInstance.reserve(${it.name}.size());
+                    for (auto& __lf_instance : ${it.name}) {
+                      $viewInstance.emplace_back(__lf_instance.get());
+                    }
+                """.trimIndent()
+            }
 
     fun generateReactionViews() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") { generateViews(it) }
@@ -194,6 +217,11 @@ class CppReactionGenerator(
     fun generateReactionViewInitializers() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {
             generateViewInitializers(it)
+        }
+
+    fun generateReactionViewConstructorInitializers() =
+        reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {
+            generateViewConstructorInitializers(it)
         }
 
     /** Get all reaction declarations. */
