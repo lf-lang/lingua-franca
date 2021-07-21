@@ -828,11 +828,11 @@ class LinguaFrancaValidationTest {
      * Maps a type to a list of known bad values.
      */
     val primitiveTypeToKnownBad = #{
-            PrimitiveType.BOOLEAN -> #["1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}"],
-            PrimitiveType.INTEGER -> #["foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}"],
-            PrimitiveType.NON_NEGATIVE_INTEGER -> #["-42", "foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}"],
-            PrimitiveType.TIME_VALUE -> #["foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}"],
-            PrimitiveType.STRING -> #["1 msec", "[1, 2]", "{foo: \"bar\"}"]
+            PrimitiveType.BOOLEAN -> #["1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}", "'c'"],
+            PrimitiveType.INTEGER -> #["foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"],
+            PrimitiveType.NON_NEGATIVE_INTEGER -> #["-42", "foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"],
+            PrimitiveType.TIME_VALUE -> #["foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}", "'c'"],
+            PrimitiveType.STRING -> #["1 msec", "[1, 2]", "{foo: \"bar\"}", "'c'"]
         }
     
     /**
