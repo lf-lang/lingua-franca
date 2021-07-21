@@ -747,86 +747,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
     
-<<<<<<< HEAD
     
     /** Produces the filename including the target-specific extension */
     def getTargetFileName(String fileName) {
         return fileName + ".c"; // FIXME: Does not belong in the base class.
-=======
-    /**
-     * Return a command to compile the specified C file.
-     * This produces a C specific compile command. Since this command is
-     * used across targets to build the RTI, it needs to be available in
-     * GeneratorBase.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     */
-    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val env = findCommandEnv(
-            targetConfig.compiler, 
-            "The C target requires GCC >= 7 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
-        )
-        
-        val cFilename = getTargetFileName(fileToCompile);
-
-        var relativeSrcPath = fileConfig.outPath.relativize(
-            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
-        var relativeBinPath = fileConfig.outPath.relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
-
-        // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        var relSrcPathString = FileConfig.toUnixString(relativeSrcPath)
-        var relBinPathString = FileConfig.toUnixString(relativeBinPath)
-        
-        // If there is no main reactor, then generate a .o file not an executable.
-        if (mainDef === null) {
-            relBinPathString += ".o";
-        }
-        
-        var compileArgs = newArrayList
-        compileArgs.add(relSrcPathString)
-        for (file: targetConfig.compileAdditionalSources) {
-            var relativePath = fileConfig.outPath.relativize(
-                fileConfig.getSrcGenPath.resolve(Paths.get(file)))
-            compileArgs.add(FileConfig.toUnixString(relativePath))
-        }
-        compileArgs.addAll(targetConfig.compileLibraries)
-
-        // Only set the output file name if it hasn't already been set
-        // using a target property or Args line flag.
-        if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relBinPathString)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads !== 0 || targetConfig.tracing !== null) {
-            compileArgs.add("-pthread")
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add('''-DNUMBER_OF_WORKERS=«targetConfig.threads»''')
-        }
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags)
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && main === null) {
-            compileArgs.add("-c") // FIXME: revisit
-            if (fileConfig.compilerMode === Mode.STANDALONE) {
-                errorReporter.reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
->>>>>>> origin/master
     }
 
     // //////////////////////////////////////////
