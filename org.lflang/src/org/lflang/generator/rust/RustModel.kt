@@ -118,6 +118,7 @@ class ReactorNames(
 
     // Names of other implementation-detailistic structs.
 
+    val paramStructName: Ident = "${structName}Params"
     val dispatcherName: Ident = "${structName}Dispatcher"
     val assemblerName: Ident = "${structName}Assembler"
     val reactionIdName: Ident = "${structName}Reactions"
@@ -128,7 +129,7 @@ class ReactorNames(
 data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
-    val args: List<TargetCode>,
+    val args: Map<String, TargetCode>,
     val loc: LocationInfo
 ) {
     val names = ReactorNames(reactorLfName)
@@ -399,11 +400,12 @@ object RustModelBuilder {
     private fun Instantiation.toModel(): NestedReactorInstance {
 
         val byName = parameters.associateBy { it.lhs.name }
-        val args = reactor.parameters.map { ithParam ->
+        val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            byName[ithParam.name]?.let { it.rhs.toSingleRustExpr(it) }
+            val value = byName[ithParam.name]?.let { it.rhs.toSingleRustExpr(it) }
                 ?: ithParam.init?.takeIf { it.isNotEmpty() }?.toSingleRustExpr(this)
                 ?: throw InvalidSourceException("Cannot find value of parameter ${ithParam.name}", this)
+            ithParam.name to value
         }
 
         return NestedReactorInstance(
