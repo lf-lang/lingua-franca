@@ -2,62 +2,9 @@
  * Parallelism benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * This version manually connects the reactors.
- * 
  * @author Hannes Klein
  * @author Christian Menard
  */
-
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D blockSize=50
-# -D numNodes=300
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'blockSize' in globals():
-    blockSize = int(blockSize)
-  else:
-    globals()['blockSize'] = 50
-  
-  if 'numNodes' in globals():
-    numNodes = int(numNodes)
-  else:
-    globals()['numNodes'] = 300
-  
-  if numNodes % blockSize != 0:
-    cog.error(f'numNodes={numNodes} must be a multiple of blockSize={blockSize}')
-  
-  # define the following variables for convenience
-  globals()['numBlocksInSingleDim'] = int(numNodes / blockSize);
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// blockSize = {blockSize}')
-  cog.outl(f'// numNodes = {numNodes}')
-]]] */
-// Generated file with the following parameters:
-// blockSize = 50
-// numNodes = 300
-// [[[end]]]
 
 target Cpp {
     build-type : RelWithDebInfo,
@@ -134,7 +81,7 @@ reactor ApspFloydWarshallBlock(
         if(k == graphSize) {
             if(doPrint && !printed && bank_index == 0 && row_index == 0) {
                 // debugging and result checking
-                // print(*currentIterData);
+                print(*currentIterData);
                 printed = 1;
             }
             return;
@@ -256,8 +203,8 @@ reactor ApspRow(
     input matrix: MatrixOfLong;
     output[dimension] finished: void;
 
-    input[dimension] fromCol: ApspResultMessage;
-    output toCol: ApspResultMessage;
+    input[{=dimension*dimension=}] fromCol: ApspResultMessage;
+    output[dimension] toCol: ApspResultMessage;
         
     blocks = new[dimension] ApspFloydWarshallBlock(blockSize=blockSize, graphSize=numNodes, dimension=dimension);
     
@@ -267,7 +214,7 @@ reactor ApspRow(
     // block output to all column neighbours
     blocks.toNeighbors -> toCol;
     // block input from all column neighbours
-    (fromCol)+ -> blocks.fromCol;
+    (fromCol)+ -x-> blocks.fromCol;
     
     // broadcast the incoming matrix to all blocks
     (matrix)+ -> blocks.matrix;
@@ -281,15 +228,14 @@ reactor ApspMatrix(
     dimension: size_t{6})
 {
 	input matrix: MatrixOfLong;
-	// FIXME!
-	output[36] finished: void;
+	output[{=dimension*dimension=}] finished: void;
 	
 	rows = new[dimension] ApspRow(blockSize=blockSize, numNodes=numNodes, dimension=dimension);
 	
 	// broadcast the incoming matrix to all rows
     (matrix)+ -> rows.matrix;
     // collect and forward finished signals from all blocks
-    //rows.finished -> finished;
+    rows.finished -> finished;
     
     (rows.toCol)+ -> rows.fromCol;
 }
@@ -304,9 +250,14 @@ main reactor (
     state numBlocksFinished: int{0};
 	
 	runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
-	//matrix = new ApspMatrix(blockSize=blockSize, numNodes=numNodes, dimension=6);
-	// FIXME!
 	matrix = new ApspMatrix(blockSize=blockSize, numNodes=numNodes, dimension={=numNodes / blockSize=});
+	  
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ApspBenchmark");
+        printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "blockSize", blockSize);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
     
     reaction(runner.outInitializeStart) -> runner.inInitializeFinish {=
         // initialization of graph is not measured
@@ -331,9 +282,18 @@ main reactor (
         matrix.matrix.set(graphData);
 	=}
 
-	// FIXME
-	matrix.finished -> runner.inIterationFinish;
-    
+	reaction (matrix.finished) -> runner.inIterationFinish {=
+        for (auto& f : matrix.finished) {
+            if (f.is_present()) {
+                numBlocksFinished++;
+            }
+        }
+        size_t dimension = numNodes / blockSize;
+        if (numBlocksFinished == dimension*dimension) {
+            runner.inIterationFinish.set();
+        }
+    =}
+
     private preamble {=  
         #include "PseudoRandom.hh"
         
