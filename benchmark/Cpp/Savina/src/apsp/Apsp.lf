@@ -16,18 +16,20 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
     using MatrixOfLong = std::vector<std::vector<long>>;
-    
-    struct ApspResultMessage {
-      size_t k;
-      size_t blockCol;
-      size_t blockRow;
-      reactor::ImmutableValuePtr<MatrixOfLong> initData;
-    };
-    
     using DataPtr = reactor::ImmutableValuePtr<MatrixOfLong>;
     using MutDataPtr = reactor::MutableValuePtr<MatrixOfLong>;
 =}
 
+/*
+ * This benchmark performs a matrix computation. It splits a larger graphSize x graphSize matrix 
+ * into smaller blocks of size blockSize x blockSize. Each of the worker reactors 
+ * (ApspFloydWarshallBlock) processes one of those blocks. Thereby, the worker reactors are 
+ * organized also in a matrix, replicating the structure of the blocks. Given 
+ * dimension = graphSize / blocksize, there are dimension x dimension workers. Each of the workers
+ * utilizes for its internal computation the data of its neighbors, which are all reactors in the 
+ * same row and in the same column. After performing the internal computation, each reactor sends
+ * its data to the neighbors.
+ */
 reactor ApspFloydWarshallBlock(
     bank_index: size_t{0},
     row_index: size_t{0},
@@ -39,7 +41,7 @@ reactor ApspFloydWarshallBlock(
     state numNeighbors: {=const size_t=}{{=2 * (dimension - 1)=}};
     state rowOffset: {=const size_t=}{{=row_index * blockSize=}}; // row offset of the block of this reactor
     state colOffset: {=const size_t=}{{=bank_index * blockSize=}}; // column offset of the block of this reactor
-    state currentIterData: {=reactor::ImmutableValuePtr<MatrixOfLong>=}{{=nullptr=}};
+
     state k: size_t{0}; // iteration counter
     state reportedFinish: bool {false};
 
@@ -62,24 +64,21 @@ reactor ApspFloydWarshallBlock(
     const method getElementAt(
         row: size_t,
         col: size_t,
-        rowPorts: {=const std::vector<reactor::Input<ApspResultMessage>>&=},
-        colPorts: {=const std::vector<reactor::Input<ApspResultMessage>>&=}
+        rowPorts: {=const std::vector<reactor::Input<MatrixOfLong>>&=},
+        colPorts: {=const std::vector<reactor::Input<MatrixOfLong>>&=}
     ): long {=
 
         size_t destRow = row / blockSize;
         size_t destCol = col / blockSize;
-        size_t destBlockId = (destRow * dimension) + destCol;
         
         size_t localRow = row % blockSize;
         size_t localCol = col % blockSize;
         
         if (destRow == row_index) {
-            const auto& message = *rowPorts[destCol].get();
-            const auto& data = *message.initData;
+            const auto& data = *rowPorts[destCol].get();
             return data[localRow][localCol];
         } else if (destCol == bank_index) {
-            const auto& message = *colPorts[destRow].get();
-            const auto& data = *message.initData;
+            const auto& data = *colPorts[destRow].get();
             return data[localRow][localCol];
         } else {
             std::cerr << "Error: unexpected target location (" << destCol << ',' << destRow << ")\n";
@@ -89,88 +88,65 @@ reactor ApspFloydWarshallBlock(
 
 	input matrix: MatrixOfLong;
 
-    input[dimension] fromRow: ApspResultMessage;
-    input[dimension] fromCol: ApspResultMessage;
+    input[dimension] fromRow: MatrixOfLong;
+    input[dimension] fromCol: MatrixOfLong;
 
-    output toNeighbors: ApspResultMessage;    
+    output toNeighbors: MatrixOfLong;    
     output finished: void;
     
-    logical action notifyNeighbors;
+    logical action notifyNeighbors: MatrixOfLong;
     
     reaction(matrix) -> notifyNeighbors {=
-        currentIterData = std::move(extractDataFromMatrix(matrix.get()));
-        
         // reset local state
         k = 0;
         reportedFinish = false;
         
         // start execution
-        notifyNeighbors.schedule();
+        notifyNeighbors.schedule(std::move(extractDataFromMatrix(matrix.get())));
     =}
     
     reaction(notifyNeighbors) -> toNeighbors {=
         //notify all neighbors
-        auto resultMessage = reactor::make_immutable_value<ApspResultMessage>(
-            ApspResultMessage{k, bank_index, row_index, currentIterData}
-        );
-        toNeighbors.set(resultMessage);
+        toNeighbors.set(notifyNeighbors.get());
     =}
     
     reaction(fromRow, fromCol) -> notifyNeighbors, finished {=
-        
         // do nothing if complete
         if(k == graphSize) {
-            if(doPrint && !printed && bank_index == 0 && row_index == 0) {
-                // debugging and result checking
-                print(*currentIterData);
-                printed = 1;
-            }
             return;
         }
         
         // perform computation
-        reactor::MutableValuePtr<MatrixOfLong> nextIterData =
-          reactor::make_mutable_value<MatrixOfLong>(blockSize, std::vector<long>(blockSize, 0));
+        auto matrix = reactor::make_mutable_value<MatrixOfLong>(blockSize, std::vector<long>(blockSize, 0));
         
         for(size_t i = 0; i < blockSize; i++) {
             for(size_t j = 0; j < blockSize; j++) {
                 int gi = rowOffset + i;
                 int gj = colOffset + j;
                 
-                long newIterData = getElementAt(gi, k, fromRow, fromCol) + 
-                		getElementAt(k, gj, fromRow, fromCol);
-                (*nextIterData)[i][j] = std::min((*currentIterData)[i][j], newIterData);
+                long result = getElementAt(gi, k, fromRow, fromCol) + getElementAt(k, gj, fromRow, fromCol);
+                (*matrix)[i][j] = std::min(getElementAt(gi, gj, fromRow, fromCol), result);
             }
         }
-        
-        // FIXME This should work without the explicit conversion t
-        currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(std::move(nextIterData));
-        notifyNeighbors.schedule();
-        
-        k++;
-        
-        if(k == graphSize) {
+       
+       // increment iteration count
+       k++;
+       
+       if(k == graphSize) {
+			if(verbose && bank_index == 0 && row_index == 0) {
+                // debugging and result checking
+         		for(auto vec: *matrix) {
+            		for(auto lon: vec) {
+                		std::cout << lon << ' ';
+                	}
+                	std::cout << '\n';
+                }
+            }
             finished.set();
         }
-    =}
-    
-    // FIXME: This should be methods!
-    private preamble {=
-        
-        // invisible local state for debugging
-        static int printed = 0;
-        static int doPrint = 1;
-        
-        //helper functions
-        
-        void print(const MatrixOfLong& array) {
-            for(auto vec: array) {
-                for(auto lon: vec) {
-                    std::cout << lon << " ";
-                }
-                std::cout << std::endl;
-            }
-        }
+       
+        // send the result to all neighbors in the next iteration
+        notifyNeighbors.schedule(std::move(matrix));        
     =}
 }
 
@@ -185,8 +161,8 @@ reactor ApspRow(
     input matrix: MatrixOfLong;
     output[dimension] finished: void;
 
-    input[{=dimension*dimension=}] fromCol: ApspResultMessage;
-    output[dimension] toCol: ApspResultMessage;
+    input[{=dimension*dimension=}] fromCol: MatrixOfLong;
+    output[dimension] toCol: MatrixOfLong;
         
     blocks = new[dimension] ApspFloydWarshallBlock(
         row_index=bank_index,
