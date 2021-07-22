@@ -81,6 +81,7 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
 ${"             |    "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + it.type }}
                 |}
                 |
+                |#[warn(unused)]
                 |impl $structName {
                 |
 ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(reactor) }}
@@ -444,14 +445,20 @@ private object ReactorComponentEmitter {
         fun ReactionInfo.reactionParams() =
             allDependencies
                 .filter { it.isInjectedInReaction() }
-                .joinToString(", ") {
-                    "${it.lfName}: ${it.toBorrowedType()}"
+                .joinToString(",\n") { d ->
+                    "${d.lfName}: ${d.toBorrowedType()}".let { str ->
+                        if (d !is PortData) "#[allow(unused)] $str" else str
+                    }
                 }
 
+        val indent = " ".repeat("fn $workerId(".length)
         return with(PrependOperator) {
             """
                 |${loc.lfTextComment()}
-                |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, params: &${reactor.names.paramStructName},  ${reactionParams()}) {
+                |fn $workerId(&mut self, 
+                |$indent#[allow(unused)] ctx: &mut $rsRuntime::LogicalCtx,
+                |$indent#[allow(unused)] params: &${reactor.names.paramStructName},
+${"             |$indent"..reactionParams()}) {
 ${"             |    "..body}
                 |}
             """.trimMargin()
