@@ -24,6 +24,7 @@
 
 package org.lflang.tests.runtime;
 
+import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.Target;
@@ -35,6 +36,13 @@ public class RustTest extends TestBase {
 
     public RustTest() {
         super.target = Target.Rust;
+    }
+
+
+    @Override
+    public void runAsFederated() {
+        this.printTestHeader(TestBase.RUN_AS_FEDERATED_DESC);
+        InputOutput.println("N/A");
     }
 
 
