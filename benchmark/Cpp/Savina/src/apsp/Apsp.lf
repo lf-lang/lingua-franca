@@ -21,11 +21,6 @@ public preamble {=
       int k;
       int myBlockId;
       reactor::ImmutableValuePtr<MatrixOfLong> initData;
-    
-      ApspResultMessage() {}
-    
-      ApspResultMessage(int _k, int _myBlockId, reactor::ImmutableValuePtr<MatrixOfLong> _initData):
-        k(_k), myBlockId(_myBlockId), initData(_initData) {}
     };
 =}
 
@@ -70,8 +65,9 @@ reactor ApspFloydWarshallBlock(
     
     reaction(notifyNeighbors) -> toNeighbors {=
         //notify all neighbors
-        reactor::ImmutableValuePtr<ApspResultMessage> resultMessage =
-          reactor::make_immutable_value<ApspResultMessage>(k, row_index * dimension + bank_index, currentIterData);
+        auto resultMessage = reactor::make_immutable_value<ApspResultMessage>(
+            ApspResultMessage{k, row_index * dimension + bank_index, currentIterData}
+        );
         toNeighbors.set(resultMessage);
     =}
     
