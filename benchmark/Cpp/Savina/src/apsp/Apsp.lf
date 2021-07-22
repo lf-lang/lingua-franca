@@ -18,8 +18,8 @@ public preamble {=
     using MatrixOfLong = std::vector<std::vector<long>>;
     
     struct ApspResultMessage {
-      int k;
-      int myBlockId;
+      size_t k;
+      size_t myBlockId;
       reactor::ImmutableValuePtr<MatrixOfLong> initData;
     };
 =}
@@ -250,7 +250,7 @@ main reactor (
     verbose: bool{false}) {
 	
 	state graphData: {=reactor::ImmutableValuePtr<MatrixOfLong>=};
-    state numBlocksFinished: int{0};
+    state numBlocksFinished: size_t{0};
 	
 	runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
 	matrix = new ApspMatrix(
