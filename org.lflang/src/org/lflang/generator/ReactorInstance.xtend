@@ -105,41 +105,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     public final boolean recursive
         
     /**
-     * Check for dangling connections and report a warning if there are some.
-     * Dangling connections occur when the left and right widths of a connection
-     * do not match.
-     */
-    def checkForDanglingConnections() {
-        // FIXME identifies only dangling inputs
-        // First, check that each bank index is either 0 (allowed for sources)
-        // or equals the width of the bank, meaning all banks were used.
-        for (portReference : nextBankTable.keySet) {
-            var nextBank = nextBankTable.get(portReference)
-            var reactor = this
-            if (portReference.container !== null) {
-                reactor = getChildReactorInstance(portReference.container)
-            }
-            // The reactor should be a bank.
-            if (nextBank != 0 && nextBank < reactor.bankMembers.size) {
-                // Not all the bank members were used.
-                reporter.reportWarning(portReference, "Not all bank members are connected.")
-            }
-        }
-        // Next, check multiports.
-        for (portInstance : nextPortTable.keySet) {
-            var nextPort = nextPortTable.get(portInstance)
-            // This port may or may not be a multiport.
-            if (portInstance instanceof MultiportInstance) {
-                if (nextPort != 0 && nextPort < portInstance.width) {
-                    // Not all the ports were used.
-                    reporter.reportWarning(portInstance.parent.definition,
-                            "Not all multiport input channels are connected.")
-                }
-            }
-        }
-    }
-    
-    /**
      * Populate destinations map and the connectivity information in the port instances.
      * Note that this can only happen _after_ the children and port instances have been created.
      * Unfortunately, we have to do some complicated things here
@@ -151,207 +116,115 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def establishPortConnections() {
         for (connection : reactorDefinition.allConnections) {
-            // For each connection, start fresh with any banks and multiports on the left or right.
-            nextBankTable.clear()
-            nextPortTable.clear()
-            
-            var leftPort = connection.leftPorts.get(0)
-            var leftPortCount = 1
-            for (rightPort : connection.rightPorts) {
-                var rightPortInstance = nextPort(rightPort)
-                while (rightPortInstance !== null) {
-                    var leftPortInstance = nextPort(leftPort)
-                    if (leftPortInstance === null) {
-                        // We have run out of left ports. We may have also run out of
-                        // right ports, so get a new left port only if there is one.
-                        // We do not rely on the validator to ensure that the connection is balanced.
-                        if (leftPortCount < connection.leftPorts.length) {
-                            leftPort = connection.leftPorts.get(leftPortCount++)
-                            leftPortInstance = nextPort(leftPort)
-                        } else {
-                            // If left ports are to be iterated, then start over here.
-                            if (connection.isIterated) {
-                                leftPort = connection.leftPorts.get(0)
-                                // The left port may be in a bank.
-                                if (leftPort.container !== null) {
-                                    val reactor = getChildReactorInstance(leftPort.container)
-                                    if (reactor !== null && reactor.bankMembers !== null) {
-                                        for (bankReactor : reactor.bankMembers) {
-                                            // Also reset the bank index.
-                                            nextBankTable.put(leftPort, 0)
-                                            // Since we are starting over with the bank, need to
-                                            // remove all portInstances in each bank reactor that
-                                            // match the left port.
-                                            var portInstance = bankReactor.lookupPortInstance(leftPort.variable as Port)
-                                            nextPortTable.remove(portInstance)
-                                        }
-                                    }
-                                }
-                                leftPortCount = 1
-                                leftPortInstance = nextPort(leftPort)
-                            } else {
-                                leftPortInstance = null
-                                reporter.reportWarning(rightPort, "Unconnected ports on the right.")
-                            }
-                        }
-                    }
-                    // Do not make a connection if there is no new left port.
-                    if (leftPortInstance !== null) {
-                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
-                    }
-                    rightPortInstance = nextPort(rightPort)
-                }
-                // At this point, rightPortInstance is null.
-                // Go to the next right port if there is one.
+            val leftPortInstances = listPortInstances(connection.leftPorts, false)
+            val rightPortInstances = listPortInstances(connection.rightPorts, connection.cross)
+
+            // Check widths.
+            if (leftPortInstances.size > rightPortInstances.size) {
+                reporter.reportWarning(connection, "Source is wider than the destination. Outputs will be lost.")
+            } else if (leftPortInstances.size < rightPortInstances.size && !connection.isIterated) {
+                reporter.reportWarning(connection, "Destination is wider than the source. Inputs will be missing.")
             }
-            // We are out of right ports.
-            // Make sure we are out of left ports also.
-            if (nextPort(leftPort) !== null || leftPortCount < connection.leftPorts.length - 1) {
-                reporter.reportWarning(leftPort, "Source is wider than the destination. Outputs will be lost.")
+            
+            var leftPortIndex = 0
+            for (rightPortInstance : rightPortInstances) {
+                if (leftPortIndex < leftPortInstances.size) {
+                    val leftPortInstance = leftPortInstances.get(leftPortIndex)
+                    connectPortInstances(connection, leftPortInstance, rightPortInstance)
+                }
+                leftPortIndex++
+                if (connection.isIterated && leftPortIndex >= leftPortInstances.size) {
+                    leftPortIndex = 0
+                }
             }
         }
     }
     
     /**
-     * Given a VarRef for either the left or the right side of a connection
-     * statement within this reactor instance, return the next available port instance
-     * for that connection. If there are no more available ports, return null.
+     * Given a list of port references, as found on either side of a connection,
+     * return a list of the port instances referenced. If the port is a multiport,
+     * the list will contain the individual port instance, not the multiport instance.
+     * If the port reference has the form `c.x`, where `c` is a bank of reactors,
+     * then the list will contain the port instances belonging to each bank member.
      * 
-     * This handles parallel connections like `a.out, b.out -> c.in, d.in`.
-     * Each VarRef on each side may also refer to a port of this reactor, as in
-     * `in1, in2 -> b.in`.
-     * To realize such connection statements, make connections until one side or
-     * the other of the connection statement causes this method to return null,
-     * then proceed to the next port on that side.
+     * If the cross argument is false, then for any port reference `b.m` where `b`
+     * is a bank and `m` is a multiport, this function iterates over bank members first,
+     * then ports. E.g., if `b` and `m` have width 2, it returns
+     * `[b0.m0, b0.m1, b1.m0, b1.m1]`. 
      * 
-     * If the reactor is not a bank of reactors and the
-     * port is not a multiport, then the returned port instance will simply
-     * be the port referenced, which may be a port of this reactor or a port
-     * of a contained reactor, unless that same port was returned by the previous
-     * invocation of this method, in which case the returned value will be null.
-     * 
-     * If the port is a multiport, then this method will iterate through the ports
-     * in the multiport, returning a new port each time it is called, until all ports
-     * in the multiport have been returned. Then it will return null.
-     * 
-     * If the reactor is a bank of reactors, then this method will iterate through
-     * the bank, returning a new port each time it is called, until all ports in all
-     * banks are exhausted, at which time it will return null.
-     * 
-     * In all cases, upon returning null, if the port is source of data (an input port of
-     * this reactor or an output port of a contained reactor), then this will reset the
-     * state so that on the next call the first port will again be returned.
-     * This allows source ports to be reused, multicasting their outputs.
-     * If the port is not a source of data, no reset occurs because it is not
-     * legal to make multiple connections to a sink port, whereas it is legal for
-     * a source connection. All subsequent calls will return null.
-     * 
-     * @param portReference The port reference in the connection.
+     * If the cross argument is true, then for any port reference `b.m` where `b`
+     * is a bank and `m` is a multiport, this function iterates over ports first,
+     * then bank members. E.g., if `b` and `m` have width 2, it returns
+     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. 
      */
-    def PortInstance nextPort(VarRef portReference) {
-        // First, figure out which reactor we are dealing with.
-        // The reactor we want is the container of the port.
-        // It may be a bank, in which case we want next available
-        // bank member for the specified port.
-        // If the port reference has no container, then the reactor is this one,
-        // or if this one is a bank, the next available bank member.
-        var reactor = this
-        if (portReference.container !== null) {
-            reactor = getChildReactorInstance(portReference.container)
-            // The above will be null only if there is an error in the code.
-            // Tolerate this so that diagram synthesis can complete, but
-            // do not return a next port.
-            if (reactor === null) {
-                return null
+    private def List<PortInstance> listPortInstances(List<VarRef> references, boolean cross) {
+        val result = new LinkedList<PortInstance>();
+        for (portRef : references) {
+            // Simple error checking first.
+            if (!(portRef.variable instanceof Port)) {
+                reporter.reportError(portRef, "Not a port.");
+                return result;
             }
-        }
-        // The reactor may be a bank, in which case, we will also need
-        // the member reactor within the bank.
-        var memberReactor = reactor
-        var bankIdx = -1 // Indicator that this reactor is not a bank.
-        if (reactor.bankMembers !== null) {
-            // It is a bank.
-            bankIdx = nextBankTable.get(portReference)?:0
-            // If the bank is exhausted, return null.
-            if (bankIdx >= reactor.bankMembers.size) {
-                // If it is a source, reset the bank counter.
-                if (portReference.isSource) {
-                    nextBankTable.put(portReference, 0)
-                }
-                return null
+            // First, figure out which reactor we are dealing with.
+            // The reactor we want is the container of the port.
+            // If the port reference has no container, then the reactor is this one,
+            // or if this one is a bank, the next available bank member.
+            var reactor = this
+            if (portRef.container !== null) {
+                reactor = getChildReactorInstance(portRef.container);
             }
-            memberReactor = reactor.bankMembers.get(bankIdx)
-        }
-        var portInstance = null as PortInstance
-        if (portReference.variable instanceof Port) {
-            portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
-        }
-        if (portInstance === null) {
-            reporter.reportError(portReference, "No such port.")
-            return null
-        }
-        
-        // If the port is a multiport, then retrieve the next available port.
-        if (portInstance instanceof MultiportInstance) {
-            // Do not allow width 0 multiports.
-            if (portInstance.width === 0) {
-                reporter.reportError(portReference, "Multiport of width zero is not allowed")
-                return null
-            }
-            var portIndex = nextPortTable.get(portInstance)?:0
-
-            if (portIndex >= portInstance.width) {
-                // Multiport is exhausted. Will return null unless it's in a bank.
-                // If this port is a source, reset port index to allow multicast.
-                if (portReference.isSource) {
-                    nextPortTable.put(portInstance, 0)
-                }
-                // If this is a bank, move to the next bank element.
+            // The reactor be null only if there is an error in the code.
+            // Skip this portRef so that diagram synthesis can complete.
+            if (reactor !== null) {
                 if (reactor.bankMembers !== null) {
-                    bankIdx++
-                    nextBankTable.put(portReference, bankIdx)
-                    if (bankIdx >= reactor.bankMembers.size) {
-                        // Bank is exhausted as well. Will return null.
-                        // If this port is a source, reset the bank index.
-                        if (portReference.isSource) {
-                            nextBankTable.put(portReference, 0)
+                    // Reactor is a bank.
+                    if (!cross) {
+                        // Not a cross connection.
+                        for (memberReactor: reactor.bankMembers) {
+                            val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)
+                            if (portInstance instanceof MultiportInstance) {
+                                // Multiport within a bank.
+                                result.addAll(portInstance.instances)
+                            } else {
+                                // Not multiport.
+                                result.add(portInstance)
+                            }
                         }
-                        return null
+                    } else {
+                        // It is a cross connection.
+                        var width = 1
+                        for (var i = 0; i < width; i++) {
+                            for (memberReactor: reactor.bankMembers) {
+                                val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)
+                                if (portInstance instanceof MultiportInstance) {
+                                    // Multiport, bank, cross connection.
+                                    // Assume all have the same width.
+                                    // Otherwise, stop collecting ports.
+                                    width = portInstance.getWidth()
+                                    if (i < width) {
+                                        result.add(portInstance.getInstance(i))
+                                    }
+                                } else {
+                                    // Not multiport, bank, cross is irrelevant.
+                                    result.add(portInstance)
+                                }
+                            }
+                        }
                     }
-                    // Get the bank member reactor.
-                    memberReactor = reactor.bankMembers.get(bankIdx)
-                    // Have a new port instance.
-                    portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
-                    // This should also be a multiport.
-                    nextPortTable.put(portInstance, 1)
-                    return (portInstance as MultiportInstance).getInstance(0)
                 } else {
-                    // Not a bank. Will return null.
-                    return null
+                    // Reactor is not a bank.
+                    val portInstance = reactor.lookupPortInstance(portRef.variable as Port)
+                    if (portInstance instanceof MultiportInstance) {
+                        // Multiport, not bank.
+                        result.addAll(portInstance.instances)
+                    } else {
+                        // Not bank, not multiport.
+                        result.add(portInstance)
+                    }
                 }
-            } else {
-                // Multiport is not exhausted.
-                nextPortTable.put(portInstance, portIndex + 1)
-                return (portInstance as MultiportInstance).getInstance(portIndex)
             }
-        } else {
-            // The port is not a multiport.
-            // If it is a bank, increment the bank counter.
-            if (reactor.bankMembers !== null) {
-                nextBankTable.put(portReference, bankIdx + 1)
-            }
-            var portIndex = nextPortTable.get(portInstance)?:0
-            if (portIndex > 0) {
-                // Port has been used.
-                // If it is a source, reset the nextPortTable so it can be reused.
-                if (portReference.isSource) {
-                    nextPortTable.put(portInstance, 0)
-                }
-                return null
-            }
-            nextPortTable.put(portInstance, 1)
-            return portInstance
         }
+        return result;
     }
     
     /**
@@ -1165,9 +1038,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
             establishPortConnections()
         
-            // Check for dangling inputs or outputs and issue a warning.
-            checkForDanglingConnections()
-
             // Create the reaction instances in this reactor instance.
             // This also establishes all the implied dependencies.
             // Note that this can only happen _after_ the children, 
@@ -1192,12 +1062,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     var int depth = 0;
 
-    /** Data structure used by nextPort() to keep track of the next available bank. */
-    val nextBankTable = new LinkedHashMap<VarRef,Integer>()
-
-    /** Data structure used by nextPort() to keep track of the next available port. */
-    val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
-    
     /** 
      * Data structure that maps connections to their connections as they appear
      * in a visualization of the program. For each connection, there is map
