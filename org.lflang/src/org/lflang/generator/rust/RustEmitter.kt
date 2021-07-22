@@ -83,11 +83,12 @@ ${"             |    "..reactor.stateVars.joinToString(",\n") { it.lfName + ": "
                 |
                 |impl $structName {
                 |
-${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
+${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(reactor) }}
                 |
                 |}
                 |
                 |/// Parameters for the construction of a [$structName]
+                |#[derive(Clone)]
                 |pub struct ${names.paramStructName} {
 ${"             |    "..ctorParams.joinToString(",\n") { "pub ${it.lfName}: ${it.type}" }}
                 |}
@@ -99,6 +100,8 @@ ${"             |    "..ctorParams.joinToString(",\n") { "pub ${it.lfName}: ${it
                 |pub struct $dispatcherName {
                 |    // state struct
                 |    _impl: $structName,
+                |    // ctor parameters
+                |    _params: $paramStructName,
                 |    // other components
 ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() + "," }}
                 |}
@@ -115,8 +118,9 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |
                 |    #[inline]
                 |    fn assemble(params: Self::Params) -> Self {
-                |        let $ctorParamsDeconstructor = params;
+                |        let $ctorParamsDeconstructor = params.clone();
                 |        Self {
+                |            _params: params,
                 |            _impl: $structName {
 ${"             |                "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
@@ -245,7 +249,7 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
         return reactor.reactions.joinToString { n: ReactionInfo ->
             """
                 ${reactor.names.reactionIdName}::${n.rustId} => {
-                    self._impl.${n.workerId}(ctx${joinDependencies(n)})
+                    self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)})
                 }
             """
         }
@@ -436,7 +440,7 @@ private object ReactorComponentEmitter {
     fun ReactionInfo.invokerFieldDeclaration() =
         "$invokerId: Arc<$rsRuntime::ReactionInvoker>"
 
-    fun ReactionInfo.toWorkerFunction(): String {
+    fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams() =
             allDependencies
                 .filter { it.isInjectedInReaction() }
@@ -447,7 +451,7 @@ private object ReactorComponentEmitter {
         return with(PrependOperator) {
             """
                 |${loc.lfTextComment()}
-                |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, ${reactionParams()}) {
+                |fn $workerId(&mut self, ctx: &mut $rsRuntime::LogicalCtx, params: &${reactor.names.paramStructName},  ${reactionParams()}) {
 ${"             |    "..body}
                 |}
             """.trimMargin()
