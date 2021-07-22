@@ -346,7 +346,11 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Check(FAST)
     def checkConnection(Connection connection) {
         
-        if (connection.cross && this.target != Target.CPP) {
+        if (connection.cross 
+            && this.target != Target.CPP
+            && this.target != Target.C
+            && this.target != Target.Python
+        ) {
             error("This target does not support cross connections", Literals.CONNECTION__CROSS)
         }
 

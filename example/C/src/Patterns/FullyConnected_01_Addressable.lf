@@ -1,0 +1,55 @@
+/**
+ * This illustrates bank of reactors where each reactor produces an
+ * output that is sent to a reactor in the bank of its choice. In this
+ * particular example, each reactor chooses to send its output to the
+ * reactor with the next higher bank_index, wrapping around when it gets
+ * to the end of the bank.
+ * 
+ * @author Christian Menard
+ * @author Edward A. Lee
+ */
+// In this pattern, each node can send direct messages to individual other nodes
+
+target C;
+
+reactor Node(num_nodes: size_t(4)) {
+    input[num_nodes] in: int;
+    output[num_nodes] out: int;
+    
+    state received:int(0);
+    state triggered:bool(false);
+    
+    reaction (startup) -> out{=
+     	info_print("Hello from node %d!", self->bank_index);
+     	// broadcast my ID to everyone
+     	SET(out[(self->bank_index + 1) % self->num_nodes], self->bank_index);    
+    =}
+    
+    reaction (in) {=
+        self->triggered = true;
+        printf("Node %d received messages from ", self->bank_index);
+        size_t count = 0;
+     	for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+                count++;
+                printf("%d, ", in[i]->value);
+        		self->received = in[i]->value;
+            }
+        }   
+        printf("\n");
+        int expected = self->bank_index == 0 ? self->num_nodes - 1 : self->bank_index - 1;
+        if (count != 1 || self->received != expected) {
+            error_print_and_exit("ERROR: received an unexpected message!"); 
+        }
+    =}
+    reaction (shutdown) {=
+        if (!self->triggered) {
+            error_print_and_exit("Received no input!"); 
+        }
+    =}
+}
+
+main reactor(num_nodes: size_t(4)) {
+    nodes = new[num_nodes] Node(num_nodes=num_nodes);
+    nodes.out -x-> nodes.in;
+}

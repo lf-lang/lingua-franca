@@ -1,0 +1,48 @@
+/**
+ * This illustrates bank of reactors where each reactor produces an
+ * output that is broadcast to all reactors in the bank, including
+ * itself.
+ * 
+ * @author Christian Menard
+ * @author Edward A. Lee
+ */
+target C;
+
+reactor Node(num_nodes: size_t(4)) {
+    input[num_nodes] in: int;
+    output out: int;
+    
+    state received: bool(false);
+    
+    reaction (startup) -> out{=
+     	info_print("Hello from node %d!", self->bank_index);
+     	// broadcast my ID to everyone
+     	SET(out, self->bank_index);    
+    =}
+    
+    reaction (in) {=
+        printf("Node %d received messages from ", self->bank_index);
+        size_t count = 0;
+     	for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+        		self->received = true;
+                count++;
+                printf("%d, ", in[i]->value);
+            }
+        }   
+        printf("\n");
+        if (count != self->num_nodes) {
+            error_print_and_exit("Received fewer messages than expected!"); 
+        }
+    =}
+    reaction (shutdown) {=
+        if (!self->received) {
+            error_print_and_exit("Received no input!"); 
+        }
+    =}
+}
+
+main reactor(num_nodes: size_t(4)) {
+    nodes = new[num_nodes] Node(num_nodes=num_nodes);
+    (nodes.out)+ -> nodes.in;
+}
