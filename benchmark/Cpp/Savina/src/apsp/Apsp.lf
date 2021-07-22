@@ -40,6 +40,24 @@ reactor ApspFloydWarshallBlock(
     state k: size_t{0}; // iteration counter
     state reportedFinish: bool {false};
 
+    // Extract the data block that is relevant for this instance from the given matrix 
+    const method extractDataFromMatrix(
+        srcData: {=const reactor::ImmutableValuePtr<MatrixOfLong>&=}
+    ): {=reactor::ImmutableValuePtr<MatrixOfLong>=} {=
+        auto localData = reactor::make_mutable_value<MatrixOfLong>(std::vector(blockSize, std::vector<long>(blockSize, 0)));
+        
+        size_t globalStartRow = row_index * blockSize;
+        size_t globalStartCol = bank_index * blockSize;
+        
+        // FIXME memcpy should be much faster here, but on the other hand this is only done during initialization
+        for(size_t i = 0; i < blockSize; i++) {
+            for(size_t j = 0; j < blockSize; j++) {
+                (*localData)[i][j] = (*srcData)[i + globalStartRow][j + globalStartCol];
+            }
+        }
+        return reactor::ImmutableValuePtr<MatrixOfLong>(std::move(localData));
+    =}
+
 	input matrix: MatrixOfLong;
 
     input[dimension] fromRow: ApspResultMessage;
@@ -51,9 +69,7 @@ reactor ApspFloydWarshallBlock(
     logical action notifyNeighbors;
     
     reaction(matrix) -> notifyNeighbors {=
-        currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(
-            getBlock(matrix.get(), row_index * dimension + bank_index, graphSize, blockSize)
-        );
+        currentIterData = std::move(extractDataFromMatrix(matrix.get()));
         
         // reset local state
         neighborDataPerIteration.clear();
@@ -137,24 +153,6 @@ reactor ApspFloydWarshallBlock(
         static int doPrint = 1;
         
         //helper functions
-        
-        reactor::MutableValuePtr<MatrixOfLong> getBlock(
-            const reactor::ImmutableValuePtr<MatrixOfLong>& srcData, int myBlockId, int N, int B) {
-            
-            reactor::MutableValuePtr<MatrixOfLong> localData =
-                reactor::make_mutable_value<MatrixOfLong>(std::vector(B, std::vector<long>(B, 0)));
-            
-            int numBlocksPerDim = N/B;
-            int globalStartRow = (myBlockId / numBlocksPerDim) * B;
-            int globalStartCol = (myBlockId % numBlocksPerDim) * B;
-            
-            for(int i = 0; i < B; i++) {
-                for(int j = 0; j < B; j++) {
-                    (*localData)[i][j] = (*srcData)[i + globalStartRow][j + globalStartCol];
-                }
-            }
-            return localData;
-        }
         
         bool storeIterationData(const reactor::ImmutableValuePtr<ApspResultMessage>& inData,
           std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration,
@@ -259,7 +257,7 @@ main reactor (
         blockSize=blockSize,
         numNodes=numNodes,
         dimension={=numNodes / blockSize=},
-        debug=debug
+        verbose=verbose
     );
 	  
     reaction(startup) -> runner.inStart {=
