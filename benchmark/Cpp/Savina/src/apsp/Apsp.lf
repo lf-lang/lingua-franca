@@ -23,6 +23,9 @@ public preamble {=
       size_t blockRow;
       reactor::ImmutableValuePtr<MatrixOfLong> initData;
     };
+    
+    using DataPtr = reactor::ImmutableValuePtr<MatrixOfLong>;
+    using MutDataPtr = reactor::MutableValuePtr<MatrixOfLong>;
 =}
 
 reactor ApspFloydWarshallBlock(
@@ -33,7 +36,6 @@ reactor ApspFloydWarshallBlock(
     dimension: size_t{6},
     verbose: bool{false})
 {
-    state neighborDataPerIteration: {=std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>=};
     state numNeighbors: {=const size_t=}{{=2 * (dimension - 1)=}};
     state rowOffset: {=const size_t=}{{=row_index * blockSize=}}; // row offset of the block of this reactor
     state colOffset: {=const size_t=}{{=bank_index * blockSize=}}; // column offset of the block of this reactor
@@ -47,45 +49,43 @@ reactor ApspFloydWarshallBlock(
     ): {=reactor::ImmutableValuePtr<MatrixOfLong>=} {=
         auto localData = reactor::make_mutable_value<MatrixOfLong>(std::vector(blockSize, std::vector<long>(blockSize, 0)));
         
-        size_t globalStartRow = row_index * blockSize;
-        size_t globalStartCol = bank_index * blockSize;
-        
         // FIXME memcpy should be much faster here, but on the other hand this is only done during initialization
         for(size_t i = 0; i < blockSize; i++) {
             for(size_t j = 0; j < blockSize; j++) {
-                (*localData)[i][j] = (*srcData)[i + globalStartRow][j + globalStartCol];
+                (*localData)[i][j] = (*srcData)[rowOffset + i][colOffset + j];
             }
         }
         return reactor::ImmutableValuePtr<MatrixOfLong>(std::move(localData));
     =}
     
     // retrieve the element at the given position from the known data
-    const method elementAt(row: size_t, col: size_t): long {=
-        
+    const method getElementAt(
+        row: size_t,
+        col: size_t,
+        rowPorts: {=const std::vector<reactor::Input<ApspResultMessage>>&=},
+        colPorts: {=const std::vector<reactor::Input<ApspResultMessage>>&=}
+    ): long {=
+
         size_t destRow = row / blockSize;
         size_t destCol = col / blockSize;
         size_t destBlockId = (destRow * dimension) + destCol;
         
-        if (verbose) {
-            std::cout << "elementAt(" << col << "," << row << ")\n";
-            std::cout << "dest: (" << destCol << ", " << destRow << "), blockId: " << destBlockId << "\n";
-        }
-
         size_t localRow = row % blockSize;
         size_t localCol = col % blockSize;
         
-        if(destRow == row_index && destCol == bank_index) {
-            return (*currentIterData)[localRow][localCol];
+        if (destRow == row_index) {
+            const auto& message = *rowPorts[destCol].get();
+            const auto& data = *message.initData;
+            return data[localRow][localCol];
+        } else if (destCol == bank_index) {
+            const auto& message = *colPorts[destRow].get();
+            const auto& data = *message.initData;
+            return data[localRow][localCol];
         } else {
-            const reactor::ImmutableValuePtr<MatrixOfLong>& blockData = neighborDataPerIteration.at(destBlockId);
-            return (*blockData)[localRow][localCol];
+            std::cerr << "Error: unexpected target location (" << destCol << ',' << destRow << ")\n";
+            exit(2);
         }
 	=}
-	
-	method storeIterationData(inData: {=const reactor::ImmutableValuePtr<ApspResultMessage>&=}) {=
-        neighborDataPerIteration.insert(
-            std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->blockRow * dimension + inData->blockCol, inData->initData));
-    =}
 
 	input matrix: MatrixOfLong;
 
@@ -101,7 +101,6 @@ reactor ApspFloydWarshallBlock(
         currentIterData = std::move(extractDataFromMatrix(matrix.get()));
         
         // reset local state
-        neighborDataPerIteration.clear();
         k = 0;
         reportedFinish = false;
         
@@ -129,37 +128,6 @@ reactor ApspFloydWarshallBlock(
             return;
         }
         
-        // collect all input messages
-        for(auto& port : fromRow) {
-            if(port.is_present()) {
-                auto& message = port.get();
-                if (verbose) {
-                	std::cout << "(" << bank_index << "," << row_index << ") received message from ("
-                	          << message->blockCol << "," << message->blockRow << ")\n";
-               	}
-               	if (message->blockCol != bank_index) { // don't handle message from self
-                	storeIterationData(message);
-                }
-            }
-        }
-        for(auto& port : fromCol) {
-            if(port.is_present()) {
-                auto& message = port.get();
-                if (verbose) {
-                	std::cout << "(" << bank_index << "," << row_index << ") received message from ("
-                	          << message->blockCol << "," << message->blockRow << ")\n";
-               	}
-                if (message->blockRow != row_index) { // don't handle message from self
-                	storeIterationData(message);
-                }
-            }
-        }
-        
-        if (numNeighbors != neighborDataPerIteration.size()) {
-            std::cerr << "Error: Received less messages from neighbors than expected!\n";
-            exit(1);
-        }
-        
         // perform computation
         reactor::MutableValuePtr<MatrixOfLong> nextIterData =
           reactor::make_mutable_value<MatrixOfLong>(blockSize, std::vector<long>(blockSize, 0));
@@ -169,14 +137,14 @@ reactor ApspFloydWarshallBlock(
                 int gi = rowOffset + i;
                 int gj = colOffset + j;
                 
-                long newIterData = elementAt(gi, k) + elementAt(k, gj);
+                long newIterData = getElementAt(gi, k, fromRow, fromCol) + 
+                		getElementAt(k, gj, fromRow, fromCol);
                 (*nextIterData)[i][j] = std::min((*currentIterData)[i][j], newIterData);
             }
         }
         
         // FIXME This should work without the explicit conversion t
         currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(std::move(nextIterData));
-        neighborDataPerIteration.clear();
         notifyNeighbors.schedule();
         
         k++;
