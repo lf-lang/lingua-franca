@@ -4,7 +4,8 @@ reactor Print(value:i32(42)) {
     state v: i32(value);
 
     reaction(startup) {=
-        assert_eq!(23, self.v)
+        assert_eq!(23, params.v);
+        assert_eq!(self.v, params.v);
     =}
 }
 main reactor CtorParamSimple {

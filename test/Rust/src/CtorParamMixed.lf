@@ -5,14 +5,10 @@ reactor Print(
     name: String({="xxx".into()=}),
     other: bool(false)
 ) {
-    state v: i32(value);
-    state n: String(name);
-    state other: bool(other);
-
     reaction(startup) {=
-        assert_eq!(42, self.v);
-        assert_eq!("x2hr", self.n.as_str());
-        assert_eq!(true, self.other);
+        assert_eq!(42, params.v);
+        assert_eq!("x2hr", params.n.as_str());
+        assert_eq!(true, params.other);
     =}
 }
 main reactor CtorParamMixed {
