@@ -76,7 +76,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
     }
 
     private fun invokeRustCompiler() {
-        val cargoBuilder = createCommand(
+        val cargoCommand = commandFactory.createCommand(
             "cargo", listOf(
                 "+nightly",
                 "build",
@@ -85,13 +85,10 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
                 "-Z", "unstable-options" // ... and that feature flag
             ),
-            fileConfig.srcGenPath,
-            "The Rust target requires Cargo in the path. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
+            fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
 
-        val cargoReturnCode = executeCommand(cargoBuilder)
+        val cargoReturnCode = cargoCommand.run()
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")
