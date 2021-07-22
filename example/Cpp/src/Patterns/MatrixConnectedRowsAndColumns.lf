@@ -61,7 +61,7 @@ reactor Node(bank_index: size_t(0), row_index: size_t(0), num_rows: size_t(4), n
 reactor Row(bank_index: size_t(0), num_rows:size_t(4), num_cols:size_t(4)) {
     nodes = new[num_cols] Node(row_index=bank_index, num_rows=num_rows, num_cols=num_cols)
     
-    input[16] fromCol: Pos
+    input[{=num_rows * num_cols=}] fromCol: Pos
     output[num_cols] toCol: Pos
     
     (nodes.toRowAndCol)+ -> nodes.fromRow
