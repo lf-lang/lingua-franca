@@ -250,8 +250,9 @@ public class LFCommand {
      * @param dir  The directory in which the command should be executed
      * @return Returns an LFCommand if the given command could be found or null otherwise.
      */
-    public static LFCommand get(final String cmd, final List<String> args, final Path dir) {
+    public static LFCommand get(final String cmd, final List<String> args, Path dir) {
         assert cmd != null && args != null && dir != null;
+        dir = dir.toAbsolutePath();
 
         // a list containing the command as first element and then all arguments
         List<String> cmdList = new ArrayList<>();
@@ -279,7 +280,7 @@ public class LFCommand {
     }
 
 
-    private static Boolean checkIfCommandIsOnPath(final String command, final Path dir) {
+    private static boolean checkIfCommandIsOnPath(final String command, final Path dir) {
         final String whichCmd = System.getProperty("os.name").startsWith("Windows") ? "where" : "which";
         final ProcessBuilder whichBuilder = new ProcessBuilder(List.of(whichCmd, command));
         whichBuilder.directory(dir.toFile());
@@ -293,7 +294,7 @@ public class LFCommand {
     }
 
 
-    private static Boolean checkIfCommandIsExecutableWithBash(final String command, final Path dir) {
+    private static boolean checkIfCommandIsExecutableWithBash(final String command, final Path dir) {
         // check first if bash is installed
         if (!checkIfCommandIsOnPath("bash", dir)) {
             return false;
