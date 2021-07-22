@@ -1,3 +1,4 @@
+find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-ament_target_dependencies( ${LF_MAIN_TARGET} std_msgs)
+ament_target_dependencies( ${LF_MAIN_TARGET} sensor_msgs std_msgs)
