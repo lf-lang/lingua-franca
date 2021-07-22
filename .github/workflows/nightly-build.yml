@@ -1,0 +1,65 @@
+name: Nightly Build
+
+# trigger the workflow every day at midnight & on releases
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  #release:
+    #types: [created]
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Install jq # for pruning old release assets
+        run: |
+          apt update
+          apt -y install jq
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+          distribution: zulu
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: 3.8.1
+      - name: Gradle Wrapper Validation
+        uses: gradle/wrapper-validation-action@v1
+
+      # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
+      - uses: actions/checkout@v2
+
+      ## Build products
+      - name: Build the lfc compiler
+        run: .github/scripts/package_lfc.sh
+      - name: Build Eclipse product
+        run: mvn compile
+      - name: Package IDE
+        run: mvn package
+
+      # delete old assets
+      - name: Delete old release assets
+        run: .github/scripts/delete_old_nightly_assets.sh
+        env: 
+          GITHUB_TOKEN: ${{ secrets.NIGHTLY_BUILD }}
+      # create a new release with the nightly builds.
+      - name: Create Nightly Release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true # overwrite existing releases by that name
+          artifactErrorsFailBuild: true # no artifacts? No nightly.
+          artifacts: "org.lflang.rca/target/products/*.tar.gz,org.lflang.rca/target/products/*.zip,build_upload/*"
+          body: "## Epoch IDE Nightly Build
+
+This is the continuously updated Nightly release of the Lingua Franca IDE, Epoch.
+Expect instabilities and bugs; use at your own discretion."
+          commit: master
+          tag: nightly
+          name: "Epoch IDE Nightly Release"
+          prerelease: true
+          token: ${{ secrets.NIGHTLY_BUILD }}
