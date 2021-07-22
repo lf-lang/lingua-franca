@@ -16,9 +16,6 @@ reactor Node(num_nodes: size_t(4)) {
     input[num_nodes] in: int;
     output[num_nodes] out: int;
     
-    state received:int(0);
-    state triggered:bool(false);
-    
     reaction (startup) -> out{=
      	info_print("Hello from node %d!", self->bank_index);
      	// broadcast my ID to everyone
@@ -26,26 +23,15 @@ reactor Node(num_nodes: size_t(4)) {
     =}
     
     reaction (in) {=
-        self->triggered = true;
         printf("Node %d received messages from ", self->bank_index);
         size_t count = 0;
      	for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
                 count++;
                 printf("%d, ", in[i]->value);
-        		self->received = in[i]->value;
             }
         }   
         printf("\n");
-        int expected = self->bank_index == 0 ? self->num_nodes - 1 : self->bank_index - 1;
-        if (count != 1 || self->received != expected) {
-            error_print_and_exit("ERROR: received an unexpected message!"); 
-        }
-    =}
-    reaction (shutdown) {=
-        if (!self->triggered) {
-            error_print_and_exit("Received no input!"); 
-        }
     =}
 }
 

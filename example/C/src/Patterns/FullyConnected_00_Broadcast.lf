@@ -22,23 +22,13 @@ reactor Node(num_nodes: size_t(4)) {
     
     reaction (in) {=
         printf("Node %d received messages from ", self->bank_index);
-        size_t count = 0;
      	for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
         		self->received = true;
-                count++;
                 printf("%d, ", in[i]->value);
             }
         }   
         printf("\n");
-        if (count != self->num_nodes) {
-            error_print_and_exit("Received fewer messages than expected!"); 
-        }
-    =}
-    reaction (shutdown) {=
-        if (!self->received) {
-            error_print_and_exit("Received no input!"); 
-        }
     =}
 }
 
