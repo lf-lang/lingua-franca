@@ -87,6 +87,15 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }
                 |
                 |}
                 |
+                |/// Parameters for the construction of a [$structName]
+                |pub struct ${names.paramStructName} {
+${"             |    "..ctorParams.joinToString(",\n") { "pub ${it.lfName}: ${it.type}" }}
+                |}
+                |
+                |
+                |//------------------------//
+                |
+                |
                 |pub struct $dispatcherName {
                 |    // state struct
                 |    _impl: $structName,
@@ -102,7 +111,7 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |impl $rsRuntime::ReactorDispatcher for $dispatcherName {
                 |    type ReactionId = $reactionIdName;
                 |    type Wrapped = $structName;
-                |    type Params = $ctorParamsTupleType;
+                |    type Params = $paramStructName;
                 |
                 |    #[inline]
                 |    fn assemble(params: Self::Params) -> Self {
@@ -111,7 +120,7 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |            _impl: $structName {
 ${"             |                "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
-${"             |            "..otherComponents.joinToString(",\n") {  it.lfName + ": " + it.initialExpression() }}
+${"             |            "..otherComponents.joinToString(",\n") { it.lfName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |
@@ -122,7 +131,11 @@ ${"             |            "..reactionWrappers(reactor)}
                 |    }
                 |}
                 |
+                |
+                |//------------------------//
+                |
                 |use $rsRuntime::*; // after this point there's no user-written code
+                |
                 |
                 |pub struct $assemblerName {
                 |    pub(in super) _rstate: Arc<Mutex<$dispatcherName>>,
@@ -194,11 +207,15 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
         reactions.any { it.isStartup } || otherComponents.any { it is TimerData }
 
     private fun ReactorInfo.assembleChildReactors(): String {
+        fun NestedReactorInstance.paramStruct(): String =
+            args.entries.joinToString(", ", "super::${names.paramStructName} { ", " }") {
+                it.key + ": " + it.value
+            }
 
         return nestedInstances.joinToString("\n") {
             """
                     ${it.loc.lfTextComment()}
-                    let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, ${it.args.joinToString(", ", "(", ")")});
+                    let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, ${it.paramStruct()});
                 """.trimIndent()
         }
     }
@@ -264,6 +281,7 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
 
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
+        val mainReactor = gen.mainReactor.names
         this += """
             |${generatedByComment("//")}
             |#![allow(unused_imports)]
@@ -275,10 +293,12 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
             |mod reactors;
             |
             |use $rsRuntime::*;
+            |use self::reactors::${mainReactor.assemblerName} as _MainAssembler;
+            |use self::reactors::${mainReactor.paramStructName} as _MainParams;
             |
             |fn main() {
             |    let mut reactor_id = ReactorId::first();
-            |    let mut topcell = <self::reactors::${gen.mainReactor.names.assemblerName} as ReactorAssembler>::assemble(&mut reactor_id, (/*todo params*/));
+            |    let mut topcell = <_MainAssembler as ReactorAssembler>::assemble(&mut reactor_id, _MainParams {/* main params are de facto forbidden */});
             |    let options = SchedulerOptions {
             |       timeout: ${gen.properties.timeout.toRustOption()},
             |       keep_alive: ${gen.properties.keepAlive}
@@ -293,14 +313,21 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
     }
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {
-        fun ReactorNames.modDecl() =
-            "mod $modName;\npub use self::$modName::$assemblerName;"
+        fun ReactorInfo.modDecl(): String = with(names) {
+            // We make some declarations public to be able to refer to them
+            // simply when building nested reactors.
+            """
+                mod $modName;
+                pub use self::$modName::$assemblerName;
+                pub use self::$modName::$paramStructName;
+            """.trimIndent()
+        }
 
         this += with(PrependOperator) {
             """
             |${generatedByComment("//")}
             |
-${"         |"..gen.reactors.joinToString("\n") { it.names.modDecl() }}
+${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
         """.trimMargin()
         }
@@ -344,13 +371,9 @@ ${"         |"..gen.reactors.joinToString("\n") { it.names.modDecl() }}
     }
 
 
-    /// Type of the tuple corresponding to ctor parameters
-    val ReactorInfo.ctorParamsTupleType: TargetCode
-        get() = "(${ctorParams.map { it.type }.joinWithCommas()})"
-
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
-    val ReactorInfo.ctorParamsDeconstructor: TargetCode
-        get() = "(${ctorParams.map { it.lfName }.joinWithCommas()})"
+    private val ReactorInfo.ctorParamsDeconstructor: TargetCode
+        get() = "${names.paramStructName} { ${ctorParams.joinToString(", ") { it.lfName }} }"
 }
 
 
