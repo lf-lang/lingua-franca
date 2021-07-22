@@ -82,10 +82,9 @@ reactor ApspFloydWarshallBlock(
         }
 	=}
 	
-	method storeIterationData(inData: {=const reactor::ImmutableValuePtr<ApspResultMessage>&=}): bool {=
+	method storeIterationData(inData: {=const reactor::ImmutableValuePtr<ApspResultMessage>&=}) {=
         neighborDataPerIteration.insert(
             std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->blockRow * dimension + inData->blockCol, inData->initData));
-        return neighborDataPerIteration.size() == numNeighbors;
     =}
 
 	input matrix: MatrixOfLong;
@@ -131,16 +130,16 @@ reactor ApspFloydWarshallBlock(
         }
         
         // collect all input messages
-        bool haveAllData = false;
         for(auto& port : fromRow) {
-
             if(port.is_present()) {
                 auto& message = port.get();
                 if (verbose) {
                 	std::cout << "(" << bank_index << "," << row_index << ") received message from ("
                 	          << message->blockCol << "," << message->blockRow << ")\n";
                	}
-                haveAllData |= storeIterationData(message);
+               	if (message->blockCol != bank_index) { // don't handle message from self
+                	storeIterationData(message);
+                }
             }
         }
         for(auto& port : fromCol) {
@@ -150,11 +149,16 @@ reactor ApspFloydWarshallBlock(
                 	std::cout << "(" << bank_index << "," << row_index << ") received message from ("
                 	          << message->blockCol << "," << message->blockRow << ")\n";
                	}
-                haveAllData |= storeIterationData(message);
+                if (message->blockRow != row_index) { // don't handle message from self
+                	storeIterationData(message);
+                }
             }
         }
         
-        if(!haveAllData) return;
+        if (numNeighbors != neighborDataPerIteration.size()) {
+            std::cerr << "Error: Received less messages from neighbors than expected!\n";
+            exit(1);
+        }
         
         // perform computation
         reactor::MutableValuePtr<MatrixOfLong> nextIterData =
@@ -204,6 +208,7 @@ reactor ApspFloydWarshallBlock(
 
 
 reactor ApspRow(
+    bank_index: size_t{0},
     blockSize: size_t{50},
     numNodes: size_t{300},
     dimension: size_t{6},
@@ -216,6 +221,7 @@ reactor ApspRow(
     output[dimension] toCol: ApspResultMessage;
         
     blocks = new[dimension] ApspFloydWarshallBlock(
+        row_index=bank_index,
         blockSize=blockSize,
         graphSize=numNodes,
         dimension=dimension,
@@ -228,7 +234,7 @@ reactor ApspRow(
     // block output to all column neighbours
     blocks.toNeighbors -> toCol;
     // block input from all column neighbours
-    (fromCol)+ -x-> blocks.fromCol;
+    fromCol -x-> blocks.fromCol;
     
     // broadcast the incoming matrix to all blocks
     (matrix)+ -> blocks.matrix;
