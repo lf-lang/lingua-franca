@@ -19,7 +19,8 @@ public preamble {=
     
     struct ApspResultMessage {
       size_t k;
-      size_t myBlockId;
+      size_t blockCol;
+      size_t blockRow;
       reactor::ImmutableValuePtr<MatrixOfLong> initData;
     };
 =}
@@ -80,6 +81,12 @@ reactor ApspFloydWarshallBlock(
             return (*blockData)[localRow][localCol];
         }
 	=}
+	
+	method storeIterationData(inData: {=const reactor::ImmutableValuePtr<ApspResultMessage>&=}): bool {=
+        neighborDataPerIteration.insert(
+            std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->blockRow * dimension + inData->blockCol, inData->initData));
+        return neighborDataPerIteration.size() == numNeighbors;
+    =}
 
 	input matrix: MatrixOfLong;
 
@@ -106,7 +113,7 @@ reactor ApspFloydWarshallBlock(
     reaction(notifyNeighbors) -> toNeighbors {=
         //notify all neighbors
         auto resultMessage = reactor::make_immutable_value<ApspResultMessage>(
-            ApspResultMessage{k, row_index * dimension + bank_index, currentIterData}
+            ApspResultMessage{k, bank_index, row_index, currentIterData}
         );
         toNeighbors.set(resultMessage);
     =}
@@ -126,13 +133,24 @@ reactor ApspFloydWarshallBlock(
         // collect all input messages
         bool haveAllData = false;
         for(auto& port : fromRow) {
+
             if(port.is_present()) {
-                haveAllData |= storeIterationData(port.get(), neighborDataPerIteration, dimension);
+                auto& message = port.get();
+                if (verbose) {
+                	std::cout << "(" << bank_index << "," << row_index << ") received message from ("
+                	          << message->blockCol << "," << message->blockRow << ")\n";
+               	}
+                haveAllData |= storeIterationData(message);
             }
         }
         for(auto& port : fromCol) {
             if(port.is_present()) {
-                haveAllData |= storeIterationData(port.get(), neighborDataPerIteration, dimension);
+                auto& message = port.get();
+                if (verbose) {
+                	std::cout << "(" << bank_index << "," << row_index << ") received message from ("
+                	          << message->blockCol << "," << message->blockRow << ")\n";
+               	}
+                haveAllData |= storeIterationData(message);
             }
         }
         
@@ -172,14 +190,6 @@ reactor ApspFloydWarshallBlock(
         static int doPrint = 1;
         
         //helper functions
-        
-        bool storeIterationData(const reactor::ImmutableValuePtr<ApspResultMessage>& inData,
-          std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration,
-          size_t numNeighbors) {
-          neighborDataPerIteration.insert(
-                std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->myBlockId, inData->initData));
-            return neighborDataPerIteration.size() == numNeighbors;
-        }
         
         void print(const MatrixOfLong& array) {
             for(auto vec: array) {
