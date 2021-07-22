@@ -57,6 +57,29 @@ reactor ApspFloydWarshallBlock(
         }
         return reactor::ImmutableValuePtr<MatrixOfLong>(std::move(localData));
     =}
+    
+    // retrieve the element at the given position from the known data
+    const method elementAt(row: size_t, col: size_t): long {=
+        
+        size_t destRow = row / blockSize;
+        size_t destCol = col / blockSize;
+        size_t destBlockId = (destRow * dimension) + destCol;
+        
+        if (verbose) {
+            std::cout << "elementAt(" << col << "," << row << ")\n";
+            std::cout << "dest: (" << destCol << ", " << destRow << "), blockId: " << destBlockId << "\n";
+        }
+
+        size_t localRow = row % blockSize;
+        size_t localCol = col % blockSize;
+        
+        if(destRow == row_index && destCol == bank_index) {
+            return (*currentIterData)[localRow][localCol];
+        } else {
+            const reactor::ImmutableValuePtr<MatrixOfLong>& blockData = neighborDataPerIteration.at(destBlockId);
+            return (*blockData)[localRow][localCol];
+        }
+	=}
 
 	input matrix: MatrixOfLong;
 
@@ -124,11 +147,7 @@ reactor ApspFloydWarshallBlock(
                 int gi = rowOffset + i;
                 int gj = colOffset + j;
                 
-                long newIterData =
-                    elementAt(gi, k, currentIterData,
-                        blockSize, dimension, row_index * dimension + bank_index, neighborDataPerIteration) +
-                    elementAt(k, gj, currentIterData,
-                        blockSize, dimension, row_index * dimension + bank_index, neighborDataPerIteration);
+                long newIterData = elementAt(gi, k) + elementAt(k, gj);
                 (*nextIterData)[i][j] = std::min((*currentIterData)[i][j], newIterData);
             }
         }
@@ -160,22 +179,6 @@ reactor ApspFloydWarshallBlock(
           neighborDataPerIteration.insert(
                 std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->myBlockId, inData->initData));
             return neighborDataPerIteration.size() == numNeighbors;
-        }
-        
-        long elementAt(int row, int col, const reactor::ImmutableValuePtr<MatrixOfLong>& prevIterData,
-            int blockSize, int dimension, int myBlockId,
-            std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration) {
-            
-            int destBlockId = ((row / blockSize) * dimension) + (col / blockSize);
-            int localRow = row % blockSize;
-            int localCol = col % blockSize;
-            
-            if(destBlockId == myBlockId) {
-                return (*prevIterData)[localRow][localCol];
-            } else {
-                reactor::ImmutableValuePtr<MatrixOfLong>& blockData = neighborDataPerIteration.at(destBlockId);
-                return (*blockData)[localRow][localCol];
-            }
         }
         
         void print(const MatrixOfLong& array) {
