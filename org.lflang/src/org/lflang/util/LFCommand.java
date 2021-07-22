@@ -150,7 +150,7 @@ public class LFCommand {
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
      */
-    public Integer run() {
+    public int run() {
         assert !didRun;
         didRun = true;
 
