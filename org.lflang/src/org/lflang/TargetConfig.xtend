@@ -67,9 +67,9 @@ class TargetConfig {
     /**
      * Enable or disable the use of CMake to build.
      * 
-     * The default is disabled.
+     * The default is enabled.
      */
-    public boolean useCmake = false;
+    public boolean useCmake = true;
 
     /**
      * The compiler to invoke, unless a build command has been specified.
