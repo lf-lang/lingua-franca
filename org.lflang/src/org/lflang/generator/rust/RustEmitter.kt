@@ -360,9 +360,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
             |[dependencies]
             |# The reactor runtime
-            |$runtimeCrateFullName = { 
-${"         |  "..gen.runtime.runtimeCrateSpec()} 
-            |}
+            |$runtimeCrateFullName = { ${gen.runtime.runtimeCrateSpec()} }
             |# Other dependencies
             |int-enum = "0.4"
             |
@@ -375,9 +373,13 @@ ${"         |  "..gen.runtime.runtimeCrateSpec()}
 
     private fun RuntimeInfo.runtimeCrateSpec(): String =
         buildString {
-            if (version != null) append("version=\"$version\"\n")
-            if (localPath != null) append("path = \"${Paths.get(localPath).toAbsolutePath()}\"")
-            else append("git = \"ssh://git@github.com/icyphy/reactor-rust.git\"")
+            if (version != null) append("version=\"$version\" ")
+
+            if (localPath != null) {
+                append("path = \"${Paths.get(localPath).toAbsolutePath()}\"")
+            } else {
+                append("git = \"ssh://git@github.com/icyphy/reactor-rust.git\"")
+            }
         }
 
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
