@@ -785,37 +785,25 @@ class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     def pythonCompileCode() {
-        val compileCmd = createCommand(
-            '''python3''',
-            #["setup.py", "build"],
-            fileConfig.outPath,
-            "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true)
-        val installCmd = createCommand(
+        // if we found the compile command, we will also find the install command
+        val installCmd = commandFactory.createCommand(
             '''python3''',
             #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."],
-            fileConfig.outPath,
-            "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
-           )
-
-        compileCmd.directory(fileConfig.getSrcGenPath.toFile)
-        installCmd.directory(fileConfig.getSrcGenPath.toFile)
+            fileConfig.srcGenPath)
+               
+        if (installCmd === null) {
+            errorReporter.reportError(
+                "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+            return
+        }
 
         // Set compile time environment variables
-        val compileEnv = compileCmd.environment
-        compileEnv.put("CC", targetConfig.compiler) // Use gcc as the compiler
-        compileEnv.put("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        installCmd.setEnvironmentVariable("CC", targetConfig.compiler) // Use gcc as the compiler
+        installCmd.setEnvironmentVariable("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
-        val installEnv = compileCmd.environment
-        installEnv.put("CC", targetConfig.compiler) // Use gcc as the compiler
-        installEnv.put("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
-        // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
-        // compiler.
-        if (executeCommand(installCmd) == 0) {
+        if (installCmd.run() == 0) {
             println("Successfully installed python extension.")
         } else {
             errorReporter.reportError("Failed to install python extension.")
@@ -931,16 +919,15 @@ class PythonGenerator extends CGenerator {
      * @param filename Name of the file to process.
      */
     override processProtoFile(String filename) {
-         val protoc = createCommand(
+         val protoc = commandFactory.createCommand(
             "protoc",
             #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename],
-            fileConfig.srcPath,
-            "Processing .proto files requires libprotoc >= 3.6.1", true)
+            fileConfig.srcPath)
          //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
-            return
+            errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
         }
-        val returnCode = protoc.executeCommand()
+        val returnCode = protoc.run()
         if (returnCode == 0) {
             pythonRequiredModules.append(''', 'google-api-python-client' ''')
         } else {
