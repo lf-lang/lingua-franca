@@ -576,7 +576,7 @@ public class Main {
             
             final List<Issue> issues = this.validator.validate(resource,
                     CheckMode.ALL, CancelIndicator.NullImpl);
-            Boolean hasErrors = false;
+            boolean hasErrors = false;
             for(Issue issue : issues) {
                 if (issue.getSeverity() == Severity.ERROR)
                     hasErrors = true;

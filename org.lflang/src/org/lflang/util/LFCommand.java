@@ -47,7 +47,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 public class LFCommand {
 
     protected ProcessBuilder processBuilder;
-    protected Boolean didRun = false;
+    protected boolean didRun = false;
     protected ByteArrayOutputStream output = new ByteArrayOutputStream();
     protected ByteArrayOutputStream errors = new ByteArrayOutputStream();
 
