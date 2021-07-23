@@ -793,7 +793,7 @@ public enum TargetProperty {
                         || ASTUtils.toText(v).equalsIgnoreCase("false"))),
         INTEGER("an integer", v -> {
             try {
-                Integer.decode(ASTUtils.toText(v));
+                Integer.parseInt(ASTUtils.toText(v));
             } catch (NumberFormatException e) {
                 return false;
             }
@@ -801,7 +801,7 @@ public enum TargetProperty {
         }), 
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
-                Integer result = Integer.decode(ASTUtils.toText(v));
+                int result = Integer.parseInt(ASTUtils.toText(v));
                 if (result < 0)
                     return false;
             } catch (NumberFormatException e) {
