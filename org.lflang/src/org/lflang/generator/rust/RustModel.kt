@@ -40,6 +40,7 @@ typealias TargetCode = String
 /** Root model class for the entire generation. */
 data class GenerationInfo(
     val crate: CrateInfo,
+    val runtime: RuntimeInfo,
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
@@ -212,6 +213,11 @@ data class CrateInfo(
     val authors: List<String>,
 )
 
+data class RuntimeInfo(
+    val version: String?,
+    val localPath: String?
+)
+
 /*
 TODO do we really need the following classes?
   - I quite like that they are much simpler than the corresponding AST nodes (Input, Action, etc).
@@ -339,6 +345,10 @@ object RustModelBuilder {
                 name = mainReactor.lfName.camelToSnakeCase(),
                 version = "1.0.0",
                 authors = listOf(System.getProperty("user.name"))
+            ),
+            runtime = RuntimeInfo(
+                version = targetConfig.runtimeVersion,
+                localPath = targetConfig.externalRuntimePath
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,

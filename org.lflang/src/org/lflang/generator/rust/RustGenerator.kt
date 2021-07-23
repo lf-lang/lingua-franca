@@ -31,6 +31,7 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.createDirectories
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.StandaloneContext
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
@@ -83,7 +84,9 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
                 "--release", // enable optimisations
                 // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
-                "-Z", "unstable-options" // ... and that feature flag
+                "-Z", "unstable-options", // ... and that feature flag
+                // user-provided flags
+                *targetConfig.compilerFlags.toTypedArray()
             ),
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return

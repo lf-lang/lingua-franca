@@ -28,7 +28,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
-import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -361,7 +360,9 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
             |[dependencies]
             |# The reactor runtime
-            |$runtimeCrateFullName = { ${runtimeCrateLocation()} }
+            |$runtimeCrateFullName = { 
+${"         |  "..gen.runtime.runtimeCrateSpec()} 
+            |}
             |# Other dependencies
             |int-enum = "0.4"
             |
@@ -372,20 +373,12 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     }
 
 
-    /**
-     * Select location of runtime crate for LFC. It may be fetched
-     * from Git or from your PC if you have a local development version.
-     * You need to set `RUST_REACTOR_RT_PATH` to a correct value
-     */
-    private fun runtimeCrateLocation(): String {
-        val path = System.getenv("RUST_REACTOR_RT_PATH")
-        return when {
-            path == null                       -> "git = \"ssh://git@github.com/icyphy/reactor-rust.git\""
-            Files.isDirectory(Paths.get(path)) -> "path = \"${Paths.get(path).toAbsolutePath()}\""
-            else                               -> throw IllegalStateException("Not a directory: $path")
+    private fun RuntimeInfo.runtimeCrateSpec(): String =
+        buildString {
+            if (version != null) append("version=\"$version\"\n")
+            if (localPath != null) append("path = \"${Paths.get(localPath).toAbsolutePath()}\"")
+            else append("git = \"ssh://git@github.com/icyphy/reactor-rust.git\"")
         }
-    }
-
 
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
