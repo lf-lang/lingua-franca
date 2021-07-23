@@ -243,13 +243,14 @@ Delay:
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
+    '{' ( pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* )? ','? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
 Array:
-    '[' elements+=Element (',' (elements+=Element))* ','? ']';
+      '[' ( elements+=Element (',' (elements+=Element))* )? ','? ']'
+    | '[]'; // remember this is tokenized as a single token in LF
     
 Element:
     keyvalue=KeyValuePairs 
