@@ -134,6 +134,10 @@ ${"             |            "..otherComponents.joinToString(",\n") { it.lfName 
 ${"             |            "..reactionWrappers(reactor)}
                 |        }
                 |    }
+                |    
+                |    fn cleanup_tag(&mut self, ctx: $rsRuntime::LogicalCtx) {
+                |        // todo 
+                |    }
                 |}
                 |
                 |
@@ -406,8 +410,8 @@ private object ReactorComponentEmitter {
 
     fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData ->
-            if (isLogical) "$rsRuntime::LogicalAction"
-            else "$rsRuntime::PhysicalAction"
+            if (isLogical) "$rsRuntime::LogicalAction::<${type ?: "()"}>"
+            else "$rsRuntime::PhysicalAction::<${type ?: "()"}>"
         is PortData   ->
             if (isInput) "$rsRuntime::InputPort<$dataType>"
             else "$rsRuntime::OutputPort<$dataType>"
