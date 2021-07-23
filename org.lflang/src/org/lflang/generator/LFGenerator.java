@@ -3,19 +3,17 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.rust.RustFileConfig;
 import org.lflang.generator.rust.RustGenerator;
-import org.lflang.lf.TargetDecl;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -34,25 +32,13 @@ public class LFGenerator extends AbstractGenerator {
     // Indicator of whether generator errors occurred.
     protected boolean generatorErrorsOccurred = false;
 
-    /**
-     * Extract the target as specified in the target declaration from a given
-     * resource
-     */
-    private Target getTarget(Resource resource) {
-        // FIXME: is there a better way to do this in plain Java?
-        final Iterable<EObject> contentIterable = IteratorExtensions
-                .toIterable(resource.getAllContents());
-        final Iterable<TargetDecl> targetDeclIterable = IterableExtensions
-                .filter(contentIterable, TargetDecl.class);
-        final String targetName = IterableExtensions.head(targetDeclIterable)
-                .getName();
-        return Target.forName(targetName);
-    }
 
     /** Create a FileConfig object for the given target */
     private FileConfig createFileConfig(final Target target, Resource resource,
             IFileSystemAccess2 fsa, IGeneratorContext context)
             throws IOException {
+        assert target != null;
+
         switch (target) {
             case CPP: {
                 return createCppFileConfig(resource, fsa, context);
@@ -181,7 +167,7 @@ public class LFGenerator extends AbstractGenerator {
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         // Determine which target is desired.
-        final Target target = getTarget(resource);
+        final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
 
         FileConfig fileConfig;
         try {
@@ -189,10 +175,8 @@ public class LFGenerator extends AbstractGenerator {
         } catch (IOException e) {
             throw new RuntimeException("Error during FileConfig instaniation");
         }
-        final ErrorReporter errorReporter = new EclipseErrorReporter(
-                fileConfig);
-        final GeneratorBase generator = createGenerator(target, fileConfig,
-                errorReporter);
+        final ErrorReporter errorReporter = new EclipseErrorReporter(fileConfig);
+        final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
             generator.doGenerate(resource, fsa, context);
