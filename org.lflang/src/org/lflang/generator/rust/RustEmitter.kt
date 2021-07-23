@@ -109,7 +109,7 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |
                 |
                 |reaction_ids!(
-                |  ${reactions.joinToString(", ", "pub enum $reactionIdName {", "}") { it.rustId }}
+                |  ${reactions.joinToString(", ", "pub enum $reactionIdName {", "}") { it.rustId + " = " + it.idx }}
                 |);
                 |
                 |impl $rsRuntime::ReactorDispatcher for $dispatcherName {
@@ -129,17 +129,25 @@ ${"             |            "..otherComponents.joinToString(",\n") { it.lfName 
                 |        }
                 |    }
                 |
+                |    #[inline]
                 |    fn react(&mut self, ctx: &mut $rsRuntime::LogicalCtx, rid: Self::ReactionId) {
                 |        match rid {
 ${"             |            "..reactionWrappers(reactor)}
                 |        }
                 |    }
-                |    
-                |    fn cleanup_tag(&mut self, ctx: $rsRuntime::LogicalCtx) {
-                |        // todo 
-                |    }
                 |}
                 |
+                |impl $rsRuntime::ErasedReactorDispatcher for $dispatcherName {
+                |
+                |    fn react_erased(&mut self, ctx: &mut ::reactor_rt::LogicalCtx, rid: u32) {
+                |        let rid = <$reactionIdName as int_enum::IntEnum>::from_int(rid).unwrap();
+                |        self.react(ctx, rid)
+                |    }
+                |
+                |    fn cleanup_tag(&mut self, ctx: ::reactor_rt::LogicalCtx) {
+                |        // todo
+                |    }
+                |}
                 |
                 |//------------------------//
                 |
@@ -178,11 +186,11 @@ ${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfNa
                 |    }
                 |
                 |    fn assemble(
-                |       reactor_id: &mut ReactorId, 
+                |       ctx: &mut AssemblyCtx<Self>,
                 |       args: <Self::RState as ReactorDispatcher>::Params
                 |    ) -> Self {
                 |        let mut _rstate = Arc::new(Mutex::new(Self::RState::assemble(args)));
-                |        let this_reactor = reactor_id.get_and_increment();
+                |        let this_reactor = ctx.get_id();
                 |        let mut reaction_id = 0;
                 |
 ${"             |        "..reactor.reactions.joinToString("\n") { it.reactionInvokerInitializer() }}
@@ -224,7 +232,7 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
         return nestedInstances.joinToString("\n") {
             """
                     ${it.loc.lfTextComment()}
-                    let mut ${it.lfName} = super::${it.names.assemblerName}::assemble(reactor_id, ${it.paramStruct()});
+                    let mut ${it.lfName}: super::${it.names.assemblerName} = ctx.assemble_sub(${it.paramStruct()});
                 """.trimIndent()
         }
     }
@@ -306,17 +314,16 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
             |use self::reactors::${mainReactor.paramStructName} as _MainParams;
             |
             |fn main() {
-            |    let mut reactor_id = ReactorId::first();
-            |    let mut topcell = <_MainAssembler as ReactorAssembler>::assemble(&mut reactor_id, _MainParams {/* main params are de facto forbidden */});
+            |    // todo CLI parsing
             |    let options = SchedulerOptions {
             |       timeout: ${gen.properties.timeout.toRustOption()},
             |       keep_alive: ${gen.properties.keepAlive}
             |    };
-            |    let mut scheduler = SyncScheduler::new(options);
-            |    scheduler.startup(|mut starter| {
-            |        topcell.start(&mut starter);
-            |    });
-            |    scheduler.launch_async().join().unwrap();
+            |    let main_args = _MainParams {
+            |       // todo, for now main reactor params are unsupported
+            |    };
+            |
+            |    SyncScheduler::run_main::<_MainAssembler>(options, main_args);
             |}
         """.trimMargin()
     }
@@ -351,12 +358,12 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |version = "${crate.version}"
             |authors = [${crate.authors.joinToString(", ") { it.withDQuotes() }}]
             |edition = "2018"
-
-            |# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-            |[dependencies.$runtimeCrateFullName]
-            |#-- The reactor runtime --#
-            |${runtimeCrateLocation()}
+            |
+            |[dependencies]
+            |# The reactor runtime
+            |$runtimeCrateFullName = { ${runtimeCrateLocation()} }
+            |# Other dependencies
+            |int-enum = "0.4"
             |
             |[[bin]]
             |name = "${gen.executableName}"
