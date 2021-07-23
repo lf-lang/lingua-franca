@@ -533,12 +533,10 @@ public class Main {
         File root = null;
         if (cmd.hasOption(pathOption)) {
             root = new File(cmd.getOptionValue(pathOption));
-            if (!root.exists()) { // FIXME: Create it instead?
-                printFatalError("Output location '" + root + "' does not exist.");
-                System.exit(1);
-            }
-            if (!root.isDirectory()) {
-                printFatalError("Output location '" + root + "' is not a directory.");
+            try {
+                Files.createDirectories(root.toPath());
+            } catch (IOException e) {
+                printFatalError(e.toString());
                 System.exit(1);
             }
         }
