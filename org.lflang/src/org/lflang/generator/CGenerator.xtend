@@ -1763,9 +1763,6 @@ class CGenerator extends GeneratorBase {
         // Extensions can add functionality to the CGenerator
         generateSelfStructExtension(body, decl, federate, constructorCode, destructorCode)
         
-        // Handle bank_index
-        pr(body, '''«targetBankIndexType» «targetBankIndex»;''');    
-        
         // Next handle parameters.
         generateParametersForReactor(body, reactor)
         
@@ -2060,12 +2057,6 @@ class CGenerator extends GeneratorBase {
      */
     def generateParametersForReactor(StringBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if (parameter.name.equals(targetBankIndex)) {
-                errorReporter.reportError('''«targetBankIndex» is reserved.''')
-            }
-
             prSourceLineNumber(builder, parameter)
             pr(builder, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
         }
@@ -2079,13 +2070,6 @@ class CGenerator extends GeneratorBase {
      */
     def generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
         for (stateVar : reactor.allStateVars) {            
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if(stateVar.name.equals(targetBankIndex))
-            {
-                errorReporter.reportError('''«targetBankIndex» is reserved.''')
-            }
-            
             prSourceLineNumber(builder, stateVar)
             pr(builder, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
         }
@@ -3600,17 +3584,9 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
-            // Set the bankIndex for the reactor
-            pr(initializeTriggerObjectsEnd, '''
-                «nameOfSelfStruct»->«targetBankIndex» = «instance.bankIndex»;
-            ''')
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
-            ''')
-            // Set the bankIndex to zero
-            pr(initializeTriggerObjectsEnd, '''
-                «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
         

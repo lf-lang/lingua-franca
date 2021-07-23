@@ -852,7 +852,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Returns the size of this bank.
+     * Return the size of this bank.
      * @return actual bank size or -1 if this is not a bank master.
      */
     def int getBankSize() {
@@ -863,7 +863,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Returns the index of this reactor within a bank, or -1 if it
+     * Return the index of this reactor within a bank, or -1 if it
      * it is not within a bank, or -2 if it is itself the placeholder
      * for a bank.
      */
@@ -872,11 +872,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Returns the members of this bank, or null if there are none.
+     * Return the members of this bank, or null if there are none.
      * @return actual bank size or -1 if this is not a bank master.
      */
     def getBankMembers() {
         bankMembers
+    }
+    
+    /**
+     * Return a parameter matching the specified name if the reactor has one
+     * and otherwise return null.
+     * @param name The parameter name.
+     */
+    def ParameterInstance getParameter(String name) {
+        for (parameter: parameters) {
+            if (parameter.name.equals(name)) {
+                return parameter;
+            }
+        }
+        return null;
     }
 
     //////////////////////////////////////////////////////
@@ -1033,13 +1047,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Create reactor instance resulting from the specified top-level instantiation.
      * @param instance The Instance statement in the AST.
      * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
+     * @param reporter The error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
      */
-    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator, int desiredDepth) {
+    private new(Instantiation definition, ReactorInstance parent, ErrorReporter reporter, int desiredDepth) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1, 0, desiredDepth)
+        this(definition, parent, reporter, (definition.widthSpec !== null)? -2 : -1, 0, desiredDepth)
     }
 
     /**

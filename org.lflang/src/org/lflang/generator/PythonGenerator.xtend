@@ -1565,12 +1565,6 @@ class PythonGenerator extends CGenerator {
      */
     override generateParametersForReactor(StringBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if (parameter.name.equals(targetBankIndex)) {
-                errorReporter.reportError('''«targetBankIndex» is reserved.''')
-            }
-
             prSourceLineNumber(builder, parameter)
             // Assume all parameters are integers
             pr(builder,'''int «parameter.name» ;''');
