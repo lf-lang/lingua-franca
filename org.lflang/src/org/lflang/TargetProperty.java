@@ -789,8 +789,8 @@ public enum TargetProperty {
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
-                v -> (ASTUtils.toText(v).equalsIgnoreCase("true")
-                        || ASTUtils.toText(v).equalsIgnoreCase("false"))),
+                v -> ASTUtils.toText(v).equalsIgnoreCase("true")
+                        || ASTUtils.toText(v).equalsIgnoreCase("false")),
         INTEGER("an integer", v -> {
             try {
                 Integer.parseInt(ASTUtils.toText(v));
@@ -798,7 +798,7 @@ public enum TargetProperty {
                 return false;
             }
             return true;
-        }), 
+        }),
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
                 int result = Integer.parseInt(ASTUtils.toText(v));
@@ -808,20 +808,14 @@ public enum TargetProperty {
                 return false;
             }
             return true;
-        }), 
-        TIME_VALUE("a time value with units", v -> {
-            if ((v.getKeyvalue() != null || v.getArray() != null
-                    || v.getLiteral() != null || v.getId() != null)
-                    || (v.getTime() != 0 && v.getUnit() == TimeUnit.NONE)) {
-                return false;
-            } else {
-                return true;
-            }
         }),
-        STRING("a string",
-               v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
+        TIME_VALUE("a time value with units", v ->
+            v.getKeyvalue() == null && v.getArray() == null
+                && v.getLiteral() == null && v.getId() == null
+                && (v.getTime() == 0 || v.getUnit() != TimeUnit.NONE)),
+        STRING("a string", v -> v.getLiteral() != null || v.getId() != null),
         FILE("a path to a file", STRING.validator);
-
+    
         /**
          * A description of this type, featured in error messages.
          */

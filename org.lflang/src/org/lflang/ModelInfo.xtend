@@ -40,7 +40,6 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.lf.TargetDecl
 
 import static extension org.lflang.ASTUtils.*
 
@@ -118,10 +117,9 @@ class ModelInfo {
             this.topologyGraph = new TopologyGraph(topLevelReactorInstances)
         }
         
-        // Find the target. A target must exist because the grammar requires it.
-        var Target target = Target.forName(
-            model.eAllContents.toIterable.filter(TargetDecl).head.name)
-        
+        // may be null if the target is invalid
+        var Target target = Target.forName(model.targetDecl.name).orElse(null)
+
         // Perform C-specific traversals.
         if (target == Target.C) {
             this.collectOverflowingNodes()
