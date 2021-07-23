@@ -1,24 +1,25 @@
-/**
- * Test whether timers with different periods are triggered correctly.
- */
-target Rust {
-    timeout: 2 sec
-};
-main reactor {
-    timer t(0, 1 sec);
-    timer t2(0, 2 sec);
-    state counter: i32(0);
-    reaction(t2) {=
-        panic!("Akshully we need to implement shutdown trigger first!");
-        self.counter += 2;
-    =}
-    reaction(t) {=
-        self.counter -= 1;
+// Tests the is_present variable for actions.
+target Rust;
+
+main reactor ActionIsPresent {
+    logical action a;
+    state success: bool(false);
+    state tried: bool(false);
+
+    reaction(startup, a) -> a {=
+        if !ctx.is_action_present(a) {
+            assert!(!self.tried, "Already tried, is_action_present does not work properly.");
+            self.tried = true;
+            // was triggered by startup
+            println!("Startup reaction @ {}", ctx.get_elapsed_logical_time().as_nanos());
+            ctx.schedule(a, After(Duration::from_nanos(1)));
+        } else {
+            // was triggered by schedule above
+            println!("Scheduled reaction @ {}", ctx.get_elapsed_logical_time().as_nanos());
+            self.success = true;
+        }
     =}
     reaction(shutdown) {=
-        if self.counter != 1 {
-            panic!("Error: Expected 1 and got {}.", self.counter);
-        }
-        println!("SUCCESS.")
+        assert!(self.success, "What happened!?");
     =}
 }

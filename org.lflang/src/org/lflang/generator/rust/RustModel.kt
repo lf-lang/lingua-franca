@@ -237,9 +237,22 @@ sealed class ReactorComponent {
          * have another interface.
          */
         fun from(v: Variable): ReactorComponent? = when (v) {
-            is Port   -> PortData(lfName = v.name, isInput = v.isInput, dataType = v.targetType)
-            is Action -> ActionData(lfName = v.name, isLogical = v.isLogical, minDelay = v.minDelay?.time?.toRustTimeExpr())
-            is Timer  -> TimerData(lfName = v.name, offset = v.offset.toTimerTimeValue(), period = v.period.toTimerTimeValue())
+            is Port   -> PortData(
+                lfName = v.name,
+                isInput = v.isInput,
+                dataType = v.type.toText()
+            )
+            is Action -> ActionData(
+                lfName = v.name,
+                isLogical = v.isLogical,
+                type = v.type?.toText(),
+                minDelay = v.minDelay?.time?.toRustTimeExpr()
+            )
+            is Timer  -> TimerData(
+                lfName = v.name,
+                offset = v.offset.toTimerTimeValue(),
+                period = v.period.toTimerTimeValue()
+            )
             else      -> throw UnsupportedGeneratorFeatureException("Dependency on ${v.javaClass.simpleName} $v")
         }
 
@@ -270,9 +283,10 @@ data class PortData(
 
 data class ActionData(
     override val lfName: Ident,
+    // if null, defaults to unit
+    val type: TargetCode?,
     val isLogical: Boolean,
-    // The minimal delay (in Rust)
-    val minDelay: TargetCode?
+    val minDelay: TargetCode?,
 ) : ReactorComponent()
 
 data class TimerData(
