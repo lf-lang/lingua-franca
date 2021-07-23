@@ -29,11 +29,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.eclipse.xtext.util.RuntimeIOException;
 
 /**
  * An abstraction for an external command
@@ -252,7 +256,7 @@ public class LFCommand {
      */
     public static LFCommand get(final String cmd, final List<String> args, Path dir) {
         assert cmd != null && args != null && dir != null;
-        dir = dir.toAbsolutePath();
+        dir = toProperDirectory(dir);
 
         // a list containing the command as first element and then all arguments
         List<String> cmdList = new ArrayList<>();
@@ -277,6 +281,29 @@ public class LFCommand {
         }
 
         return null;
+    }
+
+
+    /**
+     * Verify that the given path is a directory, creating it
+     * if necessary. This function is idempotent so we can call it
+     * several times without problem.
+     *
+     * @param dir A directory given by the user.
+     * @return an absolute path
+     * @throws IllegalArgumentException If the path exists but is not a directory
+     */
+    private static Path toProperDirectory(Path dir) {
+        dir = dir.toAbsolutePath();
+
+        try {
+            Files.createDirectories(dir);
+        } catch (FileAlreadyExistsException e) {
+            throw new IllegalArgumentException("Not a directory: " + dir);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+        return dir;
     }
 
 
