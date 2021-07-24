@@ -10,11 +10,17 @@
  * To run this program, open three distinct terminal windows
  * and run the following generated binaries, one in each window:
  * 
- * * bin/RhythmDistributed_RTI
+ * * RTI -n 2
  * * bin/RhythmDistributed_player1
  * * bin/RhythmDistributed_player2
  * 
- * You can also map these to distinct machines by specifying an `at` clause
+ * The `-n 2` argument specifies the number of federates.
+ * Note that you have to have installed the RTI on your path.
+ * See the instructions in the README file in this directory in the LF repo:
+ * 
+ *     org.lflang/src/lib/core/federated/RTI
+ * 
+ * You can also map these three to distinct machines by specifying an `at` clause
  * on the lines at the end of this file that instantiate the reactors.
  * See [[https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution]].
  * 
@@ -26,8 +32,7 @@
 target C {
     coordination: centralized,
     build: ["./compile.sh RhythmDistributed_player1",
-    		"./compile.sh RhythmDistributed_player2",
-    		"./compile.sh RhythmDistributed_player3"],
+    		"./compile.sh RhythmDistributed_player2"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
@@ -61,8 +66,6 @@ federated reactor {
     player3 = new Player();
     player1.rhythm_change -> player2.rhythm_change_in;
     player1.tempo_change -> player2.tempo_change_in;
-    player2.rhythm_change -> player3.rhythm_change_in;
-    player2.tempo_change -> player3.tempo_change_in;
-    player3.rhythm_change -> player1.rhythm_change_in;
-    player3.tempo_change -> player1.tempo_change_in;
+    player2.rhythm_change -> player1.rhythm_change_in;
+    player2.tempo_change -> player1.tempo_change_in;
 }

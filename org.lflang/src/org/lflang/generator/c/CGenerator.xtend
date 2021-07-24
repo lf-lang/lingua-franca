@@ -486,6 +486,9 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
+            
+            // Create the compiler to be used later
+            var cCompiler = new CCompiler(targetConfig, fileConfig, errorReporter);
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
@@ -500,7 +503,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = getTargetFileName(topLevelName);
+            val cFilename = cCompiler.getTargetFileName(topLevelName);
 
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
@@ -779,12 +782,14 @@ class CGenerator extends GeneratorBase {
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
-                var cCompiler = new CCompiler(targetConfig, fileConfig, this);
                 if (targetConfig.useCmake) {
                     // Use CMake if requested.
-                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, this);
+                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, errorReporter);
                 }
-                if (!cCompiler.runCCompiler(topLevelName, true, errorReporter)) {
+                // FIXME: Currently, a lack of main is treated as a request to not produce
+                // a binary and produce a .o file instead. There should be a way to control
+                // this. 
+                if (!cCompiler.runCCompiler(topLevelName, main === null)) {
                     compilationSucceeded = false
                 }
                 writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
@@ -1234,8 +1239,6 @@ class CGenerator extends GeneratorBase {
         return rtiCode;
     }
     
-    
-
     /** 
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
@@ -3030,16 +3033,15 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand(
+        val protoc = commandFactory.createCommand(
             "protoc-c",
             #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename],
-            fileConfig.srcPath,
-            "Processing .proto files requires proto-c >= 1.3.3.",
-            true)
+            fileConfig.srcPath)
         if (protoc === null) {
+            errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.")
             return
         }
-        val returnCode = protoc.executeCommand()
+        val returnCode = protoc.run()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
             targetConfig.compileAdditionalSources.add(

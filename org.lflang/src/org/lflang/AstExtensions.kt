@@ -349,7 +349,7 @@ val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @receiver The state variable to be checked.
  * @return True if the variable was initialized, false otherwise.
  */
-val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
+val StateVar.isInitialized: Boolean get() = (this.parens.size == 2 || this.braces.size == 2)
 
 /**
  * Given the width specification of port or instantiation
