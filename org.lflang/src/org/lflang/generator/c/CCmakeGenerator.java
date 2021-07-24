@@ -81,8 +81,8 @@ class CCmakeGenerator {
         }
         // additionalSources.addAll(targetConfig.compileLibraries);
         
-        cMakeCode.append("cmake_minimum_required(VERSION 3.5)\n");
-        cMakeCode.append("project("+executableName+"1.0.0 LANGUAGES C)\n");
+        cMakeCode.append("cmake_minimum_required(VERSION 3.13)\n");
+        cMakeCode.append("project("+executableName+" LANGUAGES C)\n");
         cMakeCode.append("\n");
         
         cMakeCode.append("# Require C11\n");
