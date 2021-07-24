@@ -1066,6 +1066,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param depth The depth of this reactor in the hierarchy.
      * @param desiredDepth The depth to which to expand the hierarchy.
      * @param unorderedReactions A list reactions that should be treated as unordered.
+     *  It can be passed as null.
      */
     private new(
             Instantiation definition, 
@@ -1113,7 +1114,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
                 for (var index = 0; index < width; index++) {
                     var childInstance = new ReactorInstance(
-                        definition, parent, reporter, index, depth, desiredDepth, null
+                        definition, parent, reporter, index, depth, desiredDepth, this.unorderedReactions
                     )
                     this.bankMembers.add(childInstance)
                     childInstance.bank = this
@@ -1166,7 +1167,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     (child.widthSpec !== null)? -2 : -1, 
                     depth + 1, 
                     desiredDepth,
-                    null
+                    this.unorderedReactions
                 )
                 this.children.add(childInstance)
                 // If the child is a bank of instances, add all the bank instances.
