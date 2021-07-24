@@ -1,6 +1,6 @@
 /**
  * This test is a variant of HelloWorld.lf that checks the compatibility
- * of the federated C runtime with g++ and CMake. This test should not pass if it does not compile.
+ * of the federated C runtime with g++ and no CMake. This test should not pass if it does not compile.
  */
 target C {
     tracing: true,
@@ -8,7 +8,7 @@ target C {
     flags: "-Wno-write-strings", // Suppress a ridiculous number of warnings.
     coordination: centralized,
     timeout: 1 sec,
-    cmake: true
+    cmake: false
 };
 reactor HelloWorld2 {
     state success:bool(false);

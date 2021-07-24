@@ -33,8 +33,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Mode;
 import org.lflang.TargetConfig;
-import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.GeneratorBase.ExecutionEnvironment;
+import org.lflang.util.LFCommand;
 
 
 /**
@@ -54,55 +53,40 @@ class CCmakeCompiler extends CCompiler {
      * @param fileConfig The current file configuration.
      * @param generator The generator that is using this compiler.
      */
-    public CCmakeCompiler(
-            TargetConfig targetConfig, 
-            FileConfig fileConfig,
-            GeneratorBase generator
-    ) {
-        super(targetConfig, fileConfig, generator);
+    public CCmakeCompiler(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(targetConfig, fileConfig, errorReporter);
     }
     
     /** 
      * Run the C compiler by invoking cmake and make.
      * 
      * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    @Override
-    public 
-    boolean runCCompiler(String file, boolean doNotLinkIfNoMain, ErrorReporter errorReporter) {
-        ProcessBuilder compile = compileCmakeCommand(file, doNotLinkIfNoMain, errorReporter);
+    public boolean runCCompiler(String file, boolean noBinary) {
+        LFCommand compile = compileCmakeCommand(file, noBinary);
         if (compile == null) {
             return false;
         }
-        
-        // Set the build directory to be "build"
-        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-        // Make sure the build directory exists
-        FileConfig.createDirectories(buildPath);
-        compile.directory(buildPath.toFile());
 
         // Use the user-specified compiler if any
         if (targetConfig.compiler != null) {
-            var cmakeEnv = compile.environment();
             // cmakeEnv.remove("CXX");
             if (targetConfig.compiler.equals("g++")) {
                 // Interpret this as the user wanting their .c programs to be treated as
                 // C++ files. We can't just simply use g++ to compile C code. We use a 
                 // specific CMake flag to set the language of all .c files to C++.
             } else {
-                cmakeEnv.remove("CC");
-                cmakeEnv.put("CC", targetConfig.compiler);
+                compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
             }
             // cmakeEnv.put("CXX", targetConfig.compiler);
         }
         
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        int cMakeReturnCode = generator.executeCommand(compile, stderr);
+        int cMakeReturnCode = compile.run();
         
         if (cMakeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
@@ -111,11 +95,9 @@ class CCmakeCompiler extends CCompiler {
         int makeReturnCode = 0;
 
         if (cMakeReturnCode == 0) {            
-            ProcessBuilder build = buildCmakeCommand(file, doNotLinkIfNoMain, errorReporter);
+            LFCommand build = buildCmakeCommand(file, noBinary);
             
-            build.directory(buildPath.toFile());
-            
-            makeReturnCode = generator.executeCommand(build, stderr);
+            makeReturnCode = build.run();
             
             if (makeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
                 errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
@@ -126,7 +108,7 @@ class CCmakeCompiler extends CCompiler {
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
         if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            generator.reportCommandErrors(stderr.toString());
+            errorReporter.reportError(stderr.toString());
         }
         
         return ((cMakeReturnCode == 0) && (makeReturnCode == 0));
@@ -138,23 +120,13 @@ class CCmakeCompiler extends CCompiler {
      * This produces a C-specific compile command.
      * 
      * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * @param errorReporter Used to report errors to the user.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      */
-    public ProcessBuilder compileCmakeCommand(
+    public LFCommand compileCmakeCommand(
             String fileToCompile, 
-            boolean doNotLinkIfNoMain, 
-            ErrorReporter errorReporter
+            boolean noBinary
     ) {
-        ExecutionEnvironment env = generator.findCommandEnv(
-                targetConfig.compiler,
-                "The C target requires CMAKE >= 3.5 to compile the generated code if 'cmake' is requested\n" +
-                        " in the target property. Auto-compiling can be disabled using \n"+ 
-                        "the \"no-compile: true\" target property.",
-                true
-        );
         
 
         if (!targetConfig.compileLibraries.isEmpty()) {
@@ -163,7 +135,10 @@ class CCmakeCompiler extends CCompiler {
                                         "with the appropriate library discovery syntax.");
         }
         
-        return generator.createCommand(
+        // Set the build directory to be "build"
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        
+        LFCommand command = commandFactory.createCommand(
                 "cmake", List.of(
                         "-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
                         "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
@@ -173,8 +148,13 @@ class CCmakeCompiler extends CCompiler {
                                 ),
                         FileConfig.toUnixString(fileConfig.getSrcGenPath())
                     ),
-                fileConfig.getOutPath(),
-                env);
+                buildPath);
+        if (command == null) {
+            errorReporter.reportError(
+                    "The C target requires CMAKE >= 3.5 to compile the generated code. " +
+                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+        }
+        return command;
     }
     
     
@@ -186,31 +166,28 @@ class CCmakeCompiler extends CCompiler {
      *  Therefore, this is separated into a compile and a build command. 
      * 
      * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * @param errorReporter Used to report errors to the user.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      */
-    public ProcessBuilder buildCmakeCommand(
+    public LFCommand buildCmakeCommand(
             String fileToCompile, 
-            boolean doNotLinkIfNoMain, 
-            ErrorReporter errorReporter
-    ) {
-        ExecutionEnvironment env = generator.findCommandEnv(
-                targetConfig.compiler,
-                "The C target requires CMAKE >= 3.5 to compile the generated code if 'cmake' is requested\n" +
-                        " in the target property. Auto-compiling can be disabled using \n"+ 
-                        "the \"no-compile: true\" target property.",
-                true
-        );
+            boolean noBinary
+    ) { 
+        // Set the build directory to be "build"
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
-        return generator.createCommand(
+        LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
                         "--build", ".", "--target", "install", "--parallel", cores, "--config",
                         ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release")
                     ),
-                fileConfig.getOutPath(), 
-                env);
+                buildPath);
+        if (command == null) {
+            errorReporter.reportError(
+                    "The C target requires CMAKE >= 3.5 to compile the generated code. " +
+                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+        }
+        return command;
     }
     
 }

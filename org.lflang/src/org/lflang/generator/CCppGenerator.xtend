@@ -387,15 +387,6 @@ class CCppGenerator extends CGenerator {
             pr("#include \"core/federate.c\"")
         }
     }
-    
-    /** Append the appropriate filename for the given target language
-     * @param fileName The file name used internally by Lingua Franca
-     * which doesn't include the target-specific extension.
-     */
-    override getTargetFileName(String fileName)
-    {
-    	return fileName + ".cc";
-    }
 
     /** Generate C code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -408,7 +399,7 @@ class CCppGenerator extends CGenerator {
             IGeneratorContext context) {
                 // Always use the threaded version
                 targetConfig.threads = 1;
-
+                targetConfig.compiler = "g++";
             	super.doGenerate(resource, fsa, context);
             }
             
