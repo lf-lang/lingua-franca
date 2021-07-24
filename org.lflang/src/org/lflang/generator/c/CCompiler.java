@@ -125,7 +125,7 @@ public class CCompiler {
         String relBinPathString = FileConfig.toUnixString(relativeBinPath);
         
         // If there is no main reactor, then generate a .o file not an executable.
-        if (!noBinary) {
+        if (noBinary) {
             relBinPathString += ".o";
         }
         
