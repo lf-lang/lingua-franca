@@ -1,7 +1,6 @@
 /**
- * This federated program fails to code generate with a cycle detected.
- * The cycle involves the top-level control and communication reactions.
- * If you replace "federated" with "main", the cycle disappears.
+ * Check whether the internally generated network and control reactions
+ * introduce a cycle or not. The failure for this test is not being compiled.
  * @author Edward A. Lee
  */
 target C;
@@ -36,7 +35,15 @@ reactor UserInput {
         SET(deposit, 100);
     =}
     reaction(balance) {=
-        printf("Balance: %d\n", balance->value);
+        if (balance->value != 200) {
+            error_print_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
+        }
+        info_print("Balance: %d", balance->value);
+        request_stop();
+    =}
+    
+    reaction(shutdown) {=
+        info_print("Test passed!");
     =}
 }
 
