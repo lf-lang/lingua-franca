@@ -57,6 +57,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SERIALIZATION
 
 /** Generator for TypeScript target.
  *
