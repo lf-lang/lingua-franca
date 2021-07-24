@@ -98,7 +98,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
             }
         }
         
-        // If the parent is in a bank and the reactor name is "bank_index", then
+        // If the parent is in a bank and the parameter name is "bank_index", then
         // override the default value provided to make it equal to the bank index.
         if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
             val value = LfFactory.eINSTANCE.createValue
