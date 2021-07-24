@@ -67,6 +67,11 @@ class CCmakeCompiler extends CCompiler {
      * @return true if compilation succeeds, false otherwise. 
      */
     public boolean runCCompiler(String file, boolean noBinary) {
+        // Set the build directory to be "build"
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        // Make sure the build directory exists
+        FileConfig.createDirectories(buildPath);
+        
         LFCommand compile = compileCmakeCommand(file, noBinary);
         if (compile == null) {
             return false;
