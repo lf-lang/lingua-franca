@@ -90,7 +90,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Create a new instantiation hierarchy that starts with the given reactor.
      * @param reactor The top-level reactor.
      * @param reporter The error reporter.
-     * @param unorderedReactions A list reactions that should be treated as unordered.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
      */
     new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
         this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions)
@@ -1032,7 +1032,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param parent The parent, or null for the main rector.
      * @param generator The generator (for error reporting).
      * @param desiredDepth The depth to which to expand the hierarchy.
-     * @param unorderedReactions A list reactions that should be treated as unordered.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
      */
     private new(
         Instantiation definition, 
@@ -1065,7 +1065,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  reactor in a bank of reactors otherwise.
      * @param depth The depth of this reactor in the hierarchy.
      * @param desiredDepth The depth to which to expand the hierarchy.
-     * @param unorderedReactions A list reactions that should be treated as unordered.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
      *  It can be passed as null.
      */
     private new(
