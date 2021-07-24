@@ -60,13 +60,12 @@ public class FedCLauncher extends FedLauncher {
     @Override
     protected
     String compileCommandForFederate(FederateInstance federate) {
-        CCompiler cCompiler = new CCompiler(targetConfig, fileConfig, federate.getGenerator());
+        CCompiler cCompiler = new CCompiler(targetConfig, fileConfig, errorReporter);
         return String.join(" ", 
                 cCompiler.compileCCommand(
                     fileConfig.name+"_"+federate.name, 
-                    false, 
-                    errorReporter
-                ).command());
+                    false
+                ).toString());
     }
     
     /**

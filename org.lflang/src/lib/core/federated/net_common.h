@@ -28,7 +28,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 /**
  * @section DESCRIPTION
- * Header file for common message types and definitions for distributed Lingua Franca programs.
+ * Header file for common message types and definitions for federated Lingua Franca programs.
  *
  * This file defines the message types for the federate to communicate with the RTI.
  * Each message type has a unique one-byte ID.

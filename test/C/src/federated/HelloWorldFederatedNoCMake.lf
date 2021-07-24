@@ -1,8 +1,12 @@
+/**
+ * This test is a variant of HelloWorld.lf that checks the compatibility
+ * of the federated C runtime with no CMake. This test should not pass if it does not compile.
+ */
 target C {
-    tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.
-    logging: error,
-    docker: true,
-    cmake: true
+    tracing: true,
+    coordination: centralized,
+    timeout: 1 sec,
+    cmake: false
 };
 reactor HelloWorld2 {
     state success:bool(false);
@@ -19,6 +23,7 @@ reactor HelloWorld2 {
     =}
 }
 
-main reactor HelloWorldCMake {
+federated reactor {
     a = new HelloWorld2();
+    b = new HelloWorld2(); // Create a non-singleton federation
 }

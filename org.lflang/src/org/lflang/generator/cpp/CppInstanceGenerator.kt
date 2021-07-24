@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.*
+import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -33,7 +34,6 @@ import org.lflang.lf.Reactor
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
-    private val errorReporter: ErrorReporter,
 ) {
 
     val Instantiation.cppType: String
@@ -44,70 +44,77 @@ class CppInstanceGenerator(
                 reactor.name
         }
 
-    private fun generateDeclaration(inst: Instantiation): String {
-        return if (inst.isBank)
-            "std::array<std::unique_ptr<${inst.cppType}>, ${inst.getValidWidth()}> ${inst.name};"
+    private fun generateDeclaration(inst: Instantiation): String = with(inst) {
+        return if (isBank)
+            "std::vector<std::unique_ptr<$cppType>> $name;"
         else
-            "std::unique_ptr<${inst.cppType}> ${inst.name};"
+            "std::unique_ptr<$cppType> $name;"
     }
 
-    private fun Instantiation.getParameterValue(param: Parameter, instanceId: Int? = null): String {
+    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
         val assignment = this.parameters.firstOrNull { it.lhs === param }
 
-        return if (instanceId != null && param.name == "instance") {
+        return if (isBankInstantiation && param.name == "bank_index") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
-            // to the parameter named "instance"
-            instanceId.toString()
+            // to the parameter named "bank_index"
+            """__lf_idx"""
         } else if (assignment == null) {
             // If no assignment was found, then the parameter is not overwritten and we assign the
             // default value
             with(CppParameterGenerator) { param.defaultValue }
         } else {
             // Otherwise, we use the assigned value.
-            val initializers = assignment.rhs.map { if (param.isOfTimeType) it.toTime() else it.toCode() }
-            with(CppParameterGenerator) { param.generateInstance(initializers) }
+            if (assignment.equals == "=") {
+                if (!assignment.braces.isNullOrEmpty()) {
+                    "{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
+                } else if (!assignment.parens.isNullOrEmpty()) {
+                    "(${assignment.rhs.joinToString(", ") { it.toCode() }})"
+                } else {
+                    assert(assignment.rhs.size == 1)
+                    assignment.rhs[0].toCode()
+                }
+            } else {
+                if (!assignment.braces.isNullOrEmpty()) {
+                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
+                } else {
+                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCode() }})"
+                }
+            }
         }
     }
 
     private fun generateInitializer(inst: Instantiation): String {
+        assert(!inst.isBank)
         val parameters = inst.reactor.parameters
-        return if (inst.isBank) {
-            val initializations = if (parameters.isEmpty()) {
-                (0 until inst.getValidWidth()).joinToString(", ") {
-                    """std::make_unique<${inst.cppType}>("${inst.name}_$it", this)"""
-                }
-            } else {
-                (0 until inst.getValidWidth()).joinToString(", ") {
-                    val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, it) }
-                    """std::make_unique<${inst.cppType}>("${inst.name}", this, $params)"""
-                }
-            }
-            """, ${inst.name}{{$initializations}}"""
-        } else {
-            if (parameters.isEmpty())
-                """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this))"""
-            else {
-                val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
-                """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, $params))"""
-            }
+        return if (parameters.isEmpty())
+            """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this))"""
+        else {
+            val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
+            """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, $params))"""
         }
     }
 
-    /**
-     * Calculate the width of a multiport.
-     *
-     * This reports an error on the receiving port if the width is not given as a literal integer.
-     */
-    fun Instantiation.getValidWidth(): Int {
-        val width = widthSpec.getWidth()
-        if (width < 0) {
-            // TODO Support parameterized widths
-            errorReporter.reportError(
-                this,
-                "The C++ target only supports bank widths specified as literal integer values for now"
-            )
+    private fun generateConstructorInitializer(inst: Instantiation): String {
+        with(inst) {
+            assert(isBank)
+            val parameters = inst.reactor.parameters
+            val emplaceLine = if (parameters.isEmpty()) {
+                """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this));"""
+            } else {
+                val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, true) }
+                """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, $params));"""
+            }
+
+            val width = inst.widthSpec.toCode()
+            return """
+                // initialize instance $name
+                ${name}.reserve($width);
+                for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
+                  std::string __lf_inst_name = "${name}_" + std::to_string(__lf_idx);
+                  $emplaceLine
+                }
+            """.trimIndent()
         }
-        return width
     }
 
     /** Generate C++ include statements for each reactor that is instantiated */
@@ -124,7 +131,11 @@ class CppInstanceGenerator(
         ) { generateDeclaration(it) }
     }
 
+    fun generateConstructorInitializers() =
+        reactor.instantiations.filter { it.isBank }.joinToString("\n") { generateConstructorInitializer(it) }
+
     /** Generate constructor initializers for all reactor instantiations */
     fun generateInitializers(): String =
-        reactor.instantiations.joinToString(prefix = "//reactor instances\n", separator = "\n") { generateInitializer(it) }
+        reactor.instantiations.filterNot { it.isBank }
+            .joinToString(prefix = "//reactor instances\n", separator = "\n") { generateInitializer(it) }
 }

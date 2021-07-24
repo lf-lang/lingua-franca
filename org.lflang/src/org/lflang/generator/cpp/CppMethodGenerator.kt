@@ -24,39 +24,42 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.isInitialized
-import org.lflang.isOfTimeType
+import org.lflang.InferredType
+import org.lflang.generator.PrependOperator
+import org.lflang.lf.Method
+import org.lflang.lf.MethodArgument
 import org.lflang.lf.Reactor
-import org.lflang.lf.StateVar
+import org.lflang.toText
 
 /** A C++ code generator for state variables */
-class CppStateGenerator(private val reactor: Reactor) {
+class CppMethodGenerator(private val reactor: Reactor) {
 
-    /**
-     * Create a list of state initializers in target code.
-     *
-     * TODO This is redundant to GeneratorBase.getInitializerList
-     */
-    private fun getInitializerList(state: StateVar) = state.init.map {
-        when {
-            it.parameter != null -> it.parameter.name
-            state.isOfTimeType   -> it.toTime()
-            else                 -> it.toCode()
+    private val Method.targetType: String get() = if (`return` != null) InferredType.fromAST(`return`).targetType else "void"
+    private val MethodArgument.targetType: String get() = InferredType.fromAST(type).targetType
+
+    private val Method.cppArgs get() = this.arguments.map { "${it.targetType} ${it.name}" }
+    private val Method.constQualifier get() = if (isConst) " const" else ""
+
+    private fun generateDefinition(method: Method): String = with(PrependOperator) {
+        with(method) {
+            """
+                |${reactor.templateLine}
+                |$targetType ${reactor.templateName}::Inner::$name(${cppArgs.joinToString(", ")})$constQualifier {
+            ${" |  "..code.toText()}
+                |}
+            """.trimMargin()
         }
     }
 
-    private fun generateInitializer(state: StateVar): String =
-        if (state.parens.isNullOrEmpty())
-            "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
-        else
-            "${state.name}(${getInitializerList(state).joinToString(separator = ", ")})"
+    private fun generateDeclaration(method: Method): String = with(method) {
+        "$targetType $name(${cppArgs.joinToString(", ")})$constQualifier;"
+    }
 
+    /** Get all method definitions */
+    fun generateDefinitions() =
+        reactor.methods.joinToString("\n", "// methods\n", "\n") { generateDefinition(it) }
 
-    /** Get all state declarations */
+    /** Get all method declarations */
     fun generateDeclarations() =
-        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.targetType} ${it.name};" }
-
-    /** Get all timer initializers */
-    fun generateInitializers(): String = reactor.stateVars.filter { it.isInitialized }
-        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${generateInitializer(it)}" }
+        reactor.methods.joinToString("\n", "// methods\n", "\n") { generateDeclaration(it) }
 }

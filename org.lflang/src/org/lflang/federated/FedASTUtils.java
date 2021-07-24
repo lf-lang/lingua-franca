@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -101,8 +102,8 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        VarRef newPortRef = factory.createVarRef();        
-        Type portType = ASTUtils.getCopy(destination.getDefinition().getType());
+        VarRef newPortRef = factory.createVarRef();
+        Type portType = EcoreUtil.copy(destination.getDefinition().getType());
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
@@ -406,7 +407,7 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         // Assume all the types are the same, so just use the first on the right.
-        Type type = ASTUtils.getCopy(source.getDefinition().getType());
+        Type type = EcoreUtil.copy(source.getDefinition().getType());
         Action action = factory.createAction();
         VarRef triggerRef = factory.createVarRef();
         VarRef sourceRef = factory.createVarRef();

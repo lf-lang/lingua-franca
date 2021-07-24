@@ -34,8 +34,8 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Mode;
 import org.lflang.TargetConfig;
-import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.GeneratorBase.ExecutionEnvironment;
+import org.lflang.generator.GeneratorCommandFactory;
+import org.lflang.util.LFCommand;
 
 /**
  * Responsible for creating and executing the necessary native command to compile code that is generated
@@ -51,37 +51,42 @@ public class CCompiler {
 
     FileConfig fileConfig;
     TargetConfig targetConfig;
-    GeneratorBase generator;
+    ErrorReporter errorReporter;
+    
+    /**
+     * A factory for compiler commands.
+     */
+    GeneratorCommandFactory commandFactory;
     
     /**
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
-     * @param generator The generator that is using this compiler.
+     * @param errorReporter Used to report errors.
      */
-    public CCompiler(TargetConfig targetConfig, FileConfig fileConfig, GeneratorBase generator) {
+    public CCompiler(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
-        this.generator = generator;
+        this.errorReporter = errorReporter;
+        this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
 
     /** 
      * Run the C compiler by directly invoking a C compiler (gcc by default).
      * 
      * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean doNotLinkIfNoMain, ErrorReporter errorReporter) {
-        ProcessBuilder compile = compileCCommand(file, doNotLinkIfNoMain, errorReporter);
+    public boolean runCCompiler(String file, boolean noBinary) {
+        LFCommand compile = compileCCommand(file, noBinary);
         if (compile == null) {
             return false;
         }
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        int returnCode = generator.executeCommand(compile, stderr);
+        int returnCode = compile.run();
 
         if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
@@ -89,7 +94,7 @@ public class CCompiler {
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
         if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            generator.reportCommandErrors(stderr.toString());
+            errorReporter.reportError(stderr.toString());
         }
         return (returnCode == 0);
     }
@@ -100,24 +105,15 @@ public class CCompiler {
      * This produces a C specific compile command.
      * 
      * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * @param errorReporter Used to report errors to the user.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      */
-    public ProcessBuilder compileCCommand(
+    public LFCommand compileCCommand(
             String fileToCompile, 
-            boolean doNotLinkIfNoMain, 
-            ErrorReporter errorReporter
+            boolean noBinary
     ) {
-        ExecutionEnvironment env = generator.findCommandEnv(
-            targetConfig.compiler, 
-            "The C target requires GCC >= 7 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
-        );
         
-        String cFilename = generator.getTargetFileName(fileToCompile);
+        String cFilename = getTargetFileName(fileToCompile);
 
         Path relativeSrcPath = fileConfig.getOutPath().relativize(
             fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
@@ -129,7 +125,7 @@ public class CCompiler {
         String relBinPathString = FileConfig.toUnixString(relativeBinPath);
         
         // If there is no main reactor, then generate a .o file not an executable.
-        if (generator.getMainDef() == null) {
+        if (noBinary) {
             relBinPathString += ".o";
         }
         
@@ -167,13 +163,27 @@ public class CCompiler {
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
         // Then again, I think this only makes sense when we can do linking.
         // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && generator.main == null) {
+        if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit
             if (fileConfig.getCompilerMode() == Mode.STANDALONE) {
                 errorReporter.reportError("ERROR: Did not output executable; no main reactor found.");
             }
         }
-        return generator.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath(), env);
+        
+        LFCommand command = commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
+        if (command == null) {
+            errorReporter.reportError(
+                "The C target requires GCC >= 7 to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+        }
+        return command;
+    
+    }
+    
+    
+    /** Produces the filename including the target-specific extension */
+    String getTargetFileName(String fileName) {
+        return fileName + ".c"; // FIXME: Does not belong in the base class.
     }
 
 }
