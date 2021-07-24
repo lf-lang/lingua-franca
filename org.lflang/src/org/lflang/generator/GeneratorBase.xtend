@@ -734,12 +734,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
     }
-    
-    
-    /** Produces the filename including the target-specific extension */
-    def getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
-    }
 
     // //////////////////////////////////////////
     // // Protected methods.

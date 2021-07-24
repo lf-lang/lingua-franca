@@ -1,8 +1,11 @@
+/**
+ * Test that the compile infrastructure still works if CMake is disabled.
+ */
 target C {
     tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.
     logging: error,
     docker: true,
-    cmake: true
+    cmake: false
 };
 reactor HelloWorld2 {
     state success:bool(false);
@@ -19,6 +22,6 @@ reactor HelloWorld2 {
     =}
 }
 
-main reactor HelloWorldCMake {
+main reactor HelloWorldNoCMake {
     a = new HelloWorld2();
 }

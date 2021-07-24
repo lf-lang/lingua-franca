@@ -137,10 +137,8 @@ class CCmakeGenerator {
             cMakeCode.append("\n");
         }
         
-        boolean CPPRequested = false;
         if (targetConfig.compiler != null) {
             if (targetConfig.compiler.equals("g++")) {
-                CPPRequested = true;
                 // Interpret this as the user wanting their .c programs to be treated as
                 // C++ files. 
                 // First enable the CXX language
@@ -180,15 +178,17 @@ class CCmakeGenerator {
                     cMakeCode.append("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )\n");
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})\n");
                     break;
+                case "-O2":
+                    if (targetConfig.compiler.equals("gcc")) {
+                        cMakeCode.append("add_compile_options( -O2 )\n");
+                        cMakeCode.append("add_link_options( -O2 )\n");
+                        break;
+                    }
                 default:
                     errorReporter.reportWarning("Using the flags target property with cmake is dangerous.\n"+
                                                 " Use cmake-include instead.");
-                    cMakeCode.append("set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} "+compilerFlag+"\")\n");
-                    cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} "+compilerFlag+")\n");
-                    if (CPPRequested) {
-                        // Pass the requested flags to the compiler
-                        cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} "+compilerFlag+"\")\n");
-                    }
+                    cMakeCode.append("add_compile_options( "+compilerFlag+" )\n");
+                    cMakeCode.append("add_link_options( "+compilerFlag+")\n");
             }
         }
         cMakeCode.append("\n");

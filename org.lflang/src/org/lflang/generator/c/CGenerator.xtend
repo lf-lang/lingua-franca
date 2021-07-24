@@ -480,6 +480,9 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
+            
+            // Create the compiler to be used later
+            var cCompiler = new CCompiler(targetConfig, fileConfig, errorReporter);
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
@@ -494,7 +497,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = getTargetFileName(topLevelName);
+            val cFilename = cCompiler.getTargetFileName(topLevelName);
 
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
@@ -772,12 +775,14 @@ class CGenerator extends GeneratorBase {
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
-                var cCompiler = new CCompiler(targetConfig, fileConfig, this);
                 if (targetConfig.useCmake) {
                     // Use CMake if requested.
-                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, this);
+                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, errorReporter);
                 }
-                if (!cCompiler.runCCompiler(topLevelName, true, errorReporter)) {
+                // FIXME: Currently, a lack of main is treated as a request to not produce
+                // a binary and produce a .o file instead. There should be a way to control
+                // this. 
+                if (!cCompiler.runCCompiler(topLevelName, main === null)) {
                     compilationSucceeded = false
                 }
                 writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
