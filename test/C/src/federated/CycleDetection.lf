@@ -33,7 +33,7 @@ reactor UserInput {
     output deposit:int;
         
     reaction(startup) -> deposit {=
-        SET(deposit, r->value);
+        SET(deposit, 100);
     =}
     reaction(balance) {=
         printf("Balance: %d\n", balance->value);
