@@ -84,7 +84,7 @@ class TsParameterGenerator(
     /**
      * Assign results of parsing custom command line arguments
      */
-    private fun assignCustomCLArgs(mainParameters: HashSet<Parameter>) {
+    private fun assignCustomCLArgs(mainParameters: HashSet<Parameter>): String {
         var code = StringJoiner("\n")
         for (parameter in mainParameters) {
             code.add("""
@@ -99,14 +99,14 @@ class TsParameterGenerator(
                 |}
                 """)
         }
-        code.toString()
+        return code.toString()
     }
 
     /**
      * Generate code for extracting custom command line arguments
      * from the object returned from commandLineArgs
      */
-    private fun logCustomCLArgs(mainParameters: HashSet<Parameter>) {
+    private fun logCustomCLArgs(mainParameters: HashSet<Parameter>): String {
         var code = StringJoiner("\n")
         for (parameter in mainParameters) {
             // We can't allow the programmer's parameter names
@@ -120,7 +120,7 @@ class TsParameterGenerator(
                 |}
                 """)
         }
-        code.toString()
+        return code.toString()
     }
 
     fun generatePrameters(): String {
@@ -282,9 +282,9 @@ class TsParameterGenerator(
             |
             |// Custom command line arguments
             |${logCustomCLArgs(mainParameters)}
-            |
             |// Assign custom command line arguments
             |${assignCustomCLArgs(mainParameters)}
+            |
         """.trimMargin()
         }
     }
