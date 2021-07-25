@@ -11,6 +11,10 @@ import java.util.*
 import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
+/** Reactor generator for TypeScript target.
+ *
+ *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ */
 class TsReactorGenerator(
     private val tsGenerator: TsGenerator,
     private val errorReporter: ErrorReporter
@@ -22,71 +26,44 @@ class TsReactorGenerator(
      */
     var indentation = LinkedHashMap<StringBuilder, String>()
 
-    private fun indent(builder: StringBuilder) {
-        tsGenerator.indentw(builder)
-    }
-    private fun unindent(builder: StringBuilder) {
-        tsGenerator.unindentw(builder)
-    }
-    private fun indent() {
-        indent(code)
-    }
-    private fun unindent() {
-        unindent(code)
-    }
+    // Wrapper functions and their helpers
+    private fun indent(builder: StringBuilder) = tsGenerator.indentw(builder)
+    private fun unindent(builder: StringBuilder) = tsGenerator.unindentw(builder)
+    private fun indent() = indent(code)
+    private fun unindent() = unindent(code)
 
-    private fun pr(builder: StringBuilder, text: Any) {
-        tsGenerator.prw(builder, text)
-    }
-    private fun pr(text: Any) {
-        tsGenerator.prw(code, text)
-    }
+    private fun pr(builder: StringBuilder, text: Any) = tsGenerator.prw(builder, text)
+    private fun pr(text: Any) = tsGenerator.prw(code, text)
+
+    private fun getTargetValue(v: Value): String = tsGenerator.getTargetValueW(v)
+    private fun getTargetType(p: Parameter): String = tsGenerator.getTargetTypeW(p)
+    private fun getTargetType(state: StateVar): String = tsGenerator.getTargetTypeW(state)
+    private fun getTargetType(a: Action): String = tsGenerator.getTargetTypeW(a)
+    private fun getTargetType(p: Port): String = tsGenerator.getTargetTypeW(p)
+    private fun getTargetType(t: Type): String = tsGenerator.getTargetTypeW(t)
+    private fun generateVarRef(reference: VarRef): String = tsGenerator.generateVarRef(reference)
+
+    private fun getInitializerList(state: StateVar): List<String> =
+        tsGenerator.getInitializerListW(state)
+    private fun getInitializerList(param: Parameter): List<String> =
+        tsGenerator.getInitializerListW(param)
+    private fun getInitializerList(param: Parameter, i: Instantiation): List<String> =
+        tsGenerator.getInitializerListW(param, i)
 
     private fun federationRTIProperties(): LinkedHashMap<String, Any> {
         return tsGenerator.federationRTIPropertiesW()
     }
-    fun getTargetValue(v: Value): String {
-        return tsGenerator.getTargetValueW(v)
-    }
 
-    fun getTargetType(p: Parameter): String {
-        return tsGenerator.getTargetTypeW(p)
-    }
-    fun getTargetType(state: StateVar): String {
-        return tsGenerator.getTargetTypeW(state)
-    }
-    fun getTargetType(a: Action): String {
-        return tsGenerator.getTargetTypeW(a)
-    }
-    fun getTargetType(p: Port): String {
-        return tsGenerator.getTargetTypeW(p)
-    }
-    fun getTargetType(t: Type): String {
-        return tsGenerator.getTargetTypeW(t)
-    }
-    fun generateVarRef(reference: VarRef): String {
-        return tsGenerator.generateVarRef(reference)
-    }
-
-    private fun getInitializerList(state: StateVar): List<String> {
-        return tsGenerator.getInitializerListW(state)
-    }
-    private fun getInitializerList(param: Parameter): List<String> {
-        return tsGenerator.getInitializerListW(param)
-    }
-    private fun getInitializerList(param: Parameter, i: Instantiation): List<String> {
-        return tsGenerator.getInitializerListW(param, i)
-    }
+    // Initializer functions
     private fun getTargetInitializer(state: StateVar): String {
         return getInitializerList(state).joinToString(",")
     }
-
     private fun getTargetInitializerHelper(param: Parameter,
                                            list: List<String>): String {
         return if (list.size == 0) {
             errorReporter.reportError(param, "Parameters must have a default value!")
         } else if (list.size == 1) {
-            list.get(0)
+            list[0]
         } else {
             list.joinToString(",")
         }
@@ -217,7 +194,6 @@ class TsReactorGenerator(
         // Next handle child reactors instantiations.
         // If the app isn't federated, instantiate all
         // the child reactors. If the app is federated
-
         var childReactors: List<Instantiation>
         if (!reactor.isFederated()) {
             childReactors = reactor.instantiations
@@ -233,7 +209,6 @@ class TsReactorGenerator(
             var childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
 
-            // TODO(hokeun): Uncomment this part and fix errors.
             // Iterate through parameters in the order they appear in the
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter

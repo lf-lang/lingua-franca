@@ -75,49 +75,25 @@ class TsGenerator(
         targetConfig.compilerFlags.add("-O2")
     }
 
-    /**
-     * Wrappers for pr(), indent(), and unindent() functions.
-     */
-    fun prw(builder: StringBuilder, text: Any) {
-        pr(builder, text)
-    }
-    fun indentw(builder: StringBuilder) {
-        indent(builder)
-    }
-    fun unindentw(builder: StringBuilder) {
-        unindent(builder)
-    }
+    // Wrappers to expose GeneratorBase methods.
+    fun prw(builder: StringBuilder, text: Any) = pr(builder, text)
+    fun indentw(builder: StringBuilder) = indent(builder)
+    fun unindentw(builder: StringBuilder) = unindent(builder)
+
     fun federationRTIPropertiesW() = federationRTIProperties
-    fun getTargetValueW(v: Value): String {
-        return getTargetValue(v)
-    }
-    fun getTargetTypeW(p: Parameter): String {
-        return getTargetType(p.inferredType)
-    }
-    fun getTargetTypeW(state: StateVar): String {
-        return getTargetType(state)
-    }
-    fun getTargetTypeW(a: Action): String {
-        return getTargetType(a)
-    }
-    fun getTargetTypeW(p: Port): String {
-        return getTargetType(p)
-    }
-    fun getTargetTypeW(t: Type): String {
-        return getTargetType(t)
-    }
-    fun getInitializerListW(state: StateVar): List<String> {
-        return getInitializerList(state)
-    }
-    fun getInitializerListW(param: Parameter): List<String> {
-        return getInitializerList(param)
-    }
-    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> {
-        return getInitializerList(param, i)
-    }
-    fun generateVarRefW(reference: VarRef): String {
-        return generateVarRef(reference)
-    }
+
+    fun getTargetValueW(v: Value): String = getTargetValue(v)
+    fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
+    fun getTargetTypeW(state: StateVar): String = getTargetType(state)
+    fun getTargetTypeW(a: Action): String = getTargetType(a)
+    fun getTargetTypeW(p: Port): String = getTargetType(p)
+    fun getTargetTypeW(t: Type): String = getTargetType(t)
+
+    fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state)
+    fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param)
+    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
+        getInitializerList(param, i)
+    fun generateVarRefW(reference: VarRef): String =generateVarRef(reference)
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -268,5 +244,4 @@ class TsGenerator(
     override fun getTarget(): Target {
         return Target.TS
     }
-
 }
