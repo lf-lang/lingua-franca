@@ -71,6 +71,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             // If there are cycles present in the graph, it will be detected here.
             val leftoverReactions = assignLevels()
             if (leftoverReactions !== null) {
+                // The validator should have caught cycles, but if there is a bug in some
+                // AST transform such that it introduces cycles, then it is possible to have them
+                // only detected here. An end user should never see this.
                 main.reporter.reportError("Reactions form a cycle!");
                 System.err.println(leftoverReactions.toString());
                 throw new Exception("Reactions form a cycle!")
@@ -127,7 +130,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * the levels of the reactions it depends on.
      * If any cycles are present in the dependency graph, then a graph
      * containing the nodes in the cycle is returned. Otherwise, null is
-     * returned. This method should be called only on the top-level (main) reactor.
+     * returned.
      * @return true if the assignment was successful, false if it was not, 
      * meaning the graph has at least one cycle in it.
      */
