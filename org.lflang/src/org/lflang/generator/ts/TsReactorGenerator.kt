@@ -4,7 +4,6 @@ import org.lflang.*
 import org.lflang.ASTUtils.toText
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.lang.StringBuilder
@@ -72,8 +71,11 @@ class TsReactorGenerator(
     private fun getInitializerList(state: StateVar): List<String> {
         return tsGenerator.getInitializerListW(state)
     }
-    fun getInitializerList(param: Parameter): List<String> {
+    private fun getInitializerList(param: Parameter): List<String> {
         return tsGenerator.getInitializerListW(param)
+    }
+    private fun getInitializerList(param: Parameter, i: Instantiation): List<String> {
+        return tsGenerator.getInitializerListW(param, i)
     }
     private fun getTargetInitializer(state: StateVar): String {
         return getInitializerList(state).joinToString(",")
@@ -92,8 +94,11 @@ class TsReactorGenerator(
     private fun getTargetInitializer(param: Parameter): String {
         return getTargetInitializerHelper(param, getInitializerList(param))
     }
+    private fun getTargetInitializer(param: Parameter, i: Instantiation): String {
+        return getTargetInitializerHelper(param, getInitializerList(param, i))
+    }
     private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.targetType} = ${getTargetInitializer(p)}"""
+        return """${p.name}: ${getTargetType(p)} = ${getTargetInitializer(p)}"""
     }
 
     /**
@@ -227,16 +232,16 @@ class TsReactorGenerator(
 
             var childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
-/*
+
             // TODO(hokeun): Uncomment this part and fix errors.
             // Iterate through parameters in the order they appear in the
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
-            for (parameter in childReactor.reactorClass.toDefinition.parameters) {
-                childReactorArguments.add(parameter.getTargetInitializer(childReactor))
+            for (parameter in childReactor.reactorClass.toDefinition().parameters) {
+                childReactorArguments.add(getTargetInitializer(parameter, childReactor))
             }
-*/
+
             pr(reactorConstructor, "this." + childReactor.getName()
                     + " = new " + childReactor.reactorClass.name +
                     "(" + childReactorArguments + ")" )
@@ -539,7 +544,7 @@ class TsReactorGenerator(
 
                 // Underscores are added to parameter names to prevent conflict with prologue
                 reactSignature.add("__" + param.name + ": __Parameter<"
-                        + param.targetType + ">")
+                        + getTargetType(param) + ">")
                 reactFunctArgs.add("this." + param.name)
 
                 pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
@@ -708,11 +713,16 @@ class TsReactorGenerator(
         )
     }
 
-    fun generateReactor(reactor: Reactor, federate: FederateInstance,
-                        mainDef: Instantiation, mainParameters: HashSet<Parameter>): String {
+    fun generateReactor(reactor: Reactor, federate: FederateInstance) {
         generateReactorFederated(reactor, federate)
+    }
+
+    fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: HashSet<Parameter>) {
         generateReactorInstance(mainDef, mainParameters)
         generateRuntimeStart(mainDef)
+    }
+
+    fun getCode(): String {
         return code.toString()
     }
 }
