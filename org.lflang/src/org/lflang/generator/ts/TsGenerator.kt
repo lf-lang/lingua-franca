@@ -34,6 +34,7 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
+import java.util.LinkedList
 
 /** Generator for TypeScript target.
  *
