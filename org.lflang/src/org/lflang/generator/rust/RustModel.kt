@@ -75,6 +75,7 @@ data class ReactorInfo(
     val reactions: List<ReactionInfo>,
     /** List of state variables. */
     val stateVars: List<StateVarInfo>,
+    val timers: List<TimerData>,
     /** Other reactor components, like actions & timers. */
     val otherComponents: List<ReactorComponent>,
     /** List of ctor parameters. */
@@ -101,7 +102,6 @@ data class ReactorInfo(
     /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
 
-    val timers: List<TimerData> get()  = otherComponents.filterIsInstance<TimerData>()
 }
 
 class ReactorNames(
@@ -399,7 +399,8 @@ object RustModelBuilder {
             ReactorInfo(
                 lfName = reactor.name,
                 reactions = reactions,
-                otherComponents = components.values.toList(),
+                timers = components.values.filterIsInstance<TimerData>(),
+                otherComponents = components.values.toList().filterNot { it is TimerData },
                 isMain = reactor.isMain,
                 preambles = reactor.preambles.map { it.code.toText() },
                 stateVars = reactor.stateVars.map {
