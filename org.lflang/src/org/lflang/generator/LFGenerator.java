@@ -13,6 +13,7 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.generator.c.CGenerator;
 import org.lflang.lf.TargetDecl;
 import org.lflang.scoping.LFGlobalScopeProvider;
 

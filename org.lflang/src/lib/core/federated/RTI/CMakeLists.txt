@@ -53,7 +53,7 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 # Set the number of workers to enable threading
 target_compile_definitions(RTI PUBLIC NUMBER_OF_WORKERS)
 
-# Find pthreads and link to it
+# Find threads and link to it
 find_package(Threads REQUIRED)
 target_link_libraries(RTI Threads::Threads)
 
