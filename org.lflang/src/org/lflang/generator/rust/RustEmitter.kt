@@ -155,7 +155,7 @@ ${"             |           "..localDependencyDeclarations(reactor)}
                 |        {
 ${"             |            "..declareChildConnections()}
                 |        }
-${"             |        "..nestedInstances.joinToString("\n") { "assembler.consume_child_reactor(${it.lfName});" }}
+${"             |        "..nestedInstances.joinToString("\n") { "assembler.register_reactor(${it.lfName});" }}
                 |
                 |       _self
                 |    }
