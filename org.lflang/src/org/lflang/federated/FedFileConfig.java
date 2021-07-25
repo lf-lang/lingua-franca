@@ -44,7 +44,7 @@ public class FedFileConfig extends FileConfig {
     protected String federateName;
     
     /**
-     * Copy constructor for fedFileConfig.
+     * Copy constructor for FedFileConfig.
      * 
      * @param fedFileConfig The existing instance of 'FedFileConfig'.
      * @throws IOException
