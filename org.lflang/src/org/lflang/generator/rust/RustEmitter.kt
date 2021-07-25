@@ -160,8 +160,6 @@ ${"             |            "..reactionWrappers(reactor)}
 ${"             |    "..nestedInstances.joinWithCommasLn { it.toStructField() }}
                 |    // self reactions
 ${"             |    "..reactor.reactions.joinWithCommasLn { it.invokerFieldDeclaration() }}
-                |    // timers
-${"             |    "..reactor.timers.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |impl ReactorAssembler for $assemblerName {
@@ -172,7 +170,10 @@ ${"             |    "..reactor.timers.joinWithCommasLn { it.toStructField() }}
                 |    }
                 |
                 |    fn enqueue_startup(&mut self, startup_ctx: &mut StartupCtx) {
-${"             |        "..reactor.timers.joinToString("\n") { "startup_ctx.start_timer(&self.${it.lfName});" }}
+                |        if ${reactor.timers.isNotEmpty()} {
+                |           let dispatcher = self._rstate.lock().unwrap();
+${"             |        "..reactor.timers.joinToString("\n") { "startup_ctx.start_timer(&dispatcher.${it.lfName});" }}
+                |        }
                 |        startup_ctx.enqueue(vec![
 ${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString(",\n") { "self.${it.invokerId}.clone()" }}
                 |        ]);
@@ -204,7 +205,6 @@ ${"             |            "..declareChildConnections()}
                 |            _rstate,
 ${"             |            "..nestedInstances.joinWithCommasLn { it.lfName }}
 ${"             |            "..reactions.joinWithCommasLn { it.invokerId }}
-${"             |            "..timers.joinWithCommasLn { it.lfName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |}
@@ -265,7 +265,7 @@ ${"             |            "..timers.joinWithCommasLn { it.lfName + ": " + it.
             reactor.influencedReactionsOf(component).map {
                 it.invokerId + ".clone()"
             }.let { base ->
-                if (component is TimerData) base + "reschedule_self_timer!(this_reactor, _rstate, 1000)"
+                if (component is TimerData) base + "reschedule_self_timer!(this_reactor, ${component.lfName}, _rstate, 1000)"
                 else base
             }
 
@@ -273,7 +273,7 @@ ${"             |            "..timers.joinWithCommasLn { it.lfName + ": " + it.
             list.joinToString(", ", "vec![", "]")
 
         return reactor.otherComponents.joinToString("\n") {
-            "statemut.${it.lfName}.set_downstream(${vecLiteral(allDownstreamDeps(it))}.into());"
+            "statemut." + it.lfName + ".set_downstream(" + vecLiteral(allDownstreamDeps(it)) + ".into());"
         }
     }
 
@@ -418,7 +418,7 @@ private object ReactorComponentEmitter {
             val delay = minDelay.toRustOption()
             toType() + "::new(${lfName.withDQuotes()}, $delay)"
         }
-        is TimerData  -> toType() + "::new(${lfName.withDQuotes()}, $offset, $period)"
+        is TimerData  -> toType() + "::new(${lfName.withDQuotes()}, /*offset:*/$offset, /*period:*/$period)"
         // todo missing name for Ports
         else          -> "Default::default()"
     }
