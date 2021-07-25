@@ -24,6 +24,8 @@
 
 package org.lflang.tests.runtime;
 
+import java.util.Properties;
+
 import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +45,13 @@ public class RustTest extends TestBase {
     public void runAsFederated() {
         this.printTestHeader(TestBase.RUN_AS_FEDERATED_DESC);
         InputOutput.println("N/A");
+    }
+
+
+    @Override
+    protected void addExtraLfcArgs(Properties args) {
+        args.setProperty("external-runtime-path",
+                         "../org.lflang/src/lib/Rust/reactor-rust");
     }
 
 
