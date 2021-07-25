@@ -1,11 +1,14 @@
 package org.lflang.generator.ts
 
+import org.lflang.ASTUtils.toText
 import org.lflang.ErrorReporter
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.inferredType
 import org.lflang.isInitialized
 import org.lflang.lf.*
+import org.lflang.lf.Timer
+import org.lflang.toText
 import java.lang.StringBuilder
 import java.util.*
 import kotlin.collections.LinkedHashMap
@@ -63,6 +66,9 @@ class TsReactorGenerator(
     fun getTargetType(t: Type): String {
         return tsGenerator.getTargetTypeW(t)
     }
+    fun generateVarRef(reference: VarRef): String {
+        return tsGenerator.generateVarRef(reference)
+    }
 
     private fun getInitializerList(state: StateVar): List<String> {
         return tsGenerator.getInitializerListW(state)
@@ -118,6 +124,14 @@ class TsReactorGenerator(
             return getTargetType(port.type)
         } else {
             return "Present"
+        }
+    }
+
+    private fun generateArg(v: VarRef): String {
+        return if (v.container !== null) {
+            """__${v.container.name}_${v.variable.name}"""
+        } else {
+            """__${v.variable.name}"""
         }
     }
 
@@ -208,6 +222,7 @@ class TsReactorGenerator(
             var childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
 /*
+            // TODO(hokeun): Uncomment this part and fix errors.
             // Iterate through parameters in the order they appear in the
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter
@@ -362,9 +377,267 @@ class TsReactorGenerator(
             generatedReactions = reactor.reactions
         }
 
-        ////////////////////////////////// Reaction ///////////////////////////
+        ///////////////////// Reaction generation begins /////////////////////
+        // TODO(hokeun): Consider separating this out as a new class.
+        for (reaction in generatedReactions) {
 
-        ////////////////////////////////// Reaction ///////////////////////////
+            // Determine signature of the react function
+            var reactSignature = StringJoiner(", ")
+            reactSignature.add("this")
+
+            // The prologue to the react function writes state
+            // and parameters to local variables of the same name
+            var reactPrologue = StringBuilder()
+            pr(reactPrologue, "const util = this.util;")
+
+            // The epilogue to the react function writes local
+            // state variables back to the state
+            var reactEpilogue = StringBuilder()
+
+            // Assemble react function arguments from sources and effects
+            // Arguments are either elements of this reactor, or an object
+            // representing a contained reactor with properties corresponding
+            // to listed sources and effects.
+
+            // If a source or effect is an element of this reactor, add it
+            // directly to the reactFunctArgs string. If it isn't, write it
+            // into the containerToArgs map, and add it to the string later.
+            var reactFunctArgs = StringJoiner(", ")
+            // Combine triggers and sources into a set
+            // so we can iterate over their union
+            var triggersUnionSources = HashSet<VarRef>()
+            for (trigger in reaction.triggers) {
+                if (!(trigger.isStartup || trigger.isShutdown)) {
+                    triggersUnionSources.add(trigger as VarRef)
+                }
+            }
+            for (source in reaction.sources) {
+                triggersUnionSources.add(source)
+            }
+
+            // Create a set of effect names so actions that appear
+            // as both triggers/sources and effects can be
+            // identified and added to the reaction arguments once.
+            // We can't create a set of VarRefs because
+            // an effect and a trigger/source with the same name are
+            // unequal.
+            // The key of the pair is the effect's container's name,
+            // The effect of the pair is the effect's name
+            var effectSet = HashSet<Pair<String, String>>()
+
+            for (effect in reaction.effects) {
+                var key = ""; // The container, defaults to an empty string
+                var value = effect.variable.name; // The name of the effect
+                if (effect.container !== null) {
+                    key = effect.container.name
+                }
+                effectSet.add(Pair(key, value))
+            }
+
+            // Add triggers and sources to the react function
+            var containerToArgs = HashMap<Instantiation, HashSet<Variable>>();
+            for (trigOrSource in triggersUnionSources) {
+                // Actions that are both read and scheduled should only
+                // appear once as a schedulable effect
+
+                var trigOrSourceKey = "" // The default for no container
+                var trigOrSourceValue = trigOrSource.variable.name
+                if (trigOrSource.container !== null) {
+                    trigOrSourceKey = trigOrSource.container.name
+                }
+                var trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
+
+                if (!effectSet.contains(trigOrSourcePair)) {
+                    var reactSignatureElementType = "";
+
+                    if (trigOrSource.variable is Timer) {
+                        reactSignatureElementType = "__Tag"
+                    } else if (trigOrSource.variable is Action) {
+                        reactSignatureElementType = getActionType(trigOrSource.variable as Action)
+                    } else if (trigOrSource.variable is Port) {
+                        reactSignatureElementType = getPortType(trigOrSource.variable as Port)
+                    }
+
+                    reactSignature.add("""${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>""")
+                    reactFunctArgs.add("this." + generateVarRef(trigOrSource))
+                    if (trigOrSource.container === null) {
+                        pr(reactPrologue, """let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();""")
+                    } else {
+                        var args = containerToArgs.get(trigOrSource.container)
+                        if (args === null) {
+                            // Create the HashSet for the container
+                            // and handle it later.
+                            args = HashSet<Variable>();
+                            containerToArgs.put(trigOrSource.container, args)
+                        }
+                        args.add(trigOrSource.variable)
+                    }
+                }
+            }
+            var schedActionSet = HashSet<Action>();
+            for (effect in reaction.effects) {
+                var functArg = ""
+                var reactSignatureElement = "" + generateArg(effect)
+                if (effect.variable is Timer) {
+                    errorReporter.reportError("A timer cannot be an effect of a reaction")
+                } else if (effect.variable is Action){
+                    reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
+                    schedActionSet.add(effect.variable as Action)
+                } else if (effect.variable is Port){
+                    reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                    if (effect.container === null) {
+                        pr(reactEpilogue, "if (" + effect.variable.name + " !== undefined) {")
+                        indent(reactEpilogue)
+                        pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
+                        unindent(reactEpilogue)
+                        pr(reactEpilogue, "}")
+                    }
+                }
+
+                reactSignature.add(reactSignatureElement)
+
+                functArg = "this." + generateVarRef(effect)
+                if (effect.variable is Action){
+                    reactFunctArgs.add("this.schedulable(" + functArg + ")")
+                } else if (effect.variable is Port) {
+                    reactFunctArgs.add("this.writable(" + functArg + ")")
+                }
+
+                if (effect.container === null) {
+                    pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
+                } else {
+                    // Hierarchical references are handled later because there
+                    // could be references to other members of the same reactor.
+                    var args = containerToArgs.get(effect.container)
+                    if (args === null) {
+                        args = HashSet<Variable>();
+                        containerToArgs.put(effect.container, args)
+                    }
+                    args.add(effect.variable)
+                }
+            }
+
+            // Iterate through the actions to handle the prologue's
+            // "actions" object
+            var prologueActionObjectBody = StringJoiner(", ")
+            for (act in schedActionSet) {
+                prologueActionObjectBody.add(act.name + ": __" + act.name)
+            }
+            if (schedActionSet.size > 0) {
+                pr(reactPrologue, "let actions = {"
+                        + prologueActionObjectBody + "};")
+            }
+
+            // Add parameters to the react function
+            for (param in reactor.parameters) {
+
+                // Underscores are added to parameter names to prevent conflict with prologue
+                reactSignature.add("__" + param.name + ": __Parameter<"
+                        + param.targetType + ">")
+                reactFunctArgs.add("this." + param.name)
+
+                pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
+            }
+
+            // Add state to the react function
+            for (state in reactor.stateVars) {
+                // Underscores are added to state names to prevent conflict with prologue
+                reactSignature.add("__" + state.name + ": __State<"
+                        + getTargetType(state) + ">")
+                reactFunctArgs.add("this." + state.name )
+
+                pr(reactPrologue, "let " + state.name + " = __" + state.name + ".get();")
+                pr(reactEpilogue, "if (" + state.name + " !== undefined) {")
+                indent(reactEpilogue)
+                pr(reactEpilogue,  "__" + state.name + ".set(" + state.name + ");")
+                unindent(reactEpilogue)
+                pr(reactEpilogue, "}")
+            }
+
+            // Initialize objects to enable hierarchical references.
+            for (entry in containerToArgs.entries) {
+                val initializer = StringJoiner(", ")
+                for (variable in entry.value) {
+                    initializer.add("""${variable.name}: __${entry.key.name}_${variable.name}.get()""")
+                    if (variable is Input) {
+                        pr(reactEpilogue,
+                            """if (${entry.key.name}.${variable.name} !== undefined) {
+                                    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
+                    }""")
+                    }
+                }
+                pr(reactPrologue, """let ${entry.key.name} = {${initializer}}""")
+            }
+
+            // Assemble reaction triggers
+            var reactionTriggers = StringJoiner(",\n")
+            for (trigger in reaction.triggers) {
+                if (trigger is VarRef) {
+                    reactionTriggers.add("this." + generateVarRef(trigger))
+
+                } else if (trigger.isStartup) {
+                    reactionTriggers.add("this.startup")
+                } else if (trigger.isShutdown) {
+                    reactionTriggers.add("this.shutdown")
+                }
+            }
+
+            // Write the reaction itself
+            pr(reactorConstructor, "this.addReaction(")//new class<T> extends Reaction<T> {")
+            indent(reactorConstructor)
+            pr(reactorConstructor, "new __Triggers(" + reactionTriggers + "),")
+            pr(reactorConstructor, "new __Args(" + reactFunctArgs + "),")
+            pr(reactorConstructor, "function (" + reactSignature + ") {")
+            indent(reactorConstructor)
+            pr(reactorConstructor, "// =============== START react prologue")
+            pr(reactorConstructor, reactPrologue)
+            pr(reactorConstructor, "// =============== END react prologue")
+            pr(reactorConstructor, "try {")
+            indent(reactorConstructor)
+            pr(reactorConstructor, reaction.code.toText())
+            unindent(reactorConstructor)
+            pr(reactorConstructor, "} finally {")
+            indent(reactorConstructor)
+            pr(reactorConstructor, "// =============== START react epilogue")
+            pr(reactorConstructor, reactEpilogue)
+            pr(reactorConstructor, "// =============== END react epilogue")
+            unindent(reactorConstructor)
+            pr(reactorConstructor, "}")
+            unindent(reactorConstructor)
+            if (reaction.deadline === null) {
+                pr(reactorConstructor, "}")
+            } else {
+                pr(reactorConstructor, "},")
+                var deadlineArgs = ""
+                if (reaction.deadline.delay.parameter !== null) {
+                    deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
+                } else {
+                    deadlineArgs += getTargetValue(reaction.deadline.delay)
+                }
+                pr(reactorConstructor, deadlineArgs + "," )
+                pr(reactorConstructor, "function(" + reactSignature + ") {")
+                indent(reactorConstructor)
+                pr(reactorConstructor, "// =============== START deadline prologue")
+                pr(reactorConstructor, reactPrologue)
+                pr(reactorConstructor, "// =============== END deadline prologue")
+                pr(reactorConstructor, "try {")
+                indent(reactorConstructor)
+                pr(reactorConstructor, toText(reaction.deadline.code))
+                unindent(reactorConstructor)
+                pr(reactorConstructor, "} finally {")
+                indent(reactorConstructor)
+                pr(reactorConstructor, "// =============== START deadline epilogue")
+                pr(reactorConstructor, reactEpilogue)
+                pr(reactorConstructor, "// =============== END deadline epilogue")
+                unindent(reactorConstructor)
+                pr(reactorConstructor, "}")
+                unindent(reactorConstructor)
+                pr(reactorConstructor, "}")
+            }
+            unindent(reactorConstructor)
+            pr(reactorConstructor, ");")
+        }
+        ///////////////////// Reaction generation ends /////////////////////
 
         unindent(reactorConstructor)
         pr(reactorConstructor, "}")

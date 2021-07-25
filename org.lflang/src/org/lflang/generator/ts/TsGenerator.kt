@@ -118,6 +118,9 @@ class TsGenerator(
     fun getInitializerListW(param: Parameter): List<String> {
         return getInitializerList(param)
     }
+    fun generateVarRefW(reference: VarRef): String {
+        return generateVarRef(reference)
+    }
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
