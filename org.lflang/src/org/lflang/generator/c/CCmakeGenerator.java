@@ -144,7 +144,7 @@ class CCmakeGenerator {
         }
         
         if (targetConfig.compiler != null) {
-            if (targetConfig.compiler.equals("g++")) {
+            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
                 // Interpret this as the user wanting their .c programs to be treated as
                 // C++ files. 
                 // First enable the CXX language
