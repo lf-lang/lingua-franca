@@ -217,7 +217,7 @@ public abstract class TestBase {
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
-            System.out.println((Object) TestRegistry.getCoverageReport(target, category));
+            System.out.println(TestRegistry.getCoverageReport(target, category));
             if (check) {
                 checkAndReportFailures(tests);
             }
