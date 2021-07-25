@@ -190,7 +190,6 @@ ${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfNa
                 |    ) -> Self {
                 |        let mut _rstate = Arc::new(Mutex::new(Self::RState::assemble(args)));
                 |        let this_reactor = ctx.get_id();
-                |        let mut reaction_id = 0;
                 |
 ${"             |        "..reactor.reactions.joinToString("\n") { it.reactionInvokerInitializer() }}
                 |
@@ -442,7 +441,7 @@ private object ReactorComponentEmitter {
         "$lfName: ${names.modulePath}::${names.assemblerName}" // Arc<Mutex<${names.modulePath}::${names.dispatcherName}>>
 
     fun ReactionInfo.reactionInvokerInitializer() =
-        "let $invokerId = new_reaction!(this_reactor, reaction_id, _rstate, $rustId);"
+        "let $invokerId = new_reaction!(this_reactor, _rstate, $rustId);"
 
     fun ReactionInfo.invokerFieldDeclaration() =
         "$invokerId: Arc<$rsRuntime::ReactionInvoker>"
