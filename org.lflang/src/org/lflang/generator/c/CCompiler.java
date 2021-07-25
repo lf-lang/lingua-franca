@@ -59,7 +59,7 @@ public class CCompiler {
     GeneratorCommandFactory commandFactory;
     
     /**
-     * Creates an instance of CCompiler.
+     * Create an instance of CCompiler.
      * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
