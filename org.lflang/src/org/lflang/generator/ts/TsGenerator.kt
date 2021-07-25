@@ -31,10 +31,10 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
-import org.lflang.lf.Action
-import org.lflang.lf.VarRef
-import org.lflang.lf.Parameter
+import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
+import java.lang.StringBuilder
+import java.util.*
 
 /** Generator for TypeScript target.
  *
@@ -80,6 +80,44 @@ class TsGenerator(
      * Set of parameters (AST elements) associated with the main reactor.
      */
     var mainParameters = hashSetOf<Parameter>()
+
+    /**
+     * Wrappers for pr(), indent(), and unindent() functions.
+     */
+    fun prw(builder: StringBuilder, text: Any) {
+        pr(builder, text)
+    }
+    fun indentw(builder: StringBuilder) {
+        indent(builder)
+    }
+    fun unindentw(builder: StringBuilder) {
+        unindent(builder)
+    }
+    fun federationRTIPropertiesW() = federationRTIProperties
+    fun getTargetValueW(v: Value): String {
+        return getTargetValue(v)
+    }
+    fun getTargetTypeW(p: Parameter): String {
+        return getTargetType(p.inferredType)
+    }
+    fun getTargetTypeW(state: StateVar): String {
+        return getTargetType(state)
+    }
+    fun getTargetTypeW(a: Action): String {
+        return getTargetType(a)
+    }
+    fun getTargetTypeW(p: Port): String {
+        return getTargetType(p)
+    }
+    fun getTargetTypeW(t: Type): String {
+        return getTargetType(t)
+    }
+    fun getInitializerListW(state: StateVar): List<String> {
+        return getInitializerList(state)
+    }
+    fun getInitializerListW(param: Parameter): List<String> {
+        return getInitializerList(param)
+    }
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -137,55 +175,95 @@ class TsGenerator(
             }
 
             val tsFilePath = tsFileConfig.tsSrcGenPath().resolve(tsFileName + ".ts")
+
+            val tsCode = StringBuilder()
+
             val preambleGenerator = TsPreambleGenerator(fileConfig.srcFile.toPath())
+            tsCode.append(preambleGenerator.generatePreamble())
+
             val parameterGenerator = TsParameterGenerator(fileConfig, targetConfig, reactors)
+            tsCode.append(parameterGenerator.generatePrameters())
+
+            val reactorGenerator = TsReactorGenerator(this, errorReporter)
+            for (reactor in reactors) {
+                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
+            }
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
-                preambleGenerator.generatePreamble() + parameterGenerator.generatePrameters())
+                tsCode.toString())
         }
     }
 
-    override fun generateDelayBody(action: Action?, port: VarRef?): String {
-        TODO("Not yet implemented")
+    /**
+     * Return a TS type for the specified action.
+     * If the type has not been specified, return
+     * "Present" which is the base type for Actions.
+     * @param action The action
+     * @return The TS type.
+     */
+    private fun getActionType(action: Action): String {
+        if (action.type !== null) {
+            return getTargetType(action.type)
+        } else {
+            return "Present"
+        }
     }
 
-    override fun generateForwardBody(action: Action?, port: VarRef?): String {
-        TODO("Not yet implemented")
+    /** Given a representation of time that may possibly include units,
+     *  return a string that TypeScript can recognize as a value.
+     *  @param value Literal that represents a time value.
+     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
+     */
+    override fun timeInTargetLanguage(value: TimeValue): String {
+        return if (value.unit != TimeUnit.NONE) {
+            """TimeValue.${value.unit}(${value.time})"""
+        } else {
+            // The value must be zero.
+            "TimeValue.zero()"
+        }
+    }
+
+    override fun generateDelayBody(action: Action, port: VarRef): String {
+        return """actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"""
+    }
+
+    override fun generateForwardBody(action: Action, port: VarRef): String {
+        return """${generateVarRef(port)} = ${action.name} as ${getActionType(action)};"""
     }
 
     override fun generateDelayGeneric(): String {
-        TODO("Not yet implemented")
+        return """T extends Present"""
     }
 
     override fun supportsGenerics(): Boolean {
-        TODO("Not yet implemented")
+        return true
     }
 
     override fun getTargetTimeType(): String {
-        TODO("Not yet implemented")
+        return "TimeValue"
     }
 
     override fun getTargetTagType(): String {
-        TODO("Not yet implemented")
+        return "TimeValue"
     }
 
     override fun getTargetTagIntervalType(): String {
-        TODO("Not yet implemented")
+        return this.targetUndefinedType
     }
 
     override fun getTargetUndefinedType(): String {
-        TODO("Not yet implemented")
+        return "Present"
     }
 
-    override fun getTargetFixedSizeListType(baseType: String?, size: Int?): String {
-        TODO("Not yet implemented")
+    override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
+        return """Array(${size})<${baseType}>"""
     }
 
-    override fun getTargetVariableSizeListType(baseType: String?): String {
-        TODO("Not yet implemented")
+    override fun getTargetVariableSizeListType(baseType: String): String {
+        return """Array<${baseType}>"""
     }
 
     override fun getTarget(): Target {
-        TODO("Not yet implemented")
+        return Target.TS
     }
 
 }
