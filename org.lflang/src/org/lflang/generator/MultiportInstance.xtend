@@ -67,10 +67,10 @@ class MultiportInstance extends PortInstance {
                     // This could throw NumberFormatException
                     width += parameterValue
                 } else {
-                    reporter.reportError(definition,
-                        "Width of a multiport must be given as an integer. It is: "
-                        + parameterValue
+                    reporter.reportWarning(definition,
+                        "Width of a multiport cannot be determined. Assuming 1."
                     )
+                    width += 1
                 }
             } else {
                 width += term.width
