@@ -123,7 +123,10 @@ class TsParameterGenerator(
         return code.toString()
     }
 
-    fun generatePrameters(): String {
+    fun generatePrameters(): Pair<HashSet<Parameter>, String> {
+        /**
+         * Set of parameters (AST elements) associated with the main reactor.
+         */
         var mainParameters =  HashSet<Parameter>()
 
         // Build the argument spec for commandLineArgs and commandLineUsage
@@ -181,7 +184,7 @@ class TsParameterGenerator(
         var customArgsList = "[\n" + customArgs + "]"
         var clTypeExtensionDef = "{" + clTypeExtension + "}"
 
-        return with(PrependOperator) {"""
+        val codeText = with(PrependOperator) {"""
             |// ************* App Parameters
             |let __timeout: TimeValue | undefined = ${getTimeoutTimeValue()};
             |let __keepAlive: boolean = ${targetConfig.keepalive};
@@ -287,5 +290,7 @@ class TsParameterGenerator(
             |
         """.trimMargin()
         }
+
+        return Pair(mainParameters, codeText)
     }
 }
