@@ -56,8 +56,8 @@ public class LFGenerator extends AbstractGenerator {
                 return createCppFileConfig(resource, fsa, context);
             }
             case TS: {
-                return new TypeScriptFileConfig(resource, fsa, context);
-//                return createTsFileConfig(resource, fsa, context);
+//                return new TypeScriptFileConfig(resource, fsa, context);
+                return createTsFileConfig(resource, fsa, context);
             }
             default: {
                 return new FileConfig(resource, fsa, context);
@@ -152,9 +152,9 @@ public class LFGenerator extends AbstractGenerator {
                 return createCppGenerator(fileConfig, errorReporter);
             }
             case TS: {
-                return new TypeScriptGenerator(
-                        (TypeScriptFileConfig) fileConfig, errorReporter);
-//                return createTsGenerator(fileConfig, errorReporter);
+//                return new TypeScriptGenerator(
+//                        (TypeScriptFileConfig) fileConfig, errorReporter);
+                return createTsGenerator(fileConfig, errorReporter);
             }
             case Python: {
                 return new PythonGenerator(fileConfig, errorReporter);
