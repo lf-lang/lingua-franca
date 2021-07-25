@@ -158,30 +158,25 @@ ${"             |            "..reactionWrappers(reactor)}
                 |    // nested reactors
 ${"             |    "..nestedInstances.joinToString("\n") { it.toStructField() + "," }}
                 |    // self reactions
-${"             |    "..reactor.reactions.joinToString(",\n") { it.invokerFieldDeclaration() }}
+${"             |    "..reactor.reactions.joinToString("\n") { it.invokerFieldDeclaration() + "," }}
+                |    // timers
+${"             |    "..reactor.timers.joinToString("\n") { it.toStructField() + "," }}
                 |}
                 |
                 |impl ReactorAssembler for $assemblerName {
                 |    type RState = $dispatcherName;
+                |    
+                |    fn enqueue_shutdown(&mut self, ctx: &mut StartupCtx) {
+                |        // todo
+                |    }
                 |
-                |    #[inline]
-                |    fn start(&mut self, startup_ctx: &mut StartupCtx) {
-                |        if ${reactor.hasSelfStartupLogic()} {
-                |            // Startup this reactor
-                |            let dispatcher = &mut self._rstate.lock().unwrap();
-                |            let ctx = &mut startup_ctx.logical_ctx();
-                |
-                |            // Startup timers
-${"             |            "..reactor.timers.joinToString("\n" ) {
-                        "startup_ctx.start_timer(&dispatcher.${it.lfName});"
-}}
-                |            // Execute reactions triggered by startup in order. FIXME use enqueue
-${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString("\n") { 
-                        "dispatcher.react(ctx, $reactionIdName::${it.rustId});" 
-}}
-                |        }
+                |    fn enqueue_startup(&mut self, startup_ctx: &mut StartupCtx) {
+${"             |        "..reactor.timers.joinToString("\n") { "startup_ctx.start_timer(&self.${it.lfName});" }}
+                |        startup_ctx.enqueue(vec![
+${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString(",\n") { "self.${it.invokerId}.clone()" }}
+                |        ]);
                 |        // Startup children reactors
-${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfName}.start(startup_ctx);" }}
+${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfName}.enqueue_startup(startup_ctx);" }}
                 |    }
                 |
                 |    fn assemble(
@@ -217,9 +212,6 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
             }
         }
     }
-
-    private fun ReactorInfo.hasSelfStartupLogic() =
-        reactions.any { it.isStartup } || otherComponents.any { it is TimerData }
 
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
