@@ -170,6 +170,139 @@ class TsGenerator(
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
         }
+
+        // Run necessary commands.
+
+        val pnpmInstall = commandFactory.createCommand(
+            "pnpm",
+            listOf("install"),
+        fileConfig.getSrcGenPkgPath(),
+        false // only produce a warning if command is not found
+        )
+
+        // Attempt to use pnpm, but fall back on npm if it is not available.
+        if (pnpmInstall !== null) {
+            val ret = pnpmInstall.run()
+            if (ret !== 0) {
+                errorReporter.reportError(findTarget(resource),
+                    "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
+            }
+        } else {
+            errorReporter.reportWarning(
+                "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
+                        "it is highly recommended to install pnpm globally (npm install -g pnpm).")
+            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.getSrcGenPkgPath())
+
+            if (npmInstall === null) {
+                errorReporter.reportError(
+                    "The TypeScript target requires npm >= 6.14.4. " +
+                            "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
+                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+                return
+            }
+
+            if (npmInstall.run() !== 0) {
+                errorReporter.reportError(findTarget(resource),
+                    "ERROR: npm install command failed: " + npmInstall.errors.toString())
+                errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
+                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+                return
+            }
+        }
+
+        refreshProject()
+
+        // Invoke the protocol buffers compiler on all .proto files in the project directory
+        // Assumes protoc compiler has been installed on this machine
+
+        // First test if the project directory contains any .proto files
+        if (targetConfig.protoFiles.size != 0) {
+            // For more info, see: https://www.npmjs.com/package/ts-protoc-gen
+
+            // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
+            val protocArgs = LinkedList<String>()
+            val tsOutPath = fileConfig.srcPath.relativize(fileConfig.getSrcGenPath())
+
+            protocArgs.addAll(
+                listOf(
+                "--plugin=protoc-gen-ts=" + fileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                "--js_out=import_style=commonjs,binary:"+tsOutPath,
+                "--ts_out=" + tsOutPath)
+            )
+            protocArgs.addAll(targetConfig.protoFiles)
+            val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
+
+            if (protoc === null) {
+                errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
+                return
+            }
+
+            val returnCode = protoc.run()
+            if (returnCode == 0) {
+                  // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
+//                val nameSansProto = fileConfig.name.substring(0, fileConfig.name.length - 6)
+//
+//                targetConfig.compileAdditionalSources.add(
+//                this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
+//
+//                targetConfig.compileLibraries.add('-l')
+//                targetConfig.compileLibraries.add('protobuf-c')
+            } else {
+                errorReporter.reportError("protoc returns error code " + returnCode)
+            }
+            // FIXME: report errors from this command.
+        } else {
+            println("No .proto files have been imported. Skipping protocol buffer compilation.")
+        }
+
+        val errorMessage = "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+
+        // Invoke the compiler on the generated code.
+        println("Type Checking")
+        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.getSrcGenPkgPath())
+        if (tsc === null) {
+            errorReporter.reportError(errorMessage);
+            return
+        }
+
+        if (tsc.run() == 0) {
+            // Babel will compile TypeScript to JS even if there are type errors
+            // so only run compilation if tsc found no problems.
+            //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
+            println("Compiling")
+            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.getSrcGenPkgPath())
+
+            if (babel === null) {
+                errorReporter.reportError(errorMessage);
+                return
+            }
+
+            if (babel.run() == 0) {
+                println("SUCCESS (compiling generated TypeScript code)")
+            } else {
+                errorReporter.reportError("Compiler failed.")
+            }
+        } else {
+            errorReporter.reportError("Type checking failed.")
+        }
+
+        // TODO(hokeun): Modify this to make this work with standalone RTI.
+        // If this is a federated execution, generate C code for the RTI.
+//        if (isFederated) {
+//
+//            // Copy the required library files into the target file system.
+//            // This will overwrite previous versions.
+//            var files = ArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
+//
+//            for (file : files) {
+//                copyFileFromClassPath(
+//                    File.separator + "lib" + File.separator + "core" + File.separator + file,
+//                    fileConfig.getSrcGenPath.toString + File.separator + file
+//                )
+//            }
+//        }
     }
 
     /**
