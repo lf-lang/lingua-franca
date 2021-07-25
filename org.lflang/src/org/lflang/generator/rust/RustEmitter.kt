@@ -33,6 +33,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.reflect.jvm.internal.impl.load.kotlin.JvmType
 
 
 /**
@@ -77,7 +78,7 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
                 |
                 |// todo link to source
                 |pub struct $structName {
-${"             |    "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + it.type }}
+${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}
                 |
                 |#[warn(unused)]
@@ -90,7 +91,7 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(rea
                 |/// Parameters for the construction of a [$structName]
                 |#[derive(Clone)]
                 |pub struct ${names.paramStructName} {
-${"             |    "..ctorParams.joinToString(",\n") { "pub ${it.lfName}: ${it.type}" }}
+${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName}: ${it.type}" }}
                 |}
                 |
                 |
@@ -103,12 +104,12 @@ ${"             |    "..ctorParams.joinToString(",\n") { "pub ${it.lfName}: ${it
                 |    // ctor parameters
                 |    _params: $paramStructName,
                 |    // other components
-${"             |    "..otherComponents.joinToString("\n") { it.toStructField() + "," }}
+${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |
                 |reaction_ids!(
-                |  ${reactions.joinToString(", ", "pub enum $reactionIdName {", "}") { it.rustId + " = " + it.idx }}
+                |  ${reactions.joinWithCommas("pub enum $reactionIdName {", "}") { it.rustId + " = " + it.idx }}
                 |);
                 |
                 |impl $rsRuntime::ReactorDispatcher for $dispatcherName {
@@ -122,9 +123,9 @@ ${"             |    "..otherComponents.joinToString("\n") { it.toStructField() 
                 |        Self {
                 |            _params: params,
                 |            _impl: $structName {
-${"             |                "..reactor.stateVars.joinToString(",\n") { it.lfName + ": " + (it.init ?: "Default::default()") }}
+${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
-${"             |            "..otherComponents.joinToString(",\n") { it.lfName + ": " + it.initialExpression() }}
+${"             |            "..otherComponents.joinWithCommasLn { it.lfName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |
@@ -156,11 +157,11 @@ ${"             |            "..reactionWrappers(reactor)}
                 |pub struct $assemblerName {
                 |    pub(in super) _rstate: Arc<Mutex<$dispatcherName>>,
                 |    // nested reactors
-${"             |    "..nestedInstances.joinToString("\n") { it.toStructField() + "," }}
+${"             |    "..nestedInstances.joinWithCommasLn { it.toStructField() }}
                 |    // self reactions
-${"             |    "..reactor.reactions.joinToString("\n") { it.invokerFieldDeclaration() + "," }}
+${"             |    "..reactor.reactions.joinWithCommasLn { it.invokerFieldDeclaration() }}
                 |    // timers
-${"             |    "..reactor.timers.joinToString("\n") { it.toStructField() + "," }}
+${"             |    "..reactor.timers.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |impl ReactorAssembler for $assemblerName {
@@ -201,8 +202,9 @@ ${"             |            "..declareChildConnections()}
                 |        }
                 |        Self {
                 |            _rstate,
-${"             |            "..nestedInstances.joinToString("\n") { it.lfName + "," }}
-${"             |            "..reactions.joinToString("\n") { it.invokerId + "," }}
+${"             |            "..nestedInstances.joinWithCommasLn { it.lfName }}
+${"             |            "..reactions.joinWithCommasLn { it.invokerId }}
+${"             |            "..timers.joinWithCommasLn { it.lfName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |}
@@ -215,7 +217,7 @@ ${"             |            "..reactions.joinToString("\n") { it.invokerId + ",
 
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
-            args.entries.joinToString(", ", "super::${names.paramStructName} { ", " }") {
+            args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
                 it.key + ": " + it.value
             }
 
@@ -481,3 +483,26 @@ private fun generatedByComment(delim: String) =
 private fun TargetCode?.toRustOption(): TargetCode =
     if (this == null) "None"
     else "Some($this)"
+
+private fun <T> Iterable<T>.joinWithCommas(
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    skipLines: Boolean = false,
+    trailing: Boolean = true,
+    transform: (T) -> CharSequence = { it.toString() }
+): String {
+    val delim =
+        (if (skipLines) "\n" else "")
+            .let { if (trailing) it else ",$it" }
+
+    return joinToString(delim, prefix, postfix) { t ->
+        transform(t).let { if (trailing) "$it," else it }
+    }
+}
+
+private fun <T> Iterable<T>.joinWithCommasLn(
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    trailing: Boolean = true,
+    transform: (T) -> CharSequence = { it.toString() }
+): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
