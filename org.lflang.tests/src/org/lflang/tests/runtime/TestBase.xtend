@@ -273,6 +273,8 @@ abstract class TestBase {
         if (!this.build) {
             context.getArgs().setProperty("no-compile", "")
         }
+
+        addExtraLfcArgs(context.getArgs())
         
         // Validate the resource and store issues in the test object.
         try {
@@ -304,6 +306,12 @@ abstract class TestBase {
         restoreOutputs()
         return true
     }
+
+    /** Override to add some LFC arguments to all runs of this test class. */
+    protected def void addExtraLfcArgs(Properties args) {
+        // to be overridden
+    }
+
 
     /**
      * Invoke the code generator for the given test.
