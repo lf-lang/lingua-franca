@@ -291,6 +291,8 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
             |use self::reactors::${mainReactor.paramStructName} as _MainParams;
             |
             |fn main() {
+            |    env_logger::init();
+            |
             |    // todo CLI parsing
             |    let options = SchedulerOptions {
             |       timeout: ${gen.properties.timeout.toRustOption()},
@@ -341,6 +343,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |$runtimeCrateFullName = { ${gen.runtime.runtimeCrateSpec()} }
             |# Other dependencies
             |int-enum = "0.4"
+            |env_logger = "0.9"
             |
             |[[bin]]
             |name = "${gen.executableName}"
