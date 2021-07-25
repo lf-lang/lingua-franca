@@ -147,8 +147,8 @@ ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLoc
                 |        {
                 |            let mut statemut = _self.lock().unwrap();
                 |            
-                |            statemut._startup_reactions = ${reactions.filter { it.isStartup }.toClonedVec()};
-                |            statemut._shutdown_reactions = ${reactions.filter { it.isShutdown }.toClonedVec()};
+                |            statemut._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
+                |            statemut._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
                 |        }
@@ -250,7 +250,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
     private fun localDependencyDeclarations(reactor: ReactorInfo): String {
         fun allDownstreamDeps(component: ReactorComponent) =
             reactor.influencedReactionsOf(component).map {
-                it.invokerId + ".clone()"
+                it.invokerId
             }.let { base ->
                 if (component is TimerData) base + "reschedule_self_timer!(this_reactor, ${component.lfName}, _self, 1000)"
                 else base
@@ -258,7 +258,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
 
 
         return reactor.otherComponents.joinToString("\n") {
-            "statemut." + it.lfName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral() + ".into());"
+            "statemut." + it.lfName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral { it } + ".into());"
         }
     }
 
@@ -421,9 +421,6 @@ private object ReactorComponentEmitter {
     fun ReactionInfo.reactionInvokerLocalDecl() =
         "let $invokerId = ${reactionInvokerInitializer()}"
 
-    fun List<ReactionInfo>.toClonedVec() =
-        this.map { it.invokerId + ".clone()" }.toVecLiteral()
-
     fun ReactionInfo.reactionInvokerInitializer() =
         "new_reaction!(this_reactor, _self, $rustId);"
 
@@ -490,8 +487,8 @@ private fun <T> Iterable<T>.joinWithCommas(
     }
 }
 
-private fun List<String>.toVecLiteral() =
-    joinToString(", ", "vec![", "]")
+private fun <T> List<T>.toVecLiteral(transform: (T) -> String) =
+    joinToString(", ", "vec![", "]", transform)
 
 private fun <T> Iterable<T>.joinWithCommasLn(
     prefix: CharSequence = "",
