@@ -34,7 +34,6 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
-import java.util.*
 
 /** Generator for TypeScript target.
  *
@@ -75,11 +74,6 @@ class TsGenerator(
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2")
     }
-
-    /**
-     * Set of parameters (AST elements) associated with the main reactor.
-     */
-    var mainParameters = hashSetOf<Parameter>()
 
     /**
      * Wrappers for pr(), indent(), and unindent() functions.
@@ -185,11 +179,12 @@ class TsGenerator(
             tsCode.append(preambleGenerator.generatePreamble())
 
             val parameterGenerator = TsParameterGenerator(fileConfig, targetConfig, reactors)
-            tsCode.append(parameterGenerator.generatePrameters())
+            val (mainParameters, parameterCode) = parameterGenerator.generatePrameters()
+            tsCode.append(parameterCode)
 
             val reactorGenerator = TsReactorGenerator(this, errorReporter)
             for (reactor in reactors) {
-                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
+                tsCode.append(reactorGenerator.generateReactor(reactor, federate, this.mainDef, mainParameters))
             }
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())

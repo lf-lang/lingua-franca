@@ -1,16 +1,15 @@
 package org.lflang.generator.ts
 
+import org.lflang.*
 import org.lflang.ASTUtils.toText
-import org.lflang.ErrorReporter
 import org.lflang.generator.FederateInstance
+import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
-import org.lflang.inferredType
-import org.lflang.isInitialized
 import org.lflang.lf.*
 import org.lflang.lf.Timer
-import org.lflang.toText
 import java.lang.StringBuilder
 import java.util.*
+import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
 class TsReactorGenerator(
@@ -135,7 +134,14 @@ class TsReactorGenerator(
         }
     }
 
-    fun generateReactor(reactor: Reactor, federate: FederateInstance): String {
+    fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
+        pr("// =============== START reactor class " + reactor.name)
+
+        for (p in reactor.preambles?: emptyList()) {
+            pr("// *********** From the preamble, verbatim:")
+            pr(p.code.toText())
+            pr("\n// *********** End of preamble.")
+        }
 
         // TODO(hokeun): Append parameters after the name.
         val reactorName = reactor.name
@@ -647,6 +653,66 @@ class TsReactorGenerator(
         pr("// =============== END reactor class " + reactor.name)
         pr("")
 
+    }
+
+    /** Generate the main app instance. This function is only used once
+     *  because all other reactors are instantiated as properties of the
+     *  main one.
+     *  @param instance A reactor instance.
+     */
+    fun generateReactorInstance(defn: Instantiation, mainParameters: HashSet<Parameter>) {
+        var fullName = defn.name
+
+        // Iterate through parameters in the order they appear in the
+        // main reactor class. If the parameter is typed such that it can
+        // be a custom command line argument, use the parameter's command line
+        // assignment variable ("__CL" + the parameter's name). That variable will
+        // be undefined if the command line argument wasn't specified. Otherwise
+        // use undefined in the constructor.
+        var mainReactorParams = StringJoiner(", ")
+        for (parameter in defn.reactorClass.toDefinition().parameters) {
+
+            if (mainParameters.contains(parameter)) {
+                mainReactorParams.add("__CL" + parameter.name)
+            } else {
+                mainReactorParams.add("undefined")
+            }
+        }
+
+        pr("// ************* Instance " + fullName + " of class " +
+                defn.reactorClass.name)
+
+        pr("let __app;")
+        pr("if (!__noStart) {")
+        indent()
+        pr("__app = new "+ fullName + "(__timeout, __keepAlive, __fast, "
+                + mainReactorParams + ");")
+        unindent()
+        pr("}")
+    }
+
+    /** Generate code to call the _start function on the main App
+     *  instance to start the runtime
+     *  @param instance A reactor instance.
+     */
+    fun generateRuntimeStart(defn: Instantiation) {
+        pr(
+            with(PrependOperator) {
+                """
+            |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
+            |if (!__noStart && __app) {
+            |    __app._start();
+            |}
+            """
+            }.trimMargin()
+        )
+    }
+
+    fun generateReactor(reactor: Reactor, federate: FederateInstance,
+                        mainDef: Instantiation, mainParameters: HashSet<Parameter>): String {
+        generateReactorFederated(reactor, federate)
+        generateReactorInstance(mainDef, mainParameters)
+        generateRuntimeStart(mainDef)
         return code.toString()
     }
 }
