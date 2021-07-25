@@ -112,6 +112,9 @@ class TsGenerator(
     fun getInitializerListW(param: Parameter): List<String> {
         return getInitializerList(param)
     }
+    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> {
+        return getInitializerList(param, i)
+    }
     fun generateVarRefW(reference: VarRef): String {
         return generateVarRef(reference)
     }
@@ -184,8 +187,10 @@ class TsGenerator(
 
             val reactorGenerator = TsReactorGenerator(this, errorReporter)
             for (reactor in reactors) {
-                tsCode.append(reactorGenerator.generateReactor(reactor, federate, this.mainDef, mainParameters))
+                reactorGenerator.generateReactor(reactor, federate)
             }
+            reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters)
+            tsCode.append(reactorGenerator.getCode())
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
         }
