@@ -165,20 +165,20 @@ ${"             |    "..reactor.reactions.joinWithCommasLn { it.invokerFieldDecl
                 |impl ReactorAssembler for $assemblerName {
                 |    type RState = $dispatcherName;
                 |    
-                |    fn enqueue_shutdown(&mut self, ctx: &mut StartupCtx) {
-                |        // todo
-                |    }
-                |
                 |    fn enqueue_startup(&mut self, startup_ctx: &mut StartupCtx) {
                 |        if ${reactor.timers.isNotEmpty()} {
                 |           let dispatcher = self._rstate.lock().unwrap();
-${"             |        "..reactor.timers.joinToString("\n") { "startup_ctx.start_timer(&dispatcher.${it.lfName});" }}
+${"             |           "..reactor.timers.joinToString("\n") { "startup_ctx.start_timer(&dispatcher.${it.lfName});" }}
                 |        }
                 |        startup_ctx.enqueue(vec![
 ${"             |            "..reactor.reactions.filter { it.isStartup }.joinToString(",\n") { "self.${it.invokerId}.clone()" }}
                 |        ]);
                 |        // Startup children reactors
 ${"             |        "..nestedInstances.joinToString("\n") { "self.${it.lfName}.enqueue_startup(startup_ctx);" }}
+                |    }
+                |
+                |    fn enqueue_shutdown(&mut self, ctx: &mut StartupCtx) {
+                |        // todo
                 |    }
                 |
                 |    fn assemble(
