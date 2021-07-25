@@ -49,7 +49,7 @@ class CCmakeCompiler extends CCompiler {
      * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
-     * @param generator The generator that is using this compiler.
+     * @param errorReporter Used to report errors.
      */
     public CCmakeCompiler(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
         super(targetConfig, fileConfig, errorReporter);
