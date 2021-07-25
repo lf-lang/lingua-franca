@@ -40,7 +40,7 @@ import org.lflang.generator.c.CCompiler;
 public class FedCLauncher extends FedLauncher {
 
     /**
-     * Creates an instance of FedCLauncher.
+     * Create an instance of FedCLauncher.
      * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.

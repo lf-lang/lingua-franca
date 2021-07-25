@@ -46,6 +46,12 @@ class CCmakeGenerator {
     FileConfig fileConfig;
     TargetConfig targetConfig;
     
+    /**
+     * Create an instance of CCmakeGenerator.
+     * 
+     * @param targetConfig The TargetConfig instance to use.
+     * @param fileConfig The FileConfig instance to use.
+     */
     CCmakeGenerator(TargetConfig targetConfig, FileConfig fileConfig) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;

@@ -41,14 +41,12 @@ import org.lflang.util.LFCommand;
  * by the CGenerator. This class uses CMake to compile.
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
- *
- * FIXME: This class has a strong coupling with GeneratorBase. However, that is because
- *  the GeneratorBase contains a lot of unrelated functions that need to be factored out
- *  into separate classes.
  */
 class CCmakeCompiler extends CCompiler {
 
     /**
+     * Create an instance of CCmakeCompiler.
+     * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param generator The generator that is using this compiler.
