@@ -103,7 +103,7 @@ public enum TargetProperty {
     /**
      * Directive to enable and disable the use of CMake.
      * 
-     * The default is disabled.
+     * The default is enabled.
      */
     CMAKE("cmake", PrimitiveType.BOOLEAN,
             Arrays.asList(Target.C), (config, value) -> {
