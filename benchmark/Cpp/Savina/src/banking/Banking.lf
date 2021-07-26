@@ -28,9 +28,9 @@ public preamble {=
     struct Message {
       MsgType type;
       double amount;
-      int recipient;
+      size_t recipient;
     
-      Message(MsgType _type, double _amount, int _recipient):
+      Message(MsgType _type, double _amount, size_t _recipient):
         type(_type), amount(_amount), recipient(_recipient) {}
     
       Message() {}
@@ -46,11 +46,11 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
         #include "PseudoRandom.hh"
     =}
     
-    state numCompletedBankings:int;
+    state numCompletedBankings: size_t;
     state randomGen: PseudoRandom;
-    state numWorkGenerated:int(0);
-    state nextGeneratedWorkMsg:{=reactor::ImmutableValuePtr<Message>=};
-    state nextGeneratedWorkSrcAccountId:int;
+    state numWorkGenerated: size_t(0);
+    state nextGeneratedWorkMsg: {=reactor::ImmutableValuePtr<Message>=};
+    state nextGeneratedWorkSrcAccountId: size_t;
     
     input inStart:void;
     output outFinished:void;
@@ -78,7 +78,7 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
             return;
         }
         
-        std::set<int> accountsWorkGeneratedFor;
+        std::set<size_t> accountsWorkGeneratedFor;
         
         if(nextGeneratedWorkMsg != nullptr) {
             outAccount[nextGeneratedWorkSrcAccountId].set(nextGeneratedWorkMsg);
@@ -93,7 +93,7 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
             // src is lower than dest id to ensure there is never a deadlock
             int srcAccountId = randomGen.nextInt((outAccount.size() / 10) * 8);
             nextGeneratedWorkSrcAccountId = srcAccountId;
-            int loopId = randomGen.nextInt(outAccount.size() - srcAccountId);
+            size_t loopId = randomGen.nextInt(outAccount.size() - srcAccountId);
             if(loopId == 0) {
                 loopId += 1;
             }
@@ -115,13 +115,13 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
     =}
     
     reaction(inAccount) -> outFinished, outAccount {=
-        for(int i = 0; i < inAccount.size(); ++i) {
+        for(size_t i = 0; i < inAccount.size(); ++i) {
             if(inAccount[i].is_present()) {
                 if(inAccount[i].get()->type == ReplyMsg) {
                     
                     numCompletedBankings += 1;
                     if(numCompletedBankings == numBankings) {
-                        for(int i = 0; i < outAccount.size(); ++i) {
+                        for(size_t i = 0; i < outAccount.size(); ++i) {
                             outAccount[i].set(Message{StopMsg});
                         }
                         outFinished.set();
@@ -215,7 +215,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:d
     =}
     
     reaction(inAccount) -> handleMessage {=
-        for(int i = 0; i < inAccount.size(); ++i) {
+        for(size_t i = 0; i < inAccount.size(); ++i) {
             if(inAccount[i].is_present()) {
                 stashedMessages.push_back(inAccount[i].get());
             }
