@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.*
+import org.lflang.ASTUtils.isInitialized
 import org.lflang.ASTUtils.toText
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
@@ -66,7 +67,7 @@ class TsReactorGenerator(
         } else if (list.size == 1) {
             list[0]
         } else {
-            list.joinToString(",")
+            list.joinToString(", ", "[", "]")
         }
     }
     private fun getTargetInitializer(param: Parameter): String {
@@ -260,7 +261,7 @@ class TsReactorGenerator(
 
         // Next handle states.
         for (stateVar in reactor.stateVars) {
-            if (stateVar.isInitialized) {
+            if (isInitialized(stateVar)) {
                 pr(reactorConstructor, "this." + stateVar.name + " = " +
                         "new __State(" + getTargetInitializer(stateVar) + ");");
             } else {
@@ -646,7 +647,7 @@ class TsReactorGenerator(
      *  main one.
      *  @param instance A reactor instance.
      */
-    fun generateReactorInstance(defn: Instantiation, mainParameters: HashSet<Parameter>) {
+    fun generateReactorInstance(defn: Instantiation, mainParameters: Set<Parameter>) {
         var fullName = defn.name
 
         // Iterate through parameters in the order they appear in the
@@ -698,7 +699,7 @@ class TsReactorGenerator(
         generateReactorFederated(reactor, federate)
     }
 
-    fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: HashSet<Parameter>) {
+    fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: Set<Parameter>) {
         generateReactorInstance(mainDef, mainParameters)
         generateRuntimeStart(mainDef)
     }
