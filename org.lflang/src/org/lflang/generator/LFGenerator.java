@@ -141,18 +141,15 @@ public class LFGenerator extends AbstractGenerator {
         // class up at runtime and instantiate it if found.
         String packageName;
         String classNamePrefix;
-        String targetName;
         switch (target) {
             case CPP: {
                 packageName = "cpp";
                 classNamePrefix = "Cpp";
-                targetName = "C++";
                 break;
             }
             case TS: {
                 packageName = "ts";
                 classNamePrefix = "Ts";
-                targetName = "TypeScript";
                 break;
             }
             default: {
@@ -173,9 +170,9 @@ public class LFGenerator extends AbstractGenerator {
             | ClassNotFoundException e) {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
-                "The code generator for the " + targetName + " target could not be found. "
+                "The code generator for the " + target + " target could not be found. "
                     + "This is likely because you are running the RCA from"
-                    + "Eclipse. The " + targetName + " code generator is written in Kotlin"
+                    + "Eclipse. The " + target + " code generator is written in Kotlin"
                     + "and, unfortunately, the Eclipse Kotlin plugin is "
                     + "broken, preventing us from loading the generator"
                     + "properly. Please consider building the RCA via Maven.");
