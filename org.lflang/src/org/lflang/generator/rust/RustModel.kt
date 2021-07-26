@@ -100,8 +100,7 @@ data class ReactorInfo(
 ) {
     /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
-    val timers: List<TimerData> get()  = otherComponents.filterIsInstance<TimerData>()
-
+    val timers: List<TimerData> = otherComponents.filterIsInstance<TimerData>()
 }
 
 class ReactorNames(
@@ -231,6 +230,11 @@ TODO do we really need the following classes?
 
 sealed class ReactorComponent {
     abstract val lfName: Ident
+    val rustFieldName: Ident get() =  when (this) {
+        is TimerData -> "timer_$lfName"
+        is PortData -> "port_$lfName"
+        is ActionData -> "action_$lfName"
+    }
 
     companion object {
 
@@ -299,7 +303,6 @@ data class TimerData(
     val offset: TargetCode,
     val period: TargetCode,
 ) : ReactorComponent()
-
 
 private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)

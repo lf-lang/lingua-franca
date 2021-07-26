@@ -117,7 +117,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |            _impl: $structName {
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
-${"             |            "..otherComponents.joinWithCommasLn { it.lfName + ": " + it.initialExpression() }}
+${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |}
@@ -127,15 +127,14 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.lfName + "
                 |impl $rsRuntime::ReactorDispatcher for $wrapperName {
                 |    type Wrapped = $structName;
                 |    type Params = $paramStructName;
-                |    const MAX_REACTION_ID: LocalReactionId = ${reactions.size};
+                |    const MAX_REACTION_ID: LocalReactionId = ${reactions.size + timers.size /*timers have a reschedule reaction*/};
                 |
                 |    fn assemble(args: Self::Params, assembler: &mut AssemblyCtx) -> Self {
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
-                |        let this_reactor = assembler.get_next_id();
-                |        let mut _self = Self::user_assemble(this_reactor, args);
+                |        let mut _self = Self::user_assemble(assembler.get_next_id(), args);
                 |
 ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLocalDecl() }}
                 |
@@ -165,6 +164,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |    fn react_erased(&mut self, ctx: &mut ::reactor_rt::LogicalCtx, rid: LocalReactionId) {
                 |        match rid {
 ${"             |            "..reactionWrappers(reactor)}
+${"             |            "..syntheticTimerReactions(reactor)}
                 |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
                 |        }
                 |    }
@@ -175,7 +175,7 @@ ${"             |            "..reactionWrappers(reactor)}
                 |    
                 |    fn enqueue_startup(&self, ctx: &mut StartupCtx) {
                 |        ctx.enqueue(&self._startup_reactions);
-${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.lfName});" }}
+${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.rustFieldName});" }}
                 |    }
                 |
                 |    fn enqueue_shutdown(&self, ctx: &mut StartupCtx) {
@@ -226,26 +226,35 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
                 .orEmpty()
 
         return reactor.reactions.joinToString { n: ReactionInfo ->
-            """
-                ${n.idx} => {
-                    self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)})
-                }
-            """
+            "${n.idx} => self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)}),"
         }
     }
 
+    private fun syntheticTimerReactions(reactor: ReactorInfo): String {
+        return reactor.timers.joinToString { timer: TimerData ->
+            "${reactor.timerReactionId(timer)} => ctx.maybe_reschedule(&self.${timer.rustFieldName}),"
+        }
+    }
+
+    fun ReactorInfo.timerReactionId(timer: TimerData) =
+        reactions.size + timers.indexOf(timer).also { assert(it != -1) }
+
     private fun localDependencyDeclarations(reactor: ReactorInfo): String {
-        fun allDownstreamDeps(component: ReactorComponent) =
+        fun allDownstreamDeps(component: ReactorComponent): List<String> =
             reactor.influencedReactionsOf(component).map {
                 it.invokerId
             }.let { base ->
-                if (component is TimerData) base + "reschedule_self_timer!(this_reactor, ${component.lfName}, _self, 1000)"
-                else base
+                if (component is TimerData) {
+                    // timers have an additional reaction to reschedule themselves
+                    val timerLocalId = reactor.timerReactionId(component)
+                    val rescheduleReactionId = "$rsRuntime::GlobalReactionId::new(_self.id(), $timerLocalId)"
+                    base + rescheduleReactionId
+                } else base
             }
 
 
         return reactor.otherComponents.joinToString("\n") {
-            "_self." + it.lfName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral { it } + ".into());"
+            "_self." + it.rustFieldName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral { it } + ".into());"
         }
     }
 
@@ -365,9 +374,9 @@ private object ReactorComponentEmitter {
      */
     fun ReactorComponent.toBorrow(): TargetCode? = when (this) {
         is PortData   ->
-            if (isInput) "&self.$lfName"
-            else "&mut self.$lfName"
-        is ActionData -> "&self.$lfName"
+            if (isInput) "&self.$rustFieldName"
+            else "&mut self.$rustFieldName"
+        is ActionData -> "&self.$rustFieldName"
         is TimerData  -> null
     }
 
@@ -401,15 +410,14 @@ private object ReactorComponentEmitter {
 
     fun ReactorComponent.toStructField(): TargetCode {
         val fieldVisibility = if (this is PortData) "pub " else ""
-
-        return "$fieldVisibility$lfName: ${toType()}"
+        return "$fieldVisibility$rustFieldName: ${toType()}"
     }
 
     fun ReactionInfo.reactionInvokerLocalDecl() =
         "let $invokerId = ${reactionInvokerInitializer()}"
 
     fun ReactionInfo.reactionInvokerInitializer() =
-        "GlobalReactionId::new(this_reactor, $idx);"
+        "GlobalReactionId::new(_self.id(), $idx);"
 
     fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams() =
