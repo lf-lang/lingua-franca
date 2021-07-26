@@ -105,11 +105,6 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName}: ${it.ty
 ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
-                |
-                |reaction_ids!(
-                |  ${reactions.joinWithCommas("pub enum $reactionIdName {", "}") { it.rustId + " = " + it.idx }}
-                |);
-                |
                 |impl $wrapperName {
                 |    #[inline]
                 |    fn user_assemble(_id: $rsRuntime::ReactorId, args: $paramStructName) -> Self {
@@ -130,25 +125,23 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.lfName + "
                 |use $rsRuntime::*; // after this point there's no user-written code
                 |
                 |impl $rsRuntime::ReactorDispatcher for $wrapperName {
-                |    type ReactionId = $reactionIdName;
                 |    type Wrapped = $structName;
                 |    type Params = $paramStructName;
+                |    const MAX_REACTION_ID: LocalReactionId = ${reactions.size};
                 |
-                |    fn assemble(args: Self::Params, assembler: &mut AssemblyCtx) -> Arc<Mutex<Self>> {
+                |    fn assemble(args: Self::Params, assembler: &mut AssemblyCtx) -> Self {
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
                 |        let this_reactor = assembler.get_next_id();
-                |        let mut _self = Arc::new(Mutex::new(Self::user_assemble(this_reactor, args)));
+                |        let mut _self = Self::user_assemble(this_reactor, args);
                 |
 ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLocalDecl() }}
                 |
                 |        {
-                |            let mut statemut = _self.lock().unwrap();
-                |            
-                |            statemut._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
-                |            statemut._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
+                |            _self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
+                |            _self._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
                 |
 ${"             |           "..localDependencyDeclarations(reactor)}
                 |        }
@@ -159,25 +152,21 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |
                 |       _self
                 |    }
-                |
-                |    #[inline]
-                |    fn react(&mut self, ctx: &mut $rsRuntime::LogicalCtx, rid: Self::ReactionId) {
-                |        match rid {
-${"             |            "..reactionWrappers(reactor)}
-                |        }
-                |    }
                 |}
                 |
                 |
                 |impl $rsRuntime::ErasedReactorDispatcher for $wrapperName {
                 |
+                |    #[inline]
                 |    fn id(&self) -> ReactorId {
                 |        self._id
                 |    }
                 |
-                |    fn react_erased(&mut self, ctx: &mut ::reactor_rt::LogicalCtx, rid: u32) {
-                |        let rid = <$reactionIdName as int_enum::IntEnum>::from_int(rid).unwrap();
-                |        self.react(ctx, rid)
+                |    fn react_erased(&mut self, ctx: &mut ::reactor_rt::LogicalCtx, rid: LocalReactionId) {
+                |        match rid {
+${"             |            "..reactionWrappers(reactor)}
+                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
+                |        }
                 |    }
                 |
                 |    fn cleanup_tag(&mut self, ctx: ::reactor_rt::LogicalCtx) {
@@ -185,9 +174,8 @@ ${"             |            "..reactionWrappers(reactor)}
                 |    }
                 |    
                 |    fn enqueue_startup(&self, ctx: &mut StartupCtx) {
-${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.lfName});" }}
-                |
                 |        ctx.enqueue(&self._startup_reactions);
+${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.lfName});" }}
                 |    }
                 |
                 |    fn enqueue_shutdown(&self, ctx: &mut StartupCtx) {
@@ -218,15 +206,14 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
 
 
     private fun ReactorInfo.declareChildConnections(): String {
-        val declarations = nestedInstances.joinToString("\n") {
-            "let mut ${it.lfName} = ${it.lfName}.lock().unwrap();"
-        }
+//        val declarations = nestedInstances.joinToString("\n") {
+//            "let mut ${it.lfName} = ${it.lfName}.lock().unwrap();"
+//        }
 
-        return declarations + "\n" +
-                connections.joinToString("\n", "// Declare connections\n") {
-                    it.locationInfo().lfTextComment() + "\n" +
-                            PortEmitter.declareConnection(it)
-                }
+        return connections.joinToString("\n", "// Declare connections\n") {
+            it.locationInfo().lfTextComment() + "\n" +
+                    PortEmitter.declareConnection(it)
+        }
     }
 
     private fun reactionWrappers(reactor: ReactorInfo): String {
@@ -240,7 +227,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
 
         return reactor.reactions.joinToString { n: ReactionInfo ->
             """
-                ${reactor.names.reactionIdName}::${n.rustId} => {
+                ${n.idx} => {
                     self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)})
                 }
             """
@@ -258,7 +245,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
 
 
         return reactor.otherComponents.joinToString("\n") {
-            "statemut." + it.lfName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral { it } + ".into());"
+            "_self." + it.lfName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral { it } + ".into());"
         }
     }
 
@@ -422,10 +409,7 @@ private object ReactorComponentEmitter {
         "let $invokerId = ${reactionInvokerInitializer()}"
 
     fun ReactionInfo.reactionInvokerInitializer() =
-        "new_reaction!(this_reactor, _self, $rustId);"
-
-    fun ReactionInfo.invokerFieldDeclaration() =
-        "$invokerId: Arc<$rsRuntime::ReactionInvoker>"
+        "GlobalReactionId::new(this_reactor, $idx);"
 
     fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams() =
@@ -488,7 +472,7 @@ private fun <T> Iterable<T>.joinWithCommas(
 }
 
 private fun <T> List<T>.toVecLiteral(transform: (T) -> String) =
-    joinToString(", ", "vec![", "]", transform)
+    joinWithCommas("vec![", "]", transform = transform)
 
 private fun <T> Iterable<T>.joinWithCommasLn(
     prefix: CharSequence = "",
