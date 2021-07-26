@@ -85,7 +85,7 @@ public class LFGenerator extends AbstractGenerator {
                 break;
             }
             default: {
-                throw new RuntimeException("Unexpected target!");
+                return new FileConfig(resource, fsa, context);
             }
         }
         try {
