@@ -199,7 +199,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         return nestedInstances.joinToString("\n") {
             """
                     ${it.loc.lfTextComment()}
-                    let mut ${it.lfName}: Arc<Mutex<super::${it.names.wrapperName}>> = assembler.assemble_sub(${it.paramStruct()});
+                    let mut ${it.lfName}: super::${it.names.wrapperName} = assembler.assemble_sub(${it.paramStruct()});
                 """.trimIndent()
         }
     }
@@ -225,18 +225,18 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
                 ?.joinToString(", ", prefix = ", ")
                 .orEmpty()
 
-        return reactor.reactions.joinToString { n: ReactionInfo ->
-            "${n.idx} => self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)}),"
+        return reactor.reactions.joinWithCommasLn(trailing = true) { n: ReactionInfo ->
+            "${n.idx} => self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)})"
         }
     }
 
     private fun syntheticTimerReactions(reactor: ReactorInfo): String {
-        return reactor.timers.joinToString { timer: TimerData ->
-            "${reactor.timerReactionId(timer)} => ctx.maybe_reschedule(&self.${timer.rustFieldName}),"
+        return reactor.timers.joinWithCommasLn(trailing = true) { timer: TimerData ->
+            "${reactor.timerReactionId(timer)} => ctx.maybe_reschedule(&self.${timer.rustFieldName})"
         }
     }
 
-    fun ReactorInfo.timerReactionId(timer: TimerData) =
+    private fun ReactorInfo.timerReactionId(timer: TimerData) =
         reactions.size + timers.indexOf(timer).also { assert(it != -1) }
 
     private fun localDependencyDeclarations(reactor: ReactorInfo): String {

@@ -101,7 +101,8 @@ object PortEmitter {
     private data class PortReference(val port: Port, val portIndex: Int?, val container: Instantiation?, val containerIndex: Int?)
 
     private fun PortReference.toCode(): String {
-        val portRef = if (port.isMultiport) "${port.name}[$portIndex]" else port.name
+        val port = PortData.from(port)
+        val portRef = if (port.isMultiport) "${port.rustFieldName}[$portIndex]" else port.rustFieldName
         return if (container != null) {
             val containerRef = if (container.isBank) "${container.name}[$containerIndex]" else container.name
             "$containerRef.$portRef"
