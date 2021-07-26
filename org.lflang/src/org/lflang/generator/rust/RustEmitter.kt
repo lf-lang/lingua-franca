@@ -131,7 +131,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |impl $rsRuntime::ReactorInitializer for $wrapperName {
                 |    type Wrapped = $structName;
                 |    type Params = $paramStructName;
-                |    const MAX_REACTION_ID: LocalReactionId = ${reactions.size + timers.size /*timers have a reschedule reaction*/};
+                |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const(${reactions.size + timers.size /*timers have a reschedule reaction*/});
                 |
                 |    fn assemble(args: Self::Params, assembler: &mut AssemblyCtx) -> Self {
                 |        // children reactors   
@@ -166,7 +166,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |    }
                 |
                 |    fn react_erased(&mut self, ctx: &mut ::reactor_rt::LogicalCtx, rid: LocalReactionId) {
-                |        match rid {
+                |        match rid.raw() {
 ${"             |            "..reactionWrappers(reactor)}
 ${"             |            "..syntheticTimerReactions(reactor)}
                 |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
@@ -487,7 +487,7 @@ private object ReactorComponentEmitter {
         "let $invokerId = ${reactionInvokerInitializer()}"
 
     fun ReactionInfo.reactionInvokerInitializer() =
-        "GlobalReactionId::new(_self.id(), $idx);"
+        "GlobalReactionId::new(_self.id(), LocalReactionId::from_raw_unchecked($idx));"
 
     fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams() =
