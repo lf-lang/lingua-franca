@@ -49,7 +49,8 @@ data class GenerationInfo(
 
 data class RustTargetProperties(
     val keepAlive: Boolean = false,
-    val timeout: TargetCode? = null
+    val timeout: TargetCode? = null,
+    val singleFile: Boolean = false
 )
 
 /** Info about the location of an LF node. */
@@ -95,7 +96,8 @@ data class ReactorInfo(
      *
      * todo Connection doesn't have its own model class
      */
-    val connections: List<Connection>
+    val connections: List<Connection>,
+    val loc: LocationInfo
 
 ) {
     /** Identifiers for the different Rust constructs that this reactor class generates. */
@@ -370,7 +372,8 @@ object RustModelBuilder {
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
             keepAlive = this.keepalive,
-            timeout = this.timeout?.toRustTimeExpr()
+            timeout = this.timeout?.toRustTimeExpr(),
+            singleFile = this.singleFileProject
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
@@ -406,6 +409,7 @@ object RustModelBuilder {
 
             ReactorInfo(
                 lfName = reactor.name,
+                loc = reactor.locationInfo(),
                 reactions = reactions,
                 otherComponents = components.values.toList(),
                 isMain = reactor.isMain,

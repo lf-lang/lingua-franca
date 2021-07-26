@@ -160,6 +160,9 @@ class TargetConfig {
      */
     public String runtimeVersion = null
 
+    /** Whether all reactors are to be generated into a single target language file. */
+    public boolean singleFileProject = false
+
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,
      * all work is done in the main thread).

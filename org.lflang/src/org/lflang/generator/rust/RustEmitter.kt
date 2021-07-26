@@ -49,14 +49,18 @@ object RustEmitter {
     fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
         fileConfig.emit("Cargo.toml") { makeCargoTomlFile(gen) }
+
+        // if singleFile, this file will contain every module.
         fileConfig.emit("src/main.rs") { makeMainFile(gen) }
-        fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
-        for (reactor in gen.reactors) {
-            fileConfig.emit("src/reactors/${reactor.names.modName}.rs") {
-                makeReactorModule(reactor)
+
+        if (!gen.properties.singleFile) {
+            fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
+            for (reactor in gen.reactors) {
+                fileConfig.emit("src/reactors/${reactor.names.modName}.rs") {
+                    makeReactorModule(reactor)
+                }
             }
         }
-
     }
 
     private fun Emitter.makeReactorModule(reactor: ReactorInfo) {
@@ -270,6 +274,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         }
 
 
+
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor.names
         this += """
@@ -280,7 +285,6 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
             |#[macro_use]
             |extern crate $runtimeCrateFullName;
             |
-            |mod reactors;
             |
             |use $rsRuntime::*;
             |use self::reactors::${mainReactor.wrapperName} as _MainReactor;
@@ -300,8 +304,50 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
             |
             |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
             |}
+            |
         """.trimMargin()
+
+        if (gen.properties.singleFile) {
+            makeSingleFileProject(gen)
+        } else {
+            this += "mod reactors;\n"
+        }
     }
+
+    private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
+        this += """
+            |//-------------------//
+            |//---- REACTORS -----//
+            |//-------------------//
+            |
+        """.trimMargin()
+
+        this.writeInBlock("mod reactors {") {
+            for (reactor in gen.reactors) {
+                this += with(reactor.names) {
+                    """
+                pub use self::$modName::$wrapperName;
+                pub use self::$modName::$paramStructName;
+                """.trimIndent()
+                }
+                skipLines(1)
+            }
+
+            for (reactor in gen.reactors) {
+                this += """
+                    |//--------------------------------------------//
+                    |//------------ ${reactor.lfName} -------//
+                    |//-------------------//
+                    """.trimMargin()
+
+                this.writeInBlock("mod ${reactor.names.modName} {") {
+                    makeReactorModule(reactor)
+                }
+                this.skipLines(2)
+            }
+        }
+    }
+
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {
         fun ReactorInfo.modDecl(): String = with(names) {

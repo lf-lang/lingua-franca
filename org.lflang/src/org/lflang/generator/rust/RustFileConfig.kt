@@ -64,9 +64,33 @@ class Emitter(
 ) : Closeable {
 
     private val sb = StringBuilder()
+    private var indent: String = ""
 
     operator fun plusAssign(s: String) {
-        sb.append(s)
+        sb.append(s.replaceIndent(indent))
+    }
+
+    /**
+     * Write the contents in an indented block
+     */
+    fun writeInBlock(header: String = "{", footer: String = "}", contents: Emitter.() -> Unit) {
+        skipLines(1)
+        sb.append(indent).append(header).appendLine()
+        indent += "    "
+        this.contents()
+        sb.appendLine()
+        indent = indent.removeSuffix("    ")
+        sb.append(indent).append(footer).appendLine()
+    }
+
+    /**
+     * Skip lines, the difference with just using [plusAssign]
+     * is that no trailing whitespace is added.
+     */
+    fun skipLines(numLines: Int) {
+        repeat(numLines) {
+            sb.appendLine()
+        }
     }
 
     override fun close() {
