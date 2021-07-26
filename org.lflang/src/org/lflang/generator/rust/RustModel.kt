@@ -246,11 +246,7 @@ sealed class ReactorComponent {
          * have another interface.
          */
         fun from(v: Variable): ReactorComponent? = when (v) {
-            is Port   -> PortData(
-                lfName = v.name,
-                isInput = v.isInput,
-                dataType = v.type.toText()
-            )
+            is Port   -> PortData.from(v)
             is Action -> ActionData(
                 lfName = v.name,
                 isLogical = v.isLogical,
@@ -287,8 +283,18 @@ data class PortData(
     override val lfName: Ident,
     val isInput: Boolean,
     /** Rust data type of the code. */
-    val dataType: TargetCode
-) : ReactorComponent()
+    val dataType: TargetCode,
+    val isMultiport: Boolean = false
+) : ReactorComponent() {
+    companion object {
+        fun from(port: Port) =
+            PortData(
+                lfName = port.name,
+                isInput = port.isInput,
+                dataType = port.type.toText()
+            )
+    }
+}
 
 data class ActionData(
     override val lfName: Ident,
