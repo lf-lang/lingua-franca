@@ -907,6 +907,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * refers to the reactor instance defining the bank.
      */
     protected ReactorInstance bank = null
+    def ReactorInstance getBank() { return this.bank; }
     
     /** 
      * If this reactor instance is a placeholder for a bank of reactors,
