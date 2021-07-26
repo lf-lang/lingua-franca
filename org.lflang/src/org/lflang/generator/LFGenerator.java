@@ -71,23 +71,15 @@ public class LFGenerator extends AbstractGenerator {
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
         // found.
-        String packageName;
-        String classNamePrefix;
-        switch (target) {
-            case CPP: {
-                packageName = "cpp";
-                classNamePrefix = "Cpp";
-                break;
-            }
-            case TS: {
-                packageName = "ts";
-                classNamePrefix = "Ts";
-                break;
-            }
-            default: {
-                return new FileConfig(resource, fsa, context);
-            }
+        if (target != Target.CPP && target != Target.TS) {
+            return new FileConfig(resource, fsa, context);
         }
+        if (target.name().length() < 2) {
+            throw new RuntimeException("Unexpected target!");
+        }
+        String packageName = target.name().toLowerCase();
+        String classNamePrefix = target.name().charAt(0)
+            + target.name().substring(1).toLowerCase();
         try {
             return (FileConfig) Class
                 .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig")
