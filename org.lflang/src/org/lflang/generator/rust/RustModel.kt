@@ -121,10 +121,7 @@ class ReactorNames(
     // Names of other implementation-detailistic structs.
 
     val paramStructName: Ident = "${structName}Params"
-    val wrapperName: Ident = "${structName}Dispatcher"
-    val reactionIdName: Ident = "${structName}Reactions"
-
-    val modulePath = "crate::reactors::$modName"
+    val wrapperName: Ident = "${structName}Adapter"
 }
 
 data class NestedReactorInstance(
