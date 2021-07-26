@@ -44,8 +44,8 @@ import java.util.StringJoiner
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 
-class TsParameterGenerator(
-    private val tsGenerator: TsGenerator,
+class TSParameterGenerator(
+    private val tsGenerator: TSGenerator,
     private val fileConfig: FileConfig,
     private val targetConfig: TargetConfig,
     private val reactors: MutableList<Reactor>

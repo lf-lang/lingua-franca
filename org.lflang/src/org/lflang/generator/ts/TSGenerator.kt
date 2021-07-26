@@ -48,8 +48,8 @@ import java.util.LinkedList
  *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
-class TsGenerator(
-    private val tsFileConfig: TsFileConfig,
+class TSGenerator(
+    private val tsFileConfig: TSFileConfig,
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) : GeneratorBase(tsFileConfig, errorReporter) {
@@ -162,15 +162,15 @@ class TsGenerator(
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TsPreambleGenerator(fileConfig.srcFile.toPath(),
+            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile.toPath(),
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
-            val parameterGenerator = TsParameterGenerator(this, fileConfig, targetConfig, reactors)
+            val parameterGenerator = TSParameterGenerator(this, fileConfig, targetConfig, reactors)
             val (mainParameters, parameterCode) = parameterGenerator.generatePrameters()
             tsCode.append(parameterCode)
 
-            val reactorGenerator = TsReactorGenerator(this, errorReporter)
+            val reactorGenerator = TSReactorGenerator(this, errorReporter)
             for (reactor in reactors) {
                 reactorGenerator.generateReactor(reactor, federate)
             }

@@ -41,7 +41,7 @@ import java.nio.file.Path
  *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
-class TsFileConfig(resource: Resource, fsa: IFileSystemAccess2,
+class TSFileConfig(resource: Resource, fsa: IFileSystemAccess2,
                    context: IGeneratorContext) :
     FileConfig(resource, fsa, context) {
 

@@ -47,6 +47,34 @@ public class LFGenerator extends AbstractGenerator {
         return Target.forName(targetName);
     }
 
+    private String getPackageName(Target target) {
+        switch (target) {
+            case CPP: {
+                return "cpp";
+            }
+            case TS: {
+                return "ts";
+            }
+            default: {
+                throw new RuntimeException("Unexpected target!");
+            }
+        }
+    }
+
+    private String getClassNamePrefix(Target target) {
+        switch (target) {
+            case CPP: {
+                return "Cpp";
+            }
+            case TS: {
+                return "TS";
+            }
+            default: {
+                throw new RuntimeException("Unexpected target!");
+            }
+        }
+    }
+
     /**
      * Create a target-specific FileConfig object in Kotlin
      *
@@ -74,12 +102,8 @@ public class LFGenerator extends AbstractGenerator {
         if (target != Target.CPP && target != Target.TS) {
             return new FileConfig(resource, fsa, context);
         }
-        if (target.name().length() < 2) {
-            throw new RuntimeException("Unexpected target!");
-        }
-        String packageName = target.name().toLowerCase();
-        String classNamePrefix = target.name().charAt(0)
-            + target.name().substring(1).toLowerCase();
+        String packageName = getPackageName(target);
+        String classNamePrefix = getClassNamePrefix(target);
         try {
             return (FileConfig) Class
                 .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig")
@@ -116,7 +140,7 @@ public class LFGenerator extends AbstractGenerator {
     /**
      * Create a code generator in Kotlin.
      *
-     * Since the CppGenerator and TsGenerator class are implemented in Kotlin, the classes are
+     * Since the CppGenerator and TSGenerator class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
@@ -131,12 +155,8 @@ public class LFGenerator extends AbstractGenerator {
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead we look the
         // class up at runtime and instantiate it if found.
-        if (target.name().length() < 2) {
-            throw new RuntimeException("Unexpected target!");
-        }
-        String packageName = target.name().toLowerCase();
-        String classNamePrefix = target.name().charAt(0)
-            + target.name().substring(1).toLowerCase();
+        String packageName = getPackageName(target);
+        String classNamePrefix = getClassNamePrefix(target);
         try {
             return (GeneratorBase) Class
                 .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "Generator")
