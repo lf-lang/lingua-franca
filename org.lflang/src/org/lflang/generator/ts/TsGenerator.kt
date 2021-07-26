@@ -31,7 +31,9 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
+import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
@@ -156,7 +158,8 @@ class TsGenerator(
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TsPreambleGenerator(fileConfig.srcFile.toPath())
+            val preambleGenerator = TsPreambleGenerator(fileConfig.srcFile.toPath(),
+                targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
             val parameterGenerator = TsParameterGenerator(this, fileConfig, targetConfig, reactors)
@@ -223,16 +226,16 @@ class TsGenerator(
 
             // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
             val protocArgs = LinkedList<String>()
-            val tsOutPath = fileConfig.srcPath.relativize(fileConfig.getSrcGenPath())
+            val tsOutPath = tsFileConfig.srcPath.relativize(tsFileConfig.tsSrcGenPath())
 
             protocArgs.addAll(
                 listOf(
-                "--plugin=protoc-gen-ts=" + fileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                "--plugin=protoc-gen-ts=" + tsFileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
                 "--js_out=import_style=commonjs,binary:"+tsOutPath,
                 "--ts_out=" + tsOutPath)
             )
             protocArgs.addAll(targetConfig.protoFiles)
-            val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
+            val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
 
             if (protoc === null) {
                 errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
@@ -347,6 +350,43 @@ class TsGenerator(
 
     override fun getTargetReference(param: Parameter): String {
         return """this.${param.name}.get()"""
+    }
+
+    /**
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
+     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
+     * @param type The type.
+     * @param isPhysical Indicates whether or not the connection is physical
+     */
+    override fun generateNetworkReceiverBody(
+        action: Action,
+        sendingPort: VarRef,
+        receivingPort: VarRef,
+        receivingPortID: Int,
+        sendingFed: FederateInstance,
+        receivingFed: FederateInstance,
+        receivingBankIndex: Int,
+        receivingChannelIndex: Int,
+        type: InferredType,
+        isPhysical: Boolean
+    ): String {
+        return with(PrependOperator) {"""
+        // FIXME: For now assume the data is a Buffer, but this is not checked.
+        // Replace with ProtoBufs or MessagePack.
+        |if (${action.name} !== undefined) {
+        |    ${receivingPort.container.name}.${receivingPort.variable.name} = 
+        |    ${action.name}; // defaults to utf8 encoding
+        |}
+        """.trimMargin()}
     }
 
     // Virtual methods.
