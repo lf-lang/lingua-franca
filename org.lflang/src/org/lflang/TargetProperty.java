@@ -255,6 +255,14 @@ public enum TargetProperty {
             }),
 
     /**
+     * Directive to specify that all code is generated in a single file.
+     */
+    SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
+            List.of(Target.Rust), (config, value) -> {
+                config.singleFileProject = ASTUtils.toBoolean(value);
+            }),
+
+    /**
      * Directive to specify the number of threads.
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
