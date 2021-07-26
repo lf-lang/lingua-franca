@@ -8,6 +8,7 @@ import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.lang.StringBuilder
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
@@ -125,8 +126,11 @@ class TsReactorGenerator(
             pr("\n// *********** End of preamble.")
         }
 
-        // TODO(hokeun): Append parameters after the name.
-        val reactorName = reactor.name
+        var reactorName = reactor.name
+        if (!reactor.typeParms.isEmpty()) {
+            reactorName +=
+                reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
+        }
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
         if (reactor.isMain()) {
@@ -204,7 +208,8 @@ class TsReactorGenerator(
 
         for (childReactor in childReactors) {
             pr(childReactor.getName() + ": " + childReactor.reactorClass.name +
-                    childReactor.typeParms.joinToString(","))
+                    if (childReactor.typeParms.isEmpty()) {""} else {
+                        childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }})
 
             var childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
@@ -546,10 +551,11 @@ class TsReactorGenerator(
                 for (variable in entry.value) {
                     initializer.add("""${variable.name}: __${entry.key.name}_${variable.name}.get()""")
                     if (variable is Input) {
-                        pr(reactEpilogue,
-                            """if (${entry.key.name}.${variable.name} !== undefined) {
-                                    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
-                    }""")
+                        pr(reactEpilogue, with(PrependOperator) {
+                            """
+                                |if (${entry.key.name}.${variable.name} !== undefined) {
+                                |    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
+                                |}""".trimMargin()})
                     }
                 }
                 pr(reactPrologue, """let ${entry.key.name} = {${initializer}}""")
