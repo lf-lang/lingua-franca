@@ -323,21 +323,6 @@ class TypeScriptGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("Type checking failed.")
         }
-
-        // If this is a federated execution, generate C code for the RTI.
-        if (isFederated) {
-
-            // Copy the required library files into the target file system.
-            // This will overwrite previous versions.
-            var files = newArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
-
-            for (file : files) {
-                copyFileFromClassPath(
-                    File.separator + "lib" + File.separator + "core" + File.separator + file,
-                    fileConfig.getSrcGenPath.toString + File.separator + file
-                )
-            }
-        }
     }
     
     override generateDelayBody(Action action, VarRef port) {
