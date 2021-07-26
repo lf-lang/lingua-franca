@@ -20,7 +20,7 @@ reactor Sink {
     }
   =}
 }
-main reactor CompositionWithPorts {
+main reactor {
       source = new Source();
       sink = new Sink();
 
