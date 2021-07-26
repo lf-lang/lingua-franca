@@ -34,8 +34,13 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.TimeUnit
 import java.util.StringJoiner
 
-/** Parameter generator for TypeScript target.
+/**
+ * Parameter generator for TypeScript target.
  *
+ *  @author{Matt Weber <matt.weber@berkeley.edu>}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 

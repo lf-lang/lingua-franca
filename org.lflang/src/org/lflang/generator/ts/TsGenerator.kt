@@ -39,7 +39,8 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
 import java.util.LinkedList
 
-/** Generator for TypeScript target.
+/**
+ * Generator for TypeScript target.
  *
  *  @author{Matt Weber <matt.weber@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
@@ -106,6 +107,7 @@ class TsGenerator(
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
+    // TODO(hokeun): Split this method into smaller methods.
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
                             context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -150,6 +152,8 @@ class TsGenerator(
 
         for (federate in federates) {
             var tsFileName = fileConfig.name
+            // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
+            // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
             if (isFederated) {
                 tsFileName += '_' + federate.name
             }
