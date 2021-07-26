@@ -197,14 +197,29 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
             args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
-                it.key + ": " + it.value
+                if (it.key == it.value) it.key
+                else it.key + ": " + it.value
             }
 
-        return nestedInstances.joinToString("\n") {
+        val asTuple = nestedInstances.joinWithCommas("(", ")") { it.lfName }
+        val asMutTuple = nestedInstances.joinWithCommas("(", ")") { "mut ${it.lfName}" }
+
+        val declarations = nestedInstances.joinToString("\n") {
             """
-                    ${it.loc.lfTextComment()}
-                    let mut ${it.lfName}: super::${it.names.wrapperName} = assembler.assemble_sub(${it.paramStruct()});
-                """.trimIndent()
+                ${it.loc.lfTextComment()}
+                let ${it.lfName}: super::${it.names.wrapperName} = assembler.assemble_sub(${it.paramStruct()});
+            """.trimIndent()
+        }
+
+        // we do this to only bring the arguments in scope
+        // within the block
+        return with(PrependOperator) { """
+            |let $asMutTuple = {
+            |    let $ctorParamsDeconstructor = args.clone();
+${"         |    "..declarations}
+            |    $asTuple
+            |};
+        """.trimMargin()
         }
     }
 
@@ -276,19 +291,21 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
 
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
-        val mainReactor = gen.mainReactor.names
-        this += """
+        val mainReactor = gen.mainReactor
+        val mainReactorNames = mainReactor.names
+        this += with(PrependOperator) {
+            """
             |${generatedByComment("//")}
             |#![allow(unused_imports)]
             |#![allow(non_snake_case)]
             |
             |#[macro_use]
             |extern crate $runtimeCrateFullName;
-            |
+            |extern crate env_logger;
             |
             |use $rsRuntime::*;
-            |use self::reactors::${mainReactor.wrapperName} as _MainReactor;
-            |use self::reactors::${mainReactor.paramStructName} as _MainParams;
+            |use self::reactors::${mainReactorNames.wrapperName} as _MainReactor;
+            |use self::reactors::${mainReactorNames.paramStructName} as _MainParams;
             |
             |fn main() {
             |    env_logger::init();
@@ -298,14 +315,18 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
             |       timeout: ${gen.properties.timeout.toRustOption()},
             |       keep_alive: ${gen.properties.keepAlive}
             |    };
+            |    // todo main params are entirely defaulted for now.
             |    let main_args = _MainParams {
-            |       // todo, for now main reactor params are unsupported
+${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName + ":" + (it.defaultValue ?: "Default::default()") }}
             |    };
             |
             |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
             |}
             |
         """.trimMargin()
+        }
+
+        skipLines(2)
 
         if (gen.properties.singleFile) {
             makeSingleFileProject(gen)
@@ -407,7 +428,10 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
 
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
-        get() = "${names.paramStructName} { ${ctorParams.joinToString(", ") { it.lfName }} }"
+        get() {
+            val fields = ctorParams.joinWithCommas { it.lfName }
+            return "${names.paramStructName} { $fields }"
+        }
 }
 
 
@@ -517,7 +541,7 @@ private fun <T> Iterable<T>.joinWithCommas(
     transform: (T) -> CharSequence = { it.toString() }
 ): String {
     val delim =
-        (if (skipLines) "\n" else "")
+        (if (skipLines) "\n" else " ")
             .let { if (trailing) it else ",$it" }
 
     return joinToString(delim, prefix, postfix) { t ->
