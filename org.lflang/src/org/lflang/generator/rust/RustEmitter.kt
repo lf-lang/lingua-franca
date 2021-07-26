@@ -128,7 +128,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |
                 |use $rsRuntime::*; // after this point there's no user-written code
                 |
-                |impl $rsRuntime::ReactorDispatcher for $wrapperName {
+                |impl $rsRuntime::ReactorInitializer for $wrapperName {
                 |    type Wrapped = $structName;
                 |    type Params = $paramStructName;
                 |    const MAX_REACTION_ID: LocalReactionId = ${reactions.size + timers.size /*timers have a reschedule reaction*/};
@@ -158,7 +158,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |}
                 |
                 |
-                |impl $rsRuntime::ErasedReactorDispatcher for $wrapperName {
+                |impl $rsRuntime::ReactorBehavior for $wrapperName {
                 |
                 |    #[inline]
                 |    fn id(&self) -> ReactorId {
