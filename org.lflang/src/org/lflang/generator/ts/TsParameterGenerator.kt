@@ -29,7 +29,6 @@ import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.lf.TimeUnit
@@ -136,7 +135,6 @@ class TsParameterGenerator(
 
         // Extend the return type for commandLineArgs
         var clTypeExtension = StringJoiner(", ")
-
 
         for (parameter in getParameters()) {
             var customArgType: String? = null
