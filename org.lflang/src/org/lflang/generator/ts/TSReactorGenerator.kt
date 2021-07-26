@@ -21,8 +21,8 @@ import kotlin.collections.LinkedHashMap
  *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
-class TsReactorGenerator(
-    private val tsGenerator: TsGenerator,
+class TSReactorGenerator(
+    private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter
 ) {
     private var code = StringBuilder()
