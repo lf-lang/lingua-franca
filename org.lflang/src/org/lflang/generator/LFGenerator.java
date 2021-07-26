@@ -47,86 +47,50 @@ public class LFGenerator extends AbstractGenerator {
         return Target.forName(targetName);
     }
 
-    /** Create a FileConfig object for the given target */
-    private FileConfig createFileConfig(final Target target, Resource resource,
-            IFileSystemAccess2 fsa, IGeneratorContext context)
-            throws IOException {
-        switch (target) {
-            case CPP: {
-                return createCppFileConfig(resource, fsa, context);
-            }
-            case TS: {
-//                return new TypeScriptFileConfig(resource, fsa, context);
-                return createTsFileConfig(resource, fsa, context);
-            }
-            default: {
-                return new FileConfig(resource, fsa, context);
-            }
-        }
-    }
-
     /**
-     * Create a C++ specific FileConfig object
-     * 
-     * Since the CppFileConfig class is implemented in Kotlin, the class is is
-     * not visible from all contexts. If the RCA is run from within Eclipse via
-     * "Run as Eclipse Application", the Kotlin classes are unfortunately not
-     * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
-     * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-     * 
-     * If the CppFileConfig class is found, this method returns an instance.
-     * Otherwise, it returns an Instance of FileConfig.
-     * 
-     * @return A CppFileConfig object if the class can be found
-     * @throws IOException
-     */
-    private FileConfig createCppFileConfig(Resource resource,
-            IFileSystemAccess2 fsa, IGeneratorContext context)
-            throws IOException {
-        // Since our Eclipse Plugin uses code injection via guice, we need to
-        // play a few tricks here so that CppFileConfig does not appear as an
-        // import. Instead we look the class up at runtime and instantiate it if
-        // found.
-        try {
-            return (FileConfig) Class
-                    .forName("org.lflang.generator.cpp.CppFileConfig")
-                    .getDeclaredConstructor(Resource.class,
-                            IFileSystemAccess2.class, IGeneratorContext.class)
-                    .newInstance(resource, fsa, context);
-        } catch (InstantiationException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException
-                | NoSuchMethodException | SecurityException
-                | ClassNotFoundException e) {
-            return new FileConfig(resource, fsa, context);
-        }
-    }
-
-    /**
-     * Create a TypeScript specific FileConfig object
+     * Create a target-specific FileConfig object in Kotlin
      *
-     * Since the CppFileConfig class is implemented in Kotlin, the class is is
+     * Since the CppFileConfig and TypeScriptFileConfig class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
      * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
      *
-     * If the CppFileConfig class is found, this method returns an instance.
+     * If the FileConfig class is found, this method returns an instance.
      * Otherwise, it returns an Instance of FileConfig.
      *
-     * @return A CppFileConfig object if the class can be found
+     * @return A FileConfig object in Kotlin if the class can be found.
      * @throws IOException
      */
-    private FileConfig createTsFileConfig(Resource resource,
-                                          IFileSystemAccess2 fsa,
-                                          IGeneratorContext context)
+    private FileConfig createFileConfig(final Target target,
+                                              Resource resource,
+                                              IFileSystemAccess2 fsa,
+                                              IGeneratorContext context)
         throws IOException {
         // Since our Eclipse Plugin uses code injection via guice, we need to
-        // play a few tricks here so that CppFileConfig does not appear as an
+        // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
         // found.
+        String packageName;
+        String classNamePrefix;
+        switch (target) {
+            case CPP: {
+                packageName = "cpp";
+                classNamePrefix = "Cpp";
+                break;
+            }
+            case TS: {
+                packageName = "ts";
+                classNamePrefix = "Ts";
+                break;
+            }
+            default: {
+                throw new RuntimeException("Unexpected target!");
+            }
+        }
         try {
             return (FileConfig) Class
-                .forName("org.lflang.generator.ts.TsFileConfig")
+                .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig")
                 .getDeclaredConstructor(Resource.class,
                                         IFileSystemAccess2.class, IGeneratorContext.class)
                 .newInstance(resource, fsa, context);
@@ -148,90 +112,59 @@ public class LFGenerator extends AbstractGenerator {
             case CCPP: {
                 return new CCppGenerator(fileConfig, errorReporter);
             }
-            case CPP: {
-                return createCppGenerator(fileConfig, errorReporter);
-            }
-            case TS: {
-//                return new TypeScriptGenerator(
-//                        (TypeScriptFileConfig) fileConfig, errorReporter);
-                return createTsGenerator(fileConfig, errorReporter);
-            }
             case Python: {
                 return new PythonGenerator(fileConfig, errorReporter);
+            }
+            default: {
+                return createKotlinGenerator(target, fileConfig, errorReporter);
+            }
+        }
+    }
+
+    /**
+     * Create a code generator in Kotlin.
+     *
+     * Since the CppGenerator and TsGenerator class are implemented in Kotlin, the classes are
+     * not visible from all contexts. If the RCA is run from within Eclipse via
+     * "Run as Eclipse Application", the Kotlin classes are unfortunately not
+     * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
+     * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
+     * In this case, the method returns null
+     *
+     * @return A Kotlin Generator object if the class can be found
+     */
+    private GeneratorBase createKotlinGenerator(Target target, FileConfig fileConfig,
+                                            ErrorReporter errorReporter) {
+        // Since our Eclipse Plugin uses code injection via guice, we need to
+        // play a few tricks here so that Kotlin FileConfig and
+        // Kotlin Generator do not appear as an import. Instead we look the
+        // class up at runtime and instantiate it if found.
+        String packageName;
+        String classNamePrefix;
+        String targetName;
+        switch (target) {
+            case CPP: {
+                packageName = "cpp";
+                classNamePrefix = "Cpp";
+                targetName = "C++";
+                break;
+            }
+            case TS: {
+                packageName = "ts";
+                classNamePrefix = "Ts";
+                targetName = "TypeScript";
+                break;
             }
             default: {
                 throw new RuntimeException("Unexpected target!");
             }
         }
-    }
-
-    /**
-     * Create a C++ code generator
-     * 
-     * Since the CppGenerator class is implemented in Kotlin, the class is
-     * not visible from all contexts. If the RCA is run from within Eclipse via
-     * "Run as Eclipse Application", the Kotlin classes are unfortunately not
-     * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
-     * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-     * In this case, the method returns null
-     * 
-     * @return A CppGenerator object if the class can be found
-     */
-    private GeneratorBase createCppGenerator(FileConfig fileConfig,
-            ErrorReporter errorReporter) {
-        // Since our Eclipse Plugin uses code injection via guice, we need to
-        // play a few tricks here so that CppFileConfig and CppGenerator do not
-        // appear as an import. Instead we look the class up at runtime and
-        // instantiate it if found.
         try {
             return (GeneratorBase) Class
-                    .forName("org.lflang.generator.cpp.CppGenerator")
-                    .getDeclaredConstructor(
-                            Class.forName(
-                                    "org.lflang.generator.cpp.CppFileConfig"),
-                            ErrorReporter.class, LFGlobalScopeProvider.class)
-                    .newInstance(fileConfig, errorReporter, scopeProvider);
-        } catch (InstantiationException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException
-                | NoSuchMethodException | SecurityException
-                | ClassNotFoundException e) {
-            generatorErrorsOccurred = true;
-            errorReporter.reportError(
-                    "The code generator for the C++ target could not be found. "
-                            + "This is likely because you are running the RCA from Eclipse. "
-                            + "The C++ code generator is written in Kotlin and, "
-                            + "unfortunately, the Eclipse Kotlin plugin is broken, "
-                            + "preventing us from loading the generator properly. "
-                            + "Please consider building the RCA via Maven.");
-            // FIXME: Add a link to the wiki with more information.
-            return null;
-        }
-    }
-
-    /**
-     * Create a TypeScript code generator
-     *
-     * Since the Typeenerator class is implemented in Kotlin, the class is
-     * not visible from all contexts. If the RCA is run from within Eclipse via
-     * "Run as Eclipse Application", the Kotlin classes are unfortunately not
-     * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
-     * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-     * In this case, the method returns null
-     *
-     * @return A TypeScriptGenerator object if the class can be found
-     */
-    private GeneratorBase createTsGenerator(FileConfig fileConfig,
-                                            ErrorReporter errorReporter) {
-        // Since our Eclipse Plugin uses code injection via guice, we need to
-        // play a few tricks here so that TypeScriptFileConfig and
-        // TypeScriptGenerator do not appear as an import. Instead we look the
-        // class up at runtime and instantiate it if found.
-        try {
-            return (GeneratorBase) Class
-                .forName("org.lflang.generator.ts.TsGenerator")
+                .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "Generator")
                 .getDeclaredConstructor(
                     Class.forName(
-                        "org.lflang.generator.ts.TsFileConfig"),
+                        "org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig"),
                     ErrorReporter.class, LFGlobalScopeProvider.class)
                 .newInstance(fileConfig, errorReporter, scopeProvider);
         } catch (InstantiationException | IllegalAccessException
@@ -240,9 +173,9 @@ public class LFGenerator extends AbstractGenerator {
             | ClassNotFoundException e) {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
-                "The code generator for the TypeScript target could not be found. "
+                "The code generator for the " + targetName + " target could not be found. "
                     + "This is likely because you are running the RCA from"
-                    + "Eclipse. The TypeScript code generator is written in Kotlin"
+                    + "Eclipse. The " + targetName + " code generator is written in Kotlin"
                     + "and, unfortunately, the Eclipse Kotlin plugin is "
                     + "broken, preventing us from loading the generator"
                     + "properly. Please consider building the RCA via Maven.");

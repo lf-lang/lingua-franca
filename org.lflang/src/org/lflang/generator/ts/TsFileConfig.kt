@@ -32,8 +32,13 @@ import org.lflang.FileConfig
 import java.io.IOException
 import java.nio.file.Path
 
-/** Generator for TypeScript target.
+/**
+ * Generator for TypeScript target.
  *
+ *  @author{Matt Weber <matt.weber@berkeley.edu>}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TsFileConfig(resource: Resource, fsa: IFileSystemAccess2,

@@ -9,12 +9,16 @@ import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.lang.StringBuilder
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
-/** Reactor generator for TypeScript target.
+/**
+ * Reactor generator for TypeScript target.
  *
+ *  @author{Matt Weber <matt.weber@berkeley.edu>}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TsReactorGenerator(
@@ -118,6 +122,7 @@ class TsReactorGenerator(
         }
     }
 
+    // TODO(hokeun): Split this method into smaller methods.
     fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
         pr("// =============== START reactor class " + reactor.name)
 

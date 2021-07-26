@@ -29,8 +29,13 @@ import org.lflang.generator.PrependOperator
 import java.nio.file.Path
 import java.util.*
 
-/** Preamble generator for TypeScript target.
+/**
+ * Preamble generator for TypeScript target.
  *
+ *  @author{Matt Weber <matt.weber@berkeley.edu>}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 
