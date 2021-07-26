@@ -3,7 +3,9 @@ target Python {
     timeout: 2 sec,
     fast: true
 }; 
-reactor Source {
+reactor Source(
+    bank_index(0)
+) {
 	timer t(0, 200 msec);
 	output out;
 	state s(0);
@@ -12,7 +14,9 @@ reactor Source {
         self.s += self.bank_index
 	=}
 }
-reactor Destination {
+reactor Destination(
+    bank_index(0)
+) {
 	state s(0);
 	input _in;
 	reaction(_in) {=
