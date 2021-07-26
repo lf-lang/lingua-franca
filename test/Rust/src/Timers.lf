@@ -4,21 +4,19 @@
 target Rust {
     timeout: 2 sec
 };
-main reactor {
+main reactor Timers {
     timer t(0, 1 sec);
     timer t2(0, 2 sec);
     state counter: i32(0);
+
     reaction(t2) {=
-        panic!("Akshully we need to implement shutdown trigger first!");
         self.counter += 2;
     =}
     reaction(t) {=
         self.counter -= 1;
     =}
     reaction(shutdown) {=
-        if self.counter != 1 {
-            panic!("Error: Expected 1 and got {}.", self.counter);
-        }
+        assert_ne!(1, self.counter);
         println!("SUCCESS.")
     =}
 }
