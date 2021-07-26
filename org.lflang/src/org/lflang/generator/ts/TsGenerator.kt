@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
+import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.*
@@ -158,7 +159,7 @@ class TsGenerator(
             val preambleGenerator = TsPreambleGenerator(fileConfig.srcFile.toPath())
             tsCode.append(preambleGenerator.generatePreamble())
 
-            val parameterGenerator = TsParameterGenerator(fileConfig, targetConfig, reactors)
+            val parameterGenerator = TsParameterGenerator(this, fileConfig, targetConfig, reactors)
             val (mainParameters, parameterCode) = parameterGenerator.generatePrameters()
             tsCode.append(parameterCode)
 
@@ -335,6 +336,20 @@ class TsGenerator(
         }
     }
 
+    override fun getTargetType(s: StateVar): String {
+        val type = super.getTargetType(s)
+        return if (!isInitialized(s)) {
+            type + " | undefined"
+        } else {
+            type
+        }
+    }
+
+    override fun getTargetReference(param: Parameter): String {
+        return """this.${param.name}.get()"""
+    }
+
+    // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
         return """actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"""
     }

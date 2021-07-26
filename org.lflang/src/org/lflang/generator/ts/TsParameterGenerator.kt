@@ -41,10 +41,13 @@ import java.util.StringJoiner
  */
 
 class TsParameterGenerator(
+    private val tsGenerator: TsGenerator,
     private val fileConfig: FileConfig,
     private val targetConfig: TargetConfig,
     private val reactors: MutableList<Reactor>
 ) {
+    private fun getTargetType(p: Parameter): String = tsGenerator.getTargetTypeW(p)
+
     private fun getTimeoutTimeValue(): String {
         if (targetConfig.timeout !== null) {
             return timeInTargetLanguage(targetConfig.timeout)
@@ -88,7 +91,7 @@ class TsParameterGenerator(
         var code = StringJoiner("\n")
         for (parameter in mainParameters) {
             code.add("""
-                |let __CL${parameter.name}: ${parameter.targetType} | undefined = undefined;
+                |let __CL${parameter.name}: ${getTargetType(parameter)} | undefined = undefined;
                 |if (__processedCLArgs.${parameter.name} !== undefined) {
                 |    if (__processedCLArgs.${parameter.name} !== null) {
                 |        __CL${parameter.name} = __processedCLArgs.${parameter.name};
@@ -106,7 +109,7 @@ class TsParameterGenerator(
      * Generate code for extracting custom command line arguments
      * from the object returned from commandLineArgs
      */
-    private fun logCustomCLArgs(mainParameters: HashSet<Parameter>): String {
+    private fun logCustomCLArgs(mainParameters: Set<Parameter>): String {
         var code = StringJoiner("\n")
         for (parameter in mainParameters) {
             // We can't allow the programmer's parameter names
@@ -117,17 +120,16 @@ class TsParameterGenerator(
                 |if (__processedCLArgs.${parameter.name} !== undefined && __processedCLArgs.${parameter.name} !== null
                 |    && !__noStart) {
                 |    Log.global.info("'${parameter.name}' property overridden by command line argument.");
-                |}
-                """)
+                |}""")
         }
         return code.toString()
     }
 
-    fun generatePrameters(): Pair<HashSet<Parameter>, String> {
+    fun generatePrameters(): Pair<Set<Parameter>, String> {
         /**
          * Set of parameters (AST elements) associated with the main reactor.
          */
-        var mainParameters =  HashSet<Parameter>()
+        var mainParameters = HashSet<Parameter>()
 
         // Build the argument spec for commandLineArgs and commandLineUsage
         var customArgs = StringJoiner(",\n")
@@ -140,7 +142,7 @@ class TsParameterGenerator(
             var customArgType: String? = null
             var customTypeLabel: String? = null
 
-            val paramType = parameter.targetType
+            val paramType = getTargetType(parameter)
             if (paramType == "string") {
                 mainParameters.add(parameter)
                 customArgType = "String";
@@ -161,22 +163,20 @@ class TsParameterGenerator(
             if (customArgType !== null) {
                 clTypeExtension.add(parameter.name + ": " + paramType)
                 if (customTypeLabel !== null) {
-                    customArgs.add("""
+                    customArgs.add(with(PrependOperator) {"""
                     |{
                     |    name: '${parameter.name}',
                     |    type: ${customArgType},
                     |    typeLabel: "{underline ${customTypeLabel}}",
                     |    description: 'Custom argument. Refer to ${fileConfig.srcFile} for documentation.'
-                    |}
-                        """)
+                    |}""".trimMargin()})
                 } else {
-                    customArgs.add("""
+                    customArgs.add(with(PrependOperator) {"""
                     |{
                     |    name: '${parameter.name}',
                     |    type: ${customArgType},
                     |    description: 'Custom argument. Refer to ${fileConfig.srcFile} for documentation.'
-                    |}
-                        """)
+                    |}""".trimMargin()})
                 }
             }
         }
