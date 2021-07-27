@@ -32,7 +32,7 @@
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.jetbrains.kotlin.feature.feature.group" version="0.0.0"/>
-      <repository location="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
+      <repository location="https://download.jetbrains.com/kotlin/eclipse-plugin/last/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.contribution.weaving.feature.group" version="0.0.0"/>
