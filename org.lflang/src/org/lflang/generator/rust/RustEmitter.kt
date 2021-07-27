@@ -78,7 +78,9 @@ object RustEmitter {
                 |
 ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |
-                |// todo link to source
+                |/// Generated from ${loc.display()}
+                |///
+                |/${loc.lfTextComment()}
                 |pub struct $structName {
 ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}

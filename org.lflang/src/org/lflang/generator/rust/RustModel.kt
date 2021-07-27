@@ -330,6 +330,8 @@ private fun toRustTimeExpr(interval: Long, unit: TimeUnit) = when (unit) {
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
+/** Regex to match a simple (C) code block, captures the insides as $1. */
+private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
 
 /**
  * Produce model classes from the AST.
@@ -403,7 +405,10 @@ object RustModelBuilder {
 
             ReactorInfo(
                 lfName = reactor.name,
-                loc = reactor.locationInfo(),
+                loc = reactor.locationInfo().let {
+                    // remove body
+                    it.copy(lfText = it.lfText.replace(BLOCK_R, "{ ... }"))
+                },
                 reactions = reactions,
                 otherComponents = components.values.toList(),
                 isMain = reactor.isMain,
