@@ -170,7 +170,7 @@ data class ReactionInfo(
     /** Target code for the reaction body. */
     val body: TargetCode,
 
-    val allDependencies: EnumMap<DepKind, Set<ReactorComponent>>,
+    val allDependencies: Map<DepKind, Set<ReactorComponent>>,
 
     /** Whether the reaction is triggered by the startup event. */
     val isStartup: Boolean,
@@ -317,7 +317,7 @@ data class TimerData(
 private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
-private fun toRustTimeExpr(interval: Long, unit: TimeUnit) = when (unit) {
+private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode = when (unit) {
     TimeUnit.NSEC,
     TimeUnit.NSECS                    -> "Duration::from_nanos($interval)"
     TimeUnit.USEC,
@@ -402,7 +402,6 @@ object RustModelBuilder {
                         this[DepKind.Triggers] = makeDeps { triggers.filterIsInstance<VarRef>() }
                         this[DepKind.Uses] = makeDeps { sources }
                         this[DepKind.Effects] = makeDeps { effects }
-
                     },
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it.isStartup },
@@ -463,7 +462,7 @@ object RustModelBuilder {
     }
 }
 
-fun Type.toRustType(): String {
+fun Type.toRustType(): TargetCode {
     fun String.maybeToArray() =
         when {
             arraySpec == null            -> this
@@ -482,7 +481,7 @@ fun Type.toRustType(): String {
     }
 }
 
-fun Value.toRustExpr(): String =
+fun Value.toRustExpr(): TargetCode =
     parameter?.name
         ?: time?.toRustTimeExpr()
         ?: literal
