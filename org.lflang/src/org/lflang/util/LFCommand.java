@@ -198,7 +198,7 @@ public class LFCommand {
 
 
     /**
-     * Add the given variable and its value tor the command's environment.
+     * Add the given variable and its value to the command's environment.
      *
      * @param variableName name of the variable to add
      * @param value        the variable's value
@@ -206,7 +206,17 @@ public class LFCommand {
     public void setEnvironmentVariable(String variableName, String value) {
         processBuilder.environment().put(variableName, value);
     }
-
+    
+    /**
+     * Replace the given variable and its value in the command's environment.
+     * 
+     * @param variableName name of the variable to add
+     * @param value        the variable's value
+     */
+    public void replaceEnvironmentVariable(String variableName, String value) {
+        processBuilder.environment().remove(variableName);
+        processBuilder.environment().put(variableName, value);
+    }
 
     /**
      * Create a LFCommand instance from a given command and argument list in the current working directory.

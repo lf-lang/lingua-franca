@@ -63,6 +63,13 @@ class TargetConfig {
      * An optional additional .cmake file to include.
      */
     public String cmakeInclude = ""
+    
+    /**
+     * Enable or disable the use of CMake to build.
+     * 
+     * The default is enabled.
+     */
+    public boolean useCmake = true;
 
     /**
      * The compiler to invoke, unless a build command has been specified.
