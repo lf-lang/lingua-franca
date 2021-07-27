@@ -93,14 +93,11 @@ public class MainConflictChecker {
                                     .<EObject>toIterable(r.getAllContents()),
                                     Reactor.class)
                             .iterator();
-                    File file = path.toFile();
                     // If this is not the same file, but it has a main reactor
                     // and the name matches, then report the conflict.
-                    if (!fileConfig.srcFile.equals(file)
-                            && IteratorExtensions.exists(reactors,
-                                    it -> it.isMain() || it.isFederated())
-                            && fileConfig.name.equals(
-                                    FileConfig.nameWithoutExtension(file))) {
+                    if (!fileConfig.srcFile.equals(path)
+                            && IteratorExtensions.exists(reactors, it -> it.isMain() || it.isFederated())
+                            && fileConfig.name.equals(FileConfig.nameWithoutExtension(path))) {
                         conflicts.add(
                                 fileConfig.srcPath.relativize(path).toString());
                     }
