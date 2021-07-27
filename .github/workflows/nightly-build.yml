@@ -1,9 +1,9 @@
 name: Nightly Build
 
-# trigger the workflow every day at midnight (UTC)
+# Trigger the workflow every day at 5 AM (UTC) i.e., 10 PM Pacific.
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 5 * * *'
 
 jobs:
   package:
