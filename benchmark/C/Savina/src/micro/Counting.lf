@@ -127,9 +127,9 @@ reactor CountingReactor (numIterations:int(12)){
 }
 
 /* [[[cog
-cog.outl(f"main reactor Counting(numIterations:int(12), countTo:int({countTo}))")
+cog.outl(f"main reactor Counting(countTo:int({countTo}))")
 ]]] */
-main reactor Counting(numIterations:int(12), countTo:int(1000000))
+main reactor Counting(countTo:int(1000000))
 //[[[end]]]
 { 
     producer = new ProducerReactor(countTo = countTo);
