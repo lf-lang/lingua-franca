@@ -169,7 +169,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |
                 |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: LocalReactionId) {
                 |        match rid.raw() {
-${"             |            "..reactionWrappers(reactor)}
+${"             |            "..workerFunctionCalls(reactor)}
 ${"             |            "..syntheticTimerReactions(reactor)}
                 |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
                 |        }
@@ -237,14 +237,14 @@ ${"         |    "..declarations}
         }
     }
 
-    private fun reactionWrappers(reactor: ReactorInfo): String {
+    private fun ReactorComponentEmitter.workerFunctionCalls(reactor: ReactorInfo): String {
 
-        fun joinDependencies(n: ReactionInfo): String = sequence<String> {
-            for ((kind, deps) in n.allDependencies) {
-                for (d in deps) {
-                    val borrow = with(ReactorComponentEmitter) {
-                        d.toBorrow(kind)
-                    } ?: continue
+        fun joinDependencies(reaction: ReactionInfo): String = sequence {
+            for ((kind, deps) in reaction.allDependencies) {
+                for (comp in deps) {
+                    if (comp.isNotInjectedInReaction(kind, reaction)) continue
+
+                    val borrow = comp.toBorrow(kind) ?: continue
                     yield(borrow)
                 }
             }
@@ -455,21 +455,36 @@ private object ReactorComponentEmitter {
         is PortData   ->
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
-        is ActionData -> "&self.$rustFieldName"
+        is ActionData -> "&mut self.$rustFieldName"
         is TimerData  -> null
     }
 
-    fun ReactorComponent.isInjectedInReaction(depKind: DepKind): Boolean =
-        this !is TimerData
+    fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
+        this is TimerData
+                // Item is both in inputs and outputs.
+                // We must not generate 2 parameters, instead we generate the
+                // one with the most permissions (Effects means &mut).
 
-    fun ReactorComponent.isInjectedAsMut(): Boolean =
-        this is PortData && !this.isInput
+                // eg `reaction(act) -> act` must not generate 2 parameters for act,
+                // we skip the Trigger one and generate the Effects one.
+                || depKind != DepKind.Effects && this in n.effects
+
+    fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
+        depKind == DepKind.Effects && (this is PortData || this is ActionData)
+
+    /**
+     * Whether this component may be unused in a reaction.
+     * Eg. actions on which we have just a trigger dependency
+     * are fine to ignore.
+     */
+    fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
+        depKind == DepKind.Triggers && this !is PortData
 
     fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
         if (this is PortData) {
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>"
             else "$rsRuntime::ReadablePort<$dataType>"
-        } else "& ${toType()}"
+        } else "&mut ${toType()}"
 
     fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData ->
@@ -503,14 +518,20 @@ private object ReactorComponentEmitter {
     fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
             for ((kind, comps) in allDependencies) {
-                for (d in comps) {
-                    if (d.isInjectedInReaction(kind)) {
-                        val mut = if (d.isInjectedAsMut()) "mut " else ""
+                for (comp in comps) {
+                    if (comp.isNotInjectedInReaction(kind, this@reactionParams)) continue
 
-                        val param = "$mut${d.lfName}: ${d.toBorrowedType(kind)}"
-                        val annotated = if (d !is PortData) "#[allow(unused)] $param" else param
+                    // we want the user to be able to make
+                    // use of the mut if they want, but they
+                    // don't have to
+                    val mut = if (comp.isInjectedAsMut(kind)) "#[allow(unused_mut)] mut " else ""
 
-                        yield(annotated)
+                    val param = "$mut${comp.lfName}: ${comp.toBorrowedType(kind)}"
+
+                    if (comp.mayBeUnusedInReaction(kind)) {
+                        yield("#[allow(unused)] $param")
+                    } else {
+                        yield(param)
                     }
                 }
             }
