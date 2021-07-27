@@ -11,33 +11,22 @@
 
 target Cpp {
     cmake-include: "../IncludeHeaders.cmake",
-    build-type : RelWithDebInfo
+    build-type : RelWithDebInfo,
+    logging : WARN
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
-    enum MsgType {
-      StartMsg,
-      StopMsg,
-      ReplyMsg,
-      DebitMsg,
-      CreditMsg
-    };
-    
-    struct Message {
-      MsgType type;
-      double amount;
+    #include <deque>
+    #include <reactor-cpp/logging.hh>
+        
+    struct CreditMessage {
       size_t recipient;
-    
-      Message(MsgType _type, double _amount, size_t _recipient):
-        type(_type), amount(_amount), recipient(_recipient) {}
-    
-      Message() {}
-    
-      Message(MsgType _type):
-        type(_type) {}
+      double amount;  
     };
+    
+    using MessageQueue = std::deque<CreditMessage>;
 =}
 
 reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
@@ -46,191 +35,106 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
         #include "PseudoRandom.hh"
     =}
     
-    state numCompletedBankings: size_t;
     state randomGen: PseudoRandom;
-    state numWorkGenerated: size_t(0);
-    state nextGeneratedWorkMsg: {=reactor::ImmutableValuePtr<Message>=};
-    state nextGeneratedWorkSrcAccountId: size_t;
+    state messageQueues: std::vector<MessageQueue>(numAccounts);
     
-    input inStart:void;
-    output outFinished:void;
+    input start:void;
+    output finished:void;
     
     output[numAccounts] reset: void;
-    output[numAccounts] outAccount: Message;
-    input[numAccounts] inAccount: Message;
+    output[numAccounts] credit: CreditMessage;
     
-    logical action generateWork:void;
+    logical action next: void;
     
-    reaction(inStart) -> reset, generateWork {=
-        // reset local state
-        numCompletedBankings = 0;
-        randomGen = PseudoRandom(123456);
-        numWorkGenerated = 0;
-        nextGeneratedWorkMsg = reactor::ImmutableValuePtr<Message>();
-        nextGeneratedWorkSrcAccountId = -1;
+    method generateWork() {=
+        for (size_t i{0}; i < numBankings; i++) {
+            // src is lower than dest id to ensure there is never a deadlock
+            // Note: this comment stems from the original Akka implementation and 
+            // is actually not needed in LF, since cycle free programs cannot deadlock
+            size_t src_account = randomGen.nextInt((numAccounts / 10) * 8);
+            size_t loop_id = randomGen.nextInt(numAccounts - src_account);
+            if(loop_id == 0) {
+                loop_id += 1;
+            }
+            size_t dest_account = src_account + loop_id;
+            
+            double amount = randomGen.nextDouble() * 1000;
+            
+            reactor::log::Info() << "Send " << amount << " from " << src_account << " to " << dest_account;
+            messageQueues[src_account].push_back(CreditMessage{dest_account, amount});
+        }
+    =}
+    
+    reaction(start) -> reset, next {=
+        reactor::log::Info() << "Teller: Start a new iteration";
         
+        // reset local state
+        randomGen = PseudoRandom(123456);
+
         // reset all accounts
         for (auto& r : reset)
         	r.set();
-        
+
+		generateWork();
+                
         // start execution
-        generateWork.schedule();
+        next.schedule();
     =}
     
-    reaction(generateWork) -> generateWork, outAccount {=
-        
-        if(numWorkGenerated >= numBankings) {
-            return;
-        }
-        
-        std::set<size_t> accountsWorkGeneratedFor;
-        
-        if(nextGeneratedWorkMsg != nullptr) {
-            outAccount[nextGeneratedWorkSrcAccountId].set(nextGeneratedWorkMsg);
-            accountsWorkGeneratedFor.insert(nextGeneratedWorkSrcAccountId);
-            numWorkGenerated += 1;
-        }
-        
-        // Generate work for accounts until no more work to
-        // generate or work is genrated for an account that
-        // already has work.
-        while(numWorkGenerated < numBankings) {
-            // src is lower than dest id to ensure there is never a deadlock
-            int srcAccountId = randomGen.nextInt((outAccount.size() / 10) * 8);
-            nextGeneratedWorkSrcAccountId = srcAccountId;
-            size_t loopId = randomGen.nextInt(outAccount.size() - srcAccountId);
-            if(loopId == 0) {
-                loopId += 1;
-            }
-            int destAccountId = srcAccountId + loopId;
-            
-            double amount = abs(randomGen.nextDouble()) * 1000;
-            
-            auto ret = accountsWorkGeneratedFor.insert(srcAccountId);
-            nextGeneratedWorkMsg = reactor::make_immutable_value<Message>(CreditMsg, amount, destAccountId);
-            if(ret.second) {
-                outAccount[srcAccountId].set(nextGeneratedWorkMsg);
-                numWorkGenerated += 1;
-            } else {
-                break;
+    reaction(next) -> next, credit, finished {=
+        reactor::log::Info() << "Teller: Sending a new round of credit messages";
+        bool work_found{false};
+        for (size_t i{0}; i < numAccounts; i++) {
+            auto& queue = messageQueues[i];
+			if (!queue.empty()) {
+                work_found = true;
+                const auto& message = queue.front();  
+                credit[message.recipient].set(message);
+                queue.pop_front();
             }
         }
         
-        generateWork.schedule();
-    =}
-    
-    reaction(inAccount) -> outFinished, outAccount {=
-        for(size_t i = 0; i < inAccount.size(); ++i) {
-            if(inAccount[i].is_present()) {
-                if(inAccount[i].get()->type == ReplyMsg) {
-                    
-                    numCompletedBankings += 1;
-                    if(numCompletedBankings == numBankings) {
-                        for(size_t i = 0; i < outAccount.size(); ++i) {
-                            outAccount[i].set(Message{StopMsg});
-                        }
-                        outFinished.set();
-                    }
-                }
-            }
+        if (work_found) {
+            next.schedule();
+        } else {
+            reactor::log::Info() << "Teller: Finished iteration";
+            finished.set();
         }
-    =}
+	=}
 }
 
-
-/** 
- * Intra-reactor-bank communication between Account reactors is prone
- * to deadlocks if two send each other CreditMsg at the same point
- * in logical time. This is prevented in the Teller-reactor that
- * generates DebitMsg according to an ordering.
- */
 reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:double(0.0)) {
-    
-    public preamble {=
-        #include "PseudoRandom.hh"
-        #include <list>
-        #include "reactor-cpp/logging.hh"
-    =}
-
     state balance: double{0.0};
-    state stashedMessages:{=std::list<reactor::ImmutableValuePtr<Message>>=};
-    state inReplyMode:bool(false);
-
+    
 	input reset: void; 
-    input inTeller: Message;
-    output outTeller: Message;
-    
-    output[numAccounts] outAccount: Message;
-    input[numAccounts] inAccount: Message;
-    
-    logical action handleMessage:void;
+    input inCredit: CreditMessage;
+   
+   	input[numAccounts] inDebit: double; 
+    output[numAccounts] outDebit: double;
        
     reaction (reset) {=
         balance = initialBalance;
     =}
-       
-    reaction(handleMessage) -> handleMessage, outTeller, outAccount {=
-        if(stashedMessages.empty()) {
-            return;
-        }
-        
-        if(inReplyMode) {            
-            auto reply = std::find_if(std::begin(stashedMessages), std::end(stashedMessages),
-                [](reactor::ImmutableValuePtr<Message>& msg) { return (msg->type == ReplyMsg); }
-            );
-            if(reply == std::end(stashedMessages)) {
-                // reply not received yet
-            } else {
-                // reply received
-                inReplyMode = false;
-                stashedMessages.erase(reply);
-                outTeller.set(Message{ReplyMsg});
-            }
-            
-        } else { // inReplyMode == false
-            
-            if(stashedMessages.front()->type == DebitMsg) {
-                
-                balance += stashedMessages.front()->amount;
-                outAccount[stashedMessages.front()->recipient].set(Message{ReplyMsg});
-                stashedMessages.pop_front();
-                
-            } else if(stashedMessages.front()->type == CreditMsg) {
-                
-                balance -= stashedMessages.front()->amount;
-                int destAccount = stashedMessages.front()->recipient;
-                outAccount[destAccount].set(Message{DebitMsg, stashedMessages.front()->amount, bank_index});
-                inReplyMode = true;
-                stashedMessages.pop_front();
-                
-            } else if(stashedMessages.front()->type == StopMsg) {
-                
-                stashedMessages.pop_front();
-                if(!stashedMessages.empty()) {
-                    reactor::log::Info() << "Stop message received, but message queue not empty in account " << bank_index;
-                }
-                balance = initialBalance;
-                stashedMessages = std::list<reactor::ImmutableValuePtr<Message>>();
-                inReplyMode = false;
-                return; // don't schedule
-            }
-        }
-        
-        handleMessage.schedule();
+    
+    reaction (inCredit) -> outDebit {=
+        auto message = inCredit.get();
+        // reduce the balance
+        balance -= message->amount;
+        // and sent the recipient a debit message
+        outDebit[message->recipient].set(message->amount);
+        reactor::log::Info() << "Account " << bank_index << " credits " << message->amount 
+                             << " to " << message->recipient;
     =}
     
-    reaction(inAccount) -> handleMessage {=
-        for(size_t i = 0; i < inAccount.size(); ++i) {
-            if(inAccount[i].is_present()) {
-                stashedMessages.push_back(inAccount[i].get());
+    reaction (inDebit) {=
+        for (auto& port : inDebit) {
+            if (port.is_present()) {
+                double amount = *port.get();
+				// increase the balance
+        		balance += amount;
+        		reactor::log::Info() << "Account " << bank_index << " received " << amount;                
             }
         }
-        handleMessage.schedule();
-    =}
-    
-    reaction(inTeller) -> handleMessage {=
-        stashedMessages.push_back(inTeller.get());
-        handleMessage.schedule();
     =}
 }
 
@@ -240,8 +144,8 @@ main reactor (numIterations:size_t(12), numTransactions:size_t(50000), numAccoun
     teller = new Teller(numAccounts=numAccounts, numBankings=numTransactions);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> teller.inStart;
-    teller.outFinished -> runner.inIterationFinish;
+    runner.outIterationStart -> teller.start;
+    teller.finished -> runner.inIterationFinish;
     
     accounts = new[numAccounts] Account(numAccounts=numAccounts, initialBalance={=std::numeric_limits<double>::max() / (numAccounts * numTransactions)=});
     
@@ -252,9 +156,7 @@ main reactor (numIterations:size_t(12), numTransactions:size_t(50000), numAccoun
         runner.inStart.set();
     =}
     
-    teller.outAccount -> accounts.inTeller;
+    teller.credit -> accounts.inCredit;
     teller.reset -> accounts.reset;
-    accounts.outTeller -> teller.inAccount;
-  
-  	accounts.outAccount -x-> accounts.inAccount;
+    accounts.outDebit -x-> accounts.inDebit;
 }
