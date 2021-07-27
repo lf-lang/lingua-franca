@@ -29,9 +29,6 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
-import org.lflang.generator.cpp.name
-import org.lflang.generator.cpp.targetType
 import org.lflang.lf.*
 
 private typealias Ident = String
@@ -386,7 +383,7 @@ object RustModelBuilder {
             val reactions = reactor.reactions.map { n: Reaction ->
                 fun makeDeps(depKind: Reaction.() -> List<VarRef>) =
                     n.depKind().mapTo(LinkedHashSet()) {
-                        components[it.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                        components[it.variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
                     }
 
                 ReactionInfo(
@@ -414,7 +411,7 @@ object RustModelBuilder {
                 stateVars = reactor.stateVars.map {
                     StateVarInfo(
                         lfName = it.name,
-                        type = it.targetType,
+                        type = it.type.targetRustType(),
                         init = it.init.singleOrNull()?.toText()
                     )
                 },
@@ -423,7 +420,7 @@ object RustModelBuilder {
                 ctorParams = reactor.parameters.map {
                     CtorParamInfo(
                         lfName = it.name,
-                        type = it.targetType,
+                        type = it.type.targetRustType(),
                         defaultValue = it.init.singleOrNull()?.toText()
                     )
                 }
@@ -450,9 +447,29 @@ object RustModelBuilder {
     }
 }
 
+fun Type.targetRustType(): String {
+    fun String.maybeToArray() =
+        when {
+            arraySpec == null            -> this
+            arraySpec.isOfVariableLength -> "Vec<$this>"
+            else                         -> "[ $this ; ${arraySpec.length} ]"
+        }
+
+    return when {
+        code != null -> code.toText()
+        isTime       -> "Duration".maybeToArray()
+        id != null   -> {
+            val typeArgs = typeParms?.takeIf { it.isNotEmpty() }?.joinToString("<", ">") { it.targetRustType() }.orEmpty()
+            (id + typeArgs + "*".repeat(stars.size)).maybeToArray()
+        }
+        else         -> throw UnsupportedGeneratorFeatureException("Not implemented: Type $this")
+    }
+}
+
 fun EList<Value>.toSingleRustExpr(node: EObject) =
-    singleOrNull()?.toText()
-        ?: throw InvalidSourceException("Initializer with several values", node)
+    singleOrNull()?.let {
+        it.time?.toRustTimeExpr() ?: it.toText()
+    } ?: throw InvalidSourceException("Initializer with several values", node)
 
 
 fun EObject.locationInfo(): LocationInfo {
