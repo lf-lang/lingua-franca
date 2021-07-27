@@ -6,8 +6,8 @@ reactor Print(
     other: bool(false)
 ) {
     reaction(startup) {=
-        assert_eq!(42, params.v);
-        assert_eq!("x2hr", params.n.as_str());
+        assert_eq!(42, params.value);
+        assert_eq!("x2hr", params.name.as_str());
         assert_eq!(true, params.other);
     =}
 }

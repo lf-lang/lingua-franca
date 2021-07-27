@@ -5,7 +5,7 @@ reactor Print(value:i32(42)) {
 
     reaction(startup) {=
         assert_eq!(42, self.v);
-        assert_eq!(params.v, self.v);
+        assert_eq!(params.value, self.v);
     =}
 }
 main reactor CtorParamDefault {
