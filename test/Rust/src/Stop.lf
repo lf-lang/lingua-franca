@@ -1,0 +1,95 @@
+/*
+ * A test for the request_stop() functionality in Lingua Franca.
+ * 
+ * @author Soroush Bateni
+ */
+ target Rust {
+    timeout: 11 msec
+};
+
+/**
+ * @param take_a_break_after: Indicates how many messages are sent
+ *  in consecutive superdense time
+ * @param break_interval: Determines how long the reactor should take
+ *  a break after sending take_a_break_after messages.
+ */
+reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
+    output out: u32;
+    logical action act;
+    state sent_messages: u32(0);
+    reaction(startup, act) -> act, out {=
+        // Send a message on out
+        /* println!("At tag ({}, {}) sending value {}.\n",
+            ctx.get_elapsed_logical_time().as_nanos(),
+            ctx.get_logical_time().microstep,
+            self.sent_messages
+        ); */
+
+        ctx.set(out, self.sent_messages);
+        self.sent_messages += 1;
+
+        if self.sent_messages < params.take_a_break_after {
+            ctx.schedule(act, Asap);
+        } else {
+            // Take a break
+            self.sent_messages = 0;
+            ctx.schedule(act, After(params.break_interval));
+        }
+    =}
+}
+ 
+reactor Consumer {
+    input in_: u32;
+    state reaction_invoked_correctly: bool(false);
+    reaction(in_) {=
+        let current_tag = ctx.get_logical_time();
+
+        let t10_ = |u: u32| {
+            let instant = ctx.get_start_time().instant + Duration::from_millis(10);
+            LogicalInstant { instant, microstep: MicroStep::new(u) }
+        };
+
+        if current_tag > t10_(9) {
+            // The reaction should not have been called at tags larger than (10 msec, 9)
+            panic!("ERROR: Invoked reaction(in) at tag bigger than shutdown.");
+        } else if current_tag == t10_(8) {
+            // Call request_stop() at relative tag (10 msec, 8)
+            println!("Requesting stop.");
+            ctx.request_stop();
+            return;
+        } else if current_tag == t10_(9) {
+            // Check that this reaction is indeed also triggered at (10 msec, 9)
+            self.reaction_invoked_correctly = true;
+            return;
+        }
+        println!("Tag is {}.", ctx.display_tag(current_tag));
+    =}
+    
+    reaction(shutdown) {=
+        let current_tag = ctx.get_logical_time();
+
+        println!("Shutdown invoked at tag {}.\n", ctx.display_tag(current_tag));
+
+        let t10_ = |u: u32| {
+            let instant = ctx.get_start_time().instant + Duration::from_millis(10);
+            LogicalInstant { instant, microstep: MicroStep::new(u) }
+        };
+
+        // Check to see if shutdown is called at relative tag (10 msec, 9)
+        if current_tag == t10_(9) && self.reaction_invoked_correctly {
+            println!("SUCCESS: successfully enforced stop.");
+        } else if current_tag > t10_(9) {
+            panic!("ERROR: Shutdown invoked at tag {}. Failed to enforce timeout.", ctx.display_tag(current_tag));
+        } else if !self.reaction_invoked_correctly {
+            // Check to see if reactions were called correctly
+            panic!("ERROR: Failed to invoke reaction(in) at tag {}.", ctx.display_tag(current_tag));
+        }
+    =}
+} 
+
+main reactor Stop {
+   consumer = new Consumer();
+   producer = new Sender(break_interval = 1 msec);
+   
+   producer.out -> consumer.in_;
+}
