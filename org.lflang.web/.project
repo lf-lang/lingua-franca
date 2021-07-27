@@ -6,11 +6,6 @@
 	</projects>
 	<buildSpec>
 		<buildCommand>
-			<name>org.jetbrains.kotlin.ui.kotlinBuilder</name>
-			<arguments>
-			</arguments>
-		</buildCommand>
-		<buildCommand>
 			<name>org.eclipse.xtext.ui.shared.xtextBuilder</name>
 			<arguments>
 			</arguments>
@@ -42,13 +37,5 @@
 		<nature>org.eclipse.wst.common.project.facet.core.nature</nature>
 		<nature>org.eclipse.wst.common.modulecore.ModuleCoreNature</nature>
 		<nature>org.eclipse.buildship.core.gradleprojectnature</nature>
-		<nature>org.jetbrains.kotlin.core.kotlinNature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>kotlin_bin</name>
-			<type>2</type>
-			<locationURI>org.jetbrains.kotlin.core.filesystem:/org.lflang.web/kotlin_bin</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
