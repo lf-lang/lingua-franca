@@ -325,18 +325,23 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkWidthSpec(WidthSpec widthSpec) {
         if (this.target != Target.C && this.target != Target.CPP && this.target != Target.Python) {
             error("Multiports and banks are currently only supported by the C and Cpp targets.",
-                    Literals.WIDTH_SPEC__TERMS)
+                Literals.WIDTH_SPEC__TERMS)
         } else {
             for (term : widthSpec.terms) {
-                if (term.parameter === null) {
-                    if (term.width < 0) {
-                        error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
+                if (term.parameter !== null) {
+                    if (this.target != Target.C && this.target != Target.Python && this.target != Target.CPP) {
+                        error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS)
                     }
-                } else {
-                    if (this.target != Target.C && this.target != Target.Python) {
-                        error("Parameterized widths are currently only supported by the C target.",
-                                Literals.WIDTH_SPEC__TERMS)
+                } else if (term.port !== null) {
+                    // Widths given with `widthof()` are not supported (yet?).
+                    // This feature is currently only used for after delays.
+                    error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS)
+                } else if (term.code !== null) {
+                     if (this.target != Target.CPP) {
+                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS)
                     }
+                } else if (term.width < 0) {
+                    error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                 }
             }
         }
