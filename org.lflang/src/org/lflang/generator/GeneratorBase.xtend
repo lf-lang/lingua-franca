@@ -26,13 +26,10 @@
  ***************/
 package org.lflang.generator
 
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.OutputStream
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.LinkedHashMap
@@ -128,11 +125,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The current target configuration.
      */
     protected var TargetConfig targetConfig = new TargetConfig()
+    def TargetConfig getTargetConfig() { return this.targetConfig;}
     
     /**
      * The current file configuration.
      */
     protected var FileConfig fileConfig
+    
+    /**
+     * A factory for compiler commands.
+     */
+    protected var GeneratorCommandFactory commandFactory   
 
     /**
      * Collection of generated delay classes.
@@ -145,6 +148,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * reactor.
      */
     protected Instantiation mainDef
+    def getMainDef() { return mainDef; }
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
@@ -227,18 +231,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected String classpathLF
 
     /**
-     * The index available to user-generated reaction that delineates the index
-     * of the reactor in a bank of reactors. The value must be set to zero
-     * in generated code for reactors that are not in a bank
-     */
-    protected String targetBankIndex = "bank_index"
-
-    /**
-     * The type of the bank index, which must be an integer in the target language
-     */
-    protected String targetBankIndexType = "int"
-
-    /**
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
@@ -249,19 +241,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Map from builder to its current indentation.
      */
     var indentation = new LinkedHashMap<StringBuilder, String>()
-
-    /**
-     * Defines the execution environment that is used to execute binaries.
-     * 
-     * A given command may be directly executable on the host (NATIVE) 
-     * or it may need to be executed within a bash shell (BASH). 
-     * On Unix-like machines, this is typically determined by the PATH variable
-     * which could be different in these two environments.
-     */
-    enum ExecutionEnvironment {
-        NATIVE,
-        BASH
-    }
     
     /**
      * Create a new GeneratorBase object.
@@ -270,6 +249,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         this.fileConfig = fileConfig
         this.topLevelName = fileConfig.name
         this.errorReporter = errorReporter
+        this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig)
     }
 
     // //////////////////////////////////////////
@@ -695,38 +675,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    /** 
-     * Run the C compiler.
-     * 
-     * This is required here in order to allow any target to compile the RTI.
-     * 
-     * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * 
-     * @return true if compilation succeeds, false otherwise. 
-     */
-    def runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        val compile = compileCCommand(file, doNotLinkIfNoMain)
-        if (compile === null) {
-            return false
-        }
-
-        val stderr = new ByteArrayOutputStream()
-        val returnCode = compile.executeCommand(stderr)
-
-        if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
-            errorReporter.reportError('''«targetConfig.compiler» returns error code «returnCode»''')
-        }
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
-            reportCommandErrors(stderr.toString())
-        }
-        return (returnCode == 0)
-    }
-
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
@@ -744,12 +692,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 0) {
-                val buildCommand = createCommand(
+                val buildCommand = commandFactory.createCommand(
                     tokens.head,
                     tokens.tail.toList,
-                    this.fileConfig.srcPath,
-                    "Executing user specified build command " + cmd + " failed.",
-                    true
+                    this.fileConfig.srcPath
                 )
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
@@ -761,8 +707,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
 
         for (cmd : commands) {
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = cmd.executeCommand(stderr)
+            // execute the command
+            val returnCode = cmd.run()
 
             if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
@@ -770,391 +716,21 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (stderr.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
-                reportCommandErrors(stderr.toString())
+            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+                reportCommandErrors(cmd.errors.toString())
                 return
             }
         }
     }
-    
-    /**
-     * Return a command to compile the specified C file.
-     * This produces a C specific compile command. Since this command is
-     * used across targets to build the RTI, it needs to be available in
-     * GeneratorBase.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     */
-    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val env = findCommandEnv(
-            targetConfig.compiler, 
-            "The C target requires GCC >= 7 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
-        )
-        
-        val cFilename = getTargetFileName(fileToCompile);
-
-        var relativeSrcPath = fileConfig.outPath.relativize(
-            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
-        var relativeBinPath = fileConfig.outPath.relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
-
-        // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        var relSrcPathString = FileConfig.toUnixString(relativeSrcPath)
-        var relBinPathString = FileConfig.toUnixString(relativeBinPath)
-        
-        // If there is no main reactor, then generate a .o file not an executable.
-        if (mainDef === null) {
-            relBinPathString += ".o";
-        }
-        
-        var compileArgs = newArrayList
-        compileArgs.add(relSrcPathString)
-        for (file: targetConfig.compileAdditionalSources) {
-            var relativePath = fileConfig.outPath.relativize(
-                fileConfig.getSrcGenPath.resolve(Paths.get(file)))
-            compileArgs.add(FileConfig.toUnixString(relativePath))
-        }
-        compileArgs.addAll(targetConfig.compileLibraries)
-
-        // Only set the output file name if it hasn't already been set
-        // using a target property or Args line flag.
-        if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relBinPathString)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads !== 0 || targetConfig.tracing !== null) {
-            compileArgs.add("-pthread")
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add('''-DNUMBER_OF_WORKERS=«targetConfig.threads»''')
-        }
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags)
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && main === null) {
-            compileArgs.add("-c") // FIXME: revisit
-            if (fileConfig.compilerMode === Mode.STANDALONE) {
-                errorReporter.reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
-    }
 
     // //////////////////////////////////////////
     // // Protected methods.
-    /** Produces the filename including the target-specific extension */
-    protected def getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
-    }
 
     /**
      * Clear the buffer of generated code.
      */
     protected def clearCode() {
         code = new StringBuilder
-    }
-
-    /**
-     * Run a given command and record its output.
-     * 
-     * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
-     * @param outStrram a stream object to forward the commands output messages to
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
-        println('''--- Current working directory: «cmd.directory.toString()»''')
-        println('''--- Executing command: «cmd.command.join(" ")»''')
-
-        var List<OutputStream> outStreams = newArrayList
-        var List<OutputStream> errStreams = newArrayList
-        outStreams.add(System.out)
-        errStreams.add(System.err)
-        if (outStream !== null) {
-            outStreams.add(outStream)
-        }
-        if (errStream !== null) {
-            errStreams.add(errStream)
-        }
-
-        // Execute the command. Write output to the System output,
-        // but also keep copies in outStream and errStream
-        return cmd.runSubprocess(outStreams, errStreams)
-    }
-
-    /**
-     * Run a given command and discard its standard and error output.
-     * 
-     * @param cmd the command to be executed
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd) {
-        return cmd.executeCommand(null, null)
-    }
-
-    /**
-     * Run a given command and capture its error output.
-     * 
-     * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
-        return cmd.executeCommand(errStream, null)
-    }
-
-    /**
-     * Create a ProcessBuilder for a given command.
-     * 
-     * This method makes sure that the given command is executable,
-     * It first tries to find the command with 'which cmake'. If that
-     * fails, it tries again with bash. In case this fails again,
-     * it returns null. Otherwise, a correctly constructed ProcessBuilder
-     * object is returned. 
-     * 
-     * This command creates the following environment variables in the returned
-     * ProcessBuilder:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     * A bit more context:
-     * If the command cannot be found directly, then a second attempt is made using a
-     * Bash shell with the --login option, which sources the user's 
-     * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
-     * is first found) before running the command. This helps to ensure that
-     * the user's PATH variable is set according to their usual environment,
-     * assuming that they use a bash shell.
-     * 
-     * More information: Unfortunately, at least on a Mac if you are running
-     * within Eclipse, the PATH variable is extremely limited; supposedly, it
-     * is given by the default provided in /etc/paths, but at least on my machine,
-     * it does not even include directories in that file for some reason.
-     * One way to add a directory like
-     * /usr/local/bin to the path once-and-for-all is this:
-     * 
-     * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-     * 
-     * But asking users to do that is not ideal. Hence, we try a more hack-y
-     * approach of just trying to execute using a bash shell.
-     * Also note that while ProcessBuilder can configured to use custom
-     * environment variables, these variables do not affect the command that is
-     * to be executed but merely the environment in which the command executes.
-     * 
-     * @param cmd The command to be executed
-     * @param errorStringIfNotFound A message to be printed when the command was not found.
-     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, String messageIfNotFound, boolean failError) {
-        return createCommand(
-            cmd,
-            #[],
-            fileConfig.outPath,
-            findCommandEnv(cmd, messageIfNotFound, failError)
-        ) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
-    }
-
-    /** 
-     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, try again with bash, thereby using any PATH set in the 
-     * bash profile. If this fails again, report an error and return null.
-     * If the command has the form "./name", where
-     * name is an executable file in the current working directory,
-     * then that command will be used.
-     * 
-     * This returns ExecutionEnvironment.NATIVE 
-     * if the specified command is directly executable on the current host
-     * and ExecutionEnvironment.BASH 
-     * if the command must be executed within a bash shell.
-     * The latter occurs, for example, if the specified command 
-     * is not in the native path but is in the path
-     * specified by the user's bash configuration file.
-     * If the specified command is not found in either the native environment 
-     * nor the bash environment, then this reports and error and returns null.
-     * 
-     * @param cmd The command to find.
-     * @param dir A directory from which to search for the command or null to use PWD.
-     * @param messageIfNotFound A message to be printed when the command environment
-     *  was not found.
-     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
-     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
-     *  where ExecutionEnvironment is an enum.
-     * 
-     * @see findCommandEnv(String, Path)
-     */
-    protected def findCommandEnv(String cmd, String messageIfNotFound, boolean failError) {
-        return findCommandEnv(cmd, null, messageIfNotFound, failError)
-    }
-
-    /** 
-     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, try again with bash, thereby using any PATH set in the 
-     * bash profile. If this fails again, report an error and return null.
-     * If a directory is given and the command has the form "./name", where
-     * name is an executable file in the specified directory,
-     * then that command will be used.
-     * 
-     * This returns ExecutionEnvironment.NATIVE 
-     * if the specified command is directly executable on the current host
-     * and ExecutionEnvironment.BASH 
-     * if the command must be executed within a bash shell.
-     * The latter occurs, for example, if the specified command 
-     * is not in the native path but is in the path
-     * specified by the user's bash configuration file.
-     * If the specified command is not found in either the native environment 
-     * nor the bash environment, then this reports and error and returns null.
-     * 
-     * @param cmd The command to find.
-     * @param dir A directory from which to search for the command or null to use PWD.
-     * @param errorStringIfNotFound An error mesasge to be printed when the command environment
-     *  was not found.
-     * 
-     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
-     *  where ExecutionEnvironment is an enum.
-     */
-    protected def findCommandEnv(String cmd, Path dir, String messageIfNotFound, boolean failError) {
-        // Make sure the command is found in the PATH.
-        print('''--- Looking for command «cmd» ... ''')
-        // Use 'where' on Windows, 'which' on other systems
-        val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
-        val whichBuilder = new ProcessBuilder(#[which, cmd])
-        if (dir !== null) {
-            val dirFile = new File(dir.toString)
-            if (dirFile.isDirectory()) {
-                whichBuilder.directory(dirFile)
-            }
-        }
-        val whichReturn = whichBuilder.start().waitFor()
-        if (whichReturn == 0) {
-            println("SUCCESS")
-
-            return ExecutionEnvironment.NATIVE
-        }
-        println("FAILED")
-        // Try running with bash.
-        // The --login option forces bash to look for and load the first of
-        // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
-        print('''--- Trying again with bash ... ''')
-        val bashCommand = #["bash", "--login", "-c", '''which «cmd»''']
-        val bashBuilder = new ProcessBuilder(bashCommand)
-        val bashOut = new ByteArrayOutputStream()
-        val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
-        if (bashReturn == 0) {
-            println("SUCCESS")
-            return ExecutionEnvironment.BASH
-        }
-        if (failError) {
-            errorReporter.reportError( 
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
-        } else {
-            errorReporter.reportWarning( 
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
-        }
-        
-        return null as ExecutionEnvironment
-    }
-
-    /**
-     * Create a ProcessBuilder for a given command and its arguments.
-     * If the env argument is ExecutionEnvironment.BASH, then the returned execution
-     * environment will be set up to run the command within bash.
-     * If the env argument is null, then report an error and return null.
-     * 
-     * This command creates the following environment variables in the returned
-     * ProcessBuilder:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     * @param cmd The command to be executed.
-     * @param args A list of arguments for the given command.
-     * @param dir The directory to change into before executing the command.
-     * @param env The type of the Execution Environment.
-     * 
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
-        var builder = null as ProcessBuilder
-        if (env == ExecutionEnvironment.NATIVE) {
-            builder = new ProcessBuilder(#[cmd] + args)
-            builder.directory(dir.toFile)
-        } else if (env == ExecutionEnvironment.BASH) {
-
-            val str_builder = new StringBuilder(cmd + " ")
-            for (str : args) {
-                str_builder.append(str + " ")
-            }
-            val bash_arg = str_builder.toString
-            // val bash_arg = #[cmd + args]
-            val newCmd = #["bash", "--login", "-c"]
-            // use that command to build the process
-            builder = new ProcessBuilder(newCmd + #[bash_arg])
-            builder.directory(dir.toFile)
-        } else {
-            println("FAILED")
-            errorReporter.reportError(
-                    "Was not able to determine an execution environment that contains " + cmd + ".")
-        }
-        // Set environment variables.
-        val environment = builder.environment();
-        environment.put("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
-        environment.put("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());
-        environment.put("LF_SOURCE_GEN_DIRECTORY", fileConfig.srcGenPath.toString());
-        environment.put("LF_BIN_DIRECTORY", fileConfig.binPath.toString());
-        return builder
-    }
-
-    /**
-     * Creates a ProcessBuilder for a given command and its arguments.
-     * If the specified command must be executed in a bash shell (i.e., if it cannot
-     * be found without the settings in your bash profile), then the returned execution
-     * environment will be set up to run the command within bash.
-     * If the command cannot be found, then report an error and return null.
-     * 
-     * This command creates the following environment variables in the returned
-     * ProcessBuilder:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     * @param cmd The command to be executed.
-     * @param args A list of arguments for the given command.
-     * @param dir A directory to change into before finding the command.
-     * @param messageIfNotFound An message to be printed when the command environment
-     *  was not found.
-     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, List<String> args, Path dir, String messageIfNotFound, boolean failError) {
-        val env = findCommandEnv(cmd, dir, messageIfNotFound, failError)
-        if (env === null) {
-            // Could not find a suitable execution environment for 'cmd'
-            return null;
-        }
-        return createCommand(cmd, args, dir, env)
     }
 
     /**
@@ -1293,6 +869,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
             return true
         }
         return false
+    }
+
+    /**
+     * Parsed error message from a compiler is returned here.
+     */
+    static class ErrorFileAndLine {
+        public var filepath = null as String
+        public var line = "1"
+        public var character = "0"
+        public var message = ""
+        public var isError = true // false for a warning.
     }
 
     /**
@@ -1465,17 +1052,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Parsed error message from a compiler is returned here.
-     */
-    protected static class ErrorFileAndLine {
-        public var filepath = null as String
-        public var line = "1"
-        public var character = "0"
-        public var message = ""
-        public var isError = true // false for a warning.
-    }
-
-    /**
      * Given a line of text from the output of a compiler, return
      * an instance of ErrorFileAndLine if the line is recognized as
      * the first line of an error message. Otherwise, return null.
@@ -1502,7 +1078,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param stderr The output on standard error of executing a command.
      */
-    protected def reportCommandErrors(String stderr) {
+    def reportCommandErrors(String stderr) {
         // First, split the message into lines.
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
@@ -2097,52 +1673,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Execute a process while forwarding output and error streams.
+     * Indicates whether delay banks generated from after delays should have a variable length width.
      * 
-     * Executing a process directly with `processBuiler.start()` could
-     * lead to a deadlock as the subprocess blocks when output or error
-     * buffers are full. This method ensures that output and error messages
-     * are continuously read and forwards them to the given streams.
+     * If this is true, any delay reactors that are inserted for after delays on multiport connections 
+     * will have a unspecified variable length width. The code generator is then responsible for inferring the
+     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
      * 
-     * @param processBuilder The process to be executed.
-     * @param outStream The stream to forward the process' output to.
-     * @param errStream The stream to forward the process' error messages to.
-     * @author{Christian Menard <christian.menard@tu-dresden.de}
+     * If this is false, the width specification of the generated bank will list all the ports listed on the right
+     * side of the connection. This gives the code generator the information needed to infer the correct width at 
+     * runtime.
      */
-    private def runSubprocess(ProcessBuilder processBuilder, List<OutputStream> outStream,
-        List<OutputStream> errStream) {
-        val process = processBuilder.start()
-
-        var outThread = new Thread([|
-            var buffer = newByteArrayOfSize(64)
-            var len = process.getInputStream().read(buffer)
-            while (len != -1) {
-                for (os : outStream) {
-                    os.write(buffer, 0, len)
-                }
-                len = process.getInputStream().read(buffer)
-            }
-        ])
-        outThread.start()
-
-        var errThread = new Thread([|
-            var buffer = newByteArrayOfSize(64)
-            var len = process.getErrorStream().read(buffer)
-            while (len != -1) {
-                for (es : errStream) {
-                    es.write(buffer, 0, len)
-                }
-                len = process.getErrorStream().read(buffer)
-            }
-        ])
-        errThread.start()
-
-        val returnCode = process.waitFor()
-        outThread.join()
-        errThread.join()
-
-        return returnCode
-    }
+    def boolean generateAfterDelaysWithVariableWidth() { return true }
 
     /**
      * Return true if the target supports generics (i.e., parametric

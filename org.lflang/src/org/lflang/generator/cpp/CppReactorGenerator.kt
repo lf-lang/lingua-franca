@@ -51,13 +51,13 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
     private val methods = CppMethodGenerator(reactor)
-    private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
+    private val instances = CppInstanceGenerator(reactor, fileConfig)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
-    private val ports = CppPortGenerator(reactor, errorReporter)
+    private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
-    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, reactions)
-    private val assemble = CppAssembleMethodGenerator(reactor, ports, instances)
+    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, ports, reactions)
+    private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
