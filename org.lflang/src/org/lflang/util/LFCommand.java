@@ -198,7 +198,7 @@ public class LFCommand {
 
 
     /**
-     * Add the given variable and its value tor the command's environment.
+     * Add the given variable and its value to the command's environment.
      *
      * @param variableName name of the variable to add
      * @param value        the variable's value
@@ -206,7 +206,17 @@ public class LFCommand {
     public void setEnvironmentVariable(String variableName, String value) {
         processBuilder.environment().put(variableName, value);
     }
-
+    
+    /**
+     * Replace the given variable and its value in the command's environment.
+     * 
+     * @param variableName name of the variable to add
+     * @param value        the variable's value
+     */
+    public void replaceEnvironmentVariable(String variableName, String value) {
+        processBuilder.environment().remove(variableName);
+        processBuilder.environment().put(variableName, value);
+    }
 
     /**
      * Create a LFCommand instance from a given command and argument list in the current working directory.
@@ -286,24 +296,24 @@ public class LFCommand {
 
     /**
      * Verify that the given path is a directory, creating it
-     * if necessary. This function is idempotent so we can call it
-     * several times without problem.
+     * if necessary. This function may be called several times
+     * without problem (better safe than sorry).
      *
      * @param dir A directory given by the user.
      * @return an absolute path
-     * @throws IllegalArgumentException If the path exists but is not a directory
+     * @throws RuntimeIOException If an IO exception occurs.
+     *                            In particular, if the path
+     *                            exists but is not a directory.
      */
     private static Path toProperDirectory(Path dir) {
         dir = dir.toAbsolutePath();
 
         try {
             Files.createDirectories(dir);
-        } catch (FileAlreadyExistsException e) {
-            throw new IllegalArgumentException("Not a directory: " + dir);
+            return dir;
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
-        return dir;
     }
 
 
