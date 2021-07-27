@@ -24,10 +24,9 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator.c
 
 import java.io.File
-import java.io.FileOutputStream
 import java.math.BigInteger
 import java.util.ArrayList
 import java.util.Collection
@@ -52,6 +51,18 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
+import org.lflang.federated.FedCLauncher
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.FederateInstance
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.MultiportInstance
+import org.lflang.generator.ParameterInstance
+import org.lflang.generator.PortInstance
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactionInstanceGraph
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.TimerInstance
+import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
@@ -71,6 +82,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.FedFileConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -414,59 +426,8 @@ class CGenerator extends GeneratorBase {
         } else {
             coreFiles.add("reactor_threaded.c")
         }
-        // Check the operating system
-        val OS = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
-        // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/core/platform.h
-        // for more detail.
-        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-            // Mac support
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_macos_support.c")            
-            coreFiles.add("platform" + File.separator + "lf_macos_support.h")
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(
-                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
-                );
-            }
-        } else if (OS.indexOf("win") >= 0) {
-            // Windows support
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_windows_support.c")
-            coreFiles.add("platform" + File.separator + "lf_windows_support.h")
-            // For 64-bit epoch time
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(
-                    "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
-                )
-            }
-        } else if (OS.indexOf("nux") >= 0) {
-            // Linux support
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_linux_support.c")
-            coreFiles.add("platform" + File.separator + "lf_linux_support.h")
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            if (mainDef !== null) {
-                targetConfig.compileAdditionalSources.add(
-                    "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
-                )
-            }
-        } else {
-            errorReporter.reportError("Platform " + OS + " is not supported")
-        }
+        
+        addPlatformFiles(coreFiles);
         
         
         // If there are federates, copy the required files for that.
@@ -479,12 +440,8 @@ class CGenerator extends GeneratorBase {
                 "federated" + File.separator + "clock-sync.h", 
                 "federated" + File.separator + "clock-sync.c"
             );
-            createLauncher(coreFiles)
+            createFederatedLauncher(coreFiles);
         }
-        
-        copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
-        
-        copyTargetHeaderFile()
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = topLevelName
@@ -492,15 +449,18 @@ class CGenerator extends GeneratorBase {
         var commonCode = code;
         var commonStartTimers = startTimers;
         var compilationSucceeded = true
+        val oldFileConfig = fileConfig;
         for (federate : federates) {
+            fileConfig = oldFileConfig;
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
-            
             
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (isFederated) {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
+                fileConfig = new FedFileConfig(fileConfig, federate.name);
+                
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
@@ -513,6 +473,16 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
             }
+            
+            
+            // Copy the core lib
+            copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            
+            // Copy the header files
+            copyTargetHeaderFile()
+            
+            // Create the compiler to be used later
+            var cCompiler = new CCompiler(targetConfig, fileConfig, errorReporter);
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
@@ -527,10 +497,11 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = getTargetFileName(topLevelName);
+            val cFilename = cCompiler.getTargetFileName(topLevelName);
 
+
+            var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
             // Delete source previously produced by the LF compiler.
-            var file = fileConfig.getSrcGenPath.resolve(cFilename).toFile
             if (file.exists) {
                 file.delete
             }
@@ -778,8 +749,23 @@ class CGenerator extends GeneratorBase {
                     pr("void terminate_execution() {}");
                 }
             }
-            val targetFile = fileConfig.getSrcGenPath + File.separator + cFilename
+            val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
+            
+            
+            if (targetConfig.useCmake) {
+                // If cmake is requested, generated the CMakeLists.txt
+                val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
+                val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
+                writeSourceCodeToFile(
+                    cmakeGenerator.generateCMakeCode(
+                        #[cFilename], 
+                        topLevelName, 
+                        errorReporter
+                    ).toString().getBytes(),
+                    cmakeFile
+                )
+            }
             
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
@@ -789,7 +775,14 @@ class CGenerator extends GeneratorBase {
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
-                if (!runCCompiler(topLevelName, true)) {
+                if (targetConfig.useCmake) {
+                    // Use CMake if requested.
+                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, errorReporter);
+                }
+                // FIXME: Currently, a lack of main is treated as a request to not produce
+                // a binary and produce a .o file instead. There should be a way to control
+                // this. 
+                if (!cCompiler.runCCompiler(topLevelName, main === null)) {
                     compilationSucceeded = false
                 }
                 writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
@@ -812,6 +805,87 @@ class CGenerator extends GeneratorBase {
         }
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    def addPlatformFiles(ArrayList<String> coreFiles) {
+        // Check the operating system
+        val OS = System.getProperty("os.name").toLowerCase();
+        // FIXME: allow for cross-compiling
+        // Based on the detected operating system, copy the required files
+        // to enable platform-specific functionality. See lib/core/platform.h
+        // for more detail.
+        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+            // Mac support
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_macos_support.c")            
+            coreFiles.add("platform" + File.separator + "lf_macos_support.h")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
+            if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
+                );
+            }
+        } else if (OS.indexOf("win") >= 0) {
+            // Windows support
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_windows_support.c")
+            coreFiles.add("platform" + File.separator + "lf_windows_support.h")
+            // For 64-bit epoch time
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
+            if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
+                )
+            }
+        } else if (OS.indexOf("nux") >= 0) {
+            // Linux support
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
+            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
+            coreFiles.add("platform" + File.separator + "lf_linux_support.c")
+            coreFiles.add("platform" + File.separator + "lf_linux_support.h")
+            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
+            if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
+                )
+            }
+        } else {
+            errorReporter.reportError("Platform " + OS + " is not supported")
+        }
+    }
+    
+    /**
+     * Create a launcher script that executes all the federates and the RTI.
+     * 
+     * @param coreFiles The files from the core directory that must be
+     *  copied to the remote machines.
+     */
+    def createFederatedLauncher(ArrayList<String> coreFiles) {
+        val launcher = new FedCLauncher(
+            targetConfig,
+            fileConfig,
+            errorReporter
+        );
+        launcher.createLauncher(
+            coreFiles,
+            federates,
+            federationRTIProperties
+        );
     }
     
     /**
@@ -1158,310 +1232,6 @@ class CGenerator extends GeneratorBase {
         return rtiCode;
     }
     
-    /**
-     * Create the launcher shell scripts. This will create one or two files
-     * in the output path (bin directory). The first has name equal to
-     * the filename of the source file without the ".lf" extension.
-     * This will be a shell script that launches the
-     * RTI and the federates.  If, in addition, either the RTI or any
-     * federate is mapped to a particular machine (anything other than
-     * the default "localhost" or "0.0.0.0"), then this will generate
-     * a shell script in the bin directory with name filename_distribute.sh
-     * that copies the relevant source files to the remote host and compiles
-     * them so that they are ready to execute using the launcher.
-     * 
-     * A precondition for this to work is that the user invoking this
-     * code generator can log into the remote host without supplying
-     * a password. Specifically, you have to have installed your
-     * public key (typically found in ~/.ssh/id_rsa.pub) in
-     * ~/.ssh/authorized_keys on the remote host. In addition, the
-     * remote host must be running an ssh service.
-     * On an Arch Linux system using systemd, for example, this means
-     * running:
-     * 
-     *     sudo systemctl <start|enable> ssh.service
-     * 
-     * Enable means to always start the service at startup, whereas
-     * start means to just start it this once.
-     * 
-     * On MacOS, open System Preferences from the Apple menu and 
-     * click on the "Sharing" preference panel. Select the checkbox
-     * next to "Remote Login" to enable it.
-     * 
-     * In addition, every host must have OpenSSL installed, with at least
-     * version 1.1.1a.  You can check the version with
-     * 
-     *     openssl version
-     * 
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
-     */
-    def createLauncher(ArrayList<String> coreFiles) {
-        // NOTE: It might be good to use screen when invoking the RTI
-        // or federates remotely so you can detach and the process keeps running.
-        // However, I was unable to get it working properly.
-        // What this means is that the shell that invokes the launcher
-        // needs to remain live for the duration of the federation.
-        // If that shell is killed, the federation will die.
-        // Hence, it is reasonable to launch the federation on a
-        // machine that participates in the federation, for example,
-        // on the machine that runs the RTI.  The command I tried
-        // to get screen to work looks like this:
-        // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
-        
-        //var outPath = binGenPath
-
-        val shCode = new StringBuilder()
-        val distCode = new StringBuilder()
-        pr(shCode, '''
-            #!/bin/bash
-            # Launcher for federated «topLevelName».lf Lingua Franca program.
-            # Uncomment to specify to behave as close as possible to the POSIX standard.
-            # set -o posix
-            
-            # Enable job control
-            set -m
-            shopt -s huponexit
-            
-            # Set a trap to kill all background jobs on error or control-C
-            # Use two distinct traps so we can see which signal causes this.
-            cleanup() {
-                printf "Killing federate %s.\n" ${pids[*]}
-                # The || true clause means this is not an error if kill fails.
-                kill ${pids[@]} || true
-                printf "#### Killing RTI %s.\n" ${RTI}
-                kill ${RTI} || true
-                exit 1
-            }
-            cleanup_err() {
-                echo "#### Received ERR signal on line $1. Invoking cleanup()."
-                cleanup
-            }
-            cleanup_sigint() {
-                echo "#### Received SIGINT signal on line $1. Invoking cleanup()."
-                cleanup
-            }
-            
-            trap 'cleanup_err $LINENO' ERR
-            trap 'cleanup_sigint $LINENO' SIGINT
-
-            # Create a random 48-byte text ID for this federation.
-            # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
-            FEDERATION_ID=`openssl rand -hex 24`
-            echo "Federate «topLevelName» in Federation ID '$FEDERATION_ID'"
-            # Launch the federates:
-        ''')
-        val distHeader = '''
-            #!/bin/bash
-            # Distributor for federated «topLevelName».lf Lingua Franca program.
-            # Uncomment to specify to behave as close as possible to the POSIX standard.
-            # set -o posix
-        '''
-        val host = federationRTIProperties.get('host')
-        var target = host
-
-        var path = federationRTIProperties.get('dir')
-        if(path === null) path = '''LinguaFrancaRemote'''
-
-        var user = federationRTIProperties.get('user')
-        if (user !== null) {
-            target = user + '@' + host
-        }
-        
-        var RTILaunchString = '''
-        RTI -i ${FEDERATION_ID} \
-                         -n «federates.size» \
-                         -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                          period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
-                          exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
-                          &
-        '''
-        
-        // Launch the RTI in the foreground.
-        if (host == 'localhost' || host == '0.0.0.0') {
-            // FIXME: the paths below will not work on Windows
-            pr(shCode, '''
-                echo "#### Launching the runtime infrastructure (RTI)."
-                # First, check if the RTI is on the PATH
-                if ! command -v RTI &> /dev/null
-                then
-                    echo "RTI could not be found."
-                    echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
-                    echo "Follow the instructions in README.md in that directory."
-                    exit
-                fi                
-                # The RTI is started first to allow proper boot-up
-                # before federates will try to connect.
-                # The RTI will be brought back to foreground
-                # to be responsive to user inputs after all federates
-                # are launched.
-                «RTILaunchString»
-                # Store the PID of the RTI
-                RTI=$!
-                # Wait for the RTI to boot up before
-                # starting federates (this could be done by waiting for a specific output
-                # from the RTI, but here we use sleep)
-                sleep 1
-            ''')
-        } else {
-            // Start the RTI on the remote machine.
-            // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-            // Copy the source code onto the remote machine and compile it there.
-            if (distCode.length === 0) pr(distCode, distHeader)
-            
-            val logFileName = '''log/«topLevelName»_RTI.log'''
-
-            // Launch the RTI on the remote machine using ssh and screen.
-            // The -t argument to ssh creates a virtual terminal, which is needed by screen.
-            // The -S gives the session a name.
-            // The -L option turns on logging. Unfortunately, the -Logfile giving the log file name
-            // is not standardized in screen. Logs go to screenlog.0 (or screenlog.n).
-            // FIXME: Remote errors are not reported back via ssh from screen.
-            // How to get them back to the local machine?
-            // Perhaps use -c and generate a screen command file to control the logfile name,
-            // but screen apparently doesn't write anything to the log file!
-            //
-            // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
-            // The sleep at the end prevents screen from exiting before outgoing messages from
-            // the federate have had time to go out to the RTI through the socket.
-            RTILaunchString = '''
-                RTI -i '${FEDERATION_ID}' \
-                                 -n «federates.size» \
-                                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                                  period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
-                                  exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
-                                  &
-            '''
-            
-            pr(shCode, '''
-                echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
-                # FIXME: Killing this ssh does not kill the remote process.
-                # A double -t -t option to ssh forces creation of a virtual terminal, which
-                # fixes the problem, but then the ssh command does not execute. The remote
-                # federate does not start!
-                ssh «target» 'mkdir -p log; \
-                    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
-                    date >> «logFileName»; \
-                    echo "Executing RTI: «RTILaunchString»" 2>&1 | tee -a «logFileName»; \
-                    # First, check if the RTI is on the PATH
-                    if ! command -v RTI &> /dev/null
-                    then
-                        echo "RTI could not be found."
-                        echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
-                        echo "Follow the instructions in README.md in that directory."
-                        exit
-                    fi
-                    «RTILaunchString» 2>&1 | tee -a «logFileName»' &
-                # Store the PID of the channel to RTI
-                RTI=$!
-                # Wait for the RTI to boot up before
-                # starting federates (this could be done by waiting for a specific output
-                # from the RTI, but here we use sleep)
-                sleep 1
-            ''')
-        }
-                
-        // Index used for storing pids of federates
-        var federateIndex = 0
-        for (federate : federates) {
-            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
-                if(distCode.length === 0) pr(distCode, distHeader)
-                val logFileName = '''log/«topLevelName»_«federate.name».log'''
-                val compileCommand = compileCCommand('''«topLevelName»_«federate.name»''', false).toString()
-                //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
-                // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                pr(distCode, '''
-                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.host»"
-                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
-                    ssh «federate.host» '\
-                        mkdir -p «path»/src-gen/federated/«topLevelName»/core «path»/bin «path»/log «path»/src-gen/core/federated; \
-                        echo "--------------" >> «path»/«logFileName»; \
-                        date >> «path»/«logFileName»;
-                    '
-                    pushd «fileConfig.srcGenPath» > /dev/null
-                    echo "Copying LF core files to host «federate.host»"
-                    scp -r core «federate.host»:«path»/src-gen/federated/«topLevelName»
-                    echo "Copying source files to host «federate.host»"
-                    scp «topLevelName»_«federate.name».c «FOR file:targetConfig.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen/federated/«topLevelName»
-                    popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «compileCommand»"
-                    ssh «federate.host» 'cd «path»; \
-                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
-                        # Capture the output in the log file and stdout. \
-                        «compileCommand» 2>&1 | tee -a «logFileName»;'
-                ''')
-                val executeCommand = '''bin/«topLevelName»_«federate.name» -i '$FEDERATION_ID' '''
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name» on host «federate.host»"
-                    # FIXME: Killing this ssh does not kill the remote process.
-                    # A double -t -t option to ssh forces creation of a virtual terminal, which
-                    # fixes the problem, but then the ssh command does not execute. The remote
-                    # federate does not start!
-                    ssh «federate.host» '\
-                        cd «path»; \
-                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
-                        date >> «logFileName»; \
-                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
-                        «executeCommand» 2>&1 | tee -a «logFileName»' &
-                    pids[«federateIndex++»]=$!
-                ''')                
-            } else {
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name»."
-                    «fileConfig.binPath.resolve(topLevelName)»_«federate.name» -i $FEDERATION_ID &
-                    pids[«federateIndex++»]=$!
-                ''')                
-            }
-        }
-        if (host == 'localhost' || host == '0.0.0.0') {
-            // Local PID managements
-            pr(shCode, '''
-                echo "#### Bringing the RTI back to foreground so it can receive Control-C."
-                fg %1
-            ''')
-        }
-        // Wait for launched processes to finish
-        pr(shCode, '''
-            echo "RTI has exited. Wait for federates to exit."
-            # Wait for launched processes to finish.
-            # The errors are handled separately via trap.
-            for pid in "${pids[@]}"
-            do
-                wait $pid
-            done
-            echo "All done."
-        ''')
-
-        // Write the launcher file.
-        // Delete file previously produced, if any.
-        var file = fileConfig.binPath.resolve(topLevelName).toFile
-        if (file.exists) {
-            file.delete
-        }
-                
-        var fOut = new FileOutputStream(file)
-        fOut.write(shCode.toString().getBytes())
-        fOut.close()
-        if (!file.setExecutable(true, false)) {
-            errorReporter.reportWarning("Unable to make launcher script executable.")
-        }
-        
-        // Write the distributor file.
-        // Delete the file even if it does not get generated.
-        file = fileConfig.binPath.resolve(topLevelName + '_distribute.sh').toFile
-        if (file.exists) {
-            file.delete
-        }
-        if (distCode.length > 0) {
-            fOut = new FileOutputStream(file)
-            fOut.write(distCode.toString().getBytes())
-            fOut.close()
-            if (!file.setExecutable(true, false)) {
-                errorReporter.reportWarning("Unable to make distributor script executable.")
-            }
-        }
-    }
-
     /** 
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
@@ -1763,9 +1533,6 @@ class CGenerator extends GeneratorBase {
         // Extensions can add functionality to the CGenerator
         generateSelfStructExtension(body, decl, federate, constructorCode, destructorCode)
         
-        // Handle bank_index
-        pr(body, '''«targetBankIndexType» «targetBankIndex»;''');    
-        
         // Next handle parameters.
         generateParametersForReactor(body, reactor)
         
@@ -2060,12 +1827,6 @@ class CGenerator extends GeneratorBase {
      */
     def generateParametersForReactor(StringBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if (parameter.name.equals(targetBankIndex)) {
-                errorReporter.reportError('''«targetBankIndex» is reserved.''')
-            }
-
             prSourceLineNumber(builder, parameter)
             pr(builder, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
         }
@@ -2079,13 +1840,6 @@ class CGenerator extends GeneratorBase {
      */
     def generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
         for (stateVar : reactor.allStateVars) {            
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if(stateVar.name.equals(targetBankIndex))
-            {
-                errorReporter.reportError('''«targetBankIndex» is reserved.''')
-            }
-            
             prSourceLineNumber(builder, stateVar)
             pr(builder, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
         }
@@ -3267,10 +3021,13 @@ class CGenerator extends GeneratorBase {
         val returnCode = protoc.run()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
-            targetConfig.compileAdditionalSources.add(this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
-
+            targetConfig.compileAdditionalSources.add(
+                this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString
+            )
+            
             targetConfig.compileLibraries.add('-l')
-            targetConfig.compileLibraries.add('protobuf-c')    
+            targetConfig.compileLibraries.add('protobuf-c')
+            targetConfig.compilerFlags.add('-lprotobuf-c');  
         } else {
             errorReporter.reportError("protoc-c returns error code " + returnCode)
         }
@@ -3600,17 +3357,9 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
-            // Set the bankIndex for the reactor
-            pr(initializeTriggerObjectsEnd, '''
-                «nameOfSelfStruct»->«targetBankIndex» = «instance.bankIndex»;
-            ''')
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
-            ''')
-            // Set the bankIndex to zero
-            pr(initializeTriggerObjectsEnd, '''
-                «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
         
@@ -3937,15 +3686,15 @@ class CGenerator extends GeneratorBase {
                 // Create the entry in the output_produced array for this port.
                 // If the port is a multiport, then we need to create an entry for each
                 // individual port.
-                if (effect.multiport !== null && !handledMultiports.contains(effect.multiport)) {
+                if (effect.getMultiportInstance() !== null && !handledMultiports.contains(effect.getMultiportInstance())) {
                     // The effect is a port within a multiport that has not been handled yet.
-                    handledMultiports.add(effect.multiport);
+                    handledMultiports.add(effect.getMultiportInstance());
                     var allocate = false
-                    if (!portAllocatedAlready.contains(effect.multiport)) {
+                    if (!portAllocatedAlready.contains(effect.getMultiportInstance())) {
                         // Prevent allocating memory more than once for the same port.
                         // It may have been allocated by a previous reaction that also
                         // has this port as an effect.
-                        portAllocatedAlready.add(effect.multiport)
+                        portAllocatedAlready.add(effect.getMultiportInstance())
                         allocate = true
                     }
                     // Allocate memory where the data produced by the reaction will be stored
@@ -3962,14 +3711,14 @@ class CGenerator extends GeneratorBase {
                         )
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->__«effect.name»__width = «effect.multiport.width»;
+                                «nameOfSelfStruct»->__«effect.name»__width = «effect.getMultiportInstance().width»;
                                 // Allocate memory to store output of reaction.
                                 «nameOfSelfStruct»->__«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
                                     * «nameOfSelfStruct»->__«effect.name»__width); 
                             ''')
                         }
                         pr(initialization, '''
-                            for (int i = 0; i < «effect.multiport.width»; i++) {
+                            for (int i = 0; i < «effect.getMultiportInstance().width»; i++) {
                                 «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
                                         = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.name»[i]''', "is_present")»;
                             }
@@ -3981,7 +3730,7 @@ class CGenerator extends GeneratorBase {
                             effect.parent.definition.reactorClass)
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->__«containerName».«effect.name»__width = «effect.multiport.width»;
+                                «nameOfSelfStruct»->__«containerName».«effect.name»__width = «effect.getMultiportInstance().width»;
                                 // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
                                 «nameOfSelfStruct»->__«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
                                     * «nameOfSelfStruct»->__«containerName».«effect.name»__width);
@@ -3997,8 +3746,8 @@ class CGenerator extends GeneratorBase {
                             }
                         ''')
                     }
-                    outputCount += effect.multiport.getWidth();
-                } else if (effect.multiport === null && !(effect instanceof MultiportInstance)) {
+                    outputCount += effect.getMultiportInstance().getWidth();
+                } else if (effect.getMultiportInstance() === null && !(effect instanceof MultiportInstance)) {
                     // The effect is not a multiport nor a port contained by a multiport.
                     if (effect.parent === reaction.parent) {
                         // The port belongs to the same reactor as the reaction.
@@ -4074,7 +3823,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
                         // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
-                        if (instance.bank !== null) {
+                        if (instance.getBank() !== null) {
                             temporaryVariableName += "_" + instance.bankIndex
                         }
                         // Array type has to be handled specially because C doesn't accept

@@ -16,14 +16,15 @@ mkdir -p $outname/lib
 mv org.lflang/build/libs/org.lflang-*-SNAPSHOT-all.jar $outname/lib
 
 # Move & patch wrappers
-sed -e '/^lfbase=/d' -e 's/\${lfbase}build\/libs/\${base}lib/g' -e '/^if \[\[ ! -f "\$jarpath" \]\]; then/{n;N;N;d}' -e '/^if \[\[ ! -f "\$jarpath" \]\]; then/a \
+sed -e '/^lfbase=/d' -e 's/\${lfbase}build\/libs/\${base}lib/g' -e '/^if \[\[ ! -f "\$jarpath" \]\]; then/{n;N;N;d}' bin/lfc > $outname/bin/lfc
+# the insertion must be done afterwards as separate invocation
+sed -i -e '/^if \[\[ ! -f "\$jarpath" \]\]; then/a \
     fatal_error "$jarpath does not exist."\
-    error_exit' bin/lfc > $outname/bin/lfc
+    error_exit' $outname/bin/lfc
 chmod u+x $outname/bin/lfc
-sed -e '/^\$lfbase=/d' -e 's/\$lfbase\\build\\libs/\$base\\lib/g' -e '/^if (-not (Test-Path \$jarpath -PathType leaf))/{n;N;N;N;d}' -e '/^if (-not (Test-Path \$jarpath -PathType leaf))/a \
-    throw "\$jarpath does not exist."' bin/lfc.ps1 > $outname/bin/lfc.ps1
-
-# TODO: Move & patch ps1 wrapper script!
+sed -e '/^\$lfbase=/d' -e 's/\$lfbase\\build\\libs/\$base\\lib/g' -e '/^if (-not (Test-Path \$jarpath -PathType leaf))/{n;N;N;N;d}' bin/lfc.ps1 > $outname/bin/lfc.ps1
+sed -i -e '/^if (-not (Test-Path \$jarpath -PathType leaf))/a \
+    throw "\$jarpath does not exist."' $outname/bin/lfc.ps1
 
 # zip/tar everything - the files will be put into the build_upload directory
 mkdir -p build_upload
