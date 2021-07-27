@@ -246,7 +246,7 @@ sealed class ReactorComponent {
             is Action -> ActionData(
                 lfName = v.name,
                 isLogical = v.isLogical,
-                type = v.type?.toText(),
+                type = v.type?.toRustType(),
                 minDelay = v.minDelay?.time?.toRustTimeExpr()
             )
             is Timer  -> TimerData(
@@ -287,7 +287,7 @@ data class PortData(
             PortData(
                 lfName = port.name,
                 isInput = port.isInput,
-                dataType = port.type.toText()
+                dataType = port.type.toRustType()
             )
     }
 }
@@ -411,8 +411,8 @@ object RustModelBuilder {
                 stateVars = reactor.stateVars.map {
                     StateVarInfo(
                         lfName = it.name,
-                        type = it.type.targetRustType(),
-                        init = it.init.singleOrNull()?.toText()
+                        type = it.type.toRustType(),
+                        init = it.init.singleOrNull()?.toRustExpr()
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
@@ -420,8 +420,8 @@ object RustModelBuilder {
                 ctorParams = reactor.parameters.map {
                     CtorParamInfo(
                         lfName = it.name,
-                        type = it.type.targetRustType(),
-                        defaultValue = it.init.singleOrNull()?.toText()
+                        type = it.type.toRustType(),
+                        defaultValue = it.init.singleOrNull()?.toRustExpr()
                     )
                 }
             )
@@ -447,7 +447,7 @@ object RustModelBuilder {
     }
 }
 
-fun Type.targetRustType(): String {
+fun Type.toRustType(): String {
     fun String.maybeToArray() =
         when {
             arraySpec == null            -> this
@@ -459,17 +459,22 @@ fun Type.targetRustType(): String {
         code != null -> code.toText()
         isTime       -> "Duration".maybeToArray()
         id != null   -> {
-            val typeArgs = typeParms?.takeIf { it.isNotEmpty() }?.joinToString("<", ">") { it.targetRustType() }.orEmpty()
+            val typeArgs = typeParms?.takeIf { it.isNotEmpty() }?.joinToString("<", ">") { it.toRustType() }.orEmpty()
             (id + typeArgs + "*".repeat(stars.size)).maybeToArray()
         }
         else         -> throw UnsupportedGeneratorFeatureException("Not implemented: Type $this")
     }
 }
 
+fun Value.toRustExpr(): String =
+    parameter?.name
+        ?: time?.toRustTimeExpr()
+        ?: literal
+        ?: code?.toText()
+        ?: "/* missing! */"
+
 fun EList<Value>.toSingleRustExpr(node: EObject) =
-    singleOrNull()?.let {
-        it.time?.toRustTimeExpr() ?: it.toText()
-    } ?: throw InvalidSourceException("Initializer with several values", node)
+    singleOrNull()?.toRustExpr() ?: throw InvalidSourceException("Initializer with several values", node)
 
 
 fun EObject.locationInfo(): LocationInfo {
