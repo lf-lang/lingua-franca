@@ -11,11 +11,11 @@ main reactor ActionIsPresent {
             assert!(!self.tried, "Already tried, is_action_present does not work properly.");
             self.tried = true;
             // was triggered by startup
-            println!("Startup reaction @ {}", ctx.get_elapsed_logical_time().as_nanos());
+            println!("Startup reaction @ {}", ctx.display_tag(ctx.get_logical_time()));
             ctx.schedule(a, After(Duration::from_nanos(1)));
         } else {
             // was triggered by schedule above
-            println!("Scheduled reaction @ {}", ctx.get_elapsed_logical_time().as_nanos());
+            println!("Scheduled reaction @ {}", ctx.display_tag(ctx.get_logical_time()));
             self.success = true;
         }
     =}
