@@ -38,10 +38,7 @@
  ]]] */
  // [[[end]]]
 
-target C {
-    tracing: true
-};
-
+target C;
 
 reactor ProducerReactor(countTo:int(1000000)) {
 
@@ -129,9 +126,14 @@ reactor CountingReactor (numIterations:int(12)){
     =}
 }
 
-main reactor Counting(numIterations:int(12), countTo:int(1000000)) {
-    
+/* [[[cog
+cog.outl(f"main reactor Counting(numIterations:int(12), countTo:int({countTo}))")
+]]] */
+main reactor Counting(numIterations:int(12), countTo:int(1000000))
+//[[[end]]]
+{ 
     producer = new ProducerReactor(countTo = countTo);
+
 
     reaction(startup) -> producer.inStartCounting {=
         SET(producer.inStartCounting,true);
