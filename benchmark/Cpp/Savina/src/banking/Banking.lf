@@ -55,18 +55,23 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
     input inStart:void;
     output outFinished:void;
     
+    output[numAccounts] reset: void;
     output[numAccounts] outAccount: Message;
     input[numAccounts] inAccount: Message;
     
     logical action generateWork:void;
     
-    reaction(inStart) -> generateWork {=
+    reaction(inStart) -> reset, generateWork {=
         // reset local state
         numCompletedBankings = 0;
         randomGen = PseudoRandom(123456);
         numWorkGenerated = 0;
         nextGeneratedWorkMsg = reactor::ImmutableValuePtr<Message>();
         nextGeneratedWorkSrcAccountId = -1;
+        
+        // reset all accounts
+        for (auto& r : reset)
+        	r.set();
         
         // start execution
         generateWork.schedule();
@@ -146,13 +151,12 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:d
         #include <list>
         #include "reactor-cpp/logging.hh"
     =}
-    
-    state numCompletedBankings:int(0);
-    state randomGen:PseudoRandom(123456);
-    state balance:double(initialBalance);
+
+    state balance: double{0.0};
     state stashedMessages:{=std::list<reactor::ImmutableValuePtr<Message>>=};
     state inReplyMode:bool(false);
 
+	input reset: void; 
     input inTeller: Message;
     output outTeller: Message;
     
@@ -160,6 +164,10 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:d
     input[numAccounts] inAccount: Message;
     
     logical action handleMessage:void;
+       
+    reaction (reset) {=
+        balance = initialBalance;
+    =}
        
     reaction(handleMessage) -> handleMessage, outTeller, outAccount {=
         if(stashedMessages.empty()) {
@@ -201,9 +209,6 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:d
                 if(!stashedMessages.empty()) {
                     reactor::log::Info() << "Stop message received, but message queue not empty in account " << bank_index;
                 }
-                // reset local state
-                numCompletedBankings = 0;
-                randomGen = PseudoRandom(123456);
                 balance = initialBalance;
                 stashedMessages = std::list<reactor::ImmutableValuePtr<Message>>();
                 inReplyMode = false;
@@ -248,6 +253,7 @@ main reactor (numIterations:size_t(12), numTransactions:size_t(50000), numAccoun
     =}
     
     teller.outAccount -> accounts.inTeller;
+    teller.reset -> accounts.reset;
     accounts.outTeller -> teller.inAccount;
   
   	accounts.outAccount -x-> accounts.inAccount;
