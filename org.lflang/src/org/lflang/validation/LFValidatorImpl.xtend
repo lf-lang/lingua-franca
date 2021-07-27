@@ -336,6 +336,10 @@ class LFValidatorImpl extends AbstractLFValidator {
                     // Widths given with `widthof()` are not supported (yet?).
                     // This feature is currently only used for after delays.
                     error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS)
+                } else if (term.code !== null) {
+                     if (this.target != Target.CPP) {
+                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS)
+                    }
                 } else if (term.width < 0) {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                 }
