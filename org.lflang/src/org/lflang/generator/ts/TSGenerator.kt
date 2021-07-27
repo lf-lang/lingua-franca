@@ -158,11 +158,11 @@ class TSGenerator(
                 tsFileName += '_' + federate.name
             }
 
-            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve(tsFileName + ".ts")
+            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile.toPath(),
+            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile,
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 

@@ -13,6 +13,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.generator.c.CGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
