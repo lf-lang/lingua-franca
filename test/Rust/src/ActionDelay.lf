@@ -28,7 +28,6 @@ reactor Sink {
 	reaction(inp) {=
         let elapsed_logical = ctx.get_elapsed_logical_time();
         let logical = ctx.get_logical_time();
-        // let physical = ctx.get_physical_time();
 
         println!("logical time: {}", logical);
         println!("elapsed physical time: {} ns", ctx.get_elapsed_physical_time().as_nanos());
