@@ -167,7 +167,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |        self._id
                 |    }
                 |
-                |    fn react_erased(&mut self, ctx: &mut ::reactor_rt::LogicalCtx, rid: LocalReactionId) {
+                |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..reactionWrappers(reactor)}
 ${"             |            "..syntheticTimerReactions(reactor)}
@@ -175,7 +175,7 @@ ${"             |            "..syntheticTimerReactions(reactor)}
                 |        }
                 |    }
                 |
-                |    fn cleanup_tag(&mut self, ctx: ::reactor_rt::LogicalCtx) {
+                |    fn cleanup_tag(&mut self, ctx: $rsRuntime::ReactionCtx) {
                 |        // todo
                 |    }
                 |    
@@ -506,7 +506,7 @@ private object ReactorComponentEmitter {
             """
                 |${loc.lfTextComment()}
                 |fn $workerId(&mut self, 
-                |$indent#[allow(unused)] ctx: &mut $rsRuntime::LogicalCtx,
+                |$indent#[allow(unused)] ctx: &mut $rsRuntime::ReactionCtx,
                 |$indent#[allow(unused)] params: &${reactor.names.paramStructName},
 ${"             |$indent"..reactionParams()}) {
 ${"             |    "..body}
