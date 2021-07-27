@@ -30,6 +30,9 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
 import org.lflang.lf.*
+import org.lflang.lf.Timer
+import java.util.*
+import kotlin.collections.LinkedHashSet
 
 private typealias Ident = String
 typealias TargetCode = String
@@ -156,6 +159,8 @@ data class StateVarInfo(
     val init: TargetCode?
 )
 
+enum class DepKind { Triggers, Uses, Effects }
+
 /**
  * Model class for a single reaction.
  */
@@ -165,12 +170,7 @@ data class ReactionInfo(
     /** Target code for the reaction body. */
     val body: TargetCode,
 
-    /** Dependencies that trigger the reaction. */
-    val triggers: Set<ReactorComponent>,
-    /** Dependencies that the reaction may use, but which do not trigger it. */
-    val uses: Set<ReactorComponent>,
-    /** Dependencies that the reaction may write to/schedule. */
-    val effects: Set<ReactorComponent>,
+    val allDependencies: EnumMap<DepKind, Set<ReactorComponent>>,
 
     /** Whether the reaction is triggered by the startup event. */
     val isStartup: Boolean,
@@ -181,7 +181,15 @@ data class ReactionInfo(
     val loc: LocationInfo
 ) {
 
-    val allDependencies get() = triggers + uses + effects
+    /** Dependencies that trigger the reaction. */
+    val triggers: Set<ReactorComponent> get() = allDependencies[DepKind.Triggers].orEmpty()
+
+    /** Dependencies that the reaction may use, but which do not trigger it. */
+    val uses: Set<ReactorComponent> get() = allDependencies[DepKind.Uses].orEmpty()
+
+    /** Dependencies that the reaction may write to/schedule. */
+    val effects: Set<ReactorComponent> get() = allDependencies[DepKind.Effects].orEmpty()
+
 
     // those are implementation details
 
@@ -390,9 +398,12 @@ object RustModelBuilder {
 
                 ReactionInfo(
                     idx = n.indexInContainer,
-                    effects = makeDeps { effects },
-                    uses = makeDeps { sources },
-                    triggers = makeDeps { triggers.filterIsInstance<VarRef>() },
+                    allDependencies = EnumMap<DepKind, Set<ReactorComponent>>(DepKind::class.java).apply {
+                        this[DepKind.Triggers] = makeDeps { triggers.filterIsInstance<VarRef>() }
+                        this[DepKind.Uses] = makeDeps { sources }
+                        this[DepKind.Effects] = makeDeps { effects }
+
+                    },
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it.isStartup },
                     isShutdown = n.triggers.any { it.isShutdown },

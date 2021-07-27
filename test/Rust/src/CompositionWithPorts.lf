@@ -3,13 +3,13 @@ target Rust;
 reactor Source {
     output out: i32;
     reaction(startup) -> out {=
-        ctx.set(out, 76600)
+        ctx.set(&mut out, 76600)
     =}
 }
 reactor Sink {
   input inport: i32;
   reaction(inport) {=
-    if let Some(value) = ctx.get(inport) {
+    if let Some(value) = ctx.get(&inport) {
         println!("received {}", value);
         assert_eq!(76600, value);
     } else {
