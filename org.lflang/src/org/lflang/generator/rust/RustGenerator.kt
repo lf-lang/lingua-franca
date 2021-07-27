@@ -29,11 +29,11 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.Target
-import org.lflang.createDirectories
 import org.lflang.generator.GeneratorBase
-import org.lflang.generator.StandaloneContext
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
+import org.lflang.scoping.LFGlobalScopeProvider
+import java.nio.file.Files
 
 /**
  * Generator for the Rust target language. The generation is
@@ -48,7 +48,12 @@ import org.lflang.lf.VarRef
  *
  * @author Clément Fournier
  */
-class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : GeneratorBase(fileConfig, errorReporter) {
+@Suppress("unused")
+class RustGenerator(
+    fileConfig: RustFileConfig,
+    errorReporter: ErrorReporter,
+    @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
+) : GeneratorBase(fileConfig, errorReporter) {
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -64,7 +69,7 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
         val fileConfig = fileConfig as RustFileConfig
 
-        fileConfig.srcGenPath.createDirectories()
+        Files.createDirectories(fileConfig.srcGenPath)
 
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors)
         RustEmitter.generateRustProject(fileConfig, gen)

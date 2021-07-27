@@ -408,8 +408,12 @@ val Port.isInput get() = this is Input
 fun EObject.toTextTokenBased(): String? {
     val node = NodeModelUtils.getNode(this) ?: return null
     val builder = StringBuilder(node.totalLength.coerceAtLeast(1))
+    var hidden = true // remove hidden tokens until the first non-hidden token
     for (leaf in node.leafNodes) {
-        builder.append(leaf.text)
+        hidden = hidden && leaf.isHidden
+        if (!hidden) {
+            builder.append(leaf.text)
+        }
     }
     return builder.trim().toString()
 }
