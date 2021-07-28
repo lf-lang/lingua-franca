@@ -144,13 +144,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * If the port reference has the form `c.x`, where `c` is a bank of reactors,
      * then the list will contain the port instances belonging to each bank member.
      * 
-     * If a given port reference `b.m`. where `b` is a bank and `m` is a multiport,
-     * is unqualified, this function iterates over bank members first,
-     * then ports. E.g., if `b` and `m` have width 2, it returns
-     * `[b0.m0, b0.m1, b1.m0, b1.m1]`. 
+     * If a given port reference `b.m`, where `b` is a bank and `m` is a multiport,
+     * is unqualified, this function iterates over bank members first, then ports.
+     * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`. 
      * 
-     * If a given port reference `b.m`. where `b` is a bank and `m` is a multiport,
-     * is qualified with 'interleaved', this function iterates over ports first,
+     * If a given port reference has the form `interleaved(b.m)`, where `b` is a
+     * bank and `m` is a multiport, this function iterates over ports first,
      * then bank members. E.g., if `b` and `m` have width 2, it returns
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`. 
      */
