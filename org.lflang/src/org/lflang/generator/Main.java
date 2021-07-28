@@ -16,6 +16,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -38,43 +39,42 @@ import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ASTUtils;
-import org.lflang.CommonExtensionsKt;
 import org.lflang.LFStandaloneSetup;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
-import kotlin.text.StringsKt;
 
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
- * 
+ *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class Main {
-    
+
     /**
      * The location of the class file of this class inside of the jar.
      */
     private static String MAIN_PATH_IN_JAR = String.join("/",
-            new String[] { "!", "org", "lflang", "generator", "Main.class" });
-    
+                                                         new String[] {"!", "org", "lflang", "generator", "Main.class"});
+
     /**
      * ANSI sequence color escape sequence for red bold font.
      */
     private final static String RED_BOLD = "\033[1;31m";
 
     /**
-     * ANSI sequence color escape sequence for ending red bold font.
+     * ANSI sequence color escape sequence for resetting all
+     * attributes.
      */
-    private final static String END_RED_BOLD = "\033[0m";
-    
+    public final static String ANSI_RESET = "\033[0m";
+
     /**
      * ANSI sequence color escape sequence for bold font.
      */
     private final static String BOLD = "\u001b[1m";
-    
+
     /**
      * ANSI sequence color escape sequence for ending bold font.
      */
@@ -122,21 +122,23 @@ public class Main {
      */
     @Inject
     private GeneratorDelegate generator;
-    
+
     /**
      * Injected file access object.
      */
     @Inject
     private JavaIoFileSystemAccess fileAccess;
-    
+    private static final boolean USE_ANSI_COLORS = true;
+
+
     /**
      * Print a fatal error message prefixed with a header that indicates the
      * source and severity.
-     * 
+     *
      * @param message The message to print.
      */
     public static void printFatalError(String message) {
-        System.err.println(HEADER + redAndBold("fatal error: ") + message);
+        System.err.println(HEADER + redAndBold("fatal error: ") + bold(message));
     }
     
     /**
@@ -178,24 +180,34 @@ public class Main {
     public static String bold(String s) {
         return BOLD + s + END_BOLD;
     }
-    
+
+
     /**
      * Return the given string in red color and bold face.
-     * 
-     * @param s String to type set.
-     * @return a red and bold face version of the given string.
      */
-    public static String redAndBold(String s) {
-        return RED_BOLD + s + END_RED_BOLD;
+    private static String redAndBold(String s) {
+        return RED_BOLD + s + ANSI_RESET;
     }
-    
+
+
+    /** Return the given string in yellow color and bold face. */
+    private static String yellowAndBold(String s) {
+        return "\033[1;33m" + s + ANSI_RESET;
+    }
+
+    /** Return the given string in cyan color and bold face. */
+    public static String cyanAndBold(String s) {
+        return "\033[1;36m" + s + ANSI_RESET;
+    }
+
+
     /**
      * Supported CLI options.
-     * 
+     * <p>
      * Stores an Apache Commons CLI Option for each entry, sets it to be
      * if required if so specified, and stores whether or not to pass the
      * option to the code generator.
-     * 
+     *
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
@@ -579,11 +591,11 @@ public class Main {
             final List<Issue> issues =
                 this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
-            boolean hasErrors = issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR);
+            List<Issue> errors = issues.stream().filter(it -> it.getSeverity() == Severity.ERROR).collect(Collectors.toList());
 
-            if (hasErrors) {
-                printFatalError("Unable to validate resource. Reason:");
-                issues.forEach(issue -> printIssue(issue, pkgRoot, System.err));
+            if (!errors.isEmpty()) {
+                errors.forEach(issue -> printIssue(issue, pkgRoot, System.err));
+                printFatalError("Aborting due to previous errors");
                 System.exit(1);
             } else {
                 issues.forEach(issue -> printIssue(issue, pkgRoot, System.err));
@@ -600,30 +612,50 @@ public class Main {
     }
 
 
+    /**
+     * Print an issue to the given PrintStream.
+     *
+     * @param issue   Issue to print
+     * @param pkgRoot Package root, to relativize issue location
+     * @param out     Output PrintStream
+     */
     private static void printIssue(Issue issue, Path pkgRoot, PrintStream out) {
         Severity severity = issue.getSeverity();
         Path filePath = Paths.get(issue.getUriToProblem().toFileString()).normalize();
-        String lineNum = issue.getLineNumber() == null ? "" : ":" + issue.getLineNumber();
 
-        String message = "In " + pkgRoot.relativize(filePath) + ":";
-        String snippet = CommonExtensionsKt.getCodeSnippet(filePath, issue, 2);
-        if (snippet == null) {
-            message = lineNum + " - " + issue.getMessage();
+        String header = severity.name().toLowerCase(Locale.ROOT);
+        String fullMessage;
+
+        if (USE_ANSI_COLORS) {
+            fullMessage = HEADER + colorMessage(header, severity) + bold(": " + issue.getMessage()) + "\n";
         } else {
-            message = message + "\n" + snippet;
+            fullMessage = HEADER + header + ": " + issue.getMessage() + "\n";
         }
-        line(out, severity, message);
+
+        Path displayPath = pkgRoot.relativize(filePath);
+        String snippet = ReportingUtilKt.getCodeSnippet(filePath, displayPath, issue, 2, USE_ANSI_COLORS, m -> colorMessage(m, severity));
+        if (snippet == null) {
+            fullMessage += " --> " + displayPath + ":" + issue.getLineNumber() + ":" + issue.getColumn();
+            fullMessage += " - " + issue.getMessage();
+        } else {
+            fullMessage += snippet;
+        }
+        out.println(fullMessage);
+        out.println();
 
     }
 
 
-    private static void line(PrintStream out, Severity severity, String lineText) {
-        String indent = "[" + severity + "]\t";
-        if (severity == Severity.ERROR) {
-            indent = redAndBold(indent);
+    /**
+     * Format the message as per the spec of {@link ReportingUtilKt#getCodeSnippet(Path, Path, Issue, int)}.
+     */
+    private static String colorMessage(String message, Severity issue) {
+        if (issue == Severity.ERROR) {
+            return redAndBold(message);
+        } else if (issue == Severity.WARNING) {
+            return yellowAndBold(message);
         }
-        String block = StringsKt.replaceIndent(lineText, indent);
-        out.println(block);
+        return message;
     }
 
 

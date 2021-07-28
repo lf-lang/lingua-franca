@@ -78,7 +78,7 @@ public interface ErrorReporter {
      *
      * @return true if errors where reported
      */
-    Boolean getErrorsOccurred();
+    boolean getErrorsOccurred();
 
 
     /**

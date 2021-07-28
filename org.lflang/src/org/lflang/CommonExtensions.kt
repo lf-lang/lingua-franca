@@ -24,14 +24,7 @@
 
 package org.lflang
 
-import org.eclipse.xtext.validation.Issue
-import java.io.IOException
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
-import kotlin.math.max
-import kotlin.math.min
 
 
 /**
@@ -114,87 +107,3 @@ fun String.joinLines(): String = replace(nlPattern, " ")
  */
 fun unreachable(message: String? = null): Nothing =
     throw AssertionError("Unreachable branch" + message?.let { ": $it" }.orEmpty())
-
-/**
- * Return a nicely formatted view of the region of code
- * surrounding the given [issue]. The issue is assumed to
- * have been found in a file located at the given [path].
- * The [numLinesAround] parameter determines how many lines
- * of context are fetched.
- *
- * This generates for instance:
- *
- *     22|     timer toe(z);       // Implicit type time
- *     23|     state baz({=p=});   // Implicit type i32[]
- *             ^^^^^^^^^^^^^^^^^ State must have a type.
- *
- *     24|     state period(z);    // Implicit type time
- */
-@JvmOverloads
-fun getCodeSnippet(path: Path, issue: Issue, numLinesAround: Int = 3): String? {
-    val lines = try {
-        Files.readAllLines(path, StandardCharsets.UTF_8)
-    } catch (e: IOException) {
-        return null
-    }
-
-    return getBuilder(issue, lines, numLinesAround).build(issue, path)
-}
-
-private fun getBuilder(issue: Issue, lines: List<String>, numLinesAround: Int = 3): MessageTextBuilder {
-    val zeroL = issue.lineNumber - 1
-    val firstL = max(0, zeroL - numLinesAround + 1)
-    val lastL = min(lines.size, zeroL + numLinesAround)
-    val strings: List<String> = lines.subList(firstL, lastL)
-    return MessageTextBuilder(strings, firstL, zeroL - firstL)
-}
-
-/** Format lines around the [errorIdx] to display the message. */
-internal class MessageTextBuilder(
-    private val lines: List<String>,
-    /** Line number of the first line of the list in the real document, one-based. */
-    private val first: Int,
-    /** Index in the list of the line that has the error, zero-based.  */
-    private val errorIdx: Int
-) {
-
-    init {
-        assert(0 <= errorIdx && errorIdx < lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
-    }
-
-    fun build(issue: Issue, path: Path): String {
-        val pad = stringLengthOf(lines.size + first)
-        val withLineNums: MutableList<String> =
-            lines.indices.mapTo(ArrayList()) { addLineNum(it, pad) }
-
-        val errorLine = addLineNum(errorIdx, pad)
-        // diff added by line numbers
-        val offset = errorLine.length - lines[errorIdx].length
-        val messageLine: String = buildCaretLine(
-            issue.message.trim(),
-            issue.column + offset - 1,
-            issue.length
-        )
-        withLineNums.add(errorIdx + 1, messageLine)
-        withLineNums.add(errorIdx + 2, "") // skip a line
-
-        return  withLineNums.joinToString("\n")
-    }
-
-    private fun stringLengthOf(i: Int): Int = i.toString().length
-
-    private fun addLineNum(idx: Int, pad: Int): String =
-        String.format(" %" + pad + "d| %s", 1 + idx + first, lines[idx])
-
-    private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
-        fun StringBuilder.repeatChar(c: Char, n: Int) {
-            repeat(n) { append(c) }
-        }
-
-        return buildString {
-            repeatChar(' ', column)
-            repeatChar('^', max(rangeLen, 1))
-            append(' ').append(message)
-        }
-    }
-}
