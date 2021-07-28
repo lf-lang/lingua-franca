@@ -116,8 +116,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def establishPortConnections() {
         for (connection : reactorDefinition.allConnections) {
-            val leftPortInstances = listPortInstances(connection.leftPorts, false)
-            val rightPortInstances = listPortInstances(connection.rightPorts, connection.cross)
+            val leftPortInstances = listPortInstances(connection.leftPorts)
+            val rightPortInstances = listPortInstances(connection.rightPorts)
 
             // Check widths.
             if (leftPortInstances.size > rightPortInstances.size) {
@@ -147,17 +147,17 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * If the port reference has the form `c.x`, where `c` is a bank of reactors,
      * then the list will contain the port instances belonging to each bank member.
      * 
-     * If the cross argument is false, then for any port reference `b.m` where `b`
-     * is a bank and `m` is a multiport, this function iterates over bank members first,
+     * If a given port reference `b.m`. where `b` is a bank and `m` is a multiport,
+     * is unqualified, this function iterates over bank members first,
      * then ports. E.g., if `b` and `m` have width 2, it returns
      * `[b0.m0, b0.m1, b1.m0, b1.m1]`. 
      * 
-     * If the cross argument is true, then for any port reference `b.m` where `b`
-     * is a bank and `m` is a multiport, this function iterates over ports first,
+     * If a given port reference `b.m`. where `b` is a bank and `m` is a multiport,
+     * is qualified with 'interleaved', this function iterates over ports first,
      * then bank members. E.g., if `b` and `m` have width 2, it returns
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`. 
      */
-    private def List<PortInstance> listPortInstances(List<VarRef> references, boolean cross) {
+    private def List<PortInstance> listPortInstances(List<VarRef> references) {
         val result = new LinkedList<PortInstance>();
         for (portRef : references) {
             // Simple error checking first.
@@ -178,7 +178,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (reactor !== null) {
                 if (reactor.bankMembers !== null) {
                     // Reactor is a bank.
-                    if (!cross) {
+                    if (!portRef.isInterleaved) {
                         // Not a cross connection.
                         for (memberReactor: reactor.bankMembers) {
                             val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)

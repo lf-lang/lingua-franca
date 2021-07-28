@@ -345,14 +345,6 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkConnection(Connection connection) {
-        
-        if (connection.cross 
-            && this.target != Target.CPP
-            && this.target != Target.C
-            && this.target != Target.Python
-        ) {
-            error("This target does not support cross connections", Literals.CONNECTION__CROSS)
-        }
 
         // Report if connection is part of a cycle.
         for (cycle : this.info.topologyGraph.cycles) {
@@ -1289,6 +1281,23 @@ class LFValidatorImpl extends AbstractLFValidator {
                     "Types are not allowed in the Python target",
                     Literals.TYPE__ID
                 )
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkVarRef(VarRef varRef) {        
+        if (varRef.isInterleaved) {
+            if (this.target != Target.CPP && this.target != Target.C && this.target != Target.Python) {
+                error("This target does not support interleaved port referenced", Literals.VAR_REF__INTERLEAVED)    
+            }
+            if (varRef.container === null || varRef.container.widthSpec === null || 
+                (varRef.variable as Port).widthSpec === null
+            ) {
+                error("Interleaved can only be used for multiports contained within banks", Literals.VAR_REF__INTERLEAVED)            
+            }
+            if (!(varRef.eContainer instanceof Connection)) {
+                error("Interleaved can only be used in connections", Literals.VAR_REF__INTERLEAVED)
             }
         }
     }
