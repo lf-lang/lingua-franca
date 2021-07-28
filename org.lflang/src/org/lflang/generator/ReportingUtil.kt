@@ -1,144 +1,258 @@
 package org.lflang.generator
 
+import org.eclipse.xtext.diagnostics.Severity
 import org.eclipse.xtext.validation.Issue
 import java.io.IOException
+import java.io.PrintStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.ArrayList
+import java.nio.file.Paths
+import java.util.*
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.system.exitProcess
+
 
 /**
- * Return a nicely formatted view of the region of code
- * surrounding the given [issue]. The issue is assumed to
- * have been found in a file located at the given [absolutePath].
- * The [numLinesAround] parameter determines how many lines
- * of context are fetched.
- *
- * This generates for instance:
- *
- *     22|     timer toe(z);       // Implicit type time
- *     23|     state baz({=p=});   // Implicit type i32[]
- *             ^^^^^^^^^^^^^^^^^ State must have a type.
- *
- *     24|     state period(z);    // Implicit type time
+ * Abstraction over output streams. This is provided in case
+ * we want to mock an environment for tests.
  */
-@JvmOverloads
-fun getCodeSnippet(
-    absolutePath: Path,
-    displayPath: Path,
-    issue: Issue,
-    numLinesAround: Int = 3,
-    useColors: Boolean = true,
-    colorMessage: (String) -> String = { it }
-): String? {
-    val lines = try {
-        Files.readAllLines(absolutePath, StandardCharsets.UTF_8)
-    } catch (e: IOException) {
-        return null
-    }
-    with(issue) {
-        // those are nullable and need to be checked
-        if (lineNumber == null
-            || column == null
-            || length == null) return@getCodeSnippet null
-    }
-    return getBuilder(issue, lines, numLinesAround).build(issue, colorMessage, useColors, displayPath)
-}
+class Io @JvmOverloads constructor(
+    val err: PrintStream = System.err,
+    val out: PrintStream = System.out,
+    val wd: Path = Paths.get("").toAbsolutePath()
+)
 
-private fun getBuilder(issue: Issue, lines: List<String>, numLinesAround: Int = 3): MessageTextBuilder {
-    val zeroL = issue.lineNumber - 1
-    val firstL = max(0, zeroL - numLinesAround + 1)
-    val lastL = min(lines.size, zeroL + numLinesAround)
-    val strings: List<String> = lines.subList(firstL, lastL)
-    return MessageTextBuilder(strings, firstL, zeroL - firstL)
-}
-
-/** Format lines around the [errorIdx] to display the message. */
-internal class MessageTextBuilder(
-    private val lines: List<String>,
-    /** Line number of the first line of the list in the real document, one-based. */
-    private val first: Int,
-    /** Index in the list of the line that has the error, zero-based.  */
-    private val errorIdx: Int
+/**
+ * Helper class to print messages from [Main].
+ * This contains a nice issue formatter that looks like what
+ * the rust compiler produces.
+ *
+ * @param io             Environment of the process, contains IO streams
+ * @param colors         An instance of the ANSI formatter to use
+ * @param numLinesAround Number of lines of context to include
+ *                       around error messages when printing a
+ *                       code snippet from the file in which
+ *                       the error originated
+ *
+ */
+class ReportingHelper @JvmOverloads constructor(
+    private val io: Io,
+    private val colors: AnsiColors = AnsiColors(true),
+    private val numLinesAround: Int = 2,
 ) {
+    // absolute path to lines
+    private val fileCache = mutableMapOf<Path, List<String>?>()
+    private val HEADER = colors.bold("lfc: ")
 
-    init {
-        assert(0 <= errorIdx && errorIdx < lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
+    private fun getLines(path: Path): List<String>? =
+        fileCache.computeIfAbsent(path.toAbsolutePath()) {
+            try {
+                Files.readAllLines(it, StandardCharsets.UTF_8)
+            } catch (e: IOException) {
+                null
+            }
+        }
+
+
+    /** Print a fatal error message to [Io.err] and exit with code 1. */
+    @JvmOverloads
+    fun printFatalErrorAndExit(message: String, cause: Throwable? = null): Nothing {
+        printFatalError(message, cause)
+        exitProcess(1)
     }
 
-    fun build(
-        issue: Issue,
-        colorMessage: (String) -> String = { it },
-        useColors: Boolean,
-        path: Path
-    ): String {
-        val pad = stringLengthOf(lines.size + first)
-        val withLineNums: MutableList<String> =
-            lines.indices.mapTo(ArrayList()) { addLineNum(it, pad, useColors) }
+    /** Print a fatal error message to [Io.err] and exit with code 1. */
+    @JvmOverloads
+    fun printFatalError(message: String, cause: Throwable? = null) {
+        io.err.println(HEADER + colors.redAndBold("fatal error: ") + colors.bold(message))
+        cause?.printStackTrace(io.err)
+    }
 
-        withLineNums.add(errorIdx + 1, makeErrorLine(pad, useColors, issue, colorMessage))
-        withLineNums.add(errorIdx + 2, emptyLine(pad, useColors)) // skip a line
+    /** Print an error message to [Io.err]. */
+    fun printError(message: String) {
+        io.err.println(HEADER + colors.redAndBold("error: ") + message)
+    }
 
-        // skip a line at the beginning
-        // add it at the end to not move other indices
-        withLineNums.add(0, emptyLine(pad, useColors))
-        withLineNums.add(0, makeHeaderLine(pad, useColors, path, issue))
+    /** Print a warning message to [Io.err]. */
+    fun printWarning(message: String) {
+        io.err.println(HEADER + colors.yellowAndBold("warning: ") + message)
+    }
 
-        return withLineNums.joinToString("\n")
+    /** Print an informational message to [Io.out]. */
+    fun printInfo(message: String) {
+        io.out.println(HEADER + colors.bold("info: ") + message)
     }
 
     /**
-     * This formats the first line as
-     *     --> src/Foo.lf:1:3
-     * where the arrow is aligned on the gutter of the line numbers
+     * Print a nicely formatted view of the region of code
+     * surrounding the given [issue]. The issue is assumed to
+     * have been found in a file located at the given [path].
      */
-    private fun makeHeaderLine(pad: Int, useColors: Boolean, path: Path, issue: Issue): String {
-        val prefix = String.format(" %${pad}s ", "-->").let { formatLineNum(it, useColors) }
+    fun printIssue(issue: Issue, path: Path) {
+        val severity = issue.severity
+        val filePath = Paths.get(issue.uriToProblem.toFileString()).normalize()
 
-        return "$prefix $path:${issue.lineNumber}:${issue.column}"
+        val header = severity.name.toLowerCase(Locale.ROOT)
+
+        var fullMessage: String = HEADER + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + "\n"
+        val snippet: String? = formatIssue(issue, path)
+
+        if (snippet == null) {
+            val displayPath: Path = io.wd.relativize(filePath)
+            fullMessage += " --> " + displayPath + ":" + issue.lineNumber + ":" + issue.column
+            fullMessage += " - " + issue.message
+        } else {
+            fullMessage += snippet
+        }
+        io.err.println(fullMessage)
+        io.err.println()
+    }
+
+    private fun formatIssue(issue: Issue, path: Path): String? {
+        val lines = getLines(path) ?: return null
+
+        // those are nullable and need to be checked
+        if (issue.lineNumber == null
+            || issue.column == null
+            || issue.length == null
+        ) return null
+
+        return getBuilder(issue, lines, displayPath = io.wd.relativize(path)).build()
+    }
+
+    private fun getBuilder(issue: Issue, lines: List<String>, displayPath: Path): MessageTextBuilder {
+        val zeroL = issue.lineNumber - 1
+        val firstL = max(0, zeroL - numLinesAround + 1)
+        val lastL = min(lines.size, zeroL + numLinesAround)
+        val strings: List<String> = lines.subList(firstL, lastL)
+        return MessageTextBuilder(strings, firstL, zeroL - firstL, displayPath, issue)
+    }
+
+    /** Renders a single issue. */
+    inner class MessageTextBuilder(
+        private val lines: List<String>,
+        /** Line number of the first line of the list in the real document, one-based. */
+        private val first: Int,
+        /** Index in the list of the line that has the error, zero-based.  */
+        private val errorIdx: Int,
+        private val displayPath: Path,
+        private val issue: Issue
+    ) {
+
+        init {
+            assert(0 <= errorIdx && errorIdx < lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
+        }
+
+        fun build(): String {
+            val pad = stringLengthOf(lines.size + first)
+            val withLineNums: MutableList<String> =
+                lines.indices.mapTo(ArrayList()) { addLineNum(it, pad) }
+
+            withLineNums.add(errorIdx + 1, makeErrorLine(pad))
+            withLineNums.add(errorIdx + 2, emptyLine(pad)) // skip a line
+
+            // skip a line at the beginning
+            // add it at the end to not move other indices
+            withLineNums.add(0, emptyLine(pad))
+            withLineNums.add(0, makeHeaderLine(pad))
+
+            return withLineNums.joinToString("\n")
+        }
+
+        /**
+         * This formats the first line as
+         *     --> src/Foo.lf:1:3
+         * where the arrow is aligned on the gutter of the line numbers
+         */
+        private fun makeHeaderLine(pad: Int): String {
+            val prefix = String.format(" %${pad}s ", "-->").let { formatLineNum(it) }
+
+            return "$prefix $displayPath:${issue.lineNumber}:${issue.column}"
+        }
+
+
+        private fun makeErrorLine(pad: Int): String {
+            val prefix = emptyLine(pad)
+            val caretLine = with(issue) { buildCaretLine(message.trim(), column, length) }
+            return prefix + colors.severityColors(caretLine, issue.severity)  // prefix contains an ANSI_RESET
+        }
+
+        private fun stringLengthOf(i: Int): Int = i.toString().length
+
+        private fun addLineNum(idx: Int, pad: Int): String =
+            formatLineNum(" %${pad}d |").let { prefix ->
+                String.format("$prefix %s", 1 + idx + first, lines[idx])
+            }
+
+        private fun emptyLine(pad: Int): String =
+            String.format(" %${pad}s |", "").let { formatLineNum(it) }
+
+        private fun formatLineNum(str: String) = colors.cyanAndBold(str)
+
+        private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
+            fun StringBuilder.repeatChar(c: Char, n: Int) {
+                repeat(n) { append(c) }
+            }
+
+            return buildString {
+                repeatChar(' ', column)
+                repeatChar('^', max(rangeLen, 1))
+                append(' ').append(message)
+            }
+        }
+    }
+}
+
+
+/**
+ * A strategy to add colors to messages. This uses ANSI escape
+ * sequences, and can be disabled.
+ *
+ * @param useAnsi If true, colors will be used, otherwise all
+ *                functions of this class return their argument
+ *                without change
+ */
+class AnsiColors(private val useAnsi: Boolean) {
+
+    private fun apply(s: String, f: () -> String) =
+        if (useAnsi) f() else s
+
+    /** Return the given string in bold face. */
+    fun bold(s: String): String = apply(s) { "$BOLD$s$END_BOLD" }
+
+    /** Return the given string in red color and bold face. */
+    fun redAndBold(s: String): String = apply(s) { "$RED_BOLD$s$ANSI_RESET" }
+
+    /** Return the given string in yellow color and bold face.  */
+    fun yellowAndBold(s: String): String = apply(s) { "\u001b[1;33m$s$ANSI_RESET" }
+
+    /** Return the given string in cyan color and bold face.  */
+    fun cyanAndBold(s: String): String = apply(s) { "\u001b[1;36m$s$ANSI_RESET" }
+
+
+    /** Add a color determined by message severity. */
+    fun severityColors(message: String, severity: Severity): String = apply(message) {
+        when (severity) {
+            Severity.ERROR   -> redAndBold(message)
+            Severity.WARNING -> yellowAndBold(message)
+            else             -> bold(message)
+        }
     }
 
 
-    private fun makeErrorLine(
-        pad: Int,
-        useColors: Boolean,
-        issue: Issue,
-        colorMessage: (String) -> String
-    ): String {
-        val prefix = emptyLine(pad, useColors)
-        val caretLine = with(issue) { buildCaretLine(message.trim(), column, length) }
-        return if (useColors) prefix + colorMessage(caretLine)  // prefix contains an ANSI_RESET
-        else prefix + caretLine
-    }
+    companion object {
+        /** ANSI sequence color escape sequence for red bold font. */
+        private const val RED_BOLD = "\u001b[1;31m"
 
-    private fun stringLengthOf(i: Int): Int = i.toString().length
+        /** ANSI sequence color escape sequence for resetting all attributes. */
+        private const val ANSI_RESET = "\u001b[0m"
 
-    private fun addLineNum(idx: Int, pad: Int, colors: Boolean): String =
-        formatLineNum(" %${pad}d |", colors).let { prefix ->
-            String.format("$prefix %s", 1 + idx + first, lines[idx])
-        }
+        /** ANSI sequence color escape sequence for bold font. */
+        private const val BOLD = "\u001b[1m"
 
-    private fun emptyLine(pad: Int, colors: Boolean): String =
-        String.format(" %${pad}s |", "").let {
-            formatLineNum(it, colors)
-        }
-
-    private fun formatLineNum(str: String, useColors: Boolean) =
-        if (useColors) Main.cyanAndBold(str)
-        else str
-
-
-    private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
-        fun StringBuilder.repeatChar(c: Char, n: Int) {
-            repeat(n) { append(c) }
-        }
-
-        return buildString {
-            repeatChar(' ', column)
-            repeatChar('^', max(rangeLen, 1))
-            append(' ').append(message)
-        }
+        /** ANSI sequence color escape sequence for ending bold font. */
+        private const val END_BOLD = "\u001b[0m"
     }
 }
