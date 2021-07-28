@@ -1,4 +1,11 @@
-// In this pattern, each node can send broadcast messages to all other nodes
+/**
+ * This illustrates bank of reactors where each reactor produces an
+ * output that is broadcast to all reactors in the bank, including
+ * itself.
+ * 
+ * @author Christian Menard
+ * @author Edward A. Lee
+ */
 
 target Cpp {
     threads: 1
