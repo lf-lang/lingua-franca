@@ -8,7 +8,10 @@
  */
 target C;
 
-reactor Node(num_nodes: size_t(4)) {
+reactor Node(
+    num_nodes: size_t(4),
+    bank_index: int(0)
+) {
     input[num_nodes] in: int;
     output out: int;
     
