@@ -12,6 +12,7 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.lf.TargetDecl;
@@ -21,7 +22,7 @@ import com.google.inject.Inject;
 
 /**
  * Generates code from your model files on save.
- * 
+ *
  * See
  * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
@@ -195,10 +196,15 @@ public class LFGenerator extends AbstractGenerator {
         } catch (IOException e) {
             throw new RuntimeException("Error during FileConfig instaniation");
         }
-        final ErrorReporter errorReporter = new EclipseErrorReporter(
-                fileConfig);
-        final GeneratorBase generator = createGenerator(target, fileConfig,
-                errorReporter);
+        final ErrorReporter errorReporter;
+        if (fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+            errorReporter = new EclipseErrorReporter(fileConfig);
+        } else {
+            assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;
+            errorReporter = ((StandaloneContext) context).getReporter();
+        }
+
+        final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
             generator.doGenerate(resource, fsa, context);
