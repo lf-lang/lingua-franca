@@ -40,7 +40,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
     private fun iterateOverAllPortsAndApply(
         varRef: VarRef,
-        iteratePortsFirst: Boolean = false,
         generateCode: (String) -> String
     ): String {
         val port = varRef.variable as Port
@@ -48,7 +47,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         return with(PrependOperator) {
             if (port.isMultiport) {
                 if (container?.isBank == true) {
-                    if (iteratePortsFirst) {
+                    if (varRef.isInterleaved) {
                         """
                             |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->${port.name}.size(); __lf_port_idx++) {
                             |  for (auto& __lf_instance : ${container.name}) {
@@ -140,13 +139,13 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
             // if the ports on either side are multiports, this is a multiport connection
             val leftPort = leftPorts[0].variable as Port
-            val rightPort = rightPorts[0].varRef.variable as Port
+            val rightPort = rightPorts[0].variable as Port
             if (leftPort.isMultiport || rightPort.isMultiport)
                 return true
 
             // if the containers on either side are banks, this is a multiport connection
             val leftContainer = leftPorts[0].container
-            val rightContainer = rightPorts[0].varRef.container
+            val rightContainer = rightPorts[0].container
             if (leftContainer?.isBank == true || rightContainer?.isBank == true)
                 return true
 
@@ -162,7 +161,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
             """
                     // connection $idx
-                    ${leftPort.name}.bind_to(&${rightPort.varRef.name});
+                    ${leftPort.name}.bind_to(&${rightPort.name});
                 """.trimIndent()
         }
     }
@@ -198,14 +197,14 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                 |std::vector<$portType> __lf_left_ports_$idx;
             ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
-            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it.varRef, "__lf_right_ports_$idx", it.isInterleaved) }}
+            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
                 |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
             """.trimMargin()
         }
     }
 
-    private fun addAllPortsToVector(varRef: VarRef, vectorName: String, iteratePortsFirst: Boolean = false): String =
-        iterateOverAllPortsAndApply(varRef, iteratePortsFirst) { port: String -> "${vectorName}.push_back(&$port);" }
+    private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String =
+        iterateOverAllPortsAndApply(varRef) { port: String -> "${vectorName}.push_back(&$port);" }
 
     /**
      * Generate the definition of the reactor's assemble() method
