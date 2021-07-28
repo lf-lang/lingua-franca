@@ -9,8 +9,8 @@ import java.util.Objects;
 import org.lflang.generator.ReportingHelper;
 import org.lflang.generator.StandaloneErrorReporter;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
+import com.google.inject.Binder;
+import com.google.inject.Module;
 
 /**
  * Module that is only available when running LFC as a
@@ -18,29 +18,19 @@ import com.google.inject.Provides;
  *
  * @see LFRuntimeModule
  */
-public class LFStandaloneModule extends AbstractModule {
-
+public class LFStandaloneModule implements Module {
+    // Note that xtext's base module classes has broken support
+    // for @Provides, which would allow us to bind this field.
+    // So we directly implement Module, instead of extending eg LFRuntimeModule.
     private final ReportingHelper helper;
-
 
     public LFStandaloneModule(ReportingHelper helper) {
         this.helper = Objects.requireNonNull(helper);
     }
 
-
-    @Provides
-    public ErrorReporter provideErrorReporter() {
-        return new StandaloneErrorReporter(helper);
-    }
-
-
-    /**
-     * Note: there is no corresponding binding in {@link LFRuntimeModule}
-     * because the class is written in kotlin and should not
-     * be loaded into a debugged Epoch.
-     */
-    @Provides
-    public ReportingHelper provideReportingHelper() {
-        return helper;
+    @Override
+    public void configure(Binder binder) {
+        binder.bind(ErrorReporter.class).to(StandaloneErrorReporter.class);
+        binder.bind(ReportingHelper.class).toInstance(helper);
     }
 }

@@ -7,6 +7,7 @@ import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
 
+import org.lflang.generator.IssueCollector;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.validation.LFNamesAreUniqueValidationHelper;
 
@@ -43,4 +44,8 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
         return DefaultErrorReporter.class;
     }
 
+    /** The issue collector. In IDE mode, this is reset at the start of generation tasks. */
+    public Class<? extends IssueCollector> bindIssueCollector() {
+        return IssueCollector.class;
+    }
 }

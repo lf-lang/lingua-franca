@@ -105,7 +105,15 @@ public class Main {
     @Inject
     private JavaIoFileSystemAccess fileAccess;
 
-    /** Used to report error messages. */
+    /**
+     * Used to collect all errors that happen during validation/generation.
+     */
+    @Inject
+    private IssueCollector issueCollector;
+
+    /**
+     * Used to report error messages at the end.
+     */
     @Inject
     private ReportingHelper reporter;
 
@@ -465,33 +473,33 @@ public class Main {
                 }
             }
 
-            final List<Issue> issues =
-                this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
-
-            List<Issue> errors = issues.stream().filter(it -> it.getSeverity() == Severity.ERROR).collect(Collectors.toList());
-
-            if (!errors.isEmpty()) {
-                // if there are errors, don't print warnings.
-                for (Issue issue : errors) {
-                    reporter.printIssue(issue, path);
-                }
-                String cause = errors.size() == 1 ? "previous error"
-                                                  : errors.size() + " previous errors";
-                reporter.printFatalErrorAndExit("Aborting due to " + cause);
-            } else {
-                for (Issue issue : issues) {
-                    reporter.printIssue(issue, path);
-                }
-            }
+            this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+            exitIfCollectedErrors();
 
             StandaloneContext context = new StandaloneContext();
             context.setArgs(properties);
             context.setCancelIndicator(CancelIndicator.NullImpl);
             context.setPackageRoot(pkgRoot);
-            context.setReporter(new StandaloneErrorReporter(this.reporter));
+            context.setReporter(new StandaloneErrorReporter());
 
             this.generator.generate(resource, this.fileAccess, context);
+
+            exitIfCollectedErrors();
+            issueCollector.getAllIssues().forEach(reporter::printIssue);
+
             System.out.println("Code generation finished.");
+        }
+    }
+
+
+    private void exitIfCollectedErrors() {
+        if (issueCollector.getErrorsOccurred()) {
+            // if there are errors, don't print warnings.
+            List<LfIssue> errors = issueCollector.getErrors();
+            errors.forEach(reporter::printIssue);
+            String cause = errors.size() == 1 ? "previous error"
+                                              : errors.size() + " previous errors";
+            reporter.printFatalErrorAndExit("Aborting due to " + cause);
         }
     }
 

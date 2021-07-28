@@ -30,42 +30,25 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 
-import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.validation.DiagnosticConverterImpl;
 import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
-import org.eclipse.xtext.validation.Issue.IssueImpl;
-import org.jetbrains.annotations.Nullable;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+
+import com.google.inject.Inject;
 
 /**
- * An error reporter that prints messages to the command line output and also
- * sets markers in the Eclipse IDE if running in integrated mode.
+ * An error reporter that forwards all messages to an {@link IssueCollector}.
+ * They'll be sorted out later.
  */
 public class StandaloneErrorReporter implements ErrorReporter {
 
-    private final ReportingHelper helper;
-
-
-    private boolean errorsOccurred = false;
-
-
-    public StandaloneErrorReporter(ReportingHelper helper) {
-        this.helper = Objects.requireNonNull(helper);
-    }
-
-    // private val EObject.node get() = NodeModelUtils.getNode(this)
-
+    @Inject
+    private IssueCollector collector;
 
     /**
      * Report a warning or error on the specified object
@@ -85,22 +68,26 @@ public class StandaloneErrorReporter implements ErrorReporter {
         Path path;
         try {
             path = FileConfig.toPath(obj.eResource());
-        } catch (IOException e) {
-            ICompositeNode node = NodeModelUtils.getNode(obj);
-            Integer line = node == null ? null : node.getStartLine();
-            return reportSimpleFileCtx(message, severity, line, uriAsPath(obj));
+        } catch (IOException ignored) {
+            path = getFileNameBestEffort(obj);
         }
 
-        new DiagnosticConverterImpl().convertResourceDiagnostic(
-            diagnostic,
+        LfIssue issue = new LfIssue(
+            message,
             severity,
-            issue -> helper.printIssue(issue, path)
+            diagnostic.getLine(),
+            diagnostic.getColumn(),
+            diagnostic.getLength(),
+            path
         );
+
+        collector.accept(issue);
         return "";
     }
 
 
-    private static Path uriAsPath(EObject obj) {
+    /** Best effort to get a fileName. May return null. */
+    private static Path getFileNameBestEffort(EObject obj) {
         Path path;
         URI uri = obj.eResource().getURI();
         try {
@@ -126,16 +113,16 @@ public class StandaloneErrorReporter implements ErrorReporter {
      * @param path     The file, or null if it is not known.
      */
     private String reportSimpleFileCtx(String message, Severity severity, Integer line, Path path) {
-        if (severity == Severity.ERROR) {
-            errorsOccurred = true;
-        }
+        LfIssue issue = new LfIssue(
+            message,
+            severity,
+            line,
+            null,
+            null,
+            path
+        );
 
-        IssueImpl issue = new IssueImpl();
-        issue.setLineNumber(line);
-        issue.setSeverity(severity);
-        issue.setMessage(message);
-
-        helper.printIssue(issue, path);
+        collector.accept(issue);
 
         // Return a string that can be inserted into the generated code.
         return message;
@@ -180,12 +167,12 @@ public class StandaloneErrorReporter implements ErrorReporter {
 
     @Override
     public Boolean getErrorsOccurred() {
-        return errorsOccurred;
+        return collector.getErrorsOccurred();
     }
 
 
     @Override
     public void reset() {
-        errorsOccurred = false;
+        collector.reset();
     }
 }

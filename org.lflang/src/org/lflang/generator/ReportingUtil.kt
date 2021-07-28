@@ -1,7 +1,7 @@
 package org.lflang.generator
 
+import com.google.inject.Singleton
 import org.eclipse.xtext.diagnostics.Severity
-import org.eclipse.xtext.validation.Issue
 import java.io.IOException
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
@@ -24,6 +24,52 @@ class Io @JvmOverloads constructor(
     val wd: Path = Paths.get("").toAbsolutePath()
 )
 
+
+data class LfIssue(
+    val message: String,
+    val severity: Severity,
+    val line: Int?,
+    val column: Int?,
+    val length: Int?,
+    val file: Path?
+) : Comparable<LfIssue> {
+
+    override operator fun compareTo(other: LfIssue): Int =
+        issueComparator.compare(this, other)
+
+    companion object {
+        private val issueComparator =
+            compareBy<LfIssue> { it.file }
+                .thenComparing(compareBy { it.line })
+                .thenComparing(compareBy { it.column })
+                .thenComparing(compareBy { it.length })
+                .thenComparing(compareBy { it.message })
+                .thenComparing(compareBy { it.severity })
+
+    }
+}
+
+
+/** Collects issues to sort out later. */
+@Singleton // one instance per injector
+class IssueCollector {
+    private val map = mutableMapOf<Severity, MutableSet<LfIssue>>()
+    val errorsOccurred: Boolean get() = map[Severity.ERROR]?.isNotEmpty() == true
+
+    fun accept(issue: LfIssue) {
+        val set = map.computeIfAbsent(issue.severity) { mutableSetOf() }
+        set += issue
+    }
+
+    val errors get() = map[Severity.ERROR].orEmpty().sorted()
+    val allIssues get() = map.values.flatten().sorted()
+
+    fun reset() {
+        map.clear()
+    }
+}
+
+
 /**
  * Helper class to print messages from [Main].
  * This contains a nice issue formatter that looks like what
@@ -44,7 +90,7 @@ class ReportingHelper @JvmOverloads constructor(
 ) {
     // absolute path to lines
     private val fileCache = mutableMapOf<Path, List<String>?>()
-    private val HEADER = colors.bold("lfc: ")
+    private val header = colors.bold("lfc: ")
 
     private fun getLines(path: Path?): List<String>? =
         if (path == null) null
@@ -67,42 +113,41 @@ class ReportingHelper @JvmOverloads constructor(
     /** Print a fatal error message to [Io.err] and exit with code 1. */
     @JvmOverloads
     fun printFatalError(message: String, cause: Throwable? = null) {
-        io.err.println(HEADER + colors.redAndBold("fatal error: ") + colors.bold(message))
+        io.err.println(header + colors.redAndBold("fatal error: ") + colors.bold(message))
         cause?.printStackTrace(io.err)
     }
 
     /** Print an error message to [Io.err]. */
     fun printError(message: String) {
-        io.err.println(HEADER + colors.redAndBold("error: ") + message)
+        io.err.println(header + colors.redAndBold("error: ") + message)
     }
 
     /** Print a warning message to [Io.err]. */
     fun printWarning(message: String) {
-        io.err.println(HEADER + colors.yellowAndBold("warning: ") + message)
+        io.err.println(header + colors.yellowAndBold("warning: ") + message)
     }
 
     /** Print an informational message to [Io.out]. */
     fun printInfo(message: String) {
-        io.out.println(HEADER + colors.bold("info: ") + message)
+        io.out.println(header + colors.bold("info: ") + message)
     }
 
     /**
      * Print a nicely formatted view of the region of code
-     * surrounding the given [issue]. The issue is assumed to
-     * have been found in a file located at the given [path].
+     * surrounding the given [issue].
      */
-    fun printIssue(issue: Issue, path: Path?) {
+    fun printIssue(issue: LfIssue) {
         val severity = issue.severity
-        val filePath = Paths.get(issue.uriToProblem.toFileString()).normalize()
+        val filePath = issue.file?.normalize()
 
         val header = severity.name.toLowerCase(Locale.ROOT)
 
-        var fullMessage: String = HEADER + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + "\n"
-        val snippet: String? = formatIssue(issue, path)
+        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + "\n"
+        val snippet: String? = filePath?.let { formatIssue(issue, filePath) }
 
         if (snippet == null) {
-            val displayPath: Path = io.wd.relativize(filePath)
-            fullMessage += " --> " + displayPath + ":" + issue.lineNumber + ":" + issue.column
+            val displayPath: String = filePath?.let { io.wd.relativize(it) }?.toString() ?: "(unknown file)"
+            fullMessage += " --> " + displayPath + ":" + issue.line + ":" + issue.column
             fullMessage += " - " + issue.message
         } else {
             fullMessage += snippet
@@ -111,24 +156,24 @@ class ReportingHelper @JvmOverloads constructor(
         io.err.println()
     }
 
-    private fun formatIssue(issue: Issue, path: Path?): String? {
+    private fun formatIssue(issue: LfIssue, path: Path): String? {
         val lines = getLines(path) ?: return null
 
         fun Int?.isInvalid() = this == null || this <= 0
 
         // those are nullable and need to be checked
-        if (issue.lineNumber.isInvalid()
+        if (issue.line.isInvalid()
             || issue.column.isInvalid()
             || issue.length == null
         ) return null
 
-        val fileDisplayName = path?.let { io.wd.relativize(path) }?.toString() ?: "(unknown file)"
+        val fileDisplayName = io.wd.relativize(path).toString()
 
         return getBuilder(issue, lines, fileDisplayName).build()
     }
 
-    private fun getBuilder(issue: Issue, lines: List<String>, displayPath: String): MessageTextBuilder {
-        val zeroL = issue.lineNumber - 1
+    private fun getBuilder(issue: LfIssue, lines: List<String>, displayPath: String): MessageTextBuilder {
+        val zeroL = issue.line!! - 1
         val firstL = max(0, zeroL - numLinesAround + 1)
         val lastL = min(lines.size, zeroL + numLinesAround)
         val strings: List<String> = lines.subList(firstL, lastL)
@@ -143,7 +188,7 @@ class ReportingHelper @JvmOverloads constructor(
         /** Index in the list of the line that has the error, zero-based.  */
         private val errorIdx: Int,
         private val fileDisplayName: String,
-        private val issue: Issue
+        private val issue: LfIssue
     ) {
 
         init {
@@ -177,12 +222,12 @@ class ReportingHelper @JvmOverloads constructor(
         private fun makeHeaderLine(pad: Int): String {
             val prefix = formatLineNum("-->".padStart(pad))
 
-            return "$prefix $fileDisplayName:${issue.lineNumber}:${issue.column}"
+            return "$prefix $fileDisplayName:${issue.line}:${issue.column}"
         }
 
 
         private fun makeErrorLine(pad: Int): String {
-            val caretLine = with(issue) { buildCaretLine(message.trim(), column, length) }
+            val caretLine = with(issue) { buildCaretLine(message.trim(), column!!, length!!) }
             // gutter has its own ANSI stuff so only caretLine gets severityColors
             return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
         }
