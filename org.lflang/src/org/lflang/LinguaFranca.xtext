@@ -232,7 +232,7 @@ Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
     ('->' | physical?='~>') 
-    rightPorts += QualifiedVarRef (',' rightPorts += QualifiedVarRef)*
+    rightPorts += VarRef (',' rightPorts += VarRef)*
     (delay=Delay | ';'?);
 
 // After clause with a delay that can either be specified as a parameter or as
@@ -275,12 +275,9 @@ Trigger:
 Effect:
     Action | Output;
 VarRef:
-    variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
-QualifiedVarRef:
-    varRef=VarRef
-    | interleaved?='interleaved' '(' varRef=VarRef ')'
-;    
-
+    variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
+    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+;
 
 Assignment:
     (lhs=[Parameter] (
