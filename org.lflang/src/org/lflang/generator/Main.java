@@ -5,6 +5,7 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -35,12 +36,15 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
+
 import org.lflang.ASTUtils;
+import org.lflang.CommonExtensionsKt;
 import org.lflang.LFStandaloneSetup;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
+import kotlin.text.StringsKt;
 
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
@@ -585,12 +589,12 @@ public class Main {
             }
             if (hasErrors) {
                 printFatalError("Unable to validate resource. Reason:");
-                issues.forEach(issue -> System.err.println(issue.getMessage()));
+                issues.forEach(issue -> printIssue(issue, pkgRoot, System.err));
                 System.exit(1);
             } else {
-                issues.forEach(issue -> System.err.println(issue.getMessage()));
+                issues.forEach(issue -> printIssue(issue, pkgRoot, System.err));
             }
-            
+
             StandaloneContext context = new StandaloneContext();
             context.setArgs(properties);
             context.setCancelIndicator(CancelIndicator.NullImpl);
@@ -600,7 +604,35 @@ public class Main {
             System.out.println("Code generation finished.");
         }
     }
-    
+
+
+    private static void printIssue(Issue issue, Path pkgRoot, PrintStream out) {
+        Severity severity = issue.getSeverity();
+        Path filePath = Paths.get(issue.getUriToProblem().toFileString()).normalize();
+        String lineNum = issue.getLineNumber() == null ? "" : ":" + issue.getLineNumber();
+
+        String message = "In " + pkgRoot.relativize(filePath) + ":";
+        String snippet = CommonExtensionsKt.getCodeSnippet(filePath, issue, 2);
+        if (snippet == null) {
+            message = lineNum + " - " + issue.getMessage();
+        } else {
+            message = message + "\n" + snippet;
+        }
+        line(out, severity, message);
+
+    }
+
+
+    private static void line(PrintStream out, Severity severity, String lineText) {
+        String indent = "[" + severity + "]\t";
+        if (severity == Severity.ERROR) {
+            indent = redAndBold(indent);
+        }
+        String block = StringsKt.replaceIndent(lineText, indent);
+        out.println(block);
+    }
+
+
     public ResourceSet getResourceSet() {
         return this.resourceSetProvider.get();
     }
