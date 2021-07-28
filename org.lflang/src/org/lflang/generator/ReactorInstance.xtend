@@ -72,7 +72,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter The error reporter.
      */
     new(Reactor reactor, ErrorReporter reporter) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, -1)
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1, null)
     }
 
     /**
@@ -83,20 +83,17 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
      */
     new(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth)
+        this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, null)
     }
 
     /**
      * Create a new instantiation hierarchy that starts with the given reactor.
      * @param reactor The top-level reactor.
      * @param reporter The error reporter.
-     * @param unorderedReactions A list reactions that should be treated as unordered.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
      */
     new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, -1)
-        if (unorderedReactions !== null) {
-            this.unorderedReactions = unorderedReactions    
-        }
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions)
     }
     
     /** The reactor definition in the AST. */
@@ -852,7 +849,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Returns the size of this bank.
+     * Return the size of this bank.
      * @return actual bank size or -1 if this is not a bank master.
      */
     def int getBankSize() {
@@ -863,7 +860,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Returns the index of this reactor within a bank, or -1 if it
+     * Return the index of this reactor within a bank, or -1 if it
      * it is not within a bank, or -2 if it is itself the placeholder
      * for a bank.
      */
@@ -872,11 +869,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Returns the members of this bank, or null if there are none.
+     * Return the members of this bank, or null if there are none.
      * @return actual bank size or -1 if this is not a bank master.
      */
     def getBankMembers() {
         bankMembers
+    }
+    
+    /**
+     * Return a parameter matching the specified name if the reactor has one
+     * and otherwise return null.
+     * @param name The parameter name.
+     */
+    def ParameterInstance getParameter(String name) {
+        for (parameter: parameters) {
+            if (parameter.name.equals(name)) {
+                return parameter;
+            }
+        }
+        return null;
     }
 
     //////////////////////////////////////////////////////
@@ -896,6 +907,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * refers to the reactor instance defining the bank.
      */
     protected ReactorInstance bank = null
+    def ReactorInstance getBank() { return this.bank; }
     
     /** 
      * If this reactor instance is a placeholder for a bank of reactors,
@@ -1033,13 +1045,28 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Create reactor instance resulting from the specified top-level instantiation.
      * @param instance The Instance statement in the AST.
      * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
+     * @param reporter The error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
      */
-    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator, int desiredDepth) {
+    private new(
+        Instantiation definition, 
+        ReactorInstance parent, 
+        ErrorReporter reporter, 
+        int desiredDepth,
+        Set<Reaction> unorderedReactions
+    ) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1, 0, desiredDepth)
+        this(
+            definition, 
+            parent, 
+            reporter, 
+            (definition.widthSpec !== null)? -2 : -1, 
+            0, 
+            desiredDepth,
+            unorderedReactions
+        )
     }
 
     /**
@@ -1053,6 +1080,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  reactor in a bank of reactors otherwise.
      * @param depth The depth of this reactor in the hierarchy.
      * @param desiredDepth The depth to which to expand the hierarchy.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
+     *  It can be passed as null.
      */
     private new(
             Instantiation definition, 
@@ -1060,12 +1089,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             ErrorReporter reporter,
             int reactorIndex,
             int depth,
-            int desiredDepth) {
+            int desiredDepth,
+            Set<Reaction> unorderedReactions) {
         super(definition, parent)
         this.reporter = reporter
         this.bankIndex = reactorIndex
         this.reactorDefinition = definition.reactorClass.toDefinition
         this.depth = depth
+        if (unorderedReactions !== null) {
+            this.unorderedReactions = unorderedReactions;
+        }
         
         // check for recursive instantiation
         var currentParent = parent
@@ -1096,7 +1129,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
                 for (var index = 0; index < width; index++) {
                     var childInstance = new ReactorInstance(
-                        definition, parent, reporter, index, depth, desiredDepth
+                        definition, parent, reporter, index, depth, desiredDepth, this.unorderedReactions
                     )
                     this.bankMembers.add(childInstance)
                     childInstance.bank = this
@@ -1143,7 +1176,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // Instantiate children for this reactor instance
             for (child : reactorDefinition.allInstantiations) {
                 var childInstance = new ReactorInstance(
-                    child, this, reporter, (child.widthSpec !== null)? -2 : -1, depth + 1, desiredDepth
+                    child, 
+                    this, 
+                    reporter, 
+                    (child.widthSpec !== null)? -2 : -1, 
+                    depth + 1, 
+                    desiredDepth,
+                    this.unorderedReactions
                 )
                 this.children.add(childInstance)
                 // If the child is a bank of instances, add all the bank instances.

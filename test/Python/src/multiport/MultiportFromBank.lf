@@ -4,7 +4,10 @@ target Python {
     timeout: 2 sec,
     fast: true
 }; 
-reactor Source(check_override(0)) {
+reactor Source(
+    check_override(0),
+    bank_index(0)
+) {
     output out;
     reaction(startup) -> out {=
         out.set(self.bank_index * self.check_override)

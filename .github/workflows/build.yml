@@ -81,10 +81,11 @@ jobs:
       #     sudo make install
       #     sudo ldconfig
       - name: Install Dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
+        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: runner.os == 'Linux'
       - name: Install Dependencies OS X
         run: |
+          brew install protobuf
           brew install protobuf-c
           brew install coreutils
         if: runner.os == 'macOS'
