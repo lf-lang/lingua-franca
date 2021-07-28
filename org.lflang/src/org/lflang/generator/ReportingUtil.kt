@@ -24,7 +24,11 @@ class Io @JvmOverloads constructor(
     val wd: Path = Paths.get("").toAbsolutePath()
 )
 
-
+/**
+ * Represents an issue at a particular point in the program.
+ * The issue has metadata about its location and may be formatted
+ * by [ReportingBackend.printIssue].
+ */
 data class LfIssue(
     val message: String,
     val severity: Severity,
@@ -54,6 +58,7 @@ data class LfIssue(
 @Singleton // one instance per injector
 class IssueCollector {
     private val map = mutableMapOf<Severity, MutableSet<LfIssue>>()
+    /** Whether any errors occurred.*/
     val errorsOccurred: Boolean get() = map[Severity.ERROR]?.isNotEmpty() == true
 
     fun accept(issue: LfIssue) {
@@ -61,8 +66,10 @@ class IssueCollector {
         set += issue
     }
 
-    val errors get() = map[Severity.ERROR].orEmpty().sorted()
-    val allIssues get() = map.values.flatten().sorted()
+    /** Sorted list of all errors.*/
+    val errors: List<LfIssue> get() = map[Severity.ERROR].orEmpty().sorted()
+    /** Sorted list of all issues.*/
+    val allIssues: List<LfIssue> get() = map.values.flatten().sorted()
 
     fun reset() {
         map.clear()
@@ -71,24 +78,24 @@ class IssueCollector {
 
 
 /**
- * Helper class to print messages from [Main].
- * This contains a nice issue formatter that looks like what
- * the rust compiler produces.
- *
- * @param io             Environment of the process, contains IO streams
- * @param colors         An instance of the ANSI formatter to use
- * @param numLinesAround Number of lines of context to include
- *                       around error messages when printing a
- *                       code snippet from the file in which
- *                       the error originated
- *
+ * Class whose responsibility is to format and print messages
+ * collected from the validator, generator, or [Main]. This
+ * contains a nice issue formatter that looks like what the
+ * rust compiler produces.
  */
-class ReportingHelper @JvmOverloads constructor(
+class ReportingBackend @JvmOverloads constructor(
+    /** Environment of the process, contains IO streams. */
     private val io: Io,
+    /** An instance of the ANSI formatter to use. */
     private val colors: AnsiColors = AnsiColors(true),
+    /**
+     * Number of lines of context to include around error
+     * messages when printing a code snippet from the file
+     * in which the error originated.
+     */
     private val numLinesAround: Int = 2,
 ) {
-    // absolute path to lines
+    /** *Absolute* path to lines. */
     private val fileCache = mutableMapOf<Path, List<String>?>()
     private val header = colors.bold("lfc: ")
 

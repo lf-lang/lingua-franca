@@ -6,7 +6,7 @@ package org.lflang;
 
 import java.util.Objects;
 
-import org.lflang.generator.ReportingHelper;
+import org.lflang.generator.ReportingBackend;
 import org.lflang.generator.StandaloneErrorReporter;
 
 import com.google.inject.Binder;
@@ -22,15 +22,15 @@ public class LFStandaloneModule implements Module {
     // Note that xtext's base module classes has broken support
     // for @Provides, which would allow us to bind this field.
     // So we directly implement Module, instead of extending eg LFRuntimeModule.
-    private final ReportingHelper helper;
+    private final ReportingBackend helper;
 
-    public LFStandaloneModule(ReportingHelper helper) {
+    public LFStandaloneModule(ReportingBackend helper) {
         this.helper = Objects.requireNonNull(helper);
     }
 
     @Override
     public void configure(Binder binder) {
         binder.bind(ErrorReporter.class).to(StandaloneErrorReporter.class);
-        binder.bind(ReportingHelper.class).toInstance(helper);
+        binder.bind(ReportingBackend.class).toInstance(helper);
     }
 }
