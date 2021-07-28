@@ -78,9 +78,6 @@ public class LFSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
                             return new SyntaxErrorMessage("'" + text + "' is a reserved keyword "
                                     + "which cannot be used as an identifier.", USED_RESERVED_KEYWORD);
                         }
-                        else if (text.equals("'")) {
-                            System.out.println("NPE??");
-                        }
                     }
                 }
             }
