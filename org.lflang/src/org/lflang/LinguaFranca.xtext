@@ -231,8 +231,8 @@ Instantiation:
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
-    ('->' | physical?='~>' | cross?='-x->') 
-    rightPorts += VarRef (',' rightPorts += VarRef)*
+    ('->' | physical?='~>') 
+    rightPorts += QualifiedVarRef (',' rightPorts += QualifiedVarRef)*
     (delay=Delay | ';'?);
 
 // After clause with a delay that can either be specified as a parameter or as
@@ -274,10 +274,13 @@ Trigger:
 
 Effect:
     Action | Output;
-
 VarRef:
-    variable=[Variable]
-    | container=[Instantiation] '.' variable=[Variable];
+    variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
+QualifiedVarRef:
+    varRef=VarRef
+    | interleaved?='interleaved' '(' varRef=VarRef ')'
+;    
+
 
 Assignment:
     (lhs=[Parameter] (
@@ -482,6 +485,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
+    'interleaved' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
