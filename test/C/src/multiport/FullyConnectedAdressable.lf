@@ -40,6 +40,9 @@ reactor Node(num_nodes: size_t(4)) {
 }
 
 main reactor(num_nodes: size_t(4)) {
-    nodes = new[num_nodes] Node(num_nodes=num_nodes);
-    nodes.out -> interleaved(nodes.in);
+    nodes1 = new[num_nodes] Node(num_nodes=num_nodes);
+    nodes1.out -> interleaved(nodes1.in);
+    
+    nodes2 = new[num_nodes] Node(num_nodes=num_nodes);
+    interleaved(nodes2.out) -> nodes2.in;
 }
