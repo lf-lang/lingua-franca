@@ -6,8 +6,11 @@ package org.lflang;
 
 import java.util.Objects;
 
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
 import org.lflang.generator.ReportingBackend;
 import org.lflang.generator.StandaloneErrorReporter;
+import org.lflang.generator.StandaloneIssueAcceptor;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -32,5 +35,6 @@ public class LFStandaloneModule implements Module {
     public void configure(Binder binder) {
         binder.bind(ErrorReporter.class).to(StandaloneErrorReporter.class);
         binder.bind(ReportingBackend.class).toInstance(helper);
+        binder.bind(ValidationMessageAcceptor.class).to(StandaloneIssueAcceptor.class);
     }
 }

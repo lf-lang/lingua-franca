@@ -6,6 +6,7 @@ package org.lflang;
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import org.lflang.generator.IssueCollector;
 import org.lflang.scoping.LFGlobalScopeProvider;
