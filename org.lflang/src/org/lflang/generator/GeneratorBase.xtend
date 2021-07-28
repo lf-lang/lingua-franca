@@ -95,7 +95,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator {
+abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -1682,51 +1682,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def boolean generateAfterDelaysWithVariableWidth() { return true }
 
-    /**
-     * Return true if the target supports generics (i.e., parametric
-     * polymorphism), false otherwise.
-     */
-    abstract def boolean supportsGenerics()
-
-    abstract def String getTargetTimeType()
-
-    abstract def String getTargetTagType()
-
-    abstract def String getTargetTagIntervalType()
-
-    abstract def String getTargetUndefinedType()
-
-    abstract def String getTargetFixedSizeListType(String baseType, Integer size)
-
-    abstract def String getTargetVariableSizeListType(String baseType);
+    // TODO this function is unused, remove it
+    def String getTargetTagIntervalType() {
+        throw new UnsupportedOperationException()
+    }
 
     /**
      * Return the Targets enum for the current target
      */
     abstract def Target getTarget()
-
-    /**
-     * Return a string representing the specified type in the target language.
-     * @param type The type.
-     */
-    def String getTargetType(InferredType type) {
-        if (type.isUndefined) {
-            return targetUndefinedType
-        } else if (type.isTime) {
-            if (type.isFixedSizeList) {
-                return targetTimeType.getTargetFixedSizeListType(type.listSize)
-            } else if (type.isVariableSizeList) {
-                return targetTimeType.targetVariableSizeListType
-            } else {
-                return targetTimeType
-            }
-        } else if (type.isFixedSizeList) {
-            return type.baseType.getTargetFixedSizeListType(type.listSize)
-        } else if (type.isVariableSizeList) {
-            return type.baseType.targetVariableSizeListType
-        }
-        return type.toText
-    }
 
     protected def getTargetType(Parameter p) {
         return p.inferredType.targetType

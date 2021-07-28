@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.getWidth
 import org.lflang.isBank
 import org.lflang.isMultiport

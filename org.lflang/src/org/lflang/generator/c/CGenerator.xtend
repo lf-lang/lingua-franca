@@ -5332,8 +5332,7 @@ class CGenerator extends GeneratorBase {
 
     override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
-    override getTargetFixedSizeListType(String baseType,
-        Integer size) '''«baseType»[«size»]'''
+    override getTargetFixedSizeListType(String baseType, int size) '''«baseType»[«size»]'''
         
     override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''

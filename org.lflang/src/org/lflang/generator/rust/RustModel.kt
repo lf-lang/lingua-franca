@@ -25,17 +25,14 @@
 
 package org.lflang.generator.rust
 
-import org.eclipse.emf.common.util.EList
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
+import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.util.*
 import kotlin.collections.LinkedHashSet
 
 private typealias Ident = String
-typealias TargetCode = String
 
 /** Root model class for the entire generation. */
 data class GenerationInfo(
@@ -52,16 +49,6 @@ data class RustTargetProperties(
     val timeout: TargetCode? = null,
     val singleFile: Boolean = false
 )
-
-/** Info about the location of an LF node. */
-data class LocationInfo(val line: Int, val fileName: String, val lfText: String) {
-
-    fun display() = "$fileName:$line"
-
-    companion object {
-        val MISSING = LocationInfo(line = 1, fileName = "<missing file>", lfText = "<missing text>")
-    }
-}
 
 /**
  * Model class for a reactor class. This will be emitted as
@@ -254,8 +241,8 @@ sealed class ReactorComponent {
             is Action -> ActionData(
                 lfName = v.name,
                 isLogical = v.isLogical,
-                type = v.type?.toRustType(),
-                minDelay = v.minDelay?.time?.toRustTimeExpr()
+                type = RustTypes.getTargetType(v.type),
+                minDelay = v.minDelay?.time?.let(RustTypes::getTargetTimeExpr)
             )
             is Timer  -> TimerData(
                 lfName = v.name,
@@ -269,13 +256,13 @@ sealed class ReactorComponent {
             when {
                 this == null      -> "Duration::from_millis(0)"
                 parameter != null -> "${parameter.name}.clone()"
-                time != null      -> time.toRustTimeExpr()
-                code != null      -> code.toText()
                 literal != null   ->
                     literal.toIntOrNull()
                         ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
                         ?: throw InvalidSourceException("Not an integer literal", this)
-                else              -> unreachable()
+                time != null      -> time.toRustTimeExpr()
+                code != null      -> code.toText()
+                else              -> RustTypes.getTargetExpr(this, InferredType.time())
             }
     }
 }
@@ -295,7 +282,7 @@ data class PortData(
             PortData(
                 lfName = port.name,
                 isInput = port.isInput,
-                dataType = port.type.toRustType()
+                dataType = RustTypes.getTargetType(port.type)
             )
     }
 }
@@ -317,24 +304,8 @@ data class TimerData(
 private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
-private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode = when (unit) {
-    TimeUnit.NSEC,
-    TimeUnit.NSECS                    -> "Duration::from_nanos($interval)"
-    TimeUnit.USEC,
-    TimeUnit.USECS                    -> "Duration::from_micros($interval)"
-    TimeUnit.MSEC,
-    TimeUnit.MSECS                    -> "Duration::from_millis($interval)"
-    TimeUnit.MIN,
-    TimeUnit.MINS,
-    TimeUnit.MINUTE,
-    TimeUnit.MINUTES                  -> "Duration::from_secs(${interval * 60})"
-    TimeUnit.HOUR, TimeUnit.HOURS     -> "Duration::from_secs(${interval * 3600})"
-    TimeUnit.DAY, TimeUnit.DAYS       -> "Duration::from_secs(${interval * 3600 * 24})"
-    TimeUnit.WEEK, TimeUnit.WEEKS     -> "Duration::from_secs(${interval * 3600 * 24 * 7})"
-    TimeUnit.NONE, // default is the second
-    TimeUnit.SEC, TimeUnit.SECS,
-    TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($interval)"
-}
+private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
+    RustTypes.getTargetTimeExpression(interval, unit)
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
@@ -426,8 +397,8 @@ object RustModelBuilder {
                 stateVars = reactor.stateVars.map {
                     StateVarInfo(
                         lfName = it.name,
-                        type = it.type.toRustType(),
-                        init = it.init.singleOrNull()?.toRustExpr()
+                        type = RustTypes.getTargetType(it.type, it.init),
+                        init = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty())
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
@@ -435,8 +406,8 @@ object RustModelBuilder {
                 ctorParams = reactor.parameters.map {
                     CtorParamInfo(
                         lfName = it.name,
-                        type = it.type.toRustType(),
-                        defaultValue = it.init.singleOrNull()?.toRustExpr()
+                        type = RustTypes.getTargetType(it.type, it.init),
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty())
                     )
                 }
             )
@@ -447,8 +418,10 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            val value = byName[ithParam.name]?.let { it.rhs.toSingleRustExpr(it) }
-                ?: ithParam.init?.takeIf { it.isNotEmpty() }?.toSingleRustExpr(this)
+            val value = byName[ithParam.name]?.let {
+                RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
+            }
+                ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
                 ?: throw InvalidSourceException("Cannot find value of parameter ${ithParam.name}", this)
             ithParam.name to value
         }
@@ -461,43 +434,3 @@ object RustModelBuilder {
         )
     }
 }
-
-fun Type.toRustType(): TargetCode {
-    fun String.maybeToArray() =
-        when {
-            arraySpec == null            -> this
-            arraySpec.isOfVariableLength -> "Vec<$this>"
-            else                         -> "[ $this ; ${arraySpec.length} ]"
-        }
-
-    return when {
-        code != null -> code.toText()
-        isTime       -> "Duration".maybeToArray()
-        id != null   -> {
-            val typeArgs = typeParms?.takeIf { it.isNotEmpty() }?.joinToString("<", ">") { it.toRustType() }.orEmpty()
-            (id + typeArgs + "*".repeat(stars.size)).maybeToArray()
-        }
-        else         -> throw UnsupportedGeneratorFeatureException("Not implemented: Type $this")
-    }
-}
-
-fun Value.toRustExpr(): TargetCode =
-    parameter?.name
-        ?: time?.toRustTimeExpr()
-        ?: literal
-        ?: code?.toText()
-        ?: "/* missing! */"
-
-fun EList<Value>.toSingleRustExpr(node: EObject) =
-    singleOrNull()?.toRustExpr() ?: throw InvalidSourceException("Initializer with several values", node)
-
-
-fun EObject.locationInfo(): LocationInfo {
-    val node = NodeModelUtils.getNode(this)
-    return LocationInfo(
-        line = node.startLine,
-        fileName = this.eResource().toPath().toUnixString(),
-        lfText = toTextTokenBased() ?: ""
-    )
-}
-

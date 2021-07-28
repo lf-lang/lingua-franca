@@ -24,7 +24,10 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.TargetCode
+import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
@@ -414,7 +417,6 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |# The reactor runtime
             |$runtimeCrateFullName = { ${gen.runtime.runtimeCrateSpec()} }
             |# Other dependencies
-            |int-enum = "0.4"
             |env_logger = "0.9"
             |
             |[[bin]]
