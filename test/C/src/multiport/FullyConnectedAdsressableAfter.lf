@@ -1,10 +1,8 @@
 // In this pattern, each node can send direct messages to individual other nodes
 
-target Cpp {
-    threads: 1
-}
+target C;
 
-import Node from "FullyConnectedAdressable.lf"
+import Node from "FullyConnectedAddressable.lf"
 
 main reactor(num_nodes: size_t(4)) {
     nodes1 = new[num_nodes] Node(num_nodes=num_nodes);
