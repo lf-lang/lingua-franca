@@ -46,8 +46,9 @@ class ReportingHelper @JvmOverloads constructor(
     private val fileCache = mutableMapOf<Path, List<String>?>()
     private val HEADER = colors.bold("lfc: ")
 
-    private fun getLines(path: Path): List<String>? =
-        fileCache.computeIfAbsent(path.toAbsolutePath()) {
+    private fun getLines(path: Path?): List<String>? =
+        if (path == null) null
+        else fileCache.computeIfAbsent(path.toAbsolutePath()) {
             try {
                 Files.readAllLines(it, StandardCharsets.UTF_8)
             } catch (e: IOException) {
@@ -90,7 +91,7 @@ class ReportingHelper @JvmOverloads constructor(
      * surrounding the given [issue]. The issue is assumed to
      * have been found in a file located at the given [path].
      */
-    fun printIssue(issue: Issue, path: Path) {
+    fun printIssue(issue: Issue, path: Path?) {
         val severity = issue.severity
         val filePath = Paths.get(issue.uriToProblem.toFileString()).normalize()
 
@@ -110,19 +111,23 @@ class ReportingHelper @JvmOverloads constructor(
         io.err.println()
     }
 
-    private fun formatIssue(issue: Issue, path: Path): String? {
+    private fun formatIssue(issue: Issue, path: Path?): String? {
         val lines = getLines(path) ?: return null
 
+        fun Int?.isInvalid() = this == null || this <= 0
+
         // those are nullable and need to be checked
-        if (issue.lineNumber == null
-            || issue.column == null
+        if (issue.lineNumber.isInvalid()
+            || issue.column.isInvalid()
             || issue.length == null
         ) return null
 
-        return getBuilder(issue, lines, displayPath = io.wd.relativize(path)).build()
+        val fileDisplayName = path?.let { io.wd.relativize(path) }?.toString() ?: "(unknown file)"
+
+        return getBuilder(issue, lines, fileDisplayName).build()
     }
 
-    private fun getBuilder(issue: Issue, lines: List<String>, displayPath: Path): MessageTextBuilder {
+    private fun getBuilder(issue: Issue, lines: List<String>, displayPath: String): MessageTextBuilder {
         val zeroL = issue.lineNumber - 1
         val firstL = max(0, zeroL - numLinesAround + 1)
         val lastL = min(lines.size, zeroL + numLinesAround)
@@ -137,7 +142,7 @@ class ReportingHelper @JvmOverloads constructor(
         private val first: Int,
         /** Index in the list of the line that has the error, zero-based.  */
         private val errorIdx: Int,
-        private val displayPath: Path,
+        private val fileDisplayName: String,
         private val issue: Issue
     ) {
 
@@ -146,20 +151,23 @@ class ReportingHelper @JvmOverloads constructor(
         }
 
         fun build(): String {
-            val pad = stringLengthOf(lines.size + first)
+            // the padding to apply to line numbers
+            val pad = 2 + widthOfLargestLineNum()
             val withLineNums: MutableList<String> =
-                lines.indices.mapTo(ArrayList()) { addLineNum(it, pad) }
+                lines.indices.mapTo(ArrayList()) { numberedLine(it, pad) }
 
             withLineNums.add(errorIdx + 1, makeErrorLine(pad))
-            withLineNums.add(errorIdx + 2, emptyLine(pad)) // skip a line
+            withLineNums.add(errorIdx + 2, emptyGutter(pad)) // skip a line
 
             // skip a line at the beginning
             // add it at the end to not move other indices
-            withLineNums.add(0, emptyLine(pad))
+            withLineNums.add(0, emptyGutter(pad))
             withLineNums.add(0, makeHeaderLine(pad))
 
             return withLineNums.joinToString("\n")
         }
+
+        private fun widthOfLargestLineNum() = (lines.size + first).toString().length
 
         /**
          * This formats the first line as
@@ -167,27 +175,25 @@ class ReportingHelper @JvmOverloads constructor(
          * where the arrow is aligned on the gutter of the line numbers
          */
         private fun makeHeaderLine(pad: Int): String {
-            val prefix = String.format(" %${pad}s ", "-->").let { formatLineNum(it) }
+            val prefix = formatLineNum("-->".padStart(pad))
 
-            return "$prefix $displayPath:${issue.lineNumber}:${issue.column}"
+            return "$prefix $fileDisplayName:${issue.lineNumber}:${issue.column}"
         }
 
 
         private fun makeErrorLine(pad: Int): String {
-            val prefix = emptyLine(pad)
             val caretLine = with(issue) { buildCaretLine(message.trim(), column, length) }
-            return prefix + colors.severityColors(caretLine, issue.severity)  // prefix contains an ANSI_RESET
+            // gutter has its own ANSI stuff so only caretLine gets severityColors
+            return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
         }
 
-        private fun stringLengthOf(i: Int): Int = i.toString().length
+        private fun numberedLine(idx: Int, pad: Int): String {
+            val lineNum = 1 + idx + first
+            val line = lines[idx]
+            return formatLineNum("$lineNum |".padStart(pad)) + " $line"
+        }
 
-        private fun addLineNum(idx: Int, pad: Int): String =
-            formatLineNum(" %${pad}d |").let { prefix ->
-                String.format("$prefix %s", 1 + idx + first, lines[idx])
-            }
-
-        private fun emptyLine(pad: Int): String =
-            String.format(" %${pad}s |", "").let { formatLineNum(it) }
+        private fun emptyGutter(pad: Int): String = formatLineNum("|".padStart(pad))
 
         private fun formatLineNum(str: String) = colors.cyanAndBold(str)
 

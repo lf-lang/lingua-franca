@@ -38,6 +38,8 @@ import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ASTUtils;
+import org.lflang.LFRuntimeModule;
+import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
 
 import com.google.inject.Inject;
@@ -103,10 +105,9 @@ public class Main {
     @Inject
     private JavaIoFileSystemAccess fileAccess;
 
-    /**
-     * Used to report error messages. Overwritten in main().
-     */
-    private ReportingHelper reporter = new ReportingHelper(new Io());
+    /** Used to report error messages. */
+    @Inject
+    private ReportingHelper reporter;
 
 
     /**
@@ -208,9 +209,10 @@ public class Main {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
+        final ReportingHelper reporter = new ReportingHelper(new Io());
 
         // Injector used to obtain Main instance.
-        final Injector injector = new LFStandaloneSetup()
+        final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
             .createInjectorAndDoEMFRegistration();
         // Main instance.
         final Main main = injector.getInstance(Main.class);
@@ -223,8 +225,6 @@ public class Main {
         // Object used to print messages.
         // We could easily support eg a "quiet" mode that
         // disables warnings, or a "no colors" mode for CI environments.
-        final ReportingHelper reporter = new ReportingHelper(new Io());
-        main.reporter = reporter;
 
         try {
             String mainClassUrl = Main.class.getResource("Main.class").toString();
@@ -488,6 +488,7 @@ public class Main {
             context.setArgs(properties);
             context.setCancelIndicator(CancelIndicator.NullImpl);
             context.setPackageRoot(pkgRoot);
+            context.setReporter(new StandaloneErrorReporter(this.reporter));
 
             this.generator.generate(resource, this.fileAccess, context);
             System.out.println("Code generation finished.");

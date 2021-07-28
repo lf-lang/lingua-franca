@@ -13,5 +13,7 @@ class StandaloneContext extends GeneratorContext {
     Path packageRoot
     
     boolean hierarchicalBin = false;
+
+    StandaloneErrorReporter reporter;
     
 }
