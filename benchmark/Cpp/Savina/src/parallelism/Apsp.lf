@@ -178,7 +178,7 @@ reactor ApspRow(
     // block output to all column neighbours
     blocks.toNeighbors -> toCol;
     // block input from all column neighbours
-    fromCol -x-> blocks.fromCol;
+    fromCol -> interleaved(blocks.fromCol);
     
     // broadcast the incoming matrix to all blocks
     (matrix)+ -> blocks.matrix;

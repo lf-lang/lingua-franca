@@ -158,5 +158,5 @@ main reactor (numIterations:size_t(12), numTransactions:size_t(50000), numAccoun
     
     teller.credit -> accounts.inCredit;
     teller.reset -> accounts.reset;
-    accounts.outDebit -x-> accounts.inDebit;
+    accounts.outDebit -> interleaved(accounts.inDebit);
 }
