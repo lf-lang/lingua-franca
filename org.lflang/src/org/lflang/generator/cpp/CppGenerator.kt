@@ -134,47 +134,43 @@ class CppGenerator(
 
         val cores = Runtime.getRuntime().availableProcessors()
 
-        val makeBuilder = createCommand(
+        val makeCommand = commandFactory.createCommand(
             "cmake",
             listOf(
                 "--build", ".", "--target", "install", "--parallel", cores.toString(), "--config",
                 targetConfig.cmakeBuildType?.toString() ?: "Release"
             ),
-            outPath, // FIXME: it doesn't make sense to provide a search path here, createCommand() should accept null
-            "The C++ target requires CMAKE >= 3.02 to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
+            buildPath
         )
-        val cmakeBuilder = createCommand(
+
+        val cmakeCommand = commandFactory.createCommand(
             "cmake", listOf(
                 "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
                 "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
                 "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
                 fileConfig.srcGenPath.toUnixString()
             ),
-            outPath, // FIXME: it doesn't make sense to provide a search path here, createCommand() should accept null
-            "The C++ target requires CMAKE >= 3.02 to compile the generated code" +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
+            buildPath
         )
-        if (makeBuilder == null || cmakeBuilder == null) {
+        if (makeCommand == null || cmakeCommand == null) {
+            errorReporter.reportError(
+                "The C++ target requires CMAKE >= 3.02 to compile the generated code. " +
+                        "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+            )
             return
         }
 
         // prepare cmake
-        cmakeBuilder.directory(buildPath.toFile())
         if (targetConfig.compiler != null) {
-            val cmakeEnv = cmakeBuilder.environment()
-            cmakeEnv["CXX"] = targetConfig.compiler
+            cmakeCommand.setEnvironmentVariable("CXX", targetConfig.compiler)
         }
 
         // run cmake
-        val cmakeReturnCode = executeCommand(cmakeBuilder)
+        val cmakeReturnCode = cmakeCommand.run()
 
         if (cmakeReturnCode == 0) {
-            // If cmake succeeded, prepare and run make
-            makeBuilder.directory(buildPath.toFile())
-            val makeReturnCode = executeCommand(makeBuilder)
+            // If cmake succeeded, run make
+            val makeReturnCode = makeCommand.run()
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")

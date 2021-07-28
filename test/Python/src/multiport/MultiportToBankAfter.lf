@@ -10,7 +10,9 @@ reactor Source {
             out[i].set(i);
     =}
 }
-reactor Destination {
+reactor Destination(
+    bank_index(0)
+) {
     input _in;
     state received(false);
     reaction(_in) {=
