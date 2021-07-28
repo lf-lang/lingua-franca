@@ -29,13 +29,11 @@ import org.apache.commons.cli.ParseException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ASTUtils;
 import org.lflang.LFRuntimeModule;
@@ -115,7 +113,7 @@ public class Main {
      * Used to report error messages at the end.
      */
     @Inject
-    private ReportingHelper reporter;
+    private ReportingBackend reporter;
 
 
     /**
@@ -217,7 +215,7 @@ public class Main {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        final ReportingHelper reporter = new ReportingHelper(new Io());
+        final ReportingBackend reporter = new ReportingBackend(new Io());
 
         // Injector used to obtain Main instance.
         final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
@@ -492,6 +490,9 @@ public class Main {
     }
 
 
+    /**
+     * If some errors were collected, print them and abort execution. Otherwise return.
+     */
     private void exitIfCollectedErrors() {
         if (issueCollector.getErrorsOccurred()) {
             // if there are errors, don't print warnings.
