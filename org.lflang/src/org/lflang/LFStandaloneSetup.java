@@ -19,18 +19,18 @@ import com.google.inject.Module;
  */
 public class LFStandaloneSetup extends LFStandaloneSetupGenerated {
 
-	private final Module[] modules;
+	private final Module module;
 
 	public LFStandaloneSetup() {
-		this.modules = new Module[] {new LFRuntimeModule()};
+		this.module = new LFRuntimeModule();
 	}
 
 	public LFStandaloneSetup(Module... modules) {
-		this.modules = modules.clone();
+		this.module = Modules2.mixin(modules);
 	}
 
 	@Override
 	public Injector createInjector() {
-		return Guice.createInjector(Modules2.mixin(this.modules));
+		return Guice.createInjector(this.module);
 	}
 }
