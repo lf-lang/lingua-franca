@@ -353,7 +353,8 @@ public class Main {
                     System.exit(1);
                 }
                 try {
-                    main.runGenerator(files);
+                    List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
+                    main.runGenerator(paths);
                 } catch (RuntimeException e) {
                     printFatalError("An unexpected error occurred:");
                     e.printStackTrace();
@@ -507,22 +508,23 @@ public class Main {
         return props;
     }
 
+
     /**
      * Find the package root by looking for an 'src' directory. Print a warning
      * if none can be found and return the current working directory instead.
-     * 
-     * @param f The *.lf file to find the package root for.
+     *
+     * @param input The *.lf file to find the package root for.
      * @return The package root, or the current working directory if none
-     *         exists.
+     * exists.
      */
-    private static Path findPackageRoot(File f) {
-        Path p = f.toPath();
+    private static Path findPackageRoot(final Path input) {
+        Path p = input;
         do {
             p = p.getParent();
             if (p == null) {
-                printWarning("File '" + f.getName() + "' is not located in an 'src' directory.");
+                printWarning("File '" + input.getFileName() + "' is not located in an 'src' directory.");
                 printWarning("Adopting the current working directory as the package root.");
-                return Paths.get(new File("").getAbsolutePath());
+                return Paths.get(".").toAbsolutePath();
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();
@@ -531,62 +533,54 @@ public class Main {
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    protected void runGenerator(List<String> files) {
+    protected void runGenerator(List<Path> files) {
         Properties properties = this.getProps(cmd);
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
-        File root = null;
+        Path root = null;
         if (cmd.hasOption(pathOption)) {
-            root = new File(cmd.getOptionValue(pathOption));
-            if (!root.exists()) { // FIXME: Create it instead?
+            root = Paths.get(cmd.getOptionValue(pathOption)).normalize();
+            if (!Files.exists(root)) { // FIXME: Create it instead?
                 printFatalError("Output location '" + root + "' does not exist.");
                 System.exit(1);
             }
-            if (!root.isDirectory()) {
+            if (!Files.isDirectory(root)) {
                 printFatalError("Output location '" + root + "' is not a directory.");
                 System.exit(1);
             }
         }
-        
-        for (String file : files) {
-            final File f = new File(file);
-            if (!f.exists()) {
-                printFatalError(
-                        file.toString() + ": No such file or directory");
+
+        for (Path path : files) {
+            if (!Files.exists(path)) {
+                printFatalError(path + ": No such file or directory");
                 System.exit(1);
             }
         }
-        for (String file : files) {
-            Path pkgRoot = findPackageRoot(new File(file).getAbsoluteFile());
-            final File f = new File(file);
-            String resolved = "";
-            try {
-                if (root != null) {
-                    resolved = new File(root, "src-gen").getCanonicalPath();
-                } else {
-                    resolved = new File(pkgRoot.toFile(), "src-gen").getCanonicalPath();
-                }
-                this.fileAccess.setOutputPath(resolved);
-            } catch (IOException e) {
-              printFatalError("Could not access '" + resolved + "'.");
+        for (Path path : files) {
+            path = path.toAbsolutePath();
+            Path pkgRoot = findPackageRoot(path);
+            String resolved;
+            if (root != null) {
+                resolved = root.resolve("src-gen").toString();
+            } else {
+                resolved = pkgRoot.resolve("src-gen").toString();
             }
-            
+            this.fileAccess.setOutputPath(resolved);
+
             final ResourceSet set = this.resourceSetProvider.get();
-            final Resource resource = set
-                    .getResource(URI.createFileURI(f.getAbsolutePath()), true);
-            
+            final Resource resource =
+                set.getResource(URI.createFileURI(path.toString()), true);
+
             if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
                 if (!ASTUtils.makeFederated(resource)) {
                     printError("Unable to change main reactor to federated reactor.");
                 }
             }
-            
-            final List<Issue> issues = this.validator.validate(resource,
-                    CheckMode.ALL, CancelIndicator.NullImpl);
-            Boolean hasErrors = false;
-            for(Issue issue : issues) {
-                if (issue.getSeverity() == Severity.ERROR)
-                    hasErrors = true;
-            }
+
+            final List<Issue> issues =
+                this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+
+            boolean hasErrors = issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR);
+
             if (hasErrors) {
                 printFatalError("Unable to validate resource. Reason:");
                 issues.forEach(issue -> printIssue(issue, pkgRoot, System.err));
