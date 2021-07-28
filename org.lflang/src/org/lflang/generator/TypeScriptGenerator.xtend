@@ -1400,7 +1400,7 @@ class TypeScriptGenerator extends GeneratorBase {
         "Present"
     }
     
-    override String getTargetFixedSizeListType(String baseType, Integer size) {
+    override String getTargetFixedSizeListType(String baseType, int size) {
         '''Array(«size»)<«baseType»>'''
     }
     

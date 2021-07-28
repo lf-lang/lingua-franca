@@ -2,6 +2,8 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
+import org.lflang.generator.getTargetExpr
+import org.lflang.generator.getTargetType
 import org.lflang.lf.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -47,41 +49,9 @@ val Reaction.name
 // TODO: Most of the extensions defined here should be moved to companion objects of their
 //  corresponding generator classes. See for instance the CppParameterGenerator
 
-/** Get a C++ representation of a LF unit. */
-val TimeValue.cppUnit
-    get() = when (this.unit) {
-        TimeUnit.NSEC    -> "ns"
-        TimeUnit.NSECS   -> "ns"
-        TimeUnit.USEC    -> "us"
-        TimeUnit.USECS   -> "us"
-        TimeUnit.MSEC    -> "ms"
-        TimeUnit.MSECS   -> "ms"
-        TimeUnit.SEC     -> "s"
-        TimeUnit.SECS    -> "s"
-        TimeUnit.SECOND  -> "s"
-        TimeUnit.SECONDS -> "s"
-        TimeUnit.MIN     -> "min"
-        TimeUnit.MINS    -> "min"
-        TimeUnit.MINUTE  -> "min"
-        TimeUnit.MINUTES -> "min"
-        TimeUnit.HOUR    -> "h"
-        TimeUnit.HOURS   -> "h"
-        TimeUnit.DAY     -> "d"
-        TimeUnit.DAYS    -> "d"
-        TimeUnit.WEEK    -> "d*7"
-        TimeUnit.WEEKS   -> "d*7"
-        TimeUnit.NONE    -> ""
-        else             -> ""
-    }
 
 /** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCode() = if (this.time == 0L) "reactor::Duration::zero()" else "${this.time}${this.cppUnit}"
-
-/** Convert a Time to a representation in C++ code
- *
- * FIXME this is redundant to GeneratorBase.getTargetTime
- */
-fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
+fun TimeValue.toCode() = CppTypes.getTargetTimeExpression(time, unit)
 
 /** Convert a value to a time representation in C++ code*
  *
@@ -90,12 +60,9 @@ fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
  * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
  *                    This should be set to false if called from code generators for the inner class.
  */
-fun Value.toTime(outerContext: Boolean = false): String = when {
-    this.time != null -> this.time.toCode()
-    this.isZero       -> TimeValue(0, TimeUnit.NONE).toCode()
-    outerContext && this.parameter != null -> "__lf_inner.${parameter.name}"
-    else              -> this.toText()
-}
+fun Value.toTime(outerContext: Boolean = false): String =
+    if (outerContext && this.parameter != null) "__lf_inner.${parameter.name}"
+    else CppTypes.getTargetTimeExpression(0, TimeUnit.NONE)
 
 /**
  * Get textual representation of a value in C++ code
@@ -103,7 +70,7 @@ fun Value.toTime(outerContext: Boolean = false): String = when {
  * If the value evaluates to 0, it is interpreted as a normal value.
  * FIXME this is redundant to GeneratorBase.getTargetValue
  */
-fun Value.toCode(): String = this.time?.toCode() ?: this.toText()
+fun Value.toCode(): String = CppTypes.getTargetExpr(this)
 
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCode(): String =  terms.joinToString(" + ") {
@@ -176,18 +143,5 @@ val Action.targetType: String
         return if (inferred.isUndefined) "void" else inferred.targetType
     }
 
-private fun fixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
-private fun variableSizeListType(baseType: String) = "std::vector<$baseType>"
-
 val InferredType.targetType: String
-    get() = when {
-        this.isUndefined        -> "/* undefined type */"
-        this.isTime             -> when {
-            this.isFixedSizeList    -> fixedSizeListType("reactor::Duration", this.listSize)
-            this.isVariableSizeList -> variableSizeListType("reactor::Duration")
-            else                    -> "reactor::Duration"
-        }
-        this.isFixedSizeList    -> fixedSizeListType(this.baseType(), this.listSize)
-        this.isVariableSizeList -> variableSizeListType(this.baseType())
-        else                    -> this.toText()
-    }
+    get() = CppTypes.getTargetType(this)

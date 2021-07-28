@@ -22,7 +22,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.generator.rust
+package org.lflang.generator
 
 import org.eclipse.emf.ecore.EObject
 

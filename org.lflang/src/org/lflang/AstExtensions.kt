@@ -400,6 +400,9 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 /** Returns true if this is an input port (not an output port). */
 val Port.isInput get() = this is Input
 
+val Assignment.isInitWithBraces get() = braces.isNotEmpty()
+val StateVar.isInitWithBraces get() = braces.isNotEmpty()
+val Parameter.isInitWithBraces get() = braces.isNotEmpty()
 
 /**
  * Produce the text of the given node in the source LF file.

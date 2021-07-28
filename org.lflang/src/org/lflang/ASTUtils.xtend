@@ -1222,7 +1222,7 @@ class ASTUtils {
      * If the value of the parameter is a list of integers,
      * return the sum of value in the list.
      * The instantiations parameter is as in 
-     * {@link initialValue(Parameter, List<Instantiation>}.
+     * {@link initialValue(Parameter, List<Instantiation>)}.
      * 
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
@@ -1500,7 +1500,7 @@ class ASTUtils {
      * state variable.
      * @return The inferred type, or "undefined" if none could be inferred.
      */    
-    protected static def InferredType getInferredType(EList<Value> initList) {
+    static def InferredType getInferredType(List<Value> initList) {
         if (initList.size == 1) {
         	// If there is a single element in the list, and it is a proper
         	// time value with units, we infer the type "time".
