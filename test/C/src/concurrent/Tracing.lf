@@ -14,7 +14,9 @@ reactor Source {
 		self->s++;
 	=}
 }
-reactor TakeTime {
+reactor TakeTime(
+    bank_index:int(0)
+) {
 	input in:int;
 	output out:int;
 	state event:string("No ID");
