@@ -1,4 +1,13 @@
-// In this pattern, each node can send broadcast messages to all other nodes
+/**
+ * This illustrates bank of reactors where each reactor produces an
+ * output that is sent to a reactor in the bank of its choice. In this
+ * particular example, each reactor chooses to send its output to the
+ * reactor with the next higher bank_index, wrapping around when it gets
+ * to the end of the bank.
+ * 
+ * @author Christian Menard
+ * @author Edward A. Lee
+ */
 
 target Cpp {
     threads: 1
@@ -6,12 +15,12 @@ target Cpp {
 
 reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
     input[num_nodes] in: size_t
-    output out: size_t
+    output[num_nodes] out: size_t
     
     reaction (startup) -> out{=
      	std::cout << "Hello from node " << bank_index << "!\n";
-     	// broadcast my ID to everyone
-     	out.set(bank_index);    
+     	// send my ID only to my right neighbour
+     	out[(bank_index + 1) % num_nodes].set(bank_index);    
     =}
     
     reaction (in) {=
@@ -27,5 +36,5 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
 
 main reactor(num_nodes: size_t(4)) {
     nodes = new[num_nodes] Node(num_nodes=num_nodes);
-    (nodes.out)+ -> nodes.in;
+    nodes.out -> interleaved(nodes.in);
 }
