@@ -158,6 +158,15 @@ fun Delay.toText(): String =
 
 
 /**
+ * Remove quotation marks surrounding the specified string.
+ */
+fun String.withoutQuotes(): String {
+    val r = removeSurrounding("\"")
+    return if (r !== this) this else removeSurrounding("'")
+}
+
+
+/**
  * Return a string of the form either "name" or "container.name" depending
  * on in which form the variable reference was given.
  * @receiver The variable reference.
@@ -255,6 +264,36 @@ val Value.isZero: Boolean
             ?: this.code?.isZero
             ?: false
 
+/**
+ * Parse and return an integer from this string, much
+ * like [String.toIntOrNull], but allows any radix.
+ *
+ * @see Integer.decode
+ */
+fun String.toIntOrNullAnyRadix(): Int? =
+    try {
+        Integer.decode(this)
+    } catch (e: NumberFormatException) {
+        null
+    }
+
+/**
+ * Return the sublist consisting of the tail elements of this list,
+ * ie, everything except the first elements. This is a list view,
+ * and does not copy the backing buffer (if any).
+ *
+ * @throws NoSuchElementException if the list is empty
+ */
+fun <T> List<T>.tail() = subList(1, size)
+
+/**
+ * Return a pair consisting of the [List.first] element and the [tail] sublist.
+ * This may be used to deconstruct a list recursively, as is usual in
+ * functional languages.
+ *
+ * @throws NoSuchElementException if the list is empty
+ */
+fun <T> List<T>.headAndTail() = Pair(first(), tail())
 
 /**
  * Given an initialization list, return an inferred type. Only two types

@@ -216,7 +216,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @return true if errors where reported
      */
     @Override
-    public boolean getErrorsOccurred() {
+    public Boolean getErrorsOccurred() {
         return errorsOccurred;
     }
 
