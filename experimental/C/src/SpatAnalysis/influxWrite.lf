@@ -72,7 +72,7 @@ main reactor {
         var lines;
 		try {
   			
-  			const data = fs.readFileSync(path.resolve(__dirname, traceFilePath), 'utf8')
+  			const data = fs.readFileSync(path.resolve(__dirname, traceFilePath), "utf8")
   			lines = data.split(/\r?\n/);
   			
   					
@@ -87,7 +87,7 @@ main reactor {
 	        	if(split_line[0] == "sender_pts")
 	        		_timestamp = split_line[1];
 	            fieldRecord[split_line[0]] = parseInt(split_line[1]);
-				if(split_line[0] == 'deadline_miss'){
+				if(split_line[0] == "deadline_miss"){
 			         influx
 			     	 .writePoints([
 			      	  {
