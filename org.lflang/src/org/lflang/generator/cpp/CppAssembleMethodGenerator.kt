@@ -140,13 +140,13 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
             // if the ports on either side are multiports, this is a multiport connection
             val leftPort = leftPorts[0].variable as Port
-            val rightPort = rightPorts[0].variable as Port
+            val rightPort = rightPorts[0].varRef.variable as Port
             if (leftPort.isMultiport || rightPort.isMultiport)
                 return true
 
             // if the containers on either side are banks, this is a multiport connection
             val leftContainer = leftPorts[0].container
-            val rightContainer = rightPorts[0].container
+            val rightContainer = rightPorts[0].varRef.container
             if (leftContainer?.isBank == true || rightContainer?.isBank == true)
                 return true
 
@@ -154,16 +154,16 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
 
     private fun declareConnection(c: Connection, idx: Int): String {
-        if (c.isMultiportConnection) {
-            return declareMultiportConnection(c, idx);
+        return if (c.isMultiportConnection) {
+            declareMultiportConnection(c, idx)
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
 
-            return """
-                // connection $idx
-                ${leftPort.name}.bind_to(&${rightPort.name});
-            """.trimIndent()
+            """
+                    // connection $idx
+                    ${leftPort.name}.bind_to(&${rightPort.varRef.name});
+                """.trimIndent()
         }
     }
 
@@ -198,7 +198,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                 |std::vector<$portType> __lf_left_ports_$idx;
             ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
-            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx", c.isCross) }}
+            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it.varRef, "__lf_right_ports_$idx", it.isInterleaved) }}
                 |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
             """.trimMargin()
         }
