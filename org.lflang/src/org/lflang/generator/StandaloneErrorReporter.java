@@ -27,17 +27,12 @@
 
 package org.lflang.generator;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 
 import com.google.inject.Inject;
 
@@ -48,82 +43,16 @@ import com.google.inject.Inject;
 public class StandaloneErrorReporter implements ErrorReporter {
 
     @Inject
-    private IssueCollector collector;
+    private StandaloneIssueAcceptor issueAcceptor;
 
-    /**
-     * Report a warning or error on the specified object
-     * <p>
-     * The caller should not throw an exception so execution can continue. This
-     * will print the error message to stderr. If running in INTEGRATED mode
-     * (within the Eclipse IDE), then this also adds a marker to the editor.
-     *
-     * @param message  The error message.
-     * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     * @param obj      The Ecore object, or null if it is not known.
-     */
     private String reportWithNode(String message, Severity severity, EObject obj) {
-        EObjectDiagnosticImpl diagnostic =
-            new EObjectDiagnosticImpl(severity, null, message, obj, null, 0, null);
-
-        Path path;
-        try {
-            path = FileConfig.toPath(obj.eResource());
-        } catch (IOException ignored) {
-            path = getFileNameBestEffort(obj);
-        }
-
-        LfIssue issue = new LfIssue(
-            message,
-            severity,
-            diagnostic.getLine(),
-            diagnostic.getColumn(),
-            diagnostic.getLength(),
-            path
-        );
-
-        collector.accept(issue);
-        return "";
+        issueAcceptor.accept(severity, message, obj, null, 0, null);
+        return message;
     }
 
-
-    /** Best effort to get a fileName. May return null. */
-    private static Path getFileNameBestEffort(EObject obj) {
-        Path path;
-        URI uri = obj.eResource().getURI();
-        try {
-            path = FileConfig.toPath(uri);
-        } catch (IOException ioe) {
-            String fString = uri.toFileString();
-            path = fString != null ? Paths.get(fString) : null;
-        }
-        return path;
-    }
-
-
-    /**
-     * Report a warning or error on the specified line of the specified file.
-     * <p>
-     * The caller should not throw an exception so execution can continue. This
-     * will print the error message to stderr. If running in INTEGRATED mode
-     * (within the Eclipse IDE), then this also adds a marker to the editor.
-     *
-     * @param message  The error message.
-     * @param severity A severity
-     * @param line     The line number or null if it is not known.
-     * @param path     The file, or null if it is not known.
-     */
     private String reportSimpleFileCtx(String message, Severity severity, Integer line, Path path) {
-        LfIssue issue = new LfIssue(
-            message,
-            severity,
-            line,
-            null,
-            null,
-            path
-        );
-
-        collector.accept(issue);
-
+        LfIssue issue = new LfIssue(message, severity, line, null, null, path);
+        issueAcceptor.accept(issue);
         // Return a string that can be inserted into the generated code.
         return message;
     }
@@ -167,12 +96,12 @@ public class StandaloneErrorReporter implements ErrorReporter {
 
     @Override
     public Boolean getErrorsOccurred() {
-        return collector.getErrorsOccurred();
+        return issueAcceptor.getErrorsOccurred();
     }
 
 
     @Override
     public void reset() {
-        collector.reset();
+        issueAcceptor.reset();
     }
 }

@@ -54,7 +54,12 @@ data class LfIssue(
 }
 
 
-/** Collects issues to sort out later. */
+/**
+ * Collects issues to sort out later. This is a singleton in
+ * the app, it's reset every time a generation task starts.
+ * This hints that the work is not very parallel. Indeed the
+ * profiling report shown
+ */
 @Singleton // one instance per injector
 class IssueCollector {
     private val map = mutableMapOf<Severity, MutableSet<LfIssue>>()

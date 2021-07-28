@@ -41,6 +41,8 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
@@ -105,6 +107,9 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Inject
     ErrorReporter errorReporter
 
+    @Inject(optional = true)
+    ValidationMessageAcceptor messageAcceptor
+
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
      */
@@ -145,6 +150,10 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
+    }
+
+    override def ValidationMessageAcceptor getMessageAcceptor() {
+        return messageAcceptor == null ? this : messageAcceptor
     }
 
     @Check
