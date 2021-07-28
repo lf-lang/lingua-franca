@@ -341,7 +341,8 @@ WidthSpec:
 WidthTerm:
     width=INT 
     | parameter=[Parameter] 
-    | 'widthof(' port=VarRef ')';
+    | 'widthof(' port=VarRef ')'
+    | code=Code;
 
 IPV4Host:
     (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
