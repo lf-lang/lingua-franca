@@ -231,7 +231,7 @@ Instantiation:
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
-    ('->' | physical?='~>' | cross?='-x->') 
+    ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
     (delay=Delay | ';'?);
 
@@ -274,10 +274,10 @@ Trigger:
 
 Effect:
     Action | Output;
-
 VarRef:
-    variable=[Variable]
-    | container=[Instantiation] '.' variable=[Variable];
+    variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
+    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+;
 
 Assignment:
     (lhs=[Parameter] (
@@ -483,6 +483,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
+    'interleaved' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

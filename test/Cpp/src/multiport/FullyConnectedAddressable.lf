@@ -20,20 +20,22 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
         std::cout << "Node " << bank_index << " received messages from ";
         received = true;
         size_t count{0};
-        size_t received{0};
+        size_t result{0};
      	for (auto& port : in) {
             if (port.is_present()) {
                 count++;
-                received = *port.get();
-                std::cout << received << ", ";
+                result = *port.get();
+                std::cout << result << ", ";
             }
         }
+        std::cout << '\n';
+
         size_t expected = bank_index == 0 ? num_nodes - 1 : bank_index - 1;
-        if (count != 1 || received != expected) {
-            std::cerr << "ERROR: received an unexpected message!"; 
+        if (count != 1 || result != expected) {
+            std::cerr << "ERROR: received an unexpected message!\n"; 
             exit(1);
         }
-        std::cout << '\n';
+
     =}
     reaction (shutdown) {=
         if (!received) {
@@ -44,6 +46,9 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
 }
 
 main reactor(num_nodes: size_t(4)) {
-    nodes = new[num_nodes] Node(num_nodes=num_nodes);
-    (nodes.out)+ -x-> nodes.in;
+    nodes1 = new[num_nodes] Node(num_nodes=num_nodes);
+    nodes1.out -> interleaved(nodes1.in);
+    
+    nodes2 = new[num_nodes] Node(num_nodes=num_nodes);
+    interleaved(nodes2.out) -> nodes2.in;
 }
