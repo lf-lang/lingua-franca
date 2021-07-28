@@ -5,7 +5,6 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -13,10 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -59,31 +58,6 @@ public class Main {
     private static String MAIN_PATH_IN_JAR = String.join("/",
                                                          new String[] {"!", "org", "lflang", "generator", "Main.class"});
 
-    /**
-     * ANSI sequence color escape sequence for red bold font.
-     */
-    private final static String RED_BOLD = "\033[1;31m";
-
-    /**
-     * ANSI sequence color escape sequence for resetting all
-     * attributes.
-     */
-    public final static String ANSI_RESET = "\033[0m";
-
-    /**
-     * ANSI sequence color escape sequence for bold font.
-     */
-    private final static String BOLD = "\u001b[1m";
-
-    /**
-     * ANSI sequence color escape sequence for ending bold font.
-     */
-    private final static String END_BOLD = "\u001b[0m";
-    
-    /**
-     * Header used when printing messages.
-     */
-    private final static String HEADER = bold("lfc: ");
     
     /**
      * Object for interpreting command line arguments.
@@ -128,77 +102,11 @@ public class Main {
      */
     @Inject
     private JavaIoFileSystemAccess fileAccess;
-    private static final boolean USE_ANSI_COLORS = true;
-
 
     /**
-     * Print a fatal error message prefixed with a header that indicates the
-     * source and severity.
-     *
-     * @param message The message to print.
+     * Used to report error messages. Overwritten in main().
      */
-    public static void printFatalError(String message) {
-        System.err.println(HEADER + redAndBold("fatal error: ") + bold(message));
-    }
-    
-    /**
-     * Print an error message prefixed with a header that indicates the source 
-     * and severity.
-     * 
-     * @param message The message to print.
-     */
-    public static void printError(String message) {
-        System.err.println(HEADER + redAndBold("error: ") + message);
-    }
-    
-    /**
-     * Print an informational message prefixed with a header that indicates the
-     * source and severity.
-     * 
-     * @param message The message to print.
-     */
-    public static void printInfo(String message) {
-        System.out.println(HEADER + bold("info: ") + message);
-    }
-    
-    /**
-     * Print a warning message prefixed with a header that indicates the
-     * source and severity.
-     * 
-     * @param message The message to print.
-     */
-    public static void printWarning(String message) {
-        System.out.println(HEADER + bold("warning: ") + message);
-    }
-    
-    /**
-     * Return the given string in bold face.
-     * 
-     * @param s String to type set.
-     * @return a bold face version of the given string.
-     */
-    public static String bold(String s) {
-        return BOLD + s + END_BOLD;
-    }
-
-
-    /**
-     * Return the given string in red color and bold face.
-     */
-    private static String redAndBold(String s) {
-        return RED_BOLD + s + ANSI_RESET;
-    }
-
-
-    /** Return the given string in yellow color and bold face. */
-    private static String yellowAndBold(String s) {
-        return "\033[1;33m" + s + ANSI_RESET;
-    }
-
-    /** Return the given string in cyan color and bold face. */
-    public static String cyanAndBold(String s) {
-        return "\033[1;36m" + s + ANSI_RESET;
-    }
+    private ReportingHelper reporter = new ReportingHelper(new Io());
 
 
     /**
@@ -272,9 +180,9 @@ public class Main {
          * @return List of options that must be passed on to the code gen stage.
          */
         public static List<Option> getPassedOptions() {
-            return Arrays.asList(CLIOption.values()).stream()
-                    .filter(opt -> opt.passOn).map(opt -> opt.option)
-                    .collect(Collectors.toList());
+            return Arrays.stream(CLIOption.values())
+                         .filter(opt -> opt.passOn).map(opt -> opt.option)
+                         .collect(Collectors.toList());
         }
         
     }
@@ -284,10 +192,7 @@ public class Main {
      * @return whether or not the update flag is present.
      */
     private boolean mustUpdate() {
-        if (cmd.hasOption(CLIOption.UPDATE.option.getOpt())) {
-            return true;
-        }
-        return false;
+        return cmd.hasOption(CLIOption.UPDATE.option.getOpt());
     }
     
     /**
@@ -295,10 +200,7 @@ public class Main {
      * @return whether or not the rebuild or update flag is present.
      */
     private boolean mustRebuild() {
-        if (mustUpdate() || cmd.hasOption(CLIOption.REBUILD.option.getOpt())) {
-            return true;
-        }
-        return false;
+        return mustUpdate() || cmd.hasOption(CLIOption.REBUILD.option.getOpt());
     }
     
     /**
@@ -306,33 +208,23 @@ public class Main {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        
-        /**
-         * Injector used to obtain Main instance.
-         */
+
+        // Injector used to obtain Main instance.
         final Injector injector = new LFStandaloneSetup()
-                .createInjectorAndDoEMFRegistration();
-        
-        /**
-         * Main instance.
-         */
-        final Main main = injector.<Main>getInstance(Main.class);
-
-        /**
-         * Apache Commons Options object configured to according to available 
-         * CLI arguments. 
-         */
+            .createInjectorAndDoEMFRegistration();
+        // Main instance.
+        final Main main = injector.getInstance(Main.class);
+        // Apache Commons Options object configured to according to available CLI arguments.
         Options options = CLIOption.getOptions();
-
-        /**
-         * CLI arguments parser.
-         */
+        // CLI arguments parser.
         CommandLineParser parser = new DefaultParser();
-        
-        /**
-         * Helper object for printing "help" menu.
-         */
+        // Helper object for printing "help" menu.
         HelpFormatter formatter = new HelpFormatter();
+        // Object used to print messages.
+        // We could easily support eg a "quiet" mode that
+        // disables warnings, or a "no colors" mode for CI environments.
+        final ReportingHelper reporter = new ReportingHelper(new Io());
+        main.reporter = reporter;
 
         try {
             String mainClassUrl = Main.class.getResource("Main.class").toString();
@@ -342,9 +234,7 @@ public class Main {
             main.srcPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "src")).normalize();
             main.rootPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "..")).normalize();
         } catch (MalformedURLException | URISyntaxException e) {
-            printFatalError("An unexpected error occurred:");
-            e.printStackTrace();
-            System.exit(1);
+            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
 
         try {
@@ -361,21 +251,17 @@ public class Main {
                 List<String> files = main.cmd.getArgList();
                 
                 if (files.size() < 1) {
-                    printFatalError("No input files.");
-                    System.exit(1);
+                    reporter.printFatalErrorAndExit("No input files.");
                 }
                 try {
                     List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
                     main.runGenerator(paths);
                 } catch (RuntimeException e) {
-                    printFatalError("An unexpected error occurred:");
-                    e.printStackTrace();
-                    System.exit(1);
+                    reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
                 }
             }
         } catch (ParseException e) {
-            printFatalError("Unable to parse commandline arguments. Reason:");
-            System.err.println(e.getMessage());
+            reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
             formatter.printHelp("lfc", options);
             System.exit(1);
         }
@@ -389,7 +275,7 @@ public class Main {
      * arguments of the parent process, to be passed on to the child process.
      */
     private void forkAndWait(CommandLine cmd) {
-        LinkedList<String> cmdList = new LinkedList<String>();
+        List<String> cmdList = new ArrayList<>();
         cmdList.add("java");
         cmdList.add("-jar");
         cmdList.add(jarPath.toString());
@@ -411,10 +297,9 @@ public class Main {
             p = new ProcessBuilder(cmdList).inheritIO().start();
             p.waitFor();
         } catch (IOException e) {
-            printFatalError("Unable to fork off child process. Reason:");
-            System.err.println(e.getMessage());
+            reporter.printFatalError("Unable to fork off child process. Reason: " + e);
         } catch (InterruptedException e) {
-            printError("Child process was interupted. Exiting.");
+            reporter.printError("Child process was interupted. Exiting.");
         }
         
     }
@@ -438,9 +323,7 @@ public class Main {
                     srcPath, jar.lastModified()));
 
         } catch (IOException e) {
-            printFatalError("Rebuild unsuccessful. Reason:");
-            System.err.println(e.getMessage());
-            System.exit(1);
+            reporter.printFatalErrorAndExit("Rebuild unsuccessful. Reason: " + e);
         }
         return outOfDate;
     }
@@ -469,16 +352,12 @@ public class Main {
             
             p.waitFor();
             if (p.exitValue() == 0) {
-                printInfo("Rebuild successful; forking off updated version of lfc.");
+                reporter.printInfo("Rebuild successful; forking off updated version of lfc.");
             } else {
-                printFatalError("Rebuild failed. Reason:");
-                System.err.print(result);
-                System.exit(1);
+                reporter.printFatalErrorAndExit("Rebuild failed. Reason: " + result);
             }
         } catch (Exception e) {
-            printFatalError("Rebuild failed. Reason:");
-            System.err.println(e.getMessage());
-            System.exit(1);
+            reporter.printFatalErrorAndExit("Rebuild failed. Reason: " + e.getMessage());
         }
     }
     
@@ -492,11 +371,11 @@ public class Main {
         // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-0.1.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
         if (needsUpdate()) {
             // Only rebuild if the jar is out-of-date.
-            printInfo("Jar file is missing or out-of-date; running Gradle.");
+            reporter.printInfo("Jar file is missing or out-of-date; running Gradle.");
             rebuildOrExit();
             forkAndWait(cmd);
         } else {
-            printInfo("Not rebuilding; already up-to-date.");
+            reporter.printInfo("Not rebuilding; already up-to-date.");
             return false;
         }
         return true;
@@ -529,42 +408,40 @@ public class Main {
      * @return The package root, or the current working directory if none
      * exists.
      */
-    private static Path findPackageRoot(final Path input) {
+    private Path findPackageRoot(final Path input) {
         Path p = input;
         do {
             p = p.getParent();
             if (p == null) {
-                printWarning("File '" + input.getFileName() + "' is not located in an 'src' directory.");
-                printWarning("Adopting the current working directory as the package root.");
+                reporter.printWarning("File '" + input.getFileName() + "' is not located in an 'src' directory.");
+                reporter.printWarning("Adopting the current working directory as the package root.");
                 return Paths.get(".").toAbsolutePath();
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();
     }
-    
+
+
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    protected void runGenerator(List<Path> files) {
+    private void runGenerator(List<Path> files) {
         Properties properties = this.getProps(cmd);
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
         if (cmd.hasOption(pathOption)) {
             root = Paths.get(cmd.getOptionValue(pathOption)).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
-                printFatalError("Output location '" + root + "' does not exist.");
-                System.exit(1);
+                reporter.printFatalErrorAndExit("Output location '" + root + "' does not exist.");
             }
             if (!Files.isDirectory(root)) {
-                printFatalError("Output location '" + root + "' is not a directory.");
-                System.exit(1);
+                reporter.printFatalErrorAndExit("Output location '" + root + "' is not a directory.");
             }
         }
 
         for (Path path : files) {
             if (!Files.exists(path)) {
-                printFatalError(path + ": No such file or directory");
-                System.exit(1);
+                reporter.printFatalErrorAndExit(path + ": No such file or directory");
             }
         }
         for (Path path : files) {
@@ -584,7 +461,7 @@ public class Main {
 
             if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
                 if (!ASTUtils.makeFederated(resource)) {
-                    printError("Unable to change main reactor to federated reactor.");
+                    reporter.printError("Unable to change main reactor to federated reactor.");
                 }
             }
 
@@ -594,11 +471,17 @@ public class Main {
             List<Issue> errors = issues.stream().filter(it -> it.getSeverity() == Severity.ERROR).collect(Collectors.toList());
 
             if (!errors.isEmpty()) {
-                errors.forEach(issue -> printIssue(issue, pkgRoot, System.err));
-                printFatalError("Aborting due to previous errors");
-                System.exit(1);
+                // if there are errors, don't print warnings.
+                for (Issue issue : errors) {
+                    reporter.printIssue(issue, path);
+                }
+                String cause = errors.size() == 1 ? "previous error"
+                                                  : errors.size() + " previous errors";
+                reporter.printFatalErrorAndExit("Aborting due to " + cause);
             } else {
-                issues.forEach(issue -> printIssue(issue, pkgRoot, System.err));
+                for (Issue issue : issues) {
+                    reporter.printIssue(issue, path);
+                }
             }
 
             StandaloneContext context = new StandaloneContext();
@@ -609,53 +492,6 @@ public class Main {
             this.generator.generate(resource, this.fileAccess, context);
             System.out.println("Code generation finished.");
         }
-    }
-
-
-    /**
-     * Print an issue to the given PrintStream.
-     *
-     * @param issue   Issue to print
-     * @param pkgRoot Package root, to relativize issue location
-     * @param out     Output PrintStream
-     */
-    private static void printIssue(Issue issue, Path pkgRoot, PrintStream out) {
-        Severity severity = issue.getSeverity();
-        Path filePath = Paths.get(issue.getUriToProblem().toFileString()).normalize();
-
-        String header = severity.name().toLowerCase(Locale.ROOT);
-        String fullMessage;
-
-        if (USE_ANSI_COLORS) {
-            fullMessage = HEADER + colorMessage(header, severity) + bold(": " + issue.getMessage()) + "\n";
-        } else {
-            fullMessage = HEADER + header + ": " + issue.getMessage() + "\n";
-        }
-
-        Path displayPath = pkgRoot.relativize(filePath);
-        String snippet = ReportingUtilKt.getCodeSnippet(filePath, displayPath, issue, 2, USE_ANSI_COLORS, m -> colorMessage(m, severity));
-        if (snippet == null) {
-            fullMessage += " --> " + displayPath + ":" + issue.getLineNumber() + ":" + issue.getColumn();
-            fullMessage += " - " + issue.getMessage();
-        } else {
-            fullMessage += snippet;
-        }
-        out.println(fullMessage);
-        out.println();
-
-    }
-
-
-    /**
-     * Format the message as per the spec of {@link ReportingUtilKt#getCodeSnippet(Path, Path, Issue, int)}.
-     */
-    private static String colorMessage(String message, Severity issue) {
-        if (issue == Severity.ERROR) {
-            return redAndBold(message);
-        } else if (issue == Severity.WARNING) {
-            return yellowAndBold(message);
-        }
-        return message;
     }
 
 
