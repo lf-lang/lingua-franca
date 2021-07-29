@@ -371,7 +371,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                         (it.definition === rp.variable && it.parent === rp.container)
                     ]) {
                         if (leftInCycle) {
-                            // Only report of _both_ referenced ports are in the cycle.
+                            // Only report of _both_ reference ports are in the cycle.
                             error('''Connection in reactor «reactorName» creates ''' +
                                     '''a cyclic dependency between «lp.toText» and ''' +
                                     '''«rp.toText».''', Literals.CONNECTION__DELAY
@@ -1285,6 +1285,23 @@ class LFValidatorImpl extends AbstractLFValidator {
                     "Types are not allowed in the Python target",
                     Literals.TYPE__ID
                 )
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkVarRef(VarRef varRef) {        
+        if (varRef.isInterleaved) {
+            if (this.target != Target.CPP && this.target != Target.C && this.target != Target.Python) {
+                error("This target does not support interleaved port references", Literals.VAR_REF__INTERLEAVED)
+            }
+            if (varRef.container === null || varRef.container.widthSpec === null || 
+                (varRef.variable as Port).widthSpec === null
+            ) {
+                error("interleaved can only be used for multiports contained within banks", Literals.VAR_REF__INTERLEAVED)
+            }
+            if (!(varRef.eContainer instanceof Connection)) {
+                error("interleaved can only be used in connections", Literals.VAR_REF__INTERLEAVED)
             }
         }
     }

@@ -38,19 +38,32 @@ import org.lflang.lf.*
  */
 class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
-    private fun iterateOverAllPortsAndApply(varRef: VarRef, generateCode: (String) -> String): String {
+    private fun iterateOverAllPortsAndApply(
+        varRef: VarRef,
+        generateCode: (String) -> String
+    ): String {
         val port = varRef.variable as Port
         val container = varRef.container
         return with(PrependOperator) {
             if (port.isMultiport) {
                 if (container?.isBank == true) {
-                    """
-                        |for (auto& __lf_instance : ${container.name}) {
-                        |  for (auto& __lf_port : __lf_instance->${port.name}) {
-                    ${" |    "..generateCode("__lf_port")}
-                        |  }
-                        |}
-                    """.trimMargin()
+                    if (varRef.isInterleaved) {
+                        """
+                            |for (size_t __lf_port_idx = 0; __lf_port_idx < ${container.name}[0]->${port.name}.size(); __lf_port_idx++) {
+                            |  for (auto& __lf_instance : ${container.name}) {
+                        ${" |    "..generateCode("__lf_instance->${port.name}[__lf_port_idx]")}
+                            |  }
+                            |}
+                        """.trimMargin()
+                    } else {
+                        """
+                            |for (auto& __lf_instance : ${container.name}) {
+                            |  for (auto& __lf_port : __lf_instance->${port.name}) {
+                        ${" |    "..generateCode("__lf_port")}
+                            |  }
+                            |}
+                        """.trimMargin()
+                    }
                 } else {
                     // is mulitport, but not in a bank
                     """
@@ -140,16 +153,16 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
 
     private fun declareConnection(c: Connection, idx: Int): String {
-        if (c.isMultiportConnection) {
-            return declareMultiportConnection(c, idx);
+        return if (c.isMultiportConnection) {
+            declareMultiportConnection(c, idx)
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
 
-            return """
-                // connection $idx
-                ${leftPort.name}.bind_to(&${rightPort.name});
-            """.trimIndent()
+            """
+                    // connection $idx
+                    ${leftPort.name}.bind_to(&${rightPort.name});
+                """.trimIndent()
         }
     }
 
@@ -175,6 +188,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // first left port to determine the type of the entire connection
         val portType = c.leftPorts[0].portType
 
+        // Generate code which adds all left hand ports and all right hand ports to a vector each. If we are handling multiports
+        // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
+        // if the connection is a cross connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
             """
                 |// connection $idx
