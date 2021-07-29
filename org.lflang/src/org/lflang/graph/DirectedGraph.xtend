@@ -26,9 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.graph
 
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
-import java.util.List
+import java.util.*
 
 /** 
  * Directed graph that maps nodes to its upstream and downstream neighbors. 
@@ -39,12 +37,12 @@ class DirectedGraph<T> implements Graph<T> {
     /**
      * Adjacency map from vertices to their downstream immediate neighbors.
      */
-    var LinkedHashMap<T, LinkedHashSet<T>> downstreamAdjacentNodes = new LinkedHashMap();
+    var Map<T, Set<T>> downstreamAdjacentNodes = new LinkedHashMap();
     
     /**
      * Adjacency map from vertices to their upstream immediate neighbors.
      */
-    var LinkedHashMap<T, LinkedHashSet<T>> upstreamAdjacentNodes = new LinkedHashMap();
+    var Map<T, Set<T>> upstreamAdjacentNodes = new LinkedHashMap();
     
     
     /**
@@ -137,20 +135,29 @@ class DirectedGraph<T> implements Graph<T> {
     override addEdge(T sink, T source) {
         this.graphChanged()
         if (sink !== null && source !== null) {
-            var downstream = this.downstreamAdjacentNodes.get(source)
-            var upstream = this.upstreamAdjacentNodes.get(sink)
-            if (downstream === null) {
-                downstream = newLinkedHashSet
-                this.downstreamAdjacentNodes.put(source, downstream)
-            }
-            if (upstream === null) {
-                upstream = newLinkedHashSet
-                this.upstreamAdjacentNodes.put(sink, upstream)
-            }
-            downstream.add(sink)
-            upstream.add(source)
+            this.downstreamAdjacentNodes.compute(source, [k, set| set.plus(sink) ])
+            this.upstreamAdjacentNodes.compute(source, [k, set| set.plus(source) ])
         }
     }
+
+    private def Set<T> plus(Set<T> _set, T t) {
+        var set = _set
+        if (set === null)   return Set.of(t)
+        if (set.size == 1) return Set.of(set.iterator().next(), t)
+        if (set.size == 2) {
+            // make mutable
+            set = new LinkedHashSet<T>(set)
+        }
+        
+        set.add(t)
+        return set
+    }
+    
+    private def Set<T> copy(Set<T> set) {
+        if (set.size <= 2) return set; // it's unmodifiable
+        return new LinkedHashSet<T>(set)
+    }
+    
     
     /**
      * Add new directed edges to the graph. The first argument is the
@@ -173,12 +180,9 @@ class DirectedGraph<T> implements Graph<T> {
         this.graphChanged()
         var upstream = this.upstreamAdjacentNodes.get(sink)
         var downstream = this.downstreamAdjacentNodes.get(source)
-        if (upstream !== null && upstream.contains(source)) {
-            upstream.remove(source)
-        }
-        if (downstream !== null && downstream.contains(sink)) {
-            downstream.remove(sink)
-        }
+
+        if (upstream !== null) upstream.remove(source)
+        if (downstream !== null) downstream.remove(sink)
     }
     
     /**
@@ -188,12 +192,10 @@ class DirectedGraph<T> implements Graph<T> {
     def copy() {
         val graph = new DirectedGraph<T>()
         for (entry : this.upstreamAdjacentNodes.entrySet) {
-            graph.upstreamAdjacentNodes.put(entry.key,
-                new LinkedHashSet(entry.value))
+            graph.upstreamAdjacentNodes.put(entry.key, copy(entry.value))
         }
         for (entry : this.downstreamAdjacentNodes.entrySet) {
-            graph.downstreamAdjacentNodes.put(entry.key,
-                new LinkedHashSet(entry.value))
+            graph.downstreamAdjacentNodes.put(entry.key, copy(entry.value))
         }
         return graph
     }
@@ -204,22 +206,21 @@ class DirectedGraph<T> implements Graph<T> {
      * @param srcMap The adjacency map to copy edges from.
      * @param dstMap The adjacency map to copy edges to.
      */
-    private def void mirror(LinkedHashMap<T, LinkedHashSet<T>> srcMap,
-        LinkedHashMap<T, LinkedHashSet<T>> dstMap) {
+    private def void mirror(Map<T, Set<T>> srcMap, Map<T, Set<T>> dstMap) {
         if (srcMap !== null && dstMap !== null) {
             for (node : srcMap.keySet) {
                 val srcEdges = srcMap.get(node)
                 val dstEdges = dstMap.get(node)
                 if (dstEdges === null) {
                     // Node does not exist; add it.
-                    dstMap.put(node, srcEdges)
+                    dstMap.put(node, copy(srcEdges))
                 } else {
                     // Node does exist; add the missing edges.
+                    var set = dstEdges
                     for (edge : srcEdges) {
-                        if (!dstEdges.contains(edge)) {
-                            dstEdges.add(edge)
-                        }
+                        set = set.plus(edge)
                     }
+                    dstMap.put(node, set)
                 }
             }
         }
@@ -239,7 +240,7 @@ class DirectedGraph<T> implements Graph<T> {
      * Return the set of nodes that have no neighbors listed in the given
      * adjacency map.
      */
-    private def independentNodes(LinkedHashMap<T, LinkedHashSet<T>> adjacencyMap) {
+    private def independentNodes(Map<T, Set<T>> adjacencyMap) {
         var independent = new LinkedHashSet<T>()
         for (node : this.nodes) {
             val neighbors = adjacencyMap.get(node)
@@ -247,7 +248,7 @@ class DirectedGraph<T> implements Graph<T> {
                 independent.add(node)
             }
         }
-        return independent.toList
+        return independent
     }
     
     /**

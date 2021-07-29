@@ -30,7 +30,9 @@ import java.util.HashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 import java.util.Stack
+import java.util.ArrayList
 
 /** 
  * Elaboration of `DirectedGraph` that is capable of identifying strongly
@@ -79,7 +81,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
      * After analysis has completed, this list contains all all sets of nodes
      * that are part of the same strongly connected component.
      */
-    protected var List<LinkedHashSet<T>> cycles = emptyList
+    protected var List<Set<T>> cycles = emptyList
 
     /**
      * Invalidate cached analysis due to changes in the graph structure.
@@ -152,7 +154,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         if (!this.cycleAnalysisDone) {
             this.index = 0
             this.stack = new Stack()
-            this.cycles = new LinkedList();
+            this.cycles = new ArrayList();
             this.nodes.forEach[this.annotations.get(it).index = -1]
             for (node : this.nodes) {
                 if (this.annotations.get(node).index == -1) {
@@ -160,6 +162,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
                 }
             }
             this.cycleAnalysisDone = true
+            stack = null
         }
     }
     
