@@ -139,7 +139,7 @@ class DirectedGraph<T> implements Graph<T> {
         this.graphChanged()
         if (sink !== null && source !== null) {
             this.downstreamAdjacentNodes.compute(source, [k, set| set.plus(sink) ])
-            this.upstreamAdjacentNodes.compute(source, [k, set| set.plus(source) ])
+            this.upstreamAdjacentNodes.compute(sink, [k, set| set.plus(source) ])
         }
     }
     
