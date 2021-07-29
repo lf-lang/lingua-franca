@@ -53,7 +53,7 @@ class MultiportInstance extends PortInstance {
         super(definition, parent)
         
         if (definition.widthSpec === null) {
-            throw new Exception("Port appears to not be a multiport: " + definition.name)
+            throw new InvalidSourceException("Port appears to not be a multiport: " + definition.name)
         }
         
         if (definition.widthSpec.ofVariableLength) {
@@ -108,7 +108,7 @@ class MultiportInstance extends PortInstance {
      */
     def getInstance(int position) {
         if (position < 0 || position >= instances.size) {
-            throw new Exception("Port index out of range.")
+            throw new InvalidSourceException("Port index out of range.")
         }
         return instances.get(position)
     }

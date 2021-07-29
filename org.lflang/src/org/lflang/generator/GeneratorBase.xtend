@@ -740,12 +740,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
         var TargetDecl targetDecl
         for (t : resource.allContents.toIterable.filter(TargetDecl)) {
             if (targetDecl !== null) {
-                throw new RuntimeException("There is more than one target!") // FIXME: check this in validator
+                throw new InvalidSourceException("There is more than one target!") // FIXME: check this in validator
             }
             targetDecl = t
         }
         if (targetDecl === null) {
-            throw new RuntimeException("No target found!")
+            throw new InvalidSourceException("No target found!")
         }
         targetDecl
     }

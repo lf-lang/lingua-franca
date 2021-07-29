@@ -56,7 +56,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
     new(Parameter definition, ReactorInstance parent) {
         super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create a ParameterInstance with no parent.')
+            throw new InvalidSourceException('Cannot create a ParameterInstance with no parent.')
         }
         
         this.type = definition.inferredType

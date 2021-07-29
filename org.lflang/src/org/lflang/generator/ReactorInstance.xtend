@@ -170,7 +170,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * are not represented.
      */
     @Accessors(PUBLIC_GETTER)
-    val Map<Connection, Map<PortInstance, Set<PortInstance>>> connections = Map.of()
+    val Map<Connection, Map<PortInstance, Set<PortInstance>>> connections = new LinkedHashMap()
 
     /**
      * Create a new instantiation hierarchy that starts with the given top-level reactor.
@@ -862,7 +862,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.
         if (source.parent !== this && source.parent.parent !== this) {
-            throw new Exception(
+            throw new InvalidSourceException(
                 "Internal error: port " + source + " does not belong to " +
                     this + " nor any of its children."
             )
