@@ -40,9 +40,31 @@ import org.lflang.FileConfig;
  */
 public class FedFileConfig extends FileConfig {
     
+    /** Name of the federate for this FedFileConfig */
+    protected String federateName;
+    
+    /**
+     * Copy constructor for FedFileConfig.
+     * 
+     * @param fedFileConfig The existing instance of 'FedFileConfig'.
+     * @throws IOException
+     */
+    public FedFileConfig(FedFileConfig fedFileConfig) throws IOException {
+        this(fedFileConfig, fedFileConfig.federateName);
+    }
+    
+    /**
+     * Create an instance of FedFileConfig for federate 'federateName' from an existing
+     * 'fileConfig' instance (an instance of 'FileConfig').
+     *  
+     * @param fileConfig The existing instance of the 'FileConfig' class.
+     * @param federateName The name of the federate.
+     * @throws IOException
+     */
     public FedFileConfig(FileConfig fileConfig, String federateName) throws IOException {
         super(fileConfig);
         
+        this.federateName = federateName;
         // The generated code for each federate should be located at super.getSrcGenPath() + "/federateName/"
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name + File.separator + federateName);

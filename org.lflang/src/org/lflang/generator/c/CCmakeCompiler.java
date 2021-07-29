@@ -41,17 +41,15 @@ import org.lflang.util.LFCommand;
  * by the CGenerator. This class uses CMake to compile.
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
- *
- * FIXME: This class has a strong coupling with GeneratorBase. However, that is because
- *  the GeneratorBase contains a lot of unrelated functions that need to be factored out
- *  into separate classes.
  */
 class CCmakeCompiler extends CCompiler {
 
     /**
+     * Create an instance of CCmakeCompiler.
+     * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
-     * @param generator The generator that is using this compiler.
+     * @param errorReporter Used to report errors.
      */
     public CCmakeCompiler(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
         super(targetConfig, fileConfig, errorReporter);
@@ -80,7 +78,7 @@ class CCmakeCompiler extends CCompiler {
         // Use the user-specified compiler if any
         if (targetConfig.compiler != null) {
             // cmakeEnv.remove("CXX");
-            if (targetConfig.compiler.equals("g++")) {
+            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
                 // Interpret this as the user wanting their .c programs to be treated as
                 // C++ files. We can't just simply use g++ to compile C code. We use a 
                 // specific CMake flag to set the language of all .c files to C++.

@@ -369,6 +369,8 @@ class FederateInstance {
     
     /** The generator using this. */
     var generator = null as GeneratorBase
+    
+    /** Returns the generator that is using this federate instance */
     def getGenerator() { return generator; }
     
     /** An error reporter */
