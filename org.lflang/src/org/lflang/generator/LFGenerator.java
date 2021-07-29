@@ -2,6 +2,7 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -192,7 +193,7 @@ public class LFGenerator extends AbstractGenerator {
 
         FileConfig fileConfig;
         try {
-            fileConfig = createFileConfig(target, resource, fsa, context);
+            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, context));
         } catch (IOException e) {
             throw new RuntimeException("Error during FileConfig instaniation");
         }
@@ -201,7 +202,7 @@ public class LFGenerator extends AbstractGenerator {
             errorReporter = new EclipseErrorReporter(fileConfig);
         } else {
             assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;
-            errorReporter = ((StandaloneContext) context).getReporter();
+            errorReporter = Objects.requireNonNull(((StandaloneContext) context).getReporter());
         }
 
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);

@@ -36,6 +36,7 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 
 import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
@@ -261,7 +262,7 @@ public class Main {
                 }
                 try {
                     List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
-                    main.runGenerator(paths);
+                    main.runGenerator(paths, injector);
                 } catch (RuntimeException e) {
                     reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
                 }
@@ -431,7 +432,7 @@ public class Main {
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    private void runGenerator(List<Path> files) {
+    private void runGenerator(List<Path> files, Injector injector) {
         Properties properties = this.getProps(cmd);
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
@@ -478,7 +479,7 @@ public class Main {
             context.setArgs(properties);
             context.setCancelIndicator(CancelIndicator.NullImpl);
             context.setPackageRoot(pkgRoot);
-            context.setReporter(new StandaloneErrorReporter());
+            context.setReporter(injector.getInstance(ErrorReporter.class));
 
             this.generator.generate(resource, this.fileAccess, context);
 

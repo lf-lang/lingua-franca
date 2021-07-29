@@ -2,6 +2,7 @@ package org.lflang.generator
 
 import java.nio.file.Path
 import java.util.Properties
+import org.lflang.ErrorReporter
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.generator.GeneratorContext
 
@@ -14,6 +15,6 @@ class StandaloneContext extends GeneratorContext {
     
     boolean hierarchicalBin = false;
 
-    StandaloneErrorReporter reporter;
+    var ErrorReporter reporter;
     
 }
