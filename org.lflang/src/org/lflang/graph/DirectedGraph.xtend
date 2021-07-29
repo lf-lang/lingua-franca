@@ -28,6 +28,9 @@ package org.lflang.graph
 
 import java.util.*
 
+import static extension org.lflang.util.CollectionUtil.plus
+import static org.lflang.util.CollectionUtil.copy
+
 /** 
  * Directed graph that maps nodes to its upstream and downstream neighbors. 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -138,24 +141,6 @@ class DirectedGraph<T> implements Graph<T> {
             this.downstreamAdjacentNodes.compute(source, [k, set| set.plus(sink) ])
             this.upstreamAdjacentNodes.compute(source, [k, set| set.plus(source) ])
         }
-    }
-
-    private def Set<T> plus(Set<T> _set, T t) {
-        var set = _set
-        if (set === null)   return Set.of(t)
-        if (set.size == 1) return Set.of(set.iterator().next(), t)
-        if (set.size == 2) {
-            // make mutable
-            set = new LinkedHashSet<T>(set)
-        }
-        
-        set.add(t)
-        return set
-    }
-    
-    private def Set<T> copy(Set<T> set) {
-        if (set.size <= 2) return set; // it's unmodifiable
-        return new LinkedHashSet<T>(set)
     }
     
     
