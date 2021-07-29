@@ -48,7 +48,7 @@ public class TestRegistry {
         /**
          * Registry that maps targets to maps from categories to sets of tests. 
          */
-        private final Map<Target,
+        protected final Map<Target,
                 Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
 
         /**
@@ -355,13 +355,17 @@ public class TestRegistry {
                             if (this.inTestDir
                                 || path.getFileName().toString().toLowerCase().contains("test")) {
                                 // File is labeled as test.
-                                registered.getTests(target, TestCategory.EXAMPLE_TEST)
-                                          .add(new LFTest(target, path, TestRegistry.LF_EXAMPLE_PATH));
+                                registered.getTests(target, 
+                                        TestCategory.EXAMPLE_TEST).add(
+                                                new LFTest(target, path,
+                                                TestRegistry.LF_EXAMPLE_PATH)
+                                        );
                             } else {
                                 // Ordinary example.
                                 registered
                                         .getTests(target, TestCategory.EXAMPLE)
-                                        .add(new LFTest(target, path, TestRegistry.LF_EXAMPLE_PATH));
+                                        .add(new LFTest(target, path,
+                                                TestRegistry.LF_EXAMPLE_PATH));
                             }
                             return CONTINUE;
                         }
@@ -463,7 +467,8 @@ public class TestRegistry {
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 // FIXME: issue warning if target doesn't match!
-                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(target.toString()));
+                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(
+                        target.toString()));
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
                     for (Diagnostic d : errors) {
