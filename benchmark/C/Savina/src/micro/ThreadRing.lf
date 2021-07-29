@@ -29,6 +29,7 @@
 #
 # Generator parameters used in this file:
 # -D numReactors=100
+# -D numPings = 100000
 ]]] */
 // [[[end]]]
 
@@ -42,9 +43,13 @@
   # output the current value of the generator parameters used in the last generation run
   cog.outl(f'// Generated file with the following parameters:')
   cog.outl(f'// numReactors = {numReactors}')
+  cog.outl(f'// numPings = {numPings}')
+
+
 ]]] */
 // Generated file with the following parameters:
 // numReactors = 100
+// numPings = 100000
 // [[[end]]]
 
 target C {
@@ -107,13 +112,15 @@ reactor ThreadRingReactorLoopOpener {
     
     logical action sendToNextReactor:int;
     
+    // this is where the loop terminates as of right now
     reaction(sendToNextReactor) -> outNextReactor {=
-        SET(outNextReactor, 98);
+        SET(outNextReactor, sendToNextReactor->value);
     =}
     
     reaction(inPrevReactor) -> sendToNextReactor, finished {=
         if (hasNext(inPrevReactor->value)) {
-            schedule(sendToNextReactor, ping_next(inPrevReactor->value));
+            sendToNextReactor->value = ping_next(inPrevReactor->value);
+            schedule(sendToNextReactor, 0);
         } else {
             SET(finished, true);
             printf("Finished with count %d",  getPingsLeft(inPrevReactor->value));
@@ -123,7 +130,8 @@ reactor ThreadRingReactorLoopOpener {
     reaction(start) -> sendToNextReactor, finished {=
         printf("Starting with count %d, ", getPingsLeft(start->value));
         if (hasNext(start->value)) {
-            schedule(sendToNextReactor, ping_next(start->value));
+            sendToNextReactor->value = ping_next(start->value);
+            schedule(sendToNextReactor, 0);
         } else {
             SET(finished, true);
         }
@@ -135,12 +143,8 @@ reactor Initializer(numReactors:int(100), numPings:int(100000)) {
     input inStart:bool;
     output outFinished:bool;
     
-    // benchmark internal start and finish
-    /* [[[cog
-      cog.outl(f'input[{numReactors}] inFinished:void;')
-    ]]] */
-    input[100] inFinished:bool;
-    // [[[end]]]
+    
+    input[numReactors] inFinished:bool;
     output outStart:int;
     
     reaction(inStart) -> outStart {=
@@ -152,14 +156,16 @@ reactor Initializer(numReactors:int(100), numPings:int(100000)) {
     =}
 }
 
-main reactor (numIterations:int(12), numPings:int(100000)) {
+/*[[[cog
+cog.outl(f'main reactor (numPings:int({numPings}), numReactors:int({numReactors}))')
+]]] */
+main reactor (numPings:int(100000), numReactors:int(100)) 
+
+/// [[[end]]]
+
+{
     
-    /* [[[cog
-      cog.outl(f'init = new Initializer(numReactors={numReactors}, numPings=numPings);')
-    ]]] */
-    init = new Initializer(numReactors=100, numPings=numPings);
-    /// [[[end]]]    
-    
+    init = new Initializer(numReactors=numReactors, numPings=numPings);    
     
     reaction(startup) -> init.inStart {=
         SET(init.inStart, true);
