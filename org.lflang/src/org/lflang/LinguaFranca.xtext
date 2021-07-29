@@ -403,7 +403,10 @@ terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
 terminal LT_ANNOT: "'" ID?;
 
-terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"';
+terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
+                 | '"""' -> '"""'
+                 ;
+
 terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
 terminal ANY_OTHER: .;
