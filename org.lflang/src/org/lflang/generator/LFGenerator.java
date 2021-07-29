@@ -132,7 +132,9 @@ public class LFGenerator extends AbstractGenerator {
             case Python: {
                 return new PythonGenerator(fileConfig, errorReporter);
             }
+            // FIXME: make case exhaustive
             default: {
+                // FIXME: rename createKotlinBaseGenerator
                 return createKotlinGenerator(target, fileConfig, errorReporter);
             }
         }
@@ -158,6 +160,7 @@ public class LFGenerator extends AbstractGenerator {
         // class up at runtime and instantiate it if found.
         String packageName = getPackageName(target);
         String classNamePrefix = getClassNamePrefix(target);
+        // FIXME: make the above attributes of the target
         try {
             return (GeneratorBase) Class
                 .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "Generator")
@@ -179,6 +182,7 @@ public class LFGenerator extends AbstractGenerator {
                     + "broken, preventing us from loading the generator"
                     + "properly. Please consider building the RCA via Maven.");
             // FIXME: Add a link to the wiki with more information.
+            // FIXME: really do above
             return null;
         }
     }
