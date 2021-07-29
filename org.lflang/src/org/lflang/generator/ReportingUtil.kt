@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2021, TU Dresden.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package org.lflang.generator
 
 import com.google.inject.Singleton
@@ -15,8 +39,30 @@ import kotlin.system.exitProcess
 
 
 /**
+ * Utilities to collect diagnostics and report them to the user
+ * when running in standalone mode. The [IssueCollector] singleton
+ * collects, sorts and de-dups all messages, which [Main] can then
+ * print, using the [ReportingBackend]. The issue collector is created
+ * via Guice and injected into the [StandaloneErrorReporter].
+ * The error reporter is used by generators, though they only
+ * use the super interface [ErrorReporter].
+ *
+ * When running in non-standalone mode, the [LFStandaloneModule] is
+ * never bound, so the implementation of ErrorReporter that is produced
+ * by guice is [DefaultErrorReporter], except within generators,
+ * which build an [EclipseErrorReporter] manually instead of
+ * using guice. Similarly, in IDE mode the [IssueCollector] is
+ * never requested and never built.
+ *
+ * That ensures that Epoch doesn't use kotlin classes.
+ */
+
+
+/**
  * Abstraction over output streams. This is provided in case
  * we want to mock an environment for tests.
+ *
+ * @author Clément Fournier
  */
 class Io @JvmOverloads constructor(
     val err: PrintStream = System.err,
@@ -28,6 +74,8 @@ class Io @JvmOverloads constructor(
  * Represents an issue at a particular point in the program.
  * The issue has metadata about its location and may be formatted
  * by [ReportingBackend.printIssue].
+ *
+ * @author Clément Fournier
  */
 data class LfIssue(
     val message: String,
@@ -57,8 +105,8 @@ data class LfIssue(
 /**
  * Collects issues to sort out later. This is a singleton in
  * the app, it's reset every time a generation task starts.
- * This hints that the work is not very parallel. Indeed the
- * profiling report shown
+ *
+ * @author Clément Fournier
  */
 @Singleton // one instance per injector
 class IssueCollector {
@@ -87,6 +135,8 @@ class IssueCollector {
  * collected from the validator, generator, or [Main]. This
  * contains a nice issue formatter that looks like what the
  * rust compiler produces.
+ *
+ * @author Clément Fournier
  */
 class ReportingBackend @JvmOverloads constructor(
     /** Environment of the process, contains IO streams. */
@@ -276,6 +326,8 @@ class ReportingBackend @JvmOverloads constructor(
  * @param useAnsi If true, colors will be used, otherwise all
  *                functions of this class return their argument
  *                without change
+ *
+ * @author Clément Fournier
  */
 class AnsiColors(private val useAnsi: Boolean) {
 
