@@ -94,7 +94,7 @@ class MultiportInstance extends PortInstance {
 
     /** The array of instances. */
     @Accessors(PUBLIC_GETTER)
-    val instances = new LinkedHashSet<PortInstance>()
+    val Set<PortInstance> instances = new LinkedHashSet<PortInstance>()
 
     /////////////////////////////////////////////
     //// Public Methods

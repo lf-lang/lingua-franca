@@ -241,7 +241,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param dstInstance The destination instance (the right port).
      */
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
-        srcInstance.dependentPorts.add(dstInstance)
+        srcInstance.addDependentPort(dstInstance)
         if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
             reporter.reportError(
                 connection,
