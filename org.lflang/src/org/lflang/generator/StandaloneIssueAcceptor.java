@@ -84,7 +84,7 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
 
 
     private void accept(Severity severity, String message, EObject object, int offset, int length, String code, String... issueData) {
-        throw new UnsupportedOperationException("not implemented");
+        throw new UnsupportedOperationException("not implemented: range based diagnostics");
     }
 
 
