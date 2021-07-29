@@ -94,10 +94,10 @@ fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
  *                    This should be set to false if called from code generators for the inner class.
  */
 fun Value.toTime(outerContext: Boolean = false): String = when {
-    this.time != null -> this.time.toCode()
-    this.isZero       -> TimeValue(0, TimeUnit.NONE).toCode()
+    this.time != null                      -> this.time.toCode()
+    this.isZero                            -> TimeValue(0, TimeUnit.NONE).toCode()
     outerContext && this.parameter != null -> "__lf_inner.${parameter.name}"
-    else              -> this.toText()
+    else                                   -> this.toText()
 }
 
 /**
@@ -109,7 +109,7 @@ fun Value.toTime(outerContext: Boolean = false): String = when {
 fun Value.toCode(): String = this.time?.toCode() ?: this.toText()
 
 /** Get the textual representation of a width in C++ code */
-fun WidthSpec.toCode(): String =  terms.joinToString(" + ") {
+fun WidthSpec.toCode(): String = terms.joinToString(" + ") {
     when {
         it.parameter != null -> it.parameter.name
         it.port != null      -> with(it.port) {
@@ -121,6 +121,7 @@ fun WidthSpec.toCode(): String =  terms.joinToString(" + ") {
                 else "1"
             }
         }
+        it.code != null      -> it.code.toText()
         else                 -> it.width.toString()
     }
 }

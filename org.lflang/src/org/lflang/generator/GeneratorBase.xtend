@@ -238,18 +238,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected String classpathLF
 
     /**
-     * The index available to user-generated reaction that delineates the index
-     * of the reactor in a bank of reactors. The value must be set to zero
-     * in generated code for reactors that are not in a bank
-     */
-    protected String targetBankIndex = "bank_index"
-
-    /**
-     * The type of the bank index, which must be an integer in the target language
-     */
-    protected String targetBankIndexType = "int"
-
-    /**
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead

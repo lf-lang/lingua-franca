@@ -42,10 +42,10 @@ import org.lflang.util.LFCommand;
  * by the CGenerator. This class invokes a compiler directly.
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
- *
- * FIXME: This class has a strong coupling with GeneratorBase. However, that is because
- *  the GeneratorBase contains a lot of unrelated functions that need to be factored out
- *  into separate classes.
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
 public class CCompiler {
 
@@ -59,6 +59,8 @@ public class CCompiler {
     GeneratorCommandFactory commandFactory;
     
     /**
+     * Create an instance of CCompiler.
+     * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter Used to report errors.
