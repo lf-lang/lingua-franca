@@ -21,6 +21,7 @@ import org.eclipse.xtext.xbase.lib.Functions.Function1
 import org.lflang.ASTUtils
 import org.lflang.FileConfig
 import org.lflang.Target
+import org.lflang.DefaultErrorReporter
 import org.lflang.generator.StandaloneContext
 import org.lflang.tests.LFTest
 import org.lflang.tests.LFTest.Result
@@ -255,7 +256,8 @@ abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-        
+        context.setReporter(DefaultErrorReporter.DEFAULT);
+
         val r = resourceSetProvider.get().getResource(
                     URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
                     true)
