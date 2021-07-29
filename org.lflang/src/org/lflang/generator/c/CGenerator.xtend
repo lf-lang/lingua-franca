@@ -55,6 +55,7 @@ import org.lflang.federated.FedCLauncher
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.InvalidSourceException
 import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
@@ -2743,7 +2744,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                                 for (portWithDependentReactions : portsWithDependentReactions) {
@@ -2766,7 +2767,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error 2: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error 2: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                             }
@@ -3081,7 +3082,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->__«port.name»«destinationIndexSpec»'''
         } else {
-            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
+            throw new InvalidSourceException("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  

@@ -41,6 +41,7 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.InvalidSourceException
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.ArraySpec
@@ -1286,7 +1287,7 @@ class ASTUtils {
                 for (leftPort : c.leftPorts) {
                     if (leftPort.container === spec.eContainer) {
                         if (leftOrRight !== 0) {
-                            throw new Exception("Multiple ports with variable width on a connection.")
+                            throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                         }
                         // Indicate that the port is on the left.
                         leftOrRight = -1
@@ -1297,7 +1298,7 @@ class ASTUtils {
                 for (rightPort : c.rightPorts) {
                     if (rightPort.container === spec.eContainer) {
                         if (leftOrRight !== 0) {
-                            throw new Exception("Multiple ports with variable width on a connection.")
+                            throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                         }
                         // Indicate that the port is on the right.
                         leftOrRight = 1
@@ -1388,7 +1389,7 @@ class ASTUtils {
                         for (leftPort : connection.leftPorts) {
                             if (leftPort === reference) {
                                 if (leftOrRight !== 0) {
-                                    throw new Exception("Multiple ports with variable width on a connection.")
+                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                                 }
                                 // Indicate that this port is on the left.
                                 leftOrRight = -1
@@ -1402,7 +1403,7 @@ class ASTUtils {
                         for (rightPort : connection.rightPorts) {
                             if (rightPort === reference) {
                                 if (leftOrRight !== 0) {
-                                    throw new Exception("Multiple ports with variable width on a connection.")
+                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                                 }
                                 // Indicate that this port is on the right.
                                 leftOrRight = 1
@@ -1458,7 +1459,7 @@ class ASTUtils {
     def static int widthSpecification(Instantiation instantiation) {
         val result = width(instantiation.widthSpec, null);
         if (result < 0) {
-            throw new Exception("Cannot determine width for the instance "
+            throw new InvalidSourceException("Cannot determine width for the instance "
                     + instantiation.name);
         }
         return result

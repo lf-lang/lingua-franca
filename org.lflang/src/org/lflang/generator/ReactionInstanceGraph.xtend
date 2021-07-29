@@ -74,9 +74,8 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
                 // The validator should have caught cycles, but if there is a bug in some
                 // AST transform such that it introduces cycles, then it is possible to have them
                 // only detected here. An end user should never see this.
-                main.reporter.reportError("Reactions form a cycle!");
-                System.err.println(leftoverReactions.toString());
-                throw new Exception("Reactions form a cycle!")
+                main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
+                throw new InvalidSourceException("Reactions form a cycle!")
             }
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
