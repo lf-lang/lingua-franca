@@ -26,9 +26,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.LinkedHashSet
+import java.util.Set
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
+import org.lflang.util.CollectionUtil
 
 /** Representation of a runtime instance of a port.
  *  
@@ -38,7 +40,7 @@ import org.lflang.lf.Port
 class PortInstance extends TriggerInstance<Port> {
 
     /** Set of port instances that receive messages from this port. */
-    private Set<PortInstance> dependentPorts = Set.of();
+    Set<PortInstance> dependentPorts = Set.of();
 
     /** Port that sends messages to this port, if there is one. */
     protected PortInstance dependsOnPort = null;

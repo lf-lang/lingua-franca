@@ -3659,7 +3659,7 @@ class CGenerator extends GeneratorBase {
      */
     private def void generateReactionOutputs(
         ReactionInstance reaction, 
-        LinkedHashSet<PortInstance> portAllocatedAlready
+        Set<PortInstance> portAllocatedAlready
     ) {
         val nameOfSelfStruct = selfStructName(reaction.parent);
 
