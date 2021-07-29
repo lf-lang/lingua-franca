@@ -8,6 +8,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
+import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -88,7 +89,9 @@ public class LFGenerator extends AbstractGenerator {
                                          .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
                                          .newInstance(resource, fsa, context);
 
-            } catch (Exception e) {
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
+            } catch (ReflectiveOperationException e) {
                 return new FileConfig(resource, fsa, context);
             }
         }
@@ -137,7 +140,10 @@ public class LFGenerator extends AbstractGenerator {
 
             return (GeneratorBase) ctor.newInstance(fileConfig, errorReporter, scopeProvider);
 
-        } catch (Exception e) {
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("Exception instantiating " + classPrefix + "FileConfig",
+                                       e.getTargetException());
+        } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
                 "The code generator for the " + target + " target could not be found. "
@@ -161,7 +167,7 @@ public class LFGenerator extends AbstractGenerator {
         try {
             fileConfig = createFileConfig(target, resource, fsa, context);
         } catch (IOException e) {
-            throw new RuntimeException("Error during FileConfig instaniation");
+            throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
         final ErrorReporter errorReporter = new EclipseErrorReporter(fileConfig);
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
