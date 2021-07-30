@@ -95,7 +95,7 @@ public class StandaloneErrorReporter implements ErrorReporter {
 
 
     @Override
-    public Boolean getErrorsOccurred() {
+    public boolean getErrorsOccurred() {
         return issueAcceptor.getErrorsOccurred();
     }
 

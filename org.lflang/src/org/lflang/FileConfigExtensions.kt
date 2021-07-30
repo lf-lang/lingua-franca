@@ -42,8 +42,3 @@ fun Resource.toPath() = FileConfig.toPath(this)
  */
 fun Path.toUnixString(): String = FileConfig.toUnixString(this)
 
-/**
- * Create nested directories if the given path does not exist.
- */
-fun Path.createDirectories() = FileConfig.createDirectories(this)
-
