@@ -4144,7 +4144,7 @@ class CGenerator extends GeneratorBase {
                     value = FedROSCPPSerialization.deserializedVarName;
                     result.append(
                         ROSDeserializer.generateNetworkDeserializerCode(
-                            "networkMessage",
+                            action.name,
                             (receivingPort.variable as Port).type.targetType
                         )
                     );
