@@ -2,6 +2,7 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
@@ -80,8 +81,7 @@ public class LFGenerator extends AbstractGenerator {
         // found.
         switch (target) {
         case CPP:
-        case TS:
-        case Rust: {
+        case TS: {
             // These targets use kotlin
             String packageName = getPackageName(target);
             String classNamePrefix = getClassNamePrefix(target);
@@ -89,10 +89,12 @@ public class LFGenerator extends AbstractGenerator {
             try {
 
                 return (FileConfig) Class.forName(className)
-                    .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
-                    .newInstance(resource, fsa, context);
+                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
+                                         .newInstance(resource, fsa, context);
 
-            } catch (Exception e) {
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
+            } catch (ReflectiveOperationException e) {
                 return new FileConfig(resource, fsa, context);
             }
         }
@@ -141,11 +143,14 @@ public class LFGenerator extends AbstractGenerator {
             Class<?> generatorClass = Class.forName(classPrefix + "Generator");
             Class<?> fileConfigClass = Class.forName(classPrefix + "FileConfig");
             Constructor<?> ctor = generatorClass
-                    .getDeclaredConstructor(fileConfigClass, ErrorReporter.class, LFGlobalScopeProvider.class);
+                .getDeclaredConstructor(fileConfigClass, ErrorReporter.class, LFGlobalScopeProvider.class);
 
             return (GeneratorBase) ctor.newInstance(fileConfig, errorReporter, scopeProvider);
 
-        } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("Exception instantiating " + classPrefix + "FileConfig",
+                                       e.getTargetException());
+        } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
                 "The code generator for the " + target + " target could not be found. "

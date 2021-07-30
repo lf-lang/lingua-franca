@@ -37,6 +37,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -133,7 +134,7 @@ class CppGenerator(
         val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
 
         // make sure the build directory exists
-        buildPath.createDirectories()
+        Files.createDirectories(buildPath)
 
         val cores = Runtime.getRuntime().availableProcessors()
 

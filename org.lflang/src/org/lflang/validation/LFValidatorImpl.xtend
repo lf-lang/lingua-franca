@@ -1155,7 +1155,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkTargetDecl(TargetDecl target) {
         val targetOpt = Target.forName(target.name);
         if (targetOpt.isEmpty()) {
-            warning("Unrecognized target: " + target.name,
+            error("Unrecognized target: " + target.name,
                 Literals.TARGET_DECL__NAME)
         } else {
             this.target = targetOpt.get();

@@ -29,15 +29,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.eclipse.xtext.util.RuntimeIOException;
 
 /**
  * An abstraction for an external command
@@ -266,7 +262,7 @@ public class LFCommand {
      */
     public static LFCommand get(final String cmd, final List<String> args, Path dir) {
         assert cmd != null && args != null && dir != null;
-        dir = toProperDirectory(dir);
+        dir = dir.toAbsolutePath();
 
         // a list containing the command as first element and then all arguments
         List<String> cmdList = new ArrayList<>();
@@ -291,29 +287,6 @@ public class LFCommand {
         }
 
         return null;
-    }
-
-
-    /**
-     * Verify that the given path is a directory, creating it
-     * if necessary. This function may be called several times
-     * without problem (better safe than sorry).
-     *
-     * @param dir A directory given by the user.
-     * @return an absolute path
-     * @throws RuntimeIOException If an IO exception occurs.
-     *                            In particular, if the path
-     *                            exists but is not a directory.
-     */
-    private static Path toProperDirectory(Path dir) {
-        dir = dir.toAbsolutePath();
-
-        try {
-            Files.createDirectories(dir);
-            return dir;
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 
 

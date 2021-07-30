@@ -25,7 +25,6 @@
 package org.lflang
 
 import org.eclipse.emf.ecore.resource.Resource
-import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -42,11 +41,4 @@ fun Resource.toPath() = FileConfig.toPath(this)
  * This ensures that '/' is used instead of '\' as file separator.
  */
 fun Path.toUnixString(): String = FileConfig.toUnixString(this)
-
-/**
- * Create parent directories if they do not exist.
- */
-fun Path.createDirectories() {
-    parent?.let(Files::createDirectories)
-}
 
