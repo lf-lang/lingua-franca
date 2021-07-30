@@ -158,7 +158,7 @@ class TSGenerator(
                 tsFileName += '_' + federate.name
             }
 
-            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve(tsFileName + ".ts")
+            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
             val tsCode = StringBuilder()
 
@@ -167,7 +167,7 @@ class TSGenerator(
             tsCode.append(preambleGenerator.generatePreamble())
 
             val parameterGenerator = TSParameterGenerator(this, fileConfig, targetConfig, reactors)
-            val (mainParameters, parameterCode) = parameterGenerator.generatePrameters()
+            val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
             tsCode.append(parameterCode)
 
             val reactorGenerator = TSReactorGenerator(this, errorReporter)
@@ -185,7 +185,7 @@ class TSGenerator(
         val pnpmInstall = commandFactory.createCommand(
             "pnpm",
             listOf("install"),
-        fileConfig.getSrcGenPkgPath(),
+        fileConfig.srcGenPkgPath,
         false // only produce a warning if command is not found
         )
 
@@ -200,7 +200,7 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
-            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.getSrcGenPkgPath())
+            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.srcGenPkgPath)
 
             if (npmInstall == null) {
                 errorReporter.reportError(
@@ -234,9 +234,10 @@ class TSGenerator(
 
             protocArgs.addAll(
                 listOf(
-                "--plugin=protoc-gen-ts=" + tsFileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
-                "--js_out=import_style=commonjs,binary:"+tsOutPath,
-                "--ts_out=" + tsOutPath)
+                "--plugin=protoc-gen-ts=" + tsFileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                    "--js_out=import_style=commonjs,binary:$tsOutPath",
+                    "--ts_out=$tsOutPath"
+                )
             )
             protocArgs.addAll(targetConfig.protoFiles)
             val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
@@ -257,7 +258,7 @@ class TSGenerator(
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
             } else {
-                errorReporter.reportError("protoc returns error code " + returnCode)
+                errorReporter.reportError("protoc returns error code $returnCode")
             }
             // FIXME: report errors from this command.
         } else {
@@ -269,7 +270,7 @@ class TSGenerator(
 
         // Invoke the compiler on the generated code.
         println("Type Checking")
-        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.getSrcGenPkgPath())
+        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.srcGenPkgPath)
         if (tsc == null) {
             errorReporter.reportError(errorMessage);
             return
@@ -281,7 +282,7 @@ class TSGenerator(
             //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
             // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
             println("Compiling")
-            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.getSrcGenPkgPath())
+            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
             if (babel == null) {
                 errorReporter.reportError(errorMessage);
@@ -322,10 +323,10 @@ class TSGenerator(
      * @return The TS type.
      */
     private fun getActionType(action: Action): String {
-        if (action.type != null) {
-            return getTargetType(action.type)
+        return if (action.type != null) {
+            getTargetType(action.type)
         } else {
-            return "Present"
+            "Present"
         }
     }
 
@@ -336,7 +337,7 @@ class TSGenerator(
      */
     override fun timeInTargetLanguage(value: TimeValue): String {
         return if (value.unit != TimeUnit.NONE) {
-            """TimeValue.${value.unit}(${value.time})"""
+            "TimeValue.${value.unit}(${value.time})"
         } else {
             // The value must be zero.
             "TimeValue.zero()"
@@ -346,14 +347,14 @@ class TSGenerator(
     override fun getTargetType(s: StateVar): String {
         val type = super.getTargetType(s)
         return if (!isInitialized(s)) {
-            type + " | undefined"
+            "$type | undefined"
         } else {
             type
         }
     }
 
     override fun getTargetReference(param: Parameter): String {
-        return """this.${param.name}.get()"""
+        return "this.${param.name}.get()"
     }
 
     /**
