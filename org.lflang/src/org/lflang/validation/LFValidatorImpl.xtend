@@ -28,7 +28,6 @@ package org.lflang.validation
 
 import java.util.ArrayList
 import java.util.HashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import org.eclipse.core.resources.IMarker
@@ -133,9 +132,9 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
 
-    val List<String> targetPropertyErrors = newLinkedList
+    val List<String> targetPropertyErrors = new ArrayList
 
-    val List<String> targetPropertyWarnings = newLinkedList
+    val List<String> targetPropertyWarnings = new ArrayList
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
@@ -869,7 +868,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             val reactor = (reaction.eContainer) as Reactor
             if (cycle.exists[it.definition === reaction]) {
                 // Report involved triggers.
-                val trigs = new LinkedList()
+                val trigs = new ArrayList()
                 reaction.triggers.forEach [ t |
                     (t instanceof VarRef && cycle.exists [ c |
                         c.definition === (t as VarRef).variable
@@ -882,7 +881,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                 }
 
                 // Report involved sources.
-                val sources = new LinkedList()
+                val sources = new ArrayList()
                 reaction.sources.forEach [ t |
                     (cycle.exists[c|c.definition === t.variable])
                         ? sources.add(t.toText)
@@ -895,7 +894,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                 }
 
                 // Report involved effects.
-                val effects = new LinkedList()
+                val effects = new ArrayList()
                 reaction.effects.forEach [ t |
                     (cycle.exists[c|c.definition === t.variable])
                         ? effects.add(t.toText)

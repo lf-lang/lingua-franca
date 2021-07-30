@@ -29,6 +29,7 @@ package org.lflang.scoping
 
 import com.google.inject.Inject
 import java.util.ArrayList
+import java.util.List
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
@@ -113,7 +114,7 @@ class LFScopeProviderImpl extends AbstractLFScopeProvider {
             val description = descriptions.getResourceDescription(uri);
             return SelectableBasedScope.createScope(IScope.NULLSCOPE, description, null, reference.EReferenceType, false);
         }
-        return Scopes.scopeFor(newLinkedList)
+        return Scopes.scopeFor(List.of())
     }
     
     /**
@@ -122,16 +123,16 @@ class LFScopeProviderImpl extends AbstractLFScopeProvider {
      * @param reference The reference to link to a ReactorDecl node.
      */
     protected def getScopeForReactorDecl(EObject obj, EReference reference) {
-        var Model model
-        val locals = newLinkedList
-        
+         var Model model
+        val locals = new ArrayList()
+
         // Find the local Model
         if (obj.eContainer instanceof Model) {
             model = obj.eContainer as Model
         } else if (obj.eContainer.eContainer instanceof Model) {
             model = obj.eContainer.eContainer as Model
         } else {
-             // Empty list
+            // Empty list
         }
         
         // Collect eligible candidates, all of which are local (i.e., not in other files).
@@ -140,7 +141,7 @@ class LFScopeProviderImpl extends AbstractLFScopeProvider {
             // Either point to the import statement (if it is renamed)
             // or directly to the reactor definition.
             it.reactorClasses?.forEach [
-                (it.name !== null) ? locals.add(it) : 
+                (it.name !== null) ? locals.add(it) :
                 (it.reactorClass !== null) ? locals.add(it.reactorClass)
             ]
         ]
@@ -164,7 +165,7 @@ class LFScopeProviderImpl extends AbstractLFScopeProvider {
             return Scopes.scopeFor(
                 (assignment.eContainer.eContainer as Reactor).parameters)
         }
-        return Scopes.scopeFor(newLinkedList)
+        return Scopes.scopeFor(new ArrayList)
     }
 
     /**
@@ -180,7 +181,7 @@ class LFScopeProviderImpl extends AbstractLFScopeProvider {
             if (variable.eContainer.eContainer instanceof Reactor) {
                 reactor = variable.eContainer.eContainer as Reactor
             } else {
-                return Scopes.scopeFor(newLinkedList)
+                return Scopes.scopeFor(List.of())
             }
 
             if (variable.eContainer instanceof Deadline) {

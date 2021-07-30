@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import java.util.LinkedList
+import java.util.ArrayList
 import java.util.List
 import org.lflang.InferredType
 import org.lflang.lf.LfFactory
@@ -103,7 +103,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
         if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
             val value = LfFactory.eINSTANCE.createValue
             value.literal = "" + parent.bankIndex
-            val list = new LinkedList<Value>()
+            val list = new ArrayList<Value>(1)
             list.add(value)
             this.init = list
         }

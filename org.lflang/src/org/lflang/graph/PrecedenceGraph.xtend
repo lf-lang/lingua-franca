@@ -28,7 +28,6 @@ package org.lflang.graph
 
 import java.util.HashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import java.util.Stack
@@ -105,7 +104,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         
         if (!this.isSorted) {
             // Cleanup.
-            this.sortedNodes = newLinkedList
+            this.sortedNodes = new ArrayList()
             this.nodes.forEach [
                 this.annotations.get(it).hasTempMark = false;
                 this.annotations.get(it).hasPermMark = false

@@ -34,7 +34,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
+import java.util.ArrayList
 import java.util.List
 import java.util.Map
 import java.util.Set
@@ -156,7 +156,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * such a way that each reactor is preceded by any reactor that it instantiates
      * using a command like `foo = new Foo();`
      */
-    protected var List<Reactor> reactors = newLinkedList
+    protected var List<Reactor> reactors = new ArrayList
     
     /**
      * The set of resources referenced reactor classes reside in.
@@ -204,7 +204,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * A list of federate instances or a list with a single empty string
      * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
      */
-    protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
+    protected var List<FederateInstance> federates = new ArrayList<FederateInstance>
 
     /**
      * A map from federate IDs to federate instances.
@@ -688,7 +688,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      */
     protected def runBuildCommand() {
-        var commands = newLinkedList
+        var commands = new ArrayList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 0) {
@@ -1272,7 +1272,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return A list of initializers in target code
      */
     protected def getInitializerList(Parameter param) {
-        var list = new LinkedList<String>();
+        var list = new ArrayList<String>();
 
         for (i : param?.init) {
             if (param.isOfTimeType) {
@@ -1295,7 +1295,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             return null
         }
 
-        var list = new LinkedList<String>();
+        var list = new ArrayList<String>();
 
         for (i : state?.init) {
             if (i.parameter !== null) {
@@ -1332,7 +1332,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             return param.initializerList
         } else {
             // the parameter was overwritten in the instantiation
-            var list = new LinkedList<String>();
+            var list = new ArrayList<String>();
             for (init : assignments.get(0)?.rhs) {
                 if (param.isOfTimeType) {
                     list.add(init.targetTime)
@@ -1366,10 +1366,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  not a multiport.
      */
     protected def List<String> multiportWidthSpec(Variable variable) {
-        var result = null as LinkedList<String>
+        var result = null as List<String>
         if (variable instanceof Port) {
             if (variable.widthSpec !== null) {
-                result = new LinkedList<String>()
+                result = new ArrayList<String>()
                 if (!variable.widthSpec.ofVariableLength) {
                     for (term : variable.widthSpec.terms) {
                         if (term.parameter !== null) {
@@ -1494,7 +1494,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // Since federates are always within the main (federated) reactor,
             // create a list containing just that one containing instantiation.
             // This will be used to look up parameter values.
-            val context = new LinkedList<Instantiation>();
+            val context = new ArrayList<Instantiation>();
             context.add(mainDef);
 
             // Create a FederateInstance for each top-level reactor.
@@ -1506,7 +1506,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     bankWidth = 1;
                 }
                 // Create one federate instance for each reactor instance in the bank of reactors.
-                val federateInstances = new LinkedList<FederateInstance>();
+                val federateInstances = new ArrayList<FederateInstance>();
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.size
@@ -1558,7 +1558,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Since federates are always within the main (federated) reactor,
         // create a list containing just that one containing instantiation.
         // This will be used to look up parameter values.
-        val context = new LinkedList<Instantiation>();
+        val context = new ArrayList<Instantiation>();
         context.add(mainDef);
         
         // Each connection in the AST may represent more than one connection between
