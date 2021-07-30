@@ -27,6 +27,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang
 
+import org.eclipse.xtend.lib.annotations.Accessors
+
 import java.util.HashSet
 import java.util.ArrayList
 import java.util.List
@@ -41,6 +43,7 @@ import org.lflang.lf.Model
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.lf.TargetDecl
+import org.lflang.generator.NamedInstance
 
 import static extension org.lflang.ASTUtils.*
 
@@ -85,11 +88,9 @@ class ModelInfo {
      */
     public Set<Parameter> overflowingParameters
     
-    /**
-     * A graph of ports and reactions.
-     */
-    public TopologyGraph topologyGraph
-    
+    /** Cycles found during topology analysis. */
+    var List<Set<NamedInstance<?>>> _topologyCycles = List.of();
+
     public List<ReactorInstance> topLevelReactorInstances
     
     /**
@@ -115,7 +116,9 @@ class ModelInfo {
             } else {
                 model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))]
             }
-            this.topologyGraph = new TopologyGraph(topLevelReactorInstances)
+            // don't store the graph into a field.
+            val topologyGraph = new TopologyGraph(topLevelReactorInstances)
+            this._topologyCycles = topologyGraph.getCycles()
         }
         
         // Find the target. A target must exist because the grammar requires it.
@@ -127,6 +130,8 @@ class ModelInfo {
             this.collectOverflowingNodes()
         }
     }
+
+    def topologyCycles() { this._topologyCycles }
 
     /**
      * Collect all assignments, deadlines, and parameters that can cause the
