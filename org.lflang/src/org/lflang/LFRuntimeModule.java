@@ -3,6 +3,7 @@
  */
 package org.lflang;
 
+import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
@@ -30,5 +31,9 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
     public Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
         return LFNamesAreUniqueValidationHelper.class;
     }
+    
+    public Class<? extends ISyntaxErrorMessageProvider> bindISyntaxErrorMessageProvider() {
+        return LFSyntaxErrorMessageProvider.class;
+}
 
 }
