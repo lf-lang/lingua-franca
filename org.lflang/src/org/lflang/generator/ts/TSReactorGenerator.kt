@@ -116,9 +116,9 @@ class TSReactorGenerator(
 
     private fun generateArg(v: VarRef): String {
         return if (v.container !== null) {
-            """__${v.container.name}_${v.variable.name}"""
+            "__${v.container.name}_${v.variable.name}"
         } else {
-            """__${v.variable.name}"""
+            "__${v.variable.name}"
         }
     }
 
@@ -455,10 +455,10 @@ class TSReactorGenerator(
                         reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                     }
 
-                    reactSignature.add("""${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>""")
+                    reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
                     reactFunctArgs.add("this." + generateVarRef(trigOrSource))
                     if (trigOrSource.container === null) {
-                        pr(reactPrologue, """let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();""")
+                        pr(reactPrologue, "let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                     } else {
                         var args = containerToArgs.get(trigOrSource.container)
                         if (args === null) {
@@ -555,7 +555,7 @@ class TSReactorGenerator(
             for (entry in containerToArgs.entries) {
                 val initializer = StringJoiner(", ")
                 for (variable in entry.value) {
-                    initializer.add("""${variable.name}: __${entry.key.name}_${variable.name}.get()""")
+                    initializer.add("${variable.name}: __${entry.key.name}_${variable.name}.get()")
                     if (variable is Input) {
                         pr(reactEpilogue, with(PrependOperator) {
                             """
@@ -564,7 +564,7 @@ class TSReactorGenerator(
                                 |}""".trimMargin()})
                     }
                 }
-                pr(reactPrologue, """let ${entry.key.name} = {${initializer}}""")
+                pr(reactPrologue, "let ${entry.key.name} = {${initializer}}")
             }
 
             // Assemble reaction triggers
