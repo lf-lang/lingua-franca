@@ -24,21 +24,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-package org.lflang.tests.compiler
+package org.lflang.tests.compiler;
 
-import org.lflang.Target
-import org.junit.jupiter.api.Test
-import org.lflang.tests.runtime.ThreadedBase
+import org.lflang.Target;
+
+import org.junit.jupiter.api.Test;
+
+import org.lflang.tests.runtime.ThreadedBase;
 
 /**
  * Collection of tests intended to touch as many lines of the code
  * generator as possible for the purpose of recording code coverage.
- * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ *
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
  */
-class CodeGenCoverage extends ThreadedBase {
+public class CodeGenCoverage extends ThreadedBase {
 
-    new() {
+    CodeGenCoverage() {
         // Only generate code.
         this.check = false;
         this.build = false;
@@ -46,74 +48,83 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
-    override compileExamples() {
-        for (target : Target.values()) {
+    @Override
+    public void compileExamples() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.compileExamples()
+            super.compileExamples();
         }
     }
 
 
     @Test
-    override runExampleTests() {
-        for (target : Target.values()) {
+    @Override
+    public void runExampleTests() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runExampleTests()
+            super.runExampleTests();
         }
     }
 
     @Test
-    override runGenericTests() {
-        for (target : Target.values()) {
+    @Override
+    public void runGenericTests() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runGenericTests()
+            super.runGenericTests();
         }
     }
 
     @Test
-    override runTargetSpecificTests() {
-        for (target : Target.values()) {
+    @Override
+    public void runTargetSpecificTests() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runTargetSpecificTests()
+            super.runTargetSpecificTests();
         }
     }
 
     @Test
-    override runMultiportTests() {
-        for (target : Target.values()) {
+    @Override
+    public void runMultiportTests() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runMultiportTests()
+            super.runMultiportTests();
         }
     }
 
     @Test
-    override runWithFourThreads() {
-        for (target : Target.values()) {
+    @Override
+    public void runWithFourThreads() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runWithFourThreads()
+            super.runWithFourThreads();
         }
     }
 
     @Test
-    override runAsFederated() {
+    @Override
+    public void runAsFederated() {
         this.target = Target.C; // Only meaningful in C, so far.
-        super.runAsFederated()
-        
+        super.runAsFederated();
+
     }
 
     @Test
-    override runConcurrentTests() {
-        for (target : Target.values()) {
+    @Override
+    public void runConcurrentTests() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runConcurrentTests()
+            super.runConcurrentTests();
         }
     }
 
     @Test
-    override runFederatedTests() {
-        for (target : Target.values()) {
+    @Override
+    public void runFederatedTests() {
+        for (var target : Target.values()) {
             this.target = target;
-            super.runFederatedTests()
+            super.runFederatedTests();
         }
     }
 }
