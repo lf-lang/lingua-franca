@@ -37,6 +37,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
+import java.nio.file.Files
 import java.util.LinkedList
 
 /**
@@ -158,11 +159,11 @@ class TSGenerator(
                 tsFileName += '_' + federate.name
             }
 
-            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve(tsFileName + ".ts")
+            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile.toPath(),
+            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile,
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
@@ -182,10 +183,12 @@ class TSGenerator(
 
         // Run necessary commands.
 
+        Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
+
         val pnpmInstall = commandFactory.createCommand(
             "pnpm",
             listOf("install"),
-        fileConfig.getSrcGenPkgPath(),
+            fileConfig.srcGenPkgPath,
         false // only produce a warning if command is not found
         )
 
