@@ -27,9 +27,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang
 
+import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
@@ -95,7 +95,7 @@ class ASTUtils {
     static def insertGeneratedDelays(Resource resource, GeneratorBase generator) {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
-        val oldConnections = new LinkedList<Connection>()
+        val oldConnections = new ArrayList<Connection>()
         val newConnections = new LinkedHashMap<Reactor, List<Connection>>()
         val delayInstances = new LinkedHashMap<Reactor, List<Instantiation>>()
         
@@ -115,7 +115,7 @@ class ASTUtils {
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
-                    if(connections === null) connections = new LinkedList()
+                    if(connections === null) connections = new ArrayList()
                     connections.addAll(connection.rerouteViaDelay(delayInstance))
                     newConnections.put(parent, connections)
 
@@ -124,7 +124,7 @@ class ASTUtils {
 
                     // Stage the newly created delay reactor instance for insertion
                     var instances = delayInstances.get(parent)
-                    if(instances === null) instances = new LinkedList()
+                    if(instances === null) instances = new ArrayList()
                     instances.addAll(delayInstance)
                     delayInstances.put(parent, instances)
                 }
@@ -194,7 +194,7 @@ class ASTUtils {
     private static def List<Connection> rerouteViaDelay(Connection connection, 
             Instantiation delayInstance) {
         
-        val connections = new LinkedList<Connection>()
+        val connections = new ArrayList<Connection>()
                
         val upstream = factory.createConnection
         val downstream = factory.createConnection
@@ -441,7 +441,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Action> allActions(Reactor definition) {
-        val result = new LinkedList<Action>()
+        val result = new ArrayList<Action>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allActions)
         }
@@ -455,7 +455,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Connection> allConnections(Reactor definition) {
-        val result = new LinkedList<Connection>()
+        val result = new ArrayList<Connection>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allConnections)
         }
@@ -469,7 +469,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Input> allInputs(Reactor definition) {
-        val result = new LinkedList<Input>()
+        val result = new ArrayList<Input>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allInputs)
         }
@@ -483,7 +483,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Instantiation> allInstantiations(Reactor definition) {
-        val result = new LinkedList<Instantiation>()
+        val result = new ArrayList<Instantiation>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allInstantiations)
         }
@@ -497,7 +497,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Output> allOutputs(Reactor definition) {
-        val result = new LinkedList<Output>()
+        val result = new ArrayList<Output>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allOutputs)
         }
@@ -511,7 +511,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Parameter> allParameters(Reactor definition) {
-        val result = new LinkedList<Parameter>()
+        val result = new ArrayList<Parameter>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allParameters)
         }
@@ -525,7 +525,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Reaction> allReactions(Reactor definition) {
-        val result = new LinkedList<Reaction>()
+        val result = new ArrayList<Reaction>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allReactions)
         }
@@ -539,7 +539,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<StateVar> allStateVars(Reactor definition) {
-        val result = new LinkedList<StateVar>()
+        val result = new ArrayList<StateVar>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allStateVars)
         }
@@ -553,7 +553,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Timer> allTimers(Reactor definition) {
-        val result = new LinkedList<Timer>()
+        val result = new ArrayList<Timer>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allTimers)
         }
@@ -822,7 +822,7 @@ class ASTUtils {
      * @param value The right-hand side of a target property.
      */
     def static List<String> toListOfStrings(Element value) {
-        val elements = newLinkedList
+        val elements = new ArrayList()
         if (value.array !== null) {
             for (element : value.array.elements) {
                 elements.addAll(element.toListOfStrings)
@@ -1187,7 +1187,7 @@ class ASTUtils {
             }
             if (lastAssignment !== null) {
                 // Right hand side can be a list. Collect the entries.
-                val result = new LinkedList<Value>()
+                val result = new ArrayList<Value>()
                 for (value: lastAssignment.rhs) {
                     if (value.parameter !== null) {
                         if (instantiations.size() > 1
@@ -1364,7 +1364,7 @@ class ASTUtils {
             // the list of instantiations to determine the width of this port.
             var extended = instantiations;
             if (reference.container !== null) {
-                extended = new LinkedList<Instantiation>();
+                extended = new ArrayList<Instantiation>();
                 extended.add(reference.container);
                 if (instantiations !== null) {
                     extended.addAll(instantiations);

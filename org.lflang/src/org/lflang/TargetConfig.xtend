@@ -21,6 +21,7 @@
 package org.lflang
 
 import java.util.List
+import java.util.ArrayList
 import org.lflang.TargetProperty.BuildType
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -41,7 +42,7 @@ class TargetConfig {
      * directly invoking a designated compiler. A common usage of this target
      * property is to set the command to build on the basis of a Makefile.
      */
-    public List<String> buildCommands = newLinkedList
+    public List<String> buildCommands = new ArrayList
 
     /**
      * The mode of clock synchronization to be used in federated programs.
@@ -121,14 +122,14 @@ class TargetConfig {
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> fileNames = newLinkedList;
+    public List<String> fileNames = new ArrayList;
 
     /**
      * List of file names from the files target property with no path info.
      * Useful for copying them to remote machines. This is needed because
      * target files can be resources with resource paths.
      */
-    public List<String> filesNamesWithoutPath = newLinkedList;
+    public List<String> filesNamesWithoutPath = new ArrayList;
 
     /**
      * If true, configure the execution environment to keep executing if there
@@ -160,7 +161,7 @@ class TargetConfig {
     /**
      * List of proto files to be processed by the code generator.
      */
-    public List<String> protoFiles = newLinkedList
+    public List<String> protoFiles = new ArrayList
 
     /**
      * The version of the runtime library to be used in the generated target. 

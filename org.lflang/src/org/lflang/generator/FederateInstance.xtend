@@ -26,9 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
+import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
+import java.util.List
 import java.util.Set
 import org.lflang.TimeValue
 import org.lflang.lf.Action
@@ -154,7 +155,7 @@ class FederateInstance {
      *  receiving port is simply the position of the action in the list.
      *  The sending federate needs to specify this ID.
      */
-    public var networkMessageActions = new LinkedList<Action>()
+    public var List<Action> networkMessageActions = new ArrayList<Action>()
     
     /** 
      * A set of federates with which this federate has an inbound connection
@@ -179,7 +180,7 @@ class FederateInstance {
      * A list of triggers for network input control reactions. This is used to trigger
      * all the input network control reactions that might be nested in a hierarchy.
      */
-    public var networkInputControlReactionsTriggers = new LinkedList<Port>();
+    public var List<Port> networkInputControlReactionsTriggers = new ArrayList<Port>();
     
     
     /**

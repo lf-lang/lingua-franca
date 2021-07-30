@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang
 
 import java.util.HashSet
-import java.util.LinkedList
+import java.util.ArrayList
 import java.util.List
 import java.util.Set
 import org.lflang.generator.ReactorInstance
@@ -108,7 +108,7 @@ class ModelInfo {
         
         if (this.instantiationGraph.cycles.size == 0) {
             val main = model.reactors.findFirst[it.isMain || it.isFederated]
-            topLevelReactorInstances = new LinkedList()
+            topLevelReactorInstances = new ArrayList()
             if (main !== null) {
                 val inst = new ReactorInstance(main, reporter)
                 topLevelReactorInstances.add(inst)
