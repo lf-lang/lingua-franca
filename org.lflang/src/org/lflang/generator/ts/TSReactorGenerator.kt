@@ -25,12 +25,12 @@ class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter
 ) {
-    private var code = StringBuilder()
+    private val code = StringBuilder()
 
     /**
      * Map from builder to its current indentation.
      */
-    var indentation = LinkedHashMap<StringBuilder, String>()
+    val indentation = LinkedHashMap<StringBuilder, String>()
 
     // Wrapper functions and their helpers
     private fun indent(builder: StringBuilder) = tsGenerator.indentw(builder)
@@ -140,17 +140,17 @@ class TSReactorGenerator(
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
         if (reactor.isMain()) {
-            pr("class " + reactorName + " extends __App {")
-        } else if (reactor.isFederated()) {
-            pr("class " + reactorName + " extends __FederatedApp {")
+            pr("class $reactorName extends __App {")
+        } else if (reactor.isFederated) {
+            pr("class $reactorName extends __FederatedApp {")
         } else {
-            pr("export class " + reactorName + " extends __Reactor {")
+            pr("export class $reactorName extends __Reactor {")
         }
 
         indent()
 
-        var arguments = LinkedList<String>()
-        if (reactor.isMain() || reactor.isFederated()) {
+        val arguments = LinkedList<String>()
+        if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
@@ -163,8 +163,8 @@ class TSReactorGenerator(
             arguments.add(initializeParameter(parameter))
         }
 
-        var reactorConstructor = StringBuilder()
-        if (reactor.isMain() || reactor.isFederated()) {
+        val reactorConstructor = StringBuilder()
+        if (reactor.isMain || reactor.isFederated) {
             arguments.add("success?: () => void")
             arguments.add("fail?: () => void")
             pr(reactorConstructor, "constructor (")
@@ -183,9 +183,9 @@ class TSReactorGenerator(
         }
 
         var superCall: String
-        if (reactor.isMain()) {
+        if (reactor.isMain) {
             superCall = "super(timeout, keepAlive, fast, success, fail);"
-        } else if (reactor.isFederated()) {
+        } else if (reactor.isFederated) {
             var port = federationRTIProperties()["port"]
             // Default of 0 is an indicator to use the default port, 15045.
             if (port == 0) {
@@ -204,8 +204,8 @@ class TSReactorGenerator(
         // Next handle child reactors instantiations.
         // If the app isn't federated, instantiate all
         // the child reactors. If the app is federated
-        var childReactors: List<Instantiation>
-        if (!reactor.isFederated()) {
+        val childReactors: List<Instantiation>
+        if (!reactor.isFederated) {
             childReactors = reactor.instantiations
         } else {
             childReactors = LinkedList<Instantiation>()
@@ -213,11 +213,11 @@ class TSReactorGenerator(
         }
 
         for (childReactor in childReactors) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name +
+            pr(childReactor.name + ": " + childReactor.reactorClass.name +
                     if (childReactor.typeParms.isEmpty()) {""} else {
                         childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }})
 
-            var childReactorArguments = StringJoiner(", ");
+            val childReactorArguments = StringJoiner(", ");
             childReactorArguments.add("this")
 
             // Iterate through parameters in the order they appear in the
@@ -228,31 +228,27 @@ class TSReactorGenerator(
                 childReactorArguments.add(getTargetInitializer(parameter, childReactor))
             }
 
-            pr(reactorConstructor, "this." + childReactor.getName()
+            pr(reactorConstructor, "this." + childReactor.name
                     + " = new " + childReactor.reactorClass.name +
                     "(" + childReactorArguments + ")" )
         }
 
         // Next handle timers.
         for (timer in reactor.timers) {
-            var timerPeriod: String
-            if (timer.period == null) {
-                timerPeriod = "0"
+            val timerPeriod: String = if (timer.period == null) {
+                "0"
             } else {
-                timerPeriod = getTargetValue(timer.period)
+                getTargetValue(timer.period)
             }
 
-            var timerOffset: String
-            if (timer.offset == null) {
-                timerOffset = "0"
+            val timerOffset: String = if (timer.offset == null) {
+                "0"
             } else {
-
-                timerOffset = getTargetValue(timer.offset)
-
+                getTargetValue(timer.offset)
             }
 
-            pr(timer.getName() + ": __Timer;")
-            pr(reactorConstructor, "this." + timer.getName()
+            pr(timer.name + ": __Timer;")
+            pr(reactorConstructor, "this." + timer.name
                     + " = new __Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
 
         }
@@ -325,33 +321,33 @@ class TSReactorGenerator(
             if (connection.leftPorts.size > 1) {
                 errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
-                if (connection.leftPorts.get(0).container != null) {
-                    leftPortName += connection.leftPorts.get(0).container.name + "."
+                if (connection.leftPorts[0].container != null) {
+                    leftPortName += connection.leftPorts[0].container.name + "."
                 }
-                leftPortName += connection.leftPorts.get(0).variable.name
+                leftPortName += connection.leftPorts[0].variable.name
             }
             var rightPortName = ""
             if (connection.leftPorts.size > 1) {
                 errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
-                if (connection.rightPorts.get(0).container != null) {
-                    rightPortName += connection.rightPorts.get(0).container.name + "."
+                if (connection.rightPorts[0].container != null) {
+                    rightPortName += connection.rightPorts[0].container.name + "."
                 }
-                rightPortName += connection.rightPorts.get(0).variable.name
+                rightPortName += connection.rightPorts[0].variable.name
             }
             if (leftPortName != "" && rightPortName != "") {
-                pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
+                pr(reactorConstructor, "this._connect(this.$leftPortName, this.$rightPortName);")
             }
         }
 
         // If the app is federated, register its
         // networkMessageActions with the RTIClient
-        if (reactor.isFederated()) {
+        if (reactor.isFederated) {
             // The ID of the receiving port is simply
             // the position of the action in the networkMessageActions list.
             var fedPortID = 0;
             for (nAction in federate.networkMessageActions) {
-                var registration = """
+                val registration = """
                 this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
                 """
                 pr(reactorConstructor, registration)
@@ -362,8 +358,8 @@ class TSReactorGenerator(
         // Next handle reaction instances.
         // If the app is federated, only generate
         // reactions that are contained by that federate
-        var generatedReactions: List<Reaction>
-        if (reactor.isFederated()) {
+        val generatedReactions: List<Reaction>
+        if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
                 if (federate.containsReaction(reactor, reaction)) {
@@ -379,17 +375,17 @@ class TSReactorGenerator(
         for (reaction in generatedReactions) {
 
             // Determine signature of the react function
-            var reactSignature = StringJoiner(", ")
+            val reactSignature = StringJoiner(", ")
             reactSignature.add("this")
 
             // The prologue to the react function writes state
             // and parameters to local variables of the same name
-            var reactPrologue = StringBuilder()
+            val reactPrologue = StringBuilder()
             pr(reactPrologue, "const util = this.util;")
 
             // The epilogue to the react function writes local
             // state variables back to the state
-            var reactEpilogue = StringBuilder()
+            val reactEpilogue = StringBuilder()
 
             // Assemble react function arguments from sources and effects
             // Arguments are either elements of this reactor, or an object
@@ -399,10 +395,10 @@ class TSReactorGenerator(
             // If a source or effect is an element of this reactor, add it
             // directly to the reactFunctArgs string. If it isn't, write it
             // into the containerToArgs map, and add it to the string later.
-            var reactFunctArgs = StringJoiner(", ")
+            val reactFunctArgs = StringJoiner(", ")
             // Combine triggers and sources into a set
             // so we can iterate over their union
-            var triggersUnionSources = HashSet<VarRef>()
+            val triggersUnionSources = HashSet<VarRef>()
             for (trigger in reaction.triggers) {
                 if (!(trigger.isStartup || trigger.isShutdown)) {
                     triggersUnionSources.add(trigger as VarRef)
@@ -420,11 +416,11 @@ class TSReactorGenerator(
             // unequal.
             // The key of the pair is the effect's container's name,
             // The effect of the pair is the effect's name
-            var effectSet = HashSet<Pair<String, String>>()
+            val effectSet = HashSet<Pair<String, String>>()
 
             for (effect in reaction.effects) {
                 var key = ""; // The container, defaults to an empty string
-                var value = effect.variable.name; // The name of the effect
+                val value = effect.variable.name; // The name of the effect
                 if (effect.container != null) {
                     key = effect.container.name
                 }
@@ -432,17 +428,17 @@ class TSReactorGenerator(
             }
 
             // Add triggers and sources to the react function
-            var containerToArgs = HashMap<Instantiation, HashSet<Variable>>();
+            val containerToArgs = HashMap<Instantiation, HashSet<Variable>>();
             for (trigOrSource in triggersUnionSources) {
                 // Actions that are both read and scheduled should only
                 // appear once as a schedulable effect
 
                 var trigOrSourceKey = "" // The default for no container
-                var trigOrSourceValue = trigOrSource.variable.name
+                val trigOrSourceValue = trigOrSource.variable.name
                 if (trigOrSource.container != null) {
                     trigOrSourceKey = trigOrSource.container.name
                 }
-                var trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
+                val trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
 
                 if (!effectSet.contains(trigOrSourcePair)) {
                     var reactSignatureElementType = "";
@@ -471,7 +467,7 @@ class TSReactorGenerator(
                     }
                 }
             }
-            var schedActionSet = HashSet<Action>();
+            val schedActionSet = HashSet<Action>();
             for (effect in reaction.effects) {
                 var functArg = ""
                 var reactSignatureElement = "" + generateArg(effect)
@@ -495,9 +491,9 @@ class TSReactorGenerator(
 
                 functArg = "this." + generateVarRef(effect)
                 if (effect.variable is Action){
-                    reactFunctArgs.add("this.schedulable(" + functArg + ")")
+                    reactFunctArgs.add("this.schedulable($functArg)")
                 } else if (effect.variable is Port) {
-                    reactFunctArgs.add("this.writable(" + functArg + ")")
+                    reactFunctArgs.add("this.writable($functArg)")
                 }
 
                 if (effect.container == null) {
@@ -516,7 +512,7 @@ class TSReactorGenerator(
 
             // Iterate through the actions to handle the prologue's
             // "actions" object
-            var prologueActionObjectBody = StringJoiner(", ")
+            val prologueActionObjectBody = StringJoiner(", ")
             for (act in schedActionSet) {
                 prologueActionObjectBody.add(act.name + ": __" + act.name)
             }
@@ -568,11 +564,10 @@ class TSReactorGenerator(
             }
 
             // Assemble reaction triggers
-            var reactionTriggers = StringJoiner(",\n")
+            val reactionTriggers = StringJoiner(",\n")
             for (trigger in reaction.triggers) {
                 if (trigger is VarRef) {
                     reactionTriggers.add("this." + generateVarRef(trigger))
-
                 } else if (trigger.isStartup) {
                     reactionTriggers.add("this.startup")
                 } else if (trigger.isShutdown) {
@@ -583,9 +578,9 @@ class TSReactorGenerator(
             // Write the reaction itself
             pr(reactorConstructor, "this.addReaction(")//new class<T> extends Reaction<T> {")
             indent(reactorConstructor)
-            pr(reactorConstructor, "new __Triggers(" + reactionTriggers + "),")
-            pr(reactorConstructor, "new __Args(" + reactFunctArgs + "),")
-            pr(reactorConstructor, "function (" + reactSignature + ") {")
+            pr(reactorConstructor, "new __Triggers($reactionTriggers),")
+            pr(reactorConstructor, "new __Args($reactFunctArgs),")
+            pr(reactorConstructor, "function ($reactSignature) {")
             indent(reactorConstructor)
             pr(reactorConstructor, "// =============== START react prologue")
             pr(reactorConstructor, reactPrologue)
@@ -612,8 +607,8 @@ class TSReactorGenerator(
                 } else {
                     deadlineArgs += getTargetValue(reaction.deadline.delay)
                 }
-                pr(reactorConstructor, deadlineArgs + "," )
-                pr(reactorConstructor, "function(" + reactSignature + ") {")
+                pr(reactorConstructor, "$deadlineArgs,")
+                pr(reactorConstructor, "function($reactSignature) {")
                 indent(reactorConstructor)
                 pr(reactorConstructor, "// =============== START deadline prologue")
                 pr(reactorConstructor, reactPrologue)
@@ -653,7 +648,7 @@ class TSReactorGenerator(
      *  @param instance A reactor instance.
      */
     fun generateReactorInstance(defn: Instantiation, mainParameters: Set<Parameter>) {
-        var fullName = defn.name
+        val fullName = defn.name
 
         // Iterate through parameters in the order they appear in the
         // main reactor class. If the parameter is typed such that it can
@@ -661,7 +656,7 @@ class TSReactorGenerator(
         // assignment variable ("__CL" + the parameter's name). That variable will
         // be undefined if the command line argument wasn't specified. Otherwise
         // use undefined in the constructor.
-        var mainReactorParams = StringJoiner(", ")
+        val mainReactorParams = StringJoiner(", ")
         for (parameter in defn.reactorClass.toDefinition().parameters) {
 
             if (mainParameters.contains(parameter)) {
@@ -687,7 +682,7 @@ class TSReactorGenerator(
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    fun generateRuntimeStart(defn: Instantiation) {
+    private fun generateRuntimeStart(defn: Instantiation) {
         pr(
             with(PrependOperator) {
                 """
