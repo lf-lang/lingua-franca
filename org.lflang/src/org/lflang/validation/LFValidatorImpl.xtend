@@ -350,7 +350,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
-        for (cycle : this.info.topologyGraph.cycles) {
+        for (cycle : this.info.topologyCycles()) {
             for (lp : connection.leftPorts) {
                 for (rp : connection.rightPorts) {
                     var leftInCycle = false
@@ -864,7 +864,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         }
 
         // Report error if this reaction is part of a cycle.
-        for (cycle : this.info.topologyGraph.cycles) {
+        for (cycle : this.info.topologyCycles()) {
             val reactor = (reaction.eContainer) as Reactor
             if (cycle.exists[it.definition === reaction]) {
                 // Report involved triggers.
