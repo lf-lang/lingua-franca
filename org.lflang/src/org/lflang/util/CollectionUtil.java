@@ -94,24 +94,35 @@ public class CollectionUtil {
     }
 
 
-    private static <T> Set<T> minus(Set<T> set, T t) {
+    /**
+     * Returns a set that contains the elements of the given
+     * set minus one element. If the given set only contains
+     * the element to remove, and the returned set would hence
+     * be empty, null is returned instead. This ensures that
+     * in methods like {@link Map#compute(Object, BiFunction)},
+     * the mapping is removed.
+     */
+    public static <T> Set<T> minus(Set<T> set, T eltToRemove) {
+        if (set instanceof LinkedHashSet) {
+            set.remove(eltToRemove);
+            return set;
+        }
+
         if (set == null || set.isEmpty()) {
             return null;
         } else if (set.size() == 1) {
-            return set.contains(t) ? null : set;
-        } else if (set.size() == 2 && set.contains(t)) {
+            return set.contains(eltToRemove) ? null : set;
+        } else if (set.size() == 2 && set.contains(eltToRemove)) {
             Iterator<T> iter = set.iterator();
             T fst = iter.next();
             T snd = iter.next();
-            if (Objects.equals(fst, t)) {
+            if (Objects.equals(fst, eltToRemove)) {
                 return Set.of(snd);
-            } else if (Objects.equals(snd, t)) {
+            } else if (Objects.equals(snd, eltToRemove)) {
                 return Set.of(fst);
             }
             return set;
-        } // else it's mutable.
-
-        set.remove(t);
+        }
         return set;
     }
 

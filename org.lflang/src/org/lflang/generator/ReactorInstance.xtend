@@ -99,6 +99,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The timer instances belonging to this reactor instance. */
     public val List<TimerInstance> timers = new ArrayList()
 
+    /** The reactor definition in the AST. */
+    public final Reactor reactorDefinition
+
+    public final boolean recursive
+
     /**
      * The LF syntax does not currently support declaring reactions unordered,
      * but unordered reactions are created in the AST transformations handling
@@ -201,11 +206,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
         this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions)
     }
-    
-    /** The reactor definition in the AST. */
-    public final Reactor reactorDefinition
-    
-    public final boolean recursive
+
 
     /**
      * Populate destinations map and the connectivity information in the port instances.

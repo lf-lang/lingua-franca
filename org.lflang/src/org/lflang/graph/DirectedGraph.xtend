@@ -165,11 +165,8 @@ class DirectedGraph<T> implements Graph<T> {
      */
     override removeEdge(T sink, T source) {
         this.graphChanged()
-        var upstream = this.upstreamAdjacentNodes.get(sink)
-        var downstream = this.downstreamAdjacentNodes.get(source)
-
-        if (upstream !== null) upstream.remove(source)
-        if (downstream !== null) downstream.remove(sink)
+        this.upstreamAdjacentNodes.computeIfPresent(sink, [k, upstream| CollectionUtil.minus(upstream, source)])
+        this.downstreamAdjacentNodes.computeIfPresent(source, [k, downstream| CollectionUtil.minus(downstream, sink)])
     }
     
     /**
