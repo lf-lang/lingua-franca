@@ -83,7 +83,7 @@ public enum Target {
                 )
     ), 
     CCPP("CCpp", true, Target.C.keywords), 
-    CPP("Cpp", true, Arrays.asList(
+    CPP("Cpp", true, "cpp", "Cpp", Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
                 "alignof", // (since C++11)
@@ -184,7 +184,7 @@ public enum Target {
                 "xor_eq"
                 )
     ),
-    TS("TypeScript", false, Arrays.asList(
+    TS("TypeScript", false, "ts", "TS", Arrays.asList(
                 // List via: https://github.com/Microsoft/TypeScript/issues/2536 
                 // Reserved words
                 "break",
@@ -344,6 +344,16 @@ public enum Target {
     private final String description;
 
     /**
+     * Name of package containing Kotlin classes for the target language.
+     */
+    public final String packageName;
+
+    /**
+     * Prefix of names of Kotlin classes for the target language.
+     */
+    public final String classNamePrefix;
+
+    /**
      * Whether or not this target requires types.
      */
     public final boolean requiresTypes;
@@ -358,17 +368,31 @@ public enum Target {
      */
     public final static Target[] ALL = Target.values();
 
+
     /**
      * Private constructor for targets.
      *
-     * @param name String representation of this target.
-     * @param requires Types Whether this target requires type annotations or not.
+     * @param description String representation of this target.
+     * @param requiresTypes Types Whether this target requires type annotations or not.
+     * @param packageName Name of package containing Kotlin classes for the target language.
+     * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
      * @param keywords List of reserved strings in the target language.
      */
-    Target(String description, boolean requiresTypes, List<String> keywords) {
+    Target(String description, boolean requiresTypes, String packageName,
+           String classNamePrefix, List<String> keywords) {
         this.description = description;
         this.requiresTypes = requiresTypes;
         this.keywords = keywords;
+        this.packageName = packageName;
+        this.classNamePrefix = classNamePrefix;
+    }
+
+
+    /**
+     * Private constructor for targets without pakcageName and classNamePrefix.
+     */
+    Target(String description, boolean requiresTypes, List<String> keywords) {
+        this(description, requiresTypes, "N/A", "N/A", keywords);
     }
 
     /**
