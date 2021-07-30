@@ -92,7 +92,7 @@ class TSReactorGenerator(
      * @return The TS type.
      */
     private fun getActionType(action: Action): String {
-        if (action.type !== null) {
+        if (action.type != null) {
             return getTargetType(action.type)
         } else {
             return "Present"
@@ -107,7 +107,7 @@ class TSReactorGenerator(
      * @return The TS type.
      */
     private fun getPortType(port: Port): String {
-        if (port.type !== null) {
+        if (port.type != null) {
             return getTargetType(port.type)
         } else {
             return "Present"
@@ -115,7 +115,7 @@ class TSReactorGenerator(
     }
 
     private fun generateArg(v: VarRef): String {
-        return if (v.container !== null) {
+        return if (v.container != null) {
             "__${v.container.name}_${v.variable.name}"
         } else {
             "__${v.variable.name}"
@@ -188,7 +188,7 @@ class TSReactorGenerator(
         } else if (reactor.isFederated()) {
             var port = federationRTIProperties()["port"]
             // Default of 0 is an indicator to use the default port, 15045.
-            if (port === 0) {
+            if (port == 0) {
                 port = 15045
             }
             superCall = """
@@ -236,14 +236,14 @@ class TSReactorGenerator(
         // Next handle timers.
         for (timer in reactor.timers) {
             var timerPeriod: String
-            if (timer.period === null) {
+            if (timer.period == null) {
                 timerPeriod = "0"
             } else {
                 timerPeriod = getTargetValue(timer.period)
             }
 
             var timerOffset: String
-            if (timer.offset === null) {
+            if (timer.offset == null) {
                 timerOffset = "0"
             } else {
 
@@ -289,10 +289,10 @@ class TSReactorGenerator(
                 pr(action.name + ": __Action<" + getActionType(action) + ">;")
 
                 var actionArgs = "this, __Origin." + action.origin
-                if (action.minDelay !== null) {
+                if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    if (action.minDelay.parameter !== null) {
+                    if (action.minDelay.parameter != null) {
                         actionArgs+= ", " + action.minDelay.parameter.name
                     } else {
                         actionArgs+= ", " + getTargetValue(action.minDelay)
@@ -325,7 +325,7 @@ class TSReactorGenerator(
             if (connection.leftPorts.size > 1) {
                 errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
-                if (connection.leftPorts.get(0).container !== null) {
+                if (connection.leftPorts.get(0).container != null) {
                     leftPortName += connection.leftPorts.get(0).container.name + "."
                 }
                 leftPortName += connection.leftPorts.get(0).variable.name
@@ -334,7 +334,7 @@ class TSReactorGenerator(
             if (connection.leftPorts.size > 1) {
                 errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
-                if (connection.rightPorts.get(0).container !== null) {
+                if (connection.rightPorts.get(0).container != null) {
                     rightPortName += connection.rightPorts.get(0).container.name + "."
                 }
                 rightPortName += connection.rightPorts.get(0).variable.name
@@ -425,7 +425,7 @@ class TSReactorGenerator(
             for (effect in reaction.effects) {
                 var key = ""; // The container, defaults to an empty string
                 var value = effect.variable.name; // The name of the effect
-                if (effect.container !== null) {
+                if (effect.container != null) {
                     key = effect.container.name
                 }
                 effectSet.add(Pair(key, value))
@@ -439,7 +439,7 @@ class TSReactorGenerator(
 
                 var trigOrSourceKey = "" // The default for no container
                 var trigOrSourceValue = trigOrSource.variable.name
-                if (trigOrSource.container !== null) {
+                if (trigOrSource.container != null) {
                     trigOrSourceKey = trigOrSource.container.name
                 }
                 var trigOrSourcePair = Pair(trigOrSourceKey, trigOrSourceValue)
@@ -457,11 +457,11 @@ class TSReactorGenerator(
 
                     reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
                     reactFunctArgs.add("this." + generateVarRef(trigOrSource))
-                    if (trigOrSource.container === null) {
+                    if (trigOrSource.container == null) {
                         pr(reactPrologue, "let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                     } else {
                         var args = containerToArgs.get(trigOrSource.container)
-                        if (args === null) {
+                        if (args == null) {
                             // Create the HashSet for the container
                             // and handle it later.
                             args = HashSet<Variable>();
@@ -482,7 +482,7 @@ class TSReactorGenerator(
                     schedActionSet.add(effect.variable as Action)
                 } else if (effect.variable is Port){
                     reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
-                    if (effect.container === null) {
+                    if (effect.container == null) {
                         pr(reactEpilogue, "if (" + effect.variable.name + " !== undefined) {")
                         indent(reactEpilogue)
                         pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
@@ -500,13 +500,13 @@ class TSReactorGenerator(
                     reactFunctArgs.add("this.writable(" + functArg + ")")
                 }
 
-                if (effect.container === null) {
+                if (effect.container == null) {
                     pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
                 } else {
                     // Hierarchical references are handled later because there
                     // could be references to other members of the same reactor.
                     var args = containerToArgs.get(effect.container)
-                    if (args === null) {
+                    if (args == null) {
                         args = HashSet<Variable>();
                         containerToArgs.put(effect.container, args)
                     }
@@ -602,12 +602,12 @@ class TSReactorGenerator(
             unindent(reactorConstructor)
             pr(reactorConstructor, "}")
             unindent(reactorConstructor)
-            if (reaction.deadline === null) {
+            if (reaction.deadline == null) {
                 pr(reactorConstructor, "}")
             } else {
                 pr(reactorConstructor, "},")
                 var deadlineArgs = ""
-                if (reaction.deadline.delay.parameter !== null) {
+                if (reaction.deadline.delay.parameter != null) {
                     deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
                 } else {
                     deadlineArgs += getTargetValue(reaction.deadline.delay)
