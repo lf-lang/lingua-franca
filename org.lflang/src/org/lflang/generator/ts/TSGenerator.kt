@@ -38,6 +38,7 @@ import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
 import java.util.LinkedList
+import org.lflang.federated.SERIALIZATION
 
 /**
  * Generator for TypeScript target.
@@ -370,6 +371,7 @@ class TSGenerator(
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serialization The serialization method used on the connection.
      */
     override fun generateNetworkReceiverBody(
         action: Action,
@@ -381,7 +383,8 @@ class TSGenerator(
         receivingBankIndex: Int,
         receivingChannelIndex: Int,
         type: InferredType,
-        isPhysical: Boolean
+        isPhysical: Boolean,
+        serialization: SERIALIZATION
     ): String {
         return with(PrependOperator) {"""
         // FIXME: For now assume the data is a Buffer, but this is not checked.
