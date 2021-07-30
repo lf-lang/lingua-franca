@@ -190,9 +190,9 @@ class TSGenerator(
         )
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
-        if (pnpmInstall !== null) {
+        if (pnpmInstall != null) {
             val ret = pnpmInstall.run()
-            if (ret !== 0) {
+            if (ret != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
             }
@@ -202,7 +202,7 @@ class TSGenerator(
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
             val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.getSrcGenPkgPath())
 
-            if (npmInstall === null) {
+            if (npmInstall == null) {
                 errorReporter.reportError(
                     "The TypeScript target requires npm >= 6.14.4. " +
                             "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -210,7 +210,7 @@ class TSGenerator(
                 return
             }
 
-            if (npmInstall.run() !== 0) {
+            if (npmInstall.run() != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
@@ -241,7 +241,7 @@ class TSGenerator(
             protocArgs.addAll(targetConfig.protoFiles)
             val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
 
-            if (protoc === null) {
+            if (protoc == null) {
                 errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
                 return
             }
@@ -270,7 +270,7 @@ class TSGenerator(
         // Invoke the compiler on the generated code.
         println("Type Checking")
         val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.getSrcGenPkgPath())
-        if (tsc === null) {
+        if (tsc == null) {
             errorReporter.reportError(errorMessage);
             return
         }
@@ -283,7 +283,7 @@ class TSGenerator(
             println("Compiling")
             val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.getSrcGenPkgPath())
 
-            if (babel === null) {
+            if (babel == null) {
                 errorReporter.reportError(errorMessage);
                 return
             }
@@ -322,7 +322,7 @@ class TSGenerator(
      * @return The TS type.
      */
     private fun getActionType(action: Action): String {
-        if (action.type !== null) {
+        if (action.type != null) {
             return getTargetType(action.type)
         } else {
             return "Present"

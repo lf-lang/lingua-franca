@@ -53,7 +53,7 @@ class TSParameterGenerator(
     private fun getTargetType(p: Parameter): String = tsGenerator.getTargetTypeW(p)
 
     private fun getTimeoutTimeValue(): String {
-        if (targetConfig.timeout !== null) {
+        if (targetConfig.timeout != null) {
             return timeInTargetLanguage(targetConfig.timeout)
         } else {
             return "undefined"
@@ -163,9 +163,9 @@ class TSParameterGenerator(
             }
             // Otherwise don't add the parameter to customCLArgs
 
-            if (customArgType !== null) {
+            if (customArgType != null) {
                 clTypeExtension.add(parameter.name + ": " + paramType)
-                if (customTypeLabel !== null) {
+                if (customTypeLabel != null) {
                     customArgs.add(with(PrependOperator) {"""
                     |{
                     |    name: '${parameter.name}',
