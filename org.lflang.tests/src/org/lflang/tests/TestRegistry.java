@@ -370,7 +370,7 @@ public class TestRegistry {
                     
                     if (targetDecls.hasNext()) {
                         TargetDecl decl = targetDecls.next();
-                        Target target = Target.forName(decl.getName());
+                        Target target = Target.forName(decl.getName()).get();
                         Iterable<Reactor> reactors = Iterables.<Reactor>filter(
                                     IteratorExtensions.<EObject>toIterable(
                                             r.getAllContents()), 
