@@ -22,6 +22,12 @@ package org.lflang;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+
+import org.eclipse.emf.ecore.resource.Resource;
+
+import org.lflang.lf.Model;
+import org.lflang.lf.TargetDecl;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
@@ -362,7 +368,7 @@ public enum Target {
      * Private constructor for targets.
      *
      * @param name String representation of this target.
-     * @param requires Types Whether this target requires type annotations or not.
+     * @param requiresTypes Types Whether this target requires type annotations or not.
      * @param keywords List of reserved strings in the target language.
      */
     Target(String description, boolean requiresTypes, List<String> keywords) {
@@ -371,17 +377,6 @@ public enum Target {
         this.keywords = keywords;
     }
 
-    /**
-     * Check whether a given string corresponds with the name of a valid target.
-     * @param name The string for which to determine whether there is a match.
-     * @return true if a matching target was found, false otherwise.
-     */
-    public final static boolean hasForName(String name) {
-        if (Target.forName(name) != null) {
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Return the target that matches the given string.
@@ -389,8 +384,8 @@ public enum Target {
      * @param name The string to match against.
      * @return The matching target (or null if there is none).
      */
-    public static Target forName(String name) {
-        return Target.match(name, Target.values());
+    public static Optional<Target> forName(String name) {
+        return Optional.ofNullable(Target.match(name, Target.values()));
     }
 
     /**
@@ -418,6 +413,7 @@ public enum Target {
         return null;
     }
 
+
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
@@ -428,4 +424,19 @@ public enum Target {
     public static <T> T match(final String string, final T[] candidates) {
         return match(string, Arrays.asList(candidates));
     }
+
+
+    /**
+     * Return the target constant corresponding to given target
+     * declaration among. Return a non-null result, will throw
+     * if invalid.
+     *
+     * @throws RuntimeException If no {@link TargetDecl} is present or if it is invalid.
+     */
+    public static Target fromDecl(TargetDecl targetDecl) {
+        String name = targetDecl.getName();
+        return Target.forName(name)
+                     .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+    }
+
 }
