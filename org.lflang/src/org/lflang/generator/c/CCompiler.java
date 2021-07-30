@@ -184,7 +184,7 @@ public class CCompiler {
     
     
     /** Produces the filename including the target-specific extension */
-    String getTargetFileName(String fileName) {
+    static String getTargetFileName(String fileName) {
         return fileName + ".c"; // FIXME: Does not belong in the base class.
     }
 
