@@ -85,6 +85,7 @@ import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedFileConfig
 import org.lflang.federated.SERIALIZATION
 import org.lflang.federated.FedROSCPPSerialization
+import java.util.concurrent.Executors
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -452,6 +453,14 @@ class CGenerator extends GeneratorBase {
         var commonStartTimers = startTimers;
         var compilationSucceeded = true
         val oldFileConfig = fileConfig;
+        val numOfCompileThreads = Math.min(4,
+                Math.min(
+                    federates.size, 
+                    Runtime.getRuntime().availableProcessors()
+                )
+            )
+        val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
+        System.out.println("******** Using "+numOfCompileThreads+" threads.");
         for (federate : federates) {
             fileConfig = oldFileConfig;
             startTimeStepIsPresentCount = 0
@@ -486,9 +495,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
-            
-            // Create the compiler to be used later
-            var cCompiler = new CCompiler(targetConfig, fileConfig, errorReporter);
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
@@ -503,7 +509,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = cCompiler.getTargetFileName(topLevelName);
+            val cFilename = CCompiler.getTargetFileName(topLevelName);
 
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
@@ -782,19 +788,30 @@ class CGenerator extends GeneratorBase {
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
-                if (targetConfig.useCmake) {
-                    // Use CMake if requested.
-                    cCompiler = new CCmakeCompiler(targetConfig, fileConfig, errorReporter);
-                }
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
                 // this. 
-                if (!cCompiler.runCCompiler(topLevelName, main === null)) {
-                    compilationSucceeded = false
-                }
-                writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
+                // Create an anonymous Runnable class and add it to the compileThreadPool
+                // so that compilation can happen in parallel. 
+               compileThreadPool.execute(new Runnable() {
+                       override
+                       void run() {
+                        // Create the compiler to be used later
+                        var cCompiler = new CCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name), errorReporter);
+                        if (targetConfig.useCmake) {
+                            // Use CMake if requested.
+                            cCompiler = new CCmakeCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name), errorReporter);
+                        }
+                        if (!cCompiler.runCCompiler(topLevelName, main === null)) {
+                            new FedFileConfig(fileConfig, federate.name).deleteBinFiles()
+                        }
+                        writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
+                    }
+                });
             }
         }
+        compileThreadPool.shutdown();
+        
         // Restore the base filename.
         topLevelName = baseFilename
         
