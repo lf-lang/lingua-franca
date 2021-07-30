@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.graph
 
 import java.util.*
+import java.util.stream.Collectors
 
 import static extension org.lflang.util.CollectionUtil.plus
 import org.lflang.util.CollectionUtil
@@ -41,14 +42,12 @@ class DirectedGraph<T> implements Graph<T> {
     // they use as values may not be. They should only be
     // manipulated through CollectionUtil
 
-    /**
-     * Adjacency map from vertices to their downstream immediate neighbors.
-     */
+    // If a node has no neighbors, it is still in the map with an empty set as a value.
+
+    /** Adjacency map from vertices to their downstream immediate neighbors. */
     val Map<T, Set<T>> downstreamAdjacentNodes = new LinkedHashMap();
     
-    /**
-     * Adjacency map from vertices to their upstream immediate neighbors.
-     */
+    /** Adjacency map from vertices to their upstream immediate neighbors. */
     val Map<T, Set<T>> upstreamAdjacentNodes = new LinkedHashMap();
 
     
@@ -72,35 +71,23 @@ class DirectedGraph<T> implements Graph<T> {
      * @param node The node to look for.
      */
     override hasNode(T node) {
-        // When a node is created, an empty list gets put in
-        // upstreamAdjacentNodes.
-        return this.upstreamAdjacentNodes.containsKey(node)
+        nodes.contains(node)
     }
     
     /**
      * Return all immediate upstream neighbors of a given node.
      * @param node The node to report the immediate upstream neighbors of.
      */
-    def getUpstreamAdjacentNodes(T node) {
-        var upstream = this.upstreamAdjacentNodes.get(node)
-        if (upstream === null) {
-            return emptyList
-        } else {
-            return upstream.toList
-        }
+    def Set<T> getUpstreamAdjacentNodes(T node) {
+        Collections.unmodifiableSet(this.upstreamAdjacentNodes.getOrDefault(node, Set.of()))
     }
 
     /**
      * Return all immediate downstream neighbors of a given node.
      * @param node The node to report the immediate downstream neighbors of.
      */
-    def getDownstreamAdjacentNodes(T node) {
-        var downstream = this.downstreamAdjacentNodes.get(node)
-        if (downstream === null) {
-            return emptyList
-        } else {
-            return downstream.toList
-        }
+    def Set<T> getDownstreamAdjacentNodes(T node) {
+        Collections.unmodifiableSet(this.downstreamAdjacentNodes.getOrDefault(node, Set.of()))
     }
 
     
@@ -110,12 +97,8 @@ class DirectedGraph<T> implements Graph<T> {
      */
     override void addNode(T node) {
         this.graphChanged()
-        if (!upstreamAdjacentNodes.containsKey(node)) {
-            this.upstreamAdjacentNodes.put(node, new LinkedHashSet<T>())    
-        }
-        if (!downstreamAdjacentNodes.containsKey(node)) {
-            this.downstreamAdjacentNodes.put(node, new LinkedHashSet<T>())
-        }
+        this.upstreamAdjacentNodes.putIfAbsent(node, Set.of())
+        this.downstreamAdjacentNodes.putIfAbsent(node, Set.of())
     }
     
     /**
@@ -126,6 +109,7 @@ class DirectedGraph<T> implements Graph<T> {
     override removeNode(T node) {
         this.graphChanged()
         this.upstreamAdjacentNodes.remove(node)
+        this.downstreamAdjacentNodes.remove(node)
         CollectionUtil.removeFromValues(this.upstreamAdjacentNodes, node);
         CollectionUtil.removeFromValues(this.downstreamAdjacentNodes, node);
     }
@@ -192,20 +176,20 @@ class DirectedGraph<T> implements Graph<T> {
      */
     private def void mirror(Map<T, Set<T>> srcMap, Map<T, Set<T>> dstMap) {
         if (srcMap !== null && dstMap !== null) {
-            for (node : srcMap.keySet) {
-                val srcEdges = srcMap.get(node)
-                val dstEdges = dstMap.get(node)
-                if (dstEdges === null) {
+            for (entry : srcMap.entrySet) {
+                val node = entry.getKey()
+                val srcEdges = entry.getValue()
+                dstMap.compute(node, [_node, dstEdges| {
                     // Node does not exist; add it.
-                    dstMap.put(node, CollectionUtil.copy(srcEdges))
-                } else {
+                    if (dstEdges === null) return CollectionUtil.copy(srcEdges)
+
                     // Node does exist; add the missing edges.
                     var set = dstEdges
                     for (edge : srcEdges) {
                         set = set.plus(edge)
                     }
-                    dstMap.put(node, set)
-                }
+                    return set
+                }])
             }
         }
     }
@@ -224,7 +208,7 @@ class DirectedGraph<T> implements Graph<T> {
      * Return the set of nodes that have no neighbors listed in the given
      * adjacency map.
      */
-    private def independentNodes(Map<T, Set<T>> adjacencyMap) {
+    private def Set<T> independentNodes(Map<T, Set<T>> adjacencyMap) {
         var independent = new LinkedHashSet<T>()
         for (node : this.nodes) {
             val neighbors = adjacencyMap.get(node)
@@ -279,12 +263,8 @@ class DirectedGraph<T> implements Graph<T> {
     /**
      * Return the nodes in this graph.
      */
-    override nodes() {
-        // FIXME: This is an inefficient way to list nodes.
-        val nodes = newLinkedHashSet
-        nodes.addAll(this.upstreamAdjacentNodes.keySet)
-        nodes.addAll(this.downstreamAdjacentNodes.keySet)
-        return nodes.toList
+    override Set<T> nodes() {
+        return Collections.unmodifiableSet(this.downstreamAdjacentNodes.keySet)
     }
     
     def clear() {
@@ -297,14 +277,6 @@ class DirectedGraph<T> implements Graph<T> {
      * Return a textual list of the nodes.
      */
     override toString() {
-        val result = new StringBuilder();
-        result.append("{");
-        var first = true;
-        for (node : nodes) {
-            if (!first) result.append(", ");
-            first = false;
-            result.append(node.toString());
-        }
-        return result.toString();
+        return nodes.stream().map([ it.toString() ]).collect(Collectors.joining(", ", "{", "}"));
     }
 }

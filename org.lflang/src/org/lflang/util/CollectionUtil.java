@@ -96,11 +96,7 @@ public class CollectionUtil {
 
     /**
      * Returns a set that contains the elements of the given
-     * set minus one element. If the given set only contains
-     * the element to remove, and the returned set would hence
-     * be empty, null is returned instead. This ensures that
-     * in methods like {@link Map#compute(Object, BiFunction)},
-     * the mapping is removed.
+     * set minus one element. An empty set is considered empty.
      */
     public static <T> Set<T> minus(Set<T> set, T eltToRemove) {
         if (set instanceof LinkedHashSet) {
@@ -109,21 +105,23 @@ public class CollectionUtil {
         }
 
         if (set == null || set.isEmpty()) {
-            return null;
+            return Set.of();
         } else if (set.size() == 1) {
-            return set.contains(eltToRemove) ? null : set;
-        } else if (set.size() == 2 && set.contains(eltToRemove)) {
-            Iterator<T> iter = set.iterator();
-            T fst = iter.next();
-            T snd = iter.next();
-            if (Objects.equals(fst, eltToRemove)) {
-                return Set.of(snd);
-            } else if (Objects.equals(snd, eltToRemove)) {
-                return Set.of(fst);
+            return set.contains(eltToRemove) ? Set.of() : set;
+        } else if (set.size() == 2) {
+            if (set.contains(eltToRemove)) {
+                Iterator<T> iter = set.iterator();
+                T fst = iter.next();
+                T snd = iter.next();
+                if (Objects.equals(fst, eltToRemove)) {
+                    return Set.of(snd);
+                } else if (Objects.equals(snd, eltToRemove)) {
+                    return Set.of(fst);
+                }
             }
             return set;
         }
-        return set;
+        throw new AssertionError("should be unreachable");
     }
 
 
