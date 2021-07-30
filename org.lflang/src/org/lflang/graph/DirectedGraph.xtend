@@ -29,24 +29,28 @@ package org.lflang.graph
 import java.util.*
 
 import static extension org.lflang.util.CollectionUtil.plus
-import static org.lflang.util.CollectionUtil.copy
+import org.lflang.util.CollectionUtil
 
 /** 
  * Directed graph that maps nodes to its upstream and downstream neighbors. 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class DirectedGraph<T> implements Graph<T> {
-    
+
+    // Note that while both those maps are mutable, the sets
+    // they use as values may not be. They should only be
+    // manipulated through CollectionUtil
+
     /**
      * Adjacency map from vertices to their downstream immediate neighbors.
      */
-    var Map<T, Set<T>> downstreamAdjacentNodes = new LinkedHashMap();
+    val Map<T, Set<T>> downstreamAdjacentNodes = new LinkedHashMap();
     
     /**
      * Adjacency map from vertices to their upstream immediate neighbors.
      */
-    var Map<T, Set<T>> upstreamAdjacentNodes = new LinkedHashMap();
-    
+    val Map<T, Set<T>> upstreamAdjacentNodes = new LinkedHashMap();
+
     
     /**
      * Construct a new dependency graph.
@@ -122,10 +126,8 @@ class DirectedGraph<T> implements Graph<T> {
     override removeNode(T node) {
         this.graphChanged()
         this.upstreamAdjacentNodes.remove(node)
-        this.upstreamAdjacentNodes.forEach[v, e | e.remove(node)]
-        
-        this.downstreamAdjacentNodes.remove(node)
-        this.downstreamAdjacentNodes.forEach[v, e | e.remove(node)]
+        CollectionUtil.removeFromValues(this.upstreamAdjacentNodes, node);
+        CollectionUtil.removeFromValues(this.downstreamAdjacentNodes, node);
     }
     
     /**
@@ -177,10 +179,10 @@ class DirectedGraph<T> implements Graph<T> {
     def copy() {
         val graph = new DirectedGraph<T>()
         for (entry : this.upstreamAdjacentNodes.entrySet) {
-            graph.upstreamAdjacentNodes.put(entry.key, copy(entry.value))
+            graph.upstreamAdjacentNodes.put(entry.key, CollectionUtil.copy(entry.value))
         }
         for (entry : this.downstreamAdjacentNodes.entrySet) {
-            graph.downstreamAdjacentNodes.put(entry.key, copy(entry.value))
+            graph.downstreamAdjacentNodes.put(entry.key, CollectionUtil.copy(entry.value))
         }
         return graph
     }
@@ -198,7 +200,7 @@ class DirectedGraph<T> implements Graph<T> {
                 val dstEdges = dstMap.get(node)
                 if (dstEdges === null) {
                     // Node does not exist; add it.
-                    dstMap.put(node, copy(srcEdges))
+                    dstMap.put(node, CollectionUtil.copy(srcEdges))
                 } else {
                     // Node does exist; add the missing edges.
                     var set = dstEdges
