@@ -87,6 +87,13 @@ public class LFParsingTest {
     }
 
     @Test
+    public void testLexingMultilineString() throws Exception {
+        assertNoParsingErrorsIn(makeLfTargetCode("Python", "a = \"\"\" a 'string' \"\"\""));
+        assertNoParsingErrorsIn(makeLfTargetCode("Python", "a = \"\"\" a 'strin\ng' \"\"\""));
+        assertNoParsingErrorsIn(makeLfTargetCode("Python", "a = \"\"\" \na 'string'\n \"\"\""));
+    }
+
+    @Test
     public void testLexingDquotedStringWithEscape() throws Exception {
         assertNoParsingErrorsIn(makeLfTargetCode("C", "printf(\"Hello World.\\n\");\n"));
     }
