@@ -48,34 +48,6 @@ public class LFGenerator extends AbstractGenerator {
         return Target.forName(targetName);
     }
 
-    private String getPackageName(Target target) {
-        switch (target) {
-            case CPP: {
-                return "cpp";
-            }
-            case TS: {
-                return "ts";
-            }
-            default: {
-                throw new RuntimeException("Unexpected target!");
-            }
-        }
-    }
-
-    private String getClassNamePrefix(Target target) {
-        switch (target) {
-            case CPP: {
-                return "Cpp";
-            }
-            case TS: {
-                return "TS";
-            }
-            default: {
-                throw new RuntimeException("Unexpected target!");
-            }
-        }
-    }
-
     /**
      * Create a target-specific FileConfig object in Kotlin
      *
@@ -103,11 +75,9 @@ public class LFGenerator extends AbstractGenerator {
         if (target != Target.CPP && target != Target.TS) {
             return new FileConfig(resource, fsa, context);
         }
-        String packageName = getPackageName(target);
-        String classNamePrefix = getClassNamePrefix(target);
         try {
             return (FileConfig) Class
-                .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig")
+                .forName("org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig")
                 .getDeclaredConstructor(Resource.class,
                                         IFileSystemAccess2.class, IGeneratorContext.class)
                 .newInstance(resource, fsa, context);
@@ -132,11 +102,13 @@ public class LFGenerator extends AbstractGenerator {
             case Python: {
                 return new PythonGenerator(fileConfig, errorReporter);
             }
-            // FIXME: make case exhaustive
-            default: {
-                // FIXME: rename createKotlinBaseGenerator
-                return createKotlinGenerator(target, fileConfig, errorReporter);
+            case CPP:
+            case TS:
+            {
+                return createKotlinBaseGenerator(target, fileConfig, errorReporter);
             }
+            default:
+                throw new RuntimeException("Unexpected target!");
         }
     }
 
@@ -152,21 +124,18 @@ public class LFGenerator extends AbstractGenerator {
      *
      * @return A Kotlin Generator object if the class can be found
      */
-    private GeneratorBase createKotlinGenerator(Target target, FileConfig fileConfig,
+    private GeneratorBase createKotlinBaseGenerator(Target target, FileConfig fileConfig,
                                             ErrorReporter errorReporter) {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead we look the
         // class up at runtime and instantiate it if found.
-        String packageName = getPackageName(target);
-        String classNamePrefix = getClassNamePrefix(target);
-        // FIXME: make the above attributes of the target
         try {
             return (GeneratorBase) Class
-                .forName("org.lflang.generator." + packageName + "." + classNamePrefix + "Generator")
+                .forName("org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "Generator")
                 .getDeclaredConstructor(
                     Class.forName(
-                        "org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig"),
+                        "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig"),
                     ErrorReporter.class, LFGlobalScopeProvider.class)
                 .newInstance(fileConfig, errorReporter, scopeProvider);
         } catch (InstantiationException | IllegalAccessException
@@ -180,9 +149,9 @@ public class LFGenerator extends AbstractGenerator {
                     + "Eclipse. The " + target + " code generator is written in Kotlin"
                     + "and, unfortunately, the Eclipse Kotlin plugin is "
                     + "broken, preventing us from loading the generator"
-                    + "properly. Please consider building the RCA via Maven.");
-            // FIXME: Add a link to the wiki with more information.
-            // FIXME: really do above
+                    + "properly. Please consider building the RCA via Maven.\n"
+                    + "For instructions building RCA via Maven, see: "
+                    + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
             return null;
         }
     }
@@ -197,7 +166,7 @@ public class LFGenerator extends AbstractGenerator {
         try {
             fileConfig = createFileConfig(target, resource, fsa, context);
         } catch (IOException e) {
-            throw new RuntimeException("Error during FileConfig instaniation");
+            throw new RuntimeException("Error during FileConfig instantiation");
         }
         final ErrorReporter errorReporter = new EclipseErrorReporter(
                 fileConfig);
