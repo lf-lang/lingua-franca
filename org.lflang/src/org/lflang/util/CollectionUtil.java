@@ -1,11 +1,11 @@
 package org.lflang.util;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -32,8 +32,6 @@ public class CollectionUtil {
             if (set.contains(t)) {
                 return set;
             }
-            return Set.of(set.iterator().next(), t);
-        } else if (set.size() == 2) {
             // make mutable
             set = new LinkedHashSet<>(set);
         } // else it's already mutable.
@@ -45,14 +43,12 @@ public class CollectionUtil {
 
     public static <K, V> Map<K, V> plus(Map<K, V> map, K k, V v) {
         if (map == null || map.isEmpty()) {
-            return Map.of(k, v);
+            return Collections.singletonMap(k, v);
         } else if (map.size() == 1) {
             Entry<K, V> e = map.entrySet().iterator().next();
             if (e.getKey().equals(k)) {
                 return Map.of(k, v);
             }
-            return Map.of(e.getKey(), e.getValue(), k, v);
-        } else if (map.size() == 2) {
             // make mutable
             map = new LinkedHashMap<>(map);
         } // else it's already mutable.
@@ -105,21 +101,9 @@ public class CollectionUtil {
         }
 
         if (set == null || set.isEmpty()) {
-            return Set.of();
+            return Collections.emptySet();
         } else if (set.size() == 1) {
-            return set.contains(eltToRemove) ? Set.of() : set;
-        } else if (set.size() == 2) {
-            if (set.contains(eltToRemove)) {
-                Iterator<T> iter = set.iterator();
-                T fst = iter.next();
-                T snd = iter.next();
-                if (Objects.equals(fst, eltToRemove)) {
-                    return Set.of(snd);
-                } else if (Objects.equals(snd, eltToRemove)) {
-                    return Set.of(fst);
-                }
-            }
-            return set;
+            return set.contains(eltToRemove) ? Collections.emptySet() : set;
         }
         throw new AssertionError("should be unreachable");
     }
@@ -127,14 +111,12 @@ public class CollectionUtil {
 
     public static <K, V> Map<K, V> compute(Map<K, V> map, K k, BiFunction<K, V, V> computation) {
         if (map == null || map.isEmpty()) {
-            return Map.of(k, computation.apply(k, null));
+            return Collections.singletonMap(k, computation.apply(k, null));
         } else if (map.size() == 1) {
             Entry<K, V> e = map.entrySet().iterator().next();
             if (e.getKey().equals(k)) {
-                return Map.of(k, computation.apply(k, e.getValue()));
+                return Collections.singletonMap(k, computation.apply(k, e.getValue()));
             }
-            return Map.of(e.getKey(), e.getValue(), k, computation.apply(k, null));
-        } else if (map.size() == 2) {
             // make mutable
             map = new LinkedHashMap<>(map);
         } // else it's already mutable.
@@ -153,9 +135,7 @@ public class CollectionUtil {
      * @return A new set, or the same
      */
     public static <T> Set<T> copy(Set<T> set) {
-        if (set == null) {
-            return null;
-        } else if (set.size() <= 2) {
+        if (set == null || set.size() <= 1) {
             return set; // it's unmodifiable
         } else {
             return new LinkedHashSet<>(set);
