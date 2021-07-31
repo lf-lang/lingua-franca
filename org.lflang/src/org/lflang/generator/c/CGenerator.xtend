@@ -453,7 +453,7 @@ class CGenerator extends GeneratorBase {
         var commonStartTimers = startTimers;
         var compilationSucceeded = true
         val oldFileConfig = fileConfig;
-        val numOfCompileThreads = Math.min(4,
+        val numOfCompileThreads = Math.min(6,
                 Math.min(
                     federates.size, 
                     Runtime.getRuntime().availableProcessors()
@@ -792,20 +792,23 @@ class CGenerator extends GeneratorBase {
                 // a binary and produce a .o file instead. There should be a way to control
                 // this. 
                 // Create an anonymous Runnable class and add it to the compileThreadPool
-                // so that compilation can happen in parallel. 
-               compileThreadPool.execute(new Runnable() {
-                       override
-                       void run() {
+                // so that compilation can happen in parallel.
+                val cleanCode = getCode.removeLineDirectives.getBytes();
+                val execName = topLevelName
+                compileThreadPool.execute(new Runnable() {
+                    override void run() {
                         // Create the compiler to be used later
-                        var cCompiler = new CCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name), errorReporter);
+                        var cCompiler = new CCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name),
+                            errorReporter);
                         if (targetConfig.useCmake) {
                             // Use CMake if requested.
-                            cCompiler = new CCmakeCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name), errorReporter);
+                            cCompiler = new CCmakeCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name),
+                                errorReporter);
                         }
-                        if (!cCompiler.runCCompiler(topLevelName, main === null)) {
+                        if (!cCompiler.runCCompiler(execName, main === null)) {
                             new FedFileConfig(fileConfig, federate.name).deleteBinFiles()
                         }
-                        writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
+                        writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
             }
