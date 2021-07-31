@@ -86,6 +86,7 @@ import org.lflang.federated.FedFileConfig
 import org.lflang.federated.SERIALIZATION
 import org.lflang.federated.FedROSCPPSerialization
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -807,14 +808,21 @@ class CGenerator extends GeneratorBase {
                                 errorReporter);
                         }
                         if (!cCompiler.runCCompiler(execName, main === null)) {
-                            new FedFileConfig(threadFileConfig, federate.name).deleteBinFiles()
+                            // If compilation failed, remove any bin files that may have been created.
+                            threadFileConfig.deleteBinFiles()
                         }
                         writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
             }
         }
+        
+        // Initiate an orderly shutdown in which previously submitted tasks are 
+        // executed, but no new tasks will be accepted.
         compileThreadPool.shutdown();
+        
+        // Wait for all compile threads to finish (FIXME: Can block forever)
+        compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         
         // Restore the base filename.
         topLevelName = baseFilename
@@ -827,10 +835,6 @@ class CGenerator extends GeneratorBase {
             }
         }
         
-        // If compilation failed, remove any bin files that may have been created.
-        if (!compilationSucceeded) {
-            fileConfig.deleteBinFiles()
-        }
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
