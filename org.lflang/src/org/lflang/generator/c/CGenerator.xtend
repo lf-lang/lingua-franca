@@ -798,11 +798,15 @@ class CGenerator extends GeneratorBase {
                 compileThreadPool.execute(new Runnable() {
                     override void run() {
                         // Create the compiler to be used later
-                        var cCompiler = new CCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name),
+                        var threadFileConfig = fileConfig;
+                        if (isFederated) {
+                            threadFileConfig = new FedFileConfig(fileConfig, federate.name);
+                        }
+                        var cCompiler = new CCompiler(targetConfig, threadFileConfig,
                             errorReporter);
                         if (targetConfig.useCmake) {
                             // Use CMake if requested.
-                            cCompiler = new CCmakeCompiler(targetConfig, new FedFileConfig(fileConfig, federate.name),
+                            cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
                                 errorReporter);
                         }
                         if (!cCompiler.runCCompiler(execName, main === null)) {
