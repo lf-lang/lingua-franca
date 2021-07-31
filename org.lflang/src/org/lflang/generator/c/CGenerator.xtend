@@ -795,13 +795,10 @@ class CGenerator extends GeneratorBase {
                 // so that compilation can happen in parallel.
                 val cleanCode = getCode.removeLineDirectives.getBytes();
                 val execName = topLevelName
+                val threadFileConfig = fileConfig;
                 compileThreadPool.execute(new Runnable() {
                     override void run() {
                         // Create the compiler to be used later
-                        var threadFileConfig = fileConfig;
-                        if (isFederated) {
-                            threadFileConfig = new FedFileConfig(fileConfig, federate.name);
-                        }
                         var cCompiler = new CCompiler(targetConfig, threadFileConfig,
                             errorReporter);
                         if (targetConfig.useCmake) {
@@ -810,7 +807,7 @@ class CGenerator extends GeneratorBase {
                                 errorReporter);
                         }
                         if (!cCompiler.runCCompiler(execName, main === null)) {
-                            new FedFileConfig(fileConfig, federate.name).deleteBinFiles()
+                            new FedFileConfig(threadFileConfig, federate.name).deleteBinFiles()
                         }
                         writeSourceCodeToFile(cleanCode, targetFile)
                     }
