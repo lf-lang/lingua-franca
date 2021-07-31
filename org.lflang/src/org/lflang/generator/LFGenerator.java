@@ -1,20 +1,20 @@
 package org.lflang.generator;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.eclipse.xtext.util.RuntimeIOException;
+
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.lf.TargetDecl;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
@@ -34,21 +34,6 @@ public class LFGenerator extends AbstractGenerator {
     protected boolean generatorErrorsOccurred = false;
 
     /**
-     * Extract the target as specified in the target declaration from a given
-     * resource
-     */
-    private Target getTarget(Resource resource) {
-        // FIXME: is there a better way to do this in plain Java?
-        final Iterable<EObject> contentIterable = IteratorExtensions
-                .toIterable(resource.getAllContents());
-        final Iterable<TargetDecl> targetDeclIterable = IterableExtensions
-                .filter(contentIterable, TargetDecl.class);
-        final String targetName = IterableExtensions.head(targetDeclIterable)
-                .getName();
-        return Target.forName(targetName);
-    }
-
-    /**
      * Create a target-specific FileConfig object in Kotlin
      *
      * Since the CppFileConfig and TypeScriptFileConfig class are implemented in Kotlin, the classes are
@@ -61,7 +46,7 @@ public class LFGenerator extends AbstractGenerator {
      * Otherwise, it returns an Instance of FileConfig.
      *
      * @return A FileConfig object in Kotlin if the class can be found.
-     * @throws IOException
+     * @throws IOException If the file config could not be created properly
      */
     private FileConfig createFileConfig(final Target target,
                                               Resource resource,
@@ -72,20 +57,25 @@ public class LFGenerator extends AbstractGenerator {
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
         // found.
-        if (target != Target.CPP && target != Target.TS) {
-            return new FileConfig(resource, fsa, context);
-        }
-        try {
-            return (FileConfig) Class
-                .forName("org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig")
-                .getDeclaredConstructor(Resource.class,
-                                        IFileSystemAccess2.class, IGeneratorContext.class)
-                .newInstance(resource, fsa, context);
-        } catch (InstantiationException | IllegalAccessException
-            | IllegalArgumentException | InvocationTargetException
-            | NoSuchMethodException | SecurityException
-            | ClassNotFoundException e) {
-            return new FileConfig(resource, fsa, context);
+        switch (target) {
+            case CPP:
+            case TS: {
+                try {
+                    return (FileConfig) Class
+                        .forName("org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig")
+                        .getDeclaredConstructor(Resource.class,
+                                                IFileSystemAccess2.class, IGeneratorContext.class)
+                        .newInstance(resource, fsa, context);
+                } catch (InvocationTargetException e) {
+                        throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
+                    } catch (ReflectiveOperationException e) {
+                        return new FileConfig(resource, fsa, context);
+                    }
+                }
+            }
+            default: {
+                return new FileConfig(resource, fsa, context);
+            }
         }
     }
 
@@ -93,22 +83,14 @@ public class LFGenerator extends AbstractGenerator {
     private GeneratorBase createGenerator(Target target, FileConfig fileConfig,
             ErrorReporter errorReporter) {
         switch (target) {
-            case C: {
-                return new CGenerator(fileConfig, errorReporter);
-            }
-            case CCPP: {
-                return new CCppGenerator(fileConfig, errorReporter);
-            }
-            case Python: {
-                return new PythonGenerator(fileConfig, errorReporter);
-            }
-            case CPP:
-            case TS:
-            {
-                return createKotlinBaseGenerator(target, fileConfig, errorReporter);
-            }
-            default:
-                throw new RuntimeException("Unexpected target!");
+        case C: return new CGenerator(fileConfig, errorReporter);
+        case CCPP: return new CCppGenerator(fileConfig, errorReporter);
+        case Python: return new PythonGenerator(fileConfig, errorReporter);
+        case CPP:
+        case TS:
+            return createKotlinBaseGenerator(target, fileConfig, errorReporter);
+        default:
+            throw new RuntimeException("Unexpected target!");
         }
     }
 
@@ -130,18 +112,19 @@ public class LFGenerator extends AbstractGenerator {
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead we look the
         // class up at runtime and instantiate it if found.
+        String classPrefix = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
         try {
-            return (GeneratorBase) Class
-                .forName("org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "Generator")
-                .getDeclaredConstructor(
-                    Class.forName(
-                        "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig"),
-                    ErrorReporter.class, LFGlobalScopeProvider.class)
-                .newInstance(fileConfig, errorReporter, scopeProvider);
-        } catch (InstantiationException | IllegalAccessException
-            | IllegalArgumentException | InvocationTargetException
-            | NoSuchMethodException | SecurityException
-            | ClassNotFoundException e) {
+            Class<?> generatorClass = Class.forName(classPrefix + "Generator");
+            Class<?> fileConfigClass = Class.forName(classPrefix + "FileConfig");
+            Constructor<?> ctor = generatorClass
+                .getDeclaredConstructor(fileConfigClass, ErrorReporter.class, LFGlobalScopeProvider.class);
+
+            return (GeneratorBase) ctor.newInstance(fileConfig, errorReporter, scopeProvider);
+
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("Exception instantiating " + classPrefix + "FileConfig",
+                                       e.getTargetException());
+        } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
                 "The code generator for the " + target + " target could not be found. "
@@ -160,18 +143,16 @@ public class LFGenerator extends AbstractGenerator {
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         // Determine which target is desired.
-        final Target target = getTarget(resource);
+        final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
 
         FileConfig fileConfig;
         try {
             fileConfig = createFileConfig(target, resource, fsa, context);
         } catch (IOException e) {
-            throw new RuntimeException("Error during FileConfig instantiation");
+            throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
-        final ErrorReporter errorReporter = new EclipseErrorReporter(
-                fileConfig);
-        final GeneratorBase generator = createGenerator(target, fileConfig,
-                errorReporter);
+        final ErrorReporter errorReporter = new EclipseErrorReporter(fileConfig);
+        final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
             generator.doGenerate(resource, fsa, context);
