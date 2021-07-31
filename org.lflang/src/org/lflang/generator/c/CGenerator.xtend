@@ -452,7 +452,6 @@ class CGenerator extends GeneratorBase {
         
         var commonCode = code;
         var commonStartTimers = startTimers;
-        var compilationSucceeded = true
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
