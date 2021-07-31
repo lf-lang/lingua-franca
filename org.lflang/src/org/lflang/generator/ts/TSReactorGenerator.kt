@@ -41,13 +41,13 @@ class TSReactorGenerator(
     private fun pr(builder: StringBuilder, text: Any) = tsGenerator.prw(builder, text)
     private fun pr(text: Any) = tsGenerator.prw(code, text)
 
-    private fun getTargetValue(v: Value): String = tsGenerator.getTargetValueW(v)
-    private fun getTargetType(p: Parameter): String = tsGenerator.getTargetTypeW(p)
-    private fun getTargetType(state: StateVar): String = tsGenerator.getTargetTypeW(state)
-    private fun getTargetType(a: Action): String = tsGenerator.getTargetTypeW(a)
-    private fun getTargetType(p: Port): String = tsGenerator.getTargetTypeW(p)
-    private fun getTargetType(t: Type): String = tsGenerator.getTargetTypeW(t)
-    private fun generateVarRef(reference: VarRef): String = tsGenerator.generateVarRef(reference)
+    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+    private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+    private fun Action.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+    private fun Port.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+    private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+    private fun VarRef.generateVarRef(): String = tsGenerator.generateVarRef(this)
 
     private fun getInitializerList(state: StateVar): List<String> =
         tsGenerator.getInitializerListW(state)
@@ -81,7 +81,7 @@ class TSReactorGenerator(
         return getTargetInitializerHelper(param, getInitializerList(param, i))
     }
     private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${getTargetType(p)} = ${getTargetInitializer(p)}"""
+        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
     }
 
     /**
@@ -93,7 +93,7 @@ class TSReactorGenerator(
      */
     private fun getActionType(action: Action): String {
         if (action.type != null) {
-            return getTargetType(action.type)
+            return action.type.getTargetType()
         } else {
             return "Present"
         }
@@ -108,7 +108,7 @@ class TSReactorGenerator(
      */
     private fun getPortType(port: Port): String {
         if (port.type != null) {
-            return getTargetType(port.type)
+            return port.type.getTargetType()
         } else {
             return "Present"
         }
@@ -235,17 +235,8 @@ class TSReactorGenerator(
 
         // Next handle timers.
         for (timer in reactor.timers) {
-            val timerPeriod: String = if (timer.period == null) {
-                "0"
-            } else {
-                getTargetValue(timer.period)
-            }
-
-            val timerOffset: String = if (timer.offset == null) {
-                "0"
-            } else {
-                getTargetValue(timer.offset)
-            }
+            val timerPeriod: String = timer.period?.getTargetValue() ?: "0"
+            val timerOffset: String = timer.offset?.getTargetValue() ?: "0"
 
             pr(timer.name + ": __Timer;")
             pr(reactorConstructor, "this." + timer.name
@@ -255,7 +246,7 @@ class TSReactorGenerator(
 
         // Create properties for parameters
         for (param in reactor.parameters) {
-            pr(param.name + ": __Parameter<" + getTargetType(param) + ">;")
+            pr(param.name + ": __Parameter<" + param.getTargetType() + ">;")
             pr(reactorConstructor, "this." + param.name +
                     " = new __Parameter(" + param.name + ");" )
         }
@@ -272,7 +263,7 @@ class TSReactorGenerator(
         }
 
         for (stateVar in reactor.stateVars) {
-            pr(stateVar.name + ": " + "__State<" + getTargetType(stateVar) + ">;");
+            pr(stateVar.name + ": " + "__State<" + stateVar.getTargetType() + ">;");
         }
 
         // Next handle actions.
@@ -291,7 +282,7 @@ class TSReactorGenerator(
                     if (action.minDelay.parameter != null) {
                         actionArgs+= ", " + action.minDelay.parameter.name
                     } else {
-                        actionArgs+= ", " + getTargetValue(action.minDelay)
+                        actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
                 }
                 pr(reactorConstructor, "this." +
@@ -452,7 +443,7 @@ class TSReactorGenerator(
                     }
 
                     reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
-                    reactFunctArgs.add("this." + generateVarRef(trigOrSource))
+                    reactFunctArgs.add("this." + trigOrSource.generateVarRef())
                     if (trigOrSource.container == null) {
                         pr(reactPrologue, "let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                     } else {
@@ -489,7 +480,7 @@ class TSReactorGenerator(
 
                 reactSignature.add(reactSignatureElement)
 
-                functArg = "this." + generateVarRef(effect)
+                functArg = "this." + effect.generateVarRef()
                 if (effect.variable is Action){
                     reactFunctArgs.add("this.schedulable($functArg)")
                 } else if (effect.variable is Port) {
@@ -526,7 +517,7 @@ class TSReactorGenerator(
 
                 // Underscores are added to parameter names to prevent conflict with prologue
                 reactSignature.add("__" + param.name + ": __Parameter<"
-                        + getTargetType(param) + ">")
+                        + param.getTargetType() + ">")
                 reactFunctArgs.add("this." + param.name)
 
                 pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
@@ -536,7 +527,7 @@ class TSReactorGenerator(
             for (state in reactor.stateVars) {
                 // Underscores are added to state names to prevent conflict with prologue
                 reactSignature.add("__" + state.name + ": __State<"
-                        + getTargetType(state) + ">")
+                        + state.getTargetType() + ">")
                 reactFunctArgs.add("this." + state.name )
 
                 pr(reactPrologue, "let " + state.name + " = __" + state.name + ".get();")
@@ -567,7 +558,7 @@ class TSReactorGenerator(
             val reactionTriggers = StringJoiner(",\n")
             for (trigger in reaction.triggers) {
                 if (trigger is VarRef) {
-                    reactionTriggers.add("this." + generateVarRef(trigger))
+                    reactionTriggers.add("this." + trigger.generateVarRef())
                 } else if (trigger.isStartup) {
                     reactionTriggers.add("this.startup")
                 } else if (trigger.isShutdown) {
@@ -605,7 +596,7 @@ class TSReactorGenerator(
                 if (reaction.deadline.delay.parameter != null) {
                     deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
                 } else {
-                    deadlineArgs += getTargetValue(reaction.deadline.delay)
+                    deadlineArgs += reaction.deadline.delay.getTargetValue()
                 }
                 pr(reactorConstructor, "$deadlineArgs,")
                 pr(reactorConstructor, "function($reactSignature) {")
