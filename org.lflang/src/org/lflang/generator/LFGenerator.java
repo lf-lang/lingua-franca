@@ -58,24 +58,22 @@ public class LFGenerator extends AbstractGenerator {
         // import. Instead we look the class up at runtime and instantiate it if
         // found.
         switch (target) {
-            case CPP:
-            case TS: {
-                try {
-                    return (FileConfig) Class
-                        .forName("org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig")
-                        .getDeclaredConstructor(Resource.class,
-                                                IFileSystemAccess2.class, IGeneratorContext.class)
-                        .newInstance(resource, fsa, context);
-                } catch (InvocationTargetException e) {
-                        throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
-                    } catch (ReflectiveOperationException e) {
-                        return new FileConfig(resource, fsa, context);
-                    }
-                }
-            }
-            default: {
+        case CPP:
+        case TS: {
+            String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
+            try {
+                return (FileConfig) Class.forName(className)
+                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
+                                         .newInstance(resource, fsa, context);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
+            } catch (ReflectiveOperationException e) {
                 return new FileConfig(resource, fsa, context);
             }
+        }
+        default: {
+            return new FileConfig(resource, fsa, context);
+        }
         }
     }
 
