@@ -17,4 +17,8 @@ class LFIdeSetup extends LFStandaloneSetup {
 		Guice.createInjector(Modules2.mixin(new LFRuntimeModule, new LFIdeModule))
 	}
 	
+	def static void doSetup() {
+		new LFIdeSetup().createInjectorAndDoEMFRegistration()
+	}
+	
 }

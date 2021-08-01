@@ -9,6 +9,7 @@ import de.cau.cs.kieler.klighd.lsp.launch.AbstractRegistrationLanguageServerExte
 import de.cau.cs.kieler.klighd.lsp.launch.ILanguageRegistration
 import de.cau.cs.kieler.klighd.lsp.launch.Language
 import org.lflang.ide.LFIdeSetup
+import org.lflang.ide.DocumentRegistry
 
 /**
  * Language server with extended diagram communication.
@@ -47,12 +48,13 @@ class LFLsCreator extends AbstractLsCreator {
         super.onConnect()
         constraints.client = languageClient as KGraphLanguageClient
         rectPack.client = languageClient as KGraphLanguageClient
+        DocumentRegistry.getInstance().setClient(languageClient)
     }
 }
 
 class LFLanguageRegistration implements ILanguageRegistration {
     
-    override bindAndRegisterLanguages() {        
+    override bindAndRegisterLanguages() {
         LFIdeSetup.doSetup()
     }
 }
