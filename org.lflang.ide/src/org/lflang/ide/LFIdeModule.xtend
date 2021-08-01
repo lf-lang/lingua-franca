@@ -4,12 +4,15 @@
 package org.lflang.ide
 
 import org.eclipse.xtext.ide.server.rename.IRenameService2
+import org.eclipse.xtext.ide.server.hover.IHoverService
 
 /**
  * Use this class to register ide components.
  */
 class LFIdeModule extends AbstractLFIdeModule {
-	override Class<? extends IRenameService2> bindIRenameService2() {
-		return TestRenameService
+	
+	def Class<? extends IHoverService> bindIHoverService() {
+		return HoverService
 	}
+	
 }
