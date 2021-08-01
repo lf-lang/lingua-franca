@@ -4288,6 +4288,10 @@ class CGenerator extends GeneratorBase {
                         case 'string': '''(unsigned char*) «sendRef»->value'''
                         default: '''(unsigned char*)&«sendRef»->value'''
                     }
+                    result.append('''
+                        size_t message_length = «lengthExpression»;
+                        «sendingFunction»(«commonArgs», «pointerExpression»);
+                    ''')
                 }
             }
             case PROTO: {
@@ -4300,13 +4304,13 @@ class CGenerator extends GeneratorBase {
                 result.append(
                     ROSSerializer.generateNetworkSerialzerCode(sendRef, type.targetType)
                 );
+                result.append('''
+                    size_t message_length = «lengthExpression»;
+                    «sendingFunction»(«commonArgs», «pointerExpression»);
+                ''')
             }
             
         }
-        result.append('''
-            size_t message_length = «lengthExpression»;
-            «sendingFunction»(«commonArgs», «pointerExpression»);
-        ''')
         return result.toString
     }
     
