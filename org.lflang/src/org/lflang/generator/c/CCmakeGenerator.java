@@ -102,8 +102,8 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_C_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
-        cMakeCode.append("# Require C++11\n");
-        cMakeCode.append("set(CMAKE_CXX_STANDARD 11)\n");
+        cMakeCode.append("# Require C++17\n");
+        cMakeCode.append("set(CMAKE_CXX_STANDARD 17)\n");
         cMakeCode.append("set(CMAKE_CXX_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
