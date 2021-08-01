@@ -1731,6 +1731,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
     abstract def String getTargetFixedSizeListType(String baseType, Integer size)
 
     abstract def String getTargetVariableSizeListType(String baseType);
+    
+    /**
+     * Get the buffer type used for network messages
+     */
+    def String getNetworkBufferType() ''''''
 
     /**
      * Return the Targets enum for the current target

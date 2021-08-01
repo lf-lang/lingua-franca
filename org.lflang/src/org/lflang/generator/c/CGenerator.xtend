@@ -4148,38 +4148,41 @@ class CGenerator extends GeneratorBase {
             «receiveRef»->physical_time_of_arrival = self->___«action.name».physical_time_of_arrival;
         ''')
         
-        if (isTokenType(type)) {
-            result.append('''
-                SET_TOKEN(«receiveRef», «action.name»->token);
-            ''')
-        } else {
+        
             var value = "";
-            switch (serialization) {
-                case NATIVE: {
-                    // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-                    // So passing it downstream should be OK.
-                    value = '''«action.name»->value''';
+        switch (serialization) {
+            case NATIVE: {
+                // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+                // So passing it downstream should be OK.
+                value = '''«action.name»->value''';
+                if (isTokenType(type)) {
+                    result.append('''
+                        SET_TOKEN(«receiveRef», «action.name»->token);
+                    ''')
+                } else {                        
+                    result.append('''
+                        SET(«receiveRef», «value»);
+                    ''')
                 }
-                case PROTO: {
-                    throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
-                }
-                case ROS2: {
-                    val ROSDeserializer = new FedROSCPPSerialization()
-                    value = FedROSCPPSerialization.deserializedVarName;
-                    result.append(
-                        ROSDeserializer.generateNetworkDeserializerCode(
-                            action.name,
-                            (receivingPort.variable as Port).type.targetType
-                        )
-                    );
-                }
-                
+            }
+            case PROTO: {
+                throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+            }
+            case ROS2: {
+                val ROSDeserializer = new FedROSCPPSerialization()
+                value = FedROSCPPSerialization.deserializedVarName;
+                result.append(
+                    ROSDeserializer.generateNetworkDeserializerCode(
+                        '''self->___«action.name»''',
+                        (receivingPort.variable as Port).type.targetType
+                    )
+                );                                            
+                result.append('''
+                    «receiveRef»->value = MessageT();
+                    SET(«receiveRef», std::move(«value»));
+                ''')
             }
             
-            
-            result.append('''
-                SET(«receiveRef», «value»);
-            ''')
         }
         
         return result.toString
@@ -4260,19 +4263,19 @@ class CGenerator extends GeneratorBase {
                    «next_destination_name», message_length'''
         }
         
-        if (isTokenType(type)) {
-            // NOTE: Transporting token types this way is likely to only work if the sender and receiver
-            // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
-            result.append('''
-                size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
-                «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
-            ''')
-        } else {
-            var lengthExpression = "";
-            var pointerExpression = "";
-            switch (serialization) {
-                case NATIVE: {
-                    // Handle native types.
+        var lengthExpression = "";
+        var pointerExpression = "";
+        switch (serialization) {
+            case NATIVE: {
+                // Handle native types.
+                if (isTokenType(type)) {
+                    // NOTE: Transporting token types this way is likely to only work if the sender and receiver
+                    // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
+                    result.append('''
+                        size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
+                        «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
+                    ''')
+                } else {
                     // string types need to be dealt with specially because they are hidden pointers.
                     // void type is odd, but it avoids generating non-standard expression sizeof(void),
                     // which some compilers reject.
@@ -4286,26 +4289,24 @@ class CGenerator extends GeneratorBase {
                         default: '''(unsigned char*)&«sendRef»->value'''
                     }
                 }
-                case PROTO: {
-                    throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
-                }
-                case ROS2: {
-                    val ROSSerializer = new FedROSCPPSerialization();
-                    lengthExpression = ROSSerializer.serializedVarLength();
-                    pointerExpression = ROSSerializer.seializedVarBuffer();
-                    result.append(
-                        ROSSerializer.generateNetworkSerialzerCode(sendRef, type.targetType)
-                    );
-                }
-                
+            }
+            case PROTO: {
+                throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+            }
+            case ROS2: {
+                val ROSSerializer = new FedROSCPPSerialization();
+                lengthExpression = ROSSerializer.serializedVarLength();
+                pointerExpression = ROSSerializer.seializedVarBuffer();
+                result.append(
+                    ROSSerializer.generateNetworkSerialzerCode(sendRef, type.targetType)
+                );
             }
             
-
-            result.append('''
+        }
+        result.append('''
             size_t message_length = «lengthExpression»;
             «sendingFunction»(«commonArgs», «pointerExpression»);
-            ''')
-        }
+        ''')
         return result.toString
     }
     
@@ -5450,6 +5451,9 @@ class CGenerator extends GeneratorBase {
         
     override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''
+        
+        
+    override getNetworkBufferType() '''uint8_t*'''
     
     protected def String getInitializer(ParameterInstance p) {
         
