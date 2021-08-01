@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.generator.FederateInstance;
@@ -425,10 +426,26 @@ public class FedASTUtils {
         // these reactions to appear only in the federate whose bank ID matches.
         generator.setReactionBankIndex(r1, leftBankIndex);
         generator.setReactionBankIndex(r2, rightBankIndex);
+        
+        // Get the serialization method
+        var serialization = SERIALIZATION.NATIVE;
+        if (connection.getSerialization() != null) {
+            serialization = SERIALIZATION.valueOf(
+                    connection.getSerialization().getSerialization().toUpperCase()
+            );
+            // Add it to the list of enabled serializations
+            generator.enabledSerializations.add(serialization);
+        }
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
-        action.setType(type);
+        if (serialization == SERIALIZATION.NATIVE) {
+            action.setType(type);
+        } else {
+            Type action_type = factory.createType();
+            action_type.setId(generator.getNetworkBufferType());
+            action.setType(action_type);
+        }
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
@@ -474,16 +491,6 @@ public class FedASTUtils {
         // Add the action to the reactor.
         parent.getActions().add(action);
         
-        // Get the serialization method
-        var serialization = SERIALIZATION.NATIVE;
-        if (connection.getSerialization() != null) {
-            serialization = SERIALIZATION.valueOf(
-                    connection.getSerialization().getSerialization().toUpperCase()
-            );
-            // Add it to the list of enabled serializations
-            generator.enabledSerializations.add(serialization);
-        }
-        
         // Configure the sending reaction.
         r1.getTriggers().add(sourceRef);
         r1.setCode(factory.createCode());
@@ -495,7 +502,7 @@ public class FedASTUtils {
             leftBankIndex,
             leftChannelIndex,
             rightFederate,
-            ASTUtils.getInferredType(action),
+            InferredType.fromAST(type),
             connection.isPhysical(),
             connection.getDelay(),
             serialization
