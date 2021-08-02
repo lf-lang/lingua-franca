@@ -14,7 +14,7 @@
  */
 
 target C {
-    flags: "-lgmp -g",
+    flags: "-lgmp",
     keepalive: true,
     threads: 24
 };
