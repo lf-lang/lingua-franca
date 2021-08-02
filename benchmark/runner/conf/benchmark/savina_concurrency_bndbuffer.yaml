@@ -56,3 +56,4 @@ targets:
       items_per_producer: ["-D", "numItemsPerProducer=<value>"] 
       produce_cost: ["-D", "prodCost=<value>"]
       consume_cost: ["-D", "consCost=<value>"]
+      buffer_size: ["-D", "bufferSize=<value>"]

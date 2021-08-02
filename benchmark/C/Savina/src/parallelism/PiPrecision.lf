@@ -228,15 +228,18 @@ reactor Worker(scale:int(5000)) {
     =}
 }
 
-
-main reactor PiPrecision(numWorkers:int(20), numIterations:int(12), precision:int(5000)) {
+/* [[[cog
+    cog.outl(f'main reactor PiPrecision(numWorkers:int({numWorkers}), precision:int({precision}))')
+]]] */
+main reactor PiPrecision(numWorkers:int(20), precision:int(5000)) 
+/// [[[end]]]
+{
     
     master = new Master(numWorkers=numWorkers, scale=precision);    
     
     
     reaction(startup) {=
         printBenchmarkInfo("PiPrecisionBenchmark");
-        printf("numIterations: %d\n", self->numIterations);
         printf("precision: %d\n", self->precision);
         printf("numWorkers: %d\n", self->numWorkers);
         printSystemInfo();
