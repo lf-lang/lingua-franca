@@ -48,7 +48,7 @@ class TSPreambleGenerator(
          * Default imports for importing all the core classes and helper classes
          * for CLI argument handling.
          */
-        val DEFAULT_IMPORTS =  """
+        const val DEFAULT_IMPORTS =  """
             |import commandLineArgs from 'command-line-args'
             |import commandLineUsage from 'command-line-usage'
             |import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Read, Triggers as __Triggers, ReadWrite, Write, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
