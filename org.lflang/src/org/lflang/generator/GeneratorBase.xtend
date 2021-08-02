@@ -793,7 +793,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         boolean isPhysical,
         SERIALIZATION serialization
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
 
     /**
@@ -825,7 +825,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Delay delay,
         SERIALIZATION serialization
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
     
     /**
@@ -840,7 +840,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingPortID,
         TimeValue maxSTP
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")        
     }    
     
     /**
@@ -862,7 +862,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int sendingChannelIndex,
         Delay delay
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")        
     }
     
     /**
