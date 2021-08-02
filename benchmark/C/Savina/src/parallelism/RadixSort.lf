@@ -156,8 +156,14 @@ reactor ValidationReactor(numValues:int(100000)) {
     =}
 }
 
-main reactor RadixSort(dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) {
 
+/* [[[cog
+    cog.outl(f'main reactor RadixSort(dataSize:int({dataSize}), maxValue:long({maxValue}), seed:long({seed}))')
+]]] */
+main reactor RadixSort(dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) 
+// [[[end]]]
+
+{
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);
 

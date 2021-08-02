@@ -341,8 +341,13 @@ reactor ConsumerReactor(consCost:int(25)) {
 //    =} 
 //
 //}
-main reactor ProdCons(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
-    
+
+/* [[[cog
+    cog.outl(f'main reactor ProdCons(bufferSize:int({bufferSize}), prodCost:int({prodCost}), consCost:int({consCost}), numItemsPerProducer:int({numItemsPerProducer}))')
+]]] */
+main reactor ProdCons(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000))
+// [[[end]]]    
+{
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
         
     
