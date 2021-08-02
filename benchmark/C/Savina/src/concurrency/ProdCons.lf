@@ -8,12 +8,10 @@
  
 target C {
     flags: "-lm",
-    logging: DEBUG,
     keepalive: true,
     timeout: 2 secs
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
@@ -180,7 +178,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             message_t tmp = {ProduceDataMsg, *idx + 1.0};
             SET(outProducers[*idx], tmp);
             printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
-            free(idx);
+            //free(idx);
         }
     =}
     
@@ -201,8 +199,8 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             int* idx;
             idx = pop(self->availableConsumers);
             SET(outConsumers[*idx], *msg);
-            free(idx);
-            free(msg);
+            //free(idx);
+            //free(msg);
             if (!is_empty(self->availableProducers)) {
                 int* idx;
                 idx = pop(self->availableProducers);
@@ -210,7 +208,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
                 message_t msg = {ProduceDataMsg, *idx + 1.0};
                 SET(outProducers[*idx], msg);
                 printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
-                free(idx);
+                //free(idx);
             }
         }
     =}
@@ -343,20 +341,15 @@ reactor ConsumerReactor(consCost:int(25)) {
 //    =} 
 //
 //}
-main reactor ProdCons(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+main reactor ProdCons(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
     
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
+        
     
-    runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> manager.inStart;
-    manager.outFinished -> runner.inIterationFinish;
-    
-    reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("ProdConsBenchmark");
+    reaction(startup) -> manager.inStart {=
         // FIXME: what is printArgs?
         // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
-        printf("numIterations: %d.\n", self->numIterations);
         printf("bufferSize: %d.\n", self->bufferSize);
         printf("prodCost: %d.\n", self->prodCost);
         printf("consCost: %d.\n", self->consCost);
@@ -364,9 +357,7 @@ main reactor ProdCons(numIterations:int(12), bufferSize:int(50), prodCost:int(25
         printf("numProducers: %d.\n", 40);
         printf("numConsumers: %d.\n", 40);
 		
-		
-        printSystemInfo();
-        SET(runner.inStart, true);
+        SET(manager.inStart, true);
     =}
     
     producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
