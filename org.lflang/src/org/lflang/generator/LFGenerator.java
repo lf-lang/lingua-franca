@@ -87,9 +87,9 @@ public class LFGenerator extends AbstractGenerator {
         case CPP:
         case TS:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
-        default:
-            throw new RuntimeException("Unexpected target!");
         }
+        // If no case matched, then throw a runtime exception.
+        throw new RuntimeException("Unexpected target!");
     }
 
     /**
