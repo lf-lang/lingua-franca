@@ -22,3 +22,11 @@ targets:
       workers: ["-D", "numWorkers=<value>"]
     run_args:
       precision: ["--precision", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism/PiPrecision.lf"
+    lf_file: "PiPrecision.lf"
+    binary: "PiPrecision"
+    gen_args:
+      workers: ["-D", "numWorkers=<value>"]
+      precision: ["-D", "precision=<value>"]
