@@ -343,7 +343,7 @@ reactor ConsumerReactor(consCost:int(25)) {
 //    =} 
 //
 //}
-main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+main reactor ProdCons(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
     
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
     
