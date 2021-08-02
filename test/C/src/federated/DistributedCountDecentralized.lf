@@ -18,10 +18,10 @@ reactor Print {
         interval_t elapsed_time = get_elapsed_logical_time();
         printf("At tag (%lld, %u), received %d. "
                "The original intended tag of the message was (%lld, %u).\n",
-                elapsed_time,
+                (long long int)elapsed_time,
                 get_microstep(),
                 in->value,
-                in->intended_tag.time - get_start_time(),
+                (long long int)(in->intended_tag.time - get_start_time()),
                 in->intended_tag.microstep);
         if (in->value != self->c) {
             printf("Expected to receive %d.\n", self->c);

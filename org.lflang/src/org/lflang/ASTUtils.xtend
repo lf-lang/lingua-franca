@@ -53,6 +53,7 @@ import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
+import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -60,6 +61,7 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
+import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
@@ -68,6 +70,9 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
+import org.eclipse.emf.ecore.util.EcoreUtil
+
+import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -106,13 +111,8 @@ class ASTUtils {
                     val generic = generator.supportsGenerics
                             ? generator.getTargetType(InferredType.fromAST(type))
                             : ""
-                    // If the left or right has a multiport or bank, then create a bank
-                    // of delays with an inferred width.
-                    // FIXME: If the connection already uses an inferred width on
-                    // the left or right, then this will fail because you cannot
-                    // have an inferred width on both sides.
-                    val isWide = connection.isWide
-                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic, isWide)
+                    val delayInstance = getDelayInstance(delayClass, connection, generic,
+                        !generator.generateAfterDelaysWithVariableWidth)
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
@@ -233,13 +233,17 @@ class ASTUtils {
      * performed in this method in order to avoid causing concurrent
      * modification exceptions. 
      * @param delayClass The class to create an instantiation for
-     * @param value A time interval corresponding to the desired delay
+     * @param connection The connection to create a delay instantiation foe
      * @param generic A string that denotes the appropriate type parameter, 
      *  which should be null or empty if the target does not support generics.
-     * @param isWide True to create a variable-width width specification.
+     * @param defineWidthFromConnection If this is true and if the connection 
+     *  is a wide connection, then instantiate a bank of delays where the width
+     *  is given by ports involved in the connection. Otherwise, the width will
+     *  be  unspecified indicating a variable length.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Delay delay, String generic, boolean isWide) {
+            Connection connection, String generic, Boolean defineWidthFromConnection) {
+        val delay = connection.delay
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
@@ -247,10 +251,23 @@ class ASTUtils {
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
         }
-        if (isWide) {
+        if (connection.isWide) {
             val widthSpec = factory.createWidthSpec
+            if (defineWidthFromConnection) {
+                // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.
+                // This allows the code generator to later infer the width from the involved ports.
+                // We only consider the right ports here, as the right hand side should always have a well-defined
+                // width. On the left hand side, we might use the broadcast operator from which we cannot infer
+                // the width.
+                for (port : connection.rightPorts) {
+                    val term = factory.createWidthTerm()
+                    term.port = EcoreUtil.copy(port) as VarRef
+                    widthSpec.terms.add(term)
+                }   
+            } else {
+                widthSpec.ofVariableLength = true    
+            }
             delayInstance.widthSpec = widthSpec
-            widthSpec.ofVariableLength = true
         }
         val assignment = factory.createAssignment
         assignment.lhs = delayClass.parameters.get(0)
@@ -308,10 +325,13 @@ class ASTUtils {
         
         delayParameter.name = "delay"
         delayParameter.type = factory.createType
-        delayParameter.type.id = generator.targetTimeType
+        delayParameter.type.id = "time"
+        delayParameter.type.time = true
+        val defaultTime = factory.createTime
+        defaultTime.unit = TimeUnit.NONE
+        defaultTime.interval = 0
         val defaultValue = factory.createValue
-        defaultValue.literal = generator.timeInTargetLanguage(
-            new TimeValue(0, TimeUnit.NONE))
+        defaultValue.time = defaultTime
         delayParameter.init.add(defaultValue)
         
         // Name the newly created action; set its delay and type.
@@ -412,56 +432,7 @@ class ASTUtils {
         }
         return name + suffix
     }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-    private static def getCopy(TypeParm original) {
-        val clone = factory.createTypeParm
-        if (!original.literal.isNullOrEmpty) {
-            clone.literal = original.literal
-        } else if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-        }
-        return clone
-    }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-     static def getCopy(Type original) {
-        if (original !== null) {
-            val clone = factory.createType
-            
-            clone.id = original.id
-            // Set the type based on the argument type.
-            if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-            } 
-            if (original.stars !== null) {
-                original.stars?.forEach[clone.stars.add(it)]
-            }
-                
-            if (original.arraySpec !== null) {
-                clone.arraySpec = factory.createArraySpec
-                clone.arraySpec.ofVariableLength = original.arraySpec.
-                    ofVariableLength
-                clone.arraySpec.length = original.arraySpec.length
-            }
-            clone.time = original.time
-            
-            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
-            
-            return clone
-        }
-    }
-        
+   
     ////////////////////////////////
     //// Utility functions for supporting inheritance
     
@@ -822,7 +793,7 @@ class ASTUtils {
      * @param spec The array spec to be converted
      * @return A textual representation
      */
-    def static toText(ArraySpec spec) {
+    def static String toText(ArraySpec spec) {
         if (spec !== null) {
             return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
         }
@@ -834,7 +805,7 @@ class ASTUtils {
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    def static toText(Type type) {
+    def static String toText(Type type) {
         if (type !== null) {
             val base = type.baseType
             val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
@@ -885,7 +856,11 @@ class ASTUtils {
                     for (s : type.stars ?: emptyList) {
                         stars += s
                     }
-                    return type.id + stars
+                    if (!type.typeParms.isNullOrEmpty) {
+                        return '''«type.id»<«FOR p : type.typeParms SEPARATOR ", "»«p.toText»«ENDFOR»>''' 
+                    } else {
+                        return type.id + stars                        
+                    }
                 }
             }
         }
@@ -1262,6 +1237,7 @@ class ASTUtils {
         val values = initialValue(parameter, instantiations);
         var result = 0;
         for (value: values) {
+            if (value.literal === null) return null;
             try {
                 result += Integer.decode(value.literal);
             } catch (NumberFormatException ex) {
@@ -1496,7 +1472,7 @@ class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens.size == 2) {
+        if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
             return true
         }
         return false
@@ -1769,5 +1745,21 @@ class ASTUtils {
         }
         return inst
     }
-    
+
+    /**
+     * Returns the target declaration in the given model.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Model model) {
+        return model.eAllContents.filter(TargetDecl).head
+    }
+
+    /**
+     * Returns the target declaration in the given resource.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Resource model) {
+        return model.allContents.filter(TargetDecl).head
+    }
+
 }

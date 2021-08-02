@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="Lingua Franca RCA" uid="org.lflang.rca" id="org.lflang.product.lfrca" application="org.eclipse.ui.ide.workbench" version="0.1.0.qualifier" useFeatures="true" includeLaunchers="true">
+<product name="Lingua Franca" uid="org.lflang.rca" id="org.lflang.product.lfrca" application="org.eclipse.ui.ide.workbench" version="0.1.0.qualifier" useFeatures="true" includeLaunchers="true">
+
+   <aboutInfo>
+      <image path="/org.lflang.product/icons/lf-logo.png"/>
+      <text>
+         Lingua Franca
+A coordination language for defining and composing reactors.
+
+For more information, visit us on GitHub: https://github.com/icyphy/lingua-franca
+      </text>
+   </aboutInfo>
 
    <configIni use="default">
    </configIni>
@@ -20,13 +30,29 @@
       </vmArgsMac>
    </launcherArgs>
 
-   <windowImages/>
+   <windowImages i16="/org.lflang.product/icons/lf-logo-16px.png" i32="/org.lflang.product/icons/lf-logo-32px.png" i48="/org.lflang.product/icons/lf-logo-48px.png" i64="/org.lflang.product/icons/lf-logo-64px.png" i128="/org.lflang.product/icons/lf-logo-128px.png" i256="/org.lflang.product/icons/lf-logo-256px.png"/>
 
+   <splash
+      location="org.lflang.product"
+      startupProgressRect="0,315,500,15"
+      startupMessageRect="10,300,480,15"
+      startupForegroundColor="FFFFFF" />
    <launcher>
+      <linux icon="/org.lflang.product/icons/lf-logo.xpm"/>
+      <macosx icon="/org.lflang.product/icons/lf-logo.icns"/>
       <win useIco="false">
-         <bmp/>
+         <bmp
+            winSmallHigh="/org.lflang.product/icons/lf-logo-16px.bmp"
+            winSmallLow="/org.lflang.product/icons/lf-logo-16px.bmp"
+            winMediumHigh="/org.lflang.product/icons/lf-logo-32px.bmp"
+            winMediumLow="/org.lflang.product/icons/lf-logo-32px.bmp"
+            winLargeHigh="/org.lflang.product/icons/lf-logo-48px.bmp"
+            winLargeLow="/org.lflang.product/icons/lf-logo-48px.bmp"
+            winExtraLargeHigh="/org.lflang.product/icons/lf-logo-256px.bmp"/>
       </win>
    </launcher>
+
+   <intro introId="org.lflang.product.intro"/>
 
    <vm>
    </vm>

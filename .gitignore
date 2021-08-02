@@ -104,7 +104,7 @@ crashlytics-build.properties
 fabric.properties
 
 ### Maven ###
-target/
+/org.lflang*/target/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
