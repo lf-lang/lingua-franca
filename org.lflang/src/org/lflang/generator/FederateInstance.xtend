@@ -45,6 +45,7 @@ import org.lflang.lf.VarRef
 import static extension org.lflang.ASTUtils.*
 import org.lflang.lf.Port
 import org.lflang.lf.Variable
+import org.lflang.ErrorReporter
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -64,18 +65,24 @@ class FederateInstance {
      *  or null if no federation has been defined.
      * @param id The federate ID.
      * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
-     * @param generator The generator (for reporting errors).
+     * @param generator The generator
+     * @param errorReporter The error reporter
+     * 
+     * FIXME: Do we really need to pass the complete generator here? It is only used 
+     *  to determine the number of federates.
      */
     protected new(
         Instantiation instantiation, 
         int id, 
         int bankIndex, 
-        GeneratorBase generator
+        GeneratorBase generator,
+        ErrorReporter errorReporter
     ) {
         this.instantiation = instantiation;
         this.id = id;
         this.generator = generator;
         this.bankIndex = bankIndex;
+        this.errorReporter = errorReporter;
                 
         if (instantiation !== null) {
             this.name = instantiation.name;
@@ -243,6 +250,11 @@ class FederateInstance {
         
         if (!reactor.reactions.contains(reaction)) return false;
         
+        val reactionBankIndex = generator.getReactionBankIndex(reaction)
+        if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
+            return false;
+        }
+        
         // If this has been called before, then the result of the
         // following check is cached.
         if (excludeReactions !== null) {
@@ -269,7 +281,7 @@ class FederateInstance {
                             referencesFederate = true;
                         } else {
                             if (referencesFederate) {
-                                generator.reportError(react, 
+                                errorReporter.reportError(react, 
                                 "Reaction mixes triggers and effects from" +
                                 " different federates. This is not permitted")
                             }
@@ -285,7 +297,7 @@ class FederateInstance {
                             referencesFederate = true;
                         } else {
                             if (referencesFederate) {
-                                generator.reportError(react, 
+                                errorReporter.reportError(react, 
                                 "Reaction mixes triggers and effects from" +
                                 " different federates. This is not permitted")
                             }
@@ -300,7 +312,7 @@ class FederateInstance {
                         referencesFederate = true;
                     } else {
                         if (referencesFederate) {
-                            generator.reportError(react,
+                            errorReporter.reportError(react,
                                 "Reaction mixes triggers and effects from" + 
                                 " different federates. This is not permitted")
                         }
@@ -320,9 +332,9 @@ class FederateInstance {
      * has been defined or that there is only one federate.
      * @return True if no federation has been defined or there is only one federate.
      */
-     def isSingleton() {
-         return ((instantiation === null) || (generator.federates.size <= 1))
-     }
+    def isSingleton() {
+        return ((instantiation === null) || (generator.federates.size <= 1))
+    }
      
     /**
      * Find output ports that are connected to a physical action trigger upstream
@@ -331,19 +343,23 @@ class FederateInstance {
      * @param instance The reactor instance containing the output ports
      * @return A LinkedHashMap<Output, TimeValue>
      */
-     def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
-         var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
-         // Find reactions that write to the output port of the reactor
-         for (output : instance.outputs) {
-             for (reaction : output.dependsOnReactions) {
-                 var minDelay = findNearestPhysicalActionTrigger(reaction)
-                 if (minDelay != TimeValue.MAX_VALUE) {
-                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)                 
-                 }
-             }
-         }
-         return physicalActionToOutputMinDelay
-     }
+    def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
+        var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
+        // Find reactions that write to the output port of the reactor
+        for (output : instance.outputs) {
+            for (reaction : output.dependsOnReactions) {
+                var minDelay = findNearestPhysicalActionTrigger(reaction)
+                if (minDelay != TimeValue.MAX_VALUE) {
+                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)
+                }
+            }
+        }
+        return physicalActionToOutputMinDelay
+    }
+    
+    override toString() {
+        "Federate " + this.id + ": " + instantiation.name
+    }
 
     /////////////////////////////////////////////
     //// Private Fields
@@ -353,6 +369,12 @@ class FederateInstance {
     
     /** The generator using this. */
     var generator = null as GeneratorBase
+    
+    /** Returns the generator that is using this federate instance */
+    def getGenerator() { return generator; }
+    
+    /** An error reporter */
+    val ErrorReporter errorReporter
     
     /**
      * Find the nearest (shortest) path to a physical action trigger from this

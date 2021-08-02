@@ -38,6 +38,7 @@ import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
@@ -56,7 +57,6 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import java.io.ByteArrayOutputStream
 
 /** Generator for TypeScript target.
  *
@@ -106,8 +106,8 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     var mainParameters = new HashSet<Parameter>()
 
-    new () {
-        super()
+    new(TypeScriptFileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // Set defaults for federate compilation.
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2")
@@ -126,7 +126,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         super.doGenerate(resource, fsa, context)
         
-        if (generatorErrorsOccurred) return;
+        if (errorsOccurred) return;
         
         // Generate imports for protocol buffer definitions
         // Note that the preamble is generated as part of
@@ -210,32 +210,39 @@ class TypeScriptGenerator extends GeneratorBase {
         this.initializeProjectConfiguration()
 
         
-        val pnpmInstall = createCommand(
+        val pnpmInstall = commandFactory.createCommand(
             "pnpm",
             #["install"],
             fileConfig.getSrcGenPkgPath,
-            "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
-                "it is highly recommended to install pnpm globally (npm install -g pnpm).",
-            false
+            false // only produce a warning if command is not found
         )
 
-        val installErrors = new ByteArrayOutputStream()
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall !== null) {
-            val ret = pnpmInstall.executeCommand(installErrors)
+            val ret = pnpmInstall.run()
             if (ret !== 0) {
-                reportError(resource.findTarget, "ERROR: pnpm install command failed: " + installErrors.toString)
+                errorReporter.reportError(resource.findTarget,
+                    "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
             }
         } else {
-            val npmInstall = createCommand("npm", #["install"], fileConfig.getSrcGenPkgPath,
-                "The TypeScript target requires npm >= 6.14.4. " +
+            errorReporter.reportWarning(
+                "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
+                "it is highly recommended to install pnpm globally (npm install -g pnpm).")
+            val npmInstall = commandFactory.createCommand("npm", #["install"], fileConfig.getSrcGenPkgPath)
+            
+            if (npmInstall === null) {
+                errorReporter.reportError(
+                    "The TypeScript target requires npm >= 6.14.4. " +
                     "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.", true)
-            if (npmInstall !== null && npmInstall.executeCommand(installErrors) !== 0) {
-                reportError(resource.findTarget, "ERROR: npm install command failed: " + installErrors.toString)
-                reportError(resource.findTarget,
-                    "ERROR: npm install command failed." +
-                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+                return
+            }
+            
+            if (npmInstall.run() !== 0) {
+                errorReporter.reportError(resource.findTarget,
+                    "ERROR: npm install command failed: " + npmInstall.errors.toString())
+                errorReporter.reportError(resource.findTarget, "ERROR: npm install command failed." +
+                    "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
         }
@@ -258,19 +265,14 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--js_out=import_style=commonjs,binary:"+tsOutPath,
                 "--ts_out=" + tsOutPath)
             protocArgs.addAll(targetConfig.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
-            val protoc = createCommand(
-                "protoc",
-                protocArgs,
-                fileConfig.srcPath,
-                "Processing .proto files requires libprotoc >= 3.6.1",
-                true
-                )
+            val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
                 
             if (protoc === null) {
+                errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
                 return
             }
 
-            val returnCode = protoc.executeCommand()
+            val returnCode = protoc.run()
             if (returnCode == 0) {
                 // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
 //                val nameSansProto = fileConfig.name.substring(0, fileConfig.name.length - 6)
@@ -281,71 +283,45 @@ class TypeScriptGenerator extends GeneratorBase {
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
             } else {
-                reportError("protoc returns error code " + returnCode)    
+                errorReporter.reportError("protoc returns error code " + returnCode)    
             }
             // FIXME: report errors from this command.
         } else {
             println("No .proto files have been imported. Skipping protocol buffer compilation.")
         }
         
+        
+        val errorMessage = "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property." 
 
         // Invoke the compiler on the generated code.
         println("Type Checking")
-        val tsc = createCommand(
-            "npm",
-            #["run", "check-types"],
-            fileConfig.getSrcGenPkgPath,
-            findCommandEnv(
-                "npm",
-                "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
-                "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-                true
-            )            
-        )
-        if (tsc !== null) {
-            if (tsc.executeCommand() == 0) {
-                // Babel will compile TypeScript to JS even if there are type errors
-                // so only run compilation if tsc found no problems.
-                //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
-                // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
-                println("Compiling")
-                val babel = createCommand(
-                    "npm",
-                    #["run", "build"],
-                    fileConfig.getSrcGenPkgPath,
-                    "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-                    true
-                )
-                //createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
-                
-                if (babel !== null) {
-                    if (babel.executeCommand() == 0) {
-                        println("SUCCESS (compiling generated TypeScript code)")                
-                    } else {
-                        reportError("Compiler failed.")
-                    }   
-                }
-            } else {
-                reportError("Type checking failed.")
-            }
+        val tsc = commandFactory.createCommand("npm", #["run", "check-types"], fileConfig.getSrcGenPkgPath)
+        if (tsc === null) {
+            errorReporter.reportError(errorMessage);
+            return
         }
-
-        // If this is a federated execution, generate C code for the RTI.
-        if (isFederated) {
-            createFederateRTI()
-
-            // Copy the required library files into the target file system.
-            // This will overwrite previous versions.
-            var files = newArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
-
-            for (file : files) {
-                copyFileFromClassPath(
-                    File.separator + "lib" + File.separator + "core" + File.separator + file,
-                    fileConfig.getSrcGenPath.toString + File.separator + file
-                )
+         
+        if (tsc.run() == 0) {
+            // Babel will compile TypeScript to JS even if there are type errors
+            // so only run compilation if tsc found no problems.
+            //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
+            println("Compiling")
+            val babel = commandFactory.createCommand("npm", #["run", "build"], fileConfig.getSrcGenPkgPath)
+            
+            if (babel === null) {
+                errorReporter.reportError(errorMessage);
+                return
             }
-            compileRTI()
+                
+            if (babel.run() == 0) {
+                println("SUCCESS (compiling generated TypeScript code)")                
+            } else {
+                errorReporter.reportError("Compiler failed.")
+            }   
+        } else {
+            errorReporter.reportError("Type checking failed.")
         }
     }
     
@@ -560,7 +536,7 @@ class TypeScriptGenerator extends GeneratorBase {
             var leftPortName = ""
             // FIXME: Add support for multiports.
             if (connection.leftPorts.length > 1) {
-                reportError(connection, "Multiports are not yet supported in the TypeScript target.")
+                errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
                 if (connection.leftPorts.get(0).container !== null) {
                     leftPortName += connection.leftPorts.get(0).container.name + "."
@@ -569,7 +545,7 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             var rightPortName = ""
             if (connection.leftPorts.length > 1) {
-                reportError(connection, "Multiports are not yet supported in the TypeScript target.")
+                errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
             } else {
                 if (connection.rightPorts.get(0).container !== null) {
                     rightPortName += connection.rightPorts.get(0).container.name + "."
@@ -712,7 +688,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 var functArg = ""                
                 var reactSignatureElement = "" + effect.generateArg
                 if (effect.variable instanceof Timer) {
-                    reportError("A timer cannot be an effect of a reaction")
+                    errorReporter.reportError("A timer cannot be an effect of a reaction")
                 } else if (effect.variable instanceof Action){
                     reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                     schedActionSet.add(effect.variable as Action)
@@ -1372,7 +1348,7 @@ class TypeScriptGenerator extends GeneratorBase {
     def private String getTargetInitializerHelper(Parameter param,
         List<String> list) {
         if (list.size == 0) {
-            param.reportError("Parameters must have a default value!")
+            errorReporter.reportError(param, "Parameters must have a default value!")
         } else if (list.size == 1) {
             return list.get(0)
         } else {
@@ -1406,10 +1382,6 @@ class TypeScriptGenerator extends GeneratorBase {
         } else {
             return "undefined"
         }
-    }
-
-    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new TypeScriptFileConfig(resource, fsa, context)
     }
 
     override String getTargetTimeType() {
