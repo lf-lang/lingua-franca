@@ -44,11 +44,11 @@ class CycleVisualization extends AbstractSynthesisExtensions {
             	}
             	
             	for (reactorCrumb : allAffectedElements.keySet) {
+            	    // reactorCrumb is either a ReactionInstance or a PortInstance.
+            	    // In either case, the reactor node is the parent.
             		val affectedElements = allAffectedElements.get(reactorCrumb)
-            		val reactorNode = allReactorNodes.get(reactorCrumb)
-            		// FIXME: reactorNode may be null because allAffectedElements
-            		// includes ports as well as ReactorInstances, so we check here.
-            		// However, now the cycle does not get highlighted.
+            		val reactorNode = allReactorNodes.get(reactorCrumb.parent)
+            		// This should not be null, but we check anyway.
             		if (reactorNode !== null) {
                         reactorNode.setProperty(DEPENDENCY_CYCLE, true)
                         highlighter.accept(reactorNode)
