@@ -157,7 +157,7 @@ reactor Worker(instance:int(0)) {
 }
 
 
-main reactor ProdConsBenchmark(numWorkers:int(100), numIterations:int(12), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0)) {
+main reactor Trapezoidal(numWorkers:int(100), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0)) {
     
 
     master = new Master(numWorkers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
@@ -165,7 +165,6 @@ main reactor ProdConsBenchmark(numWorkers:int(100), numIterations:int(12), numPi
     reaction(startup) {=
         printBenchmarkInfo("TrapezoidalBenchmark");
         printf("numWorkers: %d.\n", self->numWorkers);
-        printf("numIterations: %d.\n", self->numIterations);
         printf("numPieces: %d.\n", self->numPieces);
         printf("leftEndPoint: %f.\n", self->leftEndPoint);
         printf("rightEndPoint: %f.\n", self->rightEndPoint);
