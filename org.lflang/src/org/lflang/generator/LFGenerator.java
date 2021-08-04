@@ -33,25 +33,6 @@ public class LFGenerator extends AbstractGenerator {
     // Indicator of whether generator errors occurred.
     protected boolean generatorErrorsOccurred = false;
 
-
-    private String getPackageName(Target target) {
-        switch (target) {
-        case CPP: return "cpp";
-        case TS: return "ts";
-        default:
-            throw new IllegalArgumentException("Unexpected target '" + target + "'");
-        }
-    }
-
-    private String getClassNamePrefix(Target target) {
-        switch (target) {
-        case CPP: return "Cpp";
-        case TS: return "TS";
-        default:
-            throw new IllegalArgumentException("Unexpected target '" + target + "'");
-        }
-    }
-
     /**
      * Create a target-specific FileConfig object in Kotlin
      *
@@ -79,16 +60,11 @@ public class LFGenerator extends AbstractGenerator {
         switch (target) {
         case CPP:
         case TS: {
-            // These targets use kotlin
-            String packageName = getPackageName(target);
-            String classNamePrefix = getClassNamePrefix(target);
-            String className = "org.lflang.generator." + packageName + "." + classNamePrefix + "FileConfig";
+            String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
-
                 return (FileConfig) Class.forName(className)
                                          .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
                                          .newInstance(resource, fsa, context);
-
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
@@ -108,9 +84,12 @@ public class LFGenerator extends AbstractGenerator {
         case C: return new CGenerator(fileConfig, errorReporter);
         case CCPP: return new CCppGenerator(fileConfig, errorReporter);
         case Python: return new PythonGenerator(fileConfig, errorReporter);
-        default:
-            return createKotlinGenerator(target, fileConfig, errorReporter);
+        case CPP:
+        case TS:
+            return createKotlinBaseGenerator(target, fileConfig, errorReporter);
         }
+        // If no case matched, then throw a runtime exception.
+        throw new RuntimeException("Unexpected target!");
     }
 
     /**
@@ -125,13 +104,13 @@ public class LFGenerator extends AbstractGenerator {
      *
      * @return A Kotlin Generator object if the class can be found
      */
-    private GeneratorBase createKotlinGenerator(Target target, FileConfig fileConfig,
+    private GeneratorBase createKotlinBaseGenerator(Target target, FileConfig fileConfig,
                                             ErrorReporter errorReporter) {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead we look the
         // class up at runtime and instantiate it if found.
-        String classPrefix = "org.lflang.generator." + getPackageName(target) + "." + getClassNamePrefix(target);
+        String classPrefix = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
         try {
             Class<?> generatorClass = Class.forName(classPrefix + "Generator");
             Class<?> fileConfigClass = Class.forName(classPrefix + "FileConfig");
@@ -151,8 +130,9 @@ public class LFGenerator extends AbstractGenerator {
                     + "Eclipse. The " + target + " code generator is written in Kotlin"
                     + "and, unfortunately, the Eclipse Kotlin plugin is "
                     + "broken, preventing us from loading the generator"
-                    + "properly. Please consider building the RCA via Maven.");
-            // FIXME: Add a link to the wiki with more information.
+                    + "properly. Please consider building the RCA via Maven.\n"
+                    + "For instructions building RCA via Maven, see: "
+                    + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
             return null;
         }
     }
