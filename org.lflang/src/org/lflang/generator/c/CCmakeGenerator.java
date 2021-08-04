@@ -71,12 +71,12 @@ class CCmakeGenerator {
             List<String> sources, 
             String executableName,
             String extras,
+            String includeFile,
             ErrorReporter errorReporter
         ) {
         StringBuilder cMakeCode = new StringBuilder();
         
         // Resolve path to the cmake include file if one was provided
-        String includeFile = targetConfig.cmakeInclude;
         if (!includeFile.isBlank()) {
             try {
                 includeFile = FileConfig.toUnixString(fileConfig.srcPath.resolve(includeFile));
