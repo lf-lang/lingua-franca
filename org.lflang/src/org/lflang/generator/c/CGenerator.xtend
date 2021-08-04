@@ -500,29 +500,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Generate code for each reactor.
-            val names = newLinkedHashSet
-            val generatedReactors = newLinkedHashSet
-            for (r : this.main.children) {
-                if (federate.contains(r) && !generatedReactors.contains(r.reactorDefinition)) {
-                    generatedReactors.add(r.reactorDefinition)
-                    // Get the declarations for reactors that are instantiated somewhere.
-                    // A declaration is either a reactor definition or an import statement.
-                    val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
-                    for (d : declarations) {
-                        if (!names.add(d.name)) {
-                            // Report duplicate declaration.
-                            errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
-                        }
-                        generateReactorFederated(d, federate)
-                    }
-                }
-//                // If the reactor has no instantiations and there is no main reactor, then
-//                // generate code for it anyway (at a minimum, this means that the compiler is invoked
-//                // so that reaction bodies are checked).
-//                if (mainDef === null && declarations.isEmpty()) {
-//                    generateReactorFederated(r.reactorDefinition, federate)
-//                }
-            }
+            generateReactorsForFederate(this.main, federate);
             
             if (this.mainDef !== null) {
                 generateReactorFederated(this.mainDef.reactorClass, federate)
@@ -857,6 +835,33 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    def void generateReactorsForFederate(ReactorInstance reactor, FederateInstance federate) {
+            val names = newLinkedHashSet
+            val generatedReactors = newLinkedHashSet
+            for (r : reactor.children) {
+                if (federate.contains(r) && !generatedReactors.contains(r.reactorDefinition)) {
+                    generatedReactors.add(r.reactorDefinition)
+                    // Get the declarations for reactors that are instantiated somewhere.
+                    // A declaration is either a reactor definition or an import statement.
+                    val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
+                    for (d : declarations) {
+                        if (!names.add(d.name)) {
+                            // Report duplicate declaration.
+                            errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
+                        }
+                        generateReactorFederated(d, federate)
+                    }
+                    // If the reactor has no instantiations and there is no main reactor, then
+                    // generate code for it anyway (at a minimum, this means that the compiler is invoked
+                    // so that reaction bodies are checked).
+                    if (mainDef === null && declarations.isEmpty()) {
+                        generateReactorFederated(r.reactorDefinition, federate)
+                    }
+                }
+                generateReactorsForFederate(r, federate);
+            }
     }
     
     def addPlatformFiles(ArrayList<String> coreFiles) {
