@@ -25,20 +25,29 @@
 
 package org.lflang.generator.ts
 
+import org.eclipse.emf.common.CommonPlugin
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.nodemodel.INode
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.ts.sourcemap.SourceMapBuilder
+import org.lflang.generator.ts.sourcemap.SourceMapSegment
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
+import java.io.File
 import java.lang.StringBuilder
 import java.nio.file.Files
 import java.util.LinkedList
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 /**
  * Generator for TypeScript target.
@@ -73,7 +82,21 @@ class TSGenerator(
             "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")
+
+        /**
+         * Pattern that matches source map segments or segment lists that are
+         * created as an intermediate step in the code generation process. This
+         * must be reasonably specific so that it does not collide with comments
+         * written by the user, and it must agree with the `prSourcePosition`
+         * implementation.
+         */
+        private val SOURCE_MAP_FRAGMENT: Pattern = Pattern.compile(
+            "\\s*// <map (?<segments>[${Pattern.quote(SourceMapSegment.CHARSET)}]+)>$"
+        )
     }
+
+    // The source map builders corresponding to each generated file.
+    private val sourceMapBuilders: MutableMap<File, SourceMapBuilder> = HashMap()
 
     init {
         // Set defaults for federate compilation.
@@ -100,6 +123,52 @@ class TSGenerator(
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
         getInitializerList(param, i)
     fun generateVarRefW(reference: VarRef): String =generateVarRef(reference)
+
+    /**
+     * Print a recognizable string that encodes the source position
+     * corresponding to a specified position in an adjacent line of generated
+     * code.
+     * @param f The generated file
+     * @param output Where to put the output
+     * @param eObject The node
+     */
+    fun prSourcePosition(f: File, output: StringBuilder, eObject: EObject) {
+        // This implementation closely follows the implementation in
+        // org.lflang.generator.c.CGenerator.xtend at e1111a0.
+        val node: INode? = NodeModelUtils.getNode(eObject)
+        node?.let {
+            var offset = 0
+            if (eObject is Code) {
+                offset++
+            }
+            val resolvedURI = CommonPlugin.resolve(eObject.eResource().uri)
+            val segments = SourceMapSegment(
+                targetLine = 0, // TODO(peter) This value will not be used.
+                targetColumn = 0, // TODO(peter) More granularity would be nice.
+                sourceFile = getSourceMapBuilder(f).sourceID(
+                    File(resolvedURI.toFileString())
+                ),
+                sourceLine = it.startLine + offset,
+                sourceColumn = 0, // Same as above. More granularity desired.
+                precedingSegment = null // Context (where this code is relative
+                // to other generated code) is unavailable
+            )
+            prw(output, "// <map ${segments.getMappings()}>")
+        }
+    }
+
+    /**
+     * Returns the SourceMapBuilder corresponding to f.
+     * @param f A file that needs a source map
+     * @return The SourceMapBuilder corresponding to f
+     */
+    private fun getSourceMapBuilder(f: File): SourceMapBuilder {
+        return sourceMapBuilders[f] ?: run {
+            val new = SourceMapBuilder(f)
+            sourceMapBuilders[f] = new
+            new
+        }
+    }
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -160,6 +229,7 @@ class TSGenerator(
             }
 
             val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
+            val relativeTsFilePath = fileConfig.srcGenBasePath.relativize(tsFilePath).toString()
 
             val tsCode = StringBuilder()
 
@@ -171,14 +241,15 @@ class TSGenerator(
             val (mainParameters, parameterCode) = parameterGenerator.generatePrameters()
             tsCode.append(parameterCode)
 
-            val reactorGenerator = TSReactorGenerator(this, errorReporter)
+            val reactorGenerator = TSReactorGenerator(this, errorReporter, File(tsFilePath.toString()))
             for (reactor in reactors) {
                 reactorGenerator.generateReactor(reactor, federate)
             }
             reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters)
             tsCode.append(reactorGenerator.getCode())
-            fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
-                tsCode.toString())
+            val (cleanedTsCode, sourceMap) = withSourceMap(tsCode.toString(), File(relativeTsFilePath))
+            fsa.generateFile(relativeTsFilePath, cleanedTsCode)
+            fsa.generateFile("$relativeTsFilePath.map", sourceMap)
         }
 
         // Run necessary commands.
@@ -330,6 +401,49 @@ class TSGenerator(
         } else {
             return "Present"
         }
+    }
+
+    /**
+     * Extracts source mapping information scattered throughout generated code
+     * and returns a new version of the file with that information moved to the
+     * bottom, in the form of a standard inline source map.
+     * @param generatedCode Generated TypeScript code
+     * @param file The File that will contain the generated code
+     * @return Semantically identical TypeScript code and the linked source map.
+     */
+    private fun withSourceMap(
+        generatedCode: String,
+        file: File
+    ): Pair<String, String> {
+        val out = StringBuilder()
+        var targetLine = 0
+        var matcher: Matcher
+        var headSegment: SourceMapSegment? = null
+        for (line in generatedCode.lineSequence()) {
+            matcher = SOURCE_MAP_FRAGMENT.matcher(line)
+            if (matcher.matches()) {
+                var chainHead: SourceMapSegment? = null
+                for (segment in matcher.group("segments").split(",")) {
+                    chainHead = SourceMapSegment.fromString(chainHead, segment, false)
+                }
+                if (chainHead !== null) {
+                    chainHead = chainHead.shifted(targetLine, 0)
+                    chainHead.setTail(headSegment)
+                    headSegment = chainHead
+                }
+            } else {
+                out.appendLine(line)
+                targetLine++
+            }
+        }
+        if (headSegment === null) {
+            return Pair(out.toString(), "")
+        }
+        out.appendLine("//# sourceMappingURL=${file.name}.map")
+        return Pair(
+            out.toString(),
+            sourceMapBuilders[file]?.getSourceMap(headSegment) ?: ""
+        )
     }
 
     /** Given a representation of time that may possibly include units,

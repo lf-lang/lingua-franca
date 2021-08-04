@@ -9,8 +9,9 @@ import kotlin.math.abs
  * Proposal</a>
  */
 object VLQ {
-    private val BASE64_MAP: CharArray = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi" +
-            "jklmnopqrstuvwxyz0123456789+/").toCharArray()
+    const val ORDERED_CHARSET: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi" +
+            "jklmnopqrstuvwxyz0123456789+/"
+    private val BASE64_MAP: CharArray = ORDERED_CHARSET.toCharArray()
 
     /**
      * Returns the string representation of an integer using base-64 VLQ
@@ -56,18 +57,17 @@ object VLQ {
         //  MutableList)
         val input: List<Int> = s.toCharArray().map { toIntBase64(it) }
         val out: MutableList<Int> = ArrayList()
-        out.add(0)
         var pos = 0
-        while (pos < s.length) {
-            val negative: Boolean = input[pos] % 2 == 0
+        while (pos < input.size) {
+            val negative: Boolean = input[pos] % 2 > 0
             var n: Int = (input[pos] % 32) / 2
-            while (input[pos] > 32) {
-                pos++
+            // pos will go to an out of range index and cause a runtime
+            // exception if the last number is at least 32, but this is fine: In
+            // a valid VLQ segment, that should never happen.
+            while (input[pos++] >= 32) {
                 n += input[pos] % 32
             }
-            if (negative) {
-                n = -n
-            }
+            n = if (negative) -n else n
             out.add(n)
         }
         return out.toIntArray()
@@ -80,11 +80,11 @@ object VLQ {
      * @return the integer represented by c
      */
     private fun toIntBase64(c: Char): Int {
-        for (i in BASE64_MAP.indices) {
-            if (BASE64_MAP[i] == c) {
-                return i
+        for ((index, character) in BASE64_MAP.withIndex()) {
+            if (character == c) {
+                return index
             }
         }
-        throw IllegalArgumentException("")
+        throw IllegalArgumentException("Cannot convert $c to a base 64 number.")
     }
 }

@@ -1,5 +1,6 @@
 package org.lflang.generator.ts
 
+import org.eclipse.emf.ecore.EObject
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.ASTUtils.toText
@@ -7,6 +8,7 @@ import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.lf.Timer
+import java.io.File
 import java.lang.StringBuilder
 import java.util.*
 import kotlin.collections.HashSet
@@ -23,7 +25,8 @@ import kotlin.collections.LinkedHashMap
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter
+    private val errorReporter: ErrorReporter,
+    private val file: File
 ) {
     private var code = StringBuilder()
 
@@ -38,6 +41,9 @@ class TSReactorGenerator(
     private fun indent() = indent(code)
     private fun unindent() = unindent(code)
 
+    private fun prPos(builder: StringBuilder, eObject: EObject) =
+        tsGenerator.prSourcePosition(file, builder, eObject)
+    private fun prPos(eObject: EObject) = prPos(code, eObject)
     private fun pr(builder: StringBuilder, text: Any) = tsGenerator.prw(builder, text)
     private fun pr(text: Any) = tsGenerator.prw(code, text)
 
@@ -128,10 +134,13 @@ class TSReactorGenerator(
 
         for (p in reactor.preambles?: emptyList()) {
             pr("// *********** From the preamble, verbatim:")
+            prPos(p.code)
             pr(p.code.toText())
             pr("\n// *********** End of preamble.")
         }
 
+        // TODO(peter): Insert mappings from the reactor's signature ideally
+        //  with token-level precision
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
@@ -251,6 +260,7 @@ class TSReactorGenerator(
 
             }
 
+            prPos(timer)
             pr(timer.getName() + ": __Timer;")
             pr(reactorConstructor, "this." + timer.getName()
                     + " = new __Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
@@ -259,6 +269,7 @@ class TSReactorGenerator(
 
         // Create properties for parameters
         for (param in reactor.parameters) {
+            prPos(param)
             pr(param.name + ": __Parameter<" + getTargetType(param) + ">;")
             pr(reactorConstructor, "this." + param.name +
                     " = new __Parameter(" + param.name + ");" )
@@ -276,6 +287,7 @@ class TSReactorGenerator(
         }
 
         for (stateVar in reactor.stateVars) {
+            prPos(stateVar)
             pr(stateVar.name + ": " + "__State<" + getTargetType(stateVar) + ">;");
         }
 
@@ -285,6 +297,7 @@ class TSReactorGenerator(
             // TypeScript reactor framework. There would be a
             // duplicate action if we included the one generated
             // by LF.
+            prPos(action)
             if (action.name != "shutdown") {
                 pr(action.name + ": __Action<" + getActionType(action) + ">;")
 
@@ -306,6 +319,7 @@ class TSReactorGenerator(
 
         // Next handle inputs.
         for (input in reactor.inputs) {
+            prPos(input)
             pr(input.name + ": " + "__InPort<" + getPortType(input) + ">;")
             pr(reactorConstructor, "this." + input.name + " = new __InPort<"
                     + getPortType(input) + ">(this);")
@@ -313,6 +327,7 @@ class TSReactorGenerator(
 
         // Next handle outputs.
         for (output in reactor.outputs) {
+            prPos(output)
             pr(output.name + ": " + "__OutPort<" + getPortType(output) + ">;")
             pr(reactorConstructor, "this." + output.name + " = new __OutPort<"
                     + getPortType(output) + ">(this);")
@@ -340,6 +355,7 @@ class TSReactorGenerator(
                 rightPortName += connection.rightPorts.get(0).variable.name
             }
             if (leftPortName != "" && rightPortName != "") {
+                prPos(connection)
                 pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
             }
         }
@@ -354,6 +370,7 @@ class TSReactorGenerator(
                 var registration = """
                 this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
                 """
+                prPos(reactorConstructor, nAction)
                 pr(reactorConstructor, registration)
                 fedPortID++
             }
@@ -458,6 +475,7 @@ class TSReactorGenerator(
                     reactSignature.add("""${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>""")
                     reactFunctArgs.add("this." + generateVarRef(trigOrSource))
                     if (trigOrSource.container === null) {
+                        prPos(reactPrologue, trigOrSource.variable)
                         pr(reactPrologue, """let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();""")
                     } else {
                         var args = containerToArgs.get(trigOrSource.container)
@@ -533,6 +551,7 @@ class TSReactorGenerator(
                         + getTargetType(param) + ">")
                 reactFunctArgs.add("this." + param.name)
 
+                prPos(reactPrologue, param)
                 pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
             }
 
@@ -592,6 +611,7 @@ class TSReactorGenerator(
             pr(reactorConstructor, "// =============== END react prologue")
             pr(reactorConstructor, "try {")
             indent(reactorConstructor)
+            prPos(reactorConstructor, reaction.code)
             pr(reactorConstructor, reaction.code.toText())
             unindent(reactorConstructor)
             pr(reactorConstructor, "} finally {")
@@ -608,8 +628,10 @@ class TSReactorGenerator(
                 pr(reactorConstructor, "},")
                 var deadlineArgs = ""
                 if (reaction.deadline.delay.parameter !== null) {
+                    prPos(reactorConstructor, reaction.deadline.delay.parameter)
                     deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
                 } else {
+                    prPos(reactorConstructor, reaction.deadline.delay)
                     deadlineArgs += getTargetValue(reaction.deadline.delay)
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
@@ -620,6 +642,7 @@ class TSReactorGenerator(
                 pr(reactorConstructor, "// =============== END deadline prologue")
                 pr(reactorConstructor, "try {")
                 indent(reactorConstructor)
+                prPos(reactorConstructor, reaction.deadline.code)
                 pr(reactorConstructor, toText(reaction.deadline.code))
                 unindent(reactorConstructor)
                 pr(reactorConstructor, "} finally {")
