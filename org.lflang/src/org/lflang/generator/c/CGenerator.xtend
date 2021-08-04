@@ -501,18 +501,20 @@ class CGenerator extends GeneratorBase {
             
             // Generate code for each reactor.
             val names = newLinkedHashSet
+            val generatedReactors = newLinkedHashSet
             for (r : this.main.children) {
-                if (federate.contains(r)) {
+                if (federate.contains(r) && !generatedReactors.contains(r.reactorDefinition)) {
+                    generatedReactors.add(r.reactorDefinition)
                     // Get the declarations for reactors that are instantiated somewhere.
                     // A declaration is either a reactor definition or an import statement.
                     val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
-                        for (d : declarations) {
-                            if (!names.add(d.name)) {
-                                // Report duplicate declaration.
-                                errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
-                            }
-                            generateReactorFederated(d, federate)
+                    for (d : declarations) {
+                        if (!names.add(d.name)) {
+                            // Report duplicate declaration.
+                            errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
                         }
+                        generateReactorFederated(d, federate)
+                    }
                 }
 //                // If the reactor has no instantiations and there is no main reactor, then
 //                // generate code for it anyway (at a minimum, this means that the compiler is invoked
