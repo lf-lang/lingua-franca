@@ -50,6 +50,23 @@ public class FedROSCPPSerialization implements FedSerialization {
         
         return serializerCode;
     }
+    
+    public StringBuilder generateNetworkSerialzerCode(String portName, String portType, boolean isSharedPtrType) {
+        StringBuilder serializerCode = new StringBuilder();
+        
+        serializerCode.append("rclcpp::SerializedMessage "+serializedVarName+"(0u);\n");
+        // Use the port type verbatim here, which can result
+        // in compile error if it is not a valid ROS type
+        serializerCode.append("using MessageT = "+portType+";\n");
+        serializerCode.append("static rclcpp::Serialization<MessageT> serializer;\n");
+        if (isSharedPtrType) {
+            serializerCode.append("serializer.serialize_message("+portName+"->value.get() , &"+serializedVarName+");\n");
+        } else {
+            serializerCode.append("serializer.serialize_message(&"+portName+"->value , &"+serializedVarName+");\n");
+        }
+            
+        return serializerCode;
+    }
 
     @Override
     public StringBuilder generateNetworkDeserializerCode(String portName, String portType) {

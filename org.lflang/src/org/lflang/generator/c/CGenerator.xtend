@@ -345,6 +345,13 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
+    
+    /**
+     * Indicates whether the C target is in C++ mode or not, which changes
+     * a few aspects of the program, including the compiler that is used to
+     * compile the generated code.
+     */
+    var CppMode = false;
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
@@ -373,7 +380,13 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, fsa, context)        
+        super.doGenerate(resource, fsa, context)
+        
+        if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
+            // Interpret this as the user wanting their .c programs to be treated as
+            // C++ files. 
+            CppMode = true;
+        }         
 
         if (errorsOccurred) return;
 
@@ -2286,18 +2299,42 @@ class CGenerator extends GeneratorBase {
                 if (inputTrigger instanceof VarRef) {
                     if (inputTrigger.variable instanceof Output) {
                         // Output from a contained reactor
-                        pr(intendedTagInheritenceCode, '''
-                            if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag,
-                                             inherited_min_intended_tag) < 0) {
-                                inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag;
-                            }
-                        ''')
+                        val outputPort = inputTrigger.variable as Output                        
+                        if (outputPort.isMultiport) {
+                            pr(intendedTagInheritenceCode, '''
+                                for (int i=0; i < «inputTrigger.container.name».«inputTrigger.variable.name»_width; i++) {
+                                    if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag,
+                                                     inherited_min_intended_tag) < 0) {
+                                        inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag;
+                                    }
+                                }
+                            ''')
+                            
+                        } else
+                            pr(intendedTagInheritenceCode, '''
+                                if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag,
+                                                 inherited_min_intended_tag) < 0) {
+                                    inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag;
+                                }
+                            ''')
                     } else if (inputTrigger.variable instanceof Port) {
-                        pr(intendedTagInheritenceCode, '''
-                            if (compare_tags(«inputTrigger.variable.name»->intended_tag, inherited_min_intended_tag) < 0) {
-                                inherited_min_intended_tag = «inputTrigger.variable.name»->intended_tag;
-                            }
-                        ''')
+                        // Input port
+                        val inputPort = inputTrigger.variable as Port 
+                        if (inputPort.isMultiport) {
+                            pr(intendedTagInheritenceCode, '''
+                                for (int i=0; i < «inputTrigger.variable.name»_width; i++) {
+                                    if (compare_tags(«inputTrigger.variable.name»[i]->intended_tag, inherited_min_intended_tag) < 0) {
+                                        inherited_min_intended_tag = «inputTrigger.variable.name»[i]->intended_tag;
+                                    }
+                                }
+                            ''')
+                        } else {
+                            pr(intendedTagInheritenceCode, '''
+                                if (compare_tags(«inputTrigger.variable.name»->intended_tag, inherited_min_intended_tag) < 0) {
+                                    inherited_min_intended_tag = «inputTrigger.variable.name»->intended_tag;
+                                }
+                            ''')
+                        }
                     } else if (inputTrigger.variable instanceof Action) {
                         pr(intendedTagInheritenceCode, '''
                             if (compare_tags(«inputTrigger.variable.name»->trigger->intended_tag, inherited_min_intended_tag) < 0) {
@@ -4149,7 +4186,7 @@ class CGenerator extends GeneratorBase {
         ''')
         
         
-            var value = "";
+        var value = "";
         switch (serialization) {
             case NATIVE: {
                 // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
@@ -4169,18 +4206,34 @@ class CGenerator extends GeneratorBase {
                 throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
             }
             case ROS2: {
+                val portType = (receivingPort.variable as Port).inferredType
+                var portTypeStr = portType.targetType
+                if (isTokenType(portType)) {
+                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
+                } else if (isSharedPtrType(portType)) {
+                    val matcher = sharedPointerVariable.matcher(portType.targetType)
+                    if (matcher.find()) {
+                        portTypeStr = matcher.group(1);
+                    }
+                }
                 val ROSDeserializer = new FedROSCPPSerialization()
                 value = FedROSCPPSerialization.deserializedVarName;
                 result.append(
                     ROSDeserializer.generateNetworkDeserializerCode(
                         '''self->___«action.name»''',
-                        (receivingPort.variable as Port).type.targetType
+                        portTypeStr
                     )
-                );                                            
-                result.append('''
-                    «receiveRef»->value = MessageT();
-                    SET(«receiveRef», std::move(«value»));
-                ''')
+                );
+                if (isSharedPtrType(portType)) {                                     
+                    result.append('''
+                        auto msg_shared_ptr = std::make_shared<«portTypeStr»>(«value»);
+                        SET(«receiveRef», msg_shared_ptr);
+                    ''')                    
+                } else {                                      
+                    result.append('''
+                        SET(«receiveRef», std::move(«value»));
+                    ''')
+                }
             }
             
         }
@@ -4298,11 +4351,21 @@ class CGenerator extends GeneratorBase {
                 throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
             }
             case ROS2: {
+                var variableToSerialize = sendRef;
+                var typeStr = type.targetType
+                if (isTokenType(type)) {
+                    throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
+                } else if (isSharedPtrType(type)) {
+                    val matcher = sharedPointerVariable.matcher(type.targetType)
+                    if (matcher.find()) {
+                        typeStr = matcher.group(1);
+                    }
+                }
                 val ROSSerializer = new FedROSCPPSerialization();
                 lengthExpression = ROSSerializer.serializedVarLength();
                 pointerExpression = ROSSerializer.seializedVarBuffer();
                 result.append(
-                    ROSSerializer.generateNetworkSerialzerCode(sendRef, type.targetType)
+                    ROSSerializer.generateNetworkSerialzerCode(variableToSerialize, typeStr, isSharedPtrType(type))
                 );
                 result.append('''
                     size_t message_length = «lengthExpression»;
@@ -5295,6 +5358,18 @@ class CGenerator extends GeneratorBase {
         }
         return result
     }
+    
+    protected def isSharedPtrType(InferredType type) {
+        if (type.isUndefined)
+            return false
+        val targetType = type.targetType
+        val matcher = sharedPointerVariable.matcher(targetType)
+        if (matcher.find()) {
+            true
+        } else {
+            false
+        }
+    }
        
     /** Given a type for an input or output, return true if it should be
      *  carried by a lf_token_t struct rather than the type itself.
@@ -5425,6 +5500,9 @@ class CGenerator extends GeneratorBase {
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[]", the first match will be "foo".
     static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
+    
+    // Regular expression pattern for shared_ptr types.
+    static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
     
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'

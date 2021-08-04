@@ -384,6 +384,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // This must be done before desugaring delays below.
         analyzeFederates()
         
+        if (!enabledSerializations.isNullOrEmpty) {
+            // If serialization support is
+            // requested by the programmer 
+            // enable support for them.
+            enableSupportForSerialization();            
+        }
+        
         // Process target files. Copy each of them into the src-gen dir.
         copyUserFiles()
 
@@ -405,13 +412,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
-        
-        if (!enabledSerializations.isNullOrEmpty) {
-            // If serialization support is
-            // requested by the programmer 
-            // enable support for them.
-            enableSupportForSerialization();            
-        }
     }
 
     /**
