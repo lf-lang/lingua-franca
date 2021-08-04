@@ -823,7 +823,7 @@ public enum TargetProperty {
             v.getKeyvalue() == null && v.getArray() == null
                 && v.getLiteral() == null && v.getId() == null
                 && (v.getTime() == 0 || v.getUnit() != TimeUnit.NONE)),
-        STRING("a string", v -> v.getLiteral() != null || v.getId() != null),
+        STRING("a string", v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
         FILE("a path to a file", STRING.validator);
     
         /**
