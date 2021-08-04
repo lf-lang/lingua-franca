@@ -60,6 +60,24 @@ class SourceMapSegment(
     }
 
     /**
+     * Returns a copy of this SourceMapSegment chain with all target lines and
+     * columns shifted by lineDelta and columnDelta, respectively. This is a
+     * non-mutative operation.
+     * @param lineDelta The amount by which to shift the line numbers
+     * @param columnDelta The amount by which to shift the column numbers
+     */
+    fun shifted(lineDelta: Int, columnDelta: Int): SourceMapSegment {
+        return SourceMapSegment(
+            targetLine = targetLine + lineDelta,
+            targetColumn = targetColumn + columnDelta,
+            sourceFile = sourceFile,
+            sourceLine = sourceLine,
+            sourceColumn = sourceColumn,
+            precedingSegment = precedingSegment?.shifted(lineDelta, columnDelta)
+        )
+    }
+
+    /**
      * Prepends a SourceMapSegment to the sequence of SourceMapSegments tracked
      * by this SourceMapSegment.
      * @param newTail the SourceMapSegment to be prepended
@@ -91,6 +109,13 @@ class SourceMapSegment(
     }
 
     companion object {
+
+        /**
+         * The characters that are permitted to be used in representations of
+         * source map segments. May not be in any particular order.
+         */
+        const val CHARSET = VLQ.ORDERED_CHARSET + ",;"
+
         /**
          * Initializes a SourceMapSegment relative to precedingSegment using data
          * encoded in s, a string that complies with the Source Map Revision 3

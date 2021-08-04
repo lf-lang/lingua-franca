@@ -19,9 +19,6 @@ class SourceMapBuilder(
 ) {
     /** The original sources used by the “mappings” entry */
     private val sources: MutableList<File> = ArrayList()
-    /** The latest segment of mapping data that is stored in this
-     * SourceMapBuilder */
-    private var headSegment: SourceMapSegment? = null
 
     /**
      * Returns the numeric identifier that source map segments should use to
@@ -43,31 +40,21 @@ class SourceMapBuilder(
     }
 
     /**
-     * Appends a segment (which may be the head of a linked list of segments) to
-     * this SourceMapBuilder.
-     * @param segment the segment or head of a segment chain that must be
-     * appended
-     */
-    fun addSegment(segment: SourceMapSegment) {
-        segment.setTail(headSegment)
-        headSegment = segment
-    }
-
-    /**
      * Returns the contents of a valid source map, according to the version 3
      * source map specification.
-     * @return the contents of a valid source map, according to the version 3
+     * @param segments The SourceMapSegment containing all mappings
+     * @return The contents of a valid source map, according to the version 3
      * source map specification
      */
-    fun getSourceMap(): String {
+    fun getSourceMap(segments: SourceMapSegment): String {
         return """
             |{
 	    	|    "version": 3,
 	    	|    "file": "${file.name}",
 	    	|    "sources": ${getSourcesList()},
-	    	|    "mappings": "${headSegment?.getMappings()}"
+	    	|    "mappings": "${segments?.getMappings()}"
 	        |}
-        """.trimIndent()
+        """.trimMargin()
     }
 
     /**
@@ -77,8 +64,8 @@ class SourceMapBuilder(
      * map
      */
     private fun getSourcesList(): String {
-        val joiner = StringJoiner("\", \"")
-        sources.forEach { joiner.add(it.resolve(file).toString()) }
+        val joiner = StringJoiner(", ")
+        sources.forEach { joiner.add("\"${it.relativeTo(file.parentFile)}\"") } // FIXME: take source root into account? And why did it do like what we are seeing right now????
         return "[${joiner}]"
     }
 }
