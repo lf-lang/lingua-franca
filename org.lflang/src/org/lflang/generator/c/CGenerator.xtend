@@ -402,7 +402,6 @@ class CGenerator extends GeneratorBase {
                      errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
                  }
              }
-             // If
          }
         
         // Create the output directories if they don't yet exist.
@@ -514,11 +513,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Generate code for each reactor.
-            generateReactorsForFederate(federate);
-            
-            if (this.mainDef !== null) {
-                generateReactorFederated(this.mainDef.reactorClass, federate)
-            }
+            generateReactorDefinitionsForFederate(federate);
         
             // Derive target filename from the .lf filename.
             val cFilename = CCompiler.getTargetFileName(topLevelName);
@@ -858,14 +853,21 @@ class CGenerator extends GeneratorBase {
      * 
      * @param federate The federate to generate reactors for
      */
-    def void generateReactorsForFederate(FederateInstance federate) {
-        val generatedReactors = newLinkedHashSet
-        for (r : this.main.children) {
-            if (federate.contains(r) && !generatedReactors.contains(r.reactorDefinition)) {
-                generatedReactors.add(r.reactorDefinition)
-                generateReactorFederated(r.reactorDefinition, federate)
-                generateReactorChildrenForReactorInFederate(r, federate, generatedReactors);
+    def void generateReactorDefinitionsForFederate(FederateInstance federate) {
+        val generatedReactorDefinitions = newLinkedHashSet
+        if (this.main !== null) {
+            for (r : this.main.children) {
+                if (federate.contains(r) && !generatedReactorDefinitions.contains(r.reactorDefinition)) {
+                    generatedReactorDefinitions.add(r.reactorDefinition)
+                    generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDefinitions);
+                    generateReactorFederated(r.reactorDefinition, federate)
+                }
             }
+        }
+        
+            
+        if (this.mainDef !== null) {
+            generateReactorFederated(this.mainDef.reactorClass, federate)
         }
 
         // Generate code for each reactor that was not instantiated in main or its children.
@@ -873,15 +875,10 @@ class CGenerator extends GeneratorBase {
             // Get the declarations for reactors that are instantiated somewhere.
             // A declaration is either a reactor definition or an import statement.
             val declarations = this.instantiationGraph.getDeclarations(r);
-            for (d : declarations) {
-                if (!generatedReactors.contains(d.toDefinition)) {
-                    generateReactorFederated(d, null)
-                }
-            }
             // If the reactor has no instantiations and there is no main reactor, then
             // generate code for it anyway (at a minimum, this means that the compiler is invoked
             // so that reaction bodies are checked).
-            if (mainDef === null && declarations.isEmpty() && !generatedReactors.contains(r)) {
+            if (mainDef === null && declarations.isEmpty() && !generatedReactorDefinitions.contains(r)) {
                 generateReactorFederated(r, null)
             }
         }
@@ -897,13 +894,13 @@ class CGenerator extends GeneratorBase {
     def void generateReactorChildrenForReactorInFederate(
         ReactorInstance reactor,
         FederateInstance federate,
-        LinkedHashSet<Reactor> generatedReactors
+        LinkedHashSet<Reactor> generatedReactorDefinitions
     ) {
         for (r : reactor.children) {
-            if (federate.contains(r) && !generatedReactors.contains(r.reactorDefinition)) {
-                generatedReactors.add(r.reactorDefinition)
+            if (federate.contains(r) && !generatedReactorDefinitions.contains(r.reactorDefinition)) {
+                generatedReactorDefinitions.add(r.reactorDefinition)
+                generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDefinitions);
                 generateReactorFederated(r.reactorDefinition, federate)
-                generateReactorChildrenForReactorInFederate(r, federate, generatedReactors);
             }
         }
     }
