@@ -87,6 +87,9 @@ import org.lflang.federated.SERIALIZATION
 import org.lflang.federated.FedROSCPPSerialization
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import org.lflang.lf.TargetDecl
+import org.lflang.TargetProperty
+import org.lflang.lf.Model
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -776,11 +779,45 @@ class CGenerator extends GeneratorBase {
                 // If cmake is requested, generated the CMakeLists.txt
                 val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
                 val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
+                // If a cmake-include is specified for the current .lf file, use it as an appendice
+                // to the generated CMakeLists.txt. If not, and the reactor is imported, look at the
+                // target definition of the .lf file in which the reactor is imported from.
+                var cmakeInclude = targetConfig.cmakeInclude
+                if (cmakeInclude.isBlank) {
+                    // Check if the reactor definition is imported
+                    if (federate.instantiation.reactorClass.toDefinition.eResource != mainDef.eResource) {
+                        // Create a temporary FileConfig instance for the imported resource
+                        // FIXME: probably should keep a list of fileConfigs?
+                        val fc = new FileConfig(
+                            federate.instantiation.reactorClass.toDefinition.eResource, 
+                            fsa, 
+                            context
+                        )
+                        // Extract the contents of the imported file
+                        val contents = federate.instantiation.reactorClass.toDefinition.eResource.contents;
+                        val model = contents.get(0) as Model
+                        for (c : model.eContents) {
+                            if (c instanceof TargetDecl) {
+                                val targetProp = c as TargetDecl
+                                if (targetProp.config !== null) {
+                                    for (pair : targetProp.config.pairs) {
+                                        if (pair.name.equals(TargetProperty.CMAKE_INCLUDE.toString)) {
+                                            val relativePath = ASTUtils.toText(pair.value)
+                                            val absolutePath = fc.srcPath.resolve(relativePath)
+                                            cmakeInclude = FileConfig.toUnixString(absolutePath)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 writeSourceCodeToFile(
                     cmakeGenerator.generateCMakeCode(
                         #[cFilename], 
                         topLevelName,
                         cMakeExtras,
+                        cmakeInclude,
                         errorReporter
                     ).toString().getBytes(),
                     cmakeFile
