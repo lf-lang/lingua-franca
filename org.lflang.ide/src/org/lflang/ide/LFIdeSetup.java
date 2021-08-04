@@ -18,5 +18,9 @@ public class LFIdeSetup extends LFStandaloneSetup {
 	public Injector createInjector() {
 		return Guice.createInjector(Modules2.mixin(new LFRuntimeModule(), new LFIdeModule()));
 	}
+
+	public static void doSetup() {
+		new LFIdeSetup().createInjectorAndDoEMFRegistration();
+	}
 	
 }
