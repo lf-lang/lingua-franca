@@ -390,26 +390,6 @@ class CGenerator extends GeneratorBase {
 
         if (errorsOccurred) return;
 
-        // Generate code for each reactor.
-        val names = newLinkedHashSet
-        for (r : reactors) {
-            // Get the declarations for reactors that are instantiated somewhere.
-            // A declaration is either a reactor definition or an import statement.
-            val declarations = this.instantiationGraph.getDeclarations(r);
-            for (d : declarations) {
-                if (!names.add(d.name)) {
-                    // Report duplicate declaration.
-                    errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
-                }
-                generateReactorFederated(d, null)
-            }
-            // If the reactor has no instantiations and there is no main reactor, then
-            // generate code for it anyway (at a minimum, this means that the compiler is invoked
-            // so that reaction bodies are checked).
-            if (mainDef === null && declarations.isEmpty()) {
-                generateReactorFederated(r, null)
-            }
-        }
         
         // Create the output directories if they don't yet exist.
         
@@ -475,7 +455,6 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         for (federate : federates) {
-            fileConfig = oldFileConfig;
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
@@ -502,7 +481,6 @@ class CGenerator extends GeneratorBase {
                 startTimers = new StringBuilder(commonStartTimers)
             }
             
-            
             // Copy the core lib
             copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
             
@@ -511,7 +489,7 @@ class CGenerator extends GeneratorBase {
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
-                generateReactorFederated(this.mainDef.reactorClass, federate)
+                // generateReactorFederated(this.mainDef.reactorClass, federate)
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
@@ -519,6 +497,33 @@ class CGenerator extends GeneratorBase {
                         this.unorderedReactions)
                     this.reactionGraph = new ReactionInstanceGraph(main)
                 }   
+            }
+            
+            // Generate code for each reactor.
+            val names = newLinkedHashSet
+            for (r : this.main.children) {
+                if (federate.contains(r)) {
+                    // Get the declarations for reactors that are instantiated somewhere.
+                    // A declaration is either a reactor definition or an import statement.
+                    val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
+                        for (d : declarations) {
+                            if (!names.add(d.name)) {
+                                // Report duplicate declaration.
+                                errorReporter.reportError("Multiple declarations for reactor class '" + d.name + "'.")
+                            }
+                            generateReactorFederated(d, federate)
+                        }
+                }
+//                // If the reactor has no instantiations and there is no main reactor, then
+//                // generate code for it anyway (at a minimum, this means that the compiler is invoked
+//                // so that reaction bodies are checked).
+//                if (mainDef === null && declarations.isEmpty()) {
+//                    generateReactorFederated(r.reactorDefinition, federate)
+//                }
+            }
+            
+            if (this.mainDef !== null) {
+                generateReactorFederated(this.mainDef.reactorClass, federate)
             }
         
             // Derive target filename from the .lf filename.
@@ -827,6 +832,7 @@ class CGenerator extends GeneratorBase {
                     }
                 });
             }
+            fileConfig = oldFileConfig;
         }
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
