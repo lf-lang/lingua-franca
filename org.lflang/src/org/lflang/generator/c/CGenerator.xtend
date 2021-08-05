@@ -789,7 +789,7 @@ class CGenerator extends GeneratorBase {
                 if (cmakeInclude.isBlank) {
                     // Check if the reactor definition is imported
                     if (federate.instantiation !== null &&
-                        federate.instantiation.reactorClass.toDefinition.eResource != mainDef.eResource
+                        federate.instantiation.reactorClass.toDefinition.eResource !== mainDef.eResource
                     ) {
                         // Create a temporary FileConfig instance for the imported resource
                         // FIXME: probably should keep a list of fileConfigs?
