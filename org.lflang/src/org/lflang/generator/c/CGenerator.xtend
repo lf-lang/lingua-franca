@@ -2528,11 +2528,12 @@ class CGenerator extends GeneratorBase {
                                 }
                             ''')
                         } else {
-                        // Input to a contained reaction
-                        pr(intendedTagInheritenceCode, '''
-                            // Don't reset the intended tag of the output port if it has already been set.
-                            «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
-                        ''')
+                            // Input to a contained reaction
+                            pr(intendedTagInheritenceCode, '''
+                                // Don't reset the intended tag of the output port if it has already been set.
+                                «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                            ''')                            
+                        }
                     }                   
                 }
             }
