@@ -502,7 +502,10 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
-        
+            
+            // Generate preamble for federate
+            generatePreambleForFederate(federate);
+            
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
                 // generateReactorFederated(this.mainDef.reactorClass, federate)
@@ -881,6 +884,32 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Generate preambles for 'federate' provided that the preambles in question
+     * are not already in the .lf file that contains the main reactor. 
+     * Therefore, either there is no main reactor or the federate is imported from
+     * another .lf file.
+     */
+    def generatePreambleForFederate(FederateInstance federate) {
+        // Check if it is imported. If not imported, the preamble is already contained in the
+        // main resource and has already been added.
+        var Resource mainResource = null;
+        if (mainDef !== null) {
+            mainResource = mainDef.eResource
+        }
+        if (federate.instantiation !== null &&
+            federate.instantiation.reactorClass.toDefinition.eResource !== null &&
+            federate.instantiation.reactorClass.toDefinition.eResource != mainResource
+        ) {
+            // Extract the contents of the imported file
+            val contents = federate.instantiation.reactorClass.toDefinition.eResource.contents;
+            val model = contents.get(0) as Model
+            for (p : model.preambles?: emptyList) {
+                pr(p.code.toText)
+            }
+        }
     }
     
     /**
@@ -1515,42 +1544,46 @@ class CGenerator extends GeneratorBase {
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            var token = ''
-            if (input.inferredType.isTokenType) {
-                token = '''
-                    lf_token_t* token;
-                    int length;
-                '''
+            if (federate.containsPort(reactor, input as Port)) {
+                var token = ''
+                if (input.inferredType.isTokenType) {
+                    token = '''
+                        lf_token_t* token;
+                        int length;
+                    '''
+                }
+                pr(input, code, '''
+                    typedef struct {
+                        «input.valueDeclaration»
+                        bool is_present;
+                        int num_destinations;
+                        «token»
+                        «federatedExtension.toString»
+                    } «variableStructType(input, decl)»;
+                ''')
             }
-            pr(input, code, '''
-                typedef struct {
-                    «input.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                    «federatedExtension.toString»
-                } «variableStructType(input, decl)»;
-            ''')
             
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            var token = ''
-            if (output.inferredType.isTokenType) {
-                 token = '''
-                    lf_token_t* token;
-                    int length;
-                 '''
+            if (federate.containsPort(reactor, output as Port)) {
+                var token = ''
+                if (output.inferredType.isTokenType) {
+                     token = '''
+                        lf_token_t* token;
+                        int length;
+                     '''
+                }
+                pr(output, code, '''
+                    typedef struct {
+                        «output.valueDeclaration»
+                        bool is_present;
+                        int num_destinations;
+                        «token»
+                        «federatedExtension.toString»
+                    } «variableStructType(output, decl)»;
+                ''')
             }
-            pr(output, code, '''
-                typedef struct {
-                    «output.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                    «federatedExtension.toString»
-                } «variableStructType(output, decl)»;
-            ''')
 
         }
         // Finally, handle actions.
@@ -1558,16 +1591,18 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            pr(action, code, '''
-                typedef struct {
-                    trigger_t* trigger;
-                    «action.valueDeclaration»
-                    bool is_present;
-                    bool has_value;
-                    lf_token_t* token;
-                    «federatedExtension.toString»
-                } «variableStructType(action, decl)»;
-            ''')
+            if (federate.containsAction(reactor, action)) {
+                pr(action, code, '''
+                    typedef struct {
+                        trigger_t* trigger;
+                        «action.valueDeclaration»
+                        bool is_present;
+                        bool has_value;
+                        lf_token_t* token;
+                        «federatedExtension.toString»
+                    } «variableStructType(action, decl)»;
+                ''')
+            }
             
         }
     }
@@ -1680,69 +1715,75 @@ class CGenerator extends GeneratorBase {
         
         // Next handle actions.
         for (action : reactor.allActions) {
-            pr(action, body, '''
-                «variableStructType(action, decl)» __«action.name»;
-            ''')
-            // Initialize the trigger pointer in the action.
-            pr(action, constructorCode, '''
-                self->__«action.name».trigger = &self->___«action.name»;
-            ''')
+            if (federate === null || federate.containsAction(reactor, action)) {
+                pr(action, body, '''
+                    «variableStructType(action, decl)» __«action.name»;
+                ''')
+                // Initialize the trigger pointer in the action.
+                pr(action, constructorCode, '''
+                    self->__«action.name».trigger = &self->___«action.name»;
+                ''')
+            }
         }
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            // If the port is a multiport, the input field is an array of
-            // pointers that will be allocated separately for each instance
-            // because the sizes may be different. Otherwise, it is a simple
-            // pointer.
-            if (input.isMultiport) {
-                pr(input, body, '''
-                    // Multiport input array will be malloc'd later.
-                    «variableStructType(input, decl)»** __«input.name»;
-                    int __«input.name»__width;
-                    // Default input (in case it does not get connected)
-                    «variableStructType(input, decl)» __default__«input.name»;
-                ''')
-                // Add to the destructor code to free the malloc'd memory.
-                pr(input, destructorCode, '''
-                    free(self->__«input.name»);
-                ''')
-            } else {
-                // input is not a multiport.
-                pr(input, body, '''
-                    «variableStructType(input, decl)»* __«input.name»;
-                    // width of -2 indicates that it is not a multiport.
-                    int __«input.name»__width;
-                    // Default input (in case it does not get connected)
-                    «variableStructType(input, decl)» __default__«input.name»;
-                ''')
-
-                pr(input, constructorCode, '''
-                    // Set input by default to an always absent default input.
-                    self->__«input.name» = &self->__default__«input.name»;
-                ''')
+            if (federate === null || federate.containsPort(reactor, input as Port)) {
+                // If the port is a multiport, the input field is an array of
+                // pointers that will be allocated separately for each instance
+                // because the sizes may be different. Otherwise, it is a simple
+                // pointer.
+                if (input.isMultiport) {
+                    pr(input, body, '''
+                        // Multiport input array will be malloc'd later.
+                        «variableStructType(input, decl)»** __«input.name»;
+                        int __«input.name»__width;
+                        // Default input (in case it does not get connected)
+                        «variableStructType(input, decl)» __default__«input.name»;
+                    ''')
+                    // Add to the destructor code to free the malloc'd memory.
+                    pr(input, destructorCode, '''
+                        free(self->__«input.name»);
+                    ''')
+                } else {
+                    // input is not a multiport.
+                    pr(input, body, '''
+                        «variableStructType(input, decl)»* __«input.name»;
+                        // width of -2 indicates that it is not a multiport.
+                        int __«input.name»__width;
+                        // Default input (in case it does not get connected)
+                        «variableStructType(input, decl)» __default__«input.name»;
+                    ''')
+    
+                    pr(input, constructorCode, '''
+                        // Set input by default to an always absent default input.
+                        self->__«input.name» = &self->__default__«input.name»;
+                    ''')
+                }
             }
         }
 
         // Next handle outputs.
         for (output : reactor.allOutputs) {
-            // If the port is a multiport, create an array to be allocated
-            // at instantiation.
-            if (output.isMultiport) {
-                pr(output, body, '''
-                    // Array of output ports.
-                    «variableStructType(output, decl)»* __«output.name»;
-                    int __«output.name»__width;
-                ''')
-                // Add to the destructor code to free the malloc'd memory.
-                pr(output, destructorCode, '''
-                    free(self->__«output.name»);
-                ''')
-            } else {
-                pr(output, body, '''
-                    «variableStructType(output, decl)» __«output.name»;
-                    int __«output.name»__width;
-                ''')
+            if (federate.containsPort(reactor, output as Port)) {
+                // If the port is a multiport, create an array to be allocated
+                // at instantiation.
+                if (output.isMultiport) {
+                    pr(output, body, '''
+                        // Array of output ports.
+                        «variableStructType(output, decl)»* __«output.name»;
+                        int __«output.name»__width;
+                    ''')
+                    // Add to the destructor code to free the malloc'd memory.
+                    pr(output, destructorCode, '''
+                        free(self->__«output.name»);
+                    ''')
+                } else {
+                    pr(output, body, '''
+                        «variableStructType(output, decl)» __«output.name»;
+                        int __«output.name»__width;
+                    ''')
+                }
             }
         }
         
@@ -2168,32 +2209,36 @@ class CGenerator extends GeneratorBase {
 
         // Next handle actions.
         for (action : reactor.allActions) {
-            createTriggerT(body, action, triggerMap, constructorCode, destructorCode)
-            var isPhysical = "true";
-            if (action.origin == ActionOrigin.LOGICAL) {
-                isPhysical = "false";
+            if (federate === null || federate.containsAction(reactor, action)) {
+                createTriggerT(body, action, triggerMap, constructorCode, destructorCode)
+                var isPhysical = "true";
+                if (action.origin == ActionOrigin.LOGICAL) {
+                    isPhysical = "false";
+                }
+                var elementSize = "0"
+                // If the action type is 'void', we need to avoid generating the code
+                // 'sizeof(void)', which some compilers reject.
+                if (action.type !== null && action.targetType.rootType != 'void') {
+                    elementSize = '''sizeof(«action.targetType.rootType»)'''
+                }
+    
+                // Since the self struct is allocated using calloc, there is no need to set:
+                // self->___«action.name».is_timer = false;
+                pr(constructorCode, '''
+                    self->___«action.name».is_physical = «isPhysical»;
+                    «IF !action.policy.isNullOrEmpty»
+                    self->___«action.name».policy = «action.policy»;
+                    «ENDIF»
+                    self->___«action.name».element_size = «elementSize»;
+                ''')
             }
-            var elementSize = "0"
-            // If the action type is 'void', we need to avoid generating the code
-            // 'sizeof(void)', which some compilers reject.
-            if (action.type !== null && action.targetType.rootType != 'void') {
-                elementSize = '''sizeof(«action.targetType.rootType»)'''
-            }
-
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->___«action.name».is_timer = false;
-            pr(constructorCode, '''
-                self->___«action.name».is_physical = «isPhysical»;
-                «IF !action.policy.isNullOrEmpty»
-                self->___«action.name».policy = «action.policy»;
-                «ENDIF»
-                self->___«action.name».element_size = «elementSize»;
-            ''')
         }
 
         // Next handle inputs.
-        for (input : reactor.allInputs) {            
-            createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
+        for (input : reactor.allInputs) {
+            if (federate === null || federate.containsPort(reactor, input as Port)) {            
+                createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
+            }
         }
     }
     
@@ -3099,20 +3144,22 @@ class CGenerator extends GeneratorBase {
             }
         }
         for (action : instance.actions) {
-            pr(startTimeStep, '''
-                // Add action «action.getFullName» to array of is_present fields.
-                __is_present_fields[«startTimeStepIsPresentCount»] 
-                        = &«containerSelfStructName»->__«action.name».is_present;
-            ''')
-            if (isFederatedAndDecentralized) {
-                // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
+            if (federate === null || federate.containsAction(instance.reactorDefinition, action.definition)) {
                 pr(startTimeStep, '''
-                    // Add action «action.getFullName» to array of intended_tag fields.
-                    __intended_tag_fields[«startTimeStepIsPresentCount»] 
-                            = &«containerSelfStructName»->__«action.name».intended_tag;
+                    // Add action «action.getFullName» to array of is_present fields.
+                    __is_present_fields[«startTimeStepIsPresentCount»] 
+                            = &«containerSelfStructName»->__«action.name».is_present;
                 ''')
+                if (isFederatedAndDecentralized) {
+                    // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
+                    pr(startTimeStep, '''
+                        // Add action «action.getFullName» to array of intended_tag fields.
+                        __intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                = &«containerSelfStructName»->__«action.name».intended_tag;
+                    ''')
+                }
+                startTimeStepIsPresentCount++
             }
-            startTimeStepIsPresentCount++
         }
     }
     
@@ -3130,7 +3177,7 @@ class CGenerator extends GeneratorBase {
      * @param reactorInstance The instance for which we are generating trigger objects.
      * @return A map of trigger names to the name of the trigger struct.
      */
-    def generateOffsetAndPeriodInitializations(ReactorInstance reactorInstance) {
+    def generateOffsetAndPeriodInitializations(ReactorInstance reactorInstance, FederateInstance federate) {
         var count = 0
         // Iterate over triggers (input ports, actions, and timers that trigger reactions).
         for (triggerInstance : reactorInstance.triggersAndReads) {
@@ -3146,16 +3193,19 @@ class CGenerator extends GeneratorBase {
                 ''')
                 timerCount++
             } else if (trigger instanceof Action && !triggerInstance.isShutdown) {
-                var minDelay = (triggerInstance as ActionInstance).minDelay
-                var minSpacing = (triggerInstance as ActionInstance).minSpacing
-                pr(initializeTriggerObjects, '''
-                    «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
-                    «IF minSpacing !== null»
-                    «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
-                    «ELSE»
-                    «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
-                    «ENDIF»
-                ''')               
+                if (federate === null ||
+                    federate.containsAction(reactorInstance.reactorDefinition, triggerInstance.definition as Action)) {
+                    var minDelay = (triggerInstance as ActionInstance).minDelay
+                    var minSpacing = (triggerInstance as ActionInstance).minSpacing
+                    pr(initializeTriggerObjects, '''
+                        «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
+                        «IF minSpacing !== null»
+                            «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                        «ELSE»
+                            «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
+                        «ENDIF»
+                    ''')
+                }
             } else {
                 // The trigger is either a port or a startup or shutdown trigger.
                 // Nothing to do in initialize_trigger_objects
@@ -3540,14 +3590,18 @@ class CGenerator extends GeneratorBase {
         // Once parameters are done, we can allocate memory for any multiports.
         // Allocate memory for outputs.
         for (output : reactorClass.toDefinition.outputs) {
-            // If the port is a multiport, create an array.
-            if (output.isMultiport) {
-                initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
-            } else {
-                pr(initializeTriggerObjects, '''
-                    // width of -2 indicates that it is not a multiport.
-                    «nameOfSelfStruct»->__«output.name»__width = -2;
-                ''')
+            if (federate === null || 
+                federate.containsPort(reactorClass.toDefinition, output as Port)
+            ) {
+                // If the port is a multiport, create an array.
+                if (output.isMultiport) {
+                    initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
+                } else {
+                    pr(initializeTriggerObjects, '''
+                        // width of -2 indicates that it is not a multiport.
+                        «nameOfSelfStruct»->__«output.name»__width = -2;
+                    ''')
+                }            
             }
         }
 
@@ -3610,23 +3664,27 @@ class CGenerator extends GeneratorBase {
         
         // Next, allocate memory for input. 
         for (input : reactorClass.toDefinition.inputs) {
-            // If the port is a multiport, create an array.
-            if (input.isMultiport) {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->__«input.name»__width = «multiportWidthSpecInC(input, null, instance)»;
-                    // Allocate memory for multiport inputs.
-                    «nameOfSelfStruct»->__«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->__«input.name»__width); 
-                    // Set inputs by default to an always absent default input.
-                    for (int i = 0; i < «nameOfSelfStruct»->__«input.name»__width; i++) {
-                        «nameOfSelfStruct»->__«input.name»[i] = &«nameOfSelfStruct»->__default__«input.name»;
-                    }
-                ''')
-            } else {
-                pr(initializeTriggerObjects, '''
-                    // width of -2 indicates that it is not a multiport.
-                    «nameOfSelfStruct»->__«input.name»__width = -2;
-                ''')
-            }            
+            if (federate === null || 
+                federate.containsPort(reactorClass.toDefinition, input as Port)
+            ) {
+                // If the port is a multiport, create an array.
+                if (input.isMultiport) {
+                    pr(initializeTriggerObjects, '''
+                        «nameOfSelfStruct»->__«input.name»__width = «multiportWidthSpecInC(input, null, instance)»;
+                        // Allocate memory for multiport inputs.
+                        «nameOfSelfStruct»->__«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->__«input.name»__width); 
+                        // Set inputs by default to an always absent default input.
+                        for (int i = 0; i < «nameOfSelfStruct»->__«input.name»__width; i++) {
+                            «nameOfSelfStruct»->__«input.name»[i] = &«nameOfSelfStruct»->__default__«input.name»;
+                        }
+                    ''')
+                } else {
+                    pr(initializeTriggerObjects, '''
+                        // width of -2 indicates that it is not a multiport.
+                        «nameOfSelfStruct»->__«input.name»__width = -2;
+                    ''')
+                }
+            }           
         }
 
         // Next, initialize the "self" struct with state variables.
@@ -3637,7 +3695,7 @@ class CGenerator extends GeneratorBase {
         generateRemoteTriggerTable(instance, federate)
 
         // Generate trigger objects for the instance.
-        generateOffsetAndPeriodInitializations(instance)
+        generateOffsetAndPeriodInitializations(instance, federate)
 
         // Next, set the number of destinations,
         // which is used to initialize reference counts.
@@ -3648,22 +3706,23 @@ class CGenerator extends GeneratorBase {
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            if (output instanceof MultiportInstance) {
-                var j = 0
-                for (multiportInstance : output.instances) {
-                    var numDestinations = multiportInstance.numDestinationReactors
+            if (federate === null || federate.containsPort(instance.reactorDefinition, output.definition)) {
+                if (output instanceof MultiportInstance) {
+                    var j = 0
+                    for (multiportInstance : output.instances) {
+                        var numDestinations = multiportInstance.numDestinationReactors
+                        pr(initializeTriggerObjectsEnd, '''
+                            «nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
+                        ''')
+                        j++
+                    }
+                } else {
+                    var numDestinations = output.numDestinationReactors
                     pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
+                        «nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "num_destinations")» = «numDestinations»;
                     ''')
-                    j++
                 }
-            } else {
-                var numDestinations = output.numDestinationReactors
-                pr(initializeTriggerObjectsEnd, '''
-                    «nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "num_destinations")» = «numDestinations»;
-                ''')
             }
-            
         }
         
         // Do the same for inputs of contained reactors that are sent data by reactions
@@ -3702,7 +3761,9 @@ class CGenerator extends GeneratorBase {
         val triggersInUse = instance.triggers
         for (action : instance.actions) {
             // Skip this step if the action is not in use. 
-            if (triggersInUse.contains(action)) {
+            if (triggersInUse.contains(action) && 
+                (federate === null || federate.containsAction(instance.reactorDefinition, action.definition))
+            ) {
                 var type = (action.definition as Action).inferredType
                 var payloadSize = "0"
                 

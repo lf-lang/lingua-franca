@@ -46,6 +46,7 @@ import static extension org.lflang.ASTUtils.*
 import org.lflang.lf.Port
 import org.lflang.lf.Variable
 import org.lflang.ErrorReporter
+import org.lflang.ASTUtils
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -230,6 +231,21 @@ class FederateInstance {
             i = i.parent;
         }
         return false;
+    }
+    
+    def containsAction(Reactor reactor, Action action) {
+        if (!reactor.federated || isSingleton) return true
+        
+        
+        return networkMessageActions.contains(action);
+        
+    }
+    
+    def containsPort(Reactor reactor, Port port) {
+        if (!reactor.federated ||isSingleton) return true
+        
+        return networkInputControlReactionsTriggers.contains(port) 
+                    || networkOutputControlReactionsTrigger == (port as Variable)
     }
         
     /** 

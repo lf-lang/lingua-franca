@@ -928,13 +928,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
         // Add the main reactor if it is defined
         if (this.mainDef !== null) {
-            models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
-        }
-        for (m : models) {
-            for (p : m.preambles) {
+            val mainModel = this.mainDef.reactorClass.toDefinition.eContainer as Model
+            models.add(mainModel)
+            for (p : mainModel.preambles) {
                 pr(p.code.toText)
             }
         }
+//        for (m : models) {
+//            for (p : m.preambles) {
+//                pr(p.code.toText)
+//            }
+//        }
     }
 
     /**
