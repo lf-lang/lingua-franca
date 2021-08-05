@@ -788,7 +788,9 @@ class CGenerator extends GeneratorBase {
                 var cmakeInclude = targetConfig.cmakeInclude
                 if (cmakeInclude.isBlank) {
                     // Check if the reactor definition is imported
-                    if (federate.instantiation.reactorClass.toDefinition.eResource != mainDef.eResource) {
+                    if (federate.instantiation !== null &&
+                        federate.instantiation.reactorClass.toDefinition.eResource != mainDef.eResource
+                    ) {
                         // Create a temporary FileConfig instance for the imported resource
                         // FIXME: probably should keep a list of fileConfigs?
                         val fc = new FileConfig(
@@ -2508,23 +2510,33 @@ class CGenerator extends GeneratorBase {
                 // All effects inherit the minimum intended tag of input triggers
                 if (inherited_min_intended_tag.time != NEVER) {
             ''')
+            indent(intendedTagInheritenceCode);
             for (effect : reaction.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
-                    if ((effect.variable as Input).isMultiport) {
+                    if ((effect.variable as Port).isMultiport) {
                         pr(intendedTagInheritenceCode, '''
                             for(int i=0; i < «effect.container.name».«effect.variable.name»_width; i++) {
                                 «effect.container.name».«effect.variable.name»[i]->intended_tag = inherited_min_intended_tag;
                             }
                         ''')
                     } else {
+                        if (effect.container.widthSpec !== null) {
+                            // Contained reactor is a bank.
+                            pr(intendedTagInheritenceCode, '''
+                                for (int bankIndex = 0; bankIndex < self->__«effect.container.name»_width; bankIndex++) {
+                                    «effect.container.name»[bankIndex].«effect.variable.name» = &(self->__«effect.container.name»[bankIndex].«effect.variable.name»);
+                                }
+                            ''')
+                        } else {
                         // Input to a contained reaction
                         pr(intendedTagInheritenceCode, '''
-                                // Don't reset the intended tag of the output port if it has already been set.
-                                «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                            // Don't reset the intended tag of the output port if it has already been set.
+                            «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
                         ''')
                     }                   
                 }
             }
+            unindent(intendedTagInheritenceCode);
             pr(intendedTagInheritenceCode, '''
                 }
             ''')
