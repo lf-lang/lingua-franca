@@ -356,10 +356,6 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
         
         val text = new StringBuilder
         
-        if (transitionReactions.size > 1) {
-            text.append(transitionReactions.size - transitionReactions.indexOf(r)).append(": ")
-        }
-        
         text.append(r.triggers.filter(VarRef).map[variable.name].join(", "))
         
         val effects = r.effects.filter[!(variable instanceof Mode)]
