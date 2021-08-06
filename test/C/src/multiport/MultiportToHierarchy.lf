@@ -5,9 +5,9 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source {
+reactor Source(width:int(2)) {
 	timer t(0, 200 msec);
-	output[4] out:int;
+	output[width] out:int;
 	state s:int(0);
 	reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
@@ -44,8 +44,8 @@ reactor Container(width:int(4)) {
     in -> dst.in;
 }
 
-main reactor MultiportToHierarchy  { 
-	a = new Source();
-	b = new Container();
+main reactor MultiportToHierarchy(width:int(4))  { 
+	a = new Source(width = width);
+	b = new Container(width = width);
 	a.out -> b.in;
 }

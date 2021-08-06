@@ -35,7 +35,7 @@ To use this, include the following flags in your target properties:
 <pre>
 target C {
     flags: "-lncurses",
-    files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"]
+    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
 };
 </pre>
 This requires `ncurses`, a library providing somewhat portable keyboard access.
@@ -46,6 +46,10 @@ preamble {=
     #include "sensor_simulator.c"
 =}
 </pre>
+To start the sensor simulator, call `start_sensor_simulator` passing it
+an array of strings to print and the width of the window to use to display
+characters using the `show_tick` function.
+
 To print messages to the screen, rather than using printf(), you should use
 the messaging functions in util.h, such as info_print(). Otherwise, your messages
 will be printed over other information.
@@ -67,8 +71,18 @@ will be printed over other information.
  * @param message_lines The message lines or NULL for none.
  * @param number_of_lines The number of message lines or 0 for none.
  * @param tick_window_width The width of the tick window or 0 for none.
+ * @param log_file If non-NULL, the name of a file to which to write logging messages.
+ * @param log_level The level of log messages to redirect to the file.
+ *  The level should be one of LOG_LEVEL_ERROR, LOG_LEVEL_WARNING,
+ *  LOG_LEVEL_INFO, LOG_LEVEL_LOG, or LOG_LEVEL_DEBUG.
  */
-int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width);
+int start_sensor_simulator(
+		char* message_lines[],
+		int number_of_lines,
+		int tick_window_width,
+		char* log_file,
+		int log_level
+);
 
 /**
  * Place a tick (usually a single character) in the tick window.

@@ -26,12 +26,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import org.lflang.ASTUtils
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.TimeUnit
-import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 
@@ -40,13 +39,23 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class ActionInstance extends TriggerInstance<Variable> {
-        
-    public TimeValue minDelay = new TimeValue(0, TimeUnit.NONE)
+class ActionInstance extends TriggerInstance<Action> {
     
-    public TimeValue minSpacing = null;
+    /** The constant default for a minimum delay. */
+    public static val DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE)
     
-    public boolean isPhysical = false;
+    @Accessors(PUBLIC_GETTER)
+    TimeValue minDelay = DEFAULT_MIN_DELAY
+    
+    // TODO introduce default value?
+    @Accessors(PUBLIC_GETTER)
+    TimeValue minSpacing = null;
+    
+    @Accessors(PUBLIC_GETTER)
+    String policy = null;
+    
+    @Accessors(PUBLIC_GETTER)
+    boolean isPhysical;
     
     /**
      * Create a new timer instance.
@@ -59,11 +68,7 @@ class ActionInstance extends TriggerInstance<Variable> {
         if (parent === null) {
             throw new Exception('Cannot create an ActionInstance with no parent.')
         }
-        if (definition === null) {
-            this.shutdown = true;
-            // Create an AST node for the definition.
-            this.definition = ASTUtils.makeShutdownAction();
-        } else {
+        if (definition !== null) {
             if (definition.minDelay !== null) {
                 if (definition.minDelay.parameter !== null) {
                     val parm = definition.minDelay.parameter
@@ -83,6 +88,7 @@ class ActionInstance extends TriggerInstance<Variable> {
             if (definition.origin === ActionOrigin.PHYSICAL) {
                 isPhysical = true
             }
+            policy = definition.policy
         }
     }
 }

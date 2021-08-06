@@ -4,7 +4,7 @@
  * @author Soroush Bateni
  *
  * @section LICENSE
-Copyright (c) 2020, The University of California at Berkeley and TU Dresden
+Copyright (c) 2020, The University of California at Berkeley and UT Dallas
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -36,17 +36,32 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * `read_wave_file()` (see wave_file_reader.h).
  * 
  * To use this, include the following flags in your target properties:
+ * If you are running on Linux:
  * <pre>
  * target C {
  *     flags: "-lasound -lm",
  *     files: ["/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h"]
  * };
  * </pre>
+ * If you are running on Mac:
+ * <pre>
+ * target C {
+ *     flags: "-framework AudioToolbox -framework CoreFoundation -lm",
+ *     files: ["/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h"]
+ * };
+ * </pre>
  * 
  * In addition, you need this in your Lingua Franca file:
+ * If you are running on Linux:
  * <pre>
  * preamble {=
  *     #include "audio_loop_linux.c"
+ * =}
+ * </pre>
+ * If you are running on Mac:
+ * <pre>
+ * preamble {=
+ *     #include "audio_loop_mac.c"
  * =}
  * </pre>
  */
@@ -55,12 +70,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AUDIO_LOOP_H
 
 #include "wave_file_reader.h" // Defines lf_waveform_t.
-#include "core/reactor.h"     // Defines instant_t.
+#include "core/tag.h"         // Defines instant_t.
 
 // Constants for playback. These are all coupled.
 #define SAMPLE_RATE 44100
 #define AUDIO_BUFFER_SIZE  4410  // 1/10 second, 100 msec
-#define START_THRESHOLD AUDIO_BUFFER_SIZE
 #define BUFFER_DURATION_NS 100000000LL
 #define NUM_CHANNELS 1 // 2 for stereo
 

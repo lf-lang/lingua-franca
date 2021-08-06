@@ -1,0 +1,26 @@
+/**
+ * Test parallel connections for federated execution.
+ */
+target C {
+    timeout: 2 sec
+}
+
+import Count from "../lib/Count.lf"
+import TestCount from "../lib/TestCount.lf"
+
+reactor Destination {
+    input[2] in:int;
+
+    t1 = new TestCount(num_inputs = 3);
+    t2 = new TestCount(num_inputs = 3);
+    
+    in -> t1.in, t2.in;
+}
+
+federated reactor {
+    c1 = new Count();
+    c2 = new Count();
+    d = new Destination();
+    
+    c1.out, c2.out -> d.in;
+}

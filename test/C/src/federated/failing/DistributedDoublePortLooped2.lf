@@ -1,0 +1,78 @@
+/** 
+ * Test the case for when two upstream federates
+ * send messages to a downstream federte on two
+ * different ports. One message should carry a 
+ * microstep delay relative to the other
+ * message.
+ * 
+ * @author Soroush Bateni
+ */
+target C {
+    timeout: 5 msec,
+    logging: LOG,
+    coordination: centralized
+};
+
+reactor Count {
+    state count:int(1);
+    input in:int;
+    output out:int;
+    timer t(0, 1 msec);
+    reaction(t) -> out {=
+        info_print("Count sends %d.", self->count);
+        SET(out, self->count++);
+    =}
+    
+    reaction(in) {=
+        info_print("Count received %d.", in->value);
+    =}
+}
+
+reactor CountMicrostep {
+    state count:int(1);
+    output out:int;
+    logical action act:int;
+    timer t(0, 1 msec);
+    reaction(t) -> act {=
+        schedule_int(act, 0, self->count++);
+    =}
+    
+    reaction(act) -> out {=
+        SET(out, act->value);
+    =}
+}
+
+reactor Print {
+    input in:int;
+    input in2:int;
+    output out:int;
+    timer t(0,2 msec);
+    reaction(in, in2) -> out {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        if (in->is_present) {
+        	info_print("At tag (%lld, %u), received in = %d.", elapsed_time, get_microstep(), in->value);
+        }
+        if (in2->is_present) {
+            info_print("At tag (%lld, %u), received in2 = %d.", elapsed_time, get_microstep(), in2->value);
+        }
+        if (in->is_present && in2->is_present) {
+            error_print_and_exit("ERROR: invalid logical simultaneity.");
+        }
+        SET(out, in->value);
+    =}
+    reaction(t) {=
+        // Do nothing
+    =}
+    reaction(shutdown) {=
+        info_print("SUCCESS: messages were at least one microstep apart.");
+    =}
+}
+
+federated reactor {
+    c = new Count();
+    cm = new CountMicrostep();
+    p = new Print();
+    c.out -> p.in;    // Indicating a 'logical' connection.
+    cm.out -> p.in2;
+    p.out -> c.in;
+}

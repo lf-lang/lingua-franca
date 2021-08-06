@@ -1,0 +1,46 @@
+/**
+ * This is a test that detects STP violations according to the
+ * physical time of message arrival.
+ */
+target C {
+    timeout: 1900 msec,
+    coordination: decentralized
+};
+ 
+import Count from "../lib/Count.lf";
+
+reactor Print (STP_offset_param:time(0)) {
+    input in:int;
+    state c:int(1);
+    reaction(in) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        info_print("At time %lld, received %d", elapsed_time, in->value);
+        // info_print("Physical time of arrival is %lld.", in->physical_time_of_arrival - start_time);
+        if (in->value != self->c) {
+            error_print_and_exit("Expected to receive %d.", self->c);
+        }
+        instant_t STP_discrepency = get_logical_time() + self->STP_offset_param - in->physical_time_of_arrival;
+        if (STP_discrepency < 0) {
+            info_print("The message has violated the STP offset by %lld in physical time.", -1 * STP_discrepency);
+        	self->c++;
+        } else {
+            error_print_and_exit("Message arrived %lld early.", STP_discrepency);
+        }
+    =} STP (STP_offset_param) {=
+        // This STP handler should never be invoked because the only source of event
+        // for Print is the Count reactor.
+        error_print_and_exit("Logical STP violation was detected. Only physical STP violations are possible.");
+    =}
+    reaction(shutdown) {=
+        if (self->c != 3) {
+    		error_print_and_exit("Expected to receive 2 items but got %d.", self->c);
+    	}
+    =}
+}
+
+federated reactor { 
+    c = new Count(offset = 1 msec, period = 1 sec);
+    p = new Print(STP_offset_param = 1 usec);
+    
+    c.out -> p.in;
+} 

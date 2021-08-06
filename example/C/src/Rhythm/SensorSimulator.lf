@@ -1,0 +1,28 @@
+/**
+ * Simple demonstration of the sensor simulator used in the Rhythm examples.
+ * This has no audio output, but just tests the ncurses interface.
+ */
+target C {
+    threads: 2,
+    flags: "-lncurses",
+    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
+};
+preamble {=
+    #include "sensor_simulator.c"
+=}
+main reactor {
+    timer t(0, 1 sec);
+    timer r(0, 2 sec);
+    reaction(startup) {=
+    	char* messages[] = {"Hello", "World"};
+    	info_print("Starting sensor simulator.");
+        start_sensor_simulator(messages, 2, 16, NULL, -1);
+    	info_print("Started sensor simulator.");
+   =}
+    reaction(t) {=
+        show_tick("*");
+    =}
+    reaction(r) {=
+        show_tick(".");
+    =}
+}

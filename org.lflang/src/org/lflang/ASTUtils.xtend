@@ -40,8 +40,6 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -55,7 +53,7 @@ import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
-import org.lflang.lf.LfPackage
+import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -63,6 +61,7 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
+import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
@@ -71,6 +70,9 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
+import org.eclipse.emf.ecore.util.EcoreUtil
+
+import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -84,24 +86,6 @@ class ASTUtils {
      * The Lingua Franca factory for creating new AST nodes.
      */
     public static val factory = LfFactory.eINSTANCE
-    
-    /**
-     * Make a Timer with name "startup" and default parameters.
-     */
-    static def makeStartupTimer() {
-        val startupTimer = factory.createTimer();
-        startupTimer.name = LfPackage.Literals.TRIGGER_REF__STARTUP.name;
-        return startupTimer;
-    }
-    
-    /**
-     * Make an Action with name "shutdown" and default parameters.
-     */
-    static def makeShutdownAction() {
-        val shutdownAction = factory.createAction();
-        shutdownAction.name = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
-        return shutdownAction;
-    }
     
     /**
      * Find connections in the given resource that have a delay associated with them, 
@@ -127,13 +111,8 @@ class ASTUtils {
                     val generic = generator.supportsGenerics
                             ? generator.getTargetType(InferredType.fromAST(type))
                             : ""
-                    // If the left or right has a multiport or bank, then create a bank
-                    // of delays with an inferred width.
-                    // FIXME: If the connection already uses an inferred width on
-                    // the left or right, then this will fail because you cannot
-                    // have an inferred width on both sides.
-                    val isWide = connection.isWide
-                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic, isWide)
+                    val delayInstance = getDelayInstance(delayClass, connection, generic,
+                        !generator.generateAfterDelaysWithVariableWidth)
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
@@ -254,13 +233,17 @@ class ASTUtils {
      * performed in this method in order to avoid causing concurrent
      * modification exceptions. 
      * @param delayClass The class to create an instantiation for
-     * @param value A time interval corresponding to the desired delay
+     * @param connection The connection to create a delay instantiation foe
      * @param generic A string that denotes the appropriate type parameter, 
      *  which should be null or empty if the target does not support generics.
-     * @param isWide True to create a variable-width width specification.
+     * @param defineWidthFromConnection If this is true and if the connection 
+     *  is a wide connection, then instantiate a bank of delays where the width
+     *  is given by ports involved in the connection. Otherwise, the width will
+     *  be  unspecified indicating a variable length.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Delay delay, String generic, boolean isWide) {
+            Connection connection, String generic, Boolean defineWidthFromConnection) {
+        val delay = connection.delay
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
@@ -268,10 +251,23 @@ class ASTUtils {
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
         }
-        if (isWide) {
+        if (connection.isWide) {
             val widthSpec = factory.createWidthSpec
+            if (defineWidthFromConnection) {
+                // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.
+                // This allows the code generator to later infer the width from the involved ports.
+                // We only consider the right ports here, as the right hand side should always have a well-defined
+                // width. On the left hand side, we might use the broadcast operator from which we cannot infer
+                // the width.
+                for (port : connection.rightPorts) {
+                    val term = factory.createWidthTerm()
+                    term.port = EcoreUtil.copy(port) as VarRef
+                    widthSpec.terms.add(term)
+                }   
+            } else {
+                widthSpec.ofVariableLength = true    
+            }
             delayInstance.widthSpec = widthSpec
-            widthSpec.ofVariableLength = true
         }
         val assignment = factory.createAssignment
         assignment.lhs = delayClass.parameters.get(0)
@@ -329,10 +325,13 @@ class ASTUtils {
         
         delayParameter.name = "delay"
         delayParameter.type = factory.createType
-        delayParameter.type.id = generator.targetTimeType
+        delayParameter.type.id = "time"
+        delayParameter.type.time = true
+        val defaultTime = factory.createTime
+        defaultTime.unit = TimeUnit.NONE
+        defaultTime.interval = 0
         val defaultValue = factory.createValue
-        defaultValue.literal = generator.timeInTargetLanguage(
-            new TimeValue(0, TimeUnit.NONE))
+        defaultValue.time = defaultTime
         delayParameter.init.add(defaultValue)
         
         // Name the newly created action; set its delay and type.
@@ -402,128 +401,6 @@ class ASTUtils {
         return delayClass
     }
     
-    /** 
-     * Replace the specified connection with a communication between federates.
-     * @param connection The connection.
-     * @param leftFederate The source federate.
-     * @param rightFederate The destination federate.
-     */
-    static def void makeCommunication(
-        Connection connection, 
-        FederateInstance leftFederate,
-        int leftBankIndex,
-        int leftChannelIndex,
-        FederateInstance rightFederate,
-        int rightBankIndex,
-        int rightChannelIndex,
-        GeneratorBase generator,
-        CoordinationType coordination
-    ) {
-        val factory = LfFactory.eINSTANCE
-        // Assume all the types are the same, so just use the first on the right.
-        var type = (connection.rightPorts.get(0).variable as Port).type.copy
-        val action = factory.createAction
-        val triggerRef = factory.createVarRef
-        val inRef = factory.createVarRef
-        val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
-        val r1 = factory.createReaction
-        val r2 = factory.createReaction
-        
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        generator.makeUnordered(r1)
-        generator.makeUnordered(r2)
-
-        // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "networkMessage")
-        action.type = type
-        
-        // The connection is 'physical' if it uses the ~> notation.
-        if (connection.physical) {
-            leftFederate.outboundP2PConnections.add(rightFederate)
-            rightFederate.inboundP2PConnections.add(leftFederate)
-            action.origin = ActionOrigin.PHYSICAL
-            // Messages sent on physical connections do not
-            // carry a timestamp, or a delay. The delay
-            // provided using after is enforced by setting
-            // the minDelay.
-            if (connection.delay !== null) {
-                action.minDelay = factory.createValue
-                action.minDelay.time = factory.createTime
-                action.minDelay.time.interval = connection.delay.interval
-                action.minDelay.time.unit = connection.delay.unit
-            }
-        } else {
-            // If the connection is logical but coordination
-            // is decentralized, we would need
-            // to make P2P connections
-            if (coordination === CoordinationType.DECENTRALIZED) {
-                leftFederate.outboundP2PConnections.add(rightFederate)
-                rightFederate.inboundP2PConnections.add(leftFederate)                
-            }            
-            action.origin = ActionOrigin.LOGICAL
-        }
-        
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        val receivingPortID = rightFederate.networkMessageActions.length
-        rightFederate.networkMessageActions.add(action)
-
-        // Establish references to the action.
-        triggerRef.variable = action
-
-        // Establish references to the involved ports.
-        // FIXME: This does not support parallel connections yet!!
-        if (connection.leftPorts.length > 1 || connection.rightPorts.length > 1) {
-            throw new UnsupportedOperationException("FIXME: Parallel connections are not yet supported between federates.")
-        }
-        inRef.container = connection.leftPorts.get(0).container
-        inRef.variable = connection.leftPorts.get(0).variable
-        outRef.container = connection.rightPorts.get(0).container
-        outRef.variable = connection.rightPorts.get(0).variable
-
-        // Add the action to the reactor.
-        parent.actions.add(action)
-        
-        // Configure the sending reaction.
-        r1.triggers.add(inRef)
-        r1.code = factory.createCode()
-        r1.code.body = generator.generateNetworkSenderBody(
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            leftBankIndex,
-            leftChannelIndex,
-            rightFederate,
-            action.inferredType,
-            connection.isPhysical,
-            connection.delay
-        )
-
-        // Configure the receiving reaction.
-        r2.triggers.add(triggerRef)
-        r2.effects.add(outRef)
-        r2.code = factory.createCode()
-        r2.code.body = generator.generateNetworkReceiverBody(
-            action,
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            rightFederate,
-            rightBankIndex,
-            rightChannelIndex,
-            action.inferredType
-        )
-
-        // Add the reactions to the parent.
-        parent.reactions.add(r1)
-        parent.reactions.add(r2)
-    }
-    
     /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
@@ -555,56 +432,7 @@ class ASTUtils {
         }
         return name + suffix
     }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-    private static def getCopy(TypeParm original) {
-        val clone = factory.createTypeParm
-        if (!original.literal.isNullOrEmpty) {
-            clone.literal = original.literal
-        } else if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-        }
-        return clone
-    }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-     private static def getCopy(Type original) {
-        if (original !== null) {
-            val clone = factory.createType
-            
-            clone.id = original.id
-            // Set the type based on the argument type.
-            if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-            } 
-            if (original.stars !== null) {
-                original.stars?.forEach[clone.stars.add(it)]
-            }
-                
-            if (original.arraySpec !== null) {
-                clone.arraySpec = factory.createArraySpec
-                clone.arraySpec.ofVariableLength = original.arraySpec.
-                    ofVariableLength
-                clone.arraySpec.length = original.arraySpec.length
-            }
-            clone.time = original.time
-            
-            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
-            
-            return clone
-        }
-    }
-        
+   
     ////////////////////////////////
     //// Utility functions for supporting inheritance
     
@@ -965,7 +793,7 @@ class ASTUtils {
      * @param spec The array spec to be converted
      * @return A textual representation
      */
-    def static toText(ArraySpec spec) {
+    def static String toText(ArraySpec spec) {
         if (spec !== null) {
             return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
         }
@@ -977,7 +805,7 @@ class ASTUtils {
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    def static toText(Type type) {
+    def static String toText(Type type) {
         if (type !== null) {
             val base = type.baseType
             val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
@@ -1028,7 +856,11 @@ class ASTUtils {
                     for (s : type.stars ?: emptyList) {
                         stars += s
                     }
-                    return type.id + stars
+                    if (!type.typeParms.isNullOrEmpty) {
+                        return '''«type.id»<«FOR p : type.typeParms SEPARATOR ", "»«p.toText»«ENDFOR»>''' 
+                    } else {
+                        return type.id + stars                        
+                    }
                 }
             }
         }
@@ -1405,6 +1237,7 @@ class ASTUtils {
         val values = initialValue(parameter, instantiations);
         var result = 0;
         for (value: values) {
+            if (value.literal === null) return null;
             try {
                 result += Integer.decode(value.literal);
             } catch (NumberFormatException ex) {
@@ -1460,7 +1293,7 @@ class ASTUtils {
                         // Indicate that the port is on the left.
                         leftOrRight = -1
                     } else {
-                        leftWidth += portWidth(leftPort, c)
+                        leftWidth += inferPortWidth(leftPort, c, instantiations)
                     }
                 }
                 for (rightPort : c.rightPorts) {
@@ -1471,7 +1304,7 @@ class ASTUtils {
                         // Indicate that the port is on the right.
                         leftOrRight = 1
                     } else {
-                        rightWidth += portWidth(rightPort, c)
+                        rightWidth += inferPortWidth(rightPort, c, instantiations)
                     }
                 }
                 if (leftOrRight < 0) {
@@ -1604,76 +1437,6 @@ class ASTUtils {
         // Argument is not a port.
         return -1;
     }
-
-    /**
-     * Return the width of the port reference if it can be determined
-     * and otherwise return -1.  The width can be determined if the
-     * port is not a multiport in a bank of reactors (the width will 1)
-     * or if the width of the multiport and/or the bank is given by a
-     * literal constant.
-     * 
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param reference A reference to a port.
-     * @return The width of a port or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int multiportWidthIfLiteral(VarRef reference) {
-        return inferPortWidth(reference, null, null);
-    }   
-    
-    /**
-     * Given the specification of the width of either a bank of reactors
-     * or a multiport, return the width if it can be determined and otherwise
-     * return -1. The width can be determined if it is given by one or more
-     * literal constants or if the widthSpec is null (it is not a multiport
-     * or reactor bank).
-     * 
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param widthSpec The width specification.
-     * 
-     * @return The width or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int width(WidthSpec widthSpec) {
-        return width(widthSpec, null);
-    }
-    
-    /**
-     * Calculate the width of a port reference in a connection.
-     * The width will be the product of the bank width and the multiport width,
-     * or 1 if the port is not in a bank and is not a multiport.
-     * This throws an exception if the width cannot be determined.
-     * The width cannot be determined if it depends on a parameter
-     * whose value cannot be determined because we are not given a
-     * specific instance of the port.
-     *
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param reference A reference to a port.
-     * @param connection The connection.
-     * 
-     * @return The width of a port or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int portWidth(VarRef reference, Connection connection) {
-        val result = inferPortWidth(reference, connection, null);
-        if (result < 0) {
-            throw new Exception("Cannot determine port width. " +
-                "Only multiport widths with literal integer values are supported for now.")
-        }
-        return result;
-    }
     
     /**
      * Given an instantiation of a reactor or bank of reactors, return
@@ -1709,7 +1472,7 @@ class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens.size == 2) {
+        if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
             return true
         }
         return false
@@ -1958,4 +1721,45 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Create a new instantiation node with the given reactor as its defining class.
+     * @param reactor The reactor class to create an instantiation of.
+     */
+    def static createInstantiation(Reactor reactor) {
+        val inst = LfFactory.eINSTANCE.createInstantiation
+        inst.reactorClass = reactor
+        // If the reactor is federated or at the top level, then it
+        // may not have a name. In the generator's doGenerate()
+        // method, the name gets set using setMainName().
+        // But this may be called before that, e.g. during
+        // diagram synthesis.  We assign a temporary name here.
+        if (reactor.name === null) {
+            if (reactor.isFederated || reactor.isMain) {
+                inst.setName("main")    
+            } else {
+                inst.setName("")
+            }
+            
+        } else {
+            inst.setName(reactor.name)
+        }
+        return inst
+    }
+
+    /**
+     * Returns the target declaration in the given model.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Model model) {
+        return model.eAllContents.filter(TargetDecl).head
+    }
+
+    /**
+     * Returns the target declaration in the given resource.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Resource model) {
+        return model.allContents.filter(TargetDecl).head
+    }
+
 }

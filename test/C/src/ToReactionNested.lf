@@ -1,0 +1,34 @@
+target C {
+    timeout: 5 sec,
+    fast: true
+};
+import Count from "lib/Count.lf";
+
+reactor CountContainer {
+    output out:int;
+    c1 = new Count();
+    c1.out -> out;
+}
+
+main reactor {
+    state count:int(1);
+    state received:bool(false);
+
+    s = new CountContainer();
+     
+    reaction(s.out) {=
+        if (s.out->is_present) {
+            info_print("Received %d.", s.out->value);
+            if (self->count != s.out->value) {
+                error_print_and_exit("Expected %d.", self->count);
+            }
+            self->received = true;
+        } 
+        self->count++;         
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            error_print_and_exit("No inputs present.");
+        }
+    =}
+}

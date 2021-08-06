@@ -29,7 +29,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * Audio functions for MacOS.
  * 
- * See audio_loop_mac.h for instructions.
+ * See audio_loop.h for instructions.
  * 
  */
 
@@ -37,7 +37,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "audio_loop_mac.h"
+#include "audio_loop.h"
 #include <unistd.h>
 #include "AudioToolbox/AudioToolbox.h"
 

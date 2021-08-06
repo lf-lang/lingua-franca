@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Lingua Franca Product
+Bundle-SymbolicName: org.lflang.product;singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Automatic-Module-Name: org.lflang.product
+Bundle-Vendor: University of California, Berkeley
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.ui,
+ org.eclipse.ui.workbench,
+ org.eclipse.ui.ide.application,
+ org.eclipse.ui.intro

@@ -67,9 +67,26 @@ class ReactionInstance extends NamedInstance<Reaction> {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
                     var portInstance = parent.lookupPortInstance(trigger)
-                    this.sources.add(portInstance)
-                    portInstance.dependentReactions.add(this)
-                    this.triggers.add(portInstance)
+                    // If the trigger is the port of a contained bank, then the
+                    // portInstance will be null and we have to instead search for
+                    // each port instance in the bank.
+                    if (portInstance !== null) {
+                        this.sources.add(portInstance)
+                        portInstance.dependentReactions.add(this)
+                        this.triggers.add(portInstance)
+                    } else if (trigger.container !== null) {
+                        val bankInstance = parent.lookupReactorInstance(trigger.container)
+                        if (bankInstance !== null && bankInstance.bankMembers !== null) {
+                            for (bankMember : bankInstance.bankMembers) {
+                                portInstance = bankMember.lookupPortInstance(trigger.variable as Port)
+                                if (portInstance !== null) {
+                                    this.sources.add(portInstance)
+                                    portInstance.dependentReactions.add(this)
+                                    this.triggers.add(portInstance)
+                                }
+                            }
+                        }
+                    }
                 } else if (trigger.variable instanceof Action) {
                     var actionInstance = parent.lookupActionInstance(
                         trigger.variable as Action)
@@ -82,15 +99,36 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     this.triggers.add(timerInstance)
                     timerInstance.dependentReactions.add(this)
                 }
+            } else if (trigger.startup) {
+                this.triggers.add(parent.getOrCreateStartup(trigger))
+            } else if (trigger.shutdown) {
+                this.triggers.add(parent.getOrCreateShutdown(trigger))
             }
         }
         // Next handle the ports that this reaction reads.
         for (source : definition.sources) {
             if (source.variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance(source)
-                this.sources.add(portInstance)
-                this.reads.add(portInstance)
-                portInstance.dependentReactions.add(this)
+                // If the trigger is the port of a contained bank, then the
+                // portInstance will be null and we have to instead search for
+                // each port instance in the bank.
+                if (portInstance !== null) {
+                    this.sources.add(portInstance)
+                    this.reads.add(portInstance)
+                    portInstance.dependentReactions.add(this)
+                } else if (source.container !== null) {
+                    val bankInstance = parent.lookupReactorInstance(source.container)
+                    if (bankInstance !== null && bankInstance.bankMembers !== null) {
+                        for (bankMember : bankInstance.bankMembers) {
+                            portInstance = bankMember.lookupPortInstance(source.variable as Port)
+                            if (portInstance !== null) {
+                                this.sources.add(portInstance)
+                                portInstance.dependentReactions.add(this)
+                                this.reads.add(portInstance)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -153,12 +191,12 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * The ports or actions that this reaction may write to.
      */
-    public var effects = new LinkedHashSet<TriggerInstance<Variable>>();
+    public var effects = new LinkedHashSet<TriggerInstance<? extends Variable>>();
 
     /**
      * The ports, actions, or timers that this reaction is triggered by or uses.
      */
-    public var sources = new LinkedHashSet<TriggerInstance<Variable>>();
+    public var sources = new LinkedHashSet<TriggerInstance<? extends Variable>>();
 
     /**
      * Deadline for this reaction instance, if declared.
@@ -191,13 +229,13 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * The ports that this reaction reads but that do not trigger it.
      */
-    public var reads = new LinkedHashSet<TriggerInstance<Variable>>
+    public var reads = new LinkedHashSet<TriggerInstance<? extends Variable>>
 
     /**
      * The trigger instances (input ports, timers, and actions
      * that trigger reactions) that trigger this reaction.
      */
-    public var triggers = new LinkedHashSet<TriggerInstance<Variable>>
+    public var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>
 
     /**
      * Sources through which this reaction instance has been visited.
@@ -221,11 +259,10 @@ class ReactionInstance extends NamedInstance<Reaction> {
     }
     
     /**
-     * Return the main reactor, which is the top-level parent.
-     * @return The top-level parent.
+     * {@inheritDoc}
      */
-    override ReactorInstance main() {
-        parent.main
+    override ReactorInstance root() {
+        parent.root()
     }
 
     /**

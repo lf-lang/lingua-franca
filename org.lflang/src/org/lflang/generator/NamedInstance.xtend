@@ -28,21 +28,24 @@ package org.lflang.generator
 
 import java.util.HashMap
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtend.lib.annotations.Accessors
 
-/** Base class for instances with names in Lingua Franca.
+/** 
+ * Base class for instances with names in Lingua Franca.
  *  
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 abstract class NamedInstance<T extends EObject> {
         
-    /** Construct a new instance with the specified definition
-     *  and parent. E.g., for a reactor instance, the definition
-     *  is Instantiation, and for a port instance, it is Port. These are
-     *  nodes in the AST. This is protected because only subclasses
-     *  should be constructed.
-     *  @param definition The definition in the AST for this instance.
-     *  @param parent The reactor instance that creates this instance.
+    /**
+     * Construct a new instance with the specified definition
+     * and parent. E.g., for a reactor instance, the definition
+     * is Instantiation, and for a port instance, it is Port. These are
+     * nodes in the AST. This is protected because only subclasses
+     * should be constructed.
+     * @param definition The definition in the AST for this instance.
+     * @param parent The reactor instance that creates this instance.
      */
     protected new(T definition, ReactorInstance parent) {
         this.definition = definition;
@@ -53,25 +56,27 @@ abstract class NamedInstance<T extends EObject> {
     //// Public fields.
     
     /** The Instantiation AST object from which this was created. */
-    public var T definition
+    @Accessors(PUBLIC_GETTER)
+    protected var T definition
     
     /** A limit on the number of characters returned by uniqueID. */
     public static var identifierLengthLimit = 40
     
     /** The reactor instance that creates this instance. */
-    public var ReactorInstance parent
+    public val ReactorInstance parent
 
     //////////////////////////////////////////////////////
     //// Public methods.
 
-    /** Return the full name of this instance, which has the form
-     *  "a.b.c", where "c" is the name of this instance, "b" is the name
-     *  of its container, and "a" is the name of its container, stopping
-     *  at the container in main. If any reactor in the hierarchy is
-     *  in a bank of reactors then, it will appear as a[index].
-     *  Similarly, if c is a port in a multiport, it will appear as
-     *  c[index].
-     *  @return The full name of this instance.
+    /** 
+     * Return the full name of this instance, which has the form
+     * "a.b.c", where "c" is the name of this instance, "b" is the name
+     * of its container, and "a" is the name of its container, stopping
+     * at the container in main. If any reactor in the hierarchy is
+     * in a bank of reactors then, it will appear as a[index].
+     * Similarly, if c is a port in a multiport, it will appear as
+     * c[index].
+     * @return The full name of this instance.
      */
     def String getFullName() {
         if (this.parent === null) {
@@ -81,38 +86,58 @@ abstract class NamedInstance<T extends EObject> {
         }
     }
     
-    /** Return the name of this instance as given in its definition.
-     *  Note that this is unique only relative to other instances with
-     *  the same parent.
-     *  @return The name of this instance within its parent.
+    /**
+     * Return the name of this instance as given in its definition.
+     * Note that this is unique only relative to other instances with
+     * the same parent.
+     * @return The name of this instance within its parent.
      */
     abstract def String getName();
     
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    /**
+     * Return the root reactor, which is the top-level parent.
+     * @return The top-level parent.
      */
-    abstract def ReactorInstance main();
-
-    /** Return an identifier for this instance, which has the form "a_b_c"
-     *  or "a_b_c_n", where "c" is the name of this instance, "b" is the name
-     *  of its container, and "a" is the name of its container, stopping
-     *  at the container in main. All names are converted to lower case.
-     *  The suffix _n is usually omitted, but it is possible to get name
-     *  collisions using the above scheme, in which case _n will be an
-     *  increasing integer until there is no collision.
-     *  If the length of the root of the name as calculated above (the root
-     *  is without the _n suffix) is longer than
-     *  the static variable identifierLengthLimit, then the name will be
-     *  truncated. The returned name will be the tail of the name calculated
-     *  above with the prefix '__'.
-     *  @return An identifier for this instance that is guaranteed to be
-     *   unique within the top-level parent.
+    abstract def ReactorInstance root();
+    
+    /**
+     * Returns the root reactor if it is marked as as main or federated, otherwise null.
+     * @return The main/federated top-level parent.
+     */
+    // TODO check if still needed or can be replaced by root()
+    def ReactorInstance main() {
+        val r = this.root()
+        if (r !== null && r.isMainOrFederated()) {
+            return r
+        }
+        return null
+    }
+    
+        
+    /**
+     * Return an identifier for this instance, which has the form "a_b_c"
+     * or "a_b_c_n", where "c" is the name of this instance, "b" is the name
+     * of its container, and "a" is the name of its container, stopping
+     * at the container in main. All names are converted to lower case.
+     * The suffix _n is usually omitted, but it is possible to get name
+     * collisions using the above scheme, in which case _n will be an
+     * increasing integer until there is no collision.
+     * If the length of the root of the name as calculated above (the root
+     * is without the _n suffix) is longer than
+     * the static variable identifierLengthLimit, then the name will be
+     * truncated. The returned name will be the tail of the name calculated
+     * above with the prefix '__'.
+     * @return An identifier for this instance that is guaranteed to be
+     *  unique within the top-level parent.
      */
     def String uniqueID() {
         if (_uniqueID === null) {
             // Construct the unique ID only if it has not been
             // previously constructed.
             var prefix = getFullNameWithJoiner('_').toLowerCase
+            
+            // Replace all non-alphanumeric (Latin) characters with underscore.
+            prefix = prefix.replaceAll("[^A-Za-z0-9]", "_")
             
             // Truncate, if necessary.
             if (prefix.length > identifierLengthLimit) {
@@ -121,7 +146,7 @@ abstract class NamedInstance<T extends EObject> {
             }
             
             // Ensure uniqueness.
-            var toplevel = main()
+            var toplevel = root()
             if (toplevel._uniqueIDCount === null) {
                 toplevel._uniqueIDCount = new HashMap<String,Integer>()
             }
@@ -142,23 +167,25 @@ abstract class NamedInstance<T extends EObject> {
     //////////////////////////////////////////////////////
     //// Protected fields.
 
-    /** Map from a name of the form a_b_c to the number of
-     *  unique IDs with that prefix that have been already
-     *  assigned. If none have been assigned, then there is
-     *  no entry in this map. This map should be non-null only
-     *  for the main reactor (the top level).
+    /**
+     * Map from a name of the form a_b_c to the number of
+     * unique IDs with that prefix that have been already
+     * assigned. If none have been assigned, then there is
+     * no entry in this map. This map should be non-null only
+     * for the main reactor (the top level).
      */
     protected HashMap<String,Integer> _uniqueIDCount;
 
     //////////////////////////////////////////////////////
     //// Protected methods.
 
-    /** Return a string of the form
-     *  "a.b.c", where "." is replaced by the specified joiner,
-     *  "c" is the name of this instance, "b" is the name
-     *  of its container, and "a" is the name of its container, stopping
-     *  at the container in main.
-     *  @return A string representing this instance.
+    /**
+     * Return a string of the form
+     * "a.b.c", where "." is replaced by the specified joiner,
+     * "c" is the name of this instance, "b" is the name
+     * of its container, and "a" is the name of its container, stopping
+     * at the container in main.
+     * @return A string representing this instance.
      */
     protected def String getFullNameWithJoiner(String joiner) {
         if (this.parent === null) {
@@ -171,8 +198,9 @@ abstract class NamedInstance<T extends EObject> {
     //////////////////////////////////////////////////////
     //// Private fields.
     
-    /** Unique ID for this instance. This is null until
-     *  uniqueID() is called.
+    /**
+     * Unique ID for this instance. This is null until
+     * uniqueID() is called.
      */
     String _uniqueID = null;
 }

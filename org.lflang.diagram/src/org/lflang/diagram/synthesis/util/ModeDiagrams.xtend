@@ -64,6 +64,8 @@ import static org.lflang.diagram.synthesis.LinguaFrancaSynthesis.*
 import static org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.NamedInstance
 
 /**
  * @author als
@@ -95,194 +97,194 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
     @Inject extension UtilityExtensions
     extension KRenderingFactory = KRenderingFactory::eINSTANCE
     
-    def void setMode(KNode node, EObject obj) {
-        if (obj.eContainer instanceof Mode) {
-            node.setProperty(MODE, obj.eContainer as Mode)
-        }
-    }
+//    def void setMode(KNode node, NamedInstance<?> obj) {
+//        if (obj.eContainer instanceof Mode) {
+//            node.setProperty(MODE, obj.eContainer as Mode)
+//        }
+//    }
     
-    def void handleModes(List<KNode> nodes, Reactor reactor) {
-        if (!reactor.modes.empty) {
-            val modeNodes = new LinkedHashMap()
-            for (mode : reactor.modes) {
-                val node = createNode().associateWith(mode)
-                modeNodes.put(mode, node)
-                
-                if (mode.initial) {
-                    node.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
-                }
-                node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
-                
-                // Expanded Rectangle
-                node.addModeFigure(mode, true) => [
-                    setProperty(KlighdProperties.EXPANDED_RENDERING, true)
-                    addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-    
-                    if (SHOW_HYPERLINKS.booleanValue) {
-                        // Collapse button
-                        addTextButton(TEXT_HIDE_ACTION) => [
-                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-                            addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                            addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                        ]
-                    }
-                    
-                    addChildArea()
-                ]
-    
-                // Collapse Rectangle
-                node.addModeFigure(mode, false) => [
-                    setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
-                    if (mode.hasContent) {
-                        addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                    }
-    
-                    if (SHOW_HYPERLINKS.booleanValue) {
-                        // Expand button
-                        if (mode.hasContent) {
-                            addTextButton(TEXT_SHOW_ACTION) => [
-                                setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
-                                addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                                addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                            ]
-                        }
-                    }
-                ]
-            }
-            
-            val modeChildren =  HashMultimap.create
-            for (node : nodes) {
-                modeChildren.put(node.getProperty(MODE), node)
-            }
-            
-            val modeContainer = createNode() => [
-                children += modeNodes.values
-                
-                val fig = addModeContainerFigure
-                if (modeChildren.get(null).empty) {
-                    fig.invisible = true
-                    setLayoutOption(CoreOptions.PADDING, new ElkPadding())
-                }
-                
-                setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
-                setLayoutOption(CoreOptions.EDGE_ROUTING, EdgeRouting.SPLINES)
-                setLayoutOption(CoreOptions.DIRECTION, Direction.DOWN)
-                setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
-            ]
-            val modeContainerPorts = newHashMap()
-            
-            for (mode : reactor.modes.reverseView) {
-                val modeNode = modeNodes.get(mode)
-                val edges = newHashSet
-                // add children
-                for (child : modeChildren.get(mode)) {
-                    nodes.remove(child)
-                    modeNode.children.add(child)
-                    
-                    edges += child.incomingEdges
-                    edges += child.outgoingEdges
-                }
-                // add transitions
-                if (SHOW_TRANSITION_LABELS.booleanValue) {
-                    for (reaction : mode.reactions.reverseView) {
-                        for (targetMode : reaction.effects.map[variable].filter(Mode).toSet) {
-                            createEdge() => [
-                                source = modeNode
-                                target = modeNodes.get(targetMode)
-                                
-                                associateWith(reaction)
-                                addTransitionFigure(reaction)
-                            ]
-                        } 
-                    }
-                } else {
-                    for (targetMode : mode.reactions.reverseView.map[effects].flatten.map[variable].filter(Mode).toSet) {
-                        createEdge() => [
-                            source = modeNode
-                            target = modeNodes.get(targetMode)
-                            addTransitionFigure(null)
-                        ]
-                    }
-                }
-                // handle cross hierarchy edges
-                val portCopies = newHashMap
-                for (edge : edges) {
-                    val sourceNodeMode = edge.source.getProperty(MODE)
-                    val sourceIsInMode = sourceNodeMode !== null && modeNodes.containsKey(sourceNodeMode)
-                    val targetNodeMode = edge.target.getProperty(MODE)
-                    val targetIsInMode = targetNodeMode !== null && modeNodes.containsKey(targetNodeMode)
-                    if (!sourceIsInMode || !targetIsInMode) {
-                        var node = sourceIsInMode ? edge.target : edge.source
-                        var port = sourceIsInMode ? edge.targetPort : edge.sourcePort
-                        val isLocal = modeChildren.get(null).contains(node)
-                        if (isLocal) {
-                            // Add port to mode container
-                            if (modeContainerPorts.containsKey(port)) {
-                                node = modeContainer
-                                port = modeContainerPorts.get(port)
-                            } else {
-                                val containerPort = createPort()
-                                modeContainerPorts.put(port, containerPort)
-                                modeContainer.ports += containerPort
-                                
-                                containerPort.setPortSize(8, 4)
-                                containerPort.addRectangle => [
-                                    background = Colors.BLACK
-                                ]
-                                containerPort.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -4.0)
-                                containerPort.setLayoutOption(CoreOptions.PORT_SIDE, sourceIsInMode ? PortSide.EAST : PortSide.WEST)
-                                
-                                val source = node.sourceElement
-                                val label = switch(source) {
-                                    Action: source.name
-                                    Timer: source.name
-                                    default: ""
-                                }
-                                containerPort.addOutsidePortLabel(label, 8)
-                                
-                                // new connection
-                                val copy = EcoreUtil.copy(edge)
-                                if (sourceIsInMode) {
-                                    copy.source = modeContainer
-                                    copy.sourcePort = containerPort
-                                    copy.target = copy.targetPort.node
-                                } else {
-                                    copy.target = modeContainer
-                                    copy.targetPort = containerPort
-                                    copy.source = copy.sourcePort.node
-                                }
-                                
-                                node = modeContainer
-                                port = containerPort
-                            }
-                        }
-                        // Duplicate port
-                        if (!portCopies.containsKey(port)) {
-                            val copy = EcoreUtil.copy(port)
-                            portCopies.put(port, copy)
-                            
-                            val dummyNode = createNode()
-                            dummyNode.addInvisibleContainerRendering()
-                            dummyNode.ports += copy
-                            dummyNode.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, port.getProperty(CoreOptions.PORT_SIDE) === PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST)
-                            
-                            modeNode.children += dummyNode
-                            // TODO adjust appearance
-                        }
-                        val newPort = portCopies.get(port)
-                        if (sourceIsInMode) {
-                            edge.target = newPort.node
-                            edge.targetPort = newPort
-                        } else {
-                            edge.source = newPort.node
-                            edge.sourcePort = newPort
-                        }
-                    }
-                }
-            }
-            
-            nodes += modeContainer
-        }
+    def void handleModes(List<KNode> nodes, ReactorInstance reactor) {
+//        if (!reactor.modes.empty) {
+//            val modeNodes = new LinkedHashMap()
+//            for (mode : reactor.modes) {
+//                val node = createNode().associateWith(mode)
+//                modeNodes.put(mode, node)
+//                
+//                if (mode.initial) {
+//                    node.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
+//                }
+//                node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
+//                
+//                // Expanded Rectangle
+//                node.addModeFigure(mode, true) => [
+//                    setProperty(KlighdProperties.EXPANDED_RENDERING, true)
+//                    addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+//    
+//                    if (SHOW_HYPERLINKS.booleanValue) {
+//                        // Collapse button
+//                        addTextButton(TEXT_HIDE_ACTION) => [
+//                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
+//                            addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+//                            addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+//                        ]
+//                    }
+//                    
+//                    addChildArea()
+//                ]
+//    
+//                // Collapse Rectangle
+//                node.addModeFigure(mode, false) => [
+//                    setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
+//                    if (mode.hasContent) {
+//                        addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+//                    }
+//    
+//                    if (SHOW_HYPERLINKS.booleanValue) {
+//                        // Expand button
+//                        if (mode.hasContent) {
+//                            addTextButton(TEXT_SHOW_ACTION) => [
+//                                setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
+//                                addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+//                                addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+//                            ]
+//                        }
+//                    }
+//                ]
+//            }
+//            
+//            val modeChildren =  HashMultimap.create
+//            for (node : nodes) {
+//                modeChildren.put(node.getProperty(MODE), node)
+//            }
+//            
+//            val modeContainer = createNode() => [
+//                children += modeNodes.values
+//                
+//                val fig = addModeContainerFigure
+//                if (modeChildren.get(null).empty) {
+//                    fig.invisible = true
+//                    setLayoutOption(CoreOptions.PADDING, new ElkPadding())
+//                }
+//                
+//                setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
+//                setLayoutOption(CoreOptions.EDGE_ROUTING, EdgeRouting.SPLINES)
+//                setLayoutOption(CoreOptions.DIRECTION, Direction.DOWN)
+//                setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
+//            ]
+//            val modeContainerPorts = newHashMap()
+//            
+//            for (mode : reactor.modes.reverseView) {
+//                val modeNode = modeNodes.get(mode)
+//                val edges = newHashSet
+//                // add children
+//                for (child : modeChildren.get(mode)) {
+//                    nodes.remove(child)
+//                    modeNode.children.add(child)
+//                    
+//                    edges += child.incomingEdges
+//                    edges += child.outgoingEdges
+//                }
+//                // add transitions
+//                if (SHOW_TRANSITION_LABELS.booleanValue) {
+//                    for (reaction : mode.reactions.reverseView) {
+//                        for (targetMode : reaction.effects.map[variable].filter(Mode).toSet) {
+//                            createEdge() => [
+//                                source = modeNode
+//                                target = modeNodes.get(targetMode)
+//                                
+//                                associateWith(reaction)
+//                                addTransitionFigure(reaction)
+//                            ]
+//                        } 
+//                    }
+//                } else {
+//                    for (targetMode : mode.reactions.reverseView.map[effects].flatten.map[variable].filter(Mode).toSet) {
+//                        createEdge() => [
+//                            source = modeNode
+//                            target = modeNodes.get(targetMode)
+//                            addTransitionFigure(null)
+//                        ]
+//                    }
+//                }
+//                // handle cross hierarchy edges
+//                val portCopies = newHashMap
+//                for (edge : edges) {
+//                    val sourceNodeMode = edge.source.getProperty(MODE)
+//                    val sourceIsInMode = sourceNodeMode !== null && modeNodes.containsKey(sourceNodeMode)
+//                    val targetNodeMode = edge.target.getProperty(MODE)
+//                    val targetIsInMode = targetNodeMode !== null && modeNodes.containsKey(targetNodeMode)
+//                    if (!sourceIsInMode || !targetIsInMode) {
+//                        var node = sourceIsInMode ? edge.target : edge.source
+//                        var port = sourceIsInMode ? edge.targetPort : edge.sourcePort
+//                        val isLocal = modeChildren.get(null).contains(node)
+//                        if (isLocal) {
+//                            // Add port to mode container
+//                            if (modeContainerPorts.containsKey(port)) {
+//                                node = modeContainer
+//                                port = modeContainerPorts.get(port)
+//                            } else {
+//                                val containerPort = createPort()
+//                                modeContainerPorts.put(port, containerPort)
+//                                modeContainer.ports += containerPort
+//                                
+//                                containerPort.setPortSize(8, 4)
+//                                containerPort.addRectangle => [
+//                                    background = Colors.BLACK
+//                                ]
+//                                containerPort.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -4.0)
+//                                containerPort.setLayoutOption(CoreOptions.PORT_SIDE, sourceIsInMode ? PortSide.EAST : PortSide.WEST)
+//                                
+//                                val source = node.sourceElement
+//                                val label = switch(source) {
+//                                    Action: source.name
+//                                    Timer: source.name
+//                                    default: ""
+//                                }
+//                                containerPort.addOutsidePortLabel(label, 8)
+//                                
+//                                // new connection
+//                                val copy = EcoreUtil.copy(edge)
+//                                if (sourceIsInMode) {
+//                                    copy.source = modeContainer
+//                                    copy.sourcePort = containerPort
+//                                    copy.target = copy.targetPort.node
+//                                } else {
+//                                    copy.target = modeContainer
+//                                    copy.targetPort = containerPort
+//                                    copy.source = copy.sourcePort.node
+//                                }
+//                                
+//                                node = modeContainer
+//                                port = containerPort
+//                            }
+//                        }
+//                        // Duplicate port
+//                        if (!portCopies.containsKey(port)) {
+//                            val copy = EcoreUtil.copy(port)
+//                            portCopies.put(port, copy)
+//                            
+//                            val dummyNode = createNode()
+//                            dummyNode.addInvisibleContainerRendering()
+//                            dummyNode.ports += copy
+//                            dummyNode.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, port.getProperty(CoreOptions.PORT_SIDE) === PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST)
+//                            
+//                            modeNode.children += dummyNode
+//                            // TODO adjust appearance
+//                        }
+//                        val newPort = portCopies.get(port)
+//                        if (sourceIsInMode) {
+//                            edge.target = newPort.node
+//                            edge.targetPort = newPort
+//                        } else {
+//                            edge.source = newPort.node
+//                            edge.sourcePort = newPort
+//                        }
+//                    }
+//                }
+//            }
+//            
+//            nodes += modeContainer
+//        }
     }
     
     def hasContent(Mode mode) {

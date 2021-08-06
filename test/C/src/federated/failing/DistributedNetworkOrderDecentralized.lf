@@ -1,0 +1,69 @@
+/*
+ * This is a test for send_timed_message,
+ * which is an internal API.
+ * This version of the test uses the
+ * decentralized coordination.
+ * 
+ * FIXME: Because this test sends messages with intended tag
+ *  out of order, it will fail.
+ * 
+ * @author Soroush Bateni
+ */
+
+target C {
+    timeout: 1 sec,
+    coordination: decentralized
+};
+
+reactor Sender {
+    output out:int;
+    timer t(0, 1 msec);
+    reaction(t) {=
+        int payload = 1;
+        if (get_elapsed_logical_time() == 0LL) {
+            send_timed_message(MSEC(10), MSG_TYPE_P2P_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
+                                (unsigned char*)&payload);
+        } else if (get_elapsed_logical_time() == MSEC(5)) {
+            payload = 2;
+            send_timed_message(MSEC(5), MSG_TYPE_P2P_TAGGED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
+                                (unsigned char*)&payload);
+        }
+    =}
+}
+
+reactor Receiver {
+    input in:int;
+    state success:int(0);
+    
+    reaction(in) {=
+        tag_t current_tag = get_current_tag();
+        if (current_tag.time == (start_time + MSEC(10))) {
+            if (current_tag.microstep == 0 && in->value == 1) {
+                self->success++;
+            } else if (current_tag.microstep == 1 && in->value == 2) {
+                self->success++;
+            }
+        }
+        printf("Received %d at tag (%lld, %u) with intended tag (%lld, %u).\n",
+               in->value,
+               get_elapsed_logical_time(),
+               get_microstep(),
+               in->intended_tag.time - get_start_time(),
+               in->intended_tag.microstep);
+    =}
+    
+    reaction(shutdown) {=
+        if (self->success != 2) {
+            fprintf(stderr, "ERROR: Failed to receive messages.\n");
+            exit(1);
+        }
+        printf("SUCCESS.\n");
+    =}
+}
+
+federated reactor {
+    sender = new Sender();
+    receiver = new Receiver();
+    
+    sender.out -> receiver.in;
+}

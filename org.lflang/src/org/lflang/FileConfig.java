@@ -3,18 +3,29 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
+import org.eclipse.xtext.util.RuntimeIOException;
+
 import org.lflang.generator.StandaloneContext;
 import org.lflang.lf.Reactor;
 
@@ -51,34 +62,39 @@ public class FileConfig {
      * the name of its corresponding distribution script.
      */
     public final static String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
-    
+
+
     // Public fields.
-    
+
     /**
      * The directory in which to put binaries, if the code generator produces any.
      */
     public final Path binPath;
-    
+
     /**
      * Object for abstract file system access.
      */
     public final IFileSystemAccess2 fsa;
-    
+
     /**
      * Object used for communication between the IDE or stand-alone compiler
      * and the code generator.
      */
     public final IGeneratorContext context;
-    
+
     /**
      * The name of the main reactor, which has to match the file name (without
      * the '.lf' extension).
      */
     public final String name;
-    
+
     /**
-     * The directory that is the root of the package in which the source
-     * file resides.
+     * The directory that is the root of the package in which the .lf source file resides. This path is determined
+     * differently depending on whether the compiler is invoked through the IDE or from the command line. In the former
+     * case, the package is the project root that the source resides in. In the latter case, it is the parent directory
+     * of the nearest `src` directory up the hierarchy, if there is one, or just the `outPath` if there is none. It is
+     * recommended to always keep the sources in a `src` directory regardless of the workflow, in which case the
+     * output behavior will be identical irrespective of the way the compiler is invoked.
      */
     public final Path srcPkgPath;
 
@@ -88,33 +104,34 @@ public class FileConfig {
      * from the XText view of the file and the OS view of the file.
      */
     public final Resource resource;
-    
+
+    /**
+     * If running in an Eclipse IDE, the iResource refers to the
+     * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
+     */
+    public final IResource iResource;
+
     /**
      * The full path to the file containing the .lf file including the
      * full filename with the .lf extension.
      */
-    public final File srcFile;
+    public final Path srcFile;
 
     /**
-     * The directory in which the source file was found.
+     * The directory in which the source .lf file was found.
      */
     public final Path srcPath;
-    
+
     // Protected fields.
-    
-    /**
-     * The parent of the specified directory for generated sources. Additional
-     * directories created during the build process should be created relative
-     * to this path.
-     */
-    protected Path outPath;
-   
+
     /**
      * Path representation of srcGenRoot, the root directory for generated
      * sources.
      */
     protected Path srcGenBasePath;
-    
+
     /**
      * The directory in which to put the generated sources.
      * This takes into account the location of the source file relative to the
@@ -122,61 +139,153 @@ public class FileConfig {
      * to the package root, then the generated sources will be put in x/y/Z
      * relative to srcGenBasePath.
      */
-    protected Path srcGenPath;
-    
+    private Path srcGenPath;
+
+    // private fields
+
+    /**
+     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
+     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
+     * which means that such directories should be created relative to the path assigned to this class variable.
+     *
+     * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
+     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     */
+    private final Path outPath;
+
     /**
      * The directory that denotes the root of the package to which the
      * generated sources belong. Even if the target language does not have a
-     * notion of packages, this directory groups all files associated with a 
+     * notion of packages, this directory groups all files associated with a
      * single main reactor.
      * of packages.
      */
-    protected Path srcGenPkgPath;
-    
-    // Protected fields.
-    
-    /**
-     * URI representation of the directory that is the parent of the specified
-     * directory in which to store generated sources.
-     */
-    protected final URI outputRoot;
+    private final Path srcGenPkgPath;
 
-    /**
-     * URI representation of the directory in which to store generated sources.
-     * This is the root, meaning that if the source file is x/y/Z.lf relative
-     * to the package root, then the generated sources will be put in x/y/Z
-     * relative to this URI.
-     */
-    protected final URI srcGenRoot;
-    
+
     public FileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
         this.resource = resource;
         this.fsa = fsa;
         this.context = context;
-        
-        this.srcFile = toPath(this.resource).toFile();
-        
-        this.srcPath = srcFile.toPath().getParent();
+
+        this.srcFile = toPath(this.resource);
+
+        this.srcPath = srcFile.getParent();
         this.srcPkgPath = getPkgPath(resource, context);
-        
-        this.srcGenRoot = getSrcGenRoot(fsa);
-        this.srcGenBasePath = toPath(this.srcGenRoot);
-        this.outputRoot = getOutputRoot(this.srcGenRoot);
+
+        this.srcGenBasePath = toPath(getSrcGenRoot(fsa));
         this.name = nameWithoutExtension(this.srcFile);
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = toPath(this.outputRoot);
+        this.outPath = getOutputRoot(srcGenBasePath);
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
+        this.iResource = getIResource(resource);
+    }
+/**
+     * A copy constructor for FileConfig objects. Children of this class can
+     * use this constructor to obtain a copy of a parent object.
+     *
+     * @param fileConfig An object of FileConfig
+     * @throws IOException
+     */
+    protected FileConfig(FileConfig fileConfig) throws IOException {
+        this.resource = fileConfig.resource;
+        this.fsa = fileConfig.fsa;
+        this.context = fileConfig.context;
+
+        this.srcFile = fileConfig.srcFile;
+
+        this.srcPath = srcFile.getParent();
+        this.srcPkgPath = fileConfig.srcPkgPath;
+
+        this.srcGenBasePath = fileConfig.srcGenBasePath;
+        this.name = nameWithoutExtension(this.srcFile);
+        this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
+                this.srcPath, name);
+        this.srcGenPkgPath = this.srcGenPath;
+        this.outPath = getOutputRoot(srcGenBasePath);
+        this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
+        this.iResource = getIResource(resource);
+    }
+
+    // Getters to be overridden in derived classes.
+
+    protected void setSrcGenPath(Path srcGenPath) {
+        this.srcGenPath = srcGenPath;
+    }
+
+
+    /**
+     * Get the iResource corresponding to the provided resource if it can be
+     * found.
+     * @throws IOException
+     */
+    public IResource getIResource(Resource r) throws IOException {
+        IResource iResource = null;
+        java.net.URI uri = toPath(r).toFile().toURI();
+        if (r.getURI().isPlatform()) {
+            IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+            if (uri != null) {
+                 IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+                 if (files != null && files.length > 0 && files[0] != null) {
+                     iResource = files[0];
+                 }
+            }
+        } else {
+            // FIXME: find the iResource outside Eclipse
+        }
+        return iResource;
     }
     
-    // Getters to be overridden in derived classes.
+    /**
+     * Get the specified path as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * 
+     */
+    public IResource getIResource(Path path) {
+        return getIResource(path.toUri());
+    }
     
+    /**
+     * Get the specified path as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * 
+     */
+    public IResource getIResource(File file) {
+        return getIResource(file.toURI());
+    }
+    
+    /**
+     * Get the specified uri as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
+     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * files by referring to their file system location. Instead, you have to refer
+     * to them relative the workspace root. This is required, for example, when marking
+     * the file with errors or warnings or when deleting those marks. 
+     * 
+     * @param uri A java.net.uri of the form "file://path".
+     */
+    public IResource getIResource(java.net.URI uri) {
+        IResource resource = iResource; // Default resource.
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+         
+        IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+        if (files != null && files.length > 0 && files[0] != null) {
+            resource = files[0];
+        }
+        return resource;
+    }
+
     /** 
      * Get the file name of a resource without file extension
      */
     public static String getName(Resource r) throws IOException {
-        return nameWithoutExtension(toPath(r).toFile());
+        return nameWithoutExtension(toPath(r));
     }
     
     /**
@@ -185,20 +294,47 @@ public class FileConfig {
     public Path getDirectory(Resource r) throws IOException {
         return getSubPkgPath(this.srcPkgPath, toPath(r).getParent());
     }
-    
+
+    /**
+     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
+     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
+     * which means that such directories should be created relative to the path assigned to this class variable.
+     *
+     * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
+     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     */
     public Path getOutPath() {
         return outPath;
     }
- 
+
+    /**
+     * The directory in which to put the generated sources.
+     * This takes into account the location of the source file relative to the
+     * package root. Specifically, if the source file is x/y/Z.lf relative
+     * to the package root, then the generated sources will be put in x/y/Z
+     * relative to srcGenBasePath.
+     */
     public Path getSrcGenPath() {
         return srcGenPath;
     }
 
-    
+
+    /**
+     * Path representation of srcGenRoot, the root directory for generated
+     * sources. This is the root, meaning that if the source file is x/y/Z.lf
+     * relative to the package root, then the generated sources will be put in x/y/Z
+     * relative to this URI.
+     */
     public Path getSrcGenBasePath() {
         return srcGenBasePath;
     }
 
+    /**
+     * The directory that denotes the root of the package to which the
+     * generated sources belong. Even if the target language does not have a
+     * notion of packages, this directory groups all files associated with a
+     * single main reactor.
+     */
     public Path getSrcGenPkgPath() {
         return srcGenPkgPath;
     }
@@ -210,19 +346,19 @@ public class FileConfig {
     public Path getRTISrcPath() {
         return this.srcGenPath;
     }
-    
+
     /**
-     * Return the directory in which to put the generated binaries for the 
+     * Return the directory in which to put the generated binaries for the
      * RTI. By default, this is the same as the regular src-gen directory.
      */
     public Path getRTIBinPath() {
         return this.binPath;
     }
 
-    private static URI getOutputRoot(URI srcGenRoot) {
-        return URI.createURI(".").resolve(srcGenRoot);
+    private static Path getOutputRoot(Path srcGenRoot) {
+        return Paths.get(".").resolve(srcGenRoot);
     }
-    
+
     /**
      * Return the output directory for generated binary files.
      */
@@ -250,7 +386,7 @@ public class FileConfig {
         return srcGenURI;
     }
     
-    private static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
+    protected static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
             Path srcPath, String name) throws IOException {
         return srcGenRootPath.resolve(getSubPkgPath(pkgPath, srcPath)).resolve(name);
     }
@@ -265,7 +401,7 @@ public class FileConfig {
      * @param srcPath The path to the source.
      * @return
      */
-    private static Path getSubPkgPath(Path pkgPath, Path srcPath) {
+    protected static Path getSubPkgPath(Path pkgPath, Path srcPath) {
         Path relSrcPath = pkgPath.relativize(srcPath);
         if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
             int segments = relSrcPath.getNameCount(); 
@@ -277,13 +413,110 @@ public class FileConfig {
         }
         return relSrcPath;
     }
-    
-    public void createDirectories() {
-        // FIXME
+
+    /**
+     * Copy a given directory from 'src' to 'dest'.
+     *
+     * @param src The source directory path.
+     * @param dest The destination directory path.
+     * @throws IOException if copy fails.
+     */
+    public static void copyDirectory(Path src, Path dest) throws IOException {
+        try (Stream<Path> stream = Files.walk(src)) {
+            stream.forEach(source -> {
+                // Handling checked exceptions in lambda expressions is
+                // hard. See
+                // https://www.baeldung.com/java-lambda-exceptions#handling-checked-exceptions.
+                // An alternative would be to create a custom Consumer interface and use that
+                // here.
+                try {
+                    copyFile(source, dest.resolve(src.relativize(source)));
+                } catch (IOException e) {
+                    throw new RuntimeIOException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
-    
-    
-    
+
+    /**
+     * Copy a given file from 'src' to 'dest'.
+     *
+     * @param source The source file path string.
+     * @param dest The destination file path string.
+     * @throws IOException if copy fails.
+     */
+    public static void copyFile(String src, String dest)  throws IOException {
+        try {
+            copyFile(Paths.get(src), Paths.get(dest));
+        } catch (IOException e) {
+            throw e;
+        }
+    }
+
+    /**
+     * Copy a given file from 'src' to 'dest'.
+     *
+     * @param source The source file path.
+     * @param dest The destination file path.
+     * @throws IOException if copy fails.
+     */
+    public static void copyFile(Path src, Path dest)  throws IOException {
+        try {
+            Files.copy(src, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw e;
+        }
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    public void cleanIfNeeded() {
+        if (context instanceof StandaloneContext) {
+            if (((StandaloneContext) context).getArgs().containsKey("clean")) {
+                try {
+                    doClean();
+                } catch (IOException e) {
+                    System.err.println("WARNING: IO Error during clean");
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively delete a directory if it exists.
+     * 
+     * @throws IOException
+     */
+    public void deleteDirectory(Path dir) throws IOException {
+        if (Files.isDirectory(dir)) {
+            System.out.println("Cleaning " + dir.toString());
+            List<Path> pathsToDelete = Files.walk(dir)
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+            for (Path path : pathsToDelete) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    /**
+     * Clean any artifacts produced by the code generator and target compilers.
+     * 
+     * The base implementation deletes the bin and src-gen directories. If the
+     * target code generator creates additional files or directories, the
+     * corresponding generator should override this method.
+     * 
+     * @throws IOException
+     */
+    public void doClean() throws IOException {
+        deleteDirectory(binPath);
+        deleteDirectory(srcGenBasePath);
+    }
+ 
     /**
      * Remove files in the bin directory that may have been created.
      * Call this if a compilation occurs so that files from a previous
@@ -319,18 +552,10 @@ public class FileConfig {
         }
     }
     
-    public static String nameWithoutExtension(File file) {
-        String name = file.getName();
-        String[] tokens = name.split("\\.");
-        if (tokens.length < 3) {
-            return tokens[0];
-        } else {
-            StringBuffer s = new StringBuffer();
-            for (int i=0; i < tokens.length -1; i++) {
-                s.append(tokens[i]);
-            }
-            return s.toString();
-        }
+    public static String nameWithoutExtension(Path file) {
+        String name = file.getFileName().toString();
+        int idx = name.lastIndexOf('.');
+        return idx < 0 ? name : name.substring(0, idx);
     }
     
     private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
@@ -401,9 +626,9 @@ public class FileConfig {
      * @param filename String representation of the filename to search for.
      * @param directory String representation of the director to search in.
      */
-    public static boolean fileExists(String filename, String directory) {
+    public static boolean fileExists(String filename, Path directory) {
         // Make sure the file exists and issue a warning if not.
-        File file = findFile(filename, directory);
+        Path file = findFile(filename, directory);
         if (file == null) {
             // See if it can be found as a resource.
             InputStream stream = FileConfig.class.getResourceAsStream(filename);
@@ -423,7 +648,7 @@ public class FileConfig {
     }
 
     /**
-     * Search for a given file name in the current directory.
+     * Search for a given file name in the given directory.
      * If not found, search in directories in LF_CLASSPATH.
      * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
      * if it is defined.
@@ -434,13 +659,13 @@ public class FileConfig {
      * @param directory String representation of the director to search in.
      * @return A Java file or null if not found
      */
-     public static File findFile(String fileName, String directory) {
-
-        File foundFile;
+     public static Path findFile(String fileName, Path directory) {
+        Path foundFile;
 
         // Check in local directory
-        foundFile = new File(directory, fileName);
-        if (foundFile.exists() && foundFile.isFile()) {
+
+        foundFile = directory.resolve(fileName);
+        if (Files.isRegularFile(foundFile)) {
             return foundFile;
         }
 
@@ -453,8 +678,8 @@ public class FileConfig {
         if (classpathLF != null) {
             String[] paths = classpathLF.split(System.getProperty("path.separator"));
             for (String path : paths) {
-                foundFile = new File(path, fileName);
-                if (foundFile.exists() && foundFile.isFile()) {
+                foundFile = Paths.get(path).resolve(fileName);
+                if (Files.isRegularFile(foundFile)) {
                     return foundFile;
                 }
             }
@@ -488,6 +713,26 @@ public class FileConfig {
      }
      
      public static String nameWithoutExtension(Resource r) throws IOException {
-         return nameWithoutExtension(toPath(r.getURI()).toFile());
+         return nameWithoutExtension(toPath(r));
+     }
+     
+     /**
+      * Determine which mode the compiler is running in.
+      * Integrated mode means that it is running within an Eclipse IDE.
+      * Standalone mode means that it is running on the command line.
+      * 
+      * FIXME: Not sure if that us the right place for this function. But
+      *  the decision which mode we are in depends on a file (the resource),
+      *  thus it seems to fit here.
+      */
+     public Mode getCompilerMode() {
+         if (resource.getURI().isPlatform()) {
+             return Mode.INTEGRATED;
+         } else if (resource.getURI().isFile()) {
+             return Mode.STANDALONE;
+         } else {
+             System.err.println("ERROR: Source file protocol is not recognized: " + resource.getURI());
+             return Mode.UNDEFINED;
+         }
      }
 }

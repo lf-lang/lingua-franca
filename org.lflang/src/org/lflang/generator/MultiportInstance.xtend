@@ -25,13 +25,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.generator
 
-import java.util.ArrayList
+import java.util.LinkedHashSet
+import org.eclipse.xtend.lib.annotations.Accessors
+import org.lflang.ErrorReporter
 import org.lflang.lf.Port
 
-/** Representation of a runtime instance of a multiport.
- *  This contains an array of ports.
+/**
+ * Representation of a runtime instance of a multiport.
+ * This contains an array of ports.
  *  
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class MultiportInstance extends PortInstance {
             
@@ -39,9 +42,9 @@ class MultiportInstance extends PortInstance {
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent.
-     *  @param generator The generator (for error reporting).
+     *  @param errorReporter The error reporter.
      */
-    new(Port definition, ReactorInstance parent, GeneratorBase generator) {
+    new(Port definition, ReactorInstance parent, ErrorReporter reporter) {
         super(definition, parent)
         
         if (definition.widthSpec === null) {
@@ -49,7 +52,7 @@ class MultiportInstance extends PortInstance {
         }
         
         if (definition.widthSpec.ofVariableLength) {
-            generator.reportError(definition,
+            reporter.reportError(definition,
                     "Variable-width multiports not supported (yet): " + definition.name)
             return
         }
@@ -64,10 +67,10 @@ class MultiportInstance extends PortInstance {
                     // This could throw NumberFormatException
                     width += parameterValue
                 } else {
-                    generator.reportError(definition,
-                        "Width of a multiport must be given as an integer. It is: "
-                        + parameterValue
+                    reporter.reportWarning(definition,
+                        "Width of a multiport cannot be determined. Assuming 1."
                     )
+                    width += 1
                 }
             } else {
                 width += term.width
@@ -86,6 +89,25 @@ class MultiportInstance extends PortInstance {
         }
     }
     
+    /////////////////////////////////////////////
+    //// Public Fields
+
+    /** The array of instances. */
+    @Accessors(PUBLIC_GETTER)
+    val instances = new LinkedHashSet<PortInstance>()
+
+    /////////////////////////////////////////////
+    //// Public Methods
+
+    /**
+     * Return the list of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    override dependsOnPorts() {
+        return instances;
+    }
+    
     /**
      * Return the specified port instance in this multiport.
      */
@@ -102,10 +124,4 @@ class MultiportInstance extends PortInstance {
     def getWidth() {
         instances.size
     }
-        
-    /////////////////////////////////////////////
-    //// Public Fields
-
-    /** The array of instances. */ 
-    public val instances = new ArrayList<PortInstance>()
 }

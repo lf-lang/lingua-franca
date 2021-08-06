@@ -29,15 +29,14 @@ import java.util.LinkedHashSet
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
-import org.lflang.lf.Variable
 
 /** Representation of a runtime instance of a port.
  *  
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class PortInstance extends TriggerInstance<Variable> {
-        
+class PortInstance extends TriggerInstance<Port> {
+
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
@@ -71,16 +70,29 @@ class PortInstance extends TriggerInstance<Variable> {
 
     /** Set of port instances that receive messages from this port. */
     public LinkedHashSet<PortInstance> dependentPorts = new LinkedHashSet<PortInstance>();
-        
-    /** Port that sends messages to this port, if there is one. */
-    public PortInstance dependsOnPort = null;
-        
+
     /////////////////////////////////////////////
     //// Public Methods
     
-    /** Override the base class to append [index] if this port
-     *  is a multiport instance.
-     *  @return The full name of this instance.
+    /**
+     * Return the list of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    def LinkedHashSet<PortInstance> dependsOnPorts() {
+        if (_dependsOnPorts === null) {
+            _dependsOnPorts = new LinkedHashSet<PortInstance>();
+            if (dependsOnPort !== null) {
+                _dependsOnPorts.add(dependsOnPort);
+            }
+        }
+        return _dependsOnPorts;
+    }
+    
+    /** 
+     * Override the base class to append [index] if this port
+     * is a multiport instance.
+     * @return The full name of this instance.
      */
     override String getFullName() {
         var result = super.getFullName()
@@ -98,6 +110,14 @@ class PortInstance extends TriggerInstance<Variable> {
     def multiportIndex() {
         return this.index
     }
+    
+    /**
+     * Return the multiport parent if this port is an instance
+     * within a multiport, and return null otherwise.
+     */
+     def multiportParent() {
+         return multiport
+     }
     
     /** Return true if the port is an input. */
     def isInput() {
@@ -133,15 +153,30 @@ class PortInstance extends TriggerInstance<Variable> {
     /////////////////////////////////////////////
     //// Protected Fields
 
+    /** Port that sends messages to this port, if there is one. */
+    protected PortInstance dependsOnPort = null;
+    def PortInstance getDependsOnPort() { return this.dependsOnPort; }
+        
     /** 
      * The index in a multiport array or -1 if this port is not in
      * a multiport array.
      */
-    protected int index
+    protected final int index
     
     /**
      * The enclosing MultiportInstance or null if this is not in a
      * multiport.
      */
     protected MultiportInstance multiport = null
+    def MultiportInstance getMultiportInstance() { return this.multiport; }
+
+    /////////////////////////////////////////////
+    //// Private Fields
+
+    /**
+     * List of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    LinkedHashSet<PortInstance> _dependsOnPorts
 }

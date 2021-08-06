@@ -145,21 +145,21 @@ for (( i=0; i<$entries; i++ )); do \
             # In the beginning
             !i++{
                 # Remove the , in the number
-                gsub(/,/,"",$7);
+                gsub(/,/,"",$9);
                 # And set initial values of min and max
-                min=$7+0;
-                max=$7+0;
+                min=$9+0;
+                max=$9+0;
             }
             # Then
             {
                 # Remove the , in the number
-                gsub(/,/,"",$7);
+                gsub(/,/,"",$9);
                 # Add numbers in each row to sum
-                sum+=$7;
+                sum+=$9;
                 # Calculate new min
-                min=($7+0<=0+min) ? $7:min;
+                min=($9+0<=0+min) ? $9:min;
                 # Calculate new max
-                max=($7+0>=0+max) ? $7:max;
+                max=($9+0>=0+max) ? $9:max;
             }
             # Print the results in the output
             END {
@@ -170,10 +170,10 @@ for (( i=0; i<$entries; i++ )); do \
         awk '
             {
                 # Remove the , in the number
-                gsub(/,/,"",$7);
+                gsub(/,/,"",$9);
                 # Store the physical execution time in result
                 # for each row
-                result[NR]=$7+0;
+                result[NR]=$9+0;
             }
             END {
                 if (NR % 2) {

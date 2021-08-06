@@ -32,18 +32,17 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.xtend.lib.annotations.Data
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.Timer
+import org.lflang.TimeValue
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment
 import org.lflang.diagram.synthesis.util.UtilityExtensions
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.TimerInstance
 
 import static org.lflang.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import static extension org.lflang.ASTUtils.*
 
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
@@ -76,7 +75,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the main reactor frame.
 	 */
-	def addMainReactorFigure(KNode node, Reactor reactor, String text) {
+	def addMainReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
 		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
@@ -99,14 +98,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 					underlineSelectionStyle
 				]
 				
-				if (reactor.federated) {
+				if (reactorInstance.reactorDefinition.federated) {
 					addCloudIcon() => [
 						setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
 					]
 					placement.numColumns = 2
 					
-					if (reactor.host !== null && SHOW_REACTOR_HOST.booleanValue) {
-						addText(reactor.host.toText()) => [
+					if (reactorInstance.reactorDefinition.host !== null && SHOW_REACTOR_HOST.booleanValue) {
+						addText(reactorInstance.reactorDefinition.host.toText()) => [
 							suppressSelectability
 							underlineSelectionStyle
 							setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
@@ -123,7 +122,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reactor node
 	 */
-	def ReactorFigureComponents addReactorFigure(KNode node, Reactor reactor, Instantiation instance, String text) {
+	def ReactorFigureComponents addReactorFigure(KNode node, ReactorInstance reactorInstance, String text) {
 		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val style = [ KRoundedRectangle r |
             r.lineWidth = 1
@@ -143,7 +142,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 		figure.addRectangle() => [
 			invisible = true
-			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, reactor.hasContent ? 4 : padding, 0)
+			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, reactorInstance.hasContent ? 4 : padding, 0)
 			
 			addRectangle() => [ // Centered child container
 				invisible = true
@@ -155,14 +154,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 					underlineSelectionStyle
 				]
 				
-				if (instance !== null && instance.host !== null) {
+				if (!reactorInstance.isRoot && reactorInstance.definition.host !== null) {
 					addCloudUploadIcon() => [
 						setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
 					]
 					placement.numColumns = 2
 					
 					if (SHOW_REACTOR_HOST.booleanValue) {
-						addText(instance.host.toText()) => [
+						addText(reactorInstance.definition.host.toText()) => [
 							suppressSelectability
 							underlineSelectionStyle
 							setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
@@ -173,10 +172,11 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			]
 		]
 		
-        if (instance.isBank()) {
+        if (reactorInstance.isBank()) {
             val bank = newArrayList
             val container = node.addInvisibleContainerRendering => [
-                val bankWidth = instance.widthSpec.width
+                // TODO handle unresolved width
+                val bankWidth = reactorInstance.bankSize//instance.widthSpec.width
                 addRoundedRectangle(8, 8, 1) => [
                     style.apply(it)
                     setAreaPlacementData().from(LEFT, BANK_FIGURE_X_OFFSET_SUM, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
@@ -204,12 +204,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 addRectangle() => [
                     invisible = true
                     setAreaPlacementData().from(LEFT, 12, 0, BOTTOM, 9, 0).to(RIGHT, 6, 0, BOTTOM, 0.5f, 0)
-                    addText(instance.widthSpec.toText) => [
+                    // TODO handle unresolved width
+                    // addText(instance.widthSpec.toText) => [
+                    addText(Integer.toString(reactorInstance.bankSize)) => [
                         horizontalAlignment = HorizontalAlignment.LEFT
                         verticalAlignment = VerticalAlignment.BOTTOM
                         fontSize = 6
                         noSelectionStyle
-                        associateWith(instance.widthSpec)
+                        associateWith(reactorInstance.definition.widthSpec)
                     ]
                 ]
             ]
@@ -223,9 +225,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reaction node
 	 */
-	def addReactionFigure(KNode node, Reaction reaction, Integer priority) {
+	def addReactionFigure(KNode node, ReactionInstance reaction, Integer priority) {
 		val minHeight = 22
 		val minWidth = 45
+		val reactor = reaction.parent
 		node.setMinimalNodeSize(minWidth, minHeight)
 		
 		val baseShape = node.addPolygon() => [
@@ -265,9 +268,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 
 		// optional code content
-		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.body.nullOrEmpty
+		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.code.body.nullOrEmpty
 		if (hasCode) {
-			contentContainer.addText(reaction.code.trimCode) => [
+			contentContainer.addText(reaction.definition.code.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
 				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
@@ -278,8 +281,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			]
 		}
 		
-		if (reaction.deadline !== null) {
-			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.deadline.code.body.nullOrEmpty
+		// TODO improve default check
+		if (reaction.declaredDeadline !== null) {
+			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.deadline.code.body.nullOrEmpty
 			if (hasCode || hasDeadlineCode) {
 				contentContainer.addHorizontalLine(0) => [
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 3, 0).to(RIGHT, 5, 0, BOTTOM, 6, 0)
@@ -294,8 +298,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			labelContainer.addStopwatchFigure() => [
 				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
 			]
-			labelContainer.addText(reaction.deadline.delay.toText) => [
-				associateWith(reaction.deadline.delay)
+			labelContainer.addText(reaction.declaredDeadline.maxDelay.toString) => [
+				associateWith(reaction.definition.deadline.delay)
 				foreground = Colors.BROWN
 				fontBold = true
 				fontSize = 7
@@ -305,7 +309,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (hasDeadlineCode) {
-				contentContainer.addText(reaction.deadline.code.trimCode) => [
+				contentContainer.addText(reaction.definition.deadline.code.trimCode) => [
 					associateWith(reaction.deadline)
 					foreground = Colors.BROWN
 					fontSize = 6
@@ -367,7 +371,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a timer node
 	 */
-	def addTimerFigure(KNode node, Timer timer) {
+	def addTimerFigure(KNode node, TimerInstance timer) {
 		node.setMinimalNodeSize(30, 30)
 		
 		val figure = node.addEllipse => [
@@ -386,11 +390,11 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		).boldLineSelectionStyle
 		
 		val labelParts = newArrayList
-		if (timer.offset !== null) {
-			labelParts += timer.offset.toText
+		if (timer.offset !== TimerInstance.DEFAULT_OFFSET) {
+			labelParts += timer.offset.toString
 		}
-		if (timer.period !== null) {
-			labelParts += timer.period.toText
+		if (timer.period !== TimerInstance.DEFAULT_PERIOD) {
+			labelParts += timer.period.toString
 		}
 		if (!labelParts.empty) {
 			node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)
