@@ -292,21 +292,20 @@ void* pqueue_peek(pqueue_t *q) {
     return d;
 }
 
-void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
+void pqueue_dump(pqueue_t *q, pqueue_print_entry_f print) {
     size_t i;
 
-    fprintf(stdout,"posn\tleft\tright\tparent\tmaxchild\t...\n");
+    DEBUG_PRINT("posn\tleft\tright\tparent\tmaxchild\t...");
     for (i = 1; i < q->size ;i++) {
-        fprintf(stdout,
-                "%zu\t%zu\t%zu\t%zu\t%ul\t",
+        DEBUG_PRINT("%zu\t%zu\t%zu\t%zu\t%ul\t",
                 i,
                 LF_LEFT(i), LF_RIGHT(i), LF_PARENT(i),
                 (unsigned int)maxchild(q, i));
-        print(out, q->d[i]);
+        print(q->d[i]);
     }
 }
 
-void pqueue_print(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
+void pqueue_print(pqueue_t *q, pqueue_print_entry_f print) {
     pqueue_t *dup;
 	void *e;
 
@@ -320,10 +319,11 @@ void pqueue_print(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
     memcpy(dup->d, q->d, (q->size * sizeof(void *)));
 
     while ((e = pqueue_pop(dup)))
-		print(out, e);
+		print(e);
 
     pqueue_free(dup);
 }
+
 
 static int subtree_is_valid(pqueue_t *q, int pos) {
     if (pos < 0) {

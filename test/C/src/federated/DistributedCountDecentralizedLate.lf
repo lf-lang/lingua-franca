@@ -6,6 +6,7 @@
  * @author Soroush Bateni
  */
 target C {
+    flags: ["-g"],
     timeout: 4900 msec,
     coordination: decentralized
 };
@@ -13,9 +14,10 @@ target C {
 import Count from "../lib/Count.lf";
 
 reactor Print {
-    input in:int;
+    input in:int; // STP ()
+    // STP(in, 30 msec);
     state success:int(0);
-    state success_tardy:int(0);
+    state success_stp_violation:int(0);
     timer t(0, 10 usec); // Force a timer to be invoke periodically
                          // to ensure logical time will advance in the
                          // absence of incoming messages.
@@ -33,13 +35,13 @@ reactor Print {
             self->success++; // Message was on-time
         }
         self->c++;
-    =} tardy {=
+    =} STP (0) {=
         tag_t current_tag = get_current_tag();
-        printf("At tag (%lld, %u), message is tardy by (%lld, %u).\n",
+        printf("At tag (%lld, %u), message has violated the STP offset by (%lld, %u).\n",
                 current_tag.time - start_time, current_tag.microstep,
 	            current_tag.time - in->intended_tag.time,
 	            current_tag.microstep - in->intended_tag.microstep);
-        self->success_tardy++;
+        self->success_stp_violation++;
         self->c++;
     =}
     reaction(t) {=
@@ -47,11 +49,11 @@ reactor Print {
     =}
     
     reaction(shutdown) {=
-        if ((self->success +  self->success_tardy) != 5) {
-            fprintf(stderr, "Failed to detect tardiness of messages.\n");
+        if ((self->success +  self->success_stp_violation) != 5) {
+            fprintf(stderr, "Failed to detect STP violations in messages.\n");
             exit(1);
         } else {
-            printf("Successfully detected tardiness (%d tardy, %d on-time).\n", self->success_tardy, self->success);
+            printf("Successfully detected STP violation (%d violations, %d on-time).\n", self->success_stp_violation, self->success);
         }
     =}
 }

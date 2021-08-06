@@ -1,0 +1,153 @@
+/**
+ * Model of a smart intersection with a road-side unit (RSU)
+ * that regulates the flow of automated vehicles through the
+ * intersection. Vehicles that are approaching the intersection
+ * send an initial message to the RSU with their speed and
+ * distance to the intersection. The RSU responds with a
+ * reservation for when the vehicle can enter the intersection
+ * and what its average speed through the intersection should be.
+ * 
+ * This is meant as a supervisory controller, and it assumes that
+ * the vehicle is equipped with a low-level controller (or a human)
+ * that is responsible for lane keeping, collision avoidance, etc.
+ * 
+ * This is a very rough starting point that needs a lot of work.
+ */
+target C {
+    timeout: 5 sec
+}
+
+preamble {=
+    typedef struct {
+        double speed;
+        double distance;
+    } request_message_t;
+    
+    typedef struct {
+        // Average speed vehicle should maintain in the intersection.
+        double target_speed;  // FIXME: Deadline.  = t/w
+        // Time at which the vehicle can enter the intersection.
+        instant_t arrival_time;
+    } grant_message_t;
+    
+    // Table of offsets by vehicle bank_index:
+    interval_t timer_offsets[] = {
+        0LL,
+        MSEC(200),
+        MSEC(400),
+        MSEC(600)
+    };
+    // Table of periods by vehicle bank_index:
+    interval_t timer_periods[] = {
+        SEC(4),
+        SEC(8),
+        SEC(16),
+        SEC(32)
+    };
+=}
+
+reactor Vehicle (
+    offset:time(0),
+    period:time(1 sec),
+    speed:double(42.0),    // in km per hour. About 11.7 m/sec
+    distance:double(42.0)  // in meters.  About 4 sec to traverse.
+) {
+    input grant:grant_message_t;
+    
+    output request:request_message_t;
+    
+    logical action delay;
+    
+    reaction(startup) -> request, delay {=
+        if (timer_offsets[self->bank_index] == 0LL) {
+			// Need to send a message at the start time.
+	        request_message_t message;
+        	message.speed = self->speed;
+        	message.distance = self->distance;
+        	SET(request, message);
+        	schedule(delay, timer_periods[self->bank_index]);
+        } else {
+           	schedule(delay, timer_offsets[self->bank_index]);
+        }
+    =}
+
+    reaction(delay) -> request, delay {=
+        request_message_t message;
+       	message.speed = self->speed;
+       	message.distance = self->distance;
+       	SET(request, message);
+       	schedule(delay, timer_periods[self->bank_index]);
+    =}
+    
+    reaction(grant) {=
+        info_print("Granted access at elapsed logical time %lld. Physical time is %lld",
+            get_elapsed_logical_time(),
+            get_elapsed_physical_time()
+        );
+    =}
+}
+
+reactor RSU (
+	num_entries:int(4),
+	intersection_width:double(42.0), // in meters.
+	// If the vehicle is told to slow down, then its target
+	// average speed in the intersection should be at least this.
+	nominal_speed_in_intersection:double(10.0) // In km/hr. 2.8 m/sec. 15 sec to traverse.
+) {
+    input[num_entries] request:request_message_t;
+    output[num_entries] grant:grant_message_t;
+    
+    state earliest_free:time(0);
+    
+    reaction(request) -> grant {=
+        for (int i = 0; i < self->num_entries; i++) {
+			if (request[i]->is_present) {
+        		// Calculate the time it will take the approaching vehicle to
+        		// arrive at its current speed. Note that this is
+        		// time from the time the vehicle sends the message
+        		// according to the arriving vehicle's clock.
+        		double speed_in_m_per_sec = request[i]->value.speed * 1000.0 / 3600.0;
+        		double arrival_in = request[i]->value.distance / speed_in_m_per_sec;
+        		
+        		instant_t time_message_sent = get_logical_time();
+        		
+        		// Convert the time interval to nsec (it is seconds).
+        		interval_t arrival_time_ns = time_message_sent + (interval_t) (arrival_in * BILLION);
+        		
+        		grant_message_t response;
+        		if (arrival_time_ns >= self->earliest_free) {
+                    // Vehicle can maintain speed.
+                    response.target_speed = request[i]->value.speed;
+                    response.arrival_time = arrival_time_ns;
+                } else {
+                    // Vehicle has to slow down and maybe stop.
+                    response.arrival_time = self->earliest_free;
+                    // Could be smarter than this, but just send the nominal speed in intersection.
+                    response.target_speed = self->nominal_speed_in_intersection;
+                }
+                SET(grant[i], response);
+                // Update earliest free on the assumption that the vehicle
+                // maintains its target speed (on average) within the intersection.
+                interval_t time_in_intersection 
+                		= (interval_t)(BILLION * self->intersection_width * 3600 
+                            / (1000 * response.target_speed)
+                        );
+                self->earliest_free = response.arrival_time + time_in_intersection;
+                
+                info_print("*** Grant access to vehicle %d to enter at time %lld. Next available time is %lld",
+                    i,
+                    response.arrival_time - start_time,
+                    self->earliest_free - start_time
+                );
+            }
+        }
+    =}
+}
+
+main reactor {
+    vehicles = new[4] Vehicle(offset = 0);
+    
+    rsu = new RSU();
+    vehicles.request -> rsu.request;
+    rsu.grant -> vehicles.grant;
+}

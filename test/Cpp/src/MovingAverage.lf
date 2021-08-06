@@ -7,8 +7,8 @@ target Cpp {
     fast: true
 };
 reactor Source {
-    output out:double;
-    state count:int(0);
+    output out: double;
+    state count: int{0};
     timer clock(0, 200 msec);
     reaction(clock) -> out {=
         out.set(count);
@@ -16,8 +16,8 @@ reactor Source {
     =}
 }
 reactor MovingAverageImpl {
-    state delay_line:double[3](0.0, 0.0, 0.0);
-    state index:int(0);
+    state delay_line: double[3] {0.0, 0.0, 0.0};
+    state index: int{0};
     input in:double;
     output out:double;
 
@@ -42,7 +42,7 @@ reactor MovingAverageImpl {
 
 reactor Print {
     input in:double;
-    state count:int(0);
+    state count: int{0};
     reaction(in) {=
         std::cout << "Received: " << *in.get() << '\n';
         constexpr double expected[6] = {0.0, 0.25, 0.75, 1.5, 2.5, 3.5};

@@ -5,15 +5,17 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source {
-    output[3] out:int;
+reactor Source(width:int(2)) {
+    output[width] out:int;
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
             SET(out[i], i);
         }
     =}
 }
-reactor Destination {
+reactor Destination(
+    bank_index:int(0)
+) {
     input in:int;
     state received:bool(false);
     reaction(in) {=
@@ -32,14 +34,14 @@ reactor Destination {
         printf("Success.\n");
     =}
 }
-reactor Container {
-    input[3] in:int;
-    c = new[3] Destination();
+reactor Container(width:int(2)) {
+    input[width] in:int;
+    c = new[width] Destination();
     in -> c.in;
 }
 
-main reactor MultiportToBankHierarchy { 
-    a = new Source();
-    b = new Container();
+main reactor MultiportToBankHierarchy(width:int(3)) { 
+    a = new Source(width = width);
+    b = new Container(width = width);
     a.out -> b.in;
 }

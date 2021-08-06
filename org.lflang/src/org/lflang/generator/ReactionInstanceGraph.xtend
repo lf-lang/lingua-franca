@@ -36,9 +36,6 @@ import org.lflang.graph.DirectedGraph
  * Upon creation, reactions are assigned levels, chainIDs, and their
  * deadlines are propagated.
  * 
- * This class is distinct from the ReactionGraph class in the graph
- * package because it deals with instance objects rather than AST nodes.
- * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
@@ -72,8 +69,13 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         addNodesAndEdges(main)
             // Assign a level to each reaction. 
             // If there are cycles present in the graph, it will be detected here.
-            if (!assignLevels()) {
-                main.generator.reportError(main.generator.mainDef, "Reactions form a cycle!");
+            val leftoverReactions = assignLevels()
+            if (leftoverReactions !== null) {
+                // The validator should have caught cycles, but if there is a bug in some
+                // AST transform such that it introduces cycles, then it is possible to have them
+                // only detected here. An end user should never see this.
+                main.reporter.reportError("Reactions form a cycle!");
+                System.err.println(leftoverReactions.toString());
                 throw new Exception("Reactions form a cycle!")
             }
             // Traverse the graph again, now starting from the leaves,
@@ -90,17 +92,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * null otherwise.
      */
     def findSingleDominatingReaction(ReactionInstance reaction) {
-        this.nodes.forEach[node|node.visitsLeft = 1]
-        val reactions = reaction.upstreamAdjacentNodes
-        if (reactions.size > 0) {
-            val minLevel = reactions.fold(newLinkedList, [ list, r |
-                list.add(r.level)
-                return list
-            ]).min
-            val maximalReactions = maximal(reactions.toSet, minLevel)
-            if (maximalReactions.size == 1) {
-                return maximalReactions.get(0)
-            }
+        val reactions = getUpstreamAdjacentNodes(reaction)
+        if (reactions.size == 1) {
+            return reactions.get(0)
         }
         return null
     }
@@ -134,12 +128,13 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * Rather than establishing a total order, we establish a partial order.
      * In this order, the level of each reaction is the least upper bound of
      * the levels of the reactions it depends on.
-     * If any cycles are present in the dependency graph, an exception is
-     * thrown. This method should be called only on the top-level (main) reactor.
+     * If any cycles are present in the dependency graph, then a graph
+     * containing the nodes in the cycle is returned. Otherwise, null is
+     * returned.
      * @return true if the assignment was successful, false if it was not, 
      * meaning the graph has at least one cycle in it.
      */
-    protected def assignLevels() {
+    protected def DirectedGraph<ReactionInstance> assignLevels() {
         val graph = this.copy
         var start = new ArrayList(graph.rootNodes)
         
@@ -180,10 +175,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         // If, after all of this, there are still any nodes left, 
         // then the graph must be cyclic.
         if (graph.nodeCount != 0) {
-            return false
+            return graph
         }
 
-        return true
+        return null as DirectedGraph<ReactionInstance>;
     }
     
     /**
@@ -274,7 +269,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
                 // Only lower the inferred deadline (which is set to the max by default),
                 // if the declared deadline is earlier than the inferred one (based on
                 // some other downstream deadline).
-                if (r.deadline.isEarlierThan(r.declaredDeadline.maxDelay)) {
+                if (r.declaredDeadline.maxDelay !== null
+                    && r.declaredDeadline.maxDelay.isEarlierThan(r.deadline)
+                ) {
                     r.deadline = r.declaredDeadline.maxDelay
                 }
             }

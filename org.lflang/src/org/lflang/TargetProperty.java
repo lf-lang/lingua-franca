@@ -12,7 +12,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.TimeUnit;
-import org.lflang.validation.LFValidator;
+import org.lflang.validation.LFValidatorImpl;
 
 /**
  * A target properties along with a type and a list of supporting targets
@@ -96,8 +96,18 @@ public enum TargetProperty {
      * can be adjusted in the included file.
      */
     CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.CPP, Target.C), (config, value) -> {
                 config.cmakeInclude = ASTUtils.toText(value);
+            }),
+    
+    /**
+     * Directive to enable and disable the use of CMake.
+     * 
+     * The default is enabled.
+     */
+    CMAKE("cmake", PrimitiveType.BOOLEAN,
+            Arrays.asList(Target.C), (config, value) -> {
+                config.useCmake = ASTUtils.toBoolean(value);
             }),
     
     /**
@@ -223,7 +233,7 @@ public enum TargetProperty {
      * Directive to not invoke the target compiler.
      */
     NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config, value) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
@@ -362,7 +372,7 @@ public enum TargetProperty {
      * @param name The string to match against.
      */
     public static TargetProperty forName(String name) {
-        return (TargetProperty)Target.match(name, TargetProperty.values());
+        return Target.match(name, TargetProperty.values());
     }
 
     /**
@@ -395,7 +405,7 @@ public enum TargetProperty {
      * A dictionary type with a predefined set of possible keys and assignable
      * types.
      * 
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author {Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum DictionaryType implements TargetPropertyType {
@@ -427,7 +437,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public DictionaryElement forName(String name) {
-            return (DictionaryElement) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -435,7 +445,7 @@ public enum TargetProperty {
          * this dictionary.
          */
         @Override
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             KeyValuePairs kv = e.getKeyvalue();
             if (kv == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -532,7 +542,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public Enum<?> forName(String name) {
-            return (Enum<?>) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -540,7 +550,7 @@ public enum TargetProperty {
          * this union.
          */
         @Override
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             Optional<Enum<?>> match = this.match(e);
             if (match.isPresent()) {
                 // Go deeper if the element is an array or dictionary.
@@ -637,7 +647,7 @@ public enum TargetProperty {
          * its elements are all of the correct type.
          */
         @Override
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             Array array = e.getArray();
             if (array == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -765,7 +775,7 @@ public enum TargetProperty {
          * @param name The name of the target property.
          * @param v    A reference to the validator to report errors to.
          */
-        public void check(Element e, String name, LFValidator v);
+        public void check(Element e, String name, LFValidatorImpl v);
     
         /**
          * Helper function to produce an error during type checking.
@@ -775,8 +785,8 @@ public enum TargetProperty {
          * @param v           A reference to the validator to report errors to.
          */
         public static void produceError(String name, String description,
-                LFValidator v) {
-            v.targetPropertyErrors.add("Target property '" + name
+                LFValidatorImpl v) {
+            v.getTargetPropertyErrors().add("Target property '" + name
                     + "' is required to be " + description + ".");
         }
     }
@@ -789,44 +799,32 @@ public enum TargetProperty {
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
-                v -> (ASTUtils.toText(v).equalsIgnoreCase("true")
-                        || ASTUtils.toText(v).equalsIgnoreCase("false"))),
+                v -> ASTUtils.toText(v).equalsIgnoreCase("true")
+                        || ASTUtils.toText(v).equalsIgnoreCase("false")),
         INTEGER("an integer", v -> {
             try {
-                Integer.decode(ASTUtils.toText(v));
+                Integer.parseInt(ASTUtils.toText(v));
             } catch (NumberFormatException e) {
                 return false;
             }
             return true;
-        }), 
+        }),
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
-                Integer result = Integer.decode(ASTUtils.toText(v));
+                int result = Integer.parseInt(ASTUtils.toText(v));
                 if (result < 0)
                     return false;
             } catch (NumberFormatException e) {
                 return false;
             }
             return true;
-        }), 
-        TIME_VALUE("a time value with units", v -> {
-            if ((v.getKeyvalue() != null || v.getArray() != null
-                    || v.getLiteral() != null || v.getId() != null)
-                    || (v.getTime() != 0 && v.getUnit() == TimeUnit.NONE)) {
-                return false;
-            } else {
-                return true;
-            }
-        }), 
-        STRING("a string", v -> {
-            if (v.getLiteral() == null && v.getId() == null) {
-                return false;
-            }
-            return true;
-        }), 
-        FILE("a path to a file", v -> {
-            return STRING.validator.test(v);
-        });
+        }),
+        TIME_VALUE("a time value with units", v ->
+            v.getKeyvalue() == null && v.getArray() == null
+                && v.getLiteral() == null && v.getId() == null
+                && (v.getTime() == 0 || v.getUnit() != TimeUnit.NONE)),
+        STRING("a string", v -> v.getLiteral() != null || v.getId() != null),
+        FILE("a path to a file", STRING.validator);
     
         /**
          * A description of this type, featured in error messages.
@@ -867,7 +865,7 @@ public enum TargetProperty {
          * @param name   The name of the target property.
          * @param errors A list of errors to append to if problems are found.
          */
-        public void check(Element e, String name, LFValidator v) {
+        public void check(Element e, String name, LFValidatorImpl v) {
             if (!this.validate(e)) {
                 TargetPropertyType.produceError(name, this.description, v);
             }

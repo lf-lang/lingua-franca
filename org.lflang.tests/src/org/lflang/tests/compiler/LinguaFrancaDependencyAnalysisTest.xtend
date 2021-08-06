@@ -30,17 +30,20 @@ import com.google.inject.Inject
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
-import org.lflang.generator.CGenerator
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.^extension.ExtendWith
+import org.lflang.DefaultErrorReporter
+import org.lflang.ModelInfo
+import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
 import org.lflang.lf.Reactor
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.^extension.ExtendWith
-import org.lflang.ModelInfo
 import org.lflang.tests.LFInjectorProvider
+
+import static extension org.lflang.ASTUtils.*
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LFInjectorProvider)
@@ -100,10 +103,10 @@ class LinguaFrancaDependencyAnalysisTest {
             }
         }
         
-        var gen = new CGenerator()
         var message = ""
         try {
-            new ReactorInstance(mainDef, null, gen)    
+            new ReactionInstanceGraph(
+                new ReactorInstance(mainDef.reactorClass.toDefinition, new DefaultErrorReporter()))
         } catch(Exception e) {
             message = e.message
         }
@@ -132,7 +135,7 @@ class LinguaFrancaDependencyAnalysisTest {
         Assertions.assertNotNull(model)
 		
 		var info = new ModelInfo()
-		info.update(model)
+		info.update(model, DefaultErrorReporter.DEFAULT)
 		Assertions.assertTrue(info.instantiationGraph.hasCycles == true, 
         	"Did not detect cyclic instantiation.")
     }

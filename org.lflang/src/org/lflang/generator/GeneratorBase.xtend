@@ -26,14 +26,10 @@
  ***************/
 package org.lflang.generator
 
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.OutputStream
-import java.net.URI
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.LinkedHashMap
@@ -54,6 +50,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.lflang.ASTUtils
+import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.MainConflictChecker
@@ -63,11 +60,11 @@ import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
+import org.lflang.federated.FedASTUtils
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
-import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
@@ -107,6 +104,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Constant that specifies how to name generated delay reactors.
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
+
+    /** 
+     * The main (top-level) reactor instance.
+     */
+    public ReactorInstance main
+    
+    /** A error reporter for reporting any errors or warnings during the code generation */
+    public ErrorReporter errorReporter
     
     ////////////////////////////////////////////
     //// Protected fields.
@@ -120,57 +125,22 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The current target configuration.
      */
     protected var TargetConfig targetConfig = new TargetConfig()
+    def TargetConfig getTargetConfig() { return this.targetConfig;}
     
     /**
-     * The current file configuration. NOTE: not initialized until the
-     * invocation of doGenerate, which calls setFileConfig.
+     * The current file configuration.
      */
     protected var FileConfig fileConfig
     
     /**
-     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
-     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
-     * if it is being called from the Eclipse IDE, and 
-     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
+     * A factory for compiler commands.
      */
-    public var Mode mode = Mode.UNDEFINED
+    protected var GeneratorCommandFactory commandFactory   
 
     /**
      * Collection of generated delay classes.
      */
     val delayClasses = new LinkedHashSet<Reactor>()
-    
-    /**
-     * Set the fileConfig field to point to the specified resource using the specified
-     * file-system access and context.
-     * @param resource The resource (Eclipse-speak for a file).
-     * @param fsa The Xtext abstraction for the file system.
-     * @param context The generator context (whatever that is).
-     */
-    def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new FileConfig(resource, fsa, context);
-        this.topLevelName = fileConfig.name
-    }
-
-    /**
-     * Indicator of whether generator errors occurred.
-     * This is set to true by the report() method and returned by the
-     * errorsOccurred() method.
-     */
-    protected var generatorErrorsOccurred = false
-
-    /**
-     * If running in an Eclipse IDE, the iResource refers to the
-     * IFile representing the Lingua Franca program.
-     * This is the XText view of the file, which is distinct
-     * from the Eclipse eCore view of the file and the OS view of the file.
-     */
-    protected var iResource = null as IResource
-
-    /** 
-     * The main (top-level) reactor instance.
-     */
-    protected ReactorInstance main
 
     /**
      * Definition of the main (top-level) reactor.
@@ -178,6 +148,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * reactor.
      */
     protected Instantiation mainDef
+    def getMainDef() { return mainDef; }
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
@@ -217,10 +188,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected var Set<Reaction> unorderedReactions = null
 
     /**
+     * Map from reactions to bank indices
+     */
+    protected var Map<Reaction,Integer> reactionBankIndices = null
+
+    /**
      * Indicates whether or not the current Lingua Franca program
      * contains a federation.
      */
-    protected var boolean isFederated = false
+    public var boolean isFederated = false
 
     // //////////////////////////////////////////
     // // Target properties, if they are included.
@@ -255,18 +231,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected String classpathLF
 
     /**
-     * The index available to user-generated reaction that delineates the index
-     * of the reactor in a bank of reactors. The value must be set to zero
-     * in generated code for reactors that are not in a bank
-     */
-    protected String targetBankIndex = "bank_index"
-
-    /**
-     * The type of the bank index, which must be an integer in the target language
-     */
-    protected String targetBankIndexType = "int"
-
-    /**
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
@@ -277,18 +241,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Map from builder to its current indentation.
      */
     var indentation = new LinkedHashMap<StringBuilder, String>()
-
+    
     /**
-     * Defines the execution environment that is used to execute binaries.
-     * 
-     * A given command may be directly executable on the host (NATIVE) 
-     * or it may need to be executed within a bash shell (BASH). 
-     * On Unix-like machines, this is typically determined by the PATH variable
-     * which could be different in these two environments.
+     * Create a new GeneratorBase object.
      */
-    enum ExecutionEnvironment {
-        NATIVE,
-        BASH
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        this.fileConfig = fileConfig
+        this.topLevelName = fileConfig.name
+        this.errorReporter = errorReporter
+        this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig)
     }
 
     // //////////////////////////////////////////
@@ -387,15 +348,16 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
-        setFileConfig(resource, fsa, context)
-        
-        setMode()
-        
+        setTargetConfig(context)
+
+        fileConfig.cleanIfNeeded()
+
         printInfo()
-        
-        // Clear any markers that may have been created by a previous build.
+
+        // Reset the error reporter. If the reporter sets markers in the IDE, this will
+        // clear any markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
+        errorReporter.reset()
         
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
@@ -404,11 +366,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
-                reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
+                errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
-        
-        setTargetConfig(context)
         
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
@@ -502,7 +462,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             for (imp : (inst.eContainer as Model).imports) {
                                 for (decl : imp.reactorClasses) {
                                     if (decl.reactorClass.eResource === res) {
-                                        reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
+                                        errorReporter.reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                                         tainted.add(decl.eResource)
                                     }
                                 }
@@ -521,18 +481,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def copyUserFiles() {
         // Make sure the target directory exists.
-        val targetDir = this.fileConfig.getSrcGenPath.toFile
-        targetDir.mkdirs
+        val targetDir = this.fileConfig.getSrcGenPath
+        Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
             val file = FileConfig.findFile(filename, this.fileConfig.srcFile.parent)
             if (file !== null) {
-                val target = new File(targetDir, file.name)
-                if (target.exists) {
-                    target.delete
-                }
-                Files.copy(file.toPath, target.toPath)
-                targetConfig.filesNamesWithoutPath.add(file.name);
+                val target = targetDir.resolve(file.fileName)
+                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING)
+                targetConfig.filesNamesWithoutPath.add(file.fileName.toString());
             } else {
                 // Try to copy the file as a resource.
                 // If this is missing, it should have been previously reported as an error.
@@ -558,7 +515,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return True if errors occurred.
      */
     def errorsOccurred() {
-        return generatorErrorsOccurred;
+        return errorReporter.getErrorsOccurred();
     }
 
     /**
@@ -585,7 +542,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Generate code for referencing a port, action, or timer.
-     * @param reference The referenced variable.
+     * @param reference The reference to the variable.
      */
     def String generateVarRef(VarRef reference) {
         var prefix = "";
@@ -593,6 +550,35 @@ abstract class GeneratorBase extends AbstractLFValidator {
             prefix = reference.container.name + "."
         }
         return prefix + reference.variable.name
+    }
+
+    /**
+     * Generate code for referencing a port possibly indexed by
+     * a bank index and/or a multiport index. This assumes the target language uses
+     * the usual array indexing [n] for both cases. If not, this needs to be overridden
+     * by the target code generator.  If the provided reference is not a port, then
+     * this return the string "ERROR: not a port.".
+     * @param reference The reference to the port.
+     * @param bankIndex A bank index or null or negative if not in a bank.
+     * @param multiportIndex A multiport index or null or negative if not in a multiport.
+     */
+    def String generatePortRef(VarRef reference, Integer bankIndex, Integer multiportIndex) {
+        if (!(reference.variable instanceof Port)) {
+            return "ERROR: not a port.";
+        }
+        var prefix = "";
+        if (reference.container !== null) {
+            var bank = "";
+            if (reference.container.widthSpec !== null && bankIndex !== null && bankIndex >= 0) {
+                bank = "[" + bankIndex + "]";
+            }
+            prefix = reference.container.name + bank + "."
+        }
+        var multiport = "";
+        if ((reference.variable as Port).widthSpec !== null && multiportIndex !== null && multiportIndex >= 0) {
+            multiport = "[" + multiportIndex + "]";
+        }
+        return prefix + reference.variable.name + multiport;
     }
 
     /**
@@ -635,6 +621,36 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
+     * Mark the specified reaction to belong to only the specified
+     * bank index. This is needed because reactions cannot declare
+     * a specific bank index as an effect or trigger. Reactions that
+     * send messages between federates, including absent messages,
+     * need to be specific to a bank member.
+     * @param The reaction.
+     * @param bankIndex The bank index, or -1 if there is no bank.
+     */
+    def setReactionBankIndex(Reaction reaction, int bankIndex) {
+        if (bankIndex >= 0) {
+            if (reactionBankIndices === null) {
+                reactionBankIndices = new LinkedHashMap<Reaction,Integer>()
+            }  
+            reactionBankIndices.put(reaction, bankIndex)
+        }
+    }
+
+    /**
+     * Return the reaction bank index.
+     * @see setReactionBankIndex(Reaction reaction, int bankIndex)
+     * @param The reaction.
+     * @return The reaction bank index, if one has been set, and -1 otherwise.
+     */
+    def int getReactionBankIndex(Reaction reaction) {
+        if (reactionBankIndices === null) return -1
+        if (reactionBankIndices.get(reaction) === null) return -1
+        return reactionBankIndices.get(reaction)
+    }
+    
+    /**
      * Given a representation of time that may possibly include units, return
      * a string that the target language can recognize as a value. In this base
      * class, if units are given, e.g. "msec", then we convert the units to upper
@@ -656,188 +672,28 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    // //////////////////////////////////////////
-    // Protected methods for code generation
-    // of the RTI.
-    // FIXME: Allow target code generators to specify the directory
-    // structure for the generated C RTI?
-    /** Create the runtime infrastructure (RTI) source file.
-     */
-    def createFederateRTI() {
-        // Derive target filename from the .lf filename.
-        var cFilename = fileConfig.name + "_RTI.c"
-
-        // Delete source previously produced by the LF compiler.
-        // 
-        var file = fileConfig.RTISrcPath.resolve(cFilename).toFile
-        if (file.exists) {
-            file.delete
-        }
-        
-        // Also make sure the directory exists.
-        if (!file.parentFile.exists || !file.parentFile.isDirectory) {
-            file.mkdirs
-        }
-
-        // Delete binary previously produced by the C compiler.
-        file = fileConfig.RTIBinPath.resolve(fileConfig.name).toFile
-        if (file.exists) {
-            file.delete
-        }
-
-        val rtiCode = new StringBuilder()
-        pr(rtiCode, '''
-            #ifdef NUMBER_OF_FEDERATES
-            #undefine NUMBER_OF_FEDERATES
-            #endif
-            #define NUMBER_OF_FEDERATES «federates.size»
-            #include "rti.c"
-            int main(int argc, char* argv[]) {
-        ''')
-        indent(rtiCode)
-
-        // Initialize the array of information that the RTI has about the
-        // federates.
-        // FIXME: No support below for some federates to be FAST and some REALTIME.
-        pr(rtiCode, '''
-            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                initialize_federate(i);
-                «IF targetConfig.fastMode»
-                    federates[i].mode = FAST;
-                «ENDIF»
-            }
-        ''')
-        // Initialize the arrays indicating connectivity to upstream and downstream federates.
-        for (federate : federates) {
-            if (!federate.dependsOn.keySet.isEmpty) {
-                // Federate receives non-physical messages from other federates.
-                // Initialize the upstream and upstream_delay arrays.
-                val numUpstream = federate.dependsOn.keySet.size
-                // Allocate memory for the arrays storing the connectivity information.
-                pr(rtiCode, '''
-                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
-                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
-                    federates[«federate.id»].num_upstream = «numUpstream»;
-                ''')
-                // Next, populate these arrays.
-                // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
-                var count = 0;
-                for (upstreamFederate : federate.dependsOn.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
-                        federates[«federate.id»].upstream_delay[«count»] = 0LL;
-                    ''')
-                    // The minimum delay calculation needs to be made in the C code because it
-                    // may depend on parameter values.
-                    // FIXME: These would have to be top-level parameters, which don't really
-                    // have any support yet. Ideally, they could be overridden on the command line.
-                    // When that is done, they will need to be in scope here.
-                    val delays = federate.dependsOn.get(upstreamFederate)
-                    if (delays !== null) {
-                        for (delay : delays) {
-                            pr(rtiCode, '''
-                                if (federates[«federate.id»].upstream_delay[«count»] < «delay.getRTITime») {
-                                    federates[«federate.id»].upstream_delay[«count»] = «delay.getRTITime»;
-                                }
-                            ''')
-                        }
-                    }
-                    count++;
-                }
-            }
-            // Next, set up the downstream array.
-            if (!federate.sendsTo.keySet.isEmpty) {
-                // Federate sends non-physical messages to other federates.
-                // Initialize the downstream array.
-                val numDownstream = federate.sendsTo.keySet.size
-                // Allocate memory for the array.
-                pr(rtiCode, '''
-                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
-                    federates[«federate.id»].num_downstream = «numDownstream»;
-                ''')
-                // Next, populate the array.
-                // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
-                var count = 0;
-                for (downstreamFederate : federate.sendsTo.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
-                    ''')
-                    count++;
-                }
-            }
-        }
-
-        // Start the RTI server before launching the federates because if it
-        // fails, e.g. because the port is not available, then we don't want to
-        // launch the federates.
-        // Also generate code that blocks until the federates resign.
-        pr(rtiCode, '''
-            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
-            wait_for_federates(socket_descriptor);
-        ''')
-
-        unindent(rtiCode)
-        pr(rtiCode, "}")
-
-        var fOut = new FileOutputStream(fileConfig.RTISrcPath.resolve(cFilename).toFile);
-        fOut.write(rtiCode.toString().getBytes())
-        fOut.close()
-    }
-
-    /** 
-     * Invoke the C compiler on the generated RTI 
-     * The C RTI is used across targets. Thus we need to be able to compile 
-     * it from GeneratorBase. 
-     */
-    def compileRTI() {
-        var fileToCompile = fileConfig.name + '_RTI'
-        runCCompiler(fileToCompile, false)
-    }
-
-    /** 
-     * Run the C compiler.
-     * 
-     * This is required here in order to allow any target to compile the RTI.
-     * 
-     * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * 
-     * @return true if compilation succeeds, false otherwise. 
-     */
-    def runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        val compile = compileCCommand(file, doNotLinkIfNoMain)
-        if (compile === null) {
-            return false
-        }
-
-        val stderr = new ByteArrayOutputStream()
-        val returnCode = compile.executeCommand(stderr)
-
-        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''«targetConfig.compiler» returns error code «returnCode»''')
-        }
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-            reportCommandErrors(stderr.toString())
-        }
-        return (returnCode == 0)
-    }
-
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
+     * 
+     * The following environment variables will be available to the command:
+     * 
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
+     * 
      */
     protected def runBuildCommand() {
         var commands = newLinkedList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
-            if (tokens.size > 1) {
-                val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.fileConfig.srcPath)
+            if (tokens.size > 0) {
+                val buildCommand = commandFactory.createCommand(
+                    tokens.head,
+                    tokens.tail.toList,
+                    this.fileConfig.srcPath
+                )
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
                 if (buildCommand === null) {
@@ -848,346 +704,30 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
 
         for (cmd : commands) {
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = cmd.executeCommand(stderr)
+            // execute the command
+            val returnCode = cmd.run()
 
-            if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-                reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
+            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
+                errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-                reportCommandErrors(stderr.toString())
+            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+                reportCommandErrors(cmd.errors.toString())
                 return
             }
         }
     }
-    
-    /**
-     * Return a command to compile the specified C file.
-     * This produces a C specific compile command. Since this command is
-     * used across targets to build the RTI, it needs to be available in
-     * GeneratorBase.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     */
-    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val env = findCommandEnv(targetConfig.compiler)
-        
-        val cFilename = getTargetFileName(fileToCompile);
-
-        var relativeSrcPath = fileConfig.outPath.relativize(
-            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
-        var relativeBinPath = fileConfig.outPath.relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
-
-        // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        var relSrcPathString = FileConfig.toUnixString(relativeSrcPath)
-        var relBinPathString = FileConfig.toUnixString(relativeBinPath)
-        
-        // If there is no main reactor, then generate a .o file not an executable.
-        if (mainDef === null) {
-            relBinPathString += ".o";
-        }
-        
-        var compileArgs = newArrayList
-        compileArgs.add(relSrcPathString)
-        compileArgs.addAll(targetConfig.compileAdditionalSources)
-        compileArgs.addAll(targetConfig.compileLibraries)
-
-        // Only set the output file name if it hasn't already been set
-        // using a target property or Args line flag.
-        if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relBinPathString)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads !== 0 || targetConfig.tracing !== null) {
-            compileArgs.add("-pthread")
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add('''-DNUMBER_OF_WORKERS=«targetConfig.threads»''')
-        }
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags)
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && main === null) {
-            compileArgs.add("-c") // FIXME: revisit
-            if (mode === Mode.STANDALONE) {
-                reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
-    }
 
     // //////////////////////////////////////////
     // // Protected methods.
-    /** Produces the filename including the target-specific extension */
-    protected def getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
-    }
 
     /**
      * Clear the buffer of generated code.
      */
     protected def clearCode() {
         code = new StringBuilder
-    }
-    
-    /**
-     * Get the specified file as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in INTEGRATED mode, for some things, you cannot access
-     * files by referring to their file system location. Instead, you have to refer
-     * to them relative the workspace root. This is required, for example, when marking
-     * the file with errors or warnings or when deleting those marks. 
-     * 
-     * @param uri A java.net.uri of the form "file://path".
-     */
-    protected def getEclipseResource(URI uri) {
-        var resource = iResource // Default resource.
-        // For some peculiar reason known only to Eclipse developers,
-        // the resource cannot be used directly but has to be converted
-        // a resource relative to the workspace root.
-        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-        // The following uses a java.net.URI, which,
-        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
-        if (uri !== null) {
-             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
-             val files = workspaceRoot.findFilesForLocationURI(uri);
-             if (files !== null && files.length > 0 && files.get(0) !== null) {
-                 resource = files.get(0)
-             }
-        }
-        return resource;
-    }
-
-    /**
-     * Clear markers in the IDE if running in integrated mode.
-     * This has the side effect of setting the iResource variable to point to
-     * the IFile for the Lingua Franca program. 
-     * Also reset the flag indicating that generator errors occurred.
-     */
-    protected def clearMarkers() {
-        if (mode == Mode.INTEGRATED) {
-            try {
-                val resource = getEclipseResource(fileConfig.srcFile.toURI());
-                // First argument can be null to delete all markers.
-                // But will that delete xtext markers too?
-                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
-            } catch (Exception e) {
-                // Ignore, but print a warning.
-                println("Warning: Deleting markers in the IDE failed: " + e)
-            }
-        }
-        generatorErrorsOccurred = false
-    }
-
-    /**
-     * Run a given command and record its output.
-     * 
-     * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
-     * @param outStrram a stream object to forward the commands output messages to
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
-        println('''--- Current working directory: «cmd.directory.toString()»''')
-        println('''--- Executing command: «cmd.command.join(" ")»''')
-
-        var List<OutputStream> outStreams = newArrayList
-        var List<OutputStream> errStreams = newArrayList
-        outStreams.add(System.out)
-        errStreams.add(System.err)
-        if (outStream !== null) {
-            outStreams.add(outStream)
-        }
-        if (errStream !== null) {
-            errStreams.add(errStream)
-        }
-
-        // Execute the command. Write output to the System output,
-        // but also keep copies in outStream and errStream
-        return cmd.runSubprocess(outStreams, errStreams)
-    }
-
-    /**
-     * Run a given command and record its error messages.
-     * 
-     * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd) {
-        return cmd.executeCommand(null, null)
-    }
-
-    /**
-     * Run a given command.
-     * 
-     * @param cmd the command to be executed
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
-        return cmd.executeCommand(errStream, null)
-    }
-
-    /**
-     * Create a ProcessBuilder for a given command.
-     * 
-     * This method makes sure that the given command is executable,
-     * It first tries to find the command with 'which cmake'. If that
-     * fails, it tries again with bash. In case this fails again,
-     * it returns null. Otherwise, a correctly constructed ProcessBuilder
-     * object is returned. 
-     * 
-     * A bit more context:
-     * If the command cannot be found directly, then a second attempt is made using a
-     * Bash shell with the --login option, which sources the user's 
-     * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
-     * is first found) before running the command. This helps to ensure that
-     * the user's PATH variable is set according to their usual environment,
-     * assuming that they use a bash shell.
-     * 
-     * More information: Unfortunately, at least on a Mac if you are running
-     * within Eclipse, the PATH variable is extremely limited; supposedly, it
-     * is given by the default provided in /etc/paths, but at least on my machine,
-     * it does not even include directories in that file for some reason.
-     * One way to add a directory like
-     * /usr/local/bin to the path once-and-for-all is this:
-     * 
-     * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-     * 
-     * But asking users to do that is not ideal. Hence, we try a more hack-y
-     * approach of just trying to execute using a bash shell.
-     * Also note that while ProcessBuilder can configured to use custom
-     * environment variables, these variables do not affect the command that is
-     * to be executed but merely the environment in which the command executes.
-     * 
-     * @param cmd The command to be executed
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd) {
-        return createCommand(cmd, #[], fileConfig.outPath, findCommandEnv(cmd)) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
-    }
-
-    /** 
-     * It tries to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, it tries again with bash. 
-     * In case this fails again, raise an error.
-     * 
-     * Return ExecutionEnvironment.NATIVE 
-     * if the specified command is directly executable on the current host
-     * Returns ExecutionEnvironment.BASH 
-     * if the command must be executed within a bash shell.
-     * 
-     * The latter occurs, for example, if the specified command 
-     * is not in the native path but is in the path
-     * specified by the user's bash configuration file.
-     * If the specified command is not found in either the native environment 
-     * nor the bash environment,
-     * then this reports and error and returns null.
-     * 
-     * @param cmd The command to be find.
-     * @return Returns an ExecutionEnvironment.
-     */
-    protected def findCommandEnv(String cmd) {
-        // Make sure the command is found in the PATH.
-        print('''--- Looking for command «cmd» ... ''')
-        // Use 'where' on Windows, 'which' on other systems
-        val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
-        val whichBuilder = new ProcessBuilder(#[which, cmd])
-        val whichReturn = whichBuilder.start().waitFor()
-        if (whichReturn == 0) {
-            println("SUCCESS")
-
-            return ExecutionEnvironment.NATIVE
-        }
-        println("FAILED")
-        // Try running with bash.
-        // The --login option forces bash to look for and load the first of
-        // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
-        print('''--- Trying again with bash ... ''')
-        val bashCommand = #["bash", "--login", "-c", '''which «cmd»''']
-        val bashBuilder = new ProcessBuilder(bashCommand)
-        val bashOut = new ByteArrayOutputStream()
-        val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
-        if (bashReturn == 0) {
-            println("SUCCESS")
-            return ExecutionEnvironment.BASH
-        }
-        reportError(
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.")
-        return null as ExecutionEnvironment
-
-    }
-
-    /**
-     * Creates a ProcessBuilder for a given command and its arguments.
-     * 
-     * This method returns correctly constructed ProcessBuilder object 
-     * according to the Execution environment. Raise an error if the env is null.
-     * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
-     * @param dir the directory to change into before executing the command.
-     * @param env is the type of the Execution Environment.
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
-        if (env == ExecutionEnvironment.NATIVE) {
-            val builder = new ProcessBuilder(#[cmd] + args)
-            builder.directory(dir.toFile)
-            return builder
-        } else if (env == ExecutionEnvironment.BASH) {
-
-            val str_builder = new StringBuilder(cmd + " ")
-            for (str : args) {
-                str_builder.append(str + " ")
-            }
-            val bash_arg = str_builder.toString
-            // val bash_arg = #[cmd + args]
-            val newCmd = #["bash", "--login", "-c"]
-            // use that command to build the process
-            val builder = new ProcessBuilder(newCmd + #[bash_arg])
-            builder.directory(dir.toFile)
-            return builder
-        }
-        println("FAILED")
-        reportError(
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.")
-        return null as ProcessBuilder
-    }
-
-    /**
-     * Creates a ProcessBuilder for a given command and its arguments.
-     * 
-     * This method returns correctly constructed ProcessBuilder object 
-     * according to the Execution environment. It finds the execution environment using findCommandEnv(). 
-     * Raise an error if the env is null.
-     * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, List<String> args, Path dir) {
-        val env = findCommandEnv(cmd)
-        return createCommand(cmd, args, dir, env)
     }
 
     /**
@@ -1208,9 +748,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -1219,18 +760,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
     def String generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID,
+        int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -1264,6 +806,78 @@ abstract class GeneratorBase extends AbstractLFValidator {
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
+    
+    /**
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     *  that have port as their trigger or source
+     */
+    def String generateNetworkInputControlReactionBody(
+        int receivingPortID,
+        TimeValue maxSTP
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }    
+    
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
+     */
+    def String generateNetworkOutputControlReactionBody(
+        VarRef port,
+        int portID,
+        int receivingFederateID,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        Delay delay
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }  
+    
+    /**
+     * Returns true if the program is federated and uses the decentralized
+     * coordination mechanism.
+     */
+    def isFederatedAndDecentralized() {
+        if (isFederated &&
+            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+            return true
+        }
+        return false
+    }
+    
+    /**
+     * Returns true if the program is federated and uses the centralized
+     * coordination mechanism.
+     */
+    def isFederatedAndCentralized() {
+        if (isFederated &&
+            targetConfig.coordination === CoordinationType.CENTRALIZED) {
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Parsed error message from a compiler is returned here.
+     */
+    static class ErrorFileAndLine {
+        public var filepath = null as String
+        public var line = "1"
+        public var character = "0"
+        public var message = ""
+        public var isError = true // false for a warning.
+    }
 
     /**
      * Generate any preamble code that appears in the code generated
@@ -1271,7 +885,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def void generatePreamble() {
         prComment("Code generated by the Lingua Franca compiler from:")
-        prComment("file:/" +FileConfig.toUnixString(fileConfig.srcFile.toPath))
+        prComment("file:/" +FileConfig.toUnixString(fileConfig.srcFile))
         val models = new LinkedHashSet<Model>
 
         for (r : this.reactors ?: emptyList) {
@@ -1435,17 +1049,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Parsed error message from a compiler is returned here.
-     */
-    protected static class ErrorFileAndLine {
-        public var filepath = null as String
-        public var line = "1"
-        public var character = "0"
-        public var message = ""
-        public var isError = true // false for a warning.
-    }
-
-    /**
      * Given a line of text from the output of a compiler, return
      * an instance of ErrorFileAndLine if the line is recognized as
      * the first line of an error message. Otherwise, return null.
@@ -1472,14 +1075,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param stderr The output on standard error of executing a command.
      */
-    protected def reportCommandErrors(String stderr) {
+    def reportCommandErrors(String stderr) {
         // First, split the message into lines.
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var resource = getEclipseResource(fileConfig.srcFile.toURI());
-        // In case errors occur within an imported file, record the original resource.
-        val originalResource = resource;
+        var path = fileConfig.srcFile
+        // In case errors occur within an imported file, record the original path.
+        val originalPath = path;
         
         var severity = IMarker.SEVERITY_ERROR
         for (line : lines) {
@@ -1488,18 +1091,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 // Found a new line number designator.
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
-                    report(message.toString(), severity, lineNumber, resource)
-                    if (originalResource != resource) {
+                    if (severity == IMarker.SEVERITY_ERROR)
+                        errorReporter.reportError(path, lineNumber, message.toString())
+                    else
+                        errorReporter.reportWarning(path, lineNumber, message.toString())
+                      
+                    if (originalPath != path) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
-                        report(
-                            "Error in imported file: " + resource.fullPath,
-                            IMarker.SEVERITY_ERROR,
-                            null,
-                            originalResource
-                        )
+                        errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
                     }
                 }
                 if (parsed.isError) {
@@ -1521,11 +1123,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     lineNumber = null
                 }
                 // FIXME: Ignoring the position within the line.
-                // Determine the resource within which the error occurred.
-                // Sadly, Eclipse defines an interface called "URI" that conflicts with the
-                // Java one, so we have to give the full class name here.
-                val uri = new URI(parsed.filepath);
-                resource = getEclipseResource(uri);
+                // Determine the path within which the error occurred.
+                path = Paths.get(parsed.filepath)
             } else {
                 // No line designator.
                 if (message.length > 0) {
@@ -1539,18 +1138,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
         if (message.length > 0) {
-            report(message.toString, severity, lineNumber, resource)
-            if (originalResource != resource) {
+            if (severity == IMarker.SEVERITY_ERROR)
+                errorReporter.reportError(path, lineNumber, message.toString())
+            else
+                errorReporter.reportWarning(path, lineNumber, message.toString())
+
+            if (originalPath != path) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
-                report(
-                    "Error in imported file: " + resource.fullPath,
-                    IMarker.SEVERITY_ERROR,
-                    null,
-                    originalResource
-                )
+                errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
             }
         }
     }
@@ -1611,7 +1209,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (mode == Mode.INTEGRATED) {
+        if (fileConfig.compilerMode == Mode.INTEGRATED) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
@@ -1639,142 +1237,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 println("Unable to refresh workspace: " + e)
             }
         }
-    }
-
-    /** Report a warning or error on the specified line of the specified resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  This will print the error message to stderr.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param line The line number or null if it is not known.
-     *  @param object The Ecore object, or null if it is not known.
-     *  @param resource The resource, or null if it is not known.
-     */
-    protected def report(String message, int severity, Integer line, EObject object, IResource resource) {
-        if (severity === IMarker.SEVERITY_ERROR) {
-            generatorErrorsOccurred = true;
-        }
-        val header = (severity === IMarker.SEVERITY_ERROR) ? "ERROR: " : "WARNING: "
-        val lineAsString = (line === null) ? "" : "Line " + line
-        var fullPath = resource?.fullPath?.toString
-        if (fullPath === null) {
-            if (object !== null && object.eResource !== null) {
-                fullPath = FileConfig.toPath(object.eResource).toString()
-            } 
-        }
-        if (fullPath === null) {
-            if (line === null) {
-                fullPath = ""
-            } else {
-                fullPath = "path unknown"
-            }
-        }
-        val toPrint = header + fullPath + " " + lineAsString + "\n" + message
-        System.err.println(toPrint)
-
-        // If running in INTEGRATED mode, create a marker in the IDE for the error.
-        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (mode === Mode.INTEGRATED) {
-            var myResource = resource
-            if (myResource === null && object !== null) {
-                // Attempt to identify the IResource from the object.
-                val eResource = object.eResource
-                if (eResource !== null) {
-                    val uri = FileConfig.toPath(eResource).toUri();
-                    myResource = getEclipseResource(uri);
-                }
-            }
-            // If the resource is still null, use the resource associated with
-            // the top-level file.
-            if (myResource === null) {
-                myResource = iResource
-            }
-            if (myResource !== null) {
-                val marker = myResource.createMarker(IMarker.PROBLEM)
-                marker.setAttribute(IMarker.MESSAGE, message);
-                if (line !== null) {
-                    marker.setAttribute(IMarker.LINE_NUMBER, line);
-                } else {
-                    marker.setAttribute(IMarker.LINE_NUMBER, 1);
-                }
-                // Human-readable line number information.
-                marker.setAttribute(IMarker.LOCATION, lineAsString);
-                // Mark as an error or warning.
-                marker.setAttribute(IMarker.SEVERITY, severity);
-                marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
-
-                marker.setAttribute(IMarker.USER_EDITABLE, false);
-
-            // NOTE: It might be useful to set a start and end.
-            // marker.setAttribute(IMarker.CHAR_START, 0);
-            // marker.setAttribute(IMarker.CHAR_END, 5);
-            }
-        }
-
-        // Return a string that can be inserted into the generated code.
-        if (severity === IMarker.SEVERITY_ERROR) {
-            return "[[ERROR: " + message + "]]"
-        }
-        return ""
-    }
-
-    /** Report a warning or error on the specified parse tree object in the
-     *  current resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param object The parse tree object or null if not known.
-     */
-    protected def report(String message, int severity, EObject object) {
-        var line = null as Integer
-        if (object !== null) {
-            val node = NodeModelUtils.getNode(object)
-            if (node !== null) {
-                line = node.getStartLine
-            }
-        }
-        return report(message, severity, line, object, null)
-    }
-
-    /** Report a warning or error on the specified parse tree object in the
-     *  current resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param resource The resource.
-     */
-    protected def report(String message, int severity, Integer line, IResource resource) {
-        return report(message, severity, line, null, resource)
-    }
-
-    /** Report an error.
-     *  @param message The error message.
-     */
-    protected def reportError(String message) {
-        return report(message, IMarker.SEVERITY_ERROR, null)
-    }
-
-    /** Report an error on the specified parse tree object.
-     *  @param object The parse tree object.
-     *  @param message The error message.
-     */
-    protected def reportError(EObject object, String message) {
-        return report(message, IMarker.SEVERITY_ERROR, object)
-    }
-
-    /** Report a warning on the specified parse tree object.
-     *  @param object The parse tree object.
-     *  @param message The error message.
-     */
-    protected def reportWarning(EObject object, String message) {
-        return report(message, IMarker.SEVERITY_WARNING, object)
-    }
+    }  
 
     /** Reduce the indentation by one level for generated code
      *  in the default code buffer.
@@ -1939,7 +1402,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param port The port.
      * @return True if the port is a multiport.
      */
-    protected def boolean isMultiport(Port port) {
+    def boolean isMultiport(Port port) {
         port.widthSpec !== null
     }
 
@@ -1997,44 +1460,45 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        val mainDefn = this.mainDef?.reactorClass.toDefinition
+        val mainReactor = this.mainDef?.reactorClass.toDefinition
 
-        if (this.mainDef === null || !mainDefn.isFederated) {
+        if (this.mainDef === null || !mainReactor.isFederated) {
+            // The program is not federated.
             // Ensure federates is never empty.
-            var federateInstance = new FederateInstance(null, 0, 0, this)
+            var federateInstance = new FederateInstance(null, 0, 0, this, errorReporter)
             federates.add(federateInstance)
             federateByID.put(0, federateInstance)
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainDefn.host !== null) {
+            if (mainReactor.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
-                if (mainDefn.host.addr !== null) {
-                    federationRTIProperties.put('host', mainDefn.host.addr)
+                if (mainReactor.host.addr !== null) {
+                    federationRTIProperties.put('host', mainReactor.host.addr)
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
-                if (mainDefn.host.port !== 0) {
-                    federationRTIProperties.put('port', mainDefn.host.port)
+                if (mainReactor.host.port !== 0) {
+                    federationRTIProperties.put('port', mainReactor.host.port)
                 }
                 // Get the user information, if specified.
-                if (mainDefn.host.user !== null) {
-                    federationRTIProperties.put('user', mainDefn.host.user)
+                if (mainReactor.host.user !== null) {
+                    federationRTIProperties.put('user', mainReactor.host.user)
                 }
-            // Get the directory information, if specified.
-            /* FIXME
-             * if (mainDef.reactorClass.host.dir !== null) {
-             *     federationRTIProperties.put('dir', mainDef.reactorClass.host.dir)                
-             * }
-             */
             }
 
+            // Since federates are always within the main (federated) reactor,
+            // create a list containing just that one containing instantiation.
+            // This will be used to look up parameter values.
+            val context = new LinkedList<Instantiation>();
+            context.add(mainDef);
+
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDefn.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec);
+            for (instantiation : mainReactor.allInstantiations) {
+                var bankWidth = ASTUtils.width(instantiation.widthSpec, context);
                 if (bankWidth < 0) {
-                    reportError(instantiation, "Cannot determine bank width!");
+                    errorReporter.reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.
                     bankWidth = 1;
                 }
@@ -2043,7 +1507,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.size
-                    var federateInstance = new FederateInstance(instantiation, federateID, i, this)
+                    var federateInstance = new FederateInstance(instantiation, federateID, i, this, errorReporter)
                     federateInstance.bankIndex = i;
                     federates.add(federateInstance)
                     federateInstances.add(federateInstance)
@@ -2069,9 +1533,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // In a federated execution, we need keepalive to be true,
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
-            if (isFederated) {
-                targetConfig.keepalive = true
-            }
+            targetConfig.keepalive = true
 
             // Analyze the connection topology of federates.
             // First, find all the connections between federates.
@@ -2079,130 +1541,120 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical for physical connections and logical
             // for logical connections.
-            var connectionsToRemove = new LinkedList<Connection>()
-            for (connection : mainDefn.connections) {
-                // Each connection object may represent more than one physical connection between
-                // federates because of banks and multiports. We need to generate communciation
-                // for each of these. This iteration assumes the balance of the connection has been
-                // checked.
-                var rightIndex = 0;
-                var rightPort = connection.rightPorts.get(rightIndex++);
-                var rightBankIndex = 0;
-                var rightChannelIndex = 0;
-                var rightPortWidth = width((rightPort.variable as Port).widthSpec);
-                for (leftPort: connection.leftPorts) {
-                    var leftPortWidth = width((leftPort.variable as Port).widthSpec);
-                    for (var leftBankIndex = 0; leftBankIndex < width(leftPort.container.widthSpec); leftBankIndex++) {
-                        var leftChannelIndex = 0;
-                        while (rightPort !== null) {
-                            var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
-                                    ? leftPortWidth - leftChannelIndex
-                                    : rightPortWidth - rightChannelIndex;
-                            for (var j = 0; j < minWidth; j++) {
-                            
-                                // Finally, we have a specific connection.
-                                // Replace the connection in the AST with an action
-                                // (which inherits the delay) and two reactions.
-                                // The action will be physical if the connection physical and
-                                // otherwise will be logical.
-                                val leftFederate = federatesByInstantiation.get(leftPort.container).get(leftBankIndex);
-                                val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
-
-                                // Set up dependency information.
-                                // FIXME: Maybe we don't need this any more?
-                                if (
-                                    leftFederate !== rightFederate
-                                    && !connection.physical
-                                    && targetConfig.coordination !== CoordinationType.DECENTRALIZED
-                                ) {
-                                    var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                                    if (dependsOn === null) {
-                                        dependsOn = new LinkedHashSet<Delay>()
-                                        rightFederate.dependsOn.put(leftFederate, dependsOn)
-                                    }
-                                    if (connection.delay !== null) {
-                                        dependsOn.add(connection.delay)
-                                    }
-                                    var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                                    if (sendsTo === null) {
-                                        sendsTo = new LinkedHashSet<Delay>()
-                                        leftFederate.sendsTo.put(rightFederate, sendsTo)
-                                    }
-                                    if (connection.delay !== null) {
-                                        sendsTo.add(connection.delay)
-                                    }
-                                    // Check for causality loops between federates.
-                                    // FIXME: This does not detect cycles involving more than one federate.
-                                    var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                                    if (reverseDependency !== null) {
-                                        // Check that at least one direction has a delay.
-                                        if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                            // Found a causality loop.
-                                            val message = "Causality loop found between federates " +
-                                                leftFederate.name + " and " + rightFederate.name
-                                            reportError(connection, message)
-                                            // This is a fatal error, so throw an exception.
-                                            throw new Exception(message)
-                                        }
-                                    }
-                                }
-                                                                
-                                ASTUtils.makeCommunication(
-                                    connection, 
-                                    leftFederate, leftBankIndex, leftChannelIndex,
-                                    rightFederate, rightBankIndex, rightChannelIndex,
-                                    this, targetConfig.coordination
-                                )
-                            
-                                leftChannelIndex++;
-                                rightChannelIndex++;
-                                if (rightChannelIndex >= rightPortWidth) {
-                                    // Ran out of channels on the right.
-                                    // First, check whether there is another bank reactor.
-                                    if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
-                                        rightBankIndex++;
-                                        rightChannelIndex = 0;
-                                    } else if (rightIndex >= connection.rightPorts.size()) {
-                                        // We are done.
-                                        rightPort = null;
-                                        rightBankIndex = 0;
-                                        rightChannelIndex = 0;
-                                    } else {
-                                        rightBankIndex = 0;
-                                        rightPort = connection.rightPorts.get(rightIndex++);
-                                        rightChannelIndex = 0;
-                                        rightPortWidth = width((rightPort.variable as Port).widthSpec);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                // To avoid concurrent modification exception, collect a list
-                // of connections to remove.
-                connectionsToRemove.add(connection)
-            }
-            for (connection : connectionsToRemove) {
-                // Remove the original connection for the parent.
-                mainDefn.connections.remove(connection)
-            }
+            replaceFederateConnectionsWithActions()
         }
     }
-
+    
     /**
-     * Determine which mode the compiler is running in.
-     * Integrated mode means that it is running within an Eclipse IDE.
-     * Standalone mode means that it is running on the command line.
+     * Replace connections between federates in the AST with actions that
+     * handle sending and receiving data.
      */
-    private def setMode() {
-        val resource = fileConfig.resource
-        if (resource.URI.isPlatform) {
-            mode = Mode.INTEGRATED
-        } else if (resource.URI.isFile) {
-            mode = Mode.STANDALONE
-        } else {
-            mode = Mode.UNDEFINED
-            System.err.println("ERROR: Source file protocol is not recognized: " + resource.URI);
+    private def replaceFederateConnectionsWithActions() {
+        val mainReactor = this.mainDef?.reactorClass.toDefinition
+
+        // Since federates are always within the main (federated) reactor,
+        // create a list containing just that one containing instantiation.
+        // This will be used to look up parameter values.
+        val context = new LinkedList<Instantiation>();
+        context.add(mainDef);
+        
+        // Each connection in the AST may represent more than one connection between
+        // federate instances because of banks and multiports. We need to generate communication
+        // for each of these. To do this, we create a ReactorInstance so that we don't have
+        // to duplicate the rather complicated logic in that class. We specify a depth of 1,
+        // so it only creates the reactors immediately within the top level, not reactors
+        // that those contain.
+        val mainInstance = new ReactorInstance(mainReactor, errorReporter, 1)
+
+        for (federate : mainInstance.children) {
+            // Skip banks and just process the individual instances.
+            if (federate.bankIndex > -2) {
+                val bankIndex = (federate.bankIndex >= 0)? federate.bankIndex : 0
+                val leftFederate = federatesByInstantiation.get(federate.definition).get(bankIndex);
+                for (source : federate.outputs) {
+                    // Skip multiports and process only individual instances.
+                    if (source instanceof MultiportInstance) {
+                        for (containedSource : source.instances) {
+                            replaceConnectionFromSource(containedSource, leftFederate, federate, mainInstance)
+                        }
+                    } else {
+                        replaceConnectionFromSource(source, leftFederate, federate, mainInstance)
+                    }
+                }
+            }
+        }
+        // Remove all connections for the main reactor.
+        mainReactor.connections.clear()
+    }
+    
+    /**
+     * Replace the specific connection from the specified port instance, which is assumed to be
+     * a simple port, not a multiport.
+     * @param source The port instance.
+     * @param leftFederate The federate for which this source is an output.
+     * @param federate The reactor instance for that federate.
+     * @param mainInstance The main reactor instance.
+     */
+    def void replaceConnectionFromSource(
+        PortInstance source, FederateInstance leftFederate, ReactorInstance federate, ReactorInstance mainInstance
+    ) {
+        for (destination : source.dependentPorts) {
+            // assume the destination is a single port instance, not a multiport.
+            // There shouldn't be any outputs in the destination list
+            // because these would be outputs of the top level.
+            // But if there are, ignore them.
+            if (destination.isInput) {
+                val parentBankIndex = (destination.parent.bankIndex >= 0) ? destination.parent.bankIndex : 0
+                val rightFederate = federatesByInstantiation.get(destination.parent.definition).get(parentBankIndex);
+
+                // Set up dependency information.
+                var connection = mainInstance.getConnection(source, destination)
+                if (connection === null) {
+                    // This should not happen.
+                    errorReporter.reportError(source.definition, "Unexpected error. Cannot find connection for port")
+                } else {
+                    if (leftFederate !== rightFederate
+                            && !connection.physical 
+                            && targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
+                        var dependsOnDelays = rightFederate.dependsOn.get(leftFederate)
+                        if (dependsOnDelays === null) {
+                            dependsOnDelays = new LinkedHashSet<Delay>()
+                            rightFederate.dependsOn.put(leftFederate, dependsOnDelays)
+                        }
+                        if (connection.delay !== null) {
+                            dependsOnDelays.add(connection.delay)
+                        } else {
+                            // To indicate that at least one connection has no delay, add a null entry.
+                            dependsOnDelays.add(null)
+                        }
+                        var sendsToDelays = leftFederate.sendsTo.get(rightFederate)
+                        if (sendsToDelays === null) {
+                            sendsToDelays = new LinkedHashSet<Delay>()
+                            leftFederate.sendsTo.put(rightFederate, sendsToDelays)
+                        }
+                        if (connection.delay !== null) {
+                            sendsToDelays.add(connection.delay)
+                        } else {
+                            // To indicate that at least one connection has no delay, add a null entry.
+                            sendsToDelays.add(null)
+                        }
+                    }
+
+                    FedASTUtils.makeCommunication(
+                        source,
+                        destination,
+                        connection,
+                        leftFederate,
+                        federate.bankIndex,
+                        source.index,
+                        rightFederate,
+                        destination.parent.bankIndex,
+                        destination.index,
+                        this,
+                        targetConfig.coordination
+                    )
+                }
+            }
         }
     }
 
@@ -2212,58 +1664,23 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + mode)
+        println('******** mode: ' + fileConfig.compilerMode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }
 
     /**
-     * Execute a process while forwarding output and error streams.
+     * Indicates whether delay banks generated from after delays should have a variable length width.
      * 
-     * Executing a process directly with `processBuiler.start()` could
-     * lead to a deadlock as the subprocess blocks when output or error
-     * buffers are full. This method ensures that output and error messages
-     * are continuously read and forwards them to the given streams.
+     * If this is true, any delay reactors that are inserted for after delays on multiport connections 
+     * will have a unspecified variable length width. The code generator is then responsible for inferring the
+     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
      * 
-     * @param processBuilder The process to be executed.
-     * @param outStream The stream to forward the process' output to.
-     * @param errStream The stream to forward the process' error messages to.
-     * @author{Christian Menard <christian.menard@tu-dresden.de}
+     * If this is false, the width specification of the generated bank will list all the ports listed on the right
+     * side of the connection. This gives the code generator the information needed to infer the correct width at 
+     * runtime.
      */
-    private def runSubprocess(ProcessBuilder processBuilder, List<OutputStream> outStream,
-        List<OutputStream> errStream) {
-        val process = processBuilder.start()
-
-        var outThread = new Thread([|
-            var buffer = newByteArrayOfSize(64)
-            var len = process.getInputStream().read(buffer)
-            while (len != -1) {
-                for (os : outStream) {
-                    os.write(buffer, 0, len)
-                }
-                len = process.getInputStream().read(buffer)
-            }
-        ])
-        outThread.start()
-
-        var errThread = new Thread([|
-            var buffer = newByteArrayOfSize(64)
-            var len = process.getErrorStream().read(buffer)
-            while (len != -1) {
-                for (es : errStream) {
-                    es.write(buffer, 0, len)
-                }
-                len = process.getErrorStream().read(buffer)
-            }
-        ])
-        errThread.start()
-
-        val returnCode = process.waitFor()
-        outThread.join()
-        errThread.join()
-
-        return returnCode
-    }
+    def boolean generateAfterDelaysWithVariableWidth() { return true }
 
     /**
      * Return true if the target supports generics (i.e., parametric

@@ -31,7 +31,11 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
+import org.lflang.ErrorReporter
+import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.Input
@@ -40,7 +44,9 @@ import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
+import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
@@ -59,362 +65,162 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
-
+    
     /**
-     * A representation of the dependencies between reactions as they are
-     * inferred from the main reactor instance.
+     * Create a new instantiation hierarchy that starts with the given top-level reactor.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
      */
-    public static var ReactionInstanceGraph reactionGraph
-
-    /**
-     * Create a runtime instance from the specified definition
-     * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
-     * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
-     */
-    new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
-        // If the reactor is being instantiated with new[width], then pass -2
-        // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
+    new(Reactor reactor, ErrorReporter reporter) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1, null)
     }
 
     /**
-     * Create a runtime instance from the specified definition
-     * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
-     * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
-     * @param reactorIndex -1 for an ordinary reactor, -2 for a
-     * placeholder for a bank of reactors, or the index of the
-     * reactor in a bank of reactors otherwise.
+     * Create a new instantiation hierarchy that starts with the given top-level reactor
+     * but only creates contained reactors up to the specified depth.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
+     * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
      */
-    protected new(Instantiation definition, ReactorInstance parent,
-        GeneratorBase generator, int reactorIndex) {
-        super(definition, parent)
-        this.generator = generator
-        this.bankIndex = reactorIndex
+    new(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, null)
+    }
+
+    /**
+     * Create a new instantiation hierarchy that starts with the given reactor.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
+     */
+    new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions)
+    }
+    
+    /** The reactor definition in the AST. */
+    public final Reactor reactorDefinition
+    
+    public final boolean recursive
         
-        // If this reactor is actually a bank of reactors, then instantiate
-        // each individual reactor in the bank and skip the rest of the
-        // initialization for this reactor instance.
-        if (reactorIndex === -2) {
-            // If the bank width is variable, then we have to wait until the first connection
-            // before instantiating the children.
-            var width = width(definition.widthSpec)
-            if (width > 0) {
-                this.bankMembers = new ArrayList<ReactorInstance>(width)
-                for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(definition, parent, generator, index)
-                    this.bankMembers.add(childInstance)
-                    childInstance.bank = this
-                    childInstance.bankIndex = index
+    /**
+     * Populate destinations map and the connectivity information in the port instances.
+     * Note that this can only happen _after_ the children and port instances have been created.
+     * Unfortunately, we have to do some complicated things here
+     * to support multiport-to-multiport, multiport-to-bank,
+     * and bank-to-multiport communication.  The principle being followed is:
+     * in each connection statement, for each port instance on the left,
+     * as obtained by the nextPort() function, connect to the next available
+     * port on the right, as obtained by the nextPort() function.
+     */
+    def establishPortConnections() {
+        for (connection : reactorDefinition.allConnections) {
+            val leftPortInstances = listPortInstances(connection.leftPorts)
+            val rightPortInstances = listPortInstances(connection.rightPorts)
+
+            // Check widths.
+            if (leftPortInstances.size > rightPortInstances.size) {
+                reporter.reportWarning(connection, "Source is wider than the destination. Outputs will be lost.")
+            } else if (leftPortInstances.size < rightPortInstances.size && !connection.isIterated) {
+                reporter.reportWarning(connection, "Destination is wider than the source. Inputs will be missing.")
+            }
+            
+            var leftPortIndex = 0
+            for (rightPortInstance : rightPortInstances) {
+                if (leftPortIndex < leftPortInstances.size) {
+                    val leftPortInstance = leftPortInstances.get(leftPortIndex)
+                    connectPortInstances(connection, leftPortInstance, rightPortInstance)
                 }
-            } else {
-                generator.reportError(definition, "Cannot infer width.")
-            }
-            return
-        }
-        
-        // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : definition.reactorClass.toDefinition.allParameters) {
-            this.parameters.add(new ParameterInstance(parameter, this))
-        }
-
-        // Instantiate children for this reactor instance
-        for (child : definition.reactorClass.toDefinition.allInstantiations) {
-            var childInstance = new ReactorInstance(child, this, generator)
-            this.children.add(childInstance)
-            // If the child is a bank of instances, add all the bank instances.
-            // These must be added after the bank itself.
-            if (childInstance.bankMembers !== null) {
-                this.children.addAll(childInstance.bankMembers)
+                leftPortIndex++
+                if (connection.isIterated && leftPortIndex >= leftPortInstances.size) {
+                    leftPortIndex = 0
+                }
             }
         }
-
-        // Instantiate inputs for this reactor instance
-        for (inputDecl : definition.reactorClass.toDefinition.allInputs) {
-            if (inputDecl.widthSpec === null) {
-                this.inputs.add(new PortInstance(inputDecl, this))
-            } else {
-                this.inputs.add(new MultiportInstance(inputDecl, this, generator))
+    }
+    
+    /**
+     * Given a list of port references, as found on either side of a connection,
+     * return a list of the port instances referenced. If the port is a multiport,
+     * the list will contain the individual port instance, not the multiport instance.
+     * If the port reference has the form `c.x`, where `c` is a bank of reactors,
+     * then the list will contain the port instances belonging to each bank member.
+     * 
+     * If a given port reference `b.m`, where `b` is a bank and `m` is a multiport,
+     * is unqualified, this function iterates over bank members first, then ports.
+     * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`. 
+     * 
+     * If a given port reference has the form `interleaved(b.m)`, where `b` is a
+     * bank and `m` is a multiport, this function iterates over ports first,
+     * then bank members. E.g., if `b` and `m` have width 2, it returns
+     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. 
+     */
+    private def List<PortInstance> listPortInstances(List<VarRef> references) {
+        val result = new LinkedList<PortInstance>();
+        for (portRef : references) {
+            // Simple error checking first.
+            if (!(portRef.variable instanceof Port)) {
+                reporter.reportError(portRef, "Not a port.");
+                return result;
             }
-        }
-
-        // Instantiate outputs for this reactor instance
-        for (outputDecl : definition.reactorClass.toDefinition.allOutputs) {
-            if (outputDecl.widthSpec === null) {
-                this.outputs.add(new PortInstance(outputDecl, this))
-            } else {
-                this.outputs.add(new MultiportInstance(outputDecl, this, generator))
+            // First, figure out which reactor we are dealing with.
+            // The reactor we want is the container of the port.
+            // If the port reference has no container, then the reactor is this one,
+            // or if this one is a bank, the next available bank member.
+            var reactor = this
+            if (portRef.container !== null) {
+                reactor = getChildReactorInstance(portRef.container);
             }
-        }
-
-        // Instantiate timers for this reactor instance
-        for (timerDecl : definition.reactorClass.toDefinition.allTimers) {
-            this.timers.add(new TimerInstance(timerDecl, this))
-        }
-
-        // Instantiate actions for this reactor instance
-        for (actionDecl : definition.reactorClass.toDefinition.allActions) {
-            this.actions.add(new ActionInstance(actionDecl, this))
-        }
-
-        // Populate destinations map and the connectivity information
-        // in the port instances.
-        // Note that this can only happen _after_ the children and 
-        // port instances have been created.
-        
-        // Unfortunately, we have to do some complicated things here
-        // to support multiport-to-multiport, multiport-to-bank,
-        // and bank-to-multiport communication.  The principle being followed is:
-        // In each connection statement, for each port instance on the left,
-        // as obtained by the nextPort() function, connect to the next available
-        // port on the right, as obtained by the nextPort() function.
-        for (connection : definition.reactorClass.toDefinition.allConnections) {
-            var leftPort = connection.leftPorts.get(0)
-            var leftPortCount = 1
-            for (rightPort : connection.rightPorts) {
-                var rightPortInstance = nextPort(rightPort)
-                while (rightPortInstance !== null) {
-                    var leftPortInstance = nextPort(leftPort)
-                    if (leftPortInstance === null) {
-                        // We have run out of left ports. We may have also run out of
-                        // right ports, so get a new left port only if there is one.
-                        // We do not rely on the validator to ensure that the connection is balanced.
-                        if (leftPortCount < connection.leftPorts.length) {
-                            leftPort = connection.leftPorts.get(leftPortCount++)
-                            leftPortInstance = nextPort(leftPort)
-                        } else {
-                            // If left ports are to be iterated, then start over here.
-                            if (connection.isIterated) {
-                                leftPort = connection.leftPorts.get(0)
-                                // The left port may be in a bank.
-                                if (leftPort.container !== null) {
-                                    val reactor = getChildReactorInstance(leftPort.container)
-                                    if (reactor !== null && reactor.bankMembers !== null) {
-                                        for (bankReactor : reactor.bankMembers) {
-                                            // Also reset the bank index.
-                                            nextBankTable.put(leftPort, 0)
-                                            // Since we are starting over with the bank, need to
-                                            // remove all portInstances in each bank reactor that
-                                            // match the left port.
-                                            var portInstance = bankReactor.lookupPortInstance(leftPort.variable as Port)
-                                            nextPortTable.remove(portInstance)
-                                        }
-                                    }
-                                }
-                                leftPortCount = 1
-                                leftPortInstance = nextPort(leftPort)
+            // The reactor be null only if there is an error in the code.
+            // Skip this portRef so that diagram synthesis can complete.
+            if (reactor !== null) {
+                if (reactor.bankMembers !== null) {
+                    // Reactor is a bank.
+                    if (!portRef.isInterleaved) {
+                        // Not a cross connection.
+                        for (memberReactor: reactor.bankMembers) {
+                            val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)
+                            if (portInstance instanceof MultiportInstance) {
+                                // Multiport within a bank.
+                                result.addAll(portInstance.instances)
                             } else {
-                                leftPortInstance = null
-                                generator.reportWarning(rightPort, "Unconnected ports on the right.")
+                                // Not multiport.
+                                result.add(portInstance)
+                            }
+                        }
+                    } else {
+                        // It is a cross connection.
+                        var width = 1
+                        for (var i = 0; i < width; i++) {
+                            for (memberReactor: reactor.bankMembers) {
+                                val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)
+                                if (portInstance instanceof MultiportInstance) {
+                                    // Multiport, bank, cross connection.
+                                    // Assume all have the same width.
+                                    // Otherwise, stop collecting ports.
+                                    width = portInstance.getWidth()
+                                    if (i < width) {
+                                        result.add(portInstance.getInstance(i))
+                                    }
+                                } else {
+                                    // Not multiport, bank, cross is irrelevant.
+                                    result.add(portInstance)
+                                }
                             }
                         }
                     }
-                    // Do not make a connection if there is no new left port.
-                    if (leftPortInstance !== null) {
-                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
-                    }
-                    rightPortInstance = nextPort(rightPort)
-                }
-                // At this point, rightPortInstance is null.
-                // Go to the next right port if there is one.
-            }
-            // We are out of right ports.
-            // Make sure we are out of left ports also.
-            if (nextPort(leftPort) !== null || leftPortCount < connection.leftPorts.length - 1) {
-                generator.reportWarning(leftPort, "Source is wider than the destination. Outputs will be lost.")
-            }
-        }
-        
-        // Check for dangling inputs or outputs and issue a warning.
-        checkForDanglingConnections()
-
-        // Create the reaction instances in this reactor instance.
-        // This also establishes all the implied dependencies.
-        // Note that this can only happen _after_ the children, 
-        // port, action, and timer instances have been created.
-        createReactionInstances()
-
-        // If this is the main reactor, then perform static analysis.
-        if (parent === null) {
-            ReactorInstance.reactionGraph = new ReactionInstanceGraph(this)
-        }
-    }
-        
-    /** Data structure used by nextPort() to keep track of the next available bank. */
-    var nextBankTable = new LinkedHashMap<VarRef,Integer>()
-
-    /** Data structure used by nextPort() to keep track of the next available port. */
-    var nextPortTable = new LinkedHashMap<PortInstance,Integer>()
-    
-    /**
-     * Check for dangling connections.
-     */
-    def checkForDanglingConnections() {
-        // FIXME identifies only dangling inputs
-        // First, check that each bank index is either 0 (allowed for sources)
-        // or equals the width of the bank, meaning all banks were used.
-        for (portReference : nextBankTable.keySet) {
-            var nextBank = nextBankTable.get(portReference)
-            var reactor = this
-            if (portReference.container !== null) {
-                reactor = getChildReactorInstance(portReference.container)
-            }
-            // The reactor should be a bank.
-            if (nextBank != 0 && nextBank < reactor.bankMembers.size) {
-                // Not all the bank members were used.
-                generator.reportWarning(portReference, "Not all bank members are connected.")
-            }
-        }
-        // Next, check multiports.
-        for (portInstance : nextPortTable.keySet) {
-            var nextPort = nextPortTable.get(portInstance)
-            // This port may or may not be a multiport.
-            if (portInstance instanceof MultiportInstance) {
-                if (nextPort != 0 && nextPort < portInstance.width) {
-                    // Not all the ports were used.
-                    generator.reportWarning(portInstance.parent.definition,
-                            "Not all multiport input channels are connected.")
-                }
-            }
-        }
-    }
-    
-    /**
-     * Given a VarRef for either the left or the right side of a connection
-     * statement within this reactor instance, return the next available port instance
-     * for that connection. If there are no more available ports, return null.
-     * 
-     * This handles parallel connections like `a.out, b.out -> c.in, d.in`.
-     * Each VarRef on each side may also refer to a port of this reactor, as in
-     * `in1, in2 -> b.in`.
-     * To realize such connection statements, make connections until one side or
-     * the other of the connection statement causes this method to return null,
-     * then proceed to the next port on that side.
-     * 
-     * If the reactor is not a bank of reactors and the
-     * port is not a multiport, then the returned port instance will simply
-     * be the port referenced, which may be a port of this reactor or a port
-     * of a contained reactor, unless that same port was returned by the previous
-     * invocation of this method, in which case the returned value will be null.
-     * 
-     * If the port is a multiport, then this method will iterate through the ports
-     * in the multiport, returning a new port each time it is called, until all ports
-     * in the multiport have been returned. Then it will return null.
-     * 
-     * If the reactor is a bank of reactors, then this method will iterate through
-     * the bank, returning a new port each time it is called, until all ports in all
-     * banks are exhausted, at which time it will return null.
-     * 
-     * In all cases, upon returning null, if the port is source of data (an input port of
-     * this reactor or an output port of a contained reactor), then this will reset the
-     * state so that on the next call the first port will again be returned.
-     * This allows source ports to be reused, multicasting their outputs.
-     * If the port is not a source of data, no reset occurs because it is not
-     * legal to make multiple connections to a sink port, whereas it is legal for
-     * a source connection. All subsequent calls will return null.
-     * 
-     * @param portReference The port reference in the connection.
-     */
-    def PortInstance nextPort(VarRef portReference) {
-        // First, figure out which reactor we are dealing with.
-        // The reactor we want is the container of the port.
-        // It may be a bank, in which case we want next available
-        // bank member for the specified port.
-        // If the port reference has no container, then the reactor is this one,
-        // or if this one is a bank, the next available bank member.
-        var reactor = this
-        if (portReference.container !== null) {
-            reactor = getChildReactorInstance(portReference.container)
-        }
-        // The reactor may be a bank, in which case, we will also need
-        // the member reactor within the bank.
-        var memberReactor = reactor
-        var bankIdx = -1 // Indicator that this reactor is not a bank.
-        if (reactor.bankMembers !== null) {
-            // It is a bank.
-            bankIdx = nextBankTable.get(portReference)?:0
-            // If the bank is exhausted, return null.
-            if (bankIdx >= reactor.bankMembers.size) {
-                // If it is a source, reset the bank counter.
-                if (portReference.isSource) {
-                    nextBankTable.put(portReference, 0)
-                }
-                return null
-            }
-            memberReactor = reactor.bankMembers.get(bankIdx)
-        }
-        
-        var portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
-        
-        if (portInstance === null) {
-            generator.reportError(portReference, "No such port.")
-            return null
-        }
-        
-        // If the port is a multiport, then retrieve the next available port.
-        if (portInstance instanceof MultiportInstance) {
-            // Do not allow width 0 multiports.
-            if (portInstance.width === 0) {
-                generator.reportError(portReference, "Multiport of width zero is not allowed")
-                return null
-            }
-            var portIndex = nextPortTable.get(portInstance)?:0
-
-            if (portIndex >= portInstance.width) {
-                // Multiport is exhausted. Will return null unless it's in a bank.
-                // If this port is a source, reset port index to allow multicast.
-                if (portReference.isSource) {
-                    nextPortTable.put(portInstance, 0)
-                }
-                // If this is a bank, move to the next bank element.
-                if (reactor.bankMembers !== null) {
-                    bankIdx++
-                    nextBankTable.put(portReference, bankIdx)
-                    if (bankIdx >= reactor.bankMembers.size) {
-                        // Bank is exhausted as well. Will return null.
-                        // If this port is a source, reset the bank index.
-                        if (portReference.isSource) {
-                            nextBankTable.put(portReference, 0)
-                        }
-                        return null
-                    }
-                    // Get the bank member reactor.
-                    memberReactor = reactor.bankMembers.get(bankIdx)
-                    // Have a new port instance.
-                    portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
-                    // This should also be a multiport.
-                    nextPortTable.put(portInstance, 1)
-                    return (portInstance as MultiportInstance).getInstance(0)
                 } else {
-                    // Not a bank. Will return null.
-                    return null
+                    // Reactor is not a bank.
+                    val portInstance = reactor.lookupPortInstance(portRef.variable as Port)
+                    if (portInstance instanceof MultiportInstance) {
+                        // Multiport, not bank.
+                        result.addAll(portInstance.instances)
+                    } else {
+                        // Not bank, not multiport.
+                        result.add(portInstance)
+                    }
                 }
-            } else {
-                // Multiport is not exhausted.
-                nextPortTable.put(portInstance, portIndex + 1)
-                return (portInstance as MultiportInstance).getInstance(portIndex)
             }
-        } else {
-            // The port is not a multiport.
-            // If it is a bank, increment the bank counter.
-            if (reactor.bankMembers !== null) {
-                nextBankTable.put(portReference, bankIdx + 1)
-            }
-            var portIndex = nextPortTable.get(portInstance)?:0
-            if (portIndex > 0) {
-                // Port has been used.
-                // If it is a source, reset the nextPortTable so it can be reused.
-                if (portReference.isSource) {
-                    nextPortTable.put(portInstance, 0)
-                }
-                return null
-            }
-            nextPortTable.put(portInstance, 1)
-            return portInstance
         }
+        return result;
     }
     
     /**
@@ -437,7 +243,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
         srcInstance.dependentPorts.add(dstInstance)
         if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
-            generator.reportError(
+            reporter.reportError(
                 connection,
                 "dstInstance port " + dstInstance.getFullName + " is already connected to " +
                     dstInstance.dependsOnPort.getFullName
@@ -451,6 +257,71 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             this.destinations.put(srcInstance, dstInstances)
         }
         dstInstances.add(dstInstance)
+        
+        var destTable = connectionTable.get(srcInstance)
+        if (destTable === null) {
+            destTable = new LinkedHashMap<PortInstance,Connection>()
+            connectionTable.put(srcInstance, destTable)
+        }
+        destTable.put(dstInstance, connection)
+        
+        // The diagram package needs to know, for each single port
+        // or multiport (not the ports within the multiport), which
+        // other single ports or multiports they are connected to.
+        // Record that here.
+        var src = srcInstance.multiport as PortInstance;
+        if (src === null) src = srcInstance; // Not in a multiport.
+        
+        var dst = dstInstance.multiport as PortInstance;
+        if (dst === null) dst = dstInstance; // Not in a multiport.
+
+        // The following is support for the diagram visualization.
+        // The source may be at a bank index greater than 0.
+        // For visualization, this needs to be converted to the source
+        // at bank 0, because only that one is rendered.
+        // We want the rendering to represent all connections.
+        if (src.isOutput && src.parent.bankIndex > 0) {
+            // Replace the source with the corresponding port instance
+            // at bank index 0.
+            val newParent = src.parent.bankMaster.bankMembers.get(0)
+            val name = src.name
+            src = newParent.outputs.findFirst [ it.name.equals(name) ]
+        }
+
+        var links = connections.get(connection);
+        if (links === null) {
+            links = new LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>();
+            connections.put(connection, links);
+        }
+        var destinations = links.get(src);
+        if (destinations === null) {
+            destinations = new LinkedHashSet<PortInstance>();
+            links.put(src, destinations);
+        }
+        // The destination may be at a bank index greater than 0.
+        // For visualization, this needs to be converted to the destination
+        // at bank 0, because only that one is rendered.
+        // We want the rendering to represent all connections.
+        if (dst.isInput && dst.parent.bankIndex > 0) {
+            // Replace the destination with the corresponding port instance
+            // at bank index 0.
+            val newParent = dst.parent.bankMaster.bankMembers.get(0)
+            val name = dst.name
+            dst = newParent.inputs.findFirst [ it.name.equals(name) ]
+        }
+        destinations.add(dst);
+    }
+    
+    /**
+     * Return the Connection that created the link between the specified source
+     * and destination, or null if there is no such link.
+     */
+    def Connection getConnection(PortInstance source, PortInstance destination) {
+        var table = connectionTable.get(source)
+        if (table !== null) {
+            return table.get(destination)
+        }
+        return null
     }
     
     /** 
@@ -471,7 +342,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // // Public fields.
     
     /** The action instances belonging to this reactor instance. */
-    public var actions = new LinkedList<ActionInstance>
+    public val actions = new LinkedList<ActionInstance>
     
     /** 
      * The contained reactor instances, in order of declaration.
@@ -479,34 +350,29 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
-    public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
+    public val LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
 
     /** A map from sources to destinations as specified by the connections
      *  of this reactor instance. Note that this is redundant, because the same
      *  information is available in the port instances of this reactor and its
      *  children, but it is sometimes convenient to have it collected here.
      */
-    public var LinkedHashMap<PortInstance, LinkedHashSet<PortInstance>> destinations = new LinkedHashMap();
+    public val LinkedHashMap<PortInstance, LinkedHashSet<PortInstance>> destinations = new LinkedHashMap();
 
     /** The input port instances belonging to this reactor instance. */
-    public var inputs = new LinkedList<PortInstance>
+    public val inputs = new LinkedList<PortInstance>
 
     /** The output port instances belonging to this reactor instance. */
-    public var outputs = new LinkedList<PortInstance>
+    public val outputs = new LinkedList<PortInstance>
 
     /** The parameters of this instance. */
-    public var parameters = new LinkedList<ParameterInstance>
+    public val parameters = new LinkedList<ParameterInstance>
 
     /** List of reaction instances for this reactor instance. */
-    public var reactions = new LinkedList<ReactionInstance>();
-
-    /** If non-null, then this reactor has a shutdown action that
-     *  needs to be scheduled prior to shutting down the program.
-     */
-    public var ActionInstance shutdownActionInstance = null
+    public val reactions = new LinkedList<ReactionInstance>();
 
     /** The timer instances belonging to this reactor instance. */
-    public var timers = new LinkedList<TimerInstance>
+    public val timers = new LinkedList<TimerInstance>
 
     // ////////////////////////////////////////////////////
     // // Public methods.
@@ -522,35 +388,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (this.bankIndex >= 0) {
             result += "[" + this.bankIndex + "]"
         }
+        if (result === null) return "";
         result
-    }
-
-    /** 
-     * Return the shutdown action within this reactor instance.
-     * 
-     * @return The corresponding shutdown action instance or null
-     *  if this reactor instance does not have a shutdown action.
-     */
-    def getShutdownAction() {
-        for (actionInstance : actions) {
-            if (actionInstance.isShutdown) {
-                return actionInstance
-            }
-        }
-    }
-
-    /** 
-     * Return the startup timer within this reactor instance.
-     * 
-     * @return The corresponding startup timer instance or null
-     *  if this reactor instance does not have a shutdown timer.
-     */
-    def getStartupTimer() {
-        for (timerInstance : timers) {
-            if (timerInstance.isStartup) {
-                return timerInstance
-            }
-        }
     }
 
     /** 
@@ -578,7 +417,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggers() {
-        var triggers = new LinkedHashSet<TriggerInstance<Variable>>
+        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>
         for (reaction : this.reactions) {
             triggers.addAll(reaction.triggers)
         }
@@ -593,7 +432,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggersAndReads() {
-        var triggers = new LinkedHashSet<TriggerInstance<Variable>>
+        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>
         for (reaction : this.reactions) {
             triggers.addAll(reaction.triggers)
             triggers.addAll(reaction.reads)
@@ -659,16 +498,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return _instantiations;
     }
-
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    
+    /**
+     * {@inheritDoc}
      */
-    override ReactorInstance main() {
-        if (this.parent === null) {
-            this
+    override ReactorInstance root() {
+        if (parent !== null) {
+            return parent.root()
         } else {
-            parent.main
+            return this
         }
+    }
+    
+    /**
+     * Returns whether this is a main or federated reactor.
+     * @return true if reactor definition is marked as main or federated, false otherwise.
+     */
+    def boolean isMainOrFederated() {
+        val defn = this.reactorDefinition
+        return defn !== null && (defn.isMain || defn.isFederated)
     }
     
     /** Return a descriptive string. */
@@ -691,6 +539,27 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var result = new LinkedHashSet<PortInstance>();
         transitiveClosure(source, result);
         result
+    }
+    
+
+    /**
+     * Returns the startup trigger or create a new one if none exists.
+     */
+    def getOrCreateStartup(TriggerRef trigger) {
+        if (startupTrigger === null) {
+            startupTrigger = new TriggerInstance(TriggerInstance.BuiltinTrigger.STARTUP, trigger, this)
+        }
+        return startupTrigger
+    }
+    
+    /**
+     * Returns the shutdown trigger or create a new one if none exists.
+     */
+    def getOrCreateShutdown(TriggerRef trigger) {
+        if (shutdownTrigger === null) {
+            shutdownTrigger = new TriggerInstance(TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this)
+        }
+        return shutdownTrigger
     }
     
     ///////////////////////////////////////////////////
@@ -834,14 +703,83 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return ASTUtils.width(widthSpec, instantiations());
     }
     
-    // ////////////////////////////////////////////////////
-    // // Protected fields.
+    /**
+     * Returns true if this is a bank of reactors.
+     * @return true if a reactor is a bank, false otherwise
+     */
+    def isBank() {
+        // FIXME magic number
+        return bankIndex == -2
+    }
     
+    /**
+     * If this reactor is in a bank of reactors, return the reactor instance
+     * representing the bank. Otherwise, return null.
+     */
+    def getBankMaster() {
+        return bank;
+    }
+    
+    /**
+     * Return the size of this bank.
+     * @return actual bank size or -1 if this is not a bank master.
+     */
+    def int getBankSize() {
+        if (bankMembers !== null) {
+            return bankMembers.size
+        }
+        return -1
+    }
+    
+    /**
+     * Return the index of this reactor within a bank, or -1 if it
+     * it is not within a bank, or -2 if it is itself the placeholder
+     * for a bank.
+     */
+    def getBankIndex() {
+        bankIndex
+    }
+    
+    /**
+     * Return the members of this bank, or null if there are none.
+     * @return actual bank size or -1 if this is not a bank master.
+     */
+    def getBankMembers() {
+        bankMembers
+    }
+    
+    /**
+     * Return a parameter matching the specified name if the reactor has one
+     * and otherwise return null.
+     * @param name The parameter name.
+     */
+    def ParameterInstance getParameter(String name) {
+        for (parameter: parameters) {
+            if (parameter.name.equals(name)) {
+                return parameter;
+            }
+        }
+        return null;
+    }
+
+    //////////////////////////////////////////////////////
+    //// Protected fields.
+    
+    /**
+     * The LF syntax does not currently support declaring reactions unordered,
+     * but unordered reactions are created in the AST transformations handling
+     * federated communication and after delays. Unordered reactions can execute
+     * in any order and concurrently even though they are in the same reactor.
+     * FIXME: Remove this when the language provides syntax.
+     */
+    protected var Set<Reaction> unorderedReactions = new LinkedHashSet()
+
     /**
      * If this reactor is in a bank of reactors, then this member
      * refers to the reactor instance defining the bank.
      */
     protected ReactorInstance bank = null
+    def ReactorInstance getBank() { return this.bank; }
     
     /** 
      * If this reactor instance is a placeholder for a bank of reactors,
@@ -855,10 +793,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * If this reactor is in a bank of reactors, its index, otherwise, -1
      * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
      */
+    @Accessors(PUBLIC_GETTER)
     protected int bankIndex = -1
 
     /** The generator that created this reactor instance. */
-    protected GeneratorBase generator
+    protected ErrorReporter reporter // FIXME: This accumulates a lot of redundant references
+    
+    /** The startup trigger. Null if not used in any reaction. */
+    @Accessors(PUBLIC_GETTER)
+    protected var TriggerInstance<BuiltinTriggerVariable> startupTrigger = null
+    
+    /** The startup trigger. Null if not used in any reaction. */
+    @Accessors(PUBLIC_GETTER)
+    protected var TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null
 
     // ////////////////////////////////////////////////////
     // // Protected methods
@@ -870,8 +817,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
-        var reactions = this.definition.reactorClass.toDefinition.allReactions
-        if (this.definition.reactorClass.toDefinition.reactions !== null) {
+        var reactions = this.reactorDefinition.allReactions
+        if (this.reactorDefinition.reactions !== null) {
             
             var count = 0
 
@@ -879,40 +826,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             for (Reaction reaction : reactions) {
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this,
-                    generator.isUnordered(reaction), count++)
+                    unorderedReactions.contains(reaction), count++)
                 
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);
-                
-                // Check for startup and shutdown triggers.
-                var startupTrigger = null as TimerInstance;
-                var shutdownTrigger = null as ActionInstance;
-                for (trigger : reaction.triggers) {
-                    if (trigger.isStartup) {
-                        if (startupTrigger === null) {
-                            // Null argument to TimerInstance makes this a startup trigger.
-                            startupTrigger = new TimerInstance(null, this);
-                            // Although this is a TimerInstance, it is treated differently from other timers.
-                            // Do not add it to the list of timers.
-                            // this.timers.add(startupTrigger);
-                        }
-                    } else if (trigger.isShutdown) {
-                        if (shutdownTrigger === null) {
-                             // Null argument to ActionInstance makes this a shutdown trigger.
-                            shutdownTrigger = new ActionInstance(null, this);
-                            // Although this is an ActionInstance, it is treated differently from other actions.
-                            // Do not add it to the list of actions.
-                            // this.actions.add(shutdownTrigger);
-                        }
-                    }
-                }
-                if (startupTrigger !== null) {
-                    reactionInstance.triggers.add(startupTrigger);
-                }
-                if (shutdownTrigger !== null) {
-                    reactionInstance.triggers.add(shutdownTrigger);
-                }
             }
         }
     }
@@ -939,20 +857,34 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     this + " nor any of its children."
             )
         }
-        // If the port is an input port, then include it in the result.
-        if (source.isInput) {
-            destinations.add(source)
-        }
-        var localDestinations = this.destinations.get(source)
+        // If the port is a multiport, then iterate over its contained ordinary ports instead.
+        if (source instanceof MultiportInstance) {
+            for (port : source.instances) {
+                transitiveClosure(port, destinations)
+            }
+        } else {
+            // The port is not a multiport.
+            // If the port is an input port, then include it in the result.
+            if (source.isInput) {
+                destinations.add(source)
+            }
+            var localDestinations = this.destinations.get(source)
 
-        for (destination : localDestinations ?: emptyList) {
-            destinations.add(destination)
-            if (destination.isInput) {
-                // Destination may have further destinations lower in the hierarchy.
-                destination.parent.transitiveClosure(destination, destinations)
-            } else if (destination.parent.parent !== null) {
-                // Destination may have further destinations higher in the hierarchy.
-                destination.parent.parent.transitiveClosure(destination, destinations)
+            if (localDestinations !== null) {
+                for (destination : localDestinations) {
+                    if (destination instanceof MultiportInstance) {
+                        destinations.addAll(destination.instances)
+                    } else {
+                        destinations.add(destination)
+                        if (destination.isInput) {
+                            // Destination may have further destinations lower in the hierarchy.
+                            destination.parent.transitiveClosure(destination, destinations)
+                        } else if (destination.parent.parent !== null) {
+                            // Destination may have further destinations higher in the hierarchy.
+                            destination.parent.parent.transitiveClosure(destination, destinations)
+                        }
+                    }
+                }
             }
         }
     }
@@ -977,10 +909,205 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
+    
+    ////////////////////////////////////////
+    //// Private constructors
+    
+    /**
+     * Create reactor instance resulting from the specified top-level instantiation.
+     * @param instance The Instance statement in the AST.
+     * @param parent The parent, or null for the main rector.
+     * @param reporter The error reporter.
+     * @param desiredDepth The depth to which to expand the hierarchy.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
+     */
+    private new(
+        Instantiation definition, 
+        ReactorInstance parent, 
+        ErrorReporter reporter, 
+        int desiredDepth,
+        Set<Reaction> unorderedReactions
+    ) {
+        // If the reactor is being instantiated with new[width], then pass -2
+        // to the constructor, otherwise pass -1.
+        this(
+            definition, 
+            parent, 
+            reporter, 
+            (definition.widthSpec !== null)? -2 : -1, 
+            0, 
+            desiredDepth,
+            unorderedReactions
+        )
+    }
+
+    /**
+     * Create a runtime instance from the specified definition
+     * and with the specified parent that instantiated it.
+     * @param instance The Instance statement in the AST.
+     * @param parent The parent, or null for the main rector.
+     * @param generator The generator (for error reporting).
+     * @param reactorIndex -1 for an ordinary reactor, -2 for a
+     *  placeholder for a bank of reactors, or the index of the
+     *  reactor in a bank of reactors otherwise.
+     * @param depth The depth of this reactor in the hierarchy.
+     * @param desiredDepth The depth to which to expand the hierarchy.
+     * @param unorderedReactions A list of reactions that should be treated as unordered.
+     *  It can be passed as null.
+     */
+    private new(
+            Instantiation definition, 
+            ReactorInstance parent,
+            ErrorReporter reporter,
+            int reactorIndex,
+            int depth,
+            int desiredDepth,
+            Set<Reaction> unorderedReactions) {
+        super(definition, parent)
+        this.reporter = reporter
+        this.bankIndex = reactorIndex
+        this.reactorDefinition = definition.reactorClass.toDefinition
+        this.depth = depth
+        if (unorderedReactions !== null) {
+            this.unorderedReactions = unorderedReactions;
+        }
+        
+        // check for recursive instantiation
+        var currentParent = parent
+        var foundSelfAsParent = false
+        do {
+            if (currentParent !== null) {
+                if (currentParent.reactorDefinition === this.reactorDefinition) {
+                    foundSelfAsParent = true
+                    currentParent = null // break
+                } else {
+                    currentParent = currentParent.parent
+                }
+            }
+        } while(currentParent !== null)
+        this.recursive = foundSelfAsParent
+        if (recursive) {
+            reporter.reportError(definition, "Recursive reactor instantiation.")
+        }
+        
+        // If this reactor is actually a bank of reactors, then instantiate
+        // each individual reactor in the bank and skip the rest of the
+        // initialization for this reactor instance.
+        if (reactorIndex === -2) {
+            // If the bank width is variable, then we have to wait until the first connection
+            // before instantiating the children.
+            var width = width(definition.widthSpec)
+            if (width > 0) {
+                this.bankMembers = new ArrayList<ReactorInstance>(width)
+                for (var index = 0; index < width; index++) {
+                    var childInstance = new ReactorInstance(
+                        definition, parent, reporter, index, depth, desiredDepth, this.unorderedReactions
+                    )
+                    this.bankMembers.add(childInstance)
+                    childInstance.bank = this
+                    childInstance.bankIndex = index
+                }
+            } else {
+                reporter.reportError(definition, "Cannot infer width.")
+            }
+            return
+        }
+        
+        // If the reactor definition is null, give up here. Otherwise, diagram generation
+        // will fail an NPE.
+        if (reactorDefinition === null) {
+            reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.")
+            return
+        }
+        
+        // Apply overrides and instantiate parameters for this reactor instance.
+        for (parameter : reactorDefinition.allParameters) {
+            this.parameters.add(new ParameterInstance(parameter, this))
+        }
+
+        // Instantiate inputs for this reactor instance
+        for (inputDecl : reactorDefinition.allInputs) {
+            if (inputDecl.widthSpec === null) {
+                this.inputs.add(new PortInstance(inputDecl, this))
+            } else {
+                this.inputs.add(new MultiportInstance(inputDecl, this, reporter))
+            }
+        }
+
+        // Instantiate outputs for this reactor instance
+        for (outputDecl : reactorDefinition.allOutputs) {
+            if (outputDecl.widthSpec === null) {
+                this.outputs.add(new PortInstance(outputDecl, this))
+            } else {
+                this.outputs.add(new MultiportInstance(outputDecl, this, reporter))
+            }
+        }
+
+        // Do not process content (except interface above) if recursive
+        if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
+            // Instantiate children for this reactor instance
+            for (child : reactorDefinition.allInstantiations) {
+                var childInstance = new ReactorInstance(
+                    child, 
+                    this, 
+                    reporter, 
+                    (child.widthSpec !== null)? -2 : -1, 
+                    depth + 1, 
+                    desiredDepth,
+                    this.unorderedReactions
+                )
+                this.children.add(childInstance)
+                // If the child is a bank of instances, add all the bank instances.
+                // These must be added after the bank itself.
+                if (childInstance.bankMembers !== null) {
+                    this.children.addAll(childInstance.bankMembers)
+                }
+            }
+
+            // Instantiate timers for this reactor instance
+            for (timerDecl : reactorDefinition.allTimers) {
+                this.timers.add(new TimerInstance(timerDecl, this))
+            }
+
+            // Instantiate actions for this reactor instance
+            for (actionDecl : reactorDefinition.allActions) {
+                this.actions.add(new ActionInstance(actionDecl, this))
+            }
+
+            establishPortConnections()
+        
+            // Create the reaction instances in this reactor instance.
+            // This also establishes all the implied dependencies.
+            // Note that this can only happen _after_ the children, 
+            // port, action, and timer instances have been created.
+            createReactionInstances()
+        }
+    }
 
     ////////////////////////////////////////
     //// Private variables
     
+    /** Table recording which connection created a link between a source and destination. */
+    var LinkedHashMap<PortInstance,LinkedHashMap<PortInstance,Connection>> connectionTable
+            = new LinkedHashMap<PortInstance,LinkedHashMap<PortInstance,Connection>>()
+    
     /** The nested list of instantiations that created this reactor instance. */
     var List<Instantiation> _instantiations;
+    
+    /** 
+     * The depth in the hierarchy of this reactor instance.
+     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
+     */
+    var int depth = 0;
+
+    /** 
+     * Data structure that maps connections to their connections as they appear
+     * in a visualization of the program. For each connection, there is map
+     * from source ports (single ports and multiports) on the left side of the
+     * connection to a set of destination ports (single ports and multiports)
+     * on the right side of the connection. The ports contained by the multiports
+     * are not represented.
+     */
+    @Accessors(PUBLIC_GETTER)
+    val connections = new LinkedHashMap<Connection,LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>>()
 }

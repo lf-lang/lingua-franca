@@ -79,7 +79,7 @@ if [ ! "$0" = "${0##*/*}" ]; then  # Do we have a parent directory?
 fi
 base="${base}../"
 lfbase="${base}org.lflang/"
-jarpath="${lfbase}build/libs/org.lflang-1.0.0-SNAPSHOT-all.jar"
+jarpath="${lfbase}build/libs/org.lflang-0.1.0-SNAPSHOT-all.jar"
 
 if [ $clean -eq 1 ]; then
     echo "Performing cleanup."

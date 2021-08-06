@@ -144,11 +144,11 @@ The [workaround](https://stackoverflow.com/questions/7905501/get-rid-of-pom-not-
     cd ../maven-xtext-example
     mvn site
 
-#### [ERROR] Failed to execute goal on project my.mavenized.herolanguage.ide: Could not resolve dependencies for project my.mavenized.herolanguage:my.mavenized.herolanguage.ide:eclipse-plugin:1.0.0-SNAPSHOT: Could not find artifact my.mavenized.herolanguage:my.mavenized.herolanguage:jar:1.0.0-SNAPSHOT
+#### [ERROR] Failed to execute goal on project my.mavenized.herolanguage.ide: Could not resolve dependencies for project my.mavenized.herolanguage:my.mavenized.herolanguage.ide:eclipse-plugin:0.1.0-SNAPSHOT: Could not find artifact my.mavenized.herolanguage:my.mavenized.herolanguage:jar:0.1.0-SNAPSHOT
 
 While running ```mvn site```:
 
-    [ERROR] Failed to execute goal on project my.mavenized.herolanguage.ide: Could not resolve dependencies for project my.mavenized.herolanguage:my.mavenized.herolanguage.ide:eclipse-plugin:1.0.0-SNAPSHOT: Could not find artifact my.mavenized.herolanguage:my.mavenized.herolanguage:jar:1.0.0-SNAPSHOT -> [Help 1]
+    [ERROR] Failed to execute goal on project my.mavenized.herolanguage.ide: Could not resolve dependencies for project my.mavenized.herolanguage:my.mavenized.herolanguage.ide:eclipse-plugin:0.1.0-SNAPSHOT: Could not find artifact my.mavenized.herolanguage:my.mavenized.herolanguage:jar:0.1.0-SNAPSHOT -> [Help 1]
 
 Try running
     mvn install

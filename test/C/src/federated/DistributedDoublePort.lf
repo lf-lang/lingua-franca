@@ -9,6 +9,7 @@
  */
 target C {
     timeout: 900 msec,
+    logging: DEBUG,
     coordination: centralized
 };
 
@@ -33,15 +34,14 @@ reactor Print {
     input in2:int;
     reaction(in, in2) {=
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("At tag (%lld, %u), received in = %d and in2 = %d.\n", elapsed_time, get_microstep(), in->value, in2->value);
+        info_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, get_microstep(), in->value, in2->value);
         if (in->is_present && in2->is_present) {
-            fprintf(stderr, "ERROR: invalid logical simultaneity.\n");
-            exit(1);
+            error_print_and_exit("ERROR: invalid logical simultaneity.");
         }
     =}
     
     reaction(shutdown) {=
-        printf("SUCCESS: messages were at least one microstep apart.\n");
+        info_print("SUCCESS: messages were at least one microstep apart.");
     =}
 }
 

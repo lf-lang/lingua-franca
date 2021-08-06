@@ -63,16 +63,13 @@ class DirectedGraph<T> implements Graph<T> {
     }
     
     /**
-     * Return as to whether this graph as the given node in it.
+     * Return true if this graph has the given node in it.
      * @param node The node to look for.
      */
     override hasNode(T node) {
-        if (this.upstreamAdjacentNodes.get(node) !== null ||
-            downstreamAdjacentNodes.get(node) !== null) {
-            true
-        } else {
-           false 
-        }
+        // When a node is created, an empty list gets put in
+        // upstreamAdjacentNodes.
+        return this.upstreamAdjacentNodes.containsKey(node)
     }
     
     /**
@@ -133,23 +130,26 @@ class DirectedGraph<T> implements Graph<T> {
     /**
      * Add a new directed edge to the graph. The first argument is
      * the downstream node, the second argument the upstream node.
+     * If either argument is null, do nothing.
      * @param sink The downstream immediate neighbor.
      * @param source The upstream immediate neighbor.
      */
     override addEdge(T sink, T source) {
         this.graphChanged()
-        var downstream = this.downstreamAdjacentNodes.get(source)
-        var upstream = this.upstreamAdjacentNodes.get(sink)
-        if (downstream === null) {
-            downstream = newLinkedHashSet
-            this.downstreamAdjacentNodes.put(source, downstream)
+        if (sink !== null && source !== null) {
+            var downstream = this.downstreamAdjacentNodes.get(source)
+            var upstream = this.upstreamAdjacentNodes.get(sink)
+            if (downstream === null) {
+                downstream = newLinkedHashSet
+                this.downstreamAdjacentNodes.put(source, downstream)
+            }
+            if (upstream === null) {
+                upstream = newLinkedHashSet
+                this.upstreamAdjacentNodes.put(sink, upstream)
+            }
+            downstream.add(sink)
+            upstream.add(source)
         }
-        if (upstream === null) {
-            upstream =  newLinkedHashSet
-            this.upstreamAdjacentNodes.put(sink, upstream)
-        }
-        downstream.add(sink)
-        upstream.add(source)
     }
     
     /**
@@ -295,6 +295,7 @@ class DirectedGraph<T> implements Graph<T> {
      * Return the nodes in this graph.
      */
     override nodes() {
+        // FIXME: This is an inefficient way to list nodes.
         val nodes = newLinkedHashSet
         nodes.addAll(this.upstreamAdjacentNodes.keySet)
         nodes.addAll(this.downstreamAdjacentNodes.keySet)
@@ -307,4 +308,18 @@ class DirectedGraph<T> implements Graph<T> {
         this.upstreamAdjacentNodes.clear()
     }
     
+    /**
+     * Return a textual list of the nodes.
+     */
+    override toString() {
+        val result = new StringBuilder();
+        result.append("{");
+        var first = true;
+        for (node : nodes) {
+            if (!first) result.append(", ");
+            first = false;
+            result.append(node.toString());
+        }
+        return result.toString();
+    }
 }

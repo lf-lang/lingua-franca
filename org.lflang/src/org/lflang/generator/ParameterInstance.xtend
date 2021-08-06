@@ -27,8 +27,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
+import java.util.LinkedList
 import java.util.List
 import org.lflang.InferredType
+import org.lflang.lf.LfFactory
 import org.lflang.lf.Parameter
 import org.lflang.lf.Value
 
@@ -68,7 +70,24 @@ class ParameterInstance extends NamedInstance<Parameter> {
             // a list of ordinary values.
             val ref = assignment.rhs.get(0).parameter
             if (ref !== null) {
-                this.init = ref.init
+                // Get the value from the parameter instance, not the parameter
+                // so that overrides like bank_index work.
+                // parent.parent will be non-null or the rhs parameter reference
+                // would not have passed validation. Nevertheless, we check.
+                val parentsParent = parent.parent;
+                if (parentsParent !== null) {
+                    val parameterInstance = parentsParent.parameters.findFirst[it.name.equals(ref.name)]
+                    // Again, this result should be non-null, but we check.
+                    if (parameterInstance !== null) {
+                        this.init = parameterInstance.init
+                    } else {
+                        // Fall back on reference.
+                        this.init = ref.init
+                    }
+                } else {
+                    // Fall back on reference.
+                    this.init = ref.init
+                }
             } else {
                 this.init = assignment.rhs    
             }
@@ -77,6 +96,16 @@ class ParameterInstance extends NamedInstance<Parameter> {
             } else {
                 assignment = null
             }
+        }
+        
+        // If the parent is in a bank and the parameter name is "bank_index", then
+        // override the default value provided to make it equal to the bank index.
+        if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
+            val value = LfFactory.eINSTANCE.createValue
+            value.literal = "" + parent.bankIndex
+            val list = new LinkedList<Value>()
+            list.add(value)
+            this.init = list
         }
     }
 
@@ -99,11 +128,10 @@ class ParameterInstance extends NamedInstance<Parameter> {
     }
 	
     /**
-     * Return the main reactor, which is the top-level parent.
-     * @return The top-level parent.
+     * {@inheritDoc}
      */
-    override ReactorInstance main() {
-        parent.main
+    override ReactorInstance root() {
+        parent.root()
     }
 
     /** Return a descriptive string. */

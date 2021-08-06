@@ -28,16 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang
 
 import java.util.HashSet
+import java.util.LinkedList
+import java.util.List
 import java.util.Set
+import org.lflang.generator.ReactorInstance
 import org.lflang.graph.InstantiationGraph
-import org.lflang.graph.ReactionGraph
+import org.lflang.graph.TopologyGraph
 import org.lflang.lf.Assignment
 import org.lflang.lf.Deadline
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.lf.TargetDecl
 
 import static extension org.lflang.ASTUtils.*
 
@@ -81,34 +83,43 @@ class ModelInfo {
      * parameters are to be reported during validation.
      */
     public Set<Parameter> overflowingParameters
-
+    
     /**
-     * Data structure for tracking dependencies between reactions.
+     * A graph of ports and reactions.
      */
-    public ReactionGraph reactionGraph
+    public TopologyGraph topologyGraph
+    
+    public List<ReactorInstance> topLevelReactorInstances
     
     /**
      * Whether or not the model information has been updated at least once.
      */
     public boolean updated
-    
+        
     /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
      */
-    def update(Model model) {
+    def update(Model model, ErrorReporter reporter) {
         this.updated = true
         this.model = model
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
-            this.reactionGraph = new ReactionGraph(this.model)
+            val main = model.reactors.findFirst[it.isMain || it.isFederated]
+            topLevelReactorInstances = new LinkedList()
+            if (main !== null) {
+                val inst = new ReactorInstance(main, reporter)
+                topLevelReactorInstances.add(inst)
+            } else {
+                model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))]
+            }
+            this.topologyGraph = new TopologyGraph(topLevelReactorInstances)
         }
         
-        // Find the target. A target must exist because the grammar requires it.
-        var Target target = Target.forName(
-            model.eAllContents.toIterable.filter(TargetDecl).head.name)
-        
+        // may be null if the target is invalid
+        var Target target = Target.forName(model.targetDecl.name).orElse(null)
+
         // Perform C-specific traversals.
         if (target == Target.C) {
             this.collectOverflowingNodes()
@@ -117,7 +128,7 @@ class ModelInfo {
 
     /**
      * Collect all assignments, deadlines, and parameters that can cause the
-     * time interval of a deadline to overflow. In the C target, only 16 bits
+     * time interval of a deadline to overflow. In the C target, only 48 bits
      * are allotted for deadline intervals, which are specified in nanosecond
      * precision.
      */
@@ -143,7 +154,7 @@ class ModelInfo {
     }
 
     /**
-     * In the C target, only 16 bits are allotted for deadline intervals, which
+     * In the C target, only 48 bits are allotted for deadline intervals, which
      * are specified in nanosecond precision. Check whether the given time value
      * exceeds the maximum specified value.
      * @return true if the time value is greater than the specified maximum,

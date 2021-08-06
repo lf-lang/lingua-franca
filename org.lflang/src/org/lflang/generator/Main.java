@@ -5,7 +5,6 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -29,6 +28,7 @@ import org.apache.commons.cli.ParseException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
@@ -195,7 +195,8 @@ public class Main {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
-        COMPILER("c", "target-compiler", true, false, "Target compiler to invoke.", true),
+        COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
+        CLEAN("c", "clean", false, false, "Clean before building.", true),
         HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         REBUILD("r", "rebuild", false, false, "Rebuild the LF compiler first.", false),
@@ -471,7 +472,7 @@ public class Main {
      * @return
      */
     private boolean rebuildAndFork() {
-        // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-1.0.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
+        // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-0.1.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
         if (needsUpdate()) {
             // Only rebuild if the jar is out-of-date.
             printInfo("Jar file is missing or out-of-date; running Gradle.");
@@ -577,10 +578,17 @@ public class Main {
             
             final List<Issue> issues = this.validator.validate(resource,
                     CheckMode.ALL, CancelIndicator.NullImpl);
-            if (!issues.isEmpty()) {
+            boolean hasErrors = false;
+            for(Issue issue : issues) {
+                if (issue.getSeverity() == Severity.ERROR)
+                    hasErrors = true;
+            }
+            if (hasErrors) {
                 printFatalError("Unable to validate resource. Reason:");
-                issues.forEach(issue -> System.err.println(issue));
+                issues.forEach(issue -> System.err.println(issue.getMessage()));
                 System.exit(1);
+            } else {
+                issues.forEach(issue -> System.err.println(issue.getMessage()));
             }
             
             StandaloneContext context = new StandaloneContext();

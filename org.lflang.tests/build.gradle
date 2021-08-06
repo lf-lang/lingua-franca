@@ -1,21 +1,22 @@
 dependencies {
-	implementation project(':org.lflang')
-	testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.1"    
-    testImplementation "org.junit.jupiter:junit-jupiter-engine:5.7.1"    
-    testImplementation "org.junit.platform:junit-platform-commons:1.7.1"    
-    testImplementation "org.junit.platform:junit-platform-engine:1.7.1"    
+    implementation project(':org.lflang')
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.7.2"    
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:5.7.2"    
+    testImplementation "org.junit.platform:junit-platform-commons:1.7.2"    
+    testImplementation "org.junit.platform:junit-platform-engine:1.7.2"    
     testImplementation "org.opentest4j:opentest4j:1.2.0"    
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:${xtextVersion}"
-	testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
-}
-
-jacoco {
-    toolVersion = "0.8.7"
-	reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
 
 apply plugin: 'java'
 apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.7"
+    reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
+}
+
 
 jacocoTestReport {
     reports {
