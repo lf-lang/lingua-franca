@@ -371,7 +371,7 @@
           <repository
               url="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
           <repository
-              url="https://kieler.github.io/KLighD/v2.0.0/"/>
+              url="https://kieler.github.io/KLighD/v2.1.0/"/>
           <repository
               url="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
           <repository
