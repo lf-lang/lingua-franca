@@ -20,6 +20,7 @@ class HoverService implements IHoverService {
 	
 	override hover(Document document, XtextResource resource, HoverParams params, CancelIndicator cancelIndicator) {
 		// TODO Move the following call to a more appropriate location
+		LOG.info("Hover detected.")
 		DocumentRegistry.getInstance().refreshDocument(resource, document)
 		// TODO Provide a real implementation
 		val testHover = new ArrayList<Either<String, MarkedString>>()

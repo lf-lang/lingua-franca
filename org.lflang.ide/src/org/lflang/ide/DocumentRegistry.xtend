@@ -83,6 +83,7 @@ class DocumentRegistry {
 	 */
 	def refreshDocument(XtextResource resource, Document document) {
 		val id = new LFDocument.ID(resource, document)
+		LOG.debug('Refreshing document with target ' + id.target)
 		if (!registry.containsKey(id)) {
 			registry.put(
 				id,

@@ -21,9 +21,7 @@ import org.eclipse.lsp4j.services.LanguageServer
  * Represents an LFDocument whose target language is C or C++.
  */
 class LFWithCCppTarget extends LFDocument {
-	
-	static val LOG = Logger.getLogger(LanguageServer)
-	
+		
 	/** Matches line numbers that occur in line directives. */
 	val static Pattern LINE_NUMBER = Pattern.compile(
 		'(?<=\\#line\\s+)\\b(\\d+)\\b'
@@ -68,7 +66,9 @@ class LFWithCCppTarget extends LFDocument {
 		targetLines = compile
 		// Update source map
 		sourceMap.clear
+		val String[] finalTargetLines = newArrayOfSize(targetLines.length)
 		var srcLine = 0
+		var finalTargetLine = 0
 		var Matcher lineNumberMatcher
 		for (
 			var targetLine = 0; targetLine < targetLines.length; targetLine++
@@ -76,16 +76,20 @@ class LFWithCCppTarget extends LFDocument {
 			lineNumberMatcher = LINE_NUMBER.matcher(
 				targetLines.get(targetLine)
 			)
-			if (lineNumberMatcher.find) {
-				srcLine = Integer.parseInt(lineNumberMatcher.group)
+			if (lineNumberMatcher.find) { // FIXME should match exactly, not just find
+				srcLine = Integer.parseInt(lineNumberMatcher.group) - 1 // Zero indexing
 			} else {
 				sourceMap.put(
-					new Position(targetLine, 0),
+					new Position(finalTargetLine, 0),
 					new Position(srcLine, 0)
 				)
+				finalTargetLines.set(finalTargetLine, targetLines.get(targetLine))
+				finalTargetLine++
 				srcLine++
 			}
 		}
+		targetLines = newArrayOfSize(finalTargetLine)
+		System.arraycopy(finalTargetLines, 0, targetLines, 0, finalTargetLine)
 	}
 	
 	override protected List<Diagnostic> getDiagnostics() {
@@ -93,19 +97,24 @@ class LFWithCCppTarget extends LFDocument {
 		val gcc = new ProcessBuilder(
 			'gcc', '-fsyntax-only',
 			'-x', target.extension,
-			'-I', compileDir.absolutePath,
+			'-I', getOutFile.getParentFile.absolutePath,
 			'-'
 		)
 		val List<ProcessBuilder> pipeline = new ArrayList<ProcessBuilder>
 		pipeline.add(echo)
 		pipeline.add(gcc)
 		val List<Process> processes = ProcessBuilder.startPipeline(pipeline)
+		LOG.debug('target.extension=' + target.extension)
+		LOG.debug('indft in target lines? ' + combinedTargetLines.contains('indft'))
+		LOG.debug('Echoing string starting with ' + combinedTargetLines.substring(0, 1000))
 		val BufferedReader reader = new BufferedReader(
 			new InputStreamReader(processes.get(1).getErrorStream())
 		)
 		val diagnostics = new ArrayList<Diagnostic>
 		var String line;
+		LOG.debug('Getting diagnostics...')
 		while ((line = reader.readLine()) !== null) {
+			LOG.debug(line)
 			addDiagnostic(line, diagnostics);
 		}
 		return diagnostics
@@ -121,12 +130,13 @@ class LFWithCCppTarget extends LFDocument {
 	 *     should be added
 	 */
 	def private void addDiagnostic(String line, List<Diagnostic> diagnostics) {
-		LOG.debug('Diagnostics line: ' + line)
 		val Matcher matcher = GCC_ERROR.matcher(line)
 		if (!matcher.matches) {
 			return
 		}
-		val lineNumber = Integer.parseInt(matcher.group("line"))
+		LOG.debug('Diagnostics line matches expected pattern: ' + line)
+		val lineNumber = Integer.parseInt(matcher.group("line")) - 1 // Zero indexing
+		LOG.debug('')
 		var Range range
 		if (matcher.group("column") === null) {
 			range = new Range(
@@ -134,7 +144,7 @@ class LFWithCCppTarget extends LFDocument {
 				adjustPosition(new Position(lineNumber, line.length)) // FIXME: off-by-one error?
 			)
 		} else {
-			val column = Integer.parseInt(matcher.group("column"))
+			val column = Integer.parseInt(matcher.group("column")) - 1 // Zero indexing
 			range = new Range(
 				adjustPosition(new Position(lineNumber, column)),
 				adjustPosition(new Position(lineNumber, line.length)) // FIXME: end at token end?
