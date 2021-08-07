@@ -15,7 +15,14 @@ task copyLSJar(type: Sync) {
     into './ls'
 }
 
-task generateLDSJar(type: Exec) {
+task mvnClean(type: Exec) {
+    workingDir rootProject.getProjectDir()
+    // A workaround to a problem that appeared unexpectedly after a
+    // merge from master
+    commandLine 'mvn', 'clean'
+}
+
+task generateLDSJar(type: Exec, dependsOn: mvnClean) {
     workingDir rootProject.getProjectDir()
     // Run maven to build language server with diagram support (LDS)
     // This requires mvn on PATH
