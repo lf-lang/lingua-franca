@@ -1,12 +1,19 @@
 package org.lflang.ide.document;
 
+import org.lflang.Target;
+
 public enum TargetLanguage {
-	C("c"), CPP("cpp"), PYTHON("py"), TYPESCRIPT("ts");
+	C("c", "C"),
+	CPP("cpp", "Cpp"),
+	PYTHON("py", "Python"),
+	TYPESCRIPT("ts", "TypeScript");
 	
 	private final String extension;
+	private final String canonicalForm;
 	
-	TargetLanguage(String extension) {
+	TargetLanguage(String extension, String canonicalForm) {
 		this.extension = extension;
+		this.canonicalForm = canonicalForm;
 	}
 	
 	/**
@@ -28,17 +35,16 @@ public enum TargetLanguage {
 	 *     exists; null otherwise
 	 */
 	public static TargetLanguage fromString(String s) {
-		switch (s) {
-			case "C":
-				return C;
-			case "Cpp":
-				return CPP;
-			case "Python":
-				return PYTHON;
-			case "TypeScript":
-				return TYPESCRIPT;
-			default:
-				return null;
+		for (TargetLanguage target : TargetLanguage.values()) {
+			if (target.canonicalForm.equals(s)) {
+				return target;
+			}
 		}
+		return null;
+	}
+
+	@Override
+	public String toString() {
+		return canonicalForm;
 	}
 }
