@@ -35,6 +35,12 @@ from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
 IGNORED_JARS = [
     'org.apache.ant*',
+    'intellij-core-analysis.jar', # Added by Peter, who does not understand this script
+    'kotlin-compiler.jar', # Added by Peter, who does not understand this script
+    'kotlin-plugin-parts.jar', # Added by Peter, who does not understand this script
+    'ide-dependencies.jar', # Added by Peter, who does not understand this script
+    'kotlin-stdlib.jar', # Added by Peter, who does not understand this script
+    'kotlin-reflect.jar', # Added by Peter, who does not understand this script
 ]
 IGNORE_NESTED_JARS = [
 ]
