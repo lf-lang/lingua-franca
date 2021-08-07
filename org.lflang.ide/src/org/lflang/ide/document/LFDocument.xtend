@@ -31,7 +31,7 @@ import java.util.Comparator
  */
 abstract class LFDocument {
 	
-	static val LOG = Logger.getLogger(LanguageServer)
+	protected static val LOG = Logger.getLogger(LanguageServer)
 	
 	/**
 	 * Represents a unique identifier for an LFDocument according to its
@@ -221,7 +221,7 @@ abstract class LFDocument {
 	/**
 	 * Returns the target language file produced by compilation.
 	 */
-	def private File getOutFile() {
+	def protected File getOutFile() {
 		val file = new File(
 			new File(
 				new File(getCompileDir, 'src-gen'),
@@ -249,7 +249,7 @@ abstract class LFDocument {
 			)
 		)
 		compileDir.mkdirs
-		LOG.debug("CompileDir: " + compileDir.getAbsolutePath)
+		LOG.debug("Compile directory: " + compileDir.getAbsolutePath)
 		return compileDir
 	}
 	
@@ -290,6 +290,10 @@ abstract class LFDocument {
 		val Entry<Position, Position> nearest = sourceMap.floorEntry(
 			targetPosition
 		)
+		LOG.debug('Nearest- Key: ' + nearest.getKey.getLine + 'Value: ' + nearest.getValue.getLine)
+		LOG.debug('Returned line: ' + (nearest.getValue.getLine + (
+				targetPosition.getLine - nearest.getKey.getLine
+			)))
 		return new Position(
 			nearest.getValue.getLine + (
 				targetPosition.getLine - nearest.getKey.getLine
@@ -321,7 +325,7 @@ abstract class LFDocument {
 	def String getCombinedTargetLines() {
 		val StringBuilder builder = new StringBuilder
 		for (String line : targetLines) {
-			builder.append(line);
+			builder.append(line + '\n');
 		}
 		return builder.toString
 	}

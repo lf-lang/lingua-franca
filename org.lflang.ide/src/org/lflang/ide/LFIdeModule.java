@@ -3,9 +3,13 @@
  */
 package org.lflang.ide;
 
+import org.eclipse.xtext.ide.server.hover.IHoverService;
 
 /**
  * Use this class to register ide components.
  */
 public class LFIdeModule extends AbstractLFIdeModule {
+	public Class<? extends IHoverService> bindIHoverService() {
+		return HoverService.class;
+	}
 }
