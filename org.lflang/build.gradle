@@ -1,3 +1,7 @@
+plugins {
+	id 'org.jetbrains.kotlin.plugin.serialization' version '1.5.21'
+}
+
 dependencies {
 	implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
 	implementation "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
@@ -7,6 +11,7 @@ dependencies {
     implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: '3.15.0'
     // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: '2.12.1'
+	implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1' // Most recent release that is compatible with Kotlin version 1.4.10.
 }
 configurations {
 	mwe2 {
