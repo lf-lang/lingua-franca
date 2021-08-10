@@ -1,8 +1,9 @@
 package org.lflang.generator.ts.sourcemap
 
 import java.io.File
-import java.util.*
 import kotlin.collections.ArrayList
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 
 /**
  * Accumulates the data required to produce a JavaScript-style source map.
@@ -28,7 +29,7 @@ class SourceMapBuilder(
      * refer to the given file
      */
     fun sourceID(f: File): Int {
-        // Warning: This implementation does not scale with an acceptable time
+        // Warning: This implementation does not scale with an appropriate time
         // complexity wrt the length of sources. It is assumed that the
         // `sources` list will never contain more than a few entries. If this
         // becomes a problem, a map should be used instead.
@@ -46,26 +47,12 @@ class SourceMapBuilder(
      * @return The contents of a valid source map, according to the version 3
      * source map specification
      */
-    fun getSourceMap(segments: SourceMapSegment): String {
-        return """
-            |{
-	    	|    "version": 3,
-	    	|    "file": "${file.name}",
-	    	|    "sources": ${getSourcesList()},
-	    	|    "mappings": "${segments?.getMappings()}"
-	        |}
-        """.trimMargin()
-    }
-
-    /**
-     * Returns a string representation of the "sources" property of the source
-     * map.
-     * @return a string representation of the "sources" property of the source
-     * map
-     */
-    private fun getSourcesList(): String {
-        val joiner = StringJoiner(", ")
-        sources.forEach { joiner.add("\"${it.relativeTo(file.parentFile)}\"") } // FIXME: take source root into account? And why did it do like what we are seeing right now????
-        return "[${joiner}]"
+    fun getSourceMap(segments: SourceMapSegment?): String {
+        return Json.encodeToString(SourceMap(
+            version = 3,
+            file = file.name,
+            sources = sources.map {it.relativeTo(file.parentFile).toString()},
+            mappings = segments
+        ))
     }
 }

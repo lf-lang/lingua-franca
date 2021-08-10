@@ -247,7 +247,7 @@ class TSGenerator(
             }
             reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters)
             tsCode.append(reactorGenerator.getCode())
-            val (cleanedTsCode, sourceMap) = withSourceMap(tsCode.toString(), File(relativeTsFilePath))
+            val (cleanedTsCode, sourceMap) = withSourceMap(tsCode.toString(), File(tsFilePath.toString()))
             fsa.generateFile(relativeTsFilePath, cleanedTsCode)
             fsa.generateFile("$relativeTsFilePath.map", sourceMap)
         }
@@ -404,12 +404,15 @@ class TSGenerator(
     }
 
     /**
-     * Extracts source mapping information scattered throughout generated code
-     * and returns a new version of the file with that information moved to the
+     * Extracts source mapping information scattered
+     * throughout generated code and returns a new version
+     * of the file with that information moved to the
      * bottom, in the form of a standard inline source map.
      * @param generatedCode Generated TypeScript code
-     * @param file The File that will contain the generated code
-     * @return Semantically identical TypeScript code and the linked source map.
+     * @param file The File that will contain the generated
+     * code
+     * @return Semantically identical TypeScript code and
+     * the linked source map.
      */
     private fun withSourceMap(
         generatedCode: String,
@@ -424,7 +427,7 @@ class TSGenerator(
             if (matcher.matches()) {
                 var chainHead: SourceMapSegment? = null
                 for (segment in matcher.group("segments").split(",")) {
-                    chainHead = SourceMapSegment.fromString(chainHead, segment, false)
+                    chainHead = SourceMapSegment.fromString(chainHead, segment, 0)
                 }
                 if (chainHead !== null) {
                     chainHead = chainHead.shifted(targetLine, 0)

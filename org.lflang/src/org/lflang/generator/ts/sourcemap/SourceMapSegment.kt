@@ -1,5 +1,7 @@
 package org.lflang.generator.ts.sourcemap
 
+import kotlinx.serialization.*
+
 /**
  * Represents a source map segment that follows the specification provided in
  * the Source Map Revision 3 Proposal. Only supports segments that encode the
@@ -23,6 +25,7 @@ package org.lflang.generator.ts.sourcemap
  * @param sourceColumn the absolute zero-based starting column in the original
  * source
  */
+@Serializable(with = SourceMapSegmentSerializer::class)
 class SourceMapSegment(
     private val targetLine: Int,
     private val targetColumn: Int,
@@ -37,7 +40,12 @@ class SourceMapSegment(
      */
     override fun toString(): String {
         val out = StringBuilder()
-        out.append(VLQ.toVLQ(targetColumn))
+        if (precedingSegment !== null && precedingSegment!!.targetLine == targetLine) {
+            // Preceded by nullity check, and the var doesn't mutate here.
+            out.append(VLQ.toVLQ(targetColumn - precedingSegment!!.targetColumn))
+        } else {
+            out.append(VLQ.toVLQ(targetColumn))
+        }
         if (precedingSegment !== null) {
             // Preceded by nullity check, and the var doesn't mutate here.
             out.append(VLQ.toVLQ(sourceFile - precedingSegment!!.sourceFile))
@@ -45,6 +53,7 @@ class SourceMapSegment(
             out.append(VLQ.toVLQ(sourceColumn - precedingSegment!!.sourceColumn))
         } else {
             out.append(VLQ.toVLQ(sourceFile))
+            println("DEBUG: sourceline=" + sourceLine)
             out.append(VLQ.toVLQ(sourceLine))
             out.append(VLQ.toVLQ(sourceColumn))
         }
@@ -96,7 +105,7 @@ class SourceMapSegment(
      */
     private fun getMappingsRecursive(): StringBuilder {
         if (precedingSegment === null) {
-            return StringBuilder(toString())
+            return StringBuilder(";".repeat(targetLine)).append(toString())
         }
         // Preceded by nullity check, and the var doesn't mutate in this method.
         val builder = precedingSegment!!.getMappingsRecursive()
@@ -125,33 +134,31 @@ class SourceMapSegment(
          *     SourceMapSegment
          * @param s a string that complies with the Source Map Revision 3
          *     Proposal
-         * @param incrementLine whether the target line represented by s is the
-         *     is the line that follows that of precedingSegment, rather than the
-         *     same line
+         * @param lineDelta the difference in line
+         *     positions between the precedingSegment and
+         *     this segment
          */
         fun fromString(
                 precedingSegment: SourceMapSegment?,
                 s: String,
-                incrementLine: Boolean
+                lineDelta: Int
         ): SourceMapSegment {
             val decoded = VLQ.fromVLQ(s)
             var targetLine = 0
-            var targetColumn = decoded.get(0)
-            var sourceFile = decoded.get(1)
-            var sourceLine = decoded.get(2)
-            var sourceColumn = decoded.get(3)
+            var targetColumn = decoded[0]
+            var sourceFile = decoded[1]
+            var sourceLine = decoded[2]
+            var sourceColumn = decoded[3]
             if (precedingSegment !== null) {
-                if (precedingSegment.targetLine == targetLine) {
+                if (lineDelta == 0) {
                     targetColumn += precedingSegment.targetColumn
-                    sourceFile += precedingSegment.sourceFile
-                    sourceLine += precedingSegment.sourceLine
-                    sourceColumn += precedingSegment.sourceColumn
-                    targetLine = precedingSegment.targetLine
                 }
+                sourceFile += precedingSegment.sourceFile
+                sourceLine += precedingSegment.sourceLine
+                sourceColumn += precedingSegment.sourceColumn
+                targetLine = precedingSegment.targetLine
             }
-            if (incrementLine) {
-                targetLine++
-            }
+            targetLine += lineDelta
             return SourceMapSegment(
                     targetLine,
                     targetColumn,
