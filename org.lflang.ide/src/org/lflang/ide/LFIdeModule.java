@@ -3,13 +3,49 @@
  */
 package org.lflang.ide;
 
+import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator;
+import org.eclipse.xtext.ide.server.codeActions.ICodeActionService2;
+import org.eclipse.xtext.ide.server.codelens.ICodeLensResolver;
+import org.eclipse.xtext.ide.server.codelens.ICodeLensService;
+import org.eclipse.xtext.ide.server.commands.IExecutableCommandService;
 import org.eclipse.xtext.ide.server.hover.IHoverService;
+import org.eclipse.xtext.ide.server.signatureHelp.ISignatureHelpService;
 
 /**
  * Use this class to register ide components.
  */
 public class LFIdeModule extends AbstractLFIdeModule {
+	// FIXME: Remove commented-out code
+
+	/*
 	public Class<? extends IHoverService> bindIHoverService() {
 		return HoverService.class;
 	}
+
+	public Class<? extends ISemanticHighlightingCalculator> bindISemanticHighlightingCalculator() {
+		return SemanticHighlightingCalculator.class; // Does not seem to do anything with VS Code.
+	}
+
+	public Class<? extends IExecutableCommandService> bindIExecutableCommandService() {
+		return ExecutableCommandService.class; // Possibly is not doing anything with VS Code???
+	}
+	*/
+
+	public Class<? extends ICodeActionService2> bindICodeActionService2() {
+		return CodeActionService.class;
+	}
+
+	/*
+	public Class<? extends ISignatureHelpService> bindISignatureHelpService() {
+		return SignatureHelpService.class;
+	}
+
+	public Class<? extends ICodeLensResolver> bindICodeLensResolver() {
+		return CodeLensResolver.class;
+	}
+
+	public Class<? extends ICodeLensService> bindICodeLensService() {
+		return CodeLensService.class;
+	}
+	*/
 }

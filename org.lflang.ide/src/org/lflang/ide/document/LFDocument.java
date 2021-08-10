@@ -6,38 +6,35 @@ import org.lflang.generator.Main;
 import org.apache.log4j.Logger;
 
 import org.eclipse.lsp4j.services.LanguageServer;
-import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Diagnostic;
-//import org.eclipse.xtext.ide.editor.quickfix.DiagnosticResolution;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.ide.server.Document;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.nio.file.Files;
 import java.io.File;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.PrintWriter;
-import java.util.Comparator;
 
 import com.google.common.base.Joiner;
+import com.google.common.io.MoreFiles;
 
 /**
- * This class represents a Lingua Franca document and encapsulates the results
- * of any analyses performed on it.
+ * Represents a Lingua Franca document.
  */
-public abstract class LFDocument {
+public class LFDocument {
 
     protected static final Logger LOG = Logger.getLogger(LanguageServer.class);
 
     /**
-     * Represents a unique identifier for an LFDocument according to its
-     * absolute file system location AND its target language.
+     * Represents a unique identifier for an LFDocument
+     * according to its absolute file system location and
+     * target language.
      */
     public static class ID {
 
@@ -51,27 +48,33 @@ public abstract class LFDocument {
         final TargetLanguage target;
 
         /**
-         * Creates a unique identifier corresponding to the given document.
-         * @param resource the XtextResource that determines the document's
-         *     location in the file system
-         * @param document the Document that determines the document's target
-         *     language
+         * Creates a unique identifier corresponding to the
+         * given document.
+         * @param resource the <code>XtextResource</code>
+         *                 that determines the document's
+         *                 location in the file system
+         * @param document the <code>Document</code> that
+         *                 determines the document's target
+         *                 language
          */
 		public ID(XtextResource resource, Document document) {
-            // FIXME: Bad space complexity. should use an iterator.
+            // FIXME: Bad space complexity. Should use an iterator.
             this(resource, getLines(document));
         }
 
         /**
-         * Creates a unique identifier corresponding to the given document.
-         * @param resource the XtextResource that determines the document's
-         *     location in the file system
-         * @param contents the lines of the Document that determine the
-         *     document's target language
+         * Creates a unique identifier corresponding to the
+         * given document.
+         * @param resource the <code>XtextResource</code>
+         *                 that determines the document's
+         *                 file system location
+         * @param contents the lines of the Document that
+         *                 determine the document's target
+         *                 language
          */
 		public ID(XtextResource resource, List<String> contents) {
             // FIXME: This is very flimsy. What if someone writes "target C"
-            // before the real target declaration and then comments it out?
+            //  before the real target declaration and then comments it out?
             file = resource.getURI().isFile() ?
                    new File(resource.getURI().toFileString()) : null;
             String result = null;
@@ -87,12 +90,17 @@ public abstract class LFDocument {
         }
 
         /**
-         * Returns whether this LFDocument.ID is equal to other. This is true
-         * iff other is an LFDocument.ID corresponding to the same file system
-         * location and the same target language, even if the original
-         * representation of the file system location is different.
-         * @param other the object against which this ID is to be compared
-         * @return whether this ID is equal to other
+         * Returns whether this <code>LFDocument.ID</code> is
+         * equal to <code>other</code>. This is true iff
+         * <code>other</code> is an <code>LFDocument.ID</code>
+         * corresponding to the same file system location
+         * and the same target language, even if the original
+         * representation of the file system location is
+         * different.
+         * @param other the object against which this ID is
+         *              to be compared
+         * @return whether this ID is equal to
+         * <code>other</code>
          */
         @Override
         public boolean equals(Object other) {
@@ -104,7 +112,8 @@ public abstract class LFDocument {
         }
 
         /**
-         * Returns the target language of the LF file identified by this ID.
+         * Returns the target language of the LF file
+         * identified by this ID.
          */
         public TargetLanguage getTarget() {
             return target;
@@ -116,104 +125,123 @@ public abstract class LFDocument {
         }
     }
 
-    static class PositionComparator implements Comparator<Position> {
-        @Override
-        public int compare(Position p1, Position p2) {
-            if (p1.getLine() != p2.getLine()) {
-                return p1.getLine() - p2.getLine();
-            }
-            return p1.getCharacter() - p2.getCharacter();
-        }
-
-    }
-
+    /**
+     * The <code>XtextResource</code> representation of
+     * this document
+     */
     private final XtextResource resource;
-    private List<String> lfLines;
-    // FIXME: Find a way to make targetLines and sourceMap a private member of
-    // either LFDocument or the implementing class? Currently they are not
-    // private because the quick update feature needs to permit this class to
-    // write to these variables, but the thorough update feature needs to
-    // permit the implementing classes to write to them. Because the thorough
-    // update feature is more complex, one might argue that the coupling
-    // between these variables and the implementing classes is tighter;
-    // however, there is some common logic for processing the source map that
-    // ought to be implemented here to avoid repetition.
-    protected List<String> targetLines;
-    protected final NavigableMap<Position, Position> sourceMap;
-    final ID id;
+    /** The content of this document */
+    private List<String> lines;
+    /** Models of the documents generated by this document */
+    private final Map<File, GeneratedDocument> generatedDocuments;
+    /** The unique identifier of this document */
+    private final ID id;
+
+    /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Initializes an LFDocument corresponding to resource with the contents
-     * of document.
-     * @param resource the LF file whose contents and semantics are modeled
-     *     by this LFDocument
-     * @param document the document whose contents and semantics are modeled
-     *     by this LFDocument
+     * Initializes an <code>LFDocument</code> corresponding
+     * to <code>resource</code> with the contents
+     * of <code>document</code>.
+     * @param resource the LF file whose contents and
+     *                 semantics are modeled by this
+     *                 <code>LFDocument</code>
+     * @param document the document whose contents and
+     *                 semantics are modeled by this
+     *                 <code>LFDocument</code>
      */
 	public LFDocument(XtextResource resource, Document document) {
         this(resource, getLines(document));
     }
 
     /**
-     * Initializes an LFDocument whose lines are contents corresponding to
-     * resource.
-     * @param resource the LF file whose contents and semantics are modeled
-     *     by this LFDocument
-     * @param contents the lines of code in the LF file whose contents and
-     *     semantics are modeled by this LFDocument
+     * Initializes an <code>LFDocument</code>.
+     * @param resource the LF file whose contents and
+     *                 semantics are modeled by this
+     *                 <code>LFDocument</code>
+     * @param contents the lines of code in the LF file
+     *                 whose contents and semantics are
+     *                 modeled by this <code>LFDocument
+     *                 </code>
      */
 	public LFDocument(XtextResource resource, List<String> contents) {
         this.resource = resource;
-        this.lfLines = contents;
-        sourceMap = new TreeMap<>(new PositionComparator());
+        this.lines = contents;
+        generatedDocuments = new HashMap<>();
         id = new ID(resource, contents);
     }
 
+    /* -----------------------  PUBLIC METHODS  ------------------------- */
+
     /**
-     * Updates the model of the document represented by this LFDocument.
-     * Updates the client with any diagnostics associated with this document.
+     * Updates the model of the document represented by this
+     * <code>LFDocument</code>.
+     * Updates the client with any diagnostics associated
+     * with this <code>LFDocument</code>.
      */
     public void refresh(Document document) {
         if (!attemptQuickUpdate(document)) {
             LOG.debug("Quick update failed. Attempting complete update...");
             // FIXME: Redundant work with attemptQuickUpdate?
-            lfLines = getLines(document);
-            updateTargetLinesAndSourceMap();
+            lines = getLines(document);
+            try {
+                compile();
+            } catch (IOException e) {
+                LOG.error("Failed to compile LF document " + this + ".", e);
+                return;
+            }
+            findGeneratedDocuments();
         }
-        final List<Diagnostic> foundDiagnostics;
-        try {
-            foundDiagnostics = getDiagnostics();
-        } catch (IOException e) {
-            LOG.error("Failed to compute diagnostics for " + this + ".", e);
-            return;
+        final List<Diagnostic> foundDiagnostics = new ArrayList<>();
+        for (Map.Entry<File, GeneratedDocument> entry : generatedDocuments.entrySet()) {
+            LOG.debug("Getting diagnostics from generated document " + entry.getKey());
+            try {
+                foundDiagnostics.addAll(entry.getValue().getDiagnostics(
+                    entry.getKey().getParentFile(),
+                    getExtension(entry.getKey())
+                )); // FIXME: Must include Xtext-provided diagnostics
+            } catch (IOException e) {
+                LOG.error("Failed to compute diagnostics for " + this + ".", e);
+            }
         }
-        LOG.debug("Found " + foundDiagnostics.size() + " diagnostics: "
-                      + foundDiagnostics.toString()
-        ); // TODO remove
+        LOG.debug("Found " + foundDiagnostics.size() + " diagnostics: " + foundDiagnostics); // TODO remove
         DocumentRegistry.getInstance().publishDiagnostics(
             resource, foundDiagnostics
         );
     }
 
     /**
-     * Updates lfLines and targetLines to match the LF source code. Returns
-     * true iff changes to the document could be resolved without ambiguity.
-     * Otherwise, does nothing and returns false.
+     * Returns the target language of this LFDocument.
+     * @return the target language of this LFDocument
+     */
+    public TargetLanguage getTarget() {
+        return id.target;
+    }
+
+    /* -----------------------  PRIVATE METHODS  ------------------------ */
+
+    /**
+     * Updates document models to match the LF source code.
+     * Returns true iff changes to the document
+     * could be resolved without ambiguity. Otherwise, does
+     * nothing and returns false.
      */
     private boolean attemptQuickUpdate(Document document) {
-        return false;
+        return false; // Not yet implemented
     }
 
     /**
-     * Extracts an array of lines from a Document.
-     * @param document a document containing the desired content
-     * @return an array containing all lines in the document
+     * Extracts a list of lines from a Document.
+     * @param document a document containing the desired
+     *                 content
+     * @return all lines in the document
      */
     private static List<String> getLines(Document document) {
         final List<String> contents = new ArrayList<>(document.getLineCount());
         // FIXME: Quadratic time!!! because the implementation of
-        // Document.getLineContent(i) is linear wrt i. This is the
-        // unacceptable cost of staying DRY.
+        //  Document.getLineContent(i) is linear wrt the length of
+        //  the document, up to the ith line. This is the
+        //  unacceptable cost of staying DRY.
         for (var i = 0; i < document.getLineCount(); i++) {
             contents.add(document.getLineContent(i));
         }
@@ -221,40 +249,34 @@ public abstract class LFDocument {
     }
 
     /**
-     * Returns the Lingua Franca file location used for compilation.
-     */
-    private File getSrcFile() {
-        final File file = new File(
-            new File(getCompileDir(), "src"), id.file.getName()
-        );
-        file.getParentFile().mkdirs();
-        return file;
-    }
-
-    /**
-     * Returns the target language file produced by compilation.
-     */
-    protected File getOutFile() {
-        final File file = new File(
-            new File(
-                new File(getCompileDir(), "src-gen"),
-                id.file.getName().substring(0, id.file.getName().length() - 3) //TODO make less ugly
-            ),
-            id.file.getName().replaceAll("\\.lf\\Z", '.' + id.target.getExtension())
-        );
-        file.getParentFile().mkdirs();
-        return file;
-    }
-
-    /**
-     * Returns the working directory for any temporary files needed for
+     * Returns the Lingua Franca file location used for
      * compilation.
      */
-    protected File getCompileDir() {
+    private File getSrcFile() {
+        final File f = new File(
+            new File(getCompileDir(), "src"), id.file.getName()
+        );
+        f.getParentFile().mkdirs();
+        return f;
+    }
+
+    /**
+     * Returns the target language file produced by
+     * compilation.
+     */
+    private File getOutDir() {
+        return new File(getCompileDir(), "src-gen");
+    }
+
+    /**
+     * Returns the working directory for any temporary files
+     * needed for compilation.
+     */
+    private File getCompileDir() {
         // FIXME: I am not sure whether this ought to be cached rather than
-        // re-computed each time. Caching is more complex because it creates
-        // more state to keep track of, but it also feels silly to re-compute
-        // this.
+        //  re-computed each time. Caching is more complex because it creates
+        //  more state to keep track of, but it also feels silly to re-compute
+        //  this.
         final File compileDir = DocumentRegistry.getInstance().getSaveLocation(
             new File(
                 id.file.getParentFile(),
@@ -267,12 +289,17 @@ public abstract class LFDocument {
     }
 
     /**
-     * Returns the result of compiling an LF document to its target language.
-     * @return the result of compiling lfDocumentContent to its target language
+     * Compiles this to its target language and saves the
+     * result in <code>lines</code>.
      */
-    protected List<String> compile() throws IOException {
-        final PrintWriter writer = new PrintWriter(getSrcFile());
-        for (String lfLine : lfLines) {
+    private void compile() throws IOException {
+        // FIXME: It is surprising that it is necessary to delete the directory, but it is:
+        //  If it is not deleted, the LF compiler will crash because lib files already exist.
+        if (getCompileDir().exists()) {
+            MoreFiles.deleteRecursively(getCompileDir().toPath()); // This function is in beta.
+        }
+        final PrintWriter writer = new PrintWriter(getSrcFile()); // FIXME: Do not create a new file?
+        for (String lfLine : lines) {
             writer.println(lfLine);
         }
         writer.close();
@@ -280,74 +307,58 @@ public abstract class LFDocument {
             "--no-compile",
             getSrcFile().getAbsolutePath()
         });
-        LOG.debug("File contents: " + Files.readAllLines(getOutFile().toPath()));
-        return Files.readAllLines(getOutFile().toPath());
     }
 
     /**
-     * Returns the content of the Lingua Franca file.
-     * @return the content of the Lingua Franca file
+     * Returns the file extension that appears at the end of
+     * <code>f</code>.
+     * @param f a file
+     * @return the file extension that appears at the end of
+     * <code>f</code>
      */
-    protected List<String> getLfLines() {
-        return lfLines; // lfLines is read-only for child classes.
+    private static String getExtension(File f) {
+        if (!f.isFile()) return "";
+        String name = f.getName();
+        int dotIdx = name.lastIndexOf('.');
+        return dotIdx == -1 ? "" : name.substring(dotIdx + 1);
+    }
+
+
+    /**
+     * Re-discovers and instantiates models of any generated
+     * documents present in the file system.
+     */
+    private void findGeneratedDocuments() {
+        generatedDocuments.clear();
+        // FIXME: 2 here is a magic number. Justify it or
+        //  replace it with a static final list of excluded
+        //  directories.
+        findGeneratedDocumentsRecursive(getOutDir(), 2);
     }
 
     /**
-     * Returns the position in the source code corresponding to targetPosition.
-     * @param targetPosition a position in the generated target code
-     * @return the position in the source code corresponding to targetPosition
+     * Finds any generated files that are at most <code>
+     * maxDepth</code> levels below <code>f</code>. Intended
+     * only to be called by <code>findGeneratedDocuments
+     * </code>.
      */
-    protected Position adjustPosition(Position targetPosition) {
-        // TODO add a check to make sure the two lines match up.
-        final Entry<Position, Position> nearest = sourceMap.floorEntry(
-            targetPosition
-        );
-        LOG.debug("Nearest- Key: " + nearest.getKey().getLine() + "Value: " + nearest.getValue().getLine());
-        LOG.debug("Returned line: " + (nearest.getValue().getLine() + targetPosition.getLine()
-            - nearest.getKey().getLine()));
-        return new Position(
-            nearest.getValue().getLine() + targetPosition.getLine() - nearest.getKey().getLine(),
-            targetPosition.getCharacter()
-        );
-    }
-
-    /**
-     * Returns the unique identifier corresponding to this LFDocument.
-     * @return the unique identifier corresponding to this LFDocument
-     */
-    public ID getId() {
-        return id;
-    }
-
-    /**
-     * Returns the target language of this LFDocument.
-     * @return the target language of this LFDocument
-     */
-    public TargetLanguage getTarget() {
-        return id.target;
-    }
-
-    /**
-     * Returns the lines of target code, all concatenated into one String.
-     * @return the lines of target code, all concatenated into one String
-     */
-    String getCombinedTargetLines() {
-        final StringBuilder builder = new StringBuilder();
-        for (String line : targetLines) {
-            builder.append(line).append('\n');
+    private void findGeneratedDocumentsRecursive(File f, int maxDepth) {
+        if (maxDepth < 0) return;
+        if (f.isFile()) {
+            try { // FIXME: Check if generated document has mappings to this LFDocument
+                final GeneratedDocument g = GeneratedDocumentFactory.getGeneratedDocument(
+                    Files.readAllLines(f.toPath()), getExtension(f)
+                );
+                if (g != null) generatedDocuments.put(f, g);
+            } catch (IOException e) {
+                LOG.error("Failed to read " + f + ".", e);
+            }
+        } else {
+            File[] children = f.listFiles();
+            assert children != null;
+            for (File c : children) {
+                findGeneratedDocumentsRecursive(c, maxDepth - 1);
+            }
         }
-        return builder.toString();
     }
-
-    /**
-     * Updates the content of the generated target language file, as well as
-     * that of the source map.
-     */
-    protected abstract void updateTargetLinesAndSourceMap();
-
-    /**
-     * Returns a list of diagnostics based on the current contents of
-     * targetLines.
-     */
-    protected abstract List<Diagnostic> getDiagnostics() throws IOException;
 }
