@@ -81,10 +81,11 @@ jobs:
       #     sudo make install
       #     sudo ldconfig
       - name: Install Dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
+        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: runner.os == 'Linux'
       - name: Install Dependencies OS X
         run: |
+          brew install protobuf
           brew install protobuf-c
           brew install coreutils
         if: runner.os == 'macOS'
@@ -95,6 +96,14 @@ jobs:
 #           vcpkgGitCommitId: $(vcpkgGitRef)
 #           vcpkgGitURL: https://github.com/microsoft/vcpkg/
 #         if: runner.os == 'Windows'
+      - name: Install RTI;
+        run: |
+          cd org.lflang/src/lib/core/federated/RTI
+          mkdir build
+          cd build
+          cmake ../
+          make
+          sudo make install
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*

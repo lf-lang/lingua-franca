@@ -24,15 +24,26 @@
  *           set(CMAKE_CXX_STANDARD 20)
  *       endif()
  * 
- * and rename the source in 'add_executable' to reflect
+ * 5- Add the following lines to CMakeLists.txt:
+ *
+ *   add_compile_definitions(NUMBER_OF_WORKERS=4)
+ * 
+ *   add_library(platform_support src/core/platform/lf_linux_support.cpp)
  * 
  *   add_executable(talker src/BasicROS.cpp)
  * 
- * 5- Use lfc (in bin/) to compile the provided .lf file
+ *   target_link_libraries(talker platform_support)
+ * 
+ *   install(TARGETS
+ *        platform_support
+ *        DESTINATION lib
+ *       )
+ * 
+ * 6- Use lfc (in bin/) to compile the provided .lf file
  *    
  *       lfc BasicROS.lf
  * 
- * 6- Run the provided build-ROS-node.sh:
+ * 7- Run the provided build-ROS-node.sh:
  * 
  *       ./build-ROS-node.sh BasicROS cpp_pubsub
  * 

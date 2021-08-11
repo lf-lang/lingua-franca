@@ -1,0 +1,38 @@
+/**
+ * This tests that a contained bank can send not only to a local connection, but also
+ * multicast via the container's output port.
+ */
+target C {
+    timeout: 3 sec,
+    fast: true
+}
+
+import Count from "../lib/Count.lf"
+import TestCount from "../lib/TestCount.lf"
+
+reactor Foo {
+    input in:int;
+    output out:int;
+    
+    c = new Count();
+    c.out -> out;
+    
+    d = new TestCount(num_inputs = 4);
+    in -> d.in;
+}
+
+reactor Bar {
+    output[4] out:int;
+    
+    foo = new[4] Foo();
+    
+    foo.out -> foo.in;
+    foo.out -> out;
+}
+
+main reactor {
+    bar = new Bar();
+    
+    d = new[4] TestCount(num_inputs = 4);
+    bar.out -> d.in;
+}

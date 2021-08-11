@@ -27,3 +27,11 @@ targets:
       actors: ["-D", "numWorkers=<value>"]
     run_args:
       messages: ["--numMessagesPerReactor", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/micro/Throughput.lf"
+    lf_file: "Throughput.lf"
+    binary: "Throughput"
+    gen_args:
+      actors: ["-D", "numWorkers=<value>"]
+      messages: ["-D", "numMessagesPerReactor=<value>"]

@@ -26,14 +26,10 @@
  ***************/
 package org.lflang.generator
 
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.OutputStream
-import java.net.URI
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.LinkedHashMap
@@ -99,7 +95,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporter {
+abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -108,19 +104,14 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * Constant that specifies how to name generated delay reactors.
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
-    
-    /**
-     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
-     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
-     * if it is being called from the Eclipse IDE, and 
-     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
-     */
-    public var Mode mode = Mode.UNDEFINED
 
     /** 
      * The main (top-level) reactor instance.
      */
     public ReactorInstance main
+    
+    /** A error reporter for reporting any errors or warnings during the code generation */
+    public ErrorReporter errorReporter
     
     ////////////////////////////////////////////
     //// Protected fields.
@@ -134,36 +125,22 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * The current target configuration.
      */
     protected var TargetConfig targetConfig = new TargetConfig()
+    def TargetConfig getTargetConfig() { return this.targetConfig;}
     
     /**
-     * The current file configuration. NOTE: not initialized until the
-     * invocation of doGenerate, which calls setFileConfig.
+     * The current file configuration.
      */
     protected var FileConfig fileConfig
+    
+    /**
+     * A factory for compiler commands.
+     */
+    protected var GeneratorCommandFactory commandFactory   
 
     /**
      * Collection of generated delay classes.
      */
     val delayClasses = new LinkedHashSet<Reactor>()
-    
-    /**
-     * Set the fileConfig field to point to the specified resource using the specified
-     * file-system access and context.
-     * @param resource The resource (Eclipse-speak for a file).
-     * @param fsa The Xtext abstraction for the file system.
-     * @param context The generator context (whatever that is).
-     */
-    def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new FileConfig(resource, fsa, context);
-        this.topLevelName = fileConfig.name
-    }
-
-    /**
-     * Indicator of whether generator errors occurred.
-     * This is set to true by the report() method and returned by the
-     * errorsOccurred() method.
-     */
-    protected var generatorErrorsOccurred = false
 
     /**
      * Definition of the main (top-level) reactor.
@@ -171,6 +148,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * reactor.
      */
     protected Instantiation mainDef
+    def getMainDef() { return mainDef; }
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
@@ -208,7 +186,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
-    
+
+    /**
+     * Map from reactions to bank indices
+     */
+    protected var Map<Reaction,Integer> reactionBankIndices = null
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -249,18 +231,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
     protected String classpathLF
 
     /**
-     * The index available to user-generated reaction that delineates the index
-     * of the reactor in a bank of reactors. The value must be set to zero
-     * in generated code for reactors that are not in a bank
-     */
-    protected String targetBankIndex = "bank_index"
-
-    /**
-     * The type of the bank index, which must be an integer in the target language
-     */
-    protected String targetBankIndexType = "int"
-
-    /**
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
@@ -271,18 +241,15 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * Map from builder to its current indentation.
      */
     var indentation = new LinkedHashMap<StringBuilder, String>()
-
+    
     /**
-     * Defines the execution environment that is used to execute binaries.
-     * 
-     * A given command may be directly executable on the host (NATIVE) 
-     * or it may need to be executed within a bash shell (BASH). 
-     * On Unix-like machines, this is typically determined by the PATH variable
-     * which could be different in these two environments.
+     * Create a new GeneratorBase object.
      */
-    enum ExecutionEnvironment {
-        NATIVE,
-        BASH
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        this.fileConfig = fileConfig
+        this.topLevelName = fileConfig.name
+        this.errorReporter = errorReporter
+        this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig)
     }
 
     // //////////////////////////////////////////
@@ -381,18 +348,16 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
-        setFileConfig(resource, fsa, context)
         setTargetConfig(context)
-
-        setMode()
 
         fileConfig.cleanIfNeeded()
 
         printInfo()
 
-        // Clear any markers that may have been created by a previous build.
+        // Reset the error reporter. If the reporter sets markers in the IDE, this will
+        // clear any markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
+        errorReporter.reset()
         
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
@@ -401,7 +366,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
-                reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
+                errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
         
@@ -497,7 +462,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                             for (imp : (inst.eContainer as Model).imports) {
                                 for (decl : imp.reactorClasses) {
                                     if (decl.reactorClass.eResource === res) {
-                                        reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
+                                        errorReporter.reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                                         tainted.add(decl.eResource)
                                     }
                                 }
@@ -516,18 +481,15 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      */
     protected def copyUserFiles() {
         // Make sure the target directory exists.
-        val targetDir = this.fileConfig.getSrcGenPath.toFile
-        targetDir.mkdirs
+        val targetDir = this.fileConfig.getSrcGenPath
+        Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
             val file = FileConfig.findFile(filename, this.fileConfig.srcFile.parent)
             if (file !== null) {
-                val target = new File(targetDir, file.name)
-                if (target.exists) {
-                    target.delete
-                }
-                Files.copy(file.toPath, target.toPath)
-                targetConfig.filesNamesWithoutPath.add(file.name);
+                val target = targetDir.resolve(file.fileName)
+                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING)
+                targetConfig.filesNamesWithoutPath.add(file.fileName.toString());
             } else {
                 // Try to copy the file as a resource.
                 // If this is missing, it should have been previously reported as an error.
@@ -553,7 +515,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * @return True if errors occurred.
      */
     def errorsOccurred() {
-        return generatorErrorsOccurred;
+        return errorReporter.getErrorsOccurred();
     }
 
     /**
@@ -657,6 +619,36 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         }
         unorderedReactions.add(reaction)
     }
+
+    /**
+     * Mark the specified reaction to belong to only the specified
+     * bank index. This is needed because reactions cannot declare
+     * a specific bank index as an effect or trigger. Reactions that
+     * send messages between federates, including absent messages,
+     * need to be specific to a bank member.
+     * @param The reaction.
+     * @param bankIndex The bank index, or -1 if there is no bank.
+     */
+    def setReactionBankIndex(Reaction reaction, int bankIndex) {
+        if (bankIndex >= 0) {
+            if (reactionBankIndices === null) {
+                reactionBankIndices = new LinkedHashMap<Reaction,Integer>()
+            }  
+            reactionBankIndices.put(reaction, bankIndex)
+        }
+    }
+
+    /**
+     * Return the reaction bank index.
+     * @see setReactionBankIndex(Reaction reaction, int bankIndex)
+     * @param The reaction.
+     * @return The reaction bank index, if one has been set, and -1 otherwise.
+     */
+    def int getReactionBankIndex(Reaction reaction) {
+        if (reactionBankIndices === null) return -1
+        if (reactionBankIndices.get(reaction) === null) return -1
+        return reactionBankIndices.get(reaction)
+    }
     
     /**
      * Given a representation of time that may possibly include units, return
@@ -680,181 +672,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         return "0" // FIXME: do this or throw exception?
     }
 
-    // //////////////////////////////////////////
-    // Protected methods for code generation
-    // of the RTI.
-    // FIXME: Allow target code generators to specify the directory
-    // structure for the generated C RTI?
-    /** Create the runtime infrastructure (RTI) source file.
-     */
-    def createFederateRTI() {
-        // Derive target filename from the .lf filename.
-        var cFilename = fileConfig.name + "_RTI.c"
-
-        // Delete source previously produced by the LF compiler.
-        // 
-        var file = fileConfig.RTISrcPath.resolve(cFilename).toFile
-        if (file.exists) {
-            file.delete
-        }
-        
-        // Also make sure the directory exists.
-        if (!file.parentFile.exists || !file.parentFile.isDirectory) {
-            file.mkdirs
-        }
-
-        // Delete binary previously produced by the C compiler.
-        file = fileConfig.RTIBinPath.resolve(fileConfig.name).toFile
-        if (file.exists) {
-            file.delete
-        }
-
-        val rtiCode = new StringBuilder()
-        pr(rtiCode, '''
-            #ifdef NUMBER_OF_FEDERATES
-            #undefine NUMBER_OF_FEDERATES
-            #endif
-            #define NUMBER_OF_FEDERATES «federates.size»
-            #include "rti.c"
-            int main(int argc, char* argv[]) {
-        ''')
-        indent(rtiCode)
-
-        // Initialize the array of information that the RTI has about the
-        // federates.
-        // FIXME: No support below for some federates to be FAST and some REALTIME.
-        pr(rtiCode, '''
-            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                initialize_federate(i);
-                «IF targetConfig.fastMode»
-                    federates[i].mode = FAST;
-                «ENDIF»
-            }
-        ''')
-        // Initialize the arrays indicating connectivity to upstream and downstream federates.
-        for (federate : federates) {
-            if (federate.dependsOn.size > 0) {
-                // Federate receives non-physical messages from other federates.
-                // Initialize the upstream and upstream_delay arrays.
-                val numUpstream = federate.dependsOn.size
-                // Allocate memory for the arrays storing the connectivity information.
-                pr(rtiCode, '''
-                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
-                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
-                    federates[«federate.id»].num_upstream = «numUpstream»;
-                ''')
-                // Next, populate these arrays.
-                // Find the minimum delay in the process.
-                // No delay is encoded as NEVER.
-                var count = 0;
-                for (upstreamFederate : federate.dependsOn.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
-                        federates[«federate.id»].upstream_delay[«count»] = NEVER;
-                    ''')
-                    // The minimum delay calculation needs to be made in the C code because it
-                    // may depend on parameter values.
-                    // FIXME: These would have to be top-level parameters, which don't really
-                    // have any support yet. Ideally, they could be overridden on the command line.
-                    // When that is done, they will need to be in scope here.
-                    val delays = federate.dependsOn.get(upstreamFederate)
-                    if (delays !== null) {
-                        for (delay : delays) {
-                            // If delay is null, use the default, NEVER. Otherwise, override if less than seen.
-                            if (delay !== null) {
-                                pr(rtiCode, '''
-                                    if (federates[«federate.id»].upstream_delay[«count»] < «delay.getRTITime») {
-                                        federates[«federate.id»].upstream_delay[«count»] = «delay.getRTITime»;
-                                    }
-                                ''')
-                            }
-                        }
-                    }
-                    count++;
-                }
-            }
-            // Next, set up the downstream array.
-            if (!federate.sendsTo.keySet.isEmpty) {
-                // Federate sends non-physical messages to other federates.
-                // Initialize the downstream array.
-                val numDownstream = federate.sendsTo.keySet.size
-                // Allocate memory for the array.
-                pr(rtiCode, '''
-                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
-                    federates[«federate.id»].num_downstream = «numDownstream»;
-                ''')
-                // Next, populate the array.
-                // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
-                var count = 0;
-                for (downstreamFederate : federate.sendsTo.keySet) {
-                    pr(rtiCode, '''
-                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
-                    ''')
-                    count++;
-                }
-            }
-        }
-
-        // Start the RTI server before launching the federates because if it
-        // fails, e.g. because the port is not available, then we don't want to
-        // launch the federates.
-        // Also generate code that blocks until the federates resign.
-        pr(rtiCode, '''
-            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
-            wait_for_federates(socket_descriptor);
-        ''')
-
-        unindent(rtiCode)
-        pr(rtiCode, "}")
-
-        var fOut = new FileOutputStream(fileConfig.RTISrcPath.resolve(cFilename).toFile);
-        fOut.write(rtiCode.toString().getBytes())
-        fOut.close()
-    }
-
-    /** 
-     * Invoke the C compiler on the generated RTI 
-     * The C RTI is used across targets. Thus we need to be able to compile 
-     * it from GeneratorBase. 
-     */
-    def compileRTI() {
-        var fileToCompile = fileConfig.name + '_RTI'
-        runCCompiler(fileToCompile, false)
-    }
-
-    /** 
-     * Run the C compiler.
-     * 
-     * This is required here in order to allow any target to compile the RTI.
-     * 
-     * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * 
-     * @return true if compilation succeeds, false otherwise. 
-     */
-    def runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        val compile = compileCCommand(file, doNotLinkIfNoMain)
-        if (compile === null) {
-            return false
-        }
-
-        val stderr = new ByteArrayOutputStream()
-        val returnCode = compile.executeCommand(stderr)
-
-        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''«targetConfig.compiler» returns error code «returnCode»''')
-        }
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-            reportCommandErrors(stderr.toString())
-        }
-        return (returnCode == 0)
-    }
-
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
@@ -872,12 +689,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 0) {
-                val buildCommand = createCommand(
+                val buildCommand = commandFactory.createCommand(
                     tokens.head,
                     tokens.tail.toList,
-                    this.fileConfig.srcPath,
-                    "Executing user specified build command " + cmd + " failed.",
-                    true
+                    this.fileConfig.srcPath
                 )
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
@@ -889,446 +704,30 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         }
 
         for (cmd : commands) {
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = cmd.executeCommand(stderr)
+            // execute the command
+            val returnCode = cmd.run()
 
-            if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-                reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
+            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
+                errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-                reportCommandErrors(stderr.toString())
+            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+                reportCommandErrors(cmd.errors.toString())
                 return
             }
         }
     }
-    
-    /**
-     * Return a command to compile the specified C file.
-     * This produces a C specific compile command. Since this command is
-     * used across targets to build the RTI, it needs to be available in
-     * GeneratorBase.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     */
-    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val env = findCommandEnv(
-            targetConfig.compiler, 
-            "The C target requires GCC >= 7 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true
-        )
-        
-        val cFilename = getTargetFileName(fileToCompile);
-
-        var relativeSrcPath = fileConfig.outPath.relativize(
-            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
-        var relativeBinPath = fileConfig.outPath.relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
-
-        // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        var relSrcPathString = FileConfig.toUnixString(relativeSrcPath)
-        var relBinPathString = FileConfig.toUnixString(relativeBinPath)
-        
-        // If there is no main reactor, then generate a .o file not an executable.
-        if (mainDef === null) {
-            relBinPathString += ".o";
-        }
-        
-        var compileArgs = newArrayList
-        compileArgs.add(relSrcPathString)
-        compileArgs.addAll(targetConfig.compileAdditionalSources)
-        compileArgs.addAll(targetConfig.compileLibraries)
-
-        // Only set the output file name if it hasn't already been set
-        // using a target property or Args line flag.
-        if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relBinPathString)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads !== 0 || targetConfig.tracing !== null) {
-            compileArgs.add("-pthread")
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add('''-DNUMBER_OF_WORKERS=«targetConfig.threads»''')
-        }
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags)
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && main === null) {
-            compileArgs.add("-c") // FIXME: revisit
-            if (mode === Mode.STANDALONE) {
-                reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
-    }
 
     // //////////////////////////////////////////
     // // Protected methods.
-    /** Produces the filename including the target-specific extension */
-    protected def getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
-    }
 
     /**
      * Clear the buffer of generated code.
      */
     protected def clearCode() {
         code = new StringBuilder
-    }
-    
-    /**
-     * Get the specified file as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in INTEGRATED mode, for some things, you cannot access
-     * files by referring to their file system location. Instead, you have to refer
-     * to them relative the workspace root. This is required, for example, when marking
-     * the file with errors or warnings or when deleting those marks. 
-     * 
-     * @param uri A java.net.uri of the form "file://path".
-     */
-    protected def getEclipseResource(URI uri) {
-        var resource = fileConfig.iResource // Default resource.
-        // For some peculiar reason known only to Eclipse developers,
-        // the resource cannot be used directly but has to be converted
-        // a resource relative to the workspace root.
-        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-        // The following uses a java.net.URI, which,
-        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
-        if (uri !== null) {
-             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
-             val files = workspaceRoot.findFilesForLocationURI(uri);
-             if (files !== null && files.length > 0 && files.get(0) !== null) {
-                 resource = files.get(0)
-             }
-        }
-        return resource;
-    }
-
-    /**
-     * Clear markers in the IDE if running in integrated mode.
-     * This has the side effect of setting the iResource variable to point to
-     * the IFile for the Lingua Franca program. 
-     * Also reset the flag indicating that generator errors occurred.
-     */
-    protected def clearMarkers() {
-        if (mode == Mode.INTEGRATED) {
-            try {
-                val resource = getEclipseResource(fileConfig.srcFile.toURI());
-                // First argument can be null to delete all markers.
-                // But will that delete xtext markers too?
-                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
-            } catch (Exception e) {
-                // Ignore, but print a warning.
-                println("Warning: Deleting markers in the IDE failed: " + e)
-            }
-        }
-        generatorErrorsOccurred = false
-    }
-
-    /**
-     * Run a given command and record its output.
-     * 
-     * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
-     * @param outStrram a stream object to forward the commands output messages to
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
-        println('''--- Current working directory: «cmd.directory.toString()»''')
-        println('''--- Executing command: «cmd.command.join(" ")»''')
-
-        var List<OutputStream> outStreams = newArrayList
-        var List<OutputStream> errStreams = newArrayList
-        outStreams.add(System.out)
-        errStreams.add(System.err)
-        if (outStream !== null) {
-            outStreams.add(outStream)
-        }
-        if (errStream !== null) {
-            errStreams.add(errStream)
-        }
-
-        // Execute the command. Write output to the System output,
-        // but also keep copies in outStream and errStream
-        return cmd.runSubprocess(outStreams, errStreams)
-    }
-
-    /**
-     * Run a given command and discard its standard and error output.
-     * 
-     * @param cmd the command to be executed
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd) {
-        return cmd.executeCommand(null, null)
-    }
-
-    /**
-     * Run a given command and capture its error output.
-     * 
-     * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
-     * @return the commands return code
-     */
-    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
-        return cmd.executeCommand(errStream, null)
-    }
-
-    /**
-     * Create a ProcessBuilder for a given command.
-     * 
-     * This method makes sure that the given command is executable,
-     * It first tries to find the command with 'which cmake'. If that
-     * fails, it tries again with bash. In case this fails again,
-     * it returns null. Otherwise, a correctly constructed ProcessBuilder
-     * object is returned. 
-     * 
-     * This command creates the following environment variables in the returned
-     * ProcessBuilder:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     * A bit more context:
-     * If the command cannot be found directly, then a second attempt is made using a
-     * Bash shell with the --login option, which sources the user's 
-     * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
-     * is first found) before running the command. This helps to ensure that
-     * the user's PATH variable is set according to their usual environment,
-     * assuming that they use a bash shell.
-     * 
-     * More information: Unfortunately, at least on a Mac if you are running
-     * within Eclipse, the PATH variable is extremely limited; supposedly, it
-     * is given by the default provided in /etc/paths, but at least on my machine,
-     * it does not even include directories in that file for some reason.
-     * One way to add a directory like
-     * /usr/local/bin to the path once-and-for-all is this:
-     * 
-     * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-     * 
-     * But asking users to do that is not ideal. Hence, we try a more hack-y
-     * approach of just trying to execute using a bash shell.
-     * Also note that while ProcessBuilder can configured to use custom
-     * environment variables, these variables do not affect the command that is
-     * to be executed but merely the environment in which the command executes.
-     * 
-     * @param cmd The command to be executed
-     * @param errorStringIfNotFound A message to be printed when the command was not found.
-     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, String messageIfNotFound, boolean failError) {
-        return createCommand(
-            cmd,
-            #[],
-            fileConfig.outPath,
-            findCommandEnv(cmd, messageIfNotFound, failError)
-        ) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
-    }
-
-    /** 
-     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, try again with bash, thereby using any PATH set in the 
-     * bash profile. If this fails again, report an error and return null.
-     * If the command has the form "./name", where
-     * name is an executable file in the current working directory,
-     * then that command will be used.
-     * 
-     * This returns ExecutionEnvironment.NATIVE 
-     * if the specified command is directly executable on the current host
-     * and ExecutionEnvironment.BASH 
-     * if the command must be executed within a bash shell.
-     * The latter occurs, for example, if the specified command 
-     * is not in the native path but is in the path
-     * specified by the user's bash configuration file.
-     * If the specified command is not found in either the native environment 
-     * nor the bash environment, then this reports and error and returns null.
-     * 
-     * @param cmd The command to find.
-     * @param dir A directory from which to search for the command or null to use PWD.
-     * @param messageIfNotFound A message to be printed when the command environment
-     *  was not found.
-     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
-     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
-     *  where ExecutionEnvironment is an enum.
-     * 
-     * @see findCommandEnv(String, Path)
-     */
-    protected def findCommandEnv(String cmd, String messageIfNotFound, boolean failError) {
-        return findCommandEnv(cmd, null, messageIfNotFound, failError)
-    }
-
-    /** 
-     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, try again with bash, thereby using any PATH set in the 
-     * bash profile. If this fails again, report an error and return null.
-     * If a directory is given and the command has the form "./name", where
-     * name is an executable file in the specified directory,
-     * then that command will be used.
-     * 
-     * This returns ExecutionEnvironment.NATIVE 
-     * if the specified command is directly executable on the current host
-     * and ExecutionEnvironment.BASH 
-     * if the command must be executed within a bash shell.
-     * The latter occurs, for example, if the specified command 
-     * is not in the native path but is in the path
-     * specified by the user's bash configuration file.
-     * If the specified command is not found in either the native environment 
-     * nor the bash environment, then this reports and error and returns null.
-     * 
-     * @param cmd The command to find.
-     * @param dir A directory from which to search for the command or null to use PWD.
-     * @param errorStringIfNotFound An error mesasge to be printed when the command environment
-     *  was not found.
-     * 
-     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
-     *  where ExecutionEnvironment is an enum.
-     */
-    protected def findCommandEnv(String cmd, Path dir, String messageIfNotFound, boolean failError) {
-        // Make sure the command is found in the PATH.
-        print('''--- Looking for command «cmd» ... ''')
-        // Use 'where' on Windows, 'which' on other systems
-        val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
-        val whichBuilder = new ProcessBuilder(#[which, cmd])
-        if (dir !== null) {
-            val dirFile = new File(dir.toString)
-            if (dirFile.isDirectory()) {
-                whichBuilder.directory(dirFile)
-            }
-        }
-        val whichReturn = whichBuilder.start().waitFor()
-        if (whichReturn == 0) {
-            println("SUCCESS")
-
-            return ExecutionEnvironment.NATIVE
-        }
-        println("FAILED")
-        // Try running with bash.
-        // The --login option forces bash to look for and load the first of
-        // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
-        print('''--- Trying again with bash ... ''')
-        val bashCommand = #["bash", "--login", "-c", '''which «cmd»''']
-        val bashBuilder = new ProcessBuilder(bashCommand)
-        val bashOut = new ByteArrayOutputStream()
-        val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
-        if (bashReturn == 0) {
-            println("SUCCESS")
-            return ExecutionEnvironment.BASH
-        }
-        if (failError) {
-            reportError( 
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
-        } else {
-            reportWarning( 
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
-        }
-        
-        return null as ExecutionEnvironment
-    }
-
-    /**
-     * Create a ProcessBuilder for a given command and its arguments.
-     * If the env argument is ExecutionEnvironment.BASH, then the returned execution
-     * environment will be set up to run the command within bash.
-     * If the env argument is null, then report an error and return null.
-     * 
-     * This command creates the following environment variables in the returned
-     * ProcessBuilder:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     * @param cmd The command to be executed.
-     * @param args A list of arguments for the given command.
-     * @param dir The directory to change into before executing the command.
-     * @param env The type of the Execution Environment.
-     * 
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
-        var builder = null as ProcessBuilder
-        if (env == ExecutionEnvironment.NATIVE) {
-            builder = new ProcessBuilder(#[cmd] + args)
-            builder.directory(dir.toFile)
-        } else if (env == ExecutionEnvironment.BASH) {
-
-            val str_builder = new StringBuilder(cmd + " ")
-            for (str : args) {
-                str_builder.append(str + " ")
-            }
-            val bash_arg = str_builder.toString
-            // val bash_arg = #[cmd + args]
-            val newCmd = #["bash", "--login", "-c"]
-            // use that command to build the process
-            builder = new ProcessBuilder(newCmd + #[bash_arg])
-            builder.directory(dir.toFile)
-        } else {
-            println("FAILED")
-            reportError(
-                    "Was not able to determine an execution environment that contains " + cmd + ".")
-        }
-        // Set environment variables.
-        val environment = builder.environment();
-        environment.put("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
-        environment.put("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());
-        environment.put("LF_SOURCE_GEN_DIRECTORY", fileConfig.srcGenPath.toString());
-        environment.put("LF_BIN_DIRECTORY", fileConfig.binPath.toString());
-        return builder
-    }
-
-    /**
-     * Creates a ProcessBuilder for a given command and its arguments.
-     * If the specified command must be executed in a bash shell (i.e., if it cannot
-     * be found without the settings in your bash profile), then the returned execution
-     * environment will be set up to run the command within bash.
-     * If the command cannot be found, then report an error and return null.
-     * 
-     * This command creates the following environment variables in the returned
-     * ProcessBuilder:
-     * 
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     * 
-     * @param cmd The command to be executed.
-     * @param args A list of arguments for the given command.
-     * @param dir A directory to change into before finding the command.
-     * @param messageIfNotFound An message to be printed when the command environment
-     *  was not found.
-     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
-     * @return A ProcessBuilder object if the command was found or null otherwise.
-     */
-    protected def createCommand(String cmd, List<String> args, Path dir, String messageIfNotFound, boolean failError) {
-        val env = findCommandEnv(cmd, dir, messageIfNotFound, failError)
-        if (env === null) {
-            // Could not find a suitable execution environment for 'cmd'
-            return null;
-        }
-        return createCommand(cmd, args, dir, env)
     }
 
     /**
@@ -1470,12 +869,23 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
     }
 
     /**
+     * Parsed error message from a compiler is returned here.
+     */
+    static class ErrorFileAndLine {
+        public var filepath = null as String
+        public var line = "1"
+        public var character = "0"
+        public var message = ""
+        public var isError = true // false for a warning.
+    }
+
+    /**
      * Generate any preamble code that appears in the code generated
      * file before anything else.
      */
     protected def void generatePreamble() {
         prComment("Code generated by the Lingua Franca compiler from:")
-        prComment("file:/" +FileConfig.toUnixString(fileConfig.srcFile.toPath))
+        prComment("file:/" +FileConfig.toUnixString(fileConfig.srcFile))
         val models = new LinkedHashSet<Model>
 
         for (r : this.reactors ?: emptyList) {
@@ -1639,17 +1049,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
     }
 
     /**
-     * Parsed error message from a compiler is returned here.
-     */
-    protected static class ErrorFileAndLine {
-        public var filepath = null as String
-        public var line = "1"
-        public var character = "0"
-        public var message = ""
-        public var isError = true // false for a warning.
-    }
-
-    /**
      * Given a line of text from the output of a compiler, return
      * an instance of ErrorFileAndLine if the line is recognized as
      * the first line of an error message. Otherwise, return null.
@@ -1676,14 +1075,14 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * 
      * @param stderr The output on standard error of executing a command.
      */
-    protected def reportCommandErrors(String stderr) {
+    def reportCommandErrors(String stderr) {
         // First, split the message into lines.
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var resource = getEclipseResource(fileConfig.srcFile.toURI());
-        // In case errors occur within an imported file, record the original resource.
-        val originalResource = resource;
+        var path = fileConfig.srcFile
+        // In case errors occur within an imported file, record the original path.
+        val originalPath = path;
         
         var severity = IMarker.SEVERITY_ERROR
         for (line : lines) {
@@ -1692,18 +1091,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 // Found a new line number designator.
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
-                    report(message.toString(), severity, lineNumber, resource)
-                    if (originalResource != resource) {
+                    if (severity == IMarker.SEVERITY_ERROR)
+                        errorReporter.reportError(path, lineNumber, message.toString())
+                    else
+                        errorReporter.reportWarning(path, lineNumber, message.toString())
+                      
+                    if (originalPath != path) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
-                        report(
-                            "Error in imported file: " + resource.fullPath,
-                            IMarker.SEVERITY_ERROR,
-                            null,
-                            originalResource
-                        )
+                        errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
                     }
                 }
                 if (parsed.isError) {
@@ -1725,11 +1123,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                     lineNumber = null
                 }
                 // FIXME: Ignoring the position within the line.
-                // Determine the resource within which the error occurred.
-                // Sadly, Eclipse defines an interface called "URI" that conflicts with the
-                // Java one, so we have to give the full class name here.
-                val uri = new URI(parsed.filepath);
-                resource = getEclipseResource(uri);
+                // Determine the path within which the error occurred.
+                path = Paths.get(parsed.filepath)
             } else {
                 // No line designator.
                 if (message.length > 0) {
@@ -1743,18 +1138,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             }
         }
         if (message.length > 0) {
-            report(message.toString, severity, lineNumber, resource)
-            if (originalResource != resource) {
+            if (severity == IMarker.SEVERITY_ERROR)
+                errorReporter.reportError(path, lineNumber, message.toString())
+            else
+                errorReporter.reportWarning(path, lineNumber, message.toString())
+
+            if (originalPath != path) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
-                report(
-                    "Error in imported file: " + resource.fullPath,
-                    IMarker.SEVERITY_ERROR,
-                    null,
-                    originalResource
-                )
+                errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
             }
         }
     }
@@ -1815,7 +1209,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (mode == Mode.INTEGRATED) {
+        if (fileConfig.compilerMode == Mode.INTEGRATED) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
@@ -1843,152 +1237,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 println("Unable to refresh workspace: " + e)
             }
         }
-    }
-
-    /** Report a warning or error on the specified line of the specified resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  This will print the error message to stderr.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param line The line number or null if it is not known.
-     *  @param object The Ecore object, or null if it is not known.
-     *  @param resource The resource, or null if it is not known.
-     */
-    protected def report(String message, int severity, Integer line, EObject object, IResource resource) {
-        if (severity === IMarker.SEVERITY_ERROR) {
-            generatorErrorsOccurred = true;
-        }
-        val header = (severity === IMarker.SEVERITY_ERROR) ? "ERROR: " : "WARNING: "
-        val lineAsString = (line === null) ? "" : "Line " + line
-        var fullPath = resource?.fullPath?.toString
-        if (fullPath === null) {
-            if (object !== null && object.eResource !== null) {
-                fullPath = FileConfig.toPath(object.eResource).toString()
-            } 
-        }
-        if (fullPath === null) {
-            if (line === null) {
-                fullPath = ""
-            } else {
-                fullPath = "path unknown"
-            }
-        }
-        val toPrint = header + fullPath + " " + lineAsString + "\n" + message
-        System.err.println(toPrint)
-
-        // If running in INTEGRATED mode, create a marker in the IDE for the error.
-        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (mode === Mode.INTEGRATED) {
-            var myResource = resource
-            if (myResource === null && object !== null) {
-                // Attempt to identify the IResource from the object.
-                val eResource = object.eResource
-                if (eResource !== null) {
-                    val uri = FileConfig.toPath(eResource).toUri();
-                    myResource = getEclipseResource(uri);
-                }
-            }
-            // If the resource is still null, use the resource associated with
-            // the top-level file.
-            if (myResource === null) {
-                myResource = fileConfig.iResource
-            }
-            if (myResource !== null) {
-                val marker = myResource.createMarker(IMarker.PROBLEM)
-                marker.setAttribute(IMarker.MESSAGE, message);
-                if (line !== null) {
-                    marker.setAttribute(IMarker.LINE_NUMBER, line);
-                } else {
-                    marker.setAttribute(IMarker.LINE_NUMBER, 1);
-                }
-                // Human-readable line number information.
-                marker.setAttribute(IMarker.LOCATION, lineAsString);
-                // Mark as an error or warning.
-                marker.setAttribute(IMarker.SEVERITY, severity);
-                marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
-
-                marker.setAttribute(IMarker.USER_EDITABLE, false);
-
-            // NOTE: It might be useful to set a start and end.
-            // marker.setAttribute(IMarker.CHAR_START, 0);
-            // marker.setAttribute(IMarker.CHAR_END, 5);
-            }
-        }
-
-        // Return a string that can be inserted into the generated code.
-        if (severity === IMarker.SEVERITY_ERROR) {
-            return "[[ERROR: " + message + "]]"
-        }
-        return ""
-    }
-
-    /** Report a warning or error on the specified parse tree object in the
-     *  current resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param object The parse tree object or null if not known.
-     */
-    protected def report(String message, int severity, EObject object) {
-        var line = null as Integer
-        if (object !== null) {
-            val node = NodeModelUtils.getNode(object)
-            if (node !== null) {
-                line = node.getStartLine
-            }
-        }
-        return report(message, severity, line, object, null)
-    }
-
-    /** Report a warning or error on the specified parse tree object in the
-     *  current resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param resource The resource.
-     */
-    protected def report(String message, int severity, Integer line, IResource resource) {
-        return report(message, severity, line, null, resource)
-    }
-
-    /**
-     * Report an error.
-     * @param message The error message.
-     */
-    override reportError(String message) {
-        return report(message, IMarker.SEVERITY_ERROR, null)
-    }
-
-    /**
-     * Report a warning.
-     * @param message The warning message.
-     */
-    override reportWarning(String message) {
-        return report(message, IMarker.SEVERITY_WARNING, null)
-    }
-
-
-    /** Report an error on the specified parse tree object.
-     *  @param object The parse tree object.
-     *  @param message The error message.
-     */
-    override reportError(EObject object, String message) {
-        return report(message, IMarker.SEVERITY_ERROR, object)
-    }
-
-    /** Report a warning on the specified parse tree object.
-     *  @param object The parse tree object.
-     *  @param message The error message.
-     */
-    override reportWarning(EObject object, String message) {
-        return report(message, IMarker.SEVERITY_WARNING, object)
-    }
+    }  
 
     /** Reduce the indentation by one level for generated code
      *  in the default code buffer.
@@ -2216,7 +1465,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         if (this.mainDef === null || !mainReactor.isFederated) {
             // The program is not federated.
             // Ensure federates is never empty.
-            var federateInstance = new FederateInstance(null, 0, 0, this)
+            var federateInstance = new FederateInstance(null, 0, 0, this, errorReporter)
             federates.add(federateInstance)
             federateByID.put(0, federateInstance)
         } else {
@@ -2249,7 +1498,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             for (instantiation : mainReactor.allInstantiations) {
                 var bankWidth = ASTUtils.width(instantiation.widthSpec, context);
                 if (bankWidth < 0) {
-                    reportError(instantiation, "Cannot determine bank width!");
+                    errorReporter.reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.
                     bankWidth = 1;
                 }
@@ -2258,7 +1507,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.size
-                    var federateInstance = new FederateInstance(instantiation, federateID, i, this)
+                    var federateInstance = new FederateInstance(instantiation, federateID, i, this, errorReporter)
                     federateInstance.bankIndex = i;
                     federates.add(federateInstance)
                     federateInstances.add(federateInstance)
@@ -2315,7 +1564,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         // to duplicate the rather complicated logic in that class. We specify a depth of 1,
         // so it only creates the reactors immediately within the top level, not reactors
         // that those contain.
-        val mainInstance = new ReactorInstance(mainReactor, this, 1)
+        val mainInstance = new ReactorInstance(mainReactor, errorReporter, 1)
 
         for (federate : mainInstance.children) {
             // Skip banks and just process the individual instances.
@@ -2362,7 +1611,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 var connection = mainInstance.getConnection(source, destination)
                 if (connection === null) {
                     // This should not happen.
-                    reportError(source.definition, "Unexpected error. Cannot find connection for port")
+                    errorReporter.reportError(source.definition, "Unexpected error. Cannot find connection for port")
                 } else {
                     if (leftFederate !== rightFederate
                             && !connection.physical 
@@ -2392,6 +1641,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                     }
 
                     FedASTUtils.makeCommunication(
+                        source,
+                        destination,
                         connection,
                         leftFederate,
                         federate.bankIndex,
@@ -2408,80 +1659,28 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
     }
 
     /**
-     * Determine which mode the compiler is running in.
-     * Integrated mode means that it is running within an Eclipse IDE.
-     * Standalone mode means that it is running on the command line.
-     */
-    private def setMode() {
-        val resource = fileConfig.resource
-        if (resource.URI.isPlatform) {
-            mode = Mode.INTEGRATED
-        } else if (resource.URI.isFile) {
-            mode = Mode.STANDALONE
-        } else {
-            mode = Mode.UNDEFINED
-            System.err.println("ERROR: Source file protocol is not recognized: " + resource.URI);
-        }
-    }
-
-    /**
      * Print to stdout information about what source file is being generated,
      * what mode the generator is in, and where the generated sources are to be put.
      */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + mode)
+        println('******** mode: ' + fileConfig.compilerMode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }
 
     /**
-     * Execute a process while forwarding output and error streams.
+     * Indicates whether delay banks generated from after delays should have a variable length width.
      * 
-     * Executing a process directly with `processBuiler.start()` could
-     * lead to a deadlock as the subprocess blocks when output or error
-     * buffers are full. This method ensures that output and error messages
-     * are continuously read and forwards them to the given streams.
+     * If this is true, any delay reactors that are inserted for after delays on multiport connections 
+     * will have a unspecified variable length width. The code generator is then responsible for inferring the
+     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
      * 
-     * @param processBuilder The process to be executed.
-     * @param outStream The stream to forward the process' output to.
-     * @param errStream The stream to forward the process' error messages to.
-     * @author{Christian Menard <christian.menard@tu-dresden.de}
+     * If this is false, the width specification of the generated bank will list all the ports listed on the right
+     * side of the connection. This gives the code generator the information needed to infer the correct width at 
+     * runtime.
      */
-    private def runSubprocess(ProcessBuilder processBuilder, List<OutputStream> outStream,
-        List<OutputStream> errStream) {
-        val process = processBuilder.start()
-
-        var outThread = new Thread([|
-            var buffer = newByteArrayOfSize(64)
-            var len = process.getInputStream().read(buffer)
-            while (len != -1) {
-                for (os : outStream) {
-                    os.write(buffer, 0, len)
-                }
-                len = process.getInputStream().read(buffer)
-            }
-        ])
-        outThread.start()
-
-        var errThread = new Thread([|
-            var buffer = newByteArrayOfSize(64)
-            var len = process.getErrorStream().read(buffer)
-            while (len != -1) {
-                for (es : errStream) {
-                    es.write(buffer, 0, len)
-                }
-                len = process.getErrorStream().read(buffer)
-            }
-        ])
-        errThread.start()
-
-        val returnCode = process.waitFor()
-        outThread.join()
-        errThread.join()
-
-        return returnCode
-    }
+    def boolean generateAfterDelaysWithVariableWidth() { return true }
 
     /**
      * Return true if the target supports generics (i.e., parametric

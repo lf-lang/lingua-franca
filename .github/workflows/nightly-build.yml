@@ -1,0 +1,49 @@
+name: Nightly Build
+
+# Trigger the workflow every day at 5 AM (UTC) i.e., 10 PM Pacific.
+on:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+          distribution: zulu
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: 3.8.1
+
+      # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
+      - uses: actions/checkout@v2
+
+      - name: Gradle Wrapper Validation
+        uses: gradle/wrapper-validation-action@v1
+
+      ## Build products
+      - name: Build the lfc compiler
+        run: .github/scripts/package_lfc.sh
+      - name: Build Eclipse product
+        run: mvn compile
+      - name: Package IDE
+        run: mvn package
+
+      - name: Deploy release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: "${{ secrets.NIGHTLY_BUILD }}"
+          automatic_release_tag: 'nightly'
+          prerelease: true
+          files: |
+            org.lflang.rca/target/products/*.tar.gz
+            org.lflang.rca/target/products/*.zip
+            build_upload/*

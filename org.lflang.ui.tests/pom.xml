@@ -28,21 +28,13 @@
       </plugin>
 
       <plugin>
-        <!-- See https://github.com/eclipse/xtext-eclipse/issues/272 -->
-	<groupId>org.eclipse.tycho</groupId>
-	<artifactId>tycho-compiler-plugin</artifactId>
-	<version>${tycho-version}</version>
-	<configuration>
-	  <compilerArgument>-err:-forbidden</compilerArgument>
-	  <useProjectSettings>false</useProjectSettings>
-	</configuration>
-      </plugin>
-
-
-      <plugin>
 	<groupId>org.eclipse.xtend</groupId>
 	<artifactId>xtend-maven-plugin</artifactId>
       </plugin>
+        <plugin>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-plugin</artifactId>
+        </plugin>
       <plugin>
 	<groupId>org.eclipse.tycho</groupId>
 	<artifactId>tycho-surefire-plugin</artifactId>

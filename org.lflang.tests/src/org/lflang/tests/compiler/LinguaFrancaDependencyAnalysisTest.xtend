@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.lflang.DefaultErrorReporter
 import org.lflang.ModelInfo
-import org.lflang.generator.CGenerator
 import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Instantiation
@@ -104,11 +103,10 @@ class LinguaFrancaDependencyAnalysisTest {
             }
         }
         
-        var gen = new CGenerator()
         var message = ""
         try {
             new ReactionInstanceGraph(
-                new ReactorInstance(mainDef.reactorClass.toDefinition, gen))
+                new ReactorInstance(mainDef.reactorClass.toDefinition, new DefaultErrorReporter()))
         } catch(Exception e) {
             message = e.message
         }

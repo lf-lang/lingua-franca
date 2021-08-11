@@ -1,0 +1,62 @@
+/**
+ * Check whether the internally generated network and control reactions
+ * introduce a cycle or not. The failure for this test is not being compiled.
+ * @author Edward A. Lee
+ */
+target C;
+
+reactor CAReplica {
+    input local_update:int;
+    input remote_update:int;
+    input query:int;
+    
+    state balance:int(0);
+
+    output response:int;
+    
+    reaction(local_update, remote_update) {=
+        if (local_update->is_present) {
+            self->balance += local_update->value;
+        }
+        if (remote_update->is_present) {
+            self->balance += remote_update->value;
+        }
+    =}
+    
+    reaction(query) -> response {=
+        SET(response, self->balance);
+    =}
+}
+reactor UserInput {
+    input balance:int;
+    output deposit:int;
+        
+    reaction(startup) -> deposit {=
+        SET(deposit, 100);
+    =}
+    reaction(balance) {=
+        if (balance->value != 200) {
+            error_print_and_exit("Did not receive the expected balance. Expected: 200. Got: %d.", balance->value);
+        }
+        info_print("Balance: %d", balance->value);
+        request_stop();
+    =}
+    
+    reaction(shutdown) {=
+        info_print("Test passed!");
+    =}
+}
+
+federated reactor {
+    u1 = new UserInput();
+    r1 = new CAReplica();
+    u2 = new UserInput();
+    r2 = new CAReplica();
+    (u1.deposit)+ -> r1.query, r1.local_update;
+    r1.response -> u1.balance;
+    u1.deposit -> r2.remote_update;
+
+    (u2.deposit)+ -> r2.query, r2.local_update;
+    r2.response -> u2.balance;
+    u2.deposit -> r1.remote_update;
+}

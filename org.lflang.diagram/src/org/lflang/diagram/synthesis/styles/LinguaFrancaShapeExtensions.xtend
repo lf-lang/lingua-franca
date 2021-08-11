@@ -282,7 +282,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 		
 		// TODO improve default check
-		if (reaction.deadline.time !== TimeValue.MAX_LONG_DEADLINE) {
+		if (reaction.declaredDeadline !== null) {
 			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.deadline.code.body.nullOrEmpty
 			if (hasCode || hasDeadlineCode) {
 				contentContainer.addHorizontalLine(0) => [
@@ -298,7 +298,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			labelContainer.addStopwatchFigure() => [
 				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
 			]
-			labelContainer.addText(reaction.deadline.toString) => [
+			labelContainer.addText(reaction.declaredDeadline.maxDelay.toString) => [
 				associateWith(reaction.definition.deadline.delay)
 				foreground = Colors.BROWN
 				fontBold = true

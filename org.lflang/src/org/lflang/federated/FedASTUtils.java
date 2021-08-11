@@ -33,11 +33,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -46,7 +48,6 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TimeUnit;
@@ -85,42 +86,48 @@ public class FedASTUtils {
      * 
      * @param portRef The network input port
      * @param receivingPortID The ID of the receiving port
+     * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
      * @param parent The federated reactor
      * @param generator The GeneratorBase instance used to identify certain
      *  target properties
      */
-    public static void addNetworkInputControlReaction(
-            VarRef port,
+    private static void addNetworkInputControlReaction(
+            PortInstance destination,
             int recevingPortID,
+            int bankIndex,
             FederateInstance instance,
-            Reactor parent,
             GeneratorBase generator
-        ) {
+    ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        VarRef newPortRef = factory.createVarRef();        
-        Type portType = ASTUtils.getCopy(((Port)port.getVariable()).getType());
+        VarRef newPortRef = factory.createVarRef();
+        Type portType = EcoreUtil.copy(destination.getDefinition().getType());
         
-        // Create a new Input port for the reaction trigger.
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(reaction, bankIndex);
+
+        // Create a new phantom Input port that will be used to trigger the
+        // input control reactions.
         Input newTriggerForControlReactionInput = factory.createInput();       
 
         // Set the container and variable according to the network port
-        newPortRef.setContainer(port.getContainer());
-        newPortRef.setVariable(port.getVariable());
+        newPortRef.setContainer(destination.parent.getDefinition());
+        newPortRef.setVariable(destination.getDefinition());
         
-        newTriggerForControlReactionInput.setName(ASTUtils.getUniqueIdentifier(parent, "inputControlReactionTrigger"));
+        Reactor top = destination.parent.parent.reactorDefinition;
+        
+        newTriggerForControlReactionInput.setName(ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
         newTriggerForControlReactionInput.setType(portType);         
 
         // Add the newly created Input to the input list of inputs of the federated reactor
-        parent.getInputs().add(newTriggerForControlReactionInput);
+        top.getInputs().add(newTriggerForControlReactionInput);
 
         // Create the trigger for the reaction
-        VarRef newTriggerForControlReaction = (VarRef) factory
-                .createVarRef();
-        newTriggerForControlReaction
-                .setVariable(newTriggerForControlReactionInput);
+        VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
+        newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
         
         // Add the trigger to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
@@ -129,11 +136,11 @@ public class FedASTUtils {
         reaction.setCode(factory.createCode());
 
         TimeValue maxSTP = findMaxSTP(
-                newPortRef.getVariable(),
+                destination.getDefinition(),
                 instance,
                 generator, 
-                (Reactor)newPortRef.getVariable().eContainer()
-                );
+                destination.parent.reactorDefinition
+        );
 
         reaction.getCode()
                 .setBody(generator.generateNetworkInputControlReactionBody(
@@ -142,7 +149,7 @@ public class FedASTUtils {
         generator.makeUnordered(reaction);
 
         // Insert the reaction
-        parent.getReactions().add(reaction);
+        top.getReactions().add(reaction);
         
         // Add the trigger for this reaction to the list of triggers, used to actually
         // trigger the reaction at the beginning of each logical time.
@@ -285,8 +292,8 @@ public class FedASTUtils {
      *        target properties
      * @param delay The delay value imposed on the connection using after
      */
-    public static void addNetworkOutputControlReaction(
-            VarRef portRef,
+    private static void addNetworkOutputControlReaction(
+            PortInstance source,
             FederateInstance instance,
             int receivingPortID, 
             int bankIndex, 
@@ -297,38 +304,48 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        Reactor reactor = (Reactor) portRef.eContainer().eContainer();
-        VarRef newPortRef = factory.createVarRef();
+        Reactor top = source.parent.parent.reactorDefinition; // Top-level reactor.
         
-        newPortRef.setContainer(portRef.getContainer());
-        newPortRef.setVariable(portRef.getVariable());
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(reaction, bankIndex);
 
+        // Add the output from the contained reactor as a source to
+        // the reaction to preserve precedence order.
+        VarRef newPortRef = factory.createVarRef();
+        newPortRef.setContainer(source.parent.getDefinition());
+        newPortRef.setVariable(source.getDefinition());
+        reaction.getSources().add(newPortRef);
+
+        // We use a phantom input port at the top-level to manually
+        // trigger output control reactions. That port is created once
+        // and recorded in the federate instance.
+        // Check whether the port already has been created.
         if (instance.networkOutputControlReactionsTrigger == null) {
+            // The port has not been created.
             String triggerName = "outputControlReactionTrigger";
 
-            // Find the trigger in the reactor definition, which could have been
-            // generated for another federate instance
-            Optional<Input> optTriggerInput = reactor.getInputs().stream()
+            // Find the trigger definition in the reactor definition, which could have been
+            // generated for another federate instance if there are multiple instances
+            // of the same reactor that are each distinct federates.
+            Optional<Input> optTriggerInput = top.getInputs().stream()
                     .filter(I -> {
                         return I.getName().equals(triggerName);
                     }).findFirst();
 
             if (optTriggerInput.isEmpty()) {
                 // If no trigger with the name "outputControlReactionTrigger" is
-                // already added
-                // to the reactor definition, we need to create it for the first
-                // time.
-                Input newTriggerForControlReactionVariable = factory
-                        .createInput();
+                // already added to the reactor definition, we need to create it
+                // for the first time.
+                Input newTriggerForControlReactionVariable = factory.createInput();
                 newTriggerForControlReactionVariable.setName(triggerName);
 
+                // The input needs a type. All targets have a Time type, so we use that.
                 Type portType = factory.createType();
                 portType.setId(generator.getTargetTimeType());
                 newTriggerForControlReactionVariable.setType(portType);
 
-
-                reactor.getInputs()
-                        .add(newTriggerForControlReactionVariable);
+                top.getInputs().add(newTriggerForControlReactionVariable);
                 
                 // Now that the variable is created, store it in the federate instance
                 instance.networkOutputControlReactionsTrigger = newTriggerForControlReactionVariable;
@@ -344,11 +361,7 @@ public class FedASTUtils {
         // Add the trigger for all output control reactions to the list of triggers
         VarRef triggerRef = factory.createVarRef();
         triggerRef.setVariable(instance.networkOutputControlReactionsTrigger);
-        reaction.getTriggers()
-                .add(triggerRef);
-        // Add the output from the contained reactor as a source to preserve
-        // precedence order
-        reaction.getSources().add(newPortRef);
+        reaction.getTriggers().add(triggerRef);
         
         // Generate the code
         reaction.setCode(factory.createCode());
@@ -357,38 +370,48 @@ public class FedASTUtils {
                 generator.generateNetworkOutputControlReactionBody(newPortRef,
                         receivingPortID, receivingFedID, bankIndex, channelIndex, delay));
         
+        // Make the reaction unordered w.r.t. other reactions in the top level.
         generator.makeUnordered(reaction);
 
         // Insert the newly generated reaction after the generated sender and
-        // receiver
-        // top-level reactions
-        reactor.getReactions().add(reaction);
+        // receiver top-level reactions.
+        top.getReactions().add(reaction);
     }
     
     /** 
-     * Replace the specified connection with a communication between federates.
+     * Replace the specified connection with communication between federates.
+     * @param source The source port instance.
+     * @param destination The destination port instance.
      * @param connection The connection.
      * @param leftFederate The source federate.
+     * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
+     * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
      * @param rightFederate The destination federate.
+     * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
+     * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
+     * @param generator The generator.
+     * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      */
     public static void makeCommunication(
-        Connection connection, 
-        FederateInstance leftFederate,
-        int leftBankIndex,
-        int leftChannelIndex,
-        FederateInstance rightFederate,
-        int rightBankIndex,
-        int rightChannelIndex,
-        GeneratorBase generator,
-        CoordinationType coordination
+            PortInstance source,
+            PortInstance destination,
+            Connection connection, 
+            FederateInstance leftFederate,
+            int leftBankIndex,
+            int leftChannelIndex,
+            FederateInstance rightFederate,
+            int rightBankIndex,
+            int rightChannelIndex,
+            GeneratorBase generator,
+            CoordinationType coordination
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         // Assume all the types are the same, so just use the first on the right.
-        Type type = ASTUtils.getCopy(((Port)connection.getRightPorts().get(0).getVariable()).getType());
+        Type type = EcoreUtil.copy(source.getDefinition().getType());
         Action action = factory.createAction();
         VarRef triggerRef = factory.createVarRef();
-        VarRef inRef = factory.createVarRef();
-        VarRef outRef = factory.createVarRef();
+        VarRef sourceRef = factory.createVarRef();
+        VarRef destRef = factory.createVarRef();
         Reactor parent = (Reactor)connection.eContainer();
         Reaction r1 = factory.createReaction();
         Reaction r2 = factory.createReaction();
@@ -397,6 +420,11 @@ public class FedASTUtils {
         // to other reactions in the container.
         generator.makeUnordered(r1);
         generator.makeUnordered(r2);
+        
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(r1, leftBankIndex);
+        generator.setReactionBankIndex(r2, rightBankIndex);
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
@@ -438,25 +466,20 @@ public class FedASTUtils {
         triggerRef.setVariable(action);
 
         // Establish references to the involved ports.
-        // FIXME: This does not support parallel connections yet!!
-        if (connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1) {
-            throw new UnsupportedOperationException("FIXME: " +
-                                                    "Parallel connections are not yet supported between federates.");
-        }
-        inRef.setContainer(connection.getLeftPorts().get(0).getContainer());
-        inRef.setVariable(connection.getLeftPorts().get(0).getVariable());
-        outRef.setContainer(connection.getRightPorts().get(0).getContainer());
-        outRef.setVariable(connection.getRightPorts().get(0).getVariable());
+        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setVariable(source.getDefinition());
+        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setVariable(destination.getDefinition());
 
         // Add the action to the reactor.
         parent.getActions().add(action);
         
         // Configure the sending reaction.
-        r1.getTriggers().add(inRef);
+        r1.getTriggers().add(sourceRef);
         r1.setCode(factory.createCode());
         r1.getCode().setBody(generator.generateNetworkSenderBody(
-            inRef,
-            outRef,
+            sourceRef,
+            destRef,
             receivingPortID,
             leftFederate,
             leftBankIndex,
@@ -473,7 +496,7 @@ public class FedASTUtils {
         if (!connection.isPhysical()) {           
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(
-                connection.getLeftPorts().get(0), 
+                source,
                 leftFederate,
                 receivingPortID,
                 leftBankIndex,
@@ -485,10 +508,10 @@ public class FedASTUtils {
             
             // Add the network input control reaction to the parent
             FedASTUtils.addNetworkInputControlReaction(
-                connection.getRightPorts().get(0),
+                destination,
                 receivingPortID,
+                rightBankIndex,
                 rightFederate,
-                parent,
                 generator
             );
         }        
@@ -496,12 +519,12 @@ public class FedASTUtils {
 
         // Configure the receiving reaction.
         r2.getTriggers().add(triggerRef);
-        r2.getEffects().add(outRef);
+        r2.getEffects().add(destRef);
         r2.setCode(factory.createCode());
         r2.getCode().setBody(generator.generateNetworkReceiverBody(
             action,
-            inRef,
-            outRef,
+            sourceRef,
+            destRef,
             receivingPortID,
             leftFederate,
             rightFederate,
@@ -514,5 +537,4 @@ public class FedASTUtils {
         // Add the receiver reaction to the parent
         parent.getReactions().add(r2);
     }
-
 }
