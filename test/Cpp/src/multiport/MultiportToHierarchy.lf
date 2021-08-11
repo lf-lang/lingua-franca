@@ -5,23 +5,22 @@ target Cpp {
     threads: 1,
     fast: true
 }; 
-reactor Source {
+reactor Source(width:size_t(4)) {
 	timer t(0, 200 msec);
-	output[4] out:int;
+	output[width] out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-        for(int i = 0; i < 4; i++) {
+        for(size_t i = 0; i < 4; i++) {
             out[i].set(s++);
         }
 	=}
 }
-reactor Destination(width:int(4)) {
+reactor Destination(width:size_t(4)) {
 	state s:int(6);
-    // FIXME: Replace '4' with 'width'
-	input[4] in:int;
+	input[width] in:int;
 	reaction(in) {=
 		int sum = 0;
-		for (int i = 0; i < in.size(); i++) {
+		for (size_t i = 0; i < in.size(); i++) {
             if (in[i].is_present()) sum += *in[i].get();
         }
 		std::cout << "Sum of received: " << sum << ".\n";
@@ -39,15 +38,14 @@ reactor Destination(width:int(4)) {
         std::cout << "Success.\n";
     =}
 }
-reactor Container(width:int(4)) {
-    // FIXME: Replace '4' with 'width'
-    input[4] in:int;
+reactor Container(width:size_t(4)) {
+    input[width] in:int;
     dst = new Destination();
     in -> dst.in;
 }
 
-main reactor MultiportToHierarchy  { 
-	a = new Source();
-	b = new Container();
+main reactor MultiportToHierarchy(width:size_t(4))  { 
+	a = new Source(width=width);
+	b = new Container(width=width);
 	a.out -> b.in;
 }

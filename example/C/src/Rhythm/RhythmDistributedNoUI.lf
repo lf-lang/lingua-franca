@@ -30,8 +30,7 @@
  * @author Edward A. Lee
  */
 target C {
-    build: ["./compile.sh RhythmDistributedNoUI_RTI", 
-    		"./compile.sh RhythmDistributedNoUI_player1",
+    build: ["./compile.sh RhythmDistributedNoUI_player1",
     		"./compile.sh RhythmDistributedNoUI_player2"],
     coordination: decentralized,
     timeout: 10 sec,

@@ -64,4 +64,8 @@ class DeadlineInstance {
             }
         }
     }
+    
+    override toString() {
+        "DeadlineInstance " + maxDelay.toString
+    }
 }
