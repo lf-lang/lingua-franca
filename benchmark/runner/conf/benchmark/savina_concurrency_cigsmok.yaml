@@ -24,3 +24,10 @@ targets:
       smokers: ["-D", "numSmokers=<value>"]
     run_args:
       rounds: ["--numRounds", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/Smokers.lf"
+    lf_file: "Smokers.lf"
+    binary: "Smokers"
+    gen_args:
+      messages: ["-D", "num_smokers=<value>"]

@@ -30,3 +30,10 @@ targets:
       waiting_room_size: ["--waitingRoomSize", "<value>"]
       production_rate: ["--averageProductionRate", "<value>"]
       haircut_rate: ["--averageHaircutRate", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/Barber.lf"
+    lf_file: "Barber.lf"
+    binary: "Barber"
+    gen_args:
+      messages: ["-D", "num_customers=<value>"]

@@ -13,13 +13,51 @@
  * a `done` message from the barber.  
  */
  
+ /* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D num_customers=500
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'num_customers' in globals():
+    num_customers = int(num_customers)
+  else:
+    globals()['num_customers'] = 500
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// num_customers = {num_customers}')
+]]] */
+// Generated file with the following parameters:
+// num_customers = 500
+// [[[end]]]
+ 
+ 
 target C {
     fast: true,
     threads: 4,
     tracing: true
 };
 reactor SleepingBarber(
-    cut_time:time(1 sec), // (Logical) time spent serving a customer.
+    cut_time:time(1 nsec), // (Logical) time spent serving a customer.
     num_chairs:int(5),
     num_customers:int(10)
 ) {
@@ -73,7 +111,7 @@ reactor SleepingBarber(
         // Schedule random customer arrivals
         srand(0);
         for(int i = 0; i < self->num_customers; i++) {
-			schedule_int(customers_arrive,rand()%(self->num_customers),i);
+			schedule_int(customers_arrive,NSEC(rand()%(self->num_customers)),i);
     	}
     =}
     
@@ -118,7 +156,7 @@ reactor SleepingBarber(
     =}
 }
 
-reactor Customer(instance:int(0),retry_time:time(2sec)){
+reactor Customer(instance:int(0),retry_time:time(2 nsec)){
     input start:bool;
     input done:bool; 
     input wait:bool;
@@ -149,11 +187,11 @@ reactor Customer(instance:int(0),retry_time:time(2sec)){
         SET(finish,true);
     =}
 }
-main reactor Barber(
-    cut_time:time(1 sec),
-    num_chairs:int(5),
-    num_customers:int(10)
-){  
+/* [[[cog
+  cog.outl(f'main reactor Barber(cut_time:time(1 nsec), num_chairs:int(100), num_customers:int({num_customers})){')
+]]] */
+main reactor Barber(cut_time:time(1 nsec), num_chairs:int(100), num_customers:int(500)){  
+// [[[end]]]
     barber = new SleepingBarber(cut_time=cut_time, num_chairs=num_chairs, num_customers=num_customers);
     customers = new[num_customers] Customer();
 
