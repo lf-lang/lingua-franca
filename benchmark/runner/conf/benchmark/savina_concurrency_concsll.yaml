@@ -39,7 +39,7 @@ targets:
       size_percentage: ["--sizePercentage", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/SortedLinkList.lf"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/SortedLinkList.lf"
     lf_file: "SortedLinkList.lf"
     binary: "SortedLinkList"
     gen_args:

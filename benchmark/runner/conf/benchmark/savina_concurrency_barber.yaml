@@ -32,7 +32,7 @@ targets:
       haircut_rate: ["--averageHaircutRate", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/Barber.lf"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/Barber.lf"
     lf_file: "Barber.lf"
     binary: "Barber"
     gen_args:
