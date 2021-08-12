@@ -304,31 +304,31 @@ package class FedLauncher {
                 //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 distCode.append( '''
-                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.host»"
+                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.user»@«federate.host»"
                     # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
-                    ssh «federate.host» '\
+                    ssh «federate.user»@«federate.host» '\
                         mkdir -p «path»/src-gen/«fedRelSrcGenPath»/core «path»/bin «path»/log; \
                         echo "--------------" >> «path»/«logFileName»; \
                         date >> «path»/«logFileName»;
                     '
                     pushd «fedFileConfig.srcGenPath» > /dev/null
-                    echo "Copying source files to host «federate.host»"
-                    scp -r * «federate.host»:«path»/src-gen/«fedRelSrcGenPath»
+                    echo "Copying source files to host «federate.user»@«federate.host»"
+                    scp -r * «federate.user»@«federate.host»:«path»/src-gen/«fedRelSrcGenPath»
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «compileCommand»"
-                    ssh «federate.host» 'cd «path»; \
+                    echo "Compiling on host «federate.user»@«federate.host» using: «compileCommand»"
+                    ssh «federate.user»@«federate.host» 'cd «path»; \
                         echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
                         # Capture the output in the log file and stdout. \
                         «compileCommand» 2>&1 | tee -a «logFileName»;'
                 ''')
                 val executeCommand = executeCommandForFederate(federate);
                 shCode.append( '''
-                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    echo "#### Launching the federate «federate.name» on host «federate.user»@«federate.host»"
                     # FIXME: Killing this ssh does not kill the remote process.
                     # A double -t -t option to ssh forces creation of a virtual terminal, which
                     # fixes the problem, but then the ssh command does not execute. The remote
                     # federate does not start!
-                    ssh «federate.host» '\
+                    ssh «federate.user»@«federate.host» '\
                         cd «path»; \
                         echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                         date >> «logFileName»; \
