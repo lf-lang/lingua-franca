@@ -40,6 +40,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Mode
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -373,6 +374,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The timer instances belonging to this reactor instance. */
     public val timers = new LinkedList<TimerInstance>
+    
+    /** The mode instances belonging to this reactor instance. */
+    public val modes = new LinkedList<ModeInstance>
 
     // ////////////////////////////////////////////////////
     // // Public methods.
@@ -678,7 +682,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
     }
-
+    
+    /** Returns the mode instance within this reactor 
+     *  instance corresponding to the specified mode reference.
+     *  @param mode The mode as an AST node.
+     *  @return The corresponding mode instance or null if the
+     *   mode does not belong to this reactor.
+     */
+    def lookupModeInstance(Mode mode) {
+        for (modeInstance : modes) {
+            if (modeInstance.definition === mode) {
+                return modeInstance
+            }
+        }
+    }
     
     ///////////////////////////////////////////////////
     //// Methods for getting widths of ports and banks
@@ -1081,6 +1098,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // Note that this can only happen _after_ the children, 
             // port, action, and timer instances have been created.
             createReactionInstances()
+            
+            // Instantiate modes for this reactor instance
+            // This must come after the child elements (reactions, etc) of this reactor
+            // are created in order to allow their association with modes
+            for (modeDecl : reactorDefinition.allModes) {
+                this.modes.add(new ModeInstance(modeDecl, this))
+            }
+            for (mode : this.modes) {
+                mode.setupTranstions()
+            }
         }
     }
 

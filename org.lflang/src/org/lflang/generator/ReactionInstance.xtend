@@ -165,12 +165,15 @@ class ReactionInstance extends NamedInstance<Reaction> {
                         portInstance.dependsOnReactions.add(this);
                     }
                 }
-            } else {
-                // Effect must be an Action.
+            } else if (effect.variable instanceof Action) {
+                // Effect is an Action.
                 var actionInstance = parent.lookupActionInstance(
                     effect.variable as Action)
                 this.effects.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
+            } else {
+                // Effect must be a mode. 
+                // Do nothing, transitions will be set up by the ModeInstance.
             }
         }
         // Create a deadline instance if one has been defined.

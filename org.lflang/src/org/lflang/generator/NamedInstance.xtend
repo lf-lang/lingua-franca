@@ -113,6 +113,24 @@ abstract class NamedInstance<T extends EObject> {
         return null
     }
     
+    /**
+     * Returns the directly/indirectly enclosing mode.
+     * @param direct flag whether to check only for direct enclosing mode
+     *   or also consider modes of parent reactor instances.
+     * @return The mode, if any, null otherwise.
+     */
+    def ModeInstance getMode(boolean direct) {
+        var ModeInstance mode = null
+        if (parent !== null) {
+            if (!parent.modes.empty) {
+                mode = parent.modes.findFirst[it.contains(this)]
+            }
+            if (mode === null && !direct) {
+                mode = parent.getMode(false)
+            }
+        }
+        return mode
+    }
         
     /**
      * Return an identifier for this instance, which has the form "a_b_c"
