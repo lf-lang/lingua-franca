@@ -193,6 +193,11 @@ class FederateInstance {
      * to stop blocking.
      */
     public var Variable networkOutputControlReactionsTrigger = null;
+    
+    /**
+     * Indicates whether the federate is remote or local
+     */
+    public var boolean isRemote = false;
 
     /////////////////////////////////////////////
     //// Public Methods

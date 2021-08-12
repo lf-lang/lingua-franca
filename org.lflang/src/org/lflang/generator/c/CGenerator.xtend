@@ -391,7 +391,7 @@ class CGenerator extends GeneratorBase {
             CppMode = true;
         }         
 
-        if (errorsOccurred) return;
+        // if (errorsOccurred) return;
 
          // Check for duplicate declerations.
          val names = newLinkedHashSet
@@ -836,7 +836,7 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
+            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty && !federate.isRemote) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
                 // this. 

@@ -1558,6 +1558,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
                         /* FIXME: The at keyword should support a directory component.
                          * federateInstance.dir = instantiation.host.dir
                          */
+                        if (federateInstance.host !== null && 
+                            federateInstance.host != 'localhost' && 
+                            federateInstance.host != '0.0.0.0'
+                        ) {
+                            federateInstance.isRemote = true;
+                        }
                     }
                 }
                 if (federatesByInstantiation === null) {

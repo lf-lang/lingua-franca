@@ -295,25 +295,25 @@ package class FedLauncher {
         // Index used for storing pids of federates
         var federateIndex = 0
         for (federate : federates) {
-            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+            if (federate.isRemote) {
+                val fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+                val fedRelSrcGenPath = fedFileConfig.srcGenBasePath.relativize(fedFileConfig.srcGenPath);
                 if(distCode.length === 0) distCode.append(distHeader+"\n");
-                val logFileName = '''log/«fileConfig.name»_«federate.name».log'''
+                val logFileName = '''log/«fedFileConfig.name»_«federate.name».log'''
                 val compileCommand = compileCommandForFederate(federate);
                 //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                shCode.append( '''
+                distCode.append( '''
                     echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.host»"
                     # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
                     ssh «federate.host» '\
-                        mkdir -p «path»/src-gen/federated/«fileConfig.name»/core «path»/bin «path»/log «path»/src-gen/core/federated; \
+                        mkdir -p «path»/src-gen/«fedRelSrcGenPath»/core «path»/bin «path»/log; \
                         echo "--------------" >> «path»/«logFileName»; \
                         date >> «path»/«logFileName»;
                     '
-                    pushd «fileConfig.srcGenPath» > /dev/null
-                    echo "Copying LF core files to host «federate.host»"
-                    scp -r core «federate.host»:«path»/src-gen/federated/«fileConfig.name»
+                    pushd «fedFileConfig.srcGenPath» > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «fileConfig.name»_«federate.name».c «FOR file:targetConfig.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen/federated/«fileConfig.name»
+                    scp -r * «federate.host»:«path»/src-gen/«fedRelSrcGenPath»
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «compileCommand»"
                     ssh «federate.host» 'cd «path»; \
