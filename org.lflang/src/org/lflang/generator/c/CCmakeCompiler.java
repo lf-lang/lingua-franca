@@ -42,7 +42,7 @@ import org.lflang.util.LFCommand;
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
-class CCmakeCompiler extends CCompiler {
+public class CCmakeCompiler extends CCompiler {
 
     /**
      * Create an instance of CCmakeCompiler.
