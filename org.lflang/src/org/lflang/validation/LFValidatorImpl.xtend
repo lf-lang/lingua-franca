@@ -59,6 +59,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
 import org.lflang.lf.LfPackage.Literals
+import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.NamedHost
 import org.lflang.lf.Output
@@ -464,7 +465,11 @@ class LFValidatorImpl extends AbstractLFValidator {
             }
         }
 
-        val reactor = connection.eContainer as Reactor
+        val reactor = if (connection.eContainer instanceof Reactor) {
+            connection.eContainer as Reactor
+        } else if (connection.eContainer instanceof Mode) {
+            connection.eContainer.eContainer as Reactor
+        }
 
         // Make sure the right port is not already an effect of a reaction.
         for (reaction : reactor.reactions) {

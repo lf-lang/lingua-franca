@@ -54,6 +54,7 @@ import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
+import org.lflang.lf.Mode
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -439,6 +440,8 @@ class ASTUtils {
     /**
      * Given a reactor class, return a list of all its actions,
      * which includes actions of base classes that it extends.
+     * This also includes actions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     def static List<Action> allActions(Reactor definition) {
@@ -447,12 +450,17 @@ class ASTUtils {
             result.addAll(base.toDefinition.allActions)
         }
         result.addAll(definition.actions)
+        for (mode : definition.allModes) {
+            result.addAll(mode.actions)
+        }
         return result
     }
     
     /**
      * Given a reactor class, return a list of all its connections,
      * which includes connections of base classes that it extends.
+     * This also includes connections in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     def static List<Connection> allConnections(Reactor definition) {
@@ -461,6 +469,9 @@ class ASTUtils {
             result.addAll(base.toDefinition.allConnections)
         }
         result.addAll(definition.connections)
+        for (mode : definition.allModes) {
+            result.addAll(mode.connections)
+        }
         return result
     }
     
@@ -481,6 +492,8 @@ class ASTUtils {
     /**
      * Given a reactor class, return a list of all its instantiations,
      * which includes instantiations of base classes that it extends.
+     * This also includes instantiations in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     def static List<Instantiation> allInstantiations(Reactor definition) {
@@ -489,6 +502,9 @@ class ASTUtils {
             result.addAll(base.toDefinition.allInstantiations)
         }
         result.addAll(definition.instantiations)
+        for (mode : definition.allModes) {
+            result.addAll(mode.instantiations)
+        }
         return result
     }
     
@@ -523,6 +539,8 @@ class ASTUtils {
     /**
      * Given a reactor class, return a list of all its reactions,
      * which includes reactions of base classes that it extends.
+     * This also includes reactions in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     def static List<Reaction> allReactions(Reactor definition) {
@@ -531,12 +549,17 @@ class ASTUtils {
             result.addAll(base.toDefinition.allReactions)
         }
         result.addAll(definition.reactions)
+        for (mode : definition.allModes) {
+            result.addAll(mode.reactions)
+        }
         return result
     }
     
     /**
      * Given a reactor class, return a list of all its state variables,
      * which includes state variables of base classes that it extends.
+     * This also includes state vars in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     def static List<StateVar> allStateVars(Reactor definition) {
@@ -545,12 +568,17 @@ class ASTUtils {
             result.addAll(base.toDefinition.allStateVars)
         }
         result.addAll(definition.stateVars)
+        for (mode : definition.allModes) {
+            result.addAll(mode.stateVars)
+        }
         return result
     }
     
     /**
      * Given a reactor class, return a list of all its timers,
      * which includes timers of base classes that it extends.
+     * This also includes timers in modes, returning a flattened
+     * view over all modes.
      * @param definition Reactor class definition.
      */
     def static List<Timer> allTimers(Reactor definition) {
@@ -559,6 +587,23 @@ class ASTUtils {
             result.addAll(base.toDefinition.allTimers)
         }
         result.addAll(definition.timers)
+        for (mode : definition.allModes) {
+            result.addAll(mode.timers)
+        }
+        return result
+    }
+    
+    /**
+     * Given a reactor class, returns a list of all its modes,
+     * which includes modes of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Mode> allModes(Reactor definition) {
+        val result = new LinkedList<Mode>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.toDefinition.allModes)
+        }
+        result.addAll(definition.modes)
         return result
     }
 
