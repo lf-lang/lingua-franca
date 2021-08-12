@@ -80,9 +80,10 @@ public class FedCLauncher extends FedLauncher {
         String commandToReturn = "";
         // FIXME: Hack to add platform support only for linux systems. 
         // We need to fix the CMake build command for remote federates.
-        localTargetConfig.compileAdditionalSources.add(
-                "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
-            );
+        String linuxPlatformSupport = "core" + File.separator + "platform" + File.separator + "lf_linux_support.c";
+        if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
+            localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
+        }
         CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter);
         commandToReturn = String.join(" ", 
                 cCompiler.compileCCommand(
