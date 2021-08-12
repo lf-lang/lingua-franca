@@ -348,13 +348,6 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
-    
-    /**
-     * Indicates whether the C target is in C++ mode or not, which changes
-     * a few aspects of the program, including the compiler that is used to
-     * compile the generated code.
-     */
-    var CppMode = false;
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
@@ -383,13 +376,7 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, fsa, context)
-        
-        if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
-            // Interpret this as the user wanting their .c programs to be treated as
-            // C++ files. 
-            CppMode = true;
-        }         
+        super.doGenerate(resource, fsa, context)     
 
         // if (errorsOccurred) return;
 
