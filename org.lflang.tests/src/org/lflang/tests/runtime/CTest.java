@@ -24,56 +24,81 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.tests.runtime
+package org.lflang.tests.runtime;
 
-import org.lflang.Target
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import org.lflang.Target;
 
 /**
- * Collection of tests for the Python target.
- * 
- * Even though all tests are implemented in the base class, we override them
+ * Collection of tests for the C target.
+ * <p>
+ * Even though all tests are implemented in the base class, we @Override public void them
  * here so that each test can be easily invoked individually from the Eclipse.
  * This is done by right-clicking anywhere in the header or body of the test
  * method and selecting "Run As -> JUnit Test" from the pop-up menu.
- * 
+ *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class PythonTest extends TestBase {
-        
-    new() {
-        this.target = Target.Python
+public class CTest extends ThreadedBase {
+
+    public CTest() {
+        this.target = Target.C;
     }
-    
+
     @Test
-    override runGenericTests() {
-        super.runGenericTests()
+    @Override
+    public void runExampleTests() {
+        super.runExampleTests();
     }
-    
+
     @Test
-    override runTargetSpecificTests() {
-        super.runTargetSpecificTests()
+    @Override
+    public void compileExamples() {
+        super.compileExamples();
     }
-    
+
     @Test
-    override runMultiportTests() {
-        super.runMultiportTests()
+    @Override
+    public void runGenericTests() {
+        super.runGenericTests();
     }
-    
+
     @Test
-    override runAsFederated() {
-        println("FIXME")
-        //super.runNonFederatedTestsAsFederated()
+    @Override
+    public void runTargetSpecificTests() {
+        super.runTargetSpecificTests();
     }
-    
-        
+
     @Test
-    override runConcurrentTests() {
-        super.runConcurrentTests()
+    @Override
+    public void runMultiportTests() {
+        super.runMultiportTests();
     }
-    
+
     @Test
-    override runFederatedTests() {
-        super.runFederatedTests()
+    @Override
+    public void runWithFourThreads() {
+        super.runWithFourThreads();
+    }
+
+    @Test
+    @Disabled("TODO only 27/96 tests pass")
+    @Override
+    public void runAsFederated() {
+        super.runAsFederated();
+    }
+
+    @Test
+    @Override
+    public void runConcurrentTests() {
+        super.runConcurrentTests();
+    }
+
+    @Test
+    @Override
+    public void runFederatedTests() {
+        super.runFederatedTests();
     }
 }
