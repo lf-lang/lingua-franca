@@ -17,11 +17,13 @@ class GeneratedDocumentFactory {
      * <code>f</code> if <code>f</code> is a file in a
      * supported language, or <code>null</code> otherwise
      */
-    public static GeneratedDocument getGeneratedDocument(List<String> lines, String extension) {
+    public static GeneratedDocument getGeneratedDocument(List<String> lines, File directory, String extension) {
         switch (extension) {
         case "c":
         case "cpp":
-            return CCppDocument.getCCppDocument(lines);
+            return CCppDocument.getCCppDocument(lines, directory, extension);
+        case "ts":
+            return new TypeScriptDocument(lines, directory);
         default:
             return null;
         }

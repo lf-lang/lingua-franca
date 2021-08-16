@@ -31,6 +31,15 @@ public class LFDocument {
 
     protected static final Logger LOG = Logger.getLogger(LanguageServer.class);
 
+    // FIXME: Ensure that this list is exhaustive
+    // This is a list rather than a set because it is small and structurally immutable, even though it is used
+    //  as a set.
+    /**
+     * Directories in src-gen that should not be searched
+     * for generated files that relate directly to LF files.
+     */
+    private static final List<String> EXCLUDE_DIRECTORIES = List.of("core", "node_modules", "dist", "build");
+
     /**
      * Represents a unique identifier for an LFDocument
      * according to its absolute file system location and
@@ -196,10 +205,7 @@ public class LFDocument {
         for (Map.Entry<File, GeneratedDocument> entry : generatedDocuments.entrySet()) {
             LOG.debug("Getting diagnostics from generated document " + entry.getKey());
             try {
-                foundDiagnostics.addAll(entry.getValue().getDiagnostics(
-                    entry.getKey().getParentFile(),
-                    getExtension(entry.getKey())
-                )); // FIXME: Must include Xtext-provided diagnostics
+                foundDiagnostics.addAll(entry.getValue().getDiagnostics()); // FIXME: Must include Xtext-provided diagnostics
             } catch (IOException e) {
                 LOG.error("Failed to compute diagnostics for " + this + ".", e);
             }
@@ -330,34 +336,30 @@ public class LFDocument {
      */
     private void findGeneratedDocuments() {
         generatedDocuments.clear();
-        // FIXME: 2 here is a magic number. Justify it or
-        //  replace it with a static final list of excluded
-        //  directories.
-        findGeneratedDocumentsRecursive(getOutDir(), 2);
+        findGeneratedDocumentsRecursive(getOutDir());
     }
 
     /**
-     * Finds any generated files that are at most <code>
-     * maxDepth</code> levels below <code>f</code>. Intended
-     * only to be called by <code>findGeneratedDocuments
-     * </code>.
+     * Finds any generated files that are not in excluded
+     * directories. Intended only to be called by <code>
+     * findGeneratedDocuments</code>.
      */
-    private void findGeneratedDocumentsRecursive(File f, int maxDepth) {
-        if (maxDepth < 0) return;
+    private void findGeneratedDocumentsRecursive(File f) {
         if (f.isFile()) {
             try { // FIXME: Check if generated document has mappings to this LFDocument
                 final GeneratedDocument g = GeneratedDocumentFactory.getGeneratedDocument(
-                    Files.readAllLines(f.toPath()), getExtension(f)
+                    Files.readAllLines(f.toPath()), f.getParentFile(), getExtension(f)
                 );
                 if (g != null) generatedDocuments.put(f, g);
             } catch (IOException e) {
                 LOG.error("Failed to read " + f + ".", e);
             }
         } else {
+            if (EXCLUDE_DIRECTORIES.contains(f.getName())) return;
             File[] children = f.listFiles();
             assert children != null;
             for (File c : children) {
-                findGeneratedDocumentsRecursive(c, maxDepth - 1);
+                findGeneratedDocumentsRecursive(c);
             }
         }
     }

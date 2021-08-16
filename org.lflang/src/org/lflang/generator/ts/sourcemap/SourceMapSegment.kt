@@ -33,7 +33,30 @@ class SourceMapSegment(
     private val sourceLine: Int,
     private val sourceColumn: Int,
     private var precedingSegment: SourceMapSegment?
-) {
+): Iterable<SourceMapSegment?> {
+
+    /**
+     * Iterates over this `SourceMapSegment` and those that
+     * precede it in reverse order.
+     */
+    private class SourceMapSegmentIterator(var current: SourceMapSegment?): Iterator<SourceMapSegment?> {
+        override fun hasNext(): Boolean {
+            return current !== null
+        }
+
+        override fun next(): SourceMapSegment? {
+            val ret = current
+            current = current?.precedingSegment
+            return ret
+        }
+    }
+
+    fun getTargetLine(): Int = targetLine
+    fun getTargetColumn(): Int = targetColumn
+    fun getSourceFile(): Int = sourceFile
+    fun getSourceLine(): Int = sourceLine
+    fun getSourceColumn(): Int = sourceColumn
+
     /**
      * Generates a source map segment as specified in the Source Map Revision
      * 3 Proposal.
@@ -168,5 +191,16 @@ class SourceMapSegment(
                     precedingSegment
             )
         }
+    }
+
+    /**
+     * Returns an iterator over this source map segment and
+     * those that precede it in reverse order.
+     */
+    override fun iterator(): Iterator<SourceMapSegment?> {
+        // Iterating backwards avoids the overhead of recursion and is probably a constant factor faster than
+        //  iterating forwards. It is a little counterintuitive, but performance matters because this will
+        //  probably be a very frequently performed operation, and because source maps can be extremely long.
+        return SourceMapSegmentIterator(this)
     }
 }

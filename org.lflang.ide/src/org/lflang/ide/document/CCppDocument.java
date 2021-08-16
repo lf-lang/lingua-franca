@@ -29,6 +29,8 @@ public class CCppDocument extends GeneratedDocument {
             + "(?<severity>error|warning|note): (?<message>[^\n$\r]*)"
     );
 
+    private final String extension;
+
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
 
@@ -39,21 +41,31 @@ public class CCppDocument extends GeneratedDocument {
      * @param lines the generated text lines
      * @param sourceMap mappings from positions in the
      *                  generated text to the source code
+     * @param directory the directory in which this
+     *                  <code>CCppDocument</code> lives
      */
-    public CCppDocument(List<String> lines, NavigableMap<Position, Position> sourceMap) {
-        super(lines, sourceMap);
+    private CCppDocument(
+        List<String> lines,
+        NavigableMap<Position, Position> sourceMap,
+        File directory,
+        String extension
+    ) {
+        super(lines, sourceMap, directory);
+        this.extension = extension;
     }
 
     /**
      * Returns a CCppDocument instance modeling the file
      * <code>f</code>, or null if <code>f</code> could not
      * be read.
+     * @param directory the directory in which this
+     *                  <code>CCppDocument</code> lives
      * @param generatedLines the content of a generated C or
      *                       C++ file
      * @return a CCppDocument instance, or null if the file
      * could not be read
      */
-    public static CCppDocument getCCppDocument(List<String> generatedLines) {
+    public static CCppDocument getCCppDocument(List<String> generatedLines, File directory, String extension) {
         NavigableMap<Position, Position> sourceMap = new TreeMap<>(new PositionComparator());
         // Update source map
         sourceMap.clear();
@@ -80,49 +92,24 @@ public class CCppDocument extends GeneratedDocument {
                 srcLine++;
             }
         }
-        return new CCppDocument(finalTargetLines, sourceMap);
+        return new CCppDocument(finalTargetLines, sourceMap, directory, extension);
     }
 
-    /* -----------------------  PUBLIC METHODS  ------------------------- */
-    // FIXME: Account for the possibility of one target document with multiple sources?
+    /* ---------------------  PROTECTED METHODS  ------------------------ */
     @Override
-    public List<Diagnostic> getDiagnostics(File workingDir, String extension) throws IOException {
-        final ProcessBuilder echo = new ProcessBuilder(
-            "echo", getCombinedLines()
-        );
-        final ProcessBuilder gcc = new ProcessBuilder(
+    protected ProcessBuilder getVerificationProcess() {
+        return new ProcessBuilder(
             "gcc", "-fsyntax-only",
             "-x", extension,
-            "-I", workingDir.getAbsolutePath(),
+            "-I", getDirectory().getAbsolutePath(),
             "-"
         );
-        final List<ProcessBuilder> pipeline = new ArrayList<>();
-        pipeline.add(echo);
-        pipeline.add(gcc);
-        final List<Process> processes = ProcessBuilder.startPipeline(pipeline);
-        final BufferedReader reader = new BufferedReader(
-            new InputStreamReader(processes.get(1).getErrorStream())
-        );
-        final List<Diagnostic> diagnostics = new ArrayList<>();
-        String line;
-        LOG.debug("Getting diagnostics...");
-        while ((line = reader.readLine()) != null) {
-            LOG.debug(line);
-            addDiagnostic(line, diagnostics);
-        }
-        return diagnostics;
     }
 
     /* -----------------------  PRIVATE METHODS  ------------------------ */
 
-    /**
-     * Searches line for a diagnostic and, if one is found, adds it to
-     * diagnostics.
-     * @param line a line of the GCC error stream for a document
-     * @param diagnostics the list of diagnostics to which any new diagnostics
-     *     should be added
-     */
-    private void addDiagnostic(String line, List<Diagnostic> diagnostics) {
+    @Override
+    protected void addDiagnostic(String line, List<Diagnostic> diagnostics) {
         final Matcher matcher = GCC_ERROR.matcher(line);
         if (!matcher.matches()) {
             return;
@@ -130,20 +117,18 @@ public class CCppDocument extends GeneratedDocument {
         LOG.debug("Diagnostics line matches expected pattern: " + line);
         // Decrement to convert from 1-based to 0-based indexing
         final int lineNumber = Integer.parseInt(matcher.group("line")) - 1;
+        final int column;
         Range range;
         if (matcher.group("column") == null) {
-            range = new Range(
-                adjustPosition(new Position(lineNumber, 0)),
-                adjustPosition(new Position(lineNumber, line.length())) // FIXME: off-by-one error?
-            );
+            column = 0;
         } else {
             // Decrement to convert from 1-based to 0-based indexing
-            final int column = Integer.parseInt(matcher.group("column")) - 1;
-            range = new Range(
-                adjustPosition(new Position(lineNumber, column)),
-                adjustPosition(new Position(lineNumber, line.length())) // FIXME: end at token end?
-            );
+            column = Integer.parseInt(matcher.group("column")) - 1;
         }
+        range = new Range(
+            adjustPosition(new Position(lineNumber, column)),
+            adjustPosition(new Position(lineNumber, line.length())) // FIXME: end at token end?
+        );
         final String message = matcher.group("message");
         // GCC gives only 3 distinct severity levels instead of 4? TODO: verify.
         final DiagnosticSeverity severity;

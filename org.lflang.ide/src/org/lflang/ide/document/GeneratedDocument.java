@@ -1,7 +1,10 @@
 package org.lflang.ide.document;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
@@ -22,6 +25,7 @@ abstract class GeneratedDocument {
 
     protected static final Logger LOG = Logger.getLogger(LanguageServer.class);
 
+    private final File directory;
     private final List<String> lines;
     private final NavigableMap<Position, Position> sourceMap;
 
@@ -34,22 +38,46 @@ abstract class GeneratedDocument {
      * @param lines the generated text lines
      * @param sourceMap mappings from positions in the
      *                  generated text to the source code
+     * @param directory the directory in which this
+     *                  <code>GeneratedDocument</code> lives
      */
     protected GeneratedDocument(
         List<String> lines,
-        NavigableMap<Position, Position> sourceMap
+        NavigableMap<Position, Position> sourceMap,
+        File directory
     ) {
+        this.directory = directory;
         this.lines = lines;
         this.sourceMap = sourceMap;
     }
 
     /* -----------------------  PUBLIC METHODS  ------------------------- */
 
+    // FIXME: Account for the possibility of one target document with multiple sources?
     /**
      * Returns a list of diagnostics based on the current
      * contents of <code>targetLines</code>.
      */
-    public abstract List<Diagnostic> getDiagnostics(File workingDir, String extension) throws IOException;
+    public List<Diagnostic> getDiagnostics() throws IOException {
+        final ProcessBuilder echo = new ProcessBuilder(
+            "echo", getCombinedLines()
+        );
+        final List<ProcessBuilder> pipeline = new ArrayList<>();
+        pipeline.add(echo);
+        pipeline.add(getVerificationProcess());
+        final List<Process> processes = ProcessBuilder.startPipeline(pipeline);
+        final BufferedReader reader = new BufferedReader(
+            new InputStreamReader(processes.get(1).getErrorStream())
+        );
+        final List<Diagnostic> diagnostics = new ArrayList<>();
+        String line;
+        LOG.debug("Getting diagnostics...");
+        while ((line = reader.readLine()) != null) {
+            LOG.debug(line);
+            addDiagnostic(line, diagnostics);
+        }
+        return diagnostics;
+    }
 
     /**
      * Returns an unmodifiable view of a source map, which
@@ -94,6 +122,37 @@ abstract class GeneratedDocument {
     }
 
     /* ---------------------  PROTECTED METHODS  ------------------------ */
+
+    /**
+     * Returns a process that consumes generated document
+     * via stdin and emits lines of error messages via
+     * stderr.
+     * @return a process that consumes generated document
+     * via stdin and emits lines of error messages via
+     * stderr
+     */
+    protected abstract ProcessBuilder getVerificationProcess();
+
+    /**
+     * Searches line for a diagnostic and, if one is found,
+     * adds it to diagnostics.
+     * @param line a line of the validator output stream for
+     *             a document
+     * @param diagnostics the list of diagnostics to which
+     *                    any new diagnostics should be
+     *                    added
+     */
+    protected abstract void addDiagnostic(String line, List<Diagnostic> diagnostics);
+
+    /**
+     * Returns the directory in which this
+     * <code>GeneratedDocument</code> lives.
+     * @return the directory in which this
+     * <code>GeneratedDocument</code> lives
+     */
+    protected File getDirectory() {
+        return directory;
+    }
 
     /**
      * Returns an unmodifiable view of the lines in this
