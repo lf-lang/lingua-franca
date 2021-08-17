@@ -24,6 +24,7 @@
 
 package org.lflang.generator
 
+import com.google.inject.Inject
 import com.google.inject.Singleton
 import org.eclipse.xtext.diagnostics.Severity
 import java.io.IOException
@@ -138,18 +139,22 @@ class IssueCollector {
  *
  * @author Clément Fournier
  */
-class ReportingBackend @JvmOverloads constructor(
+class ReportingBackend constructor(
     /** Environment of the process, contains IO streams. */
     private val io: Io,
     /** An instance of the ANSI formatter to use. */
-    private val colors: AnsiColors = AnsiColors(true),
+    private val colors: AnsiColors,
     /**
      * Number of lines of context to include around error
      * messages when printing a code snippet from the file
      * in which the error originated.
      */
-    private val numLinesAround: Int = 2,
+    private val numLinesAround: Int,
 ) {
+    /** Secondary constructor with default arguments and marked with @Inject */
+    @Inject
+    constructor(io: Io) : this(io, AnsiColors(true), 2)
+
     /** *Absolute* path to lines. */
     private val fileCache = mutableMapOf<Path, List<String>?>()
     private val header = colors.bold("lfc: ")
