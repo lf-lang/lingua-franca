@@ -1,6 +1,4 @@
-package org.lflang.ide.document;
-
-import org.lflang.Target;
+package org.lflang.validation.document;
 
 public enum TargetLanguage {
 	C("c", "C"),

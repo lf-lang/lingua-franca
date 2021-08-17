@@ -1,4 +1,4 @@
-package org.lflang.ide.document;
+package org.lflang.validation.document;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,11 +10,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 
-import org.apache.log4j.Logger;
-import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.services.LanguageServer;
-
 /**
  * Represents a document generated from a Lingua Franca
  * file. Encapsulates any logic associated with the syntax
@@ -22,8 +17,6 @@ import org.eclipse.lsp4j.services.LanguageServer;
  * it.
  */
 abstract class GeneratedDocument {
-
-    protected static final Logger LOG = Logger.getLogger(LanguageServer.class);
 
     private final File directory;
     private final List<String> lines;
@@ -55,10 +48,12 @@ abstract class GeneratedDocument {
 
     // FIXME: Account for the possibility of one target document with multiple sources?
     /**
-     * Returns a list of diagnostics based on the current
-     * contents of <code>targetLines</code>.
+     * Reports diagnostics to <code>acceptor</code> based on
+     * the current contents of <code>targetLines</code>.
+     * @param acceptor the object that relays diagnostics
+     *                 onward to eventually reach the IDE
      */
-    public List<Diagnostic> getDiagnostics() throws IOException {
+    public void getDiagnostics(DiagnosticAcceptor acceptor) throws IOException {
         final ProcessBuilder echo = new ProcessBuilder(
             "echo", getCombinedLines()
         );
@@ -69,14 +64,10 @@ abstract class GeneratedDocument {
         final BufferedReader reader = new BufferedReader(
             new InputStreamReader(processes.get(1).getErrorStream())
         );
-        final List<Diagnostic> diagnostics = new ArrayList<>();
         String line;
-        LOG.debug("Getting diagnostics...");
         while ((line = reader.readLine()) != null) {
-            LOG.debug(line);
-            addDiagnostic(line, diagnostics);
+            addDiagnostic(line, acceptor);
         }
-        return diagnostics;
     }
 
     /**
@@ -138,11 +129,10 @@ abstract class GeneratedDocument {
      * adds it to diagnostics.
      * @param line a line of the validator output stream for
      *             a document
-     * @param diagnostics the list of diagnostics to which
-     *                    any new diagnostics should be
-     *                    added
+     * @param acceptor the object that relays diagnostics
+     *                 onward to eventually reach the IDE
      */
-    protected abstract void addDiagnostic(String line, List<Diagnostic> diagnostics);
+    protected abstract void addDiagnostic(String line, DiagnosticAcceptor acceptor);
 
     /**
      * Returns the directory in which this
@@ -188,12 +178,10 @@ abstract class GeneratedDocument {
         final Entry<Position, Position> nearest = sourceMap.floorEntry(
             targetPosition
         );
-        LOG.debug("Nearest- Key: " + nearest.getKey().getLine() + "Value: " + nearest.getValue().getLine());
-        LOG.debug("Returned line: " + (nearest.getValue().getLine() + targetPosition.getLine()
-            - nearest.getKey().getLine()));
-        return new Position(
-            nearest.getValue().getLine() + targetPosition.getLine() - nearest.getKey().getLine(),
-            targetPosition.getCharacter()
+        final int lineDiff = targetPosition.getZeroBasedLine() - nearest.getKey().getZeroBasedLine();
+        return Position.fromZeroBased(
+            nearest.getValue().getZeroBasedLine() + lineDiff,
+            targetPosition.getZeroBasedColumn() // FIXME: Adjust so that it matches the token's location in the source
         );
     }
 
