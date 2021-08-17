@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.ASTUtils;
+import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.StandaloneContext;
@@ -265,7 +266,8 @@ public abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-
+        context.setReporter(DefaultErrorReporter.DEFAULT);
+        
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
             true);

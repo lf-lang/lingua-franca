@@ -22,20 +22,17 @@ import java.util.TreeSet;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.generator.Main;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.runtime.TestBase;
-
-import com.google.common.collect.Iterables;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -173,7 +170,7 @@ public class TestRegistry {
         System.out.println("Indexing...");
         ResourceSet rs = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
-            .getInstance(Main.class).getResourceSet();
+            .getInstance(LFResourceProvider.class).getResourceSet();
 
         // Prepare for the collection of tests per category.
         for (TestCategory t: TestCategory.values()) {
