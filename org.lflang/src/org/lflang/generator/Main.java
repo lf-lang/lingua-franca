@@ -505,8 +505,4 @@ public class Main {
         }
     }
 
-
-    public ResourceSet getResourceSet() {
-        return this.resourceSetProvider.get();
-    }
 }
