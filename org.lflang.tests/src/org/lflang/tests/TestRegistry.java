@@ -178,7 +178,7 @@ public class TestRegistry {
         System.out.println("Indexing...");
         ResourceSet rs = new LFStandaloneSetup()
                 .createInjectorAndDoEMFRegistration()
-                .<Main>getInstance(Main.class).getResourceSet();
+                .getInstance(ResourceSet.class);
 
         // Prepare for the collection of tests per category.
         for (TestCategory t: TestCategory.values()) {
