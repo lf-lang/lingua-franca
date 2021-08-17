@@ -1,9 +1,6 @@
-package org.lflang.ide.document;
+package org.lflang.validation.document;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
@@ -11,10 +8,7 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
+import org.lflang.validation.document.DiagnosticAcceptor.Severity;
 
 public class CCppDocument extends GeneratedDocument {
 
@@ -65,28 +59,27 @@ public class CCppDocument extends GeneratedDocument {
      * @return a CCppDocument instance, or null if the file
      * could not be read
      */
-    public static CCppDocument getCCppDocument(List<String> generatedLines, File directory, String extension) {
-        NavigableMap<Position, Position> sourceMap = new TreeMap<>(new PositionComparator());
-        // Update source map
-        sourceMap.clear();
+    public static CCppDocument getCCppDocument(
+        List<String> generatedLines, final File directory, final String extension
+    ) {
+        NavigableMap<Position, Position> sourceMap = new TreeMap<>();
         // This initial size will be incorrect by only a
         // constant factor of not much more than two, which
         // is not much worse (in terms of space) than the
         // default.
         final List<String> finalTargetLines = new ArrayList<>(generatedLines.size());
-        int srcLine = 0;
+        int srcLine = 1; // One-based indexing.
         Matcher lineNumberMatcher;
         for (String line : generatedLines) {
             lineNumberMatcher = LINE_NUMBER.matcher(
                 line
             );
             if (lineNumberMatcher.find()) {
-                // Decrement to convert from 1-based to 0-based indexing
-                srcLine = Integer.parseInt(lineNumberMatcher.group("number")) - 1;
+                srcLine = Integer.parseInt(lineNumberMatcher.group("number"));
             } else {
                 sourceMap.put(
-                    new Position(finalTargetLines.size(), 0),
-                    new Position(srcLine, 0)
+                    Position.fromZeroBased(finalTargetLines.size(), 0),
+                    Position.fromOneBased(srcLine, 1)
                 );
                 finalTargetLines.add(line);
                 srcLine++;
@@ -109,41 +102,26 @@ public class CCppDocument extends GeneratedDocument {
     /* -----------------------  PRIVATE METHODS  ------------------------ */
 
     @Override
-    protected void addDiagnostic(String line, List<Diagnostic> diagnostics) {
+    protected void addDiagnostic(String line, DiagnosticAcceptor acceptor) {
         final Matcher matcher = GCC_ERROR.matcher(line);
         if (!matcher.matches()) {
             return;
         }
-        LOG.debug("Diagnostics line matches expected pattern: " + line);
-        // Decrement to convert from 1-based to 0-based indexing
-        final int lineNumber = Integer.parseInt(matcher.group("line")) - 1;
-        final int column;
-        Range range;
-        if (matcher.group("column") == null) {
-            column = 0;
-        } else {
-            // Decrement to convert from 1-based to 0-based indexing
-            column = Integer.parseInt(matcher.group("column")) - 1;
-        }
-        range = new Range(
-            adjustPosition(new Position(lineNumber, column)),
-            adjustPosition(new Position(lineNumber, line.length())) // FIXME: end at token end?
-        );
+        final int lineNumber = Integer.parseInt(matcher.group("line"));
+        final int column = matcher.group("column") == null ? 1 : Integer.parseInt(matcher.group("column"));
+        final Position position = adjustPosition(Position.fromOneBased(lineNumber, column));
         final String message = matcher.group("message");
-        // GCC gives only 3 distinct severity levels instead of 4? TODO: verify.
-        final DiagnosticSeverity severity;
+        final DiagnosticAcceptor.Severity severity;
         switch (matcher.group("severity")) {
         case "error":
-            severity = DiagnosticSeverity.Error;
+            severity = Severity.ERROR;
             break;
         case "warning":
-            severity = DiagnosticSeverity.Warning;
+            severity = Severity.WARNING;
             break;
         default:
-            severity = DiagnosticSeverity.Hint;
+            severity = Severity.INFO;
         }
-        diagnostics.add(new Diagnostic(
-            range, message, severity, "gcc"
-        ));
+        acceptor.acceptDiagnostic(severity, message, position, position.translated(0, 5)); // FIXME: Provide a correct column delta
     }
 }

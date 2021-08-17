@@ -31,7 +31,7 @@ public class LFIdeModule extends AbstractLFIdeModule {
 	}
 	*/
 
-	public Class<? extends ICodeActionService2> bindICodeActionService2() {
+	/*public Class<? extends ICodeActionService2> bindICodeActionService2() {
 		return CodeActionService.class;
 	}
 

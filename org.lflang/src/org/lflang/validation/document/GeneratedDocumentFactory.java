@@ -1,4 +1,4 @@
-package org.lflang.ide.document;
+package org.lflang.validation.document;
 
 import java.io.File;
 import java.util.List;
