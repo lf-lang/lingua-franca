@@ -34,9 +34,10 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-
+import org.eclipse.xtext.validation.Issue;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
@@ -462,17 +463,8 @@ public class Main {
             }
             this.fileAccess.setOutputPath(resolved);
 
-            final ResourceSet set = this.resourceSetProvider.get();
-            final Resource resource =
-                set.getResource(URI.createFileURI(path.toString()), true);
-
-            if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
-                if (!ASTUtils.makeFederated(resource)) {
-                    reporter.printError("Unable to change main reactor to federated reactor.");
-                }
-            }
-
-            this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+            final Resource resource = getValidatedResource(path);
+            
             exitIfCollectedErrors();
 
             StandaloneContext context = new StandaloneContext();
@@ -504,5 +496,37 @@ public class Main {
             reporter.printFatalErrorAndExit("Aborting due to " + cause);
         }
     }
+    
+    /**
+     * Given a path, obtain a resource and validate it. If issues arise during validation,
+     * these are recorded using the issue collector.
+     * 
+     * @param path Path to the resource to validate.
+     * @return A validated resource
+     */
+    private Resource getValidatedResource(Path path) {
+        final ResourceSet set = this.resourceSetProvider.get();
+        final Resource resource =
+            set.getResource(URI.createFileURI(path.toString()), true);
 
+        if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+            if (!ASTUtils.makeFederated(resource)) {
+                reporter.printError("Unable to change main reactor to federated reactor.");
+            }
+        }
+
+        List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+        
+        for (Issue issue : issues) {
+            URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
+            try {
+                issueCollector.accept(new LfIssue(issue.getMessage(),
+                    issue.getSeverity(), issue.getLineNumber(),
+                    issue.getColumn(), issue.getLength(), FileConfig.toPath(uri)));
+            } catch (IOException e) {
+                reporter.printError("Unable to convert '" + uri + "' to path.");
+            }
+        }
+        return resource;
+    }
 }
