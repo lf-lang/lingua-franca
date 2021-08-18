@@ -26,6 +26,7 @@ package org.lflang.generator
 
 import com.google.inject.Inject
 import com.google.inject.Singleton
+import org.eclipse.xtext.validation.Issue;
 import org.eclipse.xtext.diagnostics.Severity
 import java.io.IOException
 import java.io.PrintStream
