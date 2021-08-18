@@ -1,6 +1,7 @@
 package org.lflang.validation.document;
 
 import org.lflang.Target;
+import org.lflang.lf.Code;
 import org.lflang.lf.TargetDecl;
 import org.lflang.validation.DocumentRegistry;
 import org.lflang.generator.Main;
@@ -14,6 +15,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.List;
 import java.nio.file.Files;
@@ -182,10 +184,13 @@ public class LFDocument {
      * @param acceptor the <code>ValidationMessageAcceptor
      *                 </code> instance that is to relay
      *                 diagnostics to the IDE
+     * @param fast whether the update must be performed
+     *             quickly
      */
-    public void validate(EObject parseRoot, ValidationMessageAcceptor acceptor) {
+    public void validate(EObject parseRoot, ValidationMessageAcceptor acceptor, boolean fast) {
         this.parseRoot = parseRoot;
-        updateModel();
+        if (fast) quickUpdateModel();
+        else updateModel();
         reportDiagnostics(new DiagnosticAcceptor(this, acceptor));
     }
 
@@ -227,9 +232,71 @@ public class LFDocument {
      * could be resolved without ambiguity. Otherwise, does
      * nothing and returns false.
      */
-    private boolean attemptQuickUpdate(List<String> lines) {
-        // FIXME: This function should not exist in the first place. It should just be, "do quick update"
-        return false; // TODO: Not yet implemented
+    private void quickUpdateModel() {
+        List<String> editSource = getLines(parseRoot);
+        // Iterate in decreasing order by line number
+        List<INode> codeBlocks = getCodeBlocks();
+        for (DocumentEdit.Edit edit : DocumentEdit.minimalEdit(editSource, lines)) {
+            boolean inCodeBlock = false;
+            for (INode block : codeBlocks) {
+                if (block.getStartLine() < edit.getLine() && edit.getLine() < block.getEndLine()) { // FIXME: Off-by-one error
+                    inCodeBlock = true;
+                    break;
+                }
+            }
+            if (inCodeBlock) {
+                if (edit instanceof DocumentEdit.Deletion) {
+                    this.lines.remove(edit.getLine());
+                    for (GeneratedDocument doc : generatedDocuments.values()) {
+                        // FIXME: Must check whether this is the right document to edit
+                        doc.deleteLine(edit.getLine());
+                    }
+                } else if (edit instanceof DocumentEdit.Mutation) {
+                    this.lines.set(edit.getLine(), ((DocumentEdit.Mutation) edit).getNewText());
+                    for (GeneratedDocument doc : generatedDocuments.values()) {
+                        // FIXME: same as above
+                        doc.mutateLine(edit.getLine(), ((DocumentEdit.Mutation) edit).getNewText());
+                    }
+                } else if (edit instanceof DocumentEdit.Insertion) {
+                    this.lines.add(edit.getLine(), ((DocumentEdit.Insertion) edit).getNewText());
+                    for (GeneratedDocument doc : generatedDocuments.values()) {
+                        // FIXME: same as above
+                        doc.insertLine(edit.getLine(), ((DocumentEdit.Insertion) edit).getNewText());
+                    }
+                }
+            } else {
+                // FIXME: Eliminate the state variable lines?
+                // FIXME: a line that is only the empty string "" is assumed to have no effect on the code.
+                //  Is this a good assumption?
+                if (edit instanceof DocumentEdit.Deletion) {
+                    this.lines.set(edit.getLine(), "");
+                } else if (edit instanceof DocumentEdit.Mutation) {
+                    this.lines.set(edit.getLine(), ((DocumentEdit.Mutation) edit).getNewText());
+                } else if (edit instanceof DocumentEdit.Insertion) {
+                    this.lines.add(edit.getLine(), ((DocumentEdit.Insertion) edit).getNewText());
+                    for (GeneratedDocument doc : generatedDocuments.values()) {
+                        // FIXME: same as above
+                        doc.insertLine(edit.getLine(), "");
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns a list of all parse nodes corresponding to
+     * code blocks.
+     * @return a list of all parse nodes corresponding to
+     * code blocks
+     */
+    private List<INode> getCodeBlocks() {
+        List<INode> ret = new ArrayList<>();
+        Iterator<EObject> it = parseRoot.eAllContents();
+        while (it.hasNext()) {
+            EObject next = it.next();
+            if (next instanceof Code) ret.add(NodeModelUtils.getNode(next));
+        }
+        return ret;
     }
 
     /**
@@ -239,14 +306,12 @@ public class LFDocument {
      */
     private void updateModel() {
         lines = getLines(parseRoot);
-        if (!attemptQuickUpdate(lines)) {
-            try {
-                compile();
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to compile LF document " + this + ".", e);
-            }
-            findGeneratedDocuments();
+        try {
+            compile();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to compile LF document " + this + ".", e);
         }
+        findGeneratedDocuments();
     }
 
     /**

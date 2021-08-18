@@ -573,8 +573,24 @@ class LFValidatorImpl extends AbstractLFValidator {
                 println("Warning: Deleting markers in the IDE failed: " + e)
             }
         }
-        if (uri !== null && !targetLanguageValidationDisabled(model)) {
-        	DocumentRegistry.getInstance().getDocument(model).validate(model, getMessageAcceptor())
+        checkGeneratedCodeNormal(model)
+    }
+    
+    //@Check(NORMAL)
+    def checkGeneratedCodeNormal(Model model) {
+    	checkGeneratedCode(model, false)
+    }
+    
+    //@Check(FAST)
+    def checkGeneratedCodeFast(Model model) {
+        checkGeneratedCode(model, true)
+    }
+    
+    private def checkGeneratedCode(Model model, boolean fast) {
+        println("Checking generated code...")
+        val uri = model.eResource?.URI
+    	if (uri !== null && !targetLanguageValidationDisabled(model)) {
+        	DocumentRegistry.getInstance().getDocument(model).validate(model, getMessageAcceptor(), fast)
         }
     }
     
@@ -722,6 +738,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (!info.updated) {
             info.update(model, DefaultErrorReporter.DEFAULT)
         }
+        checkGeneratedCodeFast(model)
     }
 
     @Check(NORMAL)
