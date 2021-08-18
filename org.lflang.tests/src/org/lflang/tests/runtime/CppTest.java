@@ -1,7 +1,7 @@
-/* Scoping unit tests. */
+/* Integration tests for the C++ target. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2021, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -24,70 +24,70 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.tests.runtime
+package org.lflang.tests.runtime;
 
-import org.lflang.Target
-import org.junit.jupiter.api.Test
+import org.lflang.Target;
+import org.junit.jupiter.api.Test;
 
 /**
- * Collection of tests for the C target.
- * 
- * Even though all tests are implemented in the base class, we override them
+ * Collection of tests for the Cpp target.
+ * <p>
+ * Even though all tests are implemented in the base class, we @Override public void them
  * here so that each test can be easily invoked individually from the Eclipse.
  * This is done by right-clicking anywhere in the header or body of the test
  * method and selecting "Run As -> JUnit Test" from the pop-up menu.
- * 
+ *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class CTest extends ThreadedBase {
-        
-    new() {
-        this.target = Target.C
+public class CppTest extends ThreadedBase {
+
+    CppTest() {
+        this.target = Target.CPP;
     }
-    
+
     @Test
-    override runExampleTests() {
-        super.runExampleTests()
+    @Override
+    public void runGenericTests() {
+        super.runGenericTests();
     }
- 
+
     @Test
-    override compileExamples() {
-        super.compileExamples()
+    @Override
+    public void runTargetSpecificTests() {
+        super.runTargetSpecificTests();
     }
-    
+
     @Test
-    override runGenericTests() {
-        super.runGenericTests()
+    @Override
+    public void runMultiportTests() {
+        super.runMultiportTests();
     }
-    
+
     @Test
-    override runTargetSpecificTests() {
-        super.runTargetSpecificTests()
+    @Override
+    public void runWithFourThreads() {
+        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
+        System.out.println("N/A");
     }
-    
+
     @Test
-    override runMultiportTests() {
-        super.runMultiportTests()
+    @Override
+    public void runAsFederated() {
+        printTestHeader(RUN_AS_FEDERATED_DESC);
+        System.out.println("N/A");
     }
-    
+
+
     @Test
-    override runWithFourThreads() {
-        super.runWithFourThreads()
+    @Override
+    public void runConcurrentTests() {
+        super.runConcurrentTests();
     }
-    
+
     @Test
-    override runAsFederated() {
-        // Commented this out because only 27/96 tests pass.
-        // super.runNonFederatedTestsAsFederated()
+    @Override
+    public void runFederatedTests() {
+        super.runFederatedTests();
     }
-    
-    @Test
-    override runConcurrentTests() {
-        super.runConcurrentTests()
-    }
-    
-    @Test
-    override runFederatedTests() {
-        super.runFederatedTests()
-    }
+
 }

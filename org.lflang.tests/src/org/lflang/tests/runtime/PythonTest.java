@@ -1,7 +1,5 @@
-/* Integration tests for the C++ target. */
-
 /*************
-Copyright (c) 2021, The University of California at Berkeley.
+Copyright (c) 2019, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -24,63 +22,58 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.lflang.tests.runtime
+package org.lflang.tests.runtime;
 
-import org.lflang.Target
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import org.lflang.Target;
 
 /**
- * Collection of tests for the Cpp target.
- * 
- * Even though all tests are implemented in the base class, we override them
+ * Collection of tests for the Python target.
+ *
+ * Even though all tests are implemented in the base class, we @Override public void them
  * here so that each test can be easily invoked individually from the Eclipse.
  * This is done by right-clicking anywhere in the header or body of the test
  * method and selecting "Run As -> JUnit Test" from the pop-up menu.
- * 
+ *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class CppTest extends ThreadedBase {
-        
-    new() {
-        this.target = Target.CPP
-    }
-    
-    @Test
-    override runGenericTests() {
-        super.runGenericTests()
-    }
-    
-    @Test
-    override runTargetSpecificTests() {
-        super.runTargetSpecificTests()
-    }
-    
-    @Test
-    override runMultiportTests() {
-        super.runMultiportTests()
-    }
-    
-    @Test
-    override runWithFourThreads() {
-        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
-        println("N/A")
-    }
-    
-    @Test
-    override runAsFederated() {
-        printTestHeader(RUN_AS_FEDERATED_DESC)
-        println("N/A")
-    }
-    
-        
-    @Test
-    override runConcurrentTests() {
-        super.runConcurrentTests()
-    }
-    
-    @Test
-    override runFederatedTests() {
-        super.runFederatedTests()
+public class PythonTest extends TestBase {
+
+    PythonTest() {
+        this.target = Target.Python;
     }
 
+    @Test
+    @Override public void runGenericTests() {
+        super.runGenericTests();
+    }
+
+    @Test
+    @Override public void runTargetSpecificTests() {
+        super.runTargetSpecificTests();
+    }
+
+    @Test
+    @Override public void runMultiportTests() {
+        super.runMultiportTests();
+    }
+
+    @Test
+    @Disabled("TODO")
+    @Override public void runAsFederated() {
+        super.runAsFederated();
+    }
+
+
+    @Test
+    @Override public void runConcurrentTests() {
+        super.runConcurrentTests();
+    }
+
+    @Test
+    @Override public void runFederatedTests() {
+        super.runFederatedTests();
+    }
 }
