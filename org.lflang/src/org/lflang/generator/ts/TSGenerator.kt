@@ -72,7 +72,7 @@ class TSGenerator(
          * Names of the configuration files to check for and copy to the generated
          * source package root if they cannot be found in the source directory.
          */
-        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js")
+        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
         /**
          * Files to be copied from the reactor-ts submodule into the generated

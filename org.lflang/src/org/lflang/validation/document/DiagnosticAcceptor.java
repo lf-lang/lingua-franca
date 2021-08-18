@@ -7,7 +7,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
  * Accepts diagnostics (also called validation messages) and
  * relays them on to the IDE.
  */
-class DiagnosticAcceptor {
+public class DiagnosticAcceptor {
 
     /**
      * Represents a diagnostic severity level.

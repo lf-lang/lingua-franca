@@ -1,4 +1,5 @@
 package org.lflang.generator.ts.sourcemap
+
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor

@@ -7,8 +7,10 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.TreeMap;
 
 /**
  * Represents a document generated from a Lingua Franca
@@ -16,7 +18,7 @@ import java.util.NavigableMap;
  * of the document or the extraction of source mappings from
  * it.
  */
-abstract class GeneratedDocument {
+public abstract class GeneratedDocument {
 
     private final File directory;
     private final List<String> lines;
@@ -81,25 +83,27 @@ abstract class GeneratedDocument {
         return Collections.unmodifiableNavigableMap(sourceMap);
     }
 
+    public NavigableMap<Position, Position> getInverseMap() {
+        // FIXME: Everything about this function is wrong. It should be rewritten.
+        // FIXME: Cache the result. This is expensive to recompute
+        NavigableMap<Position, Position> ret = new TreeMap<>();
+        for (Map.Entry<Position, Position> entry : sourceMap.entrySet()) {
+            ret.put(entry.getValue(), entry.getKey());
+        }
+        return ret;
+    }
+
     /**
      * Updates the content of the <code>line</code>th line.
      * @param line the zero-based line index
      * @param text the new line text (excluding terminating
      *             newline character)
      */
-    public void changeLine(int line, String text) {
-        // FIXME: Implement.
+    public void mutateLine(int line, String text) {
+        lines.set(inverseAdjustLine(line), text);
+        // FIXME: Mappings associated with individual tokens
+        //  on this line might become wrong
     }
-
-
-    /**
-     * Removes the <code>line</code>th line.
-     * @param line the zero-based line index
-     */
-    public void deleteLine(int line) {
-        // FIXME: Implement.
-    }
-
 
     /**
      * Inserts a line at the index given by
@@ -109,7 +113,33 @@ abstract class GeneratedDocument {
      *             newline character)
      */
     public void insertLine(int line, String text) {
-        // FIXME: Implement.
+        line = inverseAdjustLine(line); // FIXME: overwriting a parameter is bad style?
+        lines.add(line, text);
+        Position ceiling = sourceMap.higherKey(Position.fromZeroBased(line, 0));
+        List<Position> affected = List.copyOf(sourceMap.tailMap(ceiling).keySet());
+        for (Position p : affected) {
+            Position value = sourceMap.get(p);
+            sourceMap.remove(p);
+            sourceMap.put(p.translated(1, 0), value.translated(1, 0));
+        }
+    }
+
+    /**
+     * Removes the <code>line</code>th line.
+     * @param line the zero-based line index
+     */
+    public void deleteLine(int line) {
+        line = inverseAdjustLine(line);
+        lines.remove(line);
+        Position ceiling = sourceMap.higherKey(Position.fromZeroBased(line, 0));
+        List<Position> affected = List.copyOf(sourceMap.tailMap(ceiling).keySet());
+        for (Position p : affected) {
+            Position value = sourceMap.get(p);
+            sourceMap.remove(p);
+            if (p.getZeroBasedLine() != line) {
+                sourceMap.put(p.translated(-1, 0), value.translated(-1, 0));
+            }
+        }
     }
 
     /* ---------------------  PROTECTED METHODS  ------------------------ */
@@ -174,17 +204,29 @@ abstract class GeneratedDocument {
      * @return the position in the source code corresponding to targetPosition
      */
     protected Position adjustPosition(Position targetPosition) {
-        // TODO add a check to make sure the two lines match up.
-        final Entry<Position, Position> nearest = sourceMap.floorEntry(
-            targetPosition
-        );
-        final int lineDiff = targetPosition.getZeroBasedLine() - nearest.getKey().getZeroBasedLine();
-        return Position.fromZeroBased(
-            nearest.getValue().getZeroBasedLine() + lineDiff,
-            targetPosition.getZeroBasedColumn() // FIXME: Adjust so that it matches the token's location in the source
-        );
+        return adjustPosition(targetPosition, sourceMap);
     }
 
     /* -----------------------  PRIVATE METHODS  ------------------------ */
+
+    private int inverseAdjustLine(int line) {
+        return inverseAdjustPosition(Position.fromZeroBased(line, 0)).getZeroBasedLine();
+    }
+
+    private Position inverseAdjustPosition(Position sourcePosition) {
+        return adjustPosition(sourcePosition, getInverseMap());
+    }
+
+    private static Position adjustPosition(Position position, NavigableMap<Position, Position> map) {
+        // TODO add a check to make sure the two lines match up.
+        final Entry<Position, Position> nearest = map.floorEntry(
+            position
+        );
+        final int lineDiff = position.getZeroBasedLine() - nearest.getKey().getZeroBasedLine();
+        return Position.fromZeroBased(
+            nearest.getValue().getZeroBasedLine() + lineDiff,
+            position.getZeroBasedColumn() // FIXME: Adjust so that it matches the token's location in the source
+        );
+    }
 
 }
