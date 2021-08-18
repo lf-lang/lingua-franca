@@ -6,8 +6,6 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches:
-      - '**'
     branches-ignore:
       - 'nightly'
   pull_request:
