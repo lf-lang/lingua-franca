@@ -28,6 +28,7 @@ package org.lflang.generator;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -50,9 +51,8 @@ public class GeneratorCommandFactory {
      * Constructor
      */
     public GeneratorCommandFactory(ErrorReporter errorReporter, FileConfig fileConfig) {
-        assert errorReporter != null && fileConfig != null;
-        this.errorReporter = errorReporter;
-        this.fileConfig = fileConfig;
+        this.errorReporter = Objects.requireNonNull(errorReporter);
+        this.fileConfig = Objects.requireNonNull(fileConfig);
     }
 
 
