@@ -12,43 +12,6 @@
  */
 
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numWorkers=60
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numWorkers' in globals():
-    numWorkers = int(numWorkers)
-  else:
-    globals()['numWorkers'] = 60
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numWorkers = {numWorkers}')
-]]] */
-// Generated file with the following parameters:
-// numWorkers = 60
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo
 };
@@ -103,15 +66,9 @@ reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
     input inStart:void;
     output outFinished:void;
     
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outMessage:void;')
-      cog.outl(f'input[{numWorkers}] inFinished:void;')
-      cog.outl(f'output[{numWorkers}] outReset:void;')
-    ]]] */
-    output[60] outMessage:void;
-    input[60] inFinished:void;
-    output[60] outReset:void;
-    /// [[[end]]]
+    output[numConsumer] outMessage:void;
+    input[numConsumer] inFinished:void;
+    output[numConsumer] outReset:void;
     
     logical action sendNextMessage;
     
@@ -155,13 +112,9 @@ reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
 }
 
 
-main reactor (numIterations:int(12), numMessagesPerReactor:int(10000)) {
+main reactor (numIterations:int(12), numMessagesPerReactor:int(10000), numWorkers:int(60)) {
     
-    /* [[[cog
-      cog.outl(f'producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer={numWorkers});')
-    ]]] */
-    producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=60);
-    // [[[end]]]
+    producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> producer.inStart;
@@ -169,20 +122,12 @@ main reactor (numIterations:int(12), numMessagesPerReactor:int(10000)) {
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("ThroughputBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", 60);
-        // [[[end]]]
+        printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'worker = new[{numWorkers}] ThroughputReactor(totalMessages=numMessagesPerReactor);')
-    ]]] */
-    worker = new[60] ThroughputReactor(totalMessages=numMessagesPerReactor);
-    // [[[end]]]
+    worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
     
     producer.outMessage -> worker.inMessage;
     producer.outReset -> worker.inReset;
