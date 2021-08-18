@@ -23,8 +23,8 @@
         "distributed",
         "deterministic actors"
     ],
-    "DISABLED extensionDependencies": [
-        "kieler.klighd-diagram"
+    "extensionDependencies": [
+        "kieler.klighd-vscode"
     ],
     "activationEvents": [
         "onLanguage:lflang"
@@ -60,25 +60,25 @@
             }
         ],
         "commands": [],
-        "DISABLED menus": {
+        "menus": {
             "editor/title": [
                 {
                     "when": "resourceLangId == lflang",
-                    "command": "klighd-diagram.diagram.open",
+                    "command": "klighd-vscode.diagram.open",
                     "group": "navigation"
                 }
             ],
             "editor/context": [
                 {
                     "when": "resourceLangId == lflang",
-                    "command": "klighd-diagram.diagram.open",
+                    "command": "klighd-vscode.diagram.open",
                     "group": "navigation"
                 }
             ],
             "explorer/context": [
                 {
                     "when": "resourceLangId == lflang",
-                    "command": "klighd-diagram.diagram.open",
+                    "command": "klighd-vscode.diagram.open",
                     "group": "navigation"
                 }
             ]
