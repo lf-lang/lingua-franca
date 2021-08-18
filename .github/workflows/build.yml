@@ -9,8 +9,8 @@ on:
     branches-ignore:
       - 'nightly'
   pull_request:
-    branches:
-      - '**'
+    branches-ignore:
+      - 'nightly'
 
 env:
   # 2020.11
