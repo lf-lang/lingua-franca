@@ -37,7 +37,7 @@ For more information, visit us on GitHub: https://github.com/icyphy/lingua-franc
       startupProgressRect="0,315,500,15"
       startupMessageRect="10,300,480,15"
       startupForegroundColor="FFFFFF" />
-   <launcher>
+   <launcher name="epoch">
       <linux icon="/org.lflang.product/icons/lf-logo.xpm"/>
       <macosx icon="/org.lflang.product/icons/lf-logo.icns"/>
       <win useIco="false">
