@@ -175,7 +175,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = getOutputRoot(srcGenBasePath);
+        this.outPath = srcGenBasePath.resolve("..");
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -201,7 +201,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = getOutputRoot(srcGenBasePath);
+        this.outPath = srcGenBasePath.resolve("..");
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -350,10 +350,6 @@ public class FileConfig {
      */
     public Path getRTIBinPath() {
         return this.binPath;
-    }
-
-    private static Path getOutputRoot(Path srcGenRoot) {
-        return Paths.get(".").resolve(srcGenRoot);
     }
 
     /**
