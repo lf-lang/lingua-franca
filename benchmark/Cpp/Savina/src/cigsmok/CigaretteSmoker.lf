@@ -88,8 +88,8 @@ reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
         
         // start excution
         chooseSmoker.schedule();
-        for(int i = 0; i < outSmokersStart.size(); ++i) {
-            outSmokersStart[i].set();
+        for(auto& port : outSmokersStart) {
+            port.set();
         }
     =}
     
@@ -103,12 +103,12 @@ reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
     
     reaction(stop) -> outFinished, outSmokersStop {=
         outFinished.set();
-        for(int i = 0; i < outSmokersStop.size(); ++i) {
-            outSmokersStop[i].set();
+        for(auto& port : outSmokersStop) {
+            port.set();
         }
     =}
     
-    reaction(inSmokers) -> chooseSmoker {=
+    reaction(inSmokers) -> chooseSmoker, stop {=
         // resources are off the table, can place new ones on the table
         roundsSoFar += 1;
         reactor::log::Debug() << "roundsSoFar=" << roundsSoFar;
@@ -159,7 +159,7 @@ reactor SmokerReactor(instance:int(0)) {
     reaction(inArbiter) -> outArbiter {=
         
         std::unique_lock<std::mutex> lck(mtx); // wait for smoking to finish if necessary
-        int limit = *(inArbiter.get());
+        limit = *(inArbiter.get());
         unlockThread = true;
         cv.notify_all();
         lck.unlock();
