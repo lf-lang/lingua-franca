@@ -32,6 +32,7 @@ import java.util.List
 import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
@@ -141,7 +142,11 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
         Set<Instantiation> visited) {
         val decl = instantiation.reactorClass
         val reactor = decl.toDefinition
-        val container = instantiation.eContainer as Reactor
+        val container = if (instantiation.eContainer instanceof Reactor) {
+            instantiation.eContainer as Reactor
+        } else if (instantiation.eContainer instanceof Mode) {
+            instantiation.eContainer.eContainer as Reactor
+        }
 
         if (visited.add(instantiation)) {
             this.reactorToInstantiation.put(reactor, instantiation)

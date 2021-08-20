@@ -237,6 +237,14 @@ do { \
 } while(0)
 #endif
 
+/**
+ * Sets the next mode of a modal reactor. Same as SET for outputs, only
+ * the last value will have effect if invoked multiple times.
+ * Works only in reactions with the target mode declared as effect.
+ *
+ * @param mode The target mode to set for activation.
+ */
+#define _LF_SET_MODE(mode) self->___mode_state.next_mode = mode
 
 /**
  * Macro for extracting the deadline from the index of a reaction.
@@ -419,6 +427,24 @@ typedef struct token_present_t {
     bool reset_is_present; // True to set is_present to false after calling done_using().
 } token_present_t;
 
+
+/** Typedef for reactor_mode_t struct, used for representing a mode. */
+typedef struct reactor_mode_t reactor_mode_t;
+/** Typedef for reactor_mode_state_t struct, used for storing modal state of reactor and/or its relation to enclosing modes. */
+typedef struct reactor_mode_state_t reactor_mode_state_t;
+
+/** A struct to represent a single mode instace in a reactor instance. */
+struct reactor_mode_t {
+	reactor_mode_state_t* state;    // Pointer to a struct with the reactor's mode state. INSTANCE.
+    string name;                    // Name of this mode.
+};
+/** A struct to store state of the modes in a reactor instance and/or its relation to enclosing modes. */
+struct reactor_mode_state_t {
+	reactor_mode_t* parent_mode;    // Pointer to the next enclosing mode (if exsits).
+	reactor_mode_t* active_mode;    // Pointer to the currently active mode. Must be NULL if the reactor instace does no have modes.
+	reactor_mode_t* next_mode;      // Pointer to the next mode to activate at the end of this step (if set).
+};
+
 /**
  * Reaction activation record to push onto the reaction queue.
  * Some of the information in this struct is common among all instances
@@ -462,6 +488,8 @@ struct reaction_t {
     char* name;                 // If logging is set to LOG or higher, then this will
                                 // point to the full name of the reactor followed by
     							// the reaction number.
+    reactor_mode_t* mode;       // The enclosing mode of this reaction (if exists).
+    							// If enclosed in multiple, this will point to the innermost mode.
 };
 
 /** Typedef for event_t struct, used for storing activation records. */
@@ -622,6 +650,11 @@ void terminate_execution();
  * Function (to be code generated) to trigger shutdown reactions.
  */
 bool __trigger_shutdown_reactions();
+
+/**
+ * Function (to be code generated) to handle mode changes.
+ */
+void __handle_mode_changes();
 
 /**
  * Create a new token and initialize it.

@@ -132,6 +132,10 @@ void print_snapshot() {
  * @param reaction The reaction.
  */
 void _lf_enqueue_reaction(reaction_t* reaction) {
+	// Check if reaction is disabled by mode inactivity
+	if (!_lf_mode_is_active(reaction->mode)) {
+		return; // Suppress reaction by preventing entering reaction queue
+	}
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         DEBUG_PRINT("Enqueing downstream reaction %s.", reaction->name);
@@ -225,6 +229,9 @@ int _lf_do_step() {
 // the keepalive command-line option has not been given.
 // Otherwise, return 1.
 int next() {
+	// First, perform mode transitions
+	__handle_mode_changes();
+
     event_t* event = (event_t*)pqueue_peek(event_q);
     //pqueue_dump(event_q, event_q->prt);
     // If there is no next event and -keepalive has been specified

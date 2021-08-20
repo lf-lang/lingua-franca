@@ -1,0 +1,73 @@
+target C;
+
+reactor CounterCycle {
+	input next:bool;
+	output count:int;
+    
+    initial mode One {
+		reaction(next) -> count, Two {=
+            SET(count, 1);
+            SET_MODE(Two);
+		=}
+    }
+    mode Two {
+		print = new PrintMessage(msg = "Only in mode Two");
+		next -> print.print
+		
+		reaction(next) -> count, Three {=
+            SET(count, 2);
+            SET_MODE(Three);
+		=}
+    }
+    mode Three {
+		reaction(next) -> count, One {=
+            SET(count, 3);
+            SET_MODE(One);
+		=}
+    }
+    
+    reaction(next) {=
+        printf("Always there\n");
+    =}
+}
+
+reactor TimedStep {
+    output next:bool;
+    timer t(0, 1sec);
+    
+    reaction(t) -> next {=
+        printf("Next\n");
+        SET(next, true);
+    =}
+}
+
+reactor PrintCount {
+    input count:int
+	reaction(count) {=
+	    printf("Count: %d\n", count->value);
+	=}
+}
+
+reactor PrintMessage(msg:string("")) {
+    input print:bool
+	reaction(print) {=
+	    printf("%s\n", self->msg);
+	=}
+}
+
+main reactor TestNestedReactions {
+    stepper = new TimedStep();
+    counter = new CounterCycle();
+    printer = new PrintCount();
+    
+    stepper.next -> counter.next;
+    counter.count -> printer.count;
+    
+    preamble {=
+    	#include <stdio.h>
+    =}
+    
+    reaction(startup) {=
+        printf("Start\n");
+    =}
+}

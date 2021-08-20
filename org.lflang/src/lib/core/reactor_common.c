@@ -1886,3 +1886,40 @@ void termination() {
         }
     }
 }
+
+// Functions for handling modal reactors.
+
+/**
+ * Checks if the given mode is currently considered active.
+ * This includes checking all enclosing modes.
+ * @param mode The mode instace to check.
+ */
+bool _lf_mode_is_active(reactor_mode_t* mode) {
+	if (mode != NULL) {
+		reactor_mode_state_t* state = mode->state;
+		while (state != NULL) {
+		    // If this or any parent mode is inactive, return inactive
+			if (state->active_mode != mode) {
+				return false;
+			}
+			mode = state->parent_mode;
+			if (mode != NULL) {
+				state = mode->state;
+			} else {
+				state = NULL;
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * Performs transitions to the next mode, if set.
+ * @param state The state of the reactor instance to transition.
+ */
+void _lf_handle_mode_change(reactor_mode_state_t* state) {
+	if (state != NULL && state->next_mode != NULL) {
+		state->active_mode = state->next_mode;
+		state->next_mode = NULL;
+	}
+}
