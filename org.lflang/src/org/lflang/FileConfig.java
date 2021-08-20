@@ -3,11 +3,9 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,7 +23,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.generator.StandaloneContext;
 import org.lflang.lf.Reactor;
 
@@ -178,7 +175,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = getOutputRoot(srcGenBasePath);
+        this.outPath = srcGenBasePath.resolve("..");
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -204,7 +201,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = getOutputRoot(srcGenBasePath);
+        this.outPath = srcGenBasePath.resolve("..");
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -353,10 +350,6 @@ public class FileConfig {
      */
     public Path getRTIBinPath() {
         return this.binPath;
-    }
-
-    private static Path getOutputRoot(Path srcGenRoot) {
-        return Paths.get(".").resolve(srcGenRoot);
     }
 
     /**
