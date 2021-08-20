@@ -29,6 +29,8 @@ target Cpp {
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
+    #include <deque>
+    
     #include "PseudoRandom.hh"
     #include "reactor-cpp/logging.hh"
     
@@ -98,6 +100,13 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         }
     =}
     
+    reaction (sendCustomerAgain) -> sendCustomer {=
+        size_t customer_id = *sendCustomerAgain.get();
+        reactor::log::Info() << "Factory: Send customer " << customer_id << " again to the waiting room";
+        attempts++;
+        sendCustomer.set(customer_id);
+    =}
+    
     reaction (customerReturned) -> sendCustomerAgain {=
         for (size_t i{0}; i < numCustomers; i++) {
             if (customerReturned[i].is_present()) {
@@ -108,12 +117,32 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
             }
         }
     =}
+}
+
+reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
+    input receiveCustomer: size_t;
     
-    reaction (sendCustomerAgain) -> sendCustomer {=
-        size_t customer_id = *sendCustomerAgain.get();
-        reactor::log::Info() << "Factory: Send customer " << customer_id << " again to the waiting room";
-        attempts++;
-        sendCustomer.set(customer_id);
+    output[numCustomers] rejectCustomer: void
+    
+    state queue: std::deque<size_t>{};
+    
+    reaction (receiveCustomer) -> rejectCustomer {=
+         size_t customer_id = *receiveCustomer.get();
+         reactor::log::Info() << "Room: Customer " << customer_id << " tries to enter";
+         
+         if(queue.size() == capacity) {
+             rejectCustomer[customer_id].set();
+         } else {
+            queue.push_back(customer_id);
+        }
+    =}
+}
+
+reactor Customer(bank_index:size_t(0)) {
+    input rejected: void;
+    
+    reaction (rejected) {=
+        reactor::log::Info() << "Customer " << bank_index << ": rejected because waiting room is full";
     =}
 }
 
@@ -121,6 +150,8 @@ main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averagePro
     
     runner = new BenchmarkRunner(numIterations=numIterations);
     factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
+    room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
+    customers = new[numHaircuts] Customer();
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
@@ -131,4 +162,8 @@ main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averagePro
     
     runner.outIterationStart -> factory.start;
     factory.finished -> runner.inIterationFinish;
+    
+    factory.sendCustomer -> room.receiveCustomer;
+    room.rejectCustomer -> customers.rejected;
+    room.rejectCustomer -> factory.customerReturned;
 }
