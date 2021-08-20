@@ -1,0 +1,134 @@
+/**
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * This implementation is close to the Savina Akka implementation
+ * in terms of the work that is done in each actor/reactor and
+ * that for each message sent in Savina there is a message send
+ * in this implementation. But this implementation does not
+ * show the basic idea of the problem in that the waiting
+ * room is basically never because the customers arrival is
+ * in sync with the barber cutting the hair of customers.
+ * 
+ * There are some interesting different possibilities to implement the
+ * benchmark more based on the original idea behind it instead
+ * of the Savina implementation. For example by using threads that
+ * trigger events in physical time and handling missed
+ * deadlines if the waiting room is full. But these would lack
+ * comparability with the Savina benchmark even more.
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "SleepingBarber.cmake",
+    logging: "info"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+public preamble {=
+    #include "PseudoRandom.hh"
+    #include "reactor-cpp/logging.hh"
+    
+    // function used for busy waiting in the benchmark
+    size_t busyWait(size_t limit);
+=}
+
+private preamble {=
+    size_t busyWait(size_t limit) {
+        size_t test{0};
+        for(size_t k{0}; k < limit; k++) {
+            rand();
+            test++;
+        }
+        return test;
+    }
+=}
+
+reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {
+    input start: void;
+    output finished: void;
+    
+    output sendCustomer: size_t;
+    input[numCustomers] customerDone: void;
+    input[numCustomers] customerReturned: void;
+
+    physical action createCustomer: size_t;
+    physical action sendCustomerAgain: size_t
+    
+    state thread: std::thread;
+    state doneCustomers: size_t{0};
+    state attempts: size_t{0};
+
+    method generateCustomers(createCustomer: {=reactor::PhysicalAction<size_t>&=}) {=
+        PseudoRandom random{};
+        for(size_t i{0}; i < numCustomers; i++) {
+            createCustomer.schedule(i);
+            busyWait(random.nextInt(averageProductionRate) + 10);
+        }
+    =}
+    
+    reaction(start) -> createCustomer {=
+        // reset state
+        doneCustomers = 0;
+        attempts = 0;
+        // start "creating" customers
+        thread = std::thread([this, &createCustomer]() { generateCustomers(createCustomer); });
+    =}
+    
+    reaction (createCustomer) -> sendCustomer {=
+        size_t customer_id = *createCustomer.get();
+        reactor::log::Info() << "Factory: Send customer " << customer_id << " to the waiting room";
+        attempts++;
+        sendCustomer.set(customer_id);
+    =}
+    
+    reaction (customerDone) -> finished {=
+        for (size_t i{0}; i < numCustomers; i++) {
+            if (customerDone[i].is_present()) {
+                doneCustomers++;
+        	    if (doneCustomers == numCustomers) {
+                    reactor::log::Info() << "Hair cuts given: " << doneCustomers << "; Total attempts: " << attempts;
+                    finished.set();
+                    thread.join();
+                }
+        	}
+        }
+    =}
+    
+    reaction (customerReturned) -> sendCustomerAgain {=
+        for (size_t i{0}; i < numCustomers; i++) {
+            if (customerReturned[i].is_present()) {
+                // the customer returned because the waiting room is full
+                // We send the customer again "immediately".
+                // Due to the use of a physical action, this implements a small delay
+                sendCustomerAgain.schedule(i);                
+            }
+        }
+    =}
+    
+    reaction (sendCustomerAgain) -> sendCustomer {=
+        size_t customer_id = *sendCustomerAgain.get();
+        reactor::log::Info() << "Factory: Send customer " << customer_id << " again to the waiting room";
+        attempts++;
+        sendCustomer.set(customer_id);
+    =}
+}
+
+main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), averageHaircutRate:size_t(1000), numHaircuts:size_t(2000)) {
+    
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", numHaircuts);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    runner.outIterationStart -> factory.start;
+    factory.finished -> runner.inIterationFinish;
+}
