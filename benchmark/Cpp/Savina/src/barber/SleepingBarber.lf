@@ -20,46 +20,10 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numHaircuts=2000
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numHaircuts' in globals():
-    numHaircuts = int(numHaircuts)
-  else:
-    globals()['numHaircuts'] = 2000
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numHaircuts = {numHaircuts}')
-]]] */
-// Generated file with the following parameters:
-// numHaircuts = 2000
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "../IncludeHeaders.cmake"
+    cmake-include: "../IncludeHeaders.cmake",
+    logging: "info"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -91,7 +55,12 @@ public preamble {=
     };
 =}
 
-reactor CustomerControllerReactor(numHaircuts:size_t(2000), averageProductionRate:size_t(1000)) {
+reactor CustomerFactory(numHaircuts:size_t(2000), averageProductionRate:size_t(1000)) {
+    /*
+     * In the original Akka implementation, the CustomerFactory would create customers as needed.
+     * This dynamic creation of customers, however, requires mutations. Instead, we here create
+     * all customers statically and the CustomerFactory is only in charge of controlling the customers. 
+     */
     
     public preamble {=
         #include "PseudoRandom.hh"
@@ -113,11 +82,9 @@ reactor CustomerControllerReactor(numHaircuts:size_t(2000), averageProductionRat
     
     output outRoom: Message;
     output outBarber: Message; // only needed to reset between iterations
-    /* [[[cog
-      cog.outl(f'input[{numHaircuts}] inCustomers:{{=Message=}};')
-    ]]] */
-    input[2000] inCustomers:{=Message=};
-    // [[[end]]]
+    
+    input[numHaircuts] customerDone: void;
+    input[numHaircuts] customerReturned: void;
     
     logical action sendCustomersFirstVisit:void;
     logical action sendCustomersToReturn:void;
@@ -168,30 +135,32 @@ reactor CustomerControllerReactor(numHaircuts:size_t(2000), averageProductionRat
     =}
     
     reaction(exit) -> outRoom, outBarber, outFinished {=
-        
+        reactor::log::Info() << "Hair cuts given: " << numHairCutsSoFar << "; Total attempts: " << numAttempts;
         outRoom.set(Message{ExitMsg});
         outBarber.set(Message{ExitMsg});
         outFinished.set();
     =}
     
-    reaction(inCustomers) -> sendCustomersToReturn, exit {=
-        for(size_t i = 0; i < inCustomers.size(); i++) {
-            if(inCustomers[i].is_present()) {
-                if(inCustomers[i].get()->type == ReturnedMsg) {
-                    
-                    customersToReturn.push_back(i);
-                    
-                } else if(inCustomers[i].get()->type == DoneMsg) {
-                    
-                    numHairCutsSoFar += 1;
-                    if(numHairCutsSoFar == numHaircuts) {
-                        reactor::log::Info() << "Hair cuts given: " << numHairCutsSoFar << "; Total attempts: " << numAttempts;
-                        exit.schedule();
-                    }
+    reaction(customerReturned) -> sendCustomersToReturn {=
+        for(size_t i = 0; i < customerReturned.size(); i++) {
+            if(customerReturned[i].is_present()) {
+                reactor::log::Info() << "Customer " << i << " returned";
+                customersToReturn.push_back(i);
+            }
+        }
+        sendCustomersToReturn.schedule();
+    =}
+    
+    reaction (customerDone) -> exit {=
+        for(size_t i = 0; i < customerDone.size(); i++) {
+            if(customerDone[i].is_present()) {
+                reactor::log::Info() << "Customer " << i << " is done";
+                numHairCutsSoFar += 1;
+                if(numHairCutsSoFar == numHaircuts) {
+                    exit.schedule();
                 }
             }
         }
-        sendCustomersToReturn.schedule(); //accept to schedule the last time without reason
     =}
     
     private preamble {=
@@ -211,29 +180,30 @@ reactor CustomerControllerReactor(numHaircuts:size_t(2000), averageProductionRat
 
 reactor CustomerReactor(bank_index:size_t(0)) {
     
-    output outController: Message;
+    output done: void;
+    output returned: void;
     input inRoom: Message;
     input inBarber: Message;
     
-    reaction(inRoom) -> outController {=
+    reaction(inRoom) -> returned {=
         if(inRoom.get()->type == FullMsg) {
-            outController.set(Message{ReturnedMsg, bank_index});
+            returned.set();
         } else if(inRoom.get()->type == WaitMsg) {
             // do nothing, just sit in the waiting room
         }
     =}
     
-    reaction(inBarber) -> outController {=
+    reaction(inBarber) -> done {=
         if(inBarber.get()->type == StartMsg) {
             // do nothing, the barber is barbering me now.
         } else if(inBarber.get()->type == DoneMsg) {
-            outController.set(Message{DoneMsg});
+            done.set();
             // this reactor is finished and could be destroyed
         }
     =}
 }
 
-reactor BarberReactor(averageHaircutRate:size_t(1000)) {
+reactor BarberReactor(averageHaircutRate:size_t(1000), numHaircuts:size_t(2000)) {
     
     public preamble {=
         #include "PseudoRandom.hh"
@@ -245,11 +215,7 @@ reactor BarberReactor(averageHaircutRate:size_t(1000)) {
     
     input inRoom: Message;
     input inController: Message;
-    /* [[[cog
-      cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
-    ]]] */
-    output[2000] outCustomers: Message;
-    // [[[end]]]
+    output[numHaircuts] outCustomers: Message;
     output outRoom: Message;
     
     logical action cutHair:void;
@@ -265,7 +231,7 @@ reactor BarberReactor(averageHaircutRate:size_t(1000)) {
     =}
     
     reaction(cutHair) -> outRoom, outCustomers {=
-        reactor::log::Debug() << "Cutting hair of customer " << currentCustomerIdx;
+        reactor::log::Info() << "Cutting hair of customer " << currentCustomerIdx;
         busyWait(random.nextInt(averageHaircutRate) + 10); // doing work inline is overall faster in this benchmark
         outCustomers[currentCustomerIdx].set(Message{DoneMsg});
         currentCustomerIdx = -1;
@@ -275,7 +241,7 @@ reactor BarberReactor(averageHaircutRate:size_t(1000)) {
     reaction(inRoom) -> outCustomers, cutHair {=
         if(inRoom.get()->type == EnterMsg) {
             currentCustomerIdx = inRoom.get()->id;
-            reactor::log::Debug() << "Barber is serving customer " << currentCustomerIdx;
+            reactor::log::Info() << "Barber is serving customer " << currentCustomerIdx;
             outCustomers[currentCustomerIdx].set(Message{StartMsg});
             cutHair.schedule();
         } else if(inRoom.get()->type == WaitMsg) {
@@ -307,11 +273,7 @@ reactor WaitingRoomReactor(capacity:size_t(1000), numCustomers:size_t(2000)) {
     state waitingCustomers: std::queue<size_t>;
     state barberAsleep:bool(true);
     
-    /* [[[cog
-      cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
-    ]]] */
-    output[2000] outCustomers: Message;
-    // [[[end]]]
+    output[numCustomers] outCustomers: Message;
     input inBarber: Message;
     output outBarber: Message;
     input inController: Message;
@@ -325,7 +287,7 @@ reactor WaitingRoomReactor(capacity:size_t(1000), numCustomers:size_t(2000)) {
             
             if(!waitingCustomers.empty()) {
                 size_t customerIdx = waitingCustomers.front();
-                reactor::log::Debug() << "Room is sending customer " << customerIdx << " to the barber.";
+                reactor::log::Info() << "Room is sending customer " << customerIdx << " to the barber.";
                 waitingCustomers.pop();
                 outBarber.set(Message{EnterMsg, customerIdx});
             } else {
@@ -340,7 +302,7 @@ reactor WaitingRoomReactor(capacity:size_t(1000), numCustomers:size_t(2000)) {
         if(inController.get()->type == EnterMsg) {
             
             size_t customerIdx = inController.get()->id;
-            reactor::log::Debug() << "Customer " << customerIdx << " trying to enter.";
+            reactor::log::Info() << "Customer " << customerIdx << " trying to enter.";
             
             if(waitingCustomers.size() == capacity) {
                 outCustomers[customerIdx].set(Message{FullMsg});
@@ -368,40 +330,28 @@ reactor WaitingRoomReactor(capacity:size_t(1000), numCustomers:size_t(2000)) {
     =}
 }
 
-main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), averageHaircutRate:size_t(1000)) {
+main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), averageHaircutRate:size_t(1000), numHaircuts:size_t(2000)) {
     
-    /* [[[cog
-      cog.outl(f'controller = new CustomerControllerReactor(numHaircuts={numHaircuts}, averageProductionRate=averageProductionRate);')
-    ]]] */
-    controller = new CustomerControllerReactor(numHaircuts=2000, averageProductionRate=averageProductionRate);
-    // [[[end]]]
+
+    factory = new CustomerFactory(numHaircuts=numHaircuts, averageProductionRate=averageProductionRate);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> controller.inStart;
-    controller.outFinished -> runner.inIterationFinish;
+    runner.outIterationStart -> factory.inStart;
+    factory.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", {numHaircuts});')
-        ]]] */
-        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 2000);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", numHaircuts);
         printSystemInfo();
         runner.inStart.set();
     =}
-    
-    /* [[[cog
-      cog.outl(f'room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers={numHaircuts});')
-      cog.outl(f'customers = new[{numHaircuts}] CustomerReactor();')
-    ]]] */
-    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=2000);
-    customers = new[2000] CustomerReactor();
-    // [[[end]]]
+
+    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=numHaircuts);
+    customers = new[numHaircuts] CustomerReactor();
     barber = new BarberReactor(averageHaircutRate=averageHaircutRate);
     
-    controller.outRoom -> room.inController;
-    controller.outBarber -> barber.inController;
+    factory.outRoom -> room.inController;
+    factory.outBarber -> barber.inController;
     
     room.outCustomers -> customers.inRoom;
     room.outBarber -> barber.inRoom;
@@ -409,5 +359,6 @@ main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averagePro
     barber.outCustomers -> customers.inBarber;
     barber.outRoom -> room.inBarber;
     
-    customers.outController -> controller.inCustomers;
+    customers.done -> factory.customerDone;
+    customers.returned -> factory.customerReturned;
 }
