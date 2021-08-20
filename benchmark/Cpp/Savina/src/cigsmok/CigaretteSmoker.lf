@@ -8,43 +8,6 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numSmokers=200
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numSmokers' in globals():
-    numSmokers = int(numSmokers)
-  else:
-    globals()['numSmokers'] = 200
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numSmokers = {numSmokers}')
-]]] */
-// Generated file with the following parameters:
-// numSmokers = 200
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "CigaretteSmoker.cmake"
@@ -52,30 +15,23 @@ target Cpp {
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
+reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     
     public preamble {=
         #include "PseudoRandom.hh"
         #include "reactor-cpp/logging.hh"
     =}
     
-    state roundsSoFar:int(0);
-    state random:{=PseudoRandom=};
+    state roundsSoFar: size_t(0);
+    state random: PseudoRandom;
     
     input inStart:void;
     output outFinished:void;
-    
-    /* [[[cog
-      cog.outl(f'output[{numSmokers}] outSmokers:int;')
-      cog.outl(f'input[{numSmokers}] inSmokers:void;')
-      cog.outl(f'output[{numSmokers}] outSmokersStart:void;')
-      cog.outl(f'output[{numSmokers}] outSmokersStop:void;')
-    ]]] */
-    output[200] outSmokers:int;
-    input[200] inSmokers:void;
-    output[200] outSmokersStart:void;
-    output[200] outSmokersStop:void;
-    // [[[end]]]
+
+    output[numSmokers] outSmokers:size_t;
+    input[numSmokers] inSmokers:void;
+    output[numSmokers] outSmokersStart:void;
+    output[numSmokers] outSmokersStop:void;
     
     logical action chooseSmoker:void;
     logical action stop:void;
@@ -124,15 +80,15 @@ reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
 reactor SmokerReactor(instance:int(0)) {
     
     // state related to thread
-    state smokingThread:{=std::thread=};
-    state unlockThread:{=bool=};
-    state stopThread:{=bool=};
-    state limit:int;
-    state mtx:{=std::mutex=};
-    state cv:{=std::condition_variable=};
+    state smokingThread: std::thread;
+    state unlockThread: bool;
+    state stopThread: bool;
+    state limit: size_t;
+    state mtx: std::mutex;
+    state cv: std::condition_variable;
     
-    input inArbiter:int;
-    output outArbiter:void;
+    input inArbiter: size_t;
+    output outArbiter: void;
     
     // start and stop execution
     input inStop:void;
@@ -182,7 +138,7 @@ reactor SmokerReactor(instance:int(0)) {
         }
         
         // Function for the thread to smoke
-        static void smoke(bool * unlockThread, bool * stopThread, int * limit, std::mutex * mtx, std::condition_variable * cv) {
+        static void smoke(bool * unlockThread, bool * stopThread, size_t * limit, std::mutex * mtx, std::condition_variable * cv) {
             
             std::unique_lock<std::mutex> lck(*mtx);
             
@@ -202,9 +158,9 @@ reactor SmokerReactor(instance:int(0)) {
     =}
 }
 
-main reactor (numIterations:int(12), numRounds:int(1000)) {
+main reactor (numIterations:size_t(12), numRounds:size_t(1000), numSmokers:size_t(200)) {
     
-    arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=200);
+    arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=numSmokers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> arbiter.inStart;
@@ -215,24 +171,15 @@ main reactor (numIterations:int(12), numRounds:int(1000)) {
         srand(time(NULL));
         
         printBenchmarkInfo("CigaretteSmokerReactorLFCppBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", {numSmokers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", 200);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", numSmokers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'smokers = new[{numSmokers}] SmokerReactor();')
-    ]]] */
-    smokers = new[200] SmokerReactor();
-    // [[[end]]]
+    smokers = new[numSmokers] SmokerReactor();
     
     smokers.outArbiter -> arbiter.inSmokers;
     arbiter.outSmokers -> smokers.inArbiter;
     arbiter.outSmokersStart -> smokers.inStart;
     arbiter.outSmokersStop -> smokers.inStop;
-    
 }
