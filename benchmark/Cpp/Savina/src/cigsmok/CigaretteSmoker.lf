@@ -8,6 +8,46 @@
  * @author Hannes Klein
  */
 
+/*
+ * This benchmark "solves" the Cigarette Smoker Problem similiarly to the
+ * original Savina implementation in Akka. However, it is important to note
+ * first, that the Savina implementation does not actually model the resources
+ * (paper, matches, tobaco) and thus does not provide a complete solution. It
+ * only uses a pattern similar to a common solution of the Cigaratte Smokers
+ * Problem. This solution uses an arbitrator that tells the smokers when they
+ * can grab the resources and smoke. Since no resources are modelled in Savina,
+ * the arbitrator actually just randomly selects a smoker and tells it to smoke.
+ *
+ * The process of smoking is implemented in the Savina suite by calling Java
+ * `Math.random()` a few times in a loop. Converting this "workload" to another
+ * language is non-trivial, as likely no similar function with the precise same
+ * implementation exists. For the C++ port here, we use `rand()` from stdlib.
+ * This is a significant restriction of this benchmark and limits the
+ * comparibility of results obtained from Akka and from LF C++.
+ *
+ * Since actors operate asynchronously, several smokers can actually smoke in
+ * parallel. In theory, this allows for a fast execurion, as the workload of
+ * each smoker can be processed in parallel by many smokers. Achieving this in
+ * LF, however, is non-trivial. In LF, all the communication is synchonous and
+ * instantaneous. When the arbitrator tells a smoker to smoke, the smoker will
+ * start smoking at the same tag and the execution will wait until this smoker
+ * finished. Only then the runtime will forward logical time to the next tag and
+ * the arbitrator will tell the next smoler to smoke. Obviously, there is no
+ * parallelism in this solution.
+ *
+ * In an alternative solution (this was actually implemented earlier), each
+ * smoker could have an additional thread and use this thread to process the
+ * workload asynchrously. This requires explict synchronization mechanisms and
+ * getting the interaction between abitrator, smoker and worker thread right
+ * seems to be hard. However, apparently the workload is processed very rapidly
+ * (it produces at most 1000 random numbers). Thus, the synchronisation overhead
+ * required when using an additional worker thread outweigs the benefit of
+ * parallel execution. The synchronous implementation where only one smoker
+ * smokes at a time prooved to be significanlty faster. Still, finding a simple
+ * and eficient solution that processes the smoker workload asynchronously would
+ * be an interesting problem
+ */
+
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "CigaretteSmoker.cmake"
@@ -28,133 +68,63 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     input inStart:void;
     output outFinished:void;
 
-    output[numSmokers] outSmokers:size_t;
-    input[numSmokers] inSmokers:void;
-    output[numSmokers] outSmokersStart:void;
-    output[numSmokers] outSmokersStop:void;
+    output[numSmokers] startSmoking: size_t;
     
     logical action chooseSmoker:void;
     logical action stop:void;
     
-    reaction(inStart) -> chooseSmoker, outSmokersStart {=
-        
+    reaction(inStart) -> chooseSmoker {=
         // reset local state
         roundsSoFar = 0;
         random = PseudoRandom(numRounds * numSmokers);
         
         // start excution
         chooseSmoker.schedule();
-        for(auto& port : outSmokersStart) {
-            port.set();
-        }
     =}
     
-    reaction(chooseSmoker) -> outSmokers {=
-        
-        // assume resources grabbed instantaneously
+    reaction(chooseSmoker) -> startSmoking, chooseSmoker, stop {=
+        // assume resources grabbed instantaneously and choose a random smoker to start smoking
         int newSmokerIndex = abs(random.nextInt()) % numSmokers;
         int busyWaitPeriod = random.nextInt(1000) + 10;
-        outSmokers[newSmokerIndex].set(busyWaitPeriod);
-    =}
-    
-    reaction(stop) -> outFinished, outSmokersStop {=
-        outFinished.set();
-        for(auto& port : outSmokersStop) {
-            port.set();
-        }
-    =}
-    
-    reaction(inSmokers) -> chooseSmoker, stop {=
-        // resources are off the table, can place new ones on the table
-        roundsSoFar += 1;
+        startSmoking[newSmokerIndex].set(busyWaitPeriod);
+        
+        // no need to wait for feedback from the smoker, as it starts smoking (logically) instantaneously
+        // We can immediately schedule the next round
+        
+        roundsSoFar++;
         reactor::log::Debug() << "roundsSoFar=" << roundsSoFar;
         if (roundsSoFar >= numRounds) {
             stop.schedule();
         } else {
-            // choose a random smoker to start smoking
+            // trigger the next round
             chooseSmoker.schedule();
         }
+    =}
+    
+    reaction(stop) -> outFinished {=
+        outFinished.set();
     =}
 }
 
 reactor SmokerReactor(instance:int(0)) {
+     
+    input startSmoking: size_t;
     
-    // state related to thread
-    state smokingThread: std::thread;
-    state unlockThread: bool;
-    state stopThread: bool;
-    state limit: size_t;
-    state mtx: std::mutex;
-    state cv: std::condition_variable;
-    
-    input inArbiter: size_t;
-    output outArbiter: void;
-    
-    // start and stop execution
-    input inStop:void;
-    input inStart:void;
-    
-    reaction(inStart) {=
-        // reset state
-        unlockThread = false;
-        stopThread = false;
-        limit = -1;
-        smokingThread = std::thread(smoke, &unlockThread, &stopThread, &limit, &mtx, &cv);
+    reaction(startSmoking){=
+        size_t limit = *(startSmoking.get());
+        busyWait(limit);
     =}
     
-    reaction(inStop) {=
-        // stop the thread
-        std::unique_lock<std::mutex> lck(mtx); // make sure thread waits on cv
-        stopThread = true;
-        unlockThread = true;
-        cv.notify_all();
-        lck.unlock();
-        smokingThread.join();
-    =}
-    
-    reaction(inArbiter) -> outArbiter {=
-        
-        std::unique_lock<std::mutex> lck(mtx); // wait for smoking to finish if necessary
-        limit = *(inArbiter.get());
-        unlockThread = true;
-        cv.notify_all();
-        lck.unlock();
-        
-        outArbiter.set();
-    =}
-    
-    private preamble {=
-        
-        static int busyWait(const int limit) {
-            int test = 0;
+    method busyWait(limit:size_t): size_t {=
+        size_t test = 0;
             
-            for(int k = 0; k < limit; k++) {
-                // Math.random() as workload in the original savina benchmark suite
-                // what is equivalent in Cpp complexity-wise? maybe rand()
-                rand();
-                test++;
-            }
-            return test;
+        for(size_t k = 0; k < limit; k++) {
+             // Math.random() is used as workload in the original savina benchmark suite
+             // FIXME: What is equivalent in Cpp complexity-wise? maybe rand()??
+            rand();
+            test++;
         }
-        
-        // Function for the thread to smoke
-        static void smoke(bool * unlockThread, bool * stopThread, size_t * limit, std::mutex * mtx, std::condition_variable * cv) {
-            
-            std::unique_lock<std::mutex> lck(*mtx);
-            
-            while(true) {
-                // wait for cv, protected against unintentional wake-ups with bool
-                while(!(*unlockThread)) cv->wait(lck);
-                if(*stopThread) {
-                    return; // end thread cooperatively
-                }
-                
-                // busy waiting using shared variable limit
-                busyWait(*limit);
-                
-                *unlockThread = false;
-            }
-        }
+        return test;
     =}
 }
 
@@ -178,8 +148,5 @@ main reactor (numIterations:size_t(12), numRounds:size_t(1000), numSmokers:size_
     
     smokers = new[numSmokers] SmokerReactor();
     
-    smokers.outArbiter -> arbiter.inSmokers;
-    arbiter.outSmokers -> smokers.inArbiter;
-    arbiter.outSmokersStart -> smokers.inStart;
-    arbiter.outSmokersStop -> smokers.inStop;
+    arbiter.startSmoking -> smokers.startSmoking;
 }
