@@ -10,7 +10,7 @@
             application="org.eclipse.ui.ide.workbench">
          <property
                name="appName"
-               value="Epoch">
+               value="Epoch IDE">
          </property>
          <property
                name="windowImages"
@@ -34,7 +34,7 @@
          </property>
          <property
                name="aboutText"
-               value="Lingua Franca&#x0A;A coordination language for defining and composing reactors.&#x0A;&#x0A;For more information, visit us on GitHub: https://github.com/icyphy/lingua-franca">
+               value="Version: 0.1.0 Beta.&#x0A;&#x0A;Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.&#x0A;&#x0A;Visit our GitHub: https://repo.lf-lang.org/.&#x0A;&#x0A;Copyright © Lingua Franca contributors 2019-2021.&#x0A;All rights reserved.">
          </property>
          <property
                name="preferenceCustomization"

@@ -6,10 +6,14 @@
    <aboutInfo>
       <image path="/org.lflang.product/icons/lf-logo.png"/>
       <text>
-         Lingua Franca
-A coordination language for defining and composing reactors.
+         Version: 0.1.0 Beta.
 
-For more information, visit us on GitHub: https://github.com/icyphy/lingua-franca
+Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.
+
+Visit our GitHub: https://repo.lf-lang.org/.
+
+This software is licensed under the BSD 2-Clause License.
+Copyright © Lingua Franca contributors 2019-2021. All rights reserved.
       </text>
    </aboutInfo>
 
