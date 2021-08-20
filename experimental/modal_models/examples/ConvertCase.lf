@@ -1,23 +1,55 @@
-target Python;
+target C;
 
-reactor ConvertCase {
-	input raw;
-    output conv;
+import PrintChar from "lib/Printer.lf";
+import TimedSeparator from "lib/Timer.lf";
+
+reactor Converter(log:bool(false)) {
+	input raw:char;
+    output converted:char;
+
+    preamble {=
+    	#include <stdio.h>
+    =}
+
+    initial mode Upper {
+		reaction(raw) -> converted, Lower {=
+            char c = raw->value;
+            if (c >= 'a' && c <= 'z') {
+                SET(converted, c - 32);
+            } else {
+                SET(converted, c);
+            }
+            if (c == ' ') {
+                SET_MODE(Lower);
+            }
+            if (self->log) {
+            	printf("%c -> %c\n", c, converted->value);
+            }
+		=}
+    }
+    mode Lower {
+		reaction(raw) -> converted, Upper {=
+            char c = raw->value;
+            if (c >= 'A' && c <= 'Z') {
+                SET(converted, c + 32);
+            } else {
+                SET(converted, c);
+            }
+            if (c == ' ') {
+                SET_MODE(Upper);
+            }
+            if (self->log) {
+            	printf("%c -> %c\n", c, converted->value);
+            }
+		=}
+    }
+}
+
+main reactor ConvertCase {
+    sep = new TimedSeparator(period=500msec, message="Hello World!");
+    converter = new Converter();
+    printer = new PrintChar();
     
-    initial mode Lower {
-		reaction(raw) -> Upper, conv {=
-            if raw.isalpha:
-            	conv.set(raw.lower())
-            else:
-            	set_mode(Upper)
-		=}
-    }
-    mode Upper {
-		reaction(raw) -> Lower, conv {=
-            if raw.isalpha:
-            	conv.set(raw.upper())
-            else:
-            	set_mode(Lower)
-		=}
-    }
+    sep.character -> converter.raw;
+    converter.converted -> printer.character;
 }
