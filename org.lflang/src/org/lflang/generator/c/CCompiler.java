@@ -26,6 +26,7 @@
 package org.lflang.generator.c;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ public class CCompiler {
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary) {
+    public boolean runCCompiler(String file, boolean noBinary) throws IOException {
         LFCommand compile = compileCCommand(file, noBinary);
         if (compile == null) {
             return false;
