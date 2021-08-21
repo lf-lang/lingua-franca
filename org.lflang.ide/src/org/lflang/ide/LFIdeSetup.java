@@ -14,9 +14,7 @@ import org.lflang.LFStandaloneSetup;
  */
 public class LFIdeSetup extends LFStandaloneSetup {
 
-	@Override
-	public Injector createInjector() {
-		return Guice.createInjector(Modules2.mixin(new LFRuntimeModule(), new LFIdeModule()));
+	public LFIdeSetup() {
+		super(new LFRuntimeModule(), new LFIdeModule());
 	}
-	
 }
