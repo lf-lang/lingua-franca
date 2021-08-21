@@ -13,7 +13,7 @@ Epoch is an IDE for Lingua Franca, a  polyglot coordination language for buildin
 Visit our GitHub: https://repo.lf-lang.org/.
 
 This software is licensed under the BSD 2-Clause License.
-Copyright © Lingua Franca contributors 2019-2021. All rights reserved.
+Copyright © 2019-2021, Lingua Franca contributors. All rights reserved.
       </text>
    </aboutInfo>
 
@@ -64,9 +64,9 @@ Copyright © Lingua Franca contributors 2019-2021. All rights reserved.
    <license>
         <url>https://raw.githubusercontent.com/icyphy/lingua-franca/master/LICENSE.md</url>
         <text>
-   The Lingua-Franca toolkit is licensed under the BSD 2-Clause License:
+   Epoch IDE is licensed under the BSD 2-Clause License:
 
-Copyright (c) 2019-2020, Industrial Cyberphysical Systems (iCyPhy). All rights reserved.
+Copyright © 2019-2020, Lingua Franca constributors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, 
 are permitted provided that the following conditions are met:
