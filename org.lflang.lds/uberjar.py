@@ -35,13 +35,21 @@ from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
 IGNORED_JARS = [
     'org.apache.ant*',
-    'intellij-core-analysis.jar', # Added by Peter, who does not understand this script
-    'kotlin-compiler.jar', # Added by Peter, who does not understand this script
-    'kotlin-plugin-parts.jar', # Added by Peter, who does not understand this script
-    'ide-dependencies.jar', # Added by Peter, who does not understand this script
-    'kotlin-stdlib.jar', # Added by Peter, who does not understand this script
-    'kotlin-reflect.jar', # Added by Peter, who does not understand this script
+    'kotlin-compiler.jar',
+    'kotlin-reflect.jar',
+    'ide-dependencies.jar',
+    'intellij-core-analysis.jar',
+    'kotlin-plugin-parts.jar',
 ]
+
+OVERRIDING_JARS = [ # FIXME: Added by Peter, who does not understand this script
+    'kotlin-stdlib.jar',
+]
+INSERTED_JARS = [
+    'kotlinx-serialization-json-jvm-1.0.1.jar',
+    'kotlinx-serialization-core-jvm-1.0.1.jar'
+]
+
 IGNORE_NESTED_JARS = [
 ]
 IGNORED_FILES = [
@@ -163,9 +171,17 @@ def main(args):
     if args.scripts:
         create_standalone_scripts(args, jar, target_dir,klighd)
 
+def insert_jars(args):
+    """Inserts INSERTED_JARS into the update site."""
+    for jar in INSERTED_JARS:
+        path = abspath(join(args.build, '..', jar))
+        shutil.copy(path, args.source)
+
 def extract(args, extracted, merged, klighd):
     conflicts = False
+    insert_jars(args)
     jars = sorted(os.listdir(args.source))
+    print("jars=", jars)
     processed_jars = [] # Tuples of plugin name and jar
     for jar in jars:
         if not jar.endswith('.jar') or any(fnmatch(jar, ign) for ign in IGNORED_JARS):
@@ -217,7 +233,7 @@ def extract(args, extracted, merged, klighd):
                         src = join(target, file)
                         dest = join(merged, file)
 
-                        if isfile(dest): # potential conflict
+                        if isfile(dest) and (jar not in OVERRIDING_JARS): # potential conflict
                             if any(fnmatch(file, match) for match in APPEND_MERGE): # merge by append
                                 with open(src, 'r') as i:
                                     with open(dest, 'a') as o:
