@@ -2,6 +2,8 @@
  * Concurrency benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
+ * In this benchmark, there are three main components: The barber, a waiting room and the customers.
+ * The customers are produced and controlled by a CustomerFactory.
  * This implementation is close to the Savina Akka implementation
  * in terms of the work that is done in each actor/reactor and
  * that for each message sent in Savina there is a message send
@@ -17,6 +19,7 @@
  * deadlines if the waiting room is full. But these would lack
  * comparability with the Savina benchmark even more.
  * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
