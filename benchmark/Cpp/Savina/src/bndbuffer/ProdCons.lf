@@ -17,50 +17,6 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numProducers=40
-# -D numConsumers=40
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numProducers' in globals():
-    numProducers = int(numProducers)
-  else:
-    globals()['numProducers'] = 40
-  if 'numConsumers' in globals():
-    numConsumers = int(numConsumers)
-  else:
-    globals()['numConsumers'] = 40
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numProducers = {numProducers}')
-  cog.outl(f'// numConsumers = {numConsumers}')
-]]] */
-// Generated file with the following parameters:
-// numProducers = 40
-// numConsumers = 40
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "../IncludeHeaders.cmake"
@@ -122,20 +78,12 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
     logical action consume: void;
     logical action produce: void;
     
-    /* [[[cog
-      cog.outl(f'input[{numProducers}] inProducers:{{=Message=}};')
-      cog.outl(f'output[{numProducers}] outProducers:{{=Message=}};')
-      cog.outl(f'input[{numConsumers}] inConsumers:{{=Message=}};')
-      cog.outl(f'output[{numConsumers}] outConsumers:{{=Message=}};') 
-    ]]] */
-    input[40] inProducers: Message;
-    output[40] outProducers: Message;
-    input[40] inConsumers: Message;
-    output[40] outConsumers: Message;
-    // [[[end]]]
+    input[numProducers] inProducers: Message;
+    output[numProducers] outProducers: Message;
+    input[numConsumers] inConsumers: Message;
+    output[numConsumers] outConsumers: Message;
     
     reaction(startup) {=
-        
         // init local state
         availableProducers.reserve(numProducers);
         availableConsumers.reserve(numConsumers);
@@ -144,9 +92,7 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
     =}
     
     reaction(produce) -> outProducers {=
-        
         while(pendingData.size() < adjustedBufferSize) {
-            
             if(availableProducers.empty()) {
                 return;
             }
@@ -157,14 +103,12 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
     =}
     
     reaction(consume) -> outConsumers, outProducers {=
-        
         if(numTerminatedProducers == numProducers &&
             availableConsumers.size() == numConsumers) {
             return;
         }
         
         for(size_t i{0}; i < availableConsumers.size(); i++) {
-            
             if(pendingData.empty()) {
                 break;
             }
@@ -180,7 +124,6 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
     =}
     
     reaction(inStart) -> produce {=
-        
         // reset local state
         availableProducers.clear();
         availableConsumers.clear();
@@ -209,7 +152,6 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
     =}
     
     reaction(inProducers) -> produce, consume, outFinished {=
-        
         for(size_t i{0}; i < inProducers.size(); i++) {
             if(inProducers[i].is_present()) {
                 if(inProducers[i].get()->type == DataItemMsg) {
@@ -285,14 +227,11 @@ main reactor (
     bufferSize: size_t{50},
     prodCost: size_t{25},
     consCost: size_t{25},
-    numItemsPerProducer: size_t{1000}
+    numItemsPerProducer: size_t{1000},
+    numConsumers: size_t{40},
+    numProducers: size_t{40}
 ) {
-    
-    /* [[[cog
-      cog.outl(f'manager = new ManagerReactor(bufferSize=bufferSize, numProducers={numProducers}, numConsumers={numConsumers});')
-    ]]] */
-    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
-    // [[[end]]]
+    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> manager.inStart;
@@ -300,27 +239,19 @@ main reactor (
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("ProdConsBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost, "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, "numProducers", {numProducers}, "numConsumers", {numConsumers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost, "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost,
+                  "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, 
+                  "numProducers", numProducers, "numConsumers", numConsumers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'producers = new[{numProducers}] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);')
-      cog.outl(f'consumers = new[{numConsumers}] ConsumerReactor(consCost=consCost);')
-    ]]] */
-    producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
-    consumers = new[40] ConsumerReactor(consCost=consCost);
-    // [[[end]]]
+    producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+    consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
     
     manager.outProducers -> producers.inManager;
     producers.outManager -> manager.inProducers;
     
     manager.outConsumers -> consumers.inManager;
     consumers.outManager -> manager.inConsumers;
-    
 }
