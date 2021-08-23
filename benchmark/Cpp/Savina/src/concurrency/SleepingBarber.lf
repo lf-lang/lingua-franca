@@ -23,7 +23,8 @@
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "SleepingBarber.cmake",
-    logging: "info"
+    keepalive: true,
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -87,19 +88,6 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         sendCustomer.set(customer_id);
     =}
     
-    reaction (customerDone) -> finished {=
-        for (size_t i{0}; i < numCustomers; i++) {
-            if (customerDone[i].is_present()) {
-                doneCustomers++;
-        	    if (doneCustomers == numCustomers) {
-                    reactor::log::Info() << "Hair cuts given: " << doneCustomers << "; Total attempts: " << attempts;
-                    finished.set();
-                    thread.join();
-                }
-        	}
-        }
-    =}
-    
     reaction (sendCustomerAgain) -> sendCustomer {=
         size_t customer_id = *sendCustomerAgain.get();
         reactor::log::Info() << "Factory: Send customer " << customer_id << " again to the waiting room";
@@ -117,32 +105,129 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
             }
         }
     =}
+    
+    reaction (customerDone) -> finished {=
+        for (size_t i{0}; i < numCustomers; i++) {
+            if (customerDone[i].is_present()) {
+                doneCustomers++;
+        	    if (doneCustomers == numCustomers) {
+                    std::cout << "Hair cuts given: " << doneCustomers << "; Total attempts: " << attempts << "\n";
+                    finished.set();
+                    thread.join();
+                }
+        	}
+        }
+    =}
 }
 
 reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
+    input reset: void;
+    
     input receiveCustomer: size_t;
     
-    output[numCustomers] rejectCustomer: void
+    output[numCustomers] full: void;
+    output[numCustomers] wait: void;
+    
+    input barberNext: void;
+    output barberEnter: size_t;
+    output barberWait: void;
     
     state queue: std::deque<size_t>{};
+    state barberAsleep: bool{true};
     
-    reaction (receiveCustomer) -> rejectCustomer {=
+    reaction(reset) {=
+        barberAsleep = true;
+    =}
+    
+    reaction (receiveCustomer) -> full, wait, barberEnter {=
          size_t customer_id = *receiveCustomer.get();
          reactor::log::Info() << "Room: Customer " << customer_id << " tries to enter";
          
-         if(queue.size() == capacity) {
-             rejectCustomer[customer_id].set();
+         if (queue.size() == capacity) {
+             full[customer_id].set();
          } else {
-            queue.push_back(customer_id);
+            if (barberAsleep) {
+                barberAsleep = false;
+                barberEnter.set(customer_id);
+            } else {
+                queue.push_back(customer_id);
+                wait[customer_id].set();	
+           	}
+        }
+    =}
+    
+    reaction (barberNext) -> barberEnter, barberWait {=
+        if (queue.empty()) {
+            barberAsleep = true;
+            barberWait.set();
+        } else {
+            barberEnter.set(queue.front());
+            queue.pop_front();
         }
     =}
 }
 
 reactor Customer(bank_index:size_t(0)) {
-    input rejected: void;
+    input roomFull: void;
+    input wait: void;
+    input startCutting: void;
+    input doneCutting: void; 
+
+    output returned: void;
+    output done: void;
     
-    reaction (rejected) {=
-        reactor::log::Info() << "Customer " << bank_index << ": rejected because waiting room is full";
+    reaction (roomFull) -> returned {=
+        reactor::log::Info() << "Customer " << bank_index << ": The waiting room is full. I am leaving.";
+        returned.set();
+    =}
+    
+    reaction (wait) {=
+        reactor::log::Info() << "Customer " << bank_index << ": I will wait.";
+    =}
+    
+    reaction (startCutting) {= 
+        reactor::log::Info() << "Customer " << bank_index << ": I am now being served.";
+    =}
+    
+    reaction (doneCutting) -> done {=
+    	reactor::log::Info() << "Customer " << bank_index << ": I have been served.";
+    	done.set();
+	=}
+}
+
+reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
+    input reset: void;
+    input enter: size_t;
+    input wait: void;
+        
+    output[numCustomers] startCutting: void;
+    output[numCustomers] doneCutting: void;
+    output next: void;
+    
+    physical action doCutting: size_t;
+    
+    state random: PseudoRandom;
+    
+    reaction (reset) {=
+        random = PseudoRandom();
+    =}
+      
+    reaction (doCutting) -> doneCutting, next{=
+        size_t customer_id = *doCutting.get();
+        reactor::log::Info() << "Barber: Processing customer " << customer_id;
+        busyWait(random.nextInt(averageHaircutRate) + 10);
+        doneCutting[customer_id].set();
+        next.set();
+    =}
+    
+    reaction (enter) -> startCutting, doCutting {=
+        size_t customer_id = *enter.get();
+        startCutting[customer_id].set();
+        doCutting.schedule(customer_id);
+    =}
+    
+    reaction (wait) {=
+        reactor::log::Info() << "Barber: No customers. Going to sleep.";
     =}
 }
 
@@ -151,6 +236,7 @@ main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averagePro
     runner = new BenchmarkRunner(numIterations=numIterations);
     factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
     room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
+    barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
     customers = new[numHaircuts] Customer();
     
     reaction(startup) -> runner.inStart {=
@@ -160,10 +246,18 @@ main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averagePro
         runner.inStart.set();
     =}
     
-    runner.outIterationStart -> factory.start;
+    (runner.outIterationStart)+ -> factory.start, barber.reset, room.reset;
     factory.finished -> runner.inIterationFinish;
     
     factory.sendCustomer -> room.receiveCustomer;
-    room.rejectCustomer -> customers.rejected;
-    room.rejectCustomer -> factory.customerReturned;
+    room.full -> customers.roomFull;
+    room.wait -> customers.wait;
+    room.barberEnter -> barber.enter;
+    room.barberWait -> barber.wait;
+    barber.next -> room.barberNext;
+    barber.startCutting -> customers.startCutting;
+    barber.doneCutting -> customers.doneCutting;
+    customers.done -> factory.customerDone;
+    
+    customers.returned -> factory.customerReturned;
 }
