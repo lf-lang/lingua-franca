@@ -6,7 +6,7 @@
  */
  
  /**
- * Micro-benchmark from the Savina benchmark suite, intended
+ * Concurrency benchmark from the Savina benchmark suite, intended
  * to measure message passing overhead and switching between
  * actors.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
@@ -82,21 +82,45 @@ public preamble {=
       MsgType type;
       double data;
     };
+    
+    double processItem(const double curTerm, const size_t cost);
 =}
 
-reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:int(40)) {
+private preamble {=
+    #include <cmath>
+    #include "PseudoRandom.hh"
     
-    state adjustedBufferSize:int({=bufferSize-numProducers=});
-    state availableProducers:{=std::vector<int>=};
-    state availableConsumers:{=std::vector<int>=};
-    state pendingData:{=std::vector<reactor::ImmutableValuePtr<Message>>=};
-    state numTerminatedProducers:int(0);
+    double processItem(const double curTerm, const size_t cost) {
+        double res = curTerm;
+        
+        PseudoRandom random(cost);
+        if(cost > 0) {
+            for(size_t i{0}; i < cost; i++) {
+                for(size_t j{0}; j < 100; j++) {
+                    res += log(abs(random.nextDouble()) + 0.01);
+                }
+            }
+        } else {
+            res += log(abs(random.nextDouble()) + 0.01);
+        }
+        
+        return res;
+    }
+=}
+
+reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numConsumers: size_t{40}) {
     
-    input inStart:void;
-    output outFinished:void;
+    state adjustedBufferSize: size_t{{=bufferSize-numProducers=}};
+    state availableProducers: std::vector<int>;
+    state availableConsumers: std::vector<int>;
+    state pendingData: {=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    state numTerminatedProducers: size_t{0};
     
-    logical action consume:void;
-    logical action produce:void;
+    input inStart: void;
+    output outFinished: void;
+    
+    logical action consume: void;
+    logical action produce: void;
     
     /* [[[cog
       cog.outl(f'input[{numProducers}] inProducers:{{=Message=}};')
@@ -104,10 +128,10 @@ reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:in
       cog.outl(f'input[{numConsumers}] inConsumers:{{=Message=}};')
       cog.outl(f'output[{numConsumers}] outConsumers:{{=Message=}};') 
     ]]] */
-    input[40] inProducers:{=Message=};
-    output[40] outProducers:{=Message=};
-    input[40] inConsumers:{=Message=};
-    output[40] outConsumers:{=Message=};
+    input[40] inProducers: Message;
+    output[40] outProducers: Message;
+    input[40] inConsumers: Message;
+    output[40] outConsumers: Message;
     // [[[end]]]
     
     reaction(startup) {=
@@ -139,7 +163,7 @@ reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:in
             return;
         }
         
-        for(int i = 0; i < availableConsumers.size(); i++) {
+        for(size_t i{0}; i < availableConsumers.size(); i++) {
             
             if(pendingData.empty()) {
                 break;
@@ -164,18 +188,17 @@ reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:in
         numTerminatedProducers = 0;
         
         // start execution
-        for(int i = 0; i < outProducers.size(); i++) {
+        for(size_t i{0}; i < numProducers; i++) {
             availableProducers.push_back(i);
         }
-        for(int i = 0; i < outConsumers.size(); i++) {
+        for(size_t i{0}; i < numConsumers; i++) {
             availableConsumers.push_back(i);
         }
         produce.schedule();
     =}
     
     reaction(inConsumers) -> consume {=
-        
-        for(int i = 0; i < inConsumers.size(); i++) {
+        for(size_t i{0}; i < inConsumers.size(); i++) {
             if(inConsumers[i].is_present()) {
                 if(inConsumers[i].get()->type == ConsumerAvailableMsg) {
                     availableConsumers.push_back(i);
@@ -187,7 +210,7 @@ reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:in
     
     reaction(inProducers) -> produce, consume, outFinished {=
         
-        for(int i = 0; i < inProducers.size(); i++) {
+        for(size_t i{0}; i < inProducers.size(); i++) {
             if(inProducers[i].is_present()) {
                 if(inProducers[i].get()->type == DataItemMsg) {
                     
@@ -211,21 +234,13 @@ reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:in
     =}
 }
 
-reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
+reactor ProducerReactor(numItemsToProduce: size_t{1000}, prodCost: size_t{25}) {
+
+    state prodItem: double{0.0};
+    state itemsProduced: size_t{0};
     
-    public preamble {=
-        #include "PseudoRandom.hh"
-    =}
-    
-    private preamble {=
-        #include <cmath>
-    =}
-    
-    state prodItem:double(0.0);
-    state itemsProduced:int(0);
-    
-    input inManager:{=Message=};
-    output outManager:{=Message=};
+    input inManager: Message;
+    output outManager: Message;
     
     reaction(inManager) -> outManager {=
         
@@ -243,40 +258,14 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
             itemsProduced += 1;
         }
     =}
-    
-    private preamble {=
-        
-        static double processItem(const double curTerm, const int cost) {
-            
-            double res = curTerm;
-            
-            PseudoRandom random(cost);
-            if(cost > 0) {
-                for(int i = 0; i < cost; i++) {
-                    for(int j = 0; j < 100; j++) {
-                        res += log(abs(random.nextDouble()) + 0.01);
-                    }
-                }
-            } else {
-                res += log(abs(random.nextDouble()) + 0.01);
-            }
-            
-            return res;
-        }
-    =}
 }
 
-reactor ConsumerReactor(consCost:int(25)) {
+reactor ConsumerReactor(consCost: size_t{25}) {
     
-    private preamble {=
-        #include <cmath>
-        #include "PseudoRandom.hh"
-    =}
+    state consItem: double{0.0};
     
-    state consItem:double(0.0);
-    
-    input inManager:{=Message=};
-    output outManager:{=Message=};
+    input inManager: Message;
+    output outManager: Message;
     
     reaction(inManager) -> outManager {=
         
@@ -289,30 +278,15 @@ reactor ConsumerReactor(consCost:int(25)) {
             consItem = 0.0;
         }
     =}
-    
-    private preamble {=
-        
-        static double processItem(const double curTerm, const int cost) {
-            
-            double res = curTerm;
-            
-            PseudoRandom random(cost);
-            if(cost > 0) {
-                for(int i = 0; i < cost; i++) {
-                    for(int j = 0; j < 100; j++) {
-                        res += log(abs(random.nextDouble()) + 0.01);
-                    }
-                }
-            } else {
-                res += log(abs(random.nextDouble()) + 0.01);
-            }
-            
-            return res;
-        }
-    =}
 }
 
-main reactor (numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+main reactor (
+    numIterations: size_t{12},
+    bufferSize: size_t{50},
+    prodCost: size_t{25},
+    consCost: size_t{25},
+    numItemsPerProducer: size_t{1000}
+) {
     
     /* [[[cog
       cog.outl(f'manager = new ManagerReactor(bufferSize=bufferSize, numProducers={numProducers}, numConsumers={numConsumers});')
