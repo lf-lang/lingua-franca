@@ -54,7 +54,7 @@
 					<products>
 						<product>
 							<id>org.lflang.rca</id>
-							<rootFolder>lflang</rootFolder>
+							<rootFolder>epoch</rootFolder>
 							<archiveFileName>epoch_ide_${buildQualifier}</archiveFileName>
 						</product>
 					</products>
