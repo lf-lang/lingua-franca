@@ -25,7 +25,6 @@
     <option name="SOFT_MARGINS" value="60" />
     <JavaCodeStyleSettings>
       <option name="ALIGN_MULTILINE_ANNOTATION_PARAMETERS" value="true" />
-      <option name="BLANK_LINES_AROUND_INITIALIZER" value="2" />
       <option name="INSERT_INNER_CLASS_IMPORTS" value="true" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
       <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
@@ -70,8 +69,6 @@
     <codeStyleSettings language="JAVA">
       <option name="RIGHT_MARGIN" value="120" />
       <option name="BLANK_LINES_BEFORE_PACKAGE" value="1" />
-      <option name="BLANK_LINES_AROUND_METHOD" value="2" />
-      <option name="BLANK_LINES_AROUND_METHOD_IN_INTERFACE" value="2" />
       <option name="BLANK_LINES_AFTER_CLASS_HEADER" value="1" />
       <option name="INDENT_CASE_FROM_SWITCH" value="false" />
       <option name="ALIGN_MULTILINE_CHAINED_METHODS" value="true" />
