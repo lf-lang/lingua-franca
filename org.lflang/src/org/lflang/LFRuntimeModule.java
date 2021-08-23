@@ -7,12 +7,19 @@ import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
+
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.validation.LFNamesAreUniqueValidationHelper;
 
 /**
- * Use this class to register components to be used at runtime / without the
- * Equinox extension registry.
+ * Binds services that are available both when running LFC
+ * standalone, and when running within the IDE.
+ * <ul>
+ * <li>LfIdeModule overrides this module with additional
+ * bindings when running in the IDE.
+ * <li>{@link LFStandaloneModule} overrides this module when
+ * running LFC standalone.
+ * </ul>
  */
 public class LFRuntimeModule extends AbstractLFRuntimeModule {
 
@@ -35,5 +42,10 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
     public Class<? extends ISyntaxErrorMessageProvider> bindISyntaxErrorMessageProvider() {
         return LFSyntaxErrorMessageProvider.class;
 }
+
+    /** The error reporter. {@link LFStandaloneModule} overrides this binding. */
+    public Class<? extends ErrorReporter> bindErrorReporter() {
+        return DefaultErrorReporter.class;
+    }
 
 }
