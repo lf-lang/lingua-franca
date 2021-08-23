@@ -58,40 +58,48 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     input[numCustomers] customerDone: void;
     input[numCustomers] customerReturned: void;
 
-    physical action createCustomer: size_t;
-    physical action sendCustomerAgain: size_t
+    logical action createNextCustomer: void;
+    logical action sendCustomerAgain: size_t
     
-    state thread: std::thread;
     state doneCustomers: size_t{0};
     state attempts: size_t{0};
-
-    method generateCustomers(createCustomer: {=reactor::PhysicalAction<size_t>&=}) {=
-        PseudoRandom random{};
-        for(size_t i{0}; i < numCustomers; i++) {
-            createCustomer.schedule(i);
-            busyWait(random.nextInt(averageProductionRate) + 10);
-        }
-    =}
+    state next_customer_id: size_t{0};
+    state random: PseudoRandom;
     
-    reaction(start) -> createCustomer {=
+    reaction(start) -> createNextCustomer {=
         // reset state
         doneCustomers = 0;
         attempts = 0;
+        next_customer_id = 0;
+        random = PseudoRandom();
         // start "creating" customers
-        thread = std::thread([this, &createCustomer]() { generateCustomers(createCustomer); });
+        createNextCustomer.schedule();
     =}
     
-    reaction (createCustomer) -> sendCustomer {=
-        size_t customer_id = *createCustomer.get();
-        reactor::log::Info() << "Factory: Send customer " << customer_id << " to the waiting room";
+    reaction (createNextCustomer) -> sendCustomer, createNextCustomer {=
+        // get a random production delay
+        int delay = (random.nextInt(averageProductionRate) + 10);
+        
+        // apply a physical delay
+        busyWait(delay);
+        
+        // send the new customer to the waiting room
+        reactor::log::Info() << "Factory: Send customer " << next_customer_id << " to the waiting room";
         attempts++;
-        sendCustomer.set(customer_id);
+        sendCustomer.set(next_customer_id);
+        
+        next_customer_id++;
+        if (next_customer_id < numCustomers) {
+            // schedule again with logical delay that is (proportionally) equal to the physical delay.
+            createNextCustomer.schedule(reactor::Duration{delay});
+        }
     =}
     
     reaction (sendCustomerAgain) -> sendCustomer {=
         size_t customer_id = *sendCustomerAgain.get();
         reactor::log::Info() << "Factory: Send customer " << customer_id << " again to the waiting room";
         attempts++;
+
         sendCustomer.set(customer_id);
     =}
     
@@ -99,9 +107,10 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         for (size_t i{0}; i < numCustomers; i++) {
             if (customerReturned[i].is_present()) {
                 // the customer returned because the waiting room is full
-                // We send the customer again "immediately".
-                // Due to the use of a physical action, this implements a small delay
-                sendCustomerAgain.schedule(i);                
+                // We send the customer again, but apply a logical delay, equal to the production rate.
+                // This is different from the Savina Akka implementation, but only with a delay we can ensure in LF,
+                // that the program moves forward in logical time and completes at some point.
+                sendCustomerAgain.schedule(i, reactor::Duration{averageProductionRate});                
             }
         }
     =}
@@ -113,7 +122,6 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         	    if (doneCustomers == numCustomers) {
                     std::cout << "Hair cuts given: " << doneCustomers << "; Total attempts: " << attempts << "\n";
                     finished.set();
-                    thread.join();
                 }
         	}
         }
@@ -204,7 +212,7 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
     output[numCustomers] doneCutting: void;
     output next: void;
     
-    physical action doCutting: size_t;
+    logical action done: size_t;
     
     state random: PseudoRandom;
     
@@ -212,18 +220,25 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
         random = PseudoRandom();
     =}
       
-    reaction (doCutting) -> doneCutting, next{=
-        size_t customer_id = *doCutting.get();
-        reactor::log::Info() << "Barber: Processing customer " << customer_id;
-        busyWait(random.nextInt(averageHaircutRate) + 10);
+    reaction (done) -> doneCutting, next {=
+        size_t customer_id = *done.get();
         doneCutting[customer_id].set();
         next.set();
     =}
     
-    reaction (enter) -> startCutting, doCutting {=
+    reaction (enter) -> startCutting, done {=
         size_t customer_id = *enter.get();
         startCutting[customer_id].set();
-        doCutting.schedule(customer_id);
+        
+        // calculate a random delay
+        int delay = random.nextInt(averageHaircutRate) + 10;
+        
+        // do the actual cutting and apply a physical delay
+        reactor::log::Info() << "Barber: Processing customer " << customer_id;
+        busyWait(delay);
+        
+        // also apply a logical delay before notifying the customer 
+        done.schedule(customer_id, reactor::Duration(delay));
     =}
     
     reaction (wait) {=
