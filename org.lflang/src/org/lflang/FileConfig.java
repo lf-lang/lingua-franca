@@ -201,7 +201,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = srcGenBasePath.resolve("..");
+        this.outPath = srcGenBasePath.getParent();
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
