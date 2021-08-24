@@ -1,26 +1,25 @@
 /**
- * Concurrency benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This benchmark models a bounded buffer that is used to synchronize between a
+ * group of consumers and a group of producers. In the Akka implementation of
+ * this benchmark, all producers, consumers and the manager operate fully
+ * asynchronously. However, in the LF implementation everything is synchronous.
+ * Thus, strictly speaking, the buffer isn't actually needed as we can design
+ * the program so that every tick a producer produces data and a consumer
+ * consumes it. But, the number of consumers and producers can be seleced
+ * arbitrarily. Therefore, we still need some logic that takes care of or
+ * orchestrating the producers according to the rate at which the consumers
+ * consume. Also, we could implement the consumer such that they don't become
+ * available again immediately after consuming. Therefore, we still implement
+ * most of the logic of the original manager in the Akka version.
  * 
- * @author Hannes Klein
- */
- 
- /**
- * Concurrency benchmark from the Savina benchmark suite, intended
- * to measure message passing overhead and switching between
- * actors.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
- * To open the causality loop in the ring of reactors one
- * reactor uses a logical action for message passing.
- * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "../IncludeHeaders.cmake",
-    logging: "warn"
+    logging: "info"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
