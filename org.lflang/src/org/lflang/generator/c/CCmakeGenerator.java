@@ -75,6 +75,16 @@ class CCmakeGenerator {
             ErrorReporter errorReporter
         ) {
         StringBuilder cMakeCode = new StringBuilder();
+        // Decide if the compilation should happen in C++ mode
+        boolean CppMode = false;
+        if (targetConfig.compiler.equals("g++") || 
+                targetConfig.compiler.equals("CC") ||
+                targetConfig.compiler.equals("clang++")) {
+            // Interpret this as the user wanting their .c programs to be treated as
+            // C++ files.
+            // FIXME: Possibly need a better mechanism to switch to C++ mode.
+            CppMode = true;
+        }
         
         // Resolve path to the cmake include file if one was provided
         if (!includeFile.isBlank()) {
@@ -150,9 +160,7 @@ class CCmakeGenerator {
         }
         
         if (targetConfig.compiler != null) {
-            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
-                // Interpret this as the user wanting their .c programs to be treated as
-                // C++ files. 
+            if (CppMode) {
                 // First enable the CXX language
                 cMakeCode.append("enable_language(CXX)\n");
                 cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
@@ -176,7 +184,7 @@ class CCmakeGenerator {
         // Set the compiler flags
         // We can detect a few common libraries and use the proper target_link_libraries to find them            
         for (String compilerFlag : targetConfig.compilerFlags) {
-            switch(compilerFlag) {
+            switch(compilerFlag.trim()) {
                 case "-lm":
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} m)\n");
                     break;
@@ -191,7 +199,9 @@ class CCmakeGenerator {
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})\n");
                     break;
                 case "-O2":
-                    if (targetConfig.compiler.equals("gcc")) {
+                    if (targetConfig.compiler.equals("gcc") || CppMode) {
+                        // Workaround for the pre-added -O2 option in the CGenerator.
+                        // This flag is specific to gcc/g++ and the clang compiler
                         cMakeCode.append("add_compile_options( -O2 )\n");
                         cMakeCode.append("add_link_options( -O2 )\n");
                         break;
