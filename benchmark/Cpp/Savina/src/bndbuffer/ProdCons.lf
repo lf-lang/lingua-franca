@@ -19,25 +19,15 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "../IncludeHeaders.cmake"
+    cmake-include: "../IncludeHeaders.cmake",
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
 public preamble {=
-    enum MsgType {
-      DataItemMsg,
-      ProduceDataMsg,
-      ProducerExitMsg,
-      ConsumerAvailableMsg,
-      ConsumerExitMsg
-    };
-    
-    struct Message {
-      MsgType type;
-      double data;
-    };
+    #include <deque>
     
     double processItem(const double curTerm, const size_t cost);
 =}
@@ -66,159 +56,138 @@ private preamble {=
 
 reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numConsumers: size_t{40}) {
     
-    state adjustedBufferSize: size_t{{=bufferSize-numProducers=}};
-    state availableProducers: std::vector<int>;
-    state availableConsumers: std::vector<int>;
-    state pendingData: {=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    state adjustedBuffersize: size_t{{=bufferSize-numProducers=}};
+    state pendingData: std::deque<double>;
     state numTerminatedProducers: size_t{0};
+    state producerTerminated: std::vector<bool>;
+    state producer_id: size_t{0};
     
-    input inStart: void;
-    output outFinished: void;
+    input start: void;
+    output finished: void;
     
-    logical action consume: void;
-    logical action produce: void;
+    input[numProducers] producerData: double;
+    input[numProducers] producerFinished: void;
+    output[numProducers] producerCommand: void;
     
-    input[numProducers] inProducers: Message;
-    output[numProducers] outProducers: Message;
-    input[numConsumers] inConsumers: Message;
-    output[numConsumers] outConsumers: Message;
+    input[numConsumers] consumerAvailable: void;
+    output[numConsumers] consumerData: double;
     
-    reaction(startup) {=
-        // init local state
-        availableProducers.reserve(numProducers);
-        availableConsumers.reserve(numConsumers);
-        pendingData.reserve(bufferSize);
-        
-    =}
-    
-    reaction(produce) -> outProducers {=
-        while(pendingData.size() < adjustedBufferSize) {
-            if(availableProducers.empty()) {
-                return;
-            }
-            
-            outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
-            availableProducers.erase(begin(availableProducers));
+    reaction(start) -> producerCommand {=
+        // reset local state
+        pendingData.clear();
+        numTerminatedProducers = 0;
+        producerTerminated = std::vector<bool>(numProducers, false);
+        producer_id = 0;
+
+        // start execution by signalling all producers that they should send data        
+        for (auto& port: producerCommand) {
+            port.set();
         }
     =}
-    
-    reaction(consume) -> outConsumers, outProducers {=
-        if(numTerminatedProducers == numProducers &&
-            availableConsumers.size() == numConsumers) {
+        
+    reaction(consumerAvailable) -> consumerData, producerCommand, finished {=
+        // abort and signal finished if all producers have terminated and all data has been send
+        if(numTerminatedProducers == numProducers && pendingData.empty()) {
+            finished.set();
             return;
         }
         
-        for(size_t i{0}; i < availableConsumers.size(); i++) {
-            if(pendingData.empty()) {
-                break;
+        size_t consumer_id{0};
+        size_t activatedProducers{0};
+        while(!pendingData.empty() && consumer_id < numConsumers) {
+			if (consumerAvailable[consumer_id].is_present()) {
+                consumerData[consumer_id].set(pendingData.front());
+                pendingData.pop_front();
+                // tell a producer to create a new data item for the next round
+                if (activatedProducers < numProducers && !producerTerminated[producer_id]) {
+                    producerCommand[producer_id].set();
+                    producer_id = (producer_id + 1) % numProducers;
+                    activatedProducers++;
+               	}
             }
-            
-            outConsumers[availableConsumers[0]].set(pendingData[0]);
-            availableConsumers.erase(begin(availableConsumers));
-            pendingData.erase(begin(pendingData));
-            if(!availableProducers.empty()) {
-                outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
-                availableProducers.erase(begin(availableProducers));
-            }
+            consumer_id++;
         }
+ 
     =}
-    
-    reaction(inStart) -> produce {=
-        // reset local state
-        availableProducers.clear();
-        availableConsumers.clear();
-        pendingData.clear();
-        numTerminatedProducers = 0;
         
-        // start execution
-        for(size_t i{0}; i < numProducers; i++) {
-            availableProducers.push_back(i);
-        }
-        for(size_t i{0}; i < numConsumers; i++) {
-            availableConsumers.push_back(i);
-        }
-        produce.schedule();
-    =}
-    
-    reaction(inConsumers) -> consume {=
-        for(size_t i{0}; i < inConsumers.size(); i++) {
-            if(inConsumers[i].is_present()) {
-                if(inConsumers[i].get()->type == ConsumerAvailableMsg) {
-                    availableConsumers.push_back(i);
-                }
-            }
-        }
-        consume.schedule();
-    =}
-    
-    reaction(inProducers) -> produce, consume, outFinished {=
-        for(size_t i{0}; i < inProducers.size(); i++) {
-            if(inProducers[i].is_present()) {
-                if(inProducers[i].get()->type == DataItemMsg) {
-                    
-                    pendingData.push_back(inProducers[i].get());
-                    availableProducers.push_back(i);
-                    consume.schedule();
-                    produce.schedule();
-                    
-                } else if(inProducers[i].get()->type == ProducerExitMsg) {
-                    
-                    numTerminatedProducers += 1;
-                    
-                    if(numTerminatedProducers == numProducers &&
-                        availableConsumers.size() == numConsumers) {
-                        outFinished.set();
-                        return;
-                    }
-                }
+    reaction(producerData) {=
+        for (const auto& data : producerData) {
+            if (data.is_present()) {
+            	pendingData.push_back(*data.get());
             }
         }
     =}
+    
+    reaction(producerFinished) {=
+        for (size_t i{0}; i < numProducers; i++) {
+            if (producerFinished[i].is_present()) {
+                numTerminatedProducers++;
+                producerTerminated[i] = true;
+                reactor::log::Info() << "Prdoucer " << i << " finished";                
+            }
+        }
+    =}           
+        
 }
 
-reactor ProducerReactor(numItemsToProduce: size_t{1000}, prodCost: size_t{25}) {
+reactor ProducerReactor(bank_index: size_t{0}, numItemsToProduce: size_t{1000}, prodCost: size_t{25}) {
 
     state prodItem: double{0.0};
     state itemsProduced: size_t{0};
     
-    input inManager: Message;
-    output outManager: Message;
+    input produce: void;
+    output data: double
     
-    reaction(inManager) -> outManager {=
-        
-        if(inManager.get()->type == ProduceDataMsg) {
-            if(itemsProduced == numItemsToProduce) {
-                outManager.set(Message{ProducerExitMsg, 0.0});
-                
-                // reset local state
-                prodItem = 0.0;
-                itemsProduced = 0;
-                return;
-            }
-            prodItem = processItem(prodItem, prodCost);
-            outManager.set(Message{DataItemMsg, prodItem});
-            itemsProduced += 1;
+    input reset: void;
+    output finished: void;
+    
+    reaction (reset) {=   
+        // reset local state
+        prodItem = 0.0;
+        itemsProduced = 0;
+        return;
+    =}
+    
+    reaction(produce) -> data, finished {=
+        prodItem = processItem(prodItem, prodCost);
+        reactor::log::Info() << "Producer " << bank_index << ": producing item "
+                             << itemsProduced << " (" << prodItem << ')';
+    	data.set(prodItem);
+    	itemsProduced++;
+    	
+    	if (itemsProduced == numItemsToProduce) {
+            finished.set();
         }
     =}
 }
 
-reactor ConsumerReactor(consCost: size_t{25}) {
+reactor ConsumerReactor(bank_index: size_t{0}, consCost: size_t{25}) {
     
     state consItem: double{0.0};
     
-    input inManager: Message;
-    output outManager: Message;
+    input reset: void;
     
-    reaction(inManager) -> outManager {=
-        
-        if(inManager.get()->type == DataItemMsg) {
-            double dataToConsume =  inManager.get()->data;
-            consItem = processItem(consItem + dataToConsume, consCost);
-            outManager.set(Message{ConsumerAvailableMsg, 0.0});
-        } else if(inManager.get()->type == ConsumerExitMsg) {
-            // reset local state
-            consItem = 0.0;
-        }
+    input data: double;
+    output available: void;
+    
+    logical action sendAvailable;
+    
+    reaction (reset) -> sendAvailable {=
+        // reset local state
+        consItem = 0.0;
+        sendAvailable.schedule();
+    =}
+    
+    reaction(sendAvailable) -> available {=
+        reactor::log::Info() << "Consumer " << bank_index << ": Send available";
+        available.set();
+    =}
+    
+    reaction(data) -> sendAvailable {=
+        consItem = processItem(consItem + *data.get(), consCost);
+        reactor::log::Info() << "Consumer " << bank_index << ": consuming item "
+                             <<  *data.get() << "; result " << consItem;
+        sendAvailable.schedule();
     =}
 }
 
@@ -234,8 +203,8 @@ main reactor (
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> manager.inStart;
-    manager.outFinished -> runner.inIterationFinish;
+    (runner.outIterationStart)+ -> manager.start, producers.reset, consumers.reset;
+    manager.finished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("ProdConsBenchmark");
@@ -249,9 +218,10 @@ main reactor (
     producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
     consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
     
-    manager.outProducers -> producers.inManager;
-    producers.outManager -> manager.inProducers;
+    manager.producerCommand -> producers.produce;
+    producers.data -> manager.producerData;
+    producers.finished -> manager.producerFinished;
     
-    manager.outConsumers -> consumers.inManager;
-    consumers.outManager -> manager.inConsumers;
+    consumers.available -> manager.consumerAvailable;
+    manager.consumerData -> consumers.data;
 }
