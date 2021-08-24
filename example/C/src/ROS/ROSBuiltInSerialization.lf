@@ -25,7 +25,6 @@
     cmake: true,  // Only CMake is supported
     cmake-include: "include/CMakeListsExtension.txt",
     threads: 1,
-    flags: ["-Wno-write-strings"],
     compiler: "g++"
 };
 

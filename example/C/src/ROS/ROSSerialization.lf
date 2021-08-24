@@ -6,6 +6,9 @@
  * 
  * Note: the terminal must be properly sourced for ROS2. See 
  * https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
+ *
+ * There is a variant of this example called ROSBuiltInSerialization.lf that uses
+ * the built-in ROS 2 serialization feature that is provided in LF.
  */
 target C {
     coordination: decentralized,
@@ -13,13 +16,7 @@ target C {
     cmake-include: "include/CMakeListsExtension.txt",
     files: ["include/ament_target_dependencies.cmake"],
     cmake: true,
-    flags: ["-Wno-write-strings"],
     compiler: "g++",
-//    serialization: {
-//        "std_msg::msg::Int32": "ros",
-//        "int": "native",
-//        "Hello": "proto"
-//    }
 };
 
 preamble {=
@@ -37,9 +34,6 @@ preamble {=
 
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:uint8_t*;
-	// output y:std_msg::msg::Int32; // serialized-by ROS
-	// output y2:int;   // Native
-	// output y3:Hello; // Protobuf
 	
 	timer t(0, period);
 	state count:int(0);
@@ -100,5 +94,5 @@ reactor Destination {
 federated reactor (period:time(1 sec)) {
 	c = new Clock(period = period);
 	d = new Destination();
-	c.y -> d.x serialized "ros2";
+	c.y -> d.x;
 }
