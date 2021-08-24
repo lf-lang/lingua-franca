@@ -82,41 +82,39 @@ public preamble {=
 =}
 
 
-reactor Master(numWorkers:int(20)) {
+reactor Master(numWorkers: size_t{20}) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
     =}
     
-    state numWorkersTerminated:int(0);
+    state numWorkersTerminated: size_t{0};
     
-    input inStart:void;
-    output outFinished:void;
+    input inStart: void;
+    output outFinished: void;
     
     /* [[[cog
       cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
       cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
     ]]] */
-    output[20] outWorkers:{=Message=};
-    input[20] inWorkers:{=Message=};
+    output[20] outWorkers: Message;
+    input[20] inWorkers: Message;
     // [[[end]]]
     output outDictionary:void;
     
     reaction(inStart) -> outWorkers {=
-        
         // reset local state
         numWorkersTerminated = 0;
         
         // start execution
         auto msg = reactor::make_immutable_value<Message>(Message{DoWorkMsg});
-        for(int i = 0; i < outWorkers.size(); i++) {
+        for (size_t i{0}; i < outWorkers.size(); i++) {
             outWorkers[i].set(msg);
         }
     =}
     
     reaction(inWorkers) -> outFinished {=
-        
-        for(int i = 0; i < inWorkers.size(); i++) {
+        for(size_t i{0}; i < inWorkers.size(); i++) {
             numWorkersTerminated += 1;
         }
         if(numWorkersTerminated == numWorkers) {
@@ -126,25 +124,25 @@ reactor Master(numWorkers:int(20)) {
     =}
 }
 
-reactor DictionaryImpl(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std::map<int,int>()=})) {
+reactor DictionaryImpl(numWorkers: size_t{20}, initialState: std::map<int,int>({==})) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
     =}
     
-    state dataMap:{=std::map<int,int>=}(initialState);
-    state answersToSend:{=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    state dataMap: std::map<int,int>{initialState};
+    state answersToSend: {=std::vector<reactor::ImmutableValuePtr<Message>>=};
     
-    logical action sendAnswers:void;
+    logical action sendAnswers: void;
     
     /* [[[cog
       cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
       cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
     ]]] */
-    output[20] outWorkers:{=Message=};
-    input[20] inWorkers:{=Message=};
+    output[20] outWorkers: Message;
+    input[20] inWorkers: Message;
     // [[[end]]] 
-    input inMaster:void;
+    input inMaster: void;
     
     reaction(startup) {=
         // first time init
@@ -152,15 +150,13 @@ reactor DictionaryImpl(numWorkers:int(20), initialState:{=std::map<int,int>=}({=
     =}
     
     reaction(inMaster) {=
-        
         // reset local state
         dataMap = initialState;
         answersToSend = std::vector<reactor::ImmutableValuePtr<Message>>(numWorkers);
     =}
     
     reaction(sendAnswers) -> outWorkers {=
-        
-        for(int i = 0; i < outWorkers.size(); i++) {
+        for(size_t i{0}; i < outWorkers.size(); i++) {
             if(answersToSend[i] != nullptr) {
                 outWorkers[i].set(answersToSend[i]);
                 answersToSend[i] = nullptr;
@@ -169,22 +165,18 @@ reactor DictionaryImpl(numWorkers:int(20), initialState:{=std::map<int,int>=}({=
     =}
     
     reaction(inWorkers) -> sendAnswers {=
-        
         //TODO The order of messages to read is relevant, it effectively
         // assigns priorities to the workers.
-        for(int i = 0; i < inWorkers.size(); i++) {
+        for(size_t i{0}; i < inWorkers.size(); i++) {
             if(inWorkers[i].is_present()) {
                 reactor::ImmutableValuePtr<Message> msg = inWorkers[i].get();
                 
-                if(msg->type == WriteMsg) {
-                    
+                if(msg->type == WriteMsg) {  
                     dataMap.emplace(msg->key, msg->value);
                     // Savina sends ResultMsg always independently if adding (key,value)
                     // to the map was successful.
                     answersToSend[i] = reactor::make_immutable_value<Message>(ResultMsg, -1, msg->value);
-                    
                 } else if(msg->type == ReadMsg) {
-                    
                     int value = dataMap[msg->key];
                     // Savina does not handle what happens if the key is not present.
                     answersToSend[i] = reactor::make_immutable_value<Message>(ResultMsg, -1, value);
@@ -196,27 +188,25 @@ reactor DictionaryImpl(numWorkers:int(20), initialState:{=std::map<int,int>=}({=
     =}
 }
 
-reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
+reactor Worker(bank_index: size_t{0}, numMessagesPerWorker: size_t{10000}, writePercentage: int{10}) {
     
     public preamble {=
         #include <random>
     =}
     
-    state messageCount:int(0);
-    state id:int(instance);
-    state random:{=std::minstd_rand=};
+    state messageCount: size_t{0};
+    state random: std::minstd_rand;
     
-    input inMaster:{=Message=};
-    output outMaster:{=Message=};
+    input inMaster: Message;
+    output outMaster: Message;
     
-    input inDict:{=Message=};
-    output outDict:{=Message=};
+    input inDict: Message;
+    output outDict: Message;
     
     reaction(inMaster) -> outDict {=
-        
         if(inMaster.get()->type == DoWorkMsg) {
             //reset local state
-            random.seed(id + numMessagesPerWorker + writePercentage);
+            random.seed(bank_index + numMessagesPerWorker + writePercentage);
             messageCount = 0;
             
             messageCount += 1; // as in original Savina implementation
@@ -230,7 +220,6 @@ reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage
     =}
     
     reaction(inDict) -> outDict, outMaster {=
-        
         messageCount += 1;
         
         if(messageCount <= numMessagesPerWorker) {
@@ -246,7 +235,7 @@ reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage
     =}
 }
 
-main reactor (numIterations:int(12), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
+main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{10000}, writePercentage: int{10}) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numWorkers={numWorkers});')
@@ -281,6 +270,5 @@ main reactor (numIterations:int(12), numMessagesPerWorker:int(10000), writePerce
     workers.outDict -> dict.inWorkers;
     workers.outMaster -> master.inWorkers;
     master.outWorkers -> workers.inMaster;
-    master.outDictionary -> dict.inMaster;
-    
+    master.outDictionary -> dict.inMaster;   
 }
