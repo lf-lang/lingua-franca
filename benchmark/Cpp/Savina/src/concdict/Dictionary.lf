@@ -10,36 +10,22 @@
  */
 
 target Cpp {
-    build-type : RelWithDebInfo
+    build-type : RelWithDebInfo,
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
-    enum MsgType {
-      DoWorkMsg,
-      EndWorkMsg,
-      ResultMsg,
-      ReadMsg,
-      WriteMsg
+    enum class AccessType {
+      Read,
+      Write
     };
     
     struct Message {
-    
-      MsgType type;
+      AccessType type;
       int key;
       int value;
-    
-      Message() {}
-    
-      Message(MsgType _type, int _key, int _value):
-        type(_type), key(_key), value(_value) {}
-    
-      Message(MsgType _type):
-        type(_type) {}
-    
-      Message(MsgType _type, int _key):
-        type(_type), key(_key) {}
     };
 =}
 
@@ -51,86 +37,84 @@ reactor Master(numWorkers: size_t{20}) {
     
     state numWorkersTerminated: size_t{0};
     
-    input inStart: void;
-    output outFinished: void;
+    input start: void;
+    output finished: void;
     
-    output[numWorkers] outWorkers: Message;
-    input[numWorkers] inWorkers: Message;
-    output outDictionary:void;
+    output doWork: void;
+    input[numWorkers] workerFinished: void;
     
-    reaction(inStart) -> outWorkers {=
+    reaction(start) -> doWork {=
         // reset local state
         numWorkersTerminated = 0;
         
         // start execution
-        auto msg = reactor::make_immutable_value<Message>(Message{DoWorkMsg});
-        for (size_t i{0}; i < outWorkers.size(); i++) {
-            outWorkers[i].set(msg);
-        }
+        doWork.set();
     =}
     
-    reaction(inWorkers) -> outFinished {=
-        for(size_t i{0}; i < inWorkers.size(); i++) {
-            numWorkersTerminated += 1;
+    reaction(workerFinished) -> finished {=
+        for (const auto& fin : workerFinished) {
+            if (fin.is_present()) {
+                numWorkersTerminated++;
+            }
         }
         if(numWorkersTerminated == numWorkers) {
-            reactor::log::Debug() << numWorkersTerminated << " workers terminated.";
-            outFinished.set();
+            reactor::log::Info() << "All " << numWorkersTerminated << " workers terminated.";
+            finished.set();
         }
     =}
 }
 
-reactor DictionaryImpl(numWorkers: size_t{20}, initialState: std::map<int,int>({==})) {
+reactor DictionaryImpl(numWorkers: size_t{20}) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
     =}
     
-    state dataMap: std::map<int,int>{initialState};
-    state answersToSend: {=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    state dataMap: std::map<int,int>;
+    state answersToSend: std::vector<int>;
     
     logical action sendAnswers: void;
 
-    output[numWorkers] outWorkers: Message;
-    input[numWorkers] inWorkers: Message; 
-    input inMaster: void;
+    input[numWorkers] request: Message;
+    output[numWorkers] response: int; 
+    input reset: void;
     
-    reaction(startup) {=
-        // first time init
-        answersToSend =  std::vector<reactor::ImmutableValuePtr<Message>>(numWorkers);
-    =}
-    
-    reaction(inMaster) {=
+    reaction(reset) {=
         // reset local state
-        dataMap = initialState;
-        answersToSend = std::vector<reactor::ImmutableValuePtr<Message>>(numWorkers);
+        dataMap.clear();
+        answersToSend.clear();
+        answersToSend.resize(numWorkers, -1);
     =}
     
-    reaction(sendAnswers) -> outWorkers {=
-        for(size_t i{0}; i < outWorkers.size(); i++) {
-            if(answersToSend[i] != nullptr) {
-                outWorkers[i].set(answersToSend[i]);
-                answersToSend[i] = nullptr;
+    reaction(sendAnswers) -> response {=
+        for(size_t i{0}; i < numWorkers; i++) {
+            if(answersToSend[i] >= 0) {
+                response[i].set(answersToSend[i]);
+                answersToSend[i] = -1;
             }
         }
     =}
     
-    reaction(inWorkers) -> sendAnswers {=
-        //TODO The order of messages to read is relevant, it effectively
+    reaction(request) -> sendAnswers {=
+        // The order of messages to read is relevant, it effectively
         // assigns priorities to the workers.
-        for(size_t i{0}; i < inWorkers.size(); i++) {
-            if(inWorkers[i].is_present()) {
-                reactor::ImmutableValuePtr<Message> msg = inWorkers[i].get();
+        for(size_t i{0}; i < numWorkers; i++) {
+            if(request[i].is_present()) {
+                auto msg = request[i].get();
                 
-                if(msg->type == WriteMsg) {  
+                if(msg->type == AccessType::Write) {  
                     dataMap.emplace(msg->key, msg->value);
                     // Savina sends ResultMsg always independently if adding (key,value)
                     // to the map was successful.
-                    answersToSend[i] = reactor::make_immutable_value<Message>(ResultMsg, -1, msg->value);
-                } else if(msg->type == ReadMsg) {
+                    answersToSend[i] = msg->value;
+                    reactor::log::Info() << "Worker " << i << " writes " << msg->value << " to key " << msg->key;
+                } else if(msg->type == AccessType::Read) {
+                    // read the value. If the key is not yet present, this will add it and initialize the value to 0.
+                    // This does not match 100% the Savina implementation which returns null if the key is not present,
+                    // but should do a similar job.
                     int value = dataMap[msg->key];
-                    // Savina does not handle what happens if the key is not present.
-                    answersToSend[i] = reactor::make_immutable_value<Message>(ResultMsg, -1, value);
+                    answersToSend[i] = value;
+                    reactor::log::Info() << "Worker " << i << " reads key " << msg->key << "; response is " << value; 
                 }
             }
         }
@@ -148,40 +132,29 @@ reactor Worker(bank_index: size_t{0}, numMessagesPerWorker: size_t{10000}, write
     state messageCount: size_t{0};
     state random: std::minstd_rand;
     
-    input inMaster: Message;
-    output outMaster: Message;
+    input doWork: void;
+    output finished: void;
     
-    input inDict: Message;
-    output outDict: Message;
+    input dictResponse: int;
+    output dictRequest: Message;
     
-    reaction(inMaster) -> outDict {=
-        if(inMaster.get()->type == DoWorkMsg) {
+    reaction(doWork, dictResponse) -> dictRequest, finished {=
+        if (doWork.is_present()) {
             //reset local state
             random.seed(bank_index + numMessagesPerWorker + writePercentage);
             messageCount = 0;
-            
-            messageCount += 1; // as in original Savina implementation
-            int anInt = static_cast<int>(random()) % 100;
-            if(anInt < writePercentage) {
-                outDict.set(Message{WriteMsg, static_cast<int>(random()), static_cast<int>(random())});
-            } else {
-                outDict.set(Message{ReadMsg, static_cast<int>(random())});
-            }
         }
-    =}
-    
-    reaction(inDict) -> outDict, outMaster {=
-        messageCount += 1;
         
+        messageCount += 1;
         if(messageCount <= numMessagesPerWorker) {
             int anInt = static_cast<int>(random()) % 100;
             if(anInt < writePercentage) {
-                outDict.set(Message{WriteMsg, static_cast<int>(random()), static_cast<int>(random())});
+                dictRequest.set(Message{AccessType::Write, static_cast<int>(random()), static_cast<int>(random())});
             } else {
-                outDict.set(Message{ReadMsg, static_cast<int>(random())});
+                dictRequest.set(Message{AccessType::Read, static_cast<int>(random()), 0});
             }
         } else {
-            outMaster.set(Message{EndWorkMsg, -1, -1});
+            finished.set();
         }
     =}
 }
@@ -191,8 +164,8 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{10000}, wr
     master = new Master(numWorkers=numWorkers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
+    runner.outIterationStart -> master.start;
+    master.finished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("DictionaryReactorLFCppBenchmark");
@@ -205,9 +178,8 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{10000}, wr
     dict = new DictionaryImpl(numWorkers=numWorkers);
     workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
     
-    dict.outWorkers -> workers.inDict;
-    workers.outDict -> dict.inWorkers;
-    workers.outMaster -> master.inWorkers;
-    master.outWorkers -> workers.inMaster;
-    master.outDictionary -> dict.inMaster;   
+    dict.response -> workers.dictResponse;
+    workers.dictRequest -> dict.request;
+    workers.finished -> master.workerFinished;
+    (master.doWork)+ -> workers.doWork, dict.reset;
 }
