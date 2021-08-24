@@ -29,7 +29,7 @@ public preamble {=
     };
 =}
 
-reactor Master(numWorkers: size_t{20}) {
+reactor Manager(numWorkers: size_t{20}) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
@@ -161,11 +161,11 @@ reactor Worker(bank_index: size_t{0}, numMessagesPerWorker: size_t{10000}, write
 
 main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{10000}, writePercentage: int{10}, numWorkers: size_t{20}) {
     
-    master = new Master(numWorkers=numWorkers);
+    manager = new Manager(numWorkers=numWorkers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> master.start;
-    master.finished -> runner.inIterationFinish;
+    runner.outIterationStart -> manager.start;
+    manager.finished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("DictionaryReactorLFCppBenchmark");
@@ -180,6 +180,6 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{10000}, wr
     
     dict.response -> workers.dictResponse;
     workers.dictRequest -> dict.request;
-    workers.finished -> master.workerFinished;
-    (master.doWork)+ -> workers.doWork, dict.reset;
+    workers.finished -> manager.workerFinished;
+    (manager.doWork)+ -> workers.doWork, dict.reset;
 }
