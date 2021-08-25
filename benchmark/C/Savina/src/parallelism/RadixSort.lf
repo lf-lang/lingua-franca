@@ -9,7 +9,13 @@
  */
 
 
-target C;
+target C {
+    /* [[[cog
+    cog.outl(f'threads: {threads}')
+    ]]] */
+    threads: 24 
+    // [[[end]]]
+};
 
 reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
 
