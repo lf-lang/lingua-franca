@@ -58,5 +58,5 @@ reactor Destination {
 federated reactor (period:time(17 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
-	c.y -> d.x serialized "ros2";
+	c.y -> d.x serializer "ros2";
 }
