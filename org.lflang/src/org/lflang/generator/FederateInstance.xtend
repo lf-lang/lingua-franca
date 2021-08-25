@@ -30,6 +30,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
+import org.lflang.ErrorReporter
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -37,16 +38,14 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Output
+import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
+import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.lf.Port
-import org.lflang.lf.Variable
-import org.lflang.ErrorReporter
-import org.lflang.ASTUtils
 
 /** 
  * Instance of a federate, or marker that no federation has been defined

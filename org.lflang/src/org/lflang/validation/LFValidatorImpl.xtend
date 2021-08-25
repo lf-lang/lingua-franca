@@ -154,8 +154,8 @@ class LFValidatorImpl extends AbstractLFValidator {
         this.targetPropertyErrors
     }
 
-    override def ValidationMessageAcceptor getMessageAcceptor() {
-        return messageAcceptor == null ? this : messageAcceptor
+    override ValidationMessageAcceptor getMessageAcceptor() {
+        return messageAcceptor === null ? this : messageAcceptor
     }
 
     @Check
