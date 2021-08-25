@@ -1,14 +1,15 @@
 /**
- * Concurrency benchmark from the Savina benchmark suite.
- * Intended to measure intra-actor parallelism if 
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This benchmark is very similar to the concurrent Dictionary benchmark.
+ * It only uses a sorted linked list instead of a dictionary.
  * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "../IncludeHeaders.cmake"
+    cmake-include: "../IncludeHeaders.cmake",
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -117,7 +118,7 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
     
     reaction(printResult) {=
         // check result
-        reactor::log::Info() << "List Size = " << dataList.size();
+        std::cout << "List Size = " << dataList.size() << '\n';
         
         // reset local state
         dataList = SortedLinkedList<int>();
