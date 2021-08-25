@@ -87,7 +87,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SERIALIZATION
+import org.lflang.federated.SupportedSerializations
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -1123,7 +1123,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Check(FAST)
     def checkSerialization(Serialization serialization) {
         var boolean isValidSerialization = false;
-        for (SERIALIZATION method : SERIALIZATION.values()) {
+        for (SupportedSerializations method : SupportedSerializations.values()) {
           if (method.name().equalsIgnoreCase(serialization.serialization)){
               isValidSerialization = true;
           }          
@@ -1131,7 +1131,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         
         if (!isValidSerialization) {
             error(
-                "Serialization can be " + SERIALIZATION.values.toList, 
+                "Serialization can be " + SupportedSerializations.values.toList, 
                 Literals.SERIALIZATION__SERIALIZATION
             );
         }

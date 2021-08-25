@@ -4,13 +4,13 @@ package org.lflang.federated;
  * The supported serialization frameworks.
  * @author Soroush Bateni
  */
-public enum SERIALIZATION {
+public enum SupportedSerializations {
     NATIVE("native"), // Dangerous: just copies the memory layout of the sender
     ROS2("ros2"),
     PROTO("proto");
 
     private String serialization;
-    SERIALIZATION(String serialization) {
+    SupportedSerializations(String serialization) {
         this.serialization = serialization;
     }
     

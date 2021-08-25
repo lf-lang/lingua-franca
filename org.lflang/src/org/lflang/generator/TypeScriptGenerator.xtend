@@ -57,7 +57,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SERIALIZATION
+import org.lflang.federated.SupportedSerializations
 
 /** Generator for TypeScript target.
  *
@@ -957,7 +957,7 @@ class TypeScriptGenerator extends GeneratorBase {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SERIALIZATION serialization
+        SupportedSerializations serialization
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
@@ -997,7 +997,7 @@ class TypeScriptGenerator extends GeneratorBase {
         InferredType type,
         boolean isPhysical,
         Delay delay,
-        SERIALIZATION serialization
+        SupportedSerializations serialization
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.

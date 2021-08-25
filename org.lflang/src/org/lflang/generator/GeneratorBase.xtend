@@ -84,8 +84,8 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SERIALIZATION
 import java.util.HashSet
+import org.lflang.federated.SupportedSerializations
 
 /**
  * Generator base class for shared code between code generators.
@@ -197,7 +197,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Keep a unique list of enabled serializations
      */
-    public var HashSet<SERIALIZATION> enabledSerializations = new HashSet<SERIALIZATION>();
+    public var HashSet<SupportedSerializations> enabledSerializations = new HashSet<SupportedSerializations>();
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -788,7 +788,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SERIALIZATION serialization
+        SupportedSerializations serialization
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
@@ -820,7 +820,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         InferredType type,
         boolean isPhysical,
         Delay delay,
-        SERIALIZATION serialization
+        SupportedSerializations serialization
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
