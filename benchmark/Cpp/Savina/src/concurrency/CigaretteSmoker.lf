@@ -106,7 +106,7 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     =}
 }
 
-reactor SmokerReactor(instance:int(0)) {
+reactor SmokerReactor {
      
     input startSmoking: size_t;
     
