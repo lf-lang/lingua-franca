@@ -770,11 +770,7 @@ class CGenerator extends GeneratorBase {
                 // Generate mode change detection
                 pr('''
                     void __handle_mode_changes() {
-                        for (int i = 0; i < __modal_reactor_states_size; i++) {
-                            if (__modal_reactor_states[i] != NULL) {
-                                _lf_handle_mode_change(__modal_reactor_states[i]);
-                            }
-                        }
+                        _lf_handle_mode_changes(__modal_reactor_states, __modal_reactor_states_size);
                     }
                 ''')
             }
@@ -1672,8 +1668,10 @@ class CGenerator extends GeneratorBase {
             pr(null, constructorCode, '''
                 // Initialize mode state
                 self->___mode_state.parent_mode = NULL;
-                self->___mode_state.active_mode = &self->___modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
+                self->___mode_state.initial_mode = &self->___modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
+                self->___mode_state.active_mode = self->___mode_state.initial_mode;
                 self->___mode_state.next_mode = NULL;
+                self->___mode_state.mode_change = 0;
             ''')
         }
         

@@ -244,7 +244,11 @@ do { \
  *
  * @param mode The target mode to set for activation.
  */
-#define _LF_SET_MODE(mode) self->___mode_state.next_mode = mode
+#define _LF_SET_MODE(mode) \
+do { \
+	self->___mode_state.next_mode = mode; \
+    self->___mode_state.mode_change = 1; \
+} while(0)
 
 /**
  * Macro for extracting the deadline from the index of a reaction.
@@ -441,8 +445,10 @@ struct reactor_mode_t {
 /** A struct to store state of the modes in a reactor instance and/or its relation to enclosing modes. */
 struct reactor_mode_state_t {
 	reactor_mode_t* parent_mode;    // Pointer to the next enclosing mode (if exsits).
-	reactor_mode_t* active_mode;    // Pointer to the currently active mode. Must be NULL if the reactor instace does no have modes.
+	reactor_mode_t* initial_mode;   // Pointer to the initial mode.
+	reactor_mode_t* active_mode;    // Pointer to the currently active mode.
 	reactor_mode_t* next_mode;      // Pointer to the next mode to activate at the end of this step (if set).
+	char mode_change;				// A mode change type flag (0: no change, 1: reset, 2: history).
 };
 
 /**
