@@ -53,7 +53,11 @@
 // [[[end]]]
 
 target C {
-    tracing: true
+    /* [[[cog
+    cog.outl(f'threads: {threads}')
+    ]]] */
+    threads: 24 
+    // [[[end]]]
 };
 
 preamble {=

@@ -38,7 +38,13 @@
  ]]] */
  // [[[end]]]
 
-target C;
+target C{
+    /* [[[cog
+    cog.outl(f'threads: {threads}')
+    ]]] */
+    threads: 24 
+    // [[[end]]]
+};
 
 reactor ProducerReactor(countTo:int(1000000)) {
 

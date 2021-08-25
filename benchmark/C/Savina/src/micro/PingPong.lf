@@ -24,6 +24,11 @@
  */
 target C {
     fast: true
+    /* [[[cog
+    cog.outl(f'threads: {threads}')
+    ]]] */
+    threads: 24 
+    // [[[end]]]
 };
 reactor Ping(count:int(1000000)) {
     input receive:int;
@@ -63,7 +68,7 @@ reactor Pong(expected:int(1000000)) {
 /*[[[cog
 cog.outl(f'main reactor PingPong(count:int({count}))')
 ]]] */
-main reactor PingPong(count:int(100000)) 
+main reactor PingPong(count:int(1000000)) 
 
 /// [[[end]]]
 
