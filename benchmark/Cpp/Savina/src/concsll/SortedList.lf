@@ -14,17 +14,14 @@ target Cpp {
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
-    enum MsgType {
-      EndWorkMsg,
-      ResultMsg,
-      SizeMsg,
-      ContainsMsg,
-      WriteMsg
+    enum class AccessType {
+      Write,
+      Size,
+      Contains
     };
     
     struct Message {
-    
-      MsgType type;
+      AccessType type;
       int value;
     };
 =}
@@ -33,30 +30,20 @@ reactor Master(numWorkers: size_t(20)) {
     
     state numWorkersTerminated: size_t(0);
     
-    input inStart: void;
-    output outFinished: void;
+    input start: void;
+    output finished: void;
     
-    output[numWorkers] outWorkers: void;
-    input[numWorkers] inWorkers: void;
-    output outSortedList: void;
-    
-    logical action startExecution: void;
+    input[numWorkers] workersFinished: void;
+
     logical action finish: void;
     
-    reaction(startExecution) -> outWorkers {=
-        for(size_t i{0}; i < outWorkers.size(); ++i) {
-            outWorkers[i].set();
-        }
+    reaction(finish) -> finished {=
+        finished.set();
     =}
     
-    reaction(finish) -> outFinished, outSortedList {=
-        outFinished.set();
-        outSortedList.set();
-    =}
-    
-    reaction(inWorkers) -> finish {=
-        for(size_t i{0}; i < inWorkers.size(); ++i) {
-            if(inWorkers[i].is_present()) {
+    reaction(workersFinished) -> finish {=
+        for(size_t i{0}; i < numWorkers; ++i) {
+            if(workersFinished[i].is_present()) {
                 numWorkersTerminated += 1;
                 
                 if(numWorkersTerminated == numWorkers) {
@@ -66,17 +53,13 @@ reactor Master(numWorkers: size_t(20)) {
         }
     =}
     
-    reaction(inStart) -> startExecution {=
-        // init local state
+    reaction(start) {=
+        // reset local state
         numWorkersTerminated = 0;
-        
-        // start execution
-        startExecution.schedule();
     =}
 }
 
-
-reactor Worker(instance: size_t{0}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage: int{1}) {
+reactor Worker(bank_index: size_t{0}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage: int{1}) {
     
     public preamble {=
         #include "PseudoRandom.hh"
@@ -85,39 +68,36 @@ reactor Worker(instance: size_t{0}, numMessagesPerWorker: size_t{8000}, writePer
     state messageCount: size_t{0};
     state random: PseudoRandom;
     
-    output outMaster: void;
-    input inMaster: void;
-    output outSortedList: Message;
-    input inSortedList: void;
+    input doWork: void;
+    output finished: void;
     
-    reaction(startup) {=
-        // one time initialization
-        messageCount = 0;
-        random = PseudoRandom(instance + numMessagesPerWorker + writePercentage + sizePercentage);
-    =}
+    output request: Message;
+    input response: int;
     
-    reaction(inMaster, inSortedList) -> outMaster, outSortedList {=
-        messageCount += 1;
-        if(messageCount <= numMessagesPerWorker) {
+    reaction(doWork, response) -> request, finished {=
+        if (doWork.is_present()) {
+            // reset local state
+            messageCount = 0;
+            random = PseudoRandom(bank_index + numMessagesPerWorker + writePercentage + sizePercentage);
+        }
+        
+        if(messageCount < numMessagesPerWorker) {
+            messageCount++;
             int anInt = random.nextInt(100);
             
             if(anInt < sizePercentage) {
-                outSortedList.set(Message{SizeMsg, -1});
+                request.set(Message{AccessType::Size, -1});
             } else if(anInt < (sizePercentage + writePercentage)) {
-                outSortedList.set(Message{WriteMsg, random.nextInt()});
+                request.set(Message{AccessType::Write, random.nextInt()});
             } else {
-                outSortedList.set(Message{ContainsMsg, random.nextInt()});
+                request.set(Message{AccessType::Contains, random.nextInt()});
             }
         } else {
-            // reset local state
-            messageCount = 0;
-            random = PseudoRandom(instance + numMessagesPerWorker + writePercentage + sizePercentage);
-            
-            outMaster.set();
+            // signal that work is complete
+            finished.set();
         }
     =}
 }
-
 
 reactor SortedListImpl(numWorkers: size_t{20}) {
     
@@ -127,50 +107,45 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
     =}
     
     state dataList: SortedLinkedList<int>;
-    state workersToSend: std::vector<bool>(numWorkers, false);
+    state responsesToSend: std::vector<int>(numWorkers, -1);
     
-    input inMaster:void;
-    output[numWorkers] outWorkers: void;
-    input[numWorkers] inWorkers: Message;
+    input printResult: void;
+    input[numWorkers] requests: Message;
+    output[numWorkers] responses: int;
     
-    logical action sendAnswers: void;
+    logical action sendResponses: void;
     
-    reaction(inMaster) {=
+    reaction(printResult) {=
         // check result
         reactor::log::Info() << "List Size = " << dataList.size();
         
         // reset local state
         dataList = SortedLinkedList<int>();
-        workersToSend.clear();
-        workersToSend.resize(numWorkers, false);
     =}
     
-    reaction(sendAnswers) -> outWorkers {=
-        for (size_t i{0}; i < outWorkers.size(); ++i) {
-            if(workersToSend[i]) {
-                outWorkers[i].set();
-                workersToSend[i] = false;
-            }
+    reaction(sendResponses) -> responses {=
+        for (size_t i{0}; i < numWorkers; i++) {
+            responses[i].set(responsesToSend[i]);
+            reactor::log::Info() << "Reply to worker " << i << " with " << responsesToSend[i]; 
         }
     =}
     
-    reaction(inWorkers) -> sendAnswers {=
-        sendAnswers.schedule();
+    reaction(requests) -> sendResponses {=
+        sendResponses.schedule();
         
-        for(size_t i{0}; i < inWorkers.size(); ++i) {
-            if(inWorkers[i].is_present()) {
-                if(inWorkers[i].get()->type == WriteMsg) {
-                    int value = inWorkers[i].get()->value;
-                    dataList.add(value);
-                    workersToSend[i] = true;
-                } else if(inWorkers[i].get()->type == ContainsMsg) {
-                    int value = inWorkers[i].get()->value;
-                    int result = dataList.contains(value) ? 1 : 0;
-                    workersToSend[i] = true;
-                } else if(inWorkers[i].get()->type == SizeMsg) {
-                    int value = dataList.size();
-                    workersToSend[i] = true;
-                }
+        for(size_t i{0}; i < numWorkers; i++) {
+            auto& msg = requests[i].get();
+            if (msg->type == AccessType::Contains) {
+                int result = dataList.contains(msg->value) ? 1 : 0;
+                responsesToSend[i] = result;
+                reactor::log::Info() << "Worker " << i << " checks if " << msg->value << " is contained in the list";
+            } else if (msg->type == AccessType::Write) {
+                dataList.add(msg->value);
+                responsesToSend[i] = msg->value;
+                reactor::log::Info() << "Worker " << i << " writes " << msg->value;
+            } else if (msg->type == AccessType::Size) {
+                responsesToSend[i] = dataList.size();
+                reactor::log::Info() << "Worker " << i << " reads the list size";
             }
         }
     =}
@@ -191,7 +166,7 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
             U item;
             Node<U>* next;
         
-            Node(U& i) {
+            Node(const U& i) {
               item = i;
               next = nullptr;
             }
@@ -234,7 +209,7 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
            /**
             * add inputs: Comparable item return value: none adds an item into the list in sorted order
             */
-           void add(T& item) {
+           void add(const T& item) {
              // make the new node to insert into list
              Node<T>* newNode = new Node(item);
              // first see if the list is empty
@@ -271,7 +246,7 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
             * inputs: Comparable item
             * return value: true if equal item is in list, false otherwise
             */
-           bool contains(T& item) {
+           bool contains(const T& item) const {
              Node<T>* n = head;
              // for each node in the linked list
              while(n != nullptr) {
@@ -347,11 +322,11 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
 main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage:int(1), numWorkers: size_t{20}) {
 
     master = new Master(numWorkers=numWorkers);
+    workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
+    sortedList = new SortedListImpl(numWorkers=numWorkers);
+    
     runner = new BenchmarkRunner(numIterations=numIterations);
-    
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
-    
+        
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("SortedListBenchmark");
         printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker,
@@ -360,12 +335,11 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, wri
         runner.inStart.set();
     =}
     
-    workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
-    sortedList = new SortedListImpl(numWorkers=numWorkers);
-    
-    master.outSortedList -> sortedList.inMaster;
-    master.outWorkers -> workers.inMaster;
-    sortedList.outWorkers -> workers.inSortedList;
-    workers.outMaster -> master.inWorkers;
-    workers.outSortedList -> sortedList.inWorkers;    
+    (runner.outIterationStart)+ -> master.start, workers.doWork;
+    master.finished -> runner.inIterationFinish;
+    master.finished -> sortedList.printResult;
+   
+    workers.request -> sortedList.requests;
+    sortedList.responses -> workers.response;
+    workers.finished -> master.workersFinished;    
 }
