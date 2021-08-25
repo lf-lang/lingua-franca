@@ -37,8 +37,6 @@ class Position implements Comparable<Position> {
      * by <code>line</code> and <code>column</code>.
      */
     public static Position fromZeroBased(int line, int column) {
-        assert line >= 0;
-        assert column >= 0;
         return new Position(line, column);
     }
 
@@ -51,8 +49,6 @@ class Position implements Comparable<Position> {
      * by <code>line</code> and <code>column</code>.
      */
     public static Position fromOneBased(int line, int column) {
-        assert line >= 1;
-        assert column >= 1;
         return new Position(line - 1, column - 1);
     }
 

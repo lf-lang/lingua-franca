@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Represents a document generated from a Lingua Franca
@@ -19,6 +21,8 @@ import java.util.TreeMap;
  * it.
  */
 public abstract class GeneratedDocument {
+
+    Pattern INDENTATION = Pattern.compile("^ *");
 
     private final File directory;
     private final List<String> lines;
@@ -83,6 +87,12 @@ public abstract class GeneratedDocument {
         return Collections.unmodifiableNavigableMap(sourceMap);
     }
 
+    /**
+     * Returns the inverse of the map given by
+     * <code>getSourceMap</code>
+     * @return the inverse of the map given by
+     * <code>getSourceMap</code>
+     */
     public NavigableMap<Position, Position> getInverseMap() {
         // FIXME: Everything about this function is wrong. It should be rewritten.
         // FIXME: Cache the result. This is expensive to recompute
@@ -91,6 +101,26 @@ public abstract class GeneratedDocument {
             ret.put(entry.getValue(), entry.getKey());
         }
         return ret;
+    }
+
+    /**
+     * Makes any small adjustments necessary to ensure that
+     * the source map tracked by this
+     * <code>GeneratedDocument</code> is indeed consistent
+     * with the content of <code>source</code>.
+     * @param source the source document that this document
+     *               model must be consistent with
+     */
+    public void refineSourceMap(LFDocument source) {
+        for (Map.Entry<Position, Position> entry : sourceMap.entrySet()) {
+            final String sourceLine = source.getLine(entry.getValue().getZeroBasedLine());
+            final String targetLine = lines.get(entry.getKey().getZeroBasedLine());
+            final Matcher sourceLineIndentation = INDENTATION.matcher(sourceLine);
+            final Matcher targetLineIndentation = INDENTATION.matcher(targetLine);
+            int indentationDiff = (sourceLineIndentation.find() ? sourceLineIndentation.group().length() : 0)
+                - (targetLineIndentation.find() ? targetLineIndentation.group().length() : 0);
+            entry.setValue(entry.getValue().translated(0, indentationDiff));
+        }
     }
 
     /**
@@ -223,9 +253,10 @@ public abstract class GeneratedDocument {
             position
         );
         final int lineDiff = position.getZeroBasedLine() - nearest.getKey().getZeroBasedLine();
+        final int columnDiff = position.getZeroBasedColumn() - nearest.getKey().getZeroBasedColumn();
         return Position.fromZeroBased(
             nearest.getValue().getZeroBasedLine() + lineDiff,
-            position.getZeroBasedColumn() // FIXME: Adjust so that it matches the token's location in the source
+            nearest.getValue().getZeroBasedColumn() + columnDiff // FIXME: Adjust so that it matches the token's location in the source
         );
     }
 
