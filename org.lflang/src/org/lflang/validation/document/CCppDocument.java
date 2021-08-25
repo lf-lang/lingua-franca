@@ -23,6 +23,9 @@ public class CCppDocument extends GeneratedDocument {
             + "(?<severity>error|warning|note): (?<message>[^\n$\r]*)"
     );
 
+    /** Matches tokens in C or C++. */
+    private static final Pattern TOKEN = Pattern.compile("\\w+");
+
     private final String extension;
 
     /* ------------------------  CONSTRUCTORS  -------------------------- */
@@ -122,6 +125,16 @@ public class CCppDocument extends GeneratedDocument {
         default:
             severity = Severity.INFO;
         }
-        acceptor.acceptDiagnostic(severity, message, position, position.translated(0, 5)); // FIXME: Provide a correct column delta
+        final String offendingLine = getLines().get(lineNumber - 1);
+        int tokenLength = offendingLine.length() - (column - 1);
+        Matcher tokenMatcher = TOKEN.matcher(offendingLine);
+        // Uses column - 1 to convert from one-based to zero-based indexing
+        if (tokenMatcher.find(column - 1)) tokenLength = tokenMatcher.group().length();
+        acceptor.acceptDiagnostic(
+            severity,
+            message + " (" + lineNumber + ", " + column + ")",
+            position,
+            position.translated(0, tokenLength)
+        ); // FIXME: Provide a correct column delta
     }
 }

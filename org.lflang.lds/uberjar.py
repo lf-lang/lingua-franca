@@ -181,7 +181,6 @@ def extract(args, extracted, merged, klighd):
     conflicts = False
     insert_jars(args)
     jars = sorted(os.listdir(args.source))
-    print("jars=", jars)
     processed_jars = [] # Tuples of plugin name and jar
     for jar in jars:
         if not jar.endswith('.jar') or any(fnmatch(jar, ign) for ign in IGNORED_JARS):

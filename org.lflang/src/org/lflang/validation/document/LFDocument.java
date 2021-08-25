@@ -215,6 +215,16 @@ public class LFDocument {
     }
 
     /**
+     * Returns the content of the requested line
+     * @param index the zero-based index of a line in this
+     *              <code>LFDocument</code>
+     * @return the content of the requested line
+     */
+    public String getLine(int index) {
+        return index < lines.size() ? lines.get(index) : "";
+    }
+
+    /**
      * Returns the root node of the parse tree of this LF
      * document.
      * @return the root node of the parse tree of this LF
@@ -232,7 +242,7 @@ public class LFDocument {
      * could be resolved without ambiguity. Otherwise, does
      * nothing and returns false.
      */
-    private void quickUpdateModel() {
+    private void quickUpdateModel() { // FIXME: This method is pathological: long with deeply nested logic.
         List<String> editSource = getLines(parseRoot);
         // Iterate in decreasing order by line number
         List<INode> codeBlocks = getCodeBlocks();
@@ -444,7 +454,10 @@ public class LFDocument {
                 final GeneratedDocument g = GeneratedDocumentFactory.getGeneratedDocument(
                     Files.readAllLines(f.toPath()), f.getParentFile(), getExtension(f)
                 );
-                if (g != null) generatedDocuments.put(f, g);
+                if (g != null) {
+                    generatedDocuments.put(f, g);
+                    g.refineSourceMap(this);
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to read " + f + ".", e);
             }
