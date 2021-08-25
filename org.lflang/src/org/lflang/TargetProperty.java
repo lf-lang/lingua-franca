@@ -263,12 +263,6 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP), (config, value) -> {
                 config.runtimeVersion = ASTUtils.toText(value);
             }),
-    
-    /**
-     * Directive for specifying the serialization technique to use for a given
-     * message type.
-     */
-    // SERIALIZATION("serialization", UnionType.)
 
     /**
      * Directive to specify the number of threads.
