@@ -65,85 +65,69 @@ public preamble {=
     };
 =}
 
-reactor RateComputer(instance:int(0), startRate:double(3.46), rateIncrement:double(0.0025)) {
+reactor RateComputer(bank_index: size_t{0}, startRate: double{3.46}, rateIncrement: double{0.0025}) {
     
-    state rate:double;
+    state rate: double;
     
-    input inSeriesWorker:{=Message=};
-    output outSeriesWorker:{=Message=};
+    input inSeriesWorker: Message;
+    output outSeriesWorker: Message;
     
     reaction(startup) {=
-        rate = startRate + (instance * rateIncrement);
+        rate = startRate + (bank_index * rateIncrement);
     =}
     
     reaction(inSeriesWorker) -> outSeriesWorker {=
-        
         if(inSeriesWorker.get()->type == ComputeMsg) {
-            
             double result = computeNextTerm(inSeriesWorker.get()->term, rate);
             outSeriesWorker.set(Message{ResultMsg, result});
         }
     =}
     
     private preamble {=
-        
         static double computeNextTerm(const double curTerm, const double rate) {
             return rate * curTerm * (1 - curTerm);
         }
     =}
 }
 
-reactor SeriesWorker(instance:int(0), termIncrement:double(0.0025)) {
+reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
     
-    state curTerm:{=std::vector<double>=};
-    state startTerm:{=double=};
+    state curTerm: std::vector<double>;
     
-    input inMaster:{=Message=};
-    output outMaster:{=Message=};
-    output outRateComputer:{=Message=};
-    input inRateComputer:{=Message=};
-    
-    reaction(startup) {=
-        startTerm = instance * termIncrement;
-    =}
+    input inMaster: Message;
+    output outMaster: Message;
+    output outRateComputer: Message;
+    input inRateComputer: Message;
     
     reaction(inMaster) -> outRateComputer, outMaster {=
-        
         if(inMaster.get()->type == ResetMsg) {
-            
             //reset local state
-            curTerm = std::vector<double>{ startTerm };
-            
+            curTerm = std::vector<double>{ bank_index * termIncrement };
         } else if(inMaster.get()->type == NextTermMsg) {
-            
             outRateComputer.set(Message{ComputeMsg, curTerm[0]});
-            
         } else if(inMaster.get()->type == GetTermMsg) {
-            
             outMaster.set(Message{ResultMsg, curTerm[0]});
         }
     =}
     
     reaction(inRateComputer) {=
-        
         if(inRateComputer.get()->type == ResultMsg) {
-            
             curTerm[0] = inRateComputer.get()->term;
         }
     =}
 }
 
 
-reactor Master(numSeries:int(10), numTerms:int(25000)) {
+reactor Master(numSeries: size_t(10), numTerms: size_t(25000)) {
     
     private preamble {=
         #include "reactor-cpp/logging.hh"
     =}
     
-    state numWorkRequested:int(0);
-    state numWorkReceived:int(0);
-    state termsSum:double(0.0);
-    state currentTerm:int(0);
+    state numWorkRequested: size_t{0};
+    state numWorkReceived: size_t{0};
+    state termsSum: double{0.0};
+    state currentTerm: size_t{0};
     
     input inStart:void;
     output outFinished:void;
@@ -168,7 +152,7 @@ reactor Master(numSeries:int(10), numTerms:int(25000)) {
         
         nextTerms.schedule();
         auto msg = reactor::make_immutable_value<Message>(Message{ResetMsg, 0.0});
-        for(int i = 0; i < outSeriesWorkers.size(); i++) {
+        for(size_t i{0}; i < outSeriesWorkers.size(); i++) {
             outSeriesWorkers[i].set(msg);
         }
         
@@ -178,14 +162,14 @@ reactor Master(numSeries:int(10), numTerms:int(25000)) {
         
         if(currentTerm == numTerms) {
             auto msg = reactor::make_immutable_value<Message>(Message{GetTermMsg, 0.0});
-            for(int i = 0; i < outSeriesWorkers.size(); ++i) {
+            for(size_t i{0}; i < outSeriesWorkers.size(); ++i) {
                 outSeriesWorkers[i].set(msg);
                 numWorkRequested += 1;
             }
             return;
         }
         auto msg = reactor::make_immutable_value<Message>(Message{NextTermMsg, 0.0});
-        for(int i = 0; i < outSeriesWorkers.size(); ++i) {
+        for (size_t i{0}; i < outSeriesWorkers.size(); ++i) {
             outSeriesWorkers[i].set(msg);
         }
         currentTerm += 1;
@@ -195,7 +179,7 @@ reactor Master(numSeries:int(10), numTerms:int(25000)) {
     
     reaction(inSeriesWorkers) -> outFinished {=
         
-        for(int i = 0; i < inSeriesWorkers.size(); ++i) {
+        for (size_t i{0}; i < inSeriesWorkers.size(); ++i) {
             if(inSeriesWorkers[i].is_present()) {
                 if(inSeriesWorkers[i].get()->type == ResultMsg) {
                     
@@ -214,7 +198,7 @@ reactor Master(numSeries:int(10), numTerms:int(25000)) {
 }
 
 
-main reactor (numIterations:int(12), numTerms:int(25000), startRate:double(3.46)) {
+main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: double{3.46}) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numSeries={numSeries}, numTerms=numTerms);')
