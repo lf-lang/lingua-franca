@@ -203,6 +203,9 @@ int _lf_do_step() {
         }
     }
     
+	// At the end of the step, perform mode transitions
+	__handle_mode_changes();
+
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
@@ -229,9 +232,6 @@ int _lf_do_step() {
 // the keepalive command-line option has not been given.
 // Otherwise, return 1.
 int next() {
-	// First, perform mode transitions
-	__handle_mode_changes();
-
     event_t* event = (event_t*)pqueue_peek(event_q);
     //pqueue_dump(event_q, event_q->prt);
     // If there is no next event and -keepalive has been specified

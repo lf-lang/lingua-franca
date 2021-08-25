@@ -1914,12 +1914,35 @@ bool _lf_mode_is_active(reactor_mode_t* mode) {
 }
 
 /**
- * Performs transitions to the next mode, if set.
- * @param state The state of the reactor instance to transition.
+ * Performs transitions in all modal reactors.
+ * @param state An array of mode state of modal reactor instance Must be ordered hierarchically. Enclosing mode must come before inner.
+ * @param num_states The number of mode state.
  */
-void _lf_handle_mode_change(reactor_mode_state_t* state) {
-	if (state != NULL && state->next_mode != NULL) {
-		state->active_mode = state->next_mode;
-		state->next_mode = NULL;
+void _lf_handle_mode_changes(reactor_mode_state_t* states[], int num_states) {
+	// Perform mode changes bottom up (reverse)
+    for (int i = num_states - 1; i >= 0; i--) {
+    	reactor_mode_state_t* state = states[i];
+    	if (state != NULL) {
+        	if (state->next_mode != NULL) {
+        		state->active_mode = state->next_mode;
+        		state->next_mode = NULL;
+			}
+        }
+    }
+    // Apply reset top down
+    for (int i = 0; i < num_states; i++) {
+    	reactor_mode_state_t* state = states[i];
+		if (state != NULL) {
+			// has parent and is now active and is entered in this step with a reset
+			if (state->parent_mode != NULL &&
+				state->parent_mode->state != NULL &&
+				state->parent_mode->state->active_mode == state->parent_mode &&
+				state->mode_change == 1) {
+				// Reset to initial state
+				state->active_mode = state->initial_mode;
+				state->mode_change = 1;
+				// TODO perform reset reaction
+			}
+		}
 	}
 }
