@@ -378,7 +378,7 @@ class CGenerator extends GeneratorBase {
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)     
 
-        // if (errorsOccurred) return;
+        if (errorsOccurred) return;
 
          // Check for duplicate declerations.
          val names = newLinkedHashSet
