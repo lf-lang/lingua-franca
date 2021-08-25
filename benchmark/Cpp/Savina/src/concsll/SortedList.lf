@@ -66,27 +66,27 @@ public preamble {=
     };
 =}
 
-reactor Master(numWorkers:int(20)) {
+reactor Master(numWorkers: size_t(20)) {
     
-    state numWorkersTerminated:int(0);
+    state numWorkersTerminated: size_t(0);
     
-    input inStart:void;
-    output outFinished:void;
+    input inStart: void;
+    output outFinished: void;
     
     /* [[[cog
       cog.outl(f'output[{numWorkers}] outWorkers:void;')
       cog.outl(f'input[{numWorkers}] inWorkers:void;')
     ]]] */
-    output[20] outWorkers:void;
-    input[20] inWorkers:void;
+    output[20] outWorkers: void;
+    input[20] inWorkers: void;
     // [[[end]]]
-    output outSortedList:void;
+    output outSortedList: void;
     
-    logical action startExecution:void;
-    logical action finish:void;
+    logical action startExecution: void;
+    logical action finish: void;
     
     reaction(startExecution) -> outWorkers {=
-        for(int i = 0; i < outWorkers.size(); ++i) {
+        for(size_t i{0}; i < outWorkers.size(); ++i) {
             outWorkers[i].set();
         }
     =}
@@ -97,8 +97,7 @@ reactor Master(numWorkers:int(20)) {
     =}
     
     reaction(inWorkers) -> finish {=
-        
-        for(int i = 0; i < inWorkers.size(); ++i) {
+        for(size_t i{0}; i < inWorkers.size(); ++i) {
             if(inWorkers[i].is_present()) {
                 numWorkersTerminated += 1;
                 
@@ -110,7 +109,6 @@ reactor Master(numWorkers:int(20)) {
     =}
     
     reaction(inStart) -> startExecution {=
-        
         // init local state
         numWorkersTerminated = 0;
         
@@ -120,19 +118,19 @@ reactor Master(numWorkers:int(20)) {
 }
 
 
-reactor Worker(instance:int(0), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1)) {
+reactor Worker(instance: size_t{0}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage: int{1}) {
     
     public preamble {=
         #include "PseudoRandom.hh"
     =}
     
-    state messageCount:int(0);
-    state random:{=PseudoRandom=};
+    state messageCount: size_t{0};
+    state random: PseudoRandom;
     
-    output outMaster:void;
-    input inMaster:void;
-    output outSortedList:{=Message=};
-    input inSortedList:void;
+    output outMaster: void;
+    input inMaster: void;
+    output outSortedList: Message;
+    input inSortedList: void;
     
     reaction(startup) {=
         // one time initialization
@@ -141,7 +139,6 @@ reactor Worker(instance:int(0), numMessagesPerWorker:int(8000), writePercentage:
     =}
     
     reaction(inMaster, inSortedList) -> outMaster, outSortedList {=
-        
         messageCount += 1;
         if(messageCount <= numMessagesPerWorker) {
             int anInt = random.nextInt(100);
@@ -171,11 +168,11 @@ reactor SortedListImpl {
         #include <bitset>
     =}
     
-    state dataList:{=SortedLinkedList<int>=};
+    state dataList: SortedLinkedList<int>;
     /* [[[cog
       cog.outl(f'state workersToSend:{{=std::bitset<{numWorkers}>=}};')
     ]]] */
-    state workersToSend:{=std::bitset<20>=};
+    state workersToSend: {=std::bitset<20>=};
     // [[[end]]]
     
     input inMaster:void;
@@ -183,11 +180,11 @@ reactor SortedListImpl {
       cog.outl(f'output[{numWorkers}] outWorkers:void;')
       cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
     ]]] */
-    output[20] outWorkers:void;
-    input[20] inWorkers:{=Message=};
+    output[20] outWorkers: void;
+    input[20] inWorkers: Message;
     // [[[end]]]
     
-    logical action sendAnswers:void;
+    logical action sendAnswers: void;
     
     reaction(inMaster) {=
         // check result
@@ -199,7 +196,7 @@ reactor SortedListImpl {
     =}
     
     reaction(sendAnswers) -> outWorkers {=
-        for(int i = 0; i < outWorkers.size(); ++i) {
+        for (size_t i{0}; i < outWorkers.size(); ++i) {
             if(workersToSend[i]) {
                 outWorkers[i].set();
                 workersToSend[i] = false;
@@ -208,29 +205,21 @@ reactor SortedListImpl {
     =}
     
     reaction(inWorkers) -> sendAnswers {=
-        
         sendAnswers.schedule();
         
-        for(int i = 0; i < inWorkers.size(); ++i) {
+        for(size_t i{0}; i < inWorkers.size(); ++i) {
             if(inWorkers[i].is_present()) {
-                
                 if(inWorkers[i].get()->type == WriteMsg) {
-                    
                     int value = inWorkers[i].get()->value;
                     dataList.add(value);
                     workersToSend[i] = true;
-                    
                 } else if(inWorkers[i].get()->type == ContainsMsg) {
-                    
                     int value = inWorkers[i].get()->value;
                     int result = dataList.contains(value) ? 1 : 0;
                     workersToSend[i] = true;
-                    
                 } else if(inWorkers[i].get()->type == SizeMsg) {
-                    
                     int value = dataList.size();
                     workersToSend[i] = true;
-                    
                 }
             }
         }
@@ -405,7 +394,7 @@ reactor SortedListImpl {
 }
 
 
-main reactor (numIterations:int(12), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1)) {
+main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage:int(1)) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numWorkers={numWorkers});')
