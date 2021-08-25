@@ -1,9 +1,9 @@
 /**
  * This example showcases the infrastructure that is built into LF
  * C runtime that can automatically serialize and deserialize ROS2
- * messages.
+ * messages in federated programs.
  * 
- * This an example of a sender-receiver federated program in which  
+ * This example contains a sender-receiver federated program in which  
  * the 'sender' federate sends a std_msgs::msg::Int32 message to the
  * 'receiver' federate.
  * 
@@ -13,13 +13,13 @@
  * 
  * Then you can use lfc to compile this program:
  * 
- * lfc ROSBuiltInSerialization.lf
+ *     lfc ROSBuiltInSerialization.lf
  * 
  * And launch the federated program in the `bin` folder:
  * 
  * example/C/bin/ROSBuiltInSerialization
  * 
- * @author Soroush Bateni
+ * @author Soroush Bateni <soroush@utdallas.edu>
  */
  target C {
     cmake: true,  // Only CMake is supported
