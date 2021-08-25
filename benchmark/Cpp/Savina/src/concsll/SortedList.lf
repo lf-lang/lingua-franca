@@ -6,43 +6,6 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numWorkers=20
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numWorkers' in globals():
-    numWorkers = int(numWorkers)
-  else:
-    globals()['numWorkers'] = 20
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numWorkers = {numWorkers}')
-]]] */
-// Generated file with the following parameters:
-// numWorkers = 20
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "../IncludeHeaders.cmake"
@@ -73,13 +36,8 @@ reactor Master(numWorkers: size_t(20)) {
     input inStart: void;
     output outFinished: void;
     
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outWorkers:void;')
-      cog.outl(f'input[{numWorkers}] inWorkers:void;')
-    ]]] */
-    output[20] outWorkers: void;
-    input[20] inWorkers: void;
-    // [[[end]]]
+    output[numWorkers] outWorkers: void;
+    input[numWorkers] inWorkers: void;
     output outSortedList: void;
     
     logical action startExecution: void;
@@ -91,7 +49,7 @@ reactor Master(numWorkers: size_t(20)) {
         }
     =}
     
-    reaction(finish) -> outFinished {=
+    reaction(finish) -> outFinished, outSortedList {=
         outFinished.set();
         outSortedList.set();
     =}
@@ -161,7 +119,7 @@ reactor Worker(instance: size_t{0}, numMessagesPerWorker: size_t{8000}, writePer
 }
 
 
-reactor SortedListImpl {
+reactor SortedListImpl(numWorkers: size_t{20}) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
@@ -169,20 +127,11 @@ reactor SortedListImpl {
     =}
     
     state dataList: SortedLinkedList<int>;
-    /* [[[cog
-      cog.outl(f'state workersToSend:{{=std::bitset<{numWorkers}>=}};')
-    ]]] */
-    state workersToSend: {=std::bitset<20>=};
-    // [[[end]]]
+    state workersToSend: std::vector<bool>(numWorkers, false);
     
     input inMaster:void;
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outWorkers:void;')
-      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
-    ]]] */
-    output[20] outWorkers: void;
-    input[20] inWorkers: Message;
-    // [[[end]]]
+    output[numWorkers] outWorkers: void;
+    input[numWorkers] inWorkers: Message;
     
     logical action sendAnswers: void;
     
@@ -192,7 +141,8 @@ reactor SortedListImpl {
         
         // reset local state
         dataList = SortedLinkedList<int>();
-        workersToSend.reset();
+        workersToSend.clear();
+        workersToSend.resize(numWorkers, false);
     =}
     
     reaction(sendAnswers) -> outWorkers {=
@@ -394,13 +344,9 @@ reactor SortedListImpl {
 }
 
 
-main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage:int(1)) {
-    
-    /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers});')
-    ]]] */
-    master = new Master(numWorkers=20);
-    // [[[end]]]
+main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage:int(1), numWorkers: size_t{20}) {
+
+    master = new Master(numWorkers=numWorkers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> master.inStart;
@@ -408,26 +354,18 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, wri
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("SortedListBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "sizePercentage", sizePercentage, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "sizePercentage", sizePercentage, "numWorkers", 20);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker,
+                  "writePercentage", writePercentage, "sizePercentage", sizePercentage, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);')
-    ]]] */
-    workers = new[20] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
-    // [[[end]]]
-    sortedList = new SortedListImpl();
+    workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
+    sortedList = new SortedListImpl(numWorkers=numWorkers);
     
     master.outSortedList -> sortedList.inMaster;
     master.outWorkers -> workers.inMaster;
     sortedList.outWorkers -> workers.inSortedList;
     workers.outMaster -> master.inWorkers;
-    workers.outSortedList -> sortedList.inWorkers;
-    
+    workers.outSortedList -> sortedList.inWorkers;    
 }
