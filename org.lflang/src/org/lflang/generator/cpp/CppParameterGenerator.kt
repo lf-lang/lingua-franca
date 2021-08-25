@@ -56,13 +56,13 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Get a C++ type that is a const reference to the parameter type */
         val Parameter.constRefType: String
             get() =
-                "std::add_lvalue_reference<std::add_const<$targetType>::type>::type"
+                "typename std::add_lvalue_reference<typename std::add_const<$targetType>::type>::type"
     }
 
     /** Generate all parameter declarations */
     fun generateDeclarations() =
         reactor.parameters.joinToString("\n", "// parameters\n", "\n") {
-            "std::add_const<${it.targetType}>::type ${it.name};"
+            "typename std::add_const<${it.targetType}>::type ${it.name};"
         }
 
     /** Generate all constructor initializers for parameters */
