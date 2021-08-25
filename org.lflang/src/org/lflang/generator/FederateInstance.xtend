@@ -246,7 +246,7 @@ class FederateInstance {
     }
     
     def containsPort(Reactor reactor, Port port) {
-        if (!reactor.federated ||isSingleton) return true
+        if (!reactor.federated || isSingleton) return true
         
         return networkInputControlReactionsTriggers.contains(port) 
                     || networkOutputControlReactionsTrigger == (port as Variable)
