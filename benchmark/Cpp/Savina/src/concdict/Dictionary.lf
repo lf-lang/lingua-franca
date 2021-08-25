@@ -1,13 +1,19 @@
 /**
- * Concurrency benchmark from the Savina benchmark suite. Intended
- * to measure reader-writer concurrency support.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This is a relatively simple benchmarks where multiple workers interact concurrently with
+ * a central dictionary. The original Akka implementation does not make an effort to synchronize and order the incoming requests. It simply processes requests in the order they are delivered to the dictinary actor by the runtime.
+ * The only synchroniztion applied, is that the workers wait for a response from the dictionary before sending the next request.
+ * 
+ * In the LF implementation, all components operate synchronously. This means at each logical time step all workers send a request to the dictionary. The dictionary processes the requests in a fixed order which makes the whole application deterministic.   
  * 
  * To break the causality loop the dictionary reactor contains a logical
- * action.
+ * action. This appears to be more efficient than using a logical action within each worker.
+ * In a quick test, the version with logical actions in each worker was 50% slower compared to the version with only one logical action in the dictionary.
  * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
+
+// Having the action in the dictionary is fatser...
 
 target Cpp {
     build-type : RelWithDebInfo,
