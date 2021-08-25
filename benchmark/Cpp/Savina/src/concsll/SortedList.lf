@@ -26,7 +26,7 @@ public preamble {=
     };
 =}
 
-reactor Master(numWorkers: size_t(20)) {
+reactor Manager(numWorkers: size_t(20)) {
     
     state numWorkersTerminated: size_t(0);
     
@@ -321,7 +321,7 @@ reactor SortedListImpl(numWorkers: size_t{20}) {
 
 main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage:int(1), numWorkers: size_t{20}) {
 
-    master = new Master(numWorkers=numWorkers);
+    manager = new Manager(numWorkers=numWorkers);
     workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
     sortedList = new SortedListImpl(numWorkers=numWorkers);
     
@@ -335,11 +335,11 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, wri
         runner.inStart.set();
     =}
     
-    (runner.outIterationStart)+ -> master.start, workers.doWork;
-    master.finished -> runner.inIterationFinish;
-    master.finished -> sortedList.printResult;
+    (runner.outIterationStart)+ -> manager.start, workers.doWork;
+    manager.finished -> runner.inIterationFinish;
+    manager.finished -> sortedList.printResult;
    
     workers.request -> sortedList.requests;
     sortedList.responses -> workers.response;
-    workers.finished -> master.workersFinished;    
+    workers.finished -> manager.workersFinished;    
 }
