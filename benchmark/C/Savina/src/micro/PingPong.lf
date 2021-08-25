@@ -23,13 +23,14 @@
  * @author Edward A. Lee
  */
 target C {
-    fast: true
+    fast: true,
     /* [[[cog
     cog.outl(f'threads: {threads}')
     ]]] */
     threads: 24 
     // [[[end]]]
 };
+
 reactor Ping(count:int(1000000)) {
     input receive:int;
     output send:int;
