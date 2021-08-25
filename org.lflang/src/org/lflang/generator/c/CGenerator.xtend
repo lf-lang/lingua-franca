@@ -790,7 +790,7 @@ class CGenerator extends GeneratorBase {
                         val model = contents.get(0) as Model
                         for (c : model.eContents) {
                             if (c instanceof TargetDecl) {
-                                val targetProp = c as TargetDecl
+                                val targetProp = c
                                 if (targetProp.config !== null) {
                                     for (pair : targetProp.config.pairs) {
                                         if (pair.name.equals(TargetProperty.CMAKE_INCLUDE.toString)) {
@@ -886,11 +886,11 @@ class CGenerator extends GeneratorBase {
         // main resource and has already been added.
         var Resource mainResource = null;
         if (mainDef !== null) {
-            mainResource = mainDef.eResource
+            mainResource = mainDef.reactorClass.eResource
         }
         if (federate.instantiation !== null &&
-            federate.instantiation.reactorClass.toDefinition.eResource !== null &&
-            federate.instantiation.reactorClass.toDefinition.eResource != mainResource
+            federate.instantiation.reactorClass.eResource !== null &&
+            federate.instantiation.reactorClass.eResource != mainResource
         ) {
             // Extract the contents of the imported file
             val contents = federate.instantiation.reactorClass.toDefinition.eResource.contents;
@@ -909,18 +909,31 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate to generate reactors for
      */
     def void generateReactorDefinitionsForFederate(FederateInstance federate) {
-        val generatedReactorDefinitions = newLinkedHashSet
+        val generatedReactorDecls = newLinkedHashSet
         if (this.main !== null) {
             for (r : this.main.children) {
-                if (federate.contains(r) && !generatedReactorDefinitions.contains(r.reactorDefinition)) {
-                    generatedReactorDefinitions.add(r.reactorDefinition)
-                    generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDefinitions);
-                    generateReactorFederated(r.reactorDefinition, federate)
+                // FIXME: If the reactor is the bank itself, it is just a placeholder and should be skipped.
+                // It seems that the way banks are instantiated is that
+                // for a bank new[4] Foo, there will be a reactor instance Foo and four additional
+                // reactor instances of Foo (5 total), but the first instance doesn't include
+                // any of the reactor instances within Foo in its children structure.
+                if (r.bankIndex != -2 && federate.contains(r)) {
+                    val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
+                    if (!declarations.isNullOrEmpty) {
+                        for (d : declarations) {
+                            if (!generatedReactorDecls.contains(d)) {
+                                generatedReactorDecls.add(d)
+                                generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDecls);
+
+                                generateReactorFederated(d, federate);
+                            }
+
+                        }
+                    }
                 }
             }
         }
-        
-            
+
         if (this.mainDef !== null) {
             generateReactorFederated(this.mainDef.reactorClass, federate)
         }
@@ -933,7 +946,7 @@ class CGenerator extends GeneratorBase {
             // If the reactor has no instantiations and there is no main reactor, then
             // generate code for it anyway (at a minimum, this means that the compiler is invoked
             // so that reaction bodies are checked).
-            if (mainDef === null && declarations.isEmpty() && !generatedReactorDefinitions.contains(r)) {
+            if (mainDef === null && declarations.isEmpty()) {
                 generateReactorFederated(r, null)
             }
         }
@@ -949,13 +962,25 @@ class CGenerator extends GeneratorBase {
     def void generateReactorChildrenForReactorInFederate(
         ReactorInstance reactor,
         FederateInstance federate,
-        LinkedHashSet<Reactor> generatedReactorDefinitions
+        LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
         for (r : reactor.children) {
-            if (federate.contains(r) && !generatedReactorDefinitions.contains(r.reactorDefinition)) {
-                generatedReactorDefinitions.add(r.reactorDefinition)
-                generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDefinitions);
-                generateReactorFederated(r.reactorDefinition, federate)
+            // FIXME: If the reactor is the bank itself, it is just a placeholder and should be skipped.
+            // It seems that the way banks are instantiated is that
+            // for a bank new[4] Foo, there will be a reactor instance Foo and four additional
+            // reactor instances of Foo (5 total), but the first instance doesn't include
+            // any of the reactor instances within Foo in its children structure.
+            if (r.bankIndex != -2 && federate.contains(r)) {
+                val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
+                if (!declarations.isNullOrEmpty) {
+                    for (d : declarations) {
+                        if (!generatedReactorDecls.contains(d)) {
+                            generatedReactorDecls.add(d);
+                            generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDecls);
+                            generateReactorFederated(d, federate);
+                        }
+                    }
+                }
             }
         }
     }
@@ -1533,7 +1558,7 @@ class CGenerator extends GeneratorBase {
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate.containsPort(reactor, input as Port)) {
+            if (federate === null || federate.containsPort(reactor, input as Port)) {
                 var token = ''
                 if (input.inferredType.isTokenType) {
                     token = '''
@@ -1555,7 +1580,7 @@ class CGenerator extends GeneratorBase {
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate.containsPort(reactor, output as Port)) {
+            if (federate === null || federate.containsPort(reactor, output as Port)) {
                 var token = ''
                 if (output.inferredType.isTokenType) {
                      token = '''
@@ -1580,7 +1605,7 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            if (federate.containsAction(reactor, action)) {
+            if (federate === null || federate.containsAction(reactor, action)) {
                 pr(action, code, '''
                     typedef struct {
                         trigger_t* trigger;
@@ -1754,7 +1779,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate.containsPort(reactor, output as Port)) {
+            if (federate === null || federate.containsPort(reactor, output as Port)) {
                 // If the port is a multiport, create an array to be allocated
                 // at instantiation.
                 if (output.isMultiport) {
@@ -2818,12 +2843,22 @@ class CGenerator extends GeneratorBase {
                 var dominatingReaction = this.reactionGraph.findSingleDominatingReaction(reaction)
                 // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
                 while (dominatingReaction !== null 
-                    && !federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition
-                )) {
+                    && (federate !== null && 
+                        !federate.containsReaction(
+                            reactorInstance.definition.reactorClass.toDefinition, 
+                            dominatingReaction.definition
+                            )
+                        )
+                ) {
                     dominatingReaction = this.reactionGraph.findSingleDominatingReaction(dominatingReaction);
                 }
                 if (dominatingReaction !== null
-                    && federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition)
+                    && (federate !== null 
+                        && federate.containsReaction(
+                            reactorInstance.definition.reactorClass.toDefinition, 
+                            dominatingReaction.definition
+                            )
+                        )
                 ) {
                     val upstreamReaction =
                         '''«selfStructName(dominatingReaction.parent)»->___reaction_«dominatingReaction.reactionIndex»'''
@@ -2850,7 +2885,7 @@ class CGenerator extends GeneratorBase {
                         // Also skip ports whose parent is not in the federation.
                         // This can happen with reactions in the top-level that have
                         // as an effect a port in a bank.
-                        if (federate.contains(port.parent)) {
+                        if (federate === null || federate.contains(port.parent)) {
                             // Port is not within a multiport.
                             // The port to which the reaction writes may have dependent
                             // reactions in the container. If so, we list that port here.
@@ -3501,8 +3536,10 @@ class CGenerator extends GeneratorBase {
      * trace table. If tracing is not turned on, do nothing.
      * @param instance The reactor instance.
      * @param builder The place to put the generated code.
+     * @param federate A federate instance to conditionally generate code for actions
+     *  and timers
      */
-    def void generateTraceTableEntries(ReactorInstance instance, StringBuilder builder) {
+    def void generateTraceTableEntries(ReactorInstance instance, StringBuilder builder, FederateInstance federate) {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
@@ -3513,9 +3550,11 @@ class CGenerator extends GeneratorBase {
                 _lf_register_trace_event(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
             ''')
             for (action : instance.actions) {
-                pr(builder, '''
-                    _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name»), trace_trigger, "«description».«action.name»");
-                ''')
+                if (federate === null || federate.containsAction(instance.reactorDefinition, action.definition)) {
+                    pr(builder, '''
+                        _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name»), trace_trigger, "«description».«action.name»");
+                    ''')
+                }
             }
             for (timer : instance.timers) {
                 pr(builder, '''
@@ -3576,7 +3615,7 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        generateTraceTableEntries(instance, initializeTriggerObjects)
+        generateTraceTableEntries(instance, initializeTriggerObjects, federate)
               
         generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
@@ -3764,7 +3803,7 @@ class CGenerator extends GeneratorBase {
             if (triggersInUse.contains(action) && 
                 (federate === null || federate.containsAction(instance.reactorDefinition, action.definition))
             ) {
-                var type = (action.definition as Action).inferredType
+                var type = action.definition.inferredType
                 var payloadSize = "0"
                 
                 if (!type.isUndefined) {

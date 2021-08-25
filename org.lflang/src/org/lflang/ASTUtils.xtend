@@ -261,7 +261,7 @@ class ASTUtils {
                 // the width.
                 for (port : connection.rightPorts) {
                     val term = factory.createWidthTerm()
-                    term.port = EcoreUtil.copy(port) as VarRef
+                    term.port = EcoreUtil.copy(port)
                     widthSpec.terms.add(term)
                 }   
             } else {
