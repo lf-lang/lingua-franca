@@ -60,7 +60,7 @@ reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
 }
 
 
-reactor Master(numSeries: size_t(10), numTerms: size_t(25000)) {
+reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
  
     state currentIteration: size_t{0};
     
@@ -99,7 +99,7 @@ reactor Master(numSeries: size_t(10), numTerms: size_t(25000)) {
 
 main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: double{3.46}, numSeries: size_t{10}) {
     
-    master = new Master(numSeries=numSeries, numTerms=numTerms);
+    manager = new Manager(numSeries=numSeries, numTerms=numTerms);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     reaction(startup) -> runner.inStart {=
@@ -112,12 +112,12 @@ main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: dou
     rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
     seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
     
-    (runner.outIterationStart)+ -> master.start, rateComputers.reset, seriesWorkers.reset;
-    master.finished -> runner.inIterationFinish;
+    (runner.outIterationStart)+ -> manager.start, rateComputers.reset, seriesWorkers.reset;
+    manager.finished -> runner.inIterationFinish;
     
-    (master.nextTerm)+ -> seriesWorkers.nextTerm;
-    (master.getTerm)+ -> seriesWorkers.getTerm;
-    seriesWorkers.term -> master.term;
+    (manager.nextTerm)+ -> seriesWorkers.nextTerm;
+    (manager.getTerm)+ -> seriesWorkers.getTerm;
+    seriesWorkers.term -> manager.term;
     
     seriesWorkers.computeRate -> rateComputers.compute;
     rateComputers.rate -> seriesWorkers.rate; 
