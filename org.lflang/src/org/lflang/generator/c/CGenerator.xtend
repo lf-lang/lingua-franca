@@ -83,13 +83,13 @@ import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.SERIALIZATION
 import org.lflang.federated.FedROSCPPSerialization
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.lflang.lf.TargetDecl
 import org.lflang.TargetProperty
 import org.lflang.lf.Model
+import org.lflang.federated.SupportedSerializations
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -4357,7 +4357,7 @@ class CGenerator extends GeneratorBase {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SERIALIZATION serialization
+        SupportedSerializations serialization
     ) {
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
@@ -4383,7 +4383,7 @@ class CGenerator extends GeneratorBase {
         
         var value = "";
         switch (serialization) {
-            case NATIVE: {
+            case SupportedSerializations.NATIVE: {
                 // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
                 // So passing it downstream should be OK.
                 value = '''«action.name»->value''';
@@ -4397,10 +4397,10 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
             }
-            case PROTO: {
+            case SupportedSerializations.PROTO: {
                 throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
             }
-            case ROS2: {
+            case SupportedSerializations.ROS2: {
                 val portType = (receivingPort.variable as Port).inferredType
                 var portTypeStr = portType.targetType
                 if (isTokenType(portType)) {
@@ -4462,7 +4462,7 @@ class CGenerator extends GeneratorBase {
         InferredType type,
         boolean isPhysical,
         Delay delay,
-        SERIALIZATION serialization
+        SupportedSerializations serialization
     ) { 
         var sendRef = generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
         val receiveRef = generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
@@ -4514,7 +4514,7 @@ class CGenerator extends GeneratorBase {
         var lengthExpression = "";
         var pointerExpression = "";
         switch (serialization) {
-            case NATIVE: {
+            case SupportedSerializations.NATIVE: {
                 // Handle native types.
                 if (isTokenType(type)) {
                     // NOTE: Transporting token types this way is likely to only work if the sender and receiver
@@ -4542,10 +4542,10 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
             }
-            case PROTO: {
+            case SupportedSerializations.PROTO: {
                 throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
             }
-            case ROS2: {
+            case SupportedSerializations.ROS2: {
                 var variableToSerialize = sendRef;
                 var typeStr = type.targetType
                 if (isTokenType(type)) {
@@ -4662,10 +4662,10 @@ class CGenerator extends GeneratorBase {
     override enableSupportForSerialization() {
         for (serialization : enabledSerializations) {
             switch (serialization) {
-                case NATIVE: {
+                case SupportedSerializations.NATIVE: {
                     // No need to do anything at this point.
                 }
-                case PROTO: {
+                case SupportedSerializations.PROTO: {
                     // Handle .proto files.
                     for (file : targetConfig.protoFiles) {
                         this.processProtoFile(file)
@@ -4677,7 +4677,7 @@ class CGenerator extends GeneratorBase {
                         pr('#include "' + rootFilename + '.pb-c.h"')
                     }
                 }
-                case ROS2: {
+                case SupportedSerializations.ROS2: {
                     val ROSSerializer = new FedROSCPPSerialization();
                     pr(ROSSerializer.generatePreambleForSupport.toString);
                     cMakeExtras = '''
@@ -4757,7 +4757,7 @@ class CGenerator extends GeneratorBase {
         // this.
         if (!targetConfig.protoFiles.isNullOrEmpty) {
             // Enable support for proto serialization
-            enabledSerializations.add(SERIALIZATION.PROTO)
+            enabledSerializations.add(org.lflang.federated.SupportedSerializations.PROTO)
         }
     }
     

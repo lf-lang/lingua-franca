@@ -56,7 +56,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SERIALIZATION
+import org.lflang.federated.SupportedSerializations
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -904,7 +904,7 @@ class PythonGenerator extends CGenerator {
         // this.
         if (!targetConfig.protoFiles.isNullOrEmpty) {
             // Enable support for proto serialization
-            enabledSerializations.add(SERIALIZATION.PROTO)
+            enabledSerializations.add(SupportedSerializations.PROTO)
         }
     }
     

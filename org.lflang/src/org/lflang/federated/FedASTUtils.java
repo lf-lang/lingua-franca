@@ -428,9 +428,9 @@ public class FedASTUtils {
         generator.setReactionBankIndex(r2, rightBankIndex);
         
         // Get the serialization method
-        var serialization = SERIALIZATION.NATIVE;
+        var serialization = SupportedSerializations.NATIVE;
         if (connection.getSerialization() != null) {
-            serialization = SERIALIZATION.valueOf(
+            serialization = SupportedSerializations.valueOf(
                     connection.getSerialization().getSerialization().toUpperCase()
             );
             // Add it to the list of enabled serializations
@@ -439,7 +439,7 @@ public class FedASTUtils {
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
-        if (serialization == SERIALIZATION.NATIVE) {
+        if (serialization == SupportedSerializations.NATIVE) {
             action.setType(type);
         } else {
             Type action_type = factory.createType();

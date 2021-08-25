@@ -39,7 +39,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
 import java.nio.file.Files
 import java.util.LinkedList
-import org.lflang.federated.SERIALIZATION
+import org.lflang.federated.SupportedSerializations
 
 /**
  * Generator for TypeScript target.
@@ -388,7 +388,7 @@ class TSGenerator(
         receivingChannelIndex: Int,
         type: InferredType,
         isPhysical: Boolean,
-        serialization: SERIALIZATION
+        serialization: SupportedSerializations
     ): String {
         return with(PrependOperator) {"""
         // FIXME: For now assume the data is a Buffer, but this is not checked.
