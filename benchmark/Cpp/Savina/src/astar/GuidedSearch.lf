@@ -5,49 +5,12 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numWorkers=20
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numWorkers' in globals():
-    numWorkers = int(numWorkers)
-  else:
-    globals()['numWorkers'] = 20
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numWorkers = {numWorkers}')
-]]] */
-// Generated file with the following parameters:
-// numWorkers = 20
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "GuidedSearch.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
-
 
 reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     
@@ -61,11 +24,7 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     state numWorkersTerminated: size_t{0};
     state numWorkSent: size_t{0};
     state numWorkCompleted: size_t{0};
-    /* [[[cog
-      cog.outl(f'state workersWorking:{{=std::bitset<{numWorkers}>=}};')
-    ]]] */
-    state workersWorking: {=std::bitset<20>=};
-    // [[[end]]]
+    state workersWorking: std::vector<bool>(numWorkers, false);
     state workList: std::list<WorkMessage>;
     state shortestPathIsFound:bool(false);
     
@@ -76,17 +35,10 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     input inCleanupIteration:void;
     output outCleanupIterationFinished:void;
     
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outWorkersWork:{{=WorkMessage=}};')
-      cog.outl(f'input[{numWorkers}] inWorkersWork:{{=std::list<WorkMessage>=}};')
-      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
-      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
-    ]]] */
-    output[20] outWorkersWork: WorkMessage;
-    input[20] inWorkersWork: std::list<WorkMessage>;
-    output[20] outWorkers: Message;
-    input[20] inWorkers: Message;
-    // [[[end]]]
+    output[numWorkers] outWorkersWork: WorkMessage;
+    input[numWorkers] inWorkersWork: std::list<WorkMessage>;
+    output[numWorkers] outWorkers: Message;
+    input[numWorkers] inWorkers: Message;
     
     logical action sendWork:void;
     logical action shutdownWorkers:void;
@@ -104,13 +56,13 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     =}
     
     reaction(inStart) -> sendWork {=
-        
         // reset local state
         numWorkersTerminated = 0;
         numWorkSent = 0;
         numWorkCompleted = 0;
         srand(100); // arbitrary seed
-        workersWorking.reset();
+        workersWorking.clear();
+        workersWorking.resize(numWorkers, false);
         workList = std::list<WorkMessage>();
         shortestPathIsFound = false;
         
@@ -120,7 +72,6 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     =}
     
     reaction(sendWork) -> outWorkersWork, shutdownWorkers {=
-        
         if(shortestPathIsFound) return;
         if(workList.empty()) {
             // Assuming that no worker is working in parallel.
@@ -129,14 +80,19 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
             shutdownWorkers.schedule();
             return;
         }
-        
-        while(!workList.empty() && !workersWorking.all()) {
+
+        size_t workerIndex{0};        
+        while(!workList.empty()) {
             numWorkSent += 1;
-            int workerIndex = 0;
+
             while(workersWorking[workerIndex]) ++workerIndex;
-            workersWorking[workerIndex] = true;
-            outWorkersWork[workerIndex].set(workList.front());
-            workList.pop_front();
+            if (workerIndex < numWorkers) {
+            	workersWorking[workerIndex] = true;
+            	outWorkersWork[workerIndex].set(workList.front());
+            	workList.pop_front();
+            } else {
+                break;
+            }
         }
     =}
     
@@ -162,7 +118,6 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     =}
     
     reaction(inWorkers) -> outFinished, sendWork, shutdownWorkers {=
-        
         for(size_t i{0}; i < inWorkers.size(); i++) {
             if(inWorkers[i].is_present()) {
                 if(inWorkers[i].get()->type == ReceivedMsg) {
@@ -247,7 +202,6 @@ reactor Worker(bank_index: size_t{0}, priorities: size_t{30}) {
     =}
     
     reaction(inWork) -> success,returnWorkToMaster,confirmReceiving {=
-        
         // do the work inline instead of in an external thread
         
         WorkMessage workMessage = *(inWork.get());
@@ -297,17 +251,13 @@ reactor Worker(bank_index: size_t{0}, priorities: size_t{30}) {
 }
 
 
-main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size_t{30}, priorities: size_t{30}) {
+main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size_t{30}, priorities: size_t{30}, numWorkers: size_t{20}) {
     
     private preamble {=
         #include "GuidedSearchCommon.hh"
     =}
     
-    /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers}, gridSize=gridSize);')
-    ]]] */
-    master = new Master(numWorkers=20, gridSize=gridSize);
-    // [[[end]]]
+    master = new Master(numWorkers=numWorkers, gridSize=gridSize);
     runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
     
     runner.outInitializeStart -> master.inInitializeStart;
@@ -319,40 +269,25 @@ main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size
     runner.outIterationStart -> master.inStart;
     master.outFinished -> runner.inIterationFinish;
     
-    reaction(startup) -> runner.inStart {=
-        
+    reaction(startup) -> runner.inStart {=       
         // initializations of global variables that are not states in a reactor
         // those variables are global to be used in the helper functions
         PRIORITY_GRANULARITY = 8; // hard coded
-        /* [[[cog
-          cog.outl(f'NUM_WORKERS = {numWorkers};')
-        ]]] */
-        NUM_WORKERS = 20;
-        // [[[end]]]
+        NUM_WORKERS = numWorkers;
         GRID_SIZE = gridSize;
         PRIORITIES = priorities;
         THRESHOLD = threshold;
         
-        
         printBenchmarkInfo("GuidedSearchBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", 20);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker();')
-    ]]] */
-    workers = new[20] Worker();
-    // [[[end]]]
+    workers = new[numWorkers] Worker();
     
     workers.outMaster -> master.inWorkers;
     workers.outWork -> master.inWorkersWork;
     master.outWorkers -> workers.inMaster;
     master.outWorkersWork -> workers.inWork;
-    
 }
