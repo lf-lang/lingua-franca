@@ -5,49 +5,11 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numSeries=10
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numSeries' in globals():
-    numSeries = int(numSeries)
-  else:
-    globals()['numSeries'] = 10
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numSeries = {numSeries}')
-]]] */
-// Generated file with the following parameters:
-// numSeries = 10
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
-
 
 public preamble {=
     enum MsgType {
@@ -131,14 +93,9 @@ reactor Master(numSeries: size_t(10), numTerms: size_t(25000)) {
     
     input inStart:void;
     output outFinished:void;
-    
-    /* [[[cog
-      cog.outl(f'output[{numSeries}] outSeriesWorkers:{{=Message=}};')
-      cog.outl(f'input[{numSeries}] inSeriesWorkers:{{=Message=}};')
-    ]]] */
-    output[10] outSeriesWorkers:{=Message=};
-    input[10] inSeriesWorkers:{=Message=};
-    // [[[end]]]
+
+    output[numSeries] outSeriesWorkers: Message;
+    input[numSeries] inSeriesWorkers: Message;
     
     logical action nextTerms:void;
     
@@ -198,13 +155,9 @@ reactor Master(numSeries: size_t(10), numTerms: size_t(25000)) {
 }
 
 
-main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: double{3.46}) {
+main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: double{3.46}, numSeries: size_t{10}) {
     
-    /* [[[cog
-      cog.outl(f'master = new Master(numSeries={numSeries}, numTerms=numTerms);')
-    ]]] */
-    master = new Master(numSeries=10, numTerms=numTerms);
-    // [[[end]]]
+    master = new Master(numSeries=numSeries, numTerms=numTerms);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> master.inStart;
@@ -212,22 +165,13 @@ main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: dou
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("LogisticMapReactorLFCppBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numTerms", numTerms, "startRate", startRate, "numSeries", {numSeries});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numTerms", numTerms, "startRate", startRate, "numSeries", 10);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "numTerms", numTerms, "startRate", startRate, "numSeries", numSeries);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'rateComputers = new[{numSeries}] RateComputer(startRate=startRate, rateIncrement=0.0025);')
-      cog.outl(f'seriesWorkers = new[{numSeries}] SeriesWorker(termIncrement=0.0025);')
-    ]]] */
-    rateComputers = new[10] RateComputer(startRate=startRate, rateIncrement=0.0025);
-    seriesWorkers = new[10] SeriesWorker(termIncrement=0.0025);
-    // [[[end]]]
+    rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
+    seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
     
     master.outSeriesWorkers -> seriesWorkers.inMaster;
     rateComputers.outSeriesWorker -> seriesWorkers.inRateComputer;
