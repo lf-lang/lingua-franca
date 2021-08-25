@@ -49,25 +49,24 @@ target Cpp {
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
-reactor Master(numWorkers:int(20), gridSize:int(30)) {
+reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     
     public preamble {=
         #include <bitset>
         #include <list>
         #include "GuidedSearchCommon.hh"
         #include "GridNode.hh"
-        #include "reactor-cpp/logging.hh"
     =}
     
-    state numWorkersTerminated:int(0);
-    state numWorkSent:int(0);
-    state numWorkCompleted:int(0);
+    state numWorkersTerminated: size_t{0};
+    state numWorkSent: size_t{0};
+    state numWorkCompleted: size_t{0};
     /* [[[cog
       cog.outl(f'state workersWorking:{{=std::bitset<{numWorkers}>=}};')
     ]]] */
-    state workersWorking:{=std::bitset<20>=};
+    state workersWorking: {=std::bitset<20>=};
     // [[[end]]]
-    state workList:{=std::list<WorkMessage>=};
+    state workList: std::list<WorkMessage>;
     state shortestPathIsFound:bool(false);
     
     input inStart:void;
@@ -83,10 +82,10 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
       cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
       cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
     ]]] */
-    output[20] outWorkersWork:{=WorkMessage=};
-    input[20] inWorkersWork:{=std::list<WorkMessage>=};
-    output[20] outWorkers:{=Message=};
-    input[20] inWorkers:{=Message=};
+    output[20] outWorkersWork: WorkMessage;
+    input[20] inWorkersWork: std::list<WorkMessage>;
+    output[20] outWorkers: Message;
+    input[20] inWorkers: Message;
     // [[[end]]]
     
     logical action sendWork:void;
@@ -142,9 +141,8 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
     =}
     
     reaction(shutdownWorkers) -> outWorkers {=
-        
         // Assuming that it is safe to shut down the workers
-        int i = 0;
+        size_t i{0};
         auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
         while(i < numWorkers) {
             outWorkers[i].set(msg);
@@ -153,11 +151,9 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
     =}
     
     reaction(inWorkersWork) {=
-        
-        for(int i = 0; i < inWorkersWork.size(); i++) {
+        for(size_t i{0}; i < inWorkersWork.size(); i++) {
             if(inWorkersWork[i].is_present()) {
-                
-                workList.insert( end(workList), begin(*(inWorkersWork[i].get())), end(*(inWorkersWork[i].get())) );
+                workList.insert(end(workList), begin(*(inWorkersWork[i].get())), end(*(inWorkersWork[i].get())) );
             }
         }
         // Do not schedule work here.
@@ -165,13 +161,11 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
         // We assume that ReceivedMsg arrives after this reaction is executed.
     =}
     
-    reaction(inWorkers) -> outWorkers, outFinished, sendWork {=
+    reaction(inWorkers) -> outFinished, sendWork, shutdownWorkers {=
         
-        for(int i = 0; i < inWorkers.size(); i++) {
+        for(size_t i{0}; i < inWorkers.size(); i++) {
             if(inWorkers[i].is_present()) {
-                
                 if(inWorkers[i].get()->type == ReceivedMsg) {
-                    
                     numWorkCompleted += 1;
                     workersWorking[i] = false;
 //                    if(numWorkCompleted == numWorkSent) {
@@ -187,12 +181,9 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
 //                    }
                     
                 } else if(inWorkers[i].get()->type == DoneMsg) {
-                    
                     shortestPathIsFound = true;
                     shutdownWorkers.schedule();
-                    
                 } else if(inWorkers[i].get()->type == StopMsg) {
-                    
                     // Confirmation that worker shut down.
                     numWorkersTerminated += 1;
                     if(numWorkersTerminated == numWorkers) {
@@ -205,7 +196,7 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
 }
 
 
-reactor Worker(instance:int(0), priorities:int(30)) {
+reactor Worker(bank_index: size_t{0}, priorities: size_t{30}) {
     
     public preamble {=
         #include <list>
@@ -213,15 +204,15 @@ reactor Worker(instance:int(0), priorities:int(30)) {
         #include "GuidedSearchCommon.hh"
     =}
     
-    state workQueue:{=std::unique_ptr<std::list<GridNode*>>=}; // linked list
-    state targetNode:{=GridNode*=};
+    state workQueue: std::unique_ptr<std::list<GridNode*>>; // linked list
+    state targetNode: GridNode*;
     
-    input inWork:{=WorkMessage=}; // work from the master
-    output outWork:{=std::list<WorkMessage>=}; // work back to the master to distribute
-    input inMaster:{=Message=}; // control messages from the master
-    output outMaster:{=Message=}; // control messages to the master
+    input inWork: WorkMessage; // work from the master
+    output outWork: std::list<WorkMessage>; // work back to the master to distribute
+    input inMaster: Message; // control messages from the master
+    output outMaster: Message; // control messages to the master
     
-    logical action messageToMaster:{=Message=};
+    logical action messageToMaster: Message;
     logical action sendStop:void;
     logical action confirmReceiving:void; // confirm receiving work
     logical action success:void; // found solution
@@ -277,10 +268,10 @@ reactor Worker(instance:int(0), priorities:int(30)) {
             int i = 0;
             while(i < numNeighbors) {
                 GridNode * loopNeighbor = loopNode->neighbor(i);
-                bool success = loopNeighbor->setParent(loopNode);
-                if(success) {
+                bool res = loopNeighbor->setParent(loopNode);
+                if(res) {
                     if(loopNeighbor == targetNode) {
-                        (this->success).schedule();
+                        success.schedule();
                         return;
                     } else {
                         workQueue->push_back(loopNeighbor);
@@ -306,7 +297,7 @@ reactor Worker(instance:int(0), priorities:int(30)) {
 }
 
 
-main reactor (numIterations:int(12), threshold:int(1024), gridSize:int(30), priorities:int(30)) {
+main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size_t{30}, priorities: size_t{30}) {
     
     private preamble {=
         #include "GuidedSearchCommon.hh"
@@ -332,7 +323,6 @@ main reactor (numIterations:int(12), threshold:int(1024), gridSize:int(30), prio
         
         // initializations of global variables that are not states in a reactor
         // those variables are global to be used in the helper functions
-        std::map<int,GridNode*> * allNodes = nullptr;
         PRIORITY_GRANULARITY = 8; // hard coded
         /* [[[cog
           cog.outl(f'NUM_WORKERS = {numWorkers};')
