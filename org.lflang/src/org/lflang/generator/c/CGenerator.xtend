@@ -83,13 +83,13 @@ import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FedROSCPPSerialization
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.lflang.lf.TargetDecl
 import org.lflang.TargetProperty
 import org.lflang.lf.Model
 import org.lflang.federated.SupportedSerializations
+import org.lflang.federated.FedROS2CPPSerialization
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -4411,8 +4411,8 @@ class CGenerator extends GeneratorBase {
                         portTypeStr = matcher.group(1);
                     }
                 }
-                val ROSDeserializer = new FedROSCPPSerialization()
-                value = FedROSCPPSerialization.deserializedVarName;
+                val ROSDeserializer = new FedROS2CPPSerialization()
+                value = org.lflang.federated.FedROS2CPPSerialization.deserializedVarName;
                 result.append(
                     ROSDeserializer.generateNetworkDeserializerCode(
                         '''self->___«action.name»''',
@@ -4556,11 +4556,11 @@ class CGenerator extends GeneratorBase {
                         typeStr = matcher.group(1);
                     }
                 }
-                val ROSSerializer = new FedROSCPPSerialization();
-                lengthExpression = ROSSerializer.serializedVarLength();
-                pointerExpression = ROSSerializer.seializedVarBuffer();
+                val ROSSerializer = new FedROS2CPPSerialization();
+                lengthExpression = ROSSerializer.serializedBufferLength();
+                pointerExpression = ROSSerializer.seializedBufferVar();
                 result.append(
-                    ROSSerializer.generateNetworkSerialzerCode(variableToSerialize, typeStr, isSharedPtrType(type))
+                    ROSSerializer.generateNetworkSerializerCode(variableToSerialize, typeStr, isSharedPtrType(type))
                 );
                 result.append('''
                     size_t message_length = «lengthExpression»;
@@ -4678,7 +4678,7 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 case SupportedSerializations.ROS2: {
-                    val ROSSerializer = new FedROSCPPSerialization();
+                    val ROSSerializer = new FedROS2CPPSerialization();
                     pr(ROSSerializer.generatePreambleForSupport.toString);
                     cMakeExtras = '''
                         «cMakeExtras»

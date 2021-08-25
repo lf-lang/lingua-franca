@@ -24,9 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.emf.ecore.resource.Resource;
-
-import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 
 /** 

@@ -3,7 +3,13 @@ package org.lflang.federated;
 import org.lflang.Target;
 import org.lflang.generator.GeneratorBase;
 
-public class FedROSCPPSerialization implements FedSerialization {
+/**
+ * Enables support for ROS 2 serialization in C/C++ code.
+ * 
+ * @author Soroush Bateni <soroush@utdallas.edu>
+ *
+ */
+public class FedROS2CPPSerialization implements FedSerialization {
 
     /**
      * Check whether the current generator is compatible with the given
@@ -27,64 +33,102 @@ public class FedROSCPPSerialization implements FedSerialization {
         return true;
     }
     
+    /** 
+     * @return Expression in target language that corresponds to the length
+     *  of the serialized buffer.
+     */
     @Override
-    public String serializedVarLength() {
+    public String serializedBufferLength() {
         return serializedVarName+".size()";
     }
 
+    /**
+     * @return Expression in target language that is the buffer variable 
+     *  itself.
+     */
     @Override
-    public String seializedVarBuffer() {
+    public String seializedBufferVar() {
         return serializedVarName+".get_rcl_serialized_message().buffer";
     }
     
+    /**
+     * Generate code in C++ that serializes 'varName'. This code
+     * will convert the data in 'varName' from its 'originalType' into an 
+     * uint8_t. The serialized data will be put in a variable called 
+     * 'serialized_message', defined by @see serializedVarName.
+     * 
+     * @param varName The variable to be serialized.
+     * @param originalType The original type of the variable.
+     * @return Target code that serializes the 'varName' from 'type'
+     *  to an unsigned byte array.
+     */
     @Override
-    public StringBuilder generateNetworkSerialzerCode(String portName, String portType) {
+    public StringBuilder generateNetworkSerializerCode(String varName, String originalType) {
         StringBuilder serializerCode = new StringBuilder();
         
         serializerCode.append("rclcpp::SerializedMessage "+serializedVarName+"(0u);\n");
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
-        serializerCode.append("using MessageT = "+portType+";\n");
+        serializerCode.append("using MessageT = "+originalType+";\n");
         serializerCode.append("static rclcpp::Serialization<MessageT> serializer;\n");
-        serializerCode.append("serializer.serialize_message(&"+portName+"->value , &"+serializedVarName+");\n");
+        serializerCode.append("serializer.serialize_message(&"+varName+"->value , &"+serializedVarName+");\n");
         
         return serializerCode;
     }
     
-    public StringBuilder generateNetworkSerialzerCode(String portName, String portType, boolean isSharedPtrType) {
+    /**
+     * Variant of @see generateNetworkSerializerCode(String varName, String originalType)
+     * that also supports shared pointer (i.e., std::shared_ptr<>) definitions of ROS port
+     * types.
+     * @param isSharedPtrType Indicates whether the port type is a shared pointer or not.
+     */
+    public StringBuilder generateNetworkSerializerCode(String varName, String originalType, boolean isSharedPtrType) {
         StringBuilder serializerCode = new StringBuilder();
         
         serializerCode.append("rclcpp::SerializedMessage "+serializedVarName+"(0u);\n");
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
-        serializerCode.append("using MessageT = "+portType+";\n");
+        serializerCode.append("using MessageT = "+originalType+";\n");
         serializerCode.append("static rclcpp::Serialization<MessageT> serializer;\n");
         if (isSharedPtrType) {
-            serializerCode.append("serializer.serialize_message("+portName+"->value.get() , &"+serializedVarName+");\n");
+            serializerCode.append("serializer.serialize_message("+varName+"->value.get() , &"+serializedVarName+");\n");
         } else {
-            serializerCode.append("serializer.serialize_message(&"+portName+"->value , &"+serializedVarName+");\n");
+            serializerCode.append("serializer.serialize_message(&"+varName+"->value , &"+serializedVarName+");\n");
         }
             
         return serializerCode;
     }
 
+
+    
+    /**
+     * Generate code in C++ that deserializes 'varName'. This code will
+     * convert the data in 'varName' from a uint8_t into the 'targetType'.
+     * The deserialized data will be put in a variable called deserialized_message
+     * defined by @see deserializedVarName.
+     *  
+     * @param varName The variable to deserialize.
+     * @param targetType The type to deserialize into.
+     * @return Target code that deserializes 'varName' from an unsigned byte array
+     *  to 'type'.
+     */
     @Override
-    public StringBuilder generateNetworkDeserializerCode(String portName, String portType) {
+    public StringBuilder generateNetworkDeserializerCode(String varName, String targetType) {
         StringBuilder deserializerCode = new StringBuilder();
         
         deserializerCode.append(
                 "auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{\n"
-                + "    .buffer = (uint8_t*)"+portName+".token->value,\n"
-                + "    .buffer_length = "+portName+".token->length,\n"
-                + "    .buffer_capacity = "+portName+".token->length,\n"
+                + "    .buffer = (uint8_t*)"+varName+".token->value,\n"
+                + "    .buffer_length = "+varName+".token->length,\n"
+                + "    .buffer_capacity = "+varName+".token->length,\n"
                 + "    .allocator = rcl_get_default_allocator()\n"
                 + "});\n"
         );
         deserializerCode.append("auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));\n");
-        deserializerCode.append(portName+".token->value = NULL; // Manually move the data\n");
+        deserializerCode.append(varName+".token->value = NULL; // Manually move the data\n");
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
-        deserializerCode.append("using MessageT = "+portType+";\n");
+        deserializerCode.append("using MessageT = "+targetType+";\n");
         deserializerCode.append(
                 "MessageT "+deserializedVarName+" = MessageT();\n"
               + "auto serializer = rclcpp::Serialization<MessageT>();\n"
@@ -94,6 +138,10 @@ public class FedROSCPPSerialization implements FedSerialization {
         return deserializerCode;
     }
 
+    /**
+     * @return Code in C that includes all the necessary preamble to enable
+     *  support for ROS 2 serialization.
+     */
     @Override
     public StringBuilder generatePreambleForSupport() {
         StringBuilder preamble = new StringBuilder();
@@ -107,7 +155,11 @@ public class FedROSCPPSerialization implements FedSerialization {
         
         return preamble;        
     }
-
+    
+    /** 
+     * @return Code that should be appended to the CMakeLists.txt to enable 
+     *  support for ROS 2 serialization.
+     */
     @Override
     public StringBuilder generateCompilerExtensionForSupport() {
         StringBuilder cMakeExtension = new StringBuilder();
