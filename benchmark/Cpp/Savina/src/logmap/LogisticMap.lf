@@ -11,157 +11,96 @@ target Cpp {
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-public preamble {=
-    enum MsgType {
-      ResetMsg,
-      ComputeMsg,
-      ResultMsg,
-      NextTermMsg,
-      GetTermMsg
-    };
-    
-    struct Message {
-    
-      MsgType type;
-      double term;
-    };
-=}
-
 reactor RateComputer(bank_index: size_t{0}, startRate: double{3.46}, rateIncrement: double{0.0025}) {
     
-    state rate: double;
+    state currentRate: double;
     
-    input inSeriesWorker: Message;
-    output outSeriesWorker: Message;
+    input reset: void;
+    input compute: double;
+    output rate: double;
     
-    reaction(startup) {=
-        rate = startRate + (bank_index * rateIncrement);
+    reaction(reset) {=
+        currentRate = startRate + (bank_index * rateIncrement);
     =}
     
-    reaction(inSeriesWorker) -> outSeriesWorker {=
-        if(inSeriesWorker.get()->type == ComputeMsg) {
-            double result = computeNextTerm(inSeriesWorker.get()->term, rate);
-            outSeriesWorker.set(Message{ResultMsg, result});
-        }
-    =}
-    
-    private preamble {=
-        static double computeNextTerm(const double curTerm, const double rate) {
-            return rate * curTerm * (1 - curTerm);
-        }
+    reaction(compute) -> rate {=
+        double term = *compute.get();
+        double result = currentRate * term * (1 - term);
+        rate.set(result);
     =}
 }
 
 reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
     
-    state curTerm: std::vector<double>;
+    state curTerm: double;
     
-    input inMaster: Message;
-    output outMaster: Message;
-    output outRateComputer: Message;
-    input inRateComputer: Message;
-    
-    reaction(inMaster) -> outRateComputer, outMaster {=
-        if(inMaster.get()->type == ResetMsg) {
-            //reset local state
-            curTerm = std::vector<double>{ bank_index * termIncrement };
-        } else if(inMaster.get()->type == NextTermMsg) {
-            outRateComputer.set(Message{ComputeMsg, curTerm[0]});
-        } else if(inMaster.get()->type == GetTermMsg) {
-            outMaster.set(Message{ResultMsg, curTerm[0]});
-        }
+    input reset: void;
+    input nextTerm: void;
+    input getTerm: void;
+    output term: double;
+    output computeRate: double;
+    input rate: double;
+
+	reaction (reset) {=
+        //reset local state
+        curTerm = bank_index * termIncrement;   
     =}
     
-    reaction(inRateComputer) {=
-        if(inRateComputer.get()->type == ResultMsg) {
-            curTerm[0] = inRateComputer.get()->term;
-        }
+    reaction(nextTerm) -> computeRate {=
+        computeRate.set(curTerm);
+    =}
+    
+    reaction(getTerm) -> term {=
+        term.set(curTerm);
+    =}
+    
+    reaction(rate) {=
+        curTerm = *rate.get();
     =}
 }
 
 
 reactor Master(numSeries: size_t(10), numTerms: size_t(25000)) {
+ 
+    state currentIteration: size_t{0};
     
-    private preamble {=
-        #include "reactor-cpp/logging.hh"
-    =}
-    
-    state numWorkRequested: size_t{0};
-    state numWorkReceived: size_t{0};
-    state termsSum: double{0.0};
-    state currentTerm: size_t{0};
-    
-    input inStart:void;
-    output outFinished:void;
+    input start: void;
+    output finished: void;
 
-    output[numSeries] outSeriesWorkers: Message;
-    input[numSeries] inSeriesWorkers: Message;
+    output nextTerm: void;
+    output getTerm: void;
+    input[numSeries] term: double;
     
-    logical action nextTerms:void;
+    logical action next: void;
     
-    reaction(inStart) -> nextTerms, outSeriesWorkers {=
-        
-        //reset local state
-        numWorkRequested = 0;
-        numWorkReceived = 0;
-        termsSum = 0.0;
-        currentTerm = 0;
-        
-        nextTerms.schedule();
-        auto msg = reactor::make_immutable_value<Message>(Message{ResetMsg, 0.0});
-        for(size_t i{0}; i < outSeriesWorkers.size(); i++) {
-            outSeriesWorkers[i].set(msg);
-        }
-        
-    =}
-    
-    reaction(nextTerms) -> outSeriesWorkers, nextTerms {=
-        
-        if(currentTerm == numTerms) {
-            auto msg = reactor::make_immutable_value<Message>(Message{GetTermMsg, 0.0});
-            for(size_t i{0}; i < outSeriesWorkers.size(); ++i) {
-                outSeriesWorkers[i].set(msg);
-                numWorkRequested += 1;
-            }
+    reaction(start, next) -> getTerm, nextTerm, next {=
+        if(currentIteration == numTerms) {
+            getTerm.set();
             return;
         }
-        auto msg = reactor::make_immutable_value<Message>(Message{NextTermMsg, 0.0});
-        for (size_t i{0}; i < outSeriesWorkers.size(); ++i) {
-            outSeriesWorkers[i].set(msg);
-        }
-        currentTerm += 1;
-        nextTerms.schedule();
-        
+
+        nextTerm.set();
+        currentIteration++;
+        next.schedule();
     =}
     
-    reaction(inSeriesWorkers) -> outFinished {=
-        
-        for (size_t i{0}; i < inSeriesWorkers.size(); ++i) {
-            if(inSeriesWorkers[i].is_present()) {
-                if(inSeriesWorkers[i].get()->type == ResultMsg) {
-                    
-                    termsSum += inSeriesWorkers[i].get()->term;
-                    numWorkReceived += 1;
-                    
-                    if(numWorkRequested == numWorkReceived) {
-                        
-                        reactor::log::Info() << "Terms sum: " << termsSum;
-                        outFinished.set();
-                    }
-                }
-            }
+    reaction(term) -> finished {=
+        double terms_sum{0.0};
+        for (size_t i{0}; i < numSeries; ++i) {
+            terms_sum += *term[i].get();
         }
+        reactor::log::Info() << "Terms sum: " << terms_sum;
+        finished.set();
+
+        // reset local state
+        currentIteration = 0;
     =}
 }
-
 
 main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: double{3.46}, numSeries: size_t{10}) {
     
     master = new Master(numSeries=numSeries, numTerms=numTerms);
     runner = new BenchmarkRunner(numIterations=numIterations);
-    
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("LogisticMapReactorLFCppBenchmark");
@@ -173,9 +112,13 @@ main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: dou
     rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
     seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
     
-    master.outSeriesWorkers -> seriesWorkers.inMaster;
-    rateComputers.outSeriesWorker -> seriesWorkers.inRateComputer;
-    seriesWorkers.outRateComputer -> rateComputers.inSeriesWorker;
-    seriesWorkers.outMaster -> master.inSeriesWorkers;
+    (runner.outIterationStart)+ -> master.start, rateComputers.reset, seriesWorkers.reset;
+    master.finished -> runner.inIterationFinish;
     
+    (master.nextTerm)+ -> seriesWorkers.nextTerm;
+    (master.getTerm)+ -> seriesWorkers.getTerm;
+    seriesWorkers.term -> master.term;
+    
+    seriesWorkers.computeRate -> rateComputers.compute;
+    rateComputers.rate -> seriesWorkers.rate; 
 }
