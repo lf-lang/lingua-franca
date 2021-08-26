@@ -23,7 +23,7 @@ targets:
       - "${lf_path}/benchmark/Cpp/Savina/src/micro"
     lf_file: "micro/ThreadRing.lf"
     binary: "ThreadRing"
-    gen_args:
-      actors: ["-D", "numReactors=<value>"]
+    gen_args: null
     run_args:
       pings: ["--numPings", "<value>"]
+      actors: ["--numReactors", "<value>"]
