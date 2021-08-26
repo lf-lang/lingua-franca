@@ -2,6 +2,12 @@
  * Micro-benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
+ * A benchmark that implements a many-to-many message
+ * passing scenario. Several processes are spawned, each of which
+ * sends a ping message to the others, and responds with a pong
+ * message to any ping message it receives. The benchmark is pa-
+ * rameterized by the number of processes.
+ *
  * @author Hannes Klein
  * @author Felix Wittwer
  */
@@ -16,10 +22,8 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
     enum MsgType {
-      StartMsg,
       PingMsg,
       PongMsg,
-      ExitMsg
     };
 =}
 
