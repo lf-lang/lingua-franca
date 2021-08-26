@@ -27,9 +27,11 @@ object SourceMapSegmentSerializer : KSerializer<SourceMapSegment?> {
         var head: SourceMapSegment? = null
         var lineDelta = 0
         for (line: String in decoder.decodeString().split(';')) {
-            for (segment: String in line.split(',')) {
-                head = SourceMapSegment.fromString(head, segment, lineDelta)
-                lineDelta = 0
+            if (line != "") {
+                for (segment: String in line.split(',')) {
+                    head = SourceMapSegment.fromString(head, segment, lineDelta)
+                    lineDelta = 0
+                }
             }
             lineDelta++
         }

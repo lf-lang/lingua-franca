@@ -1,9 +1,13 @@
-package org.lflang.validation.document;
+package org.lflang.validation.document.generated;
 
 import java.io.File;
 import java.util.List;
 
-class GeneratedDocumentFactory {
+/**
+ * Produces the appropriate <code>GeneratedDocument</code>
+ * for a given generated file.
+ */
+public class GeneratedDocumentFactory {
 
     /**
      * Returns a GeneratedDocument instance representing

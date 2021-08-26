@@ -5,6 +5,8 @@ import org.lflang.lf.Code;
 import org.lflang.lf.TargetDecl;
 import org.lflang.validation.DocumentRegistry;
 import org.lflang.generator.Main;
+import org.lflang.validation.document.generated.GeneratedDocument;
+import org.lflang.validation.document.generated.GeneratedDocumentFactory;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;

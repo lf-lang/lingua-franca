@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
  * Represents a position in a document, including line and
  * column.
  */
-class Position implements Comparable<Position> {
+public class Position implements Comparable<Position> {
     /*
     Implementation note: This class is designed to remove
     all ambiguity wrt zero-based and one-based line and
