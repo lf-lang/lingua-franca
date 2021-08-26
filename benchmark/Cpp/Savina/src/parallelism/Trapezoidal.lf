@@ -3,43 +3,8 @@
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
  * @author Hannes Klein
+ * @author Felix Wittwer
  */
-
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numWorkers=100
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numWorkers' in globals():
-    numWorkers = int(numWorkers)
-  else:
-    globals()['numWorkers'] = 100
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numWorkers = {numWorkers}')
-]]] */
-// Generated file with the following parameters:
-// numWorkers = 100
-// [[[end]]]
 
 target Cpp {
     build-type : RelWithDebInfo
@@ -57,7 +22,7 @@ public preamble {=
     };
 =}
 
-reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000)) {
+reactor Master(numWorkers:size_t(100), L:double(1.0), R:double(5.0), N:int(10000000)) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
@@ -69,18 +34,12 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
     input inStart:void;
     output outFinished:void;
     
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outWorkers:{{=WorkMessage=}};')
-      cog.outl(f'input[{numWorkers}] inWorkers:{{=double=}};')
-    ]]] */
-    output[100] outWorkers:{=WorkMessage=};
-    input[100] inWorkers:{=double=};
-    // [[[end]]]
+    output[numWorkers] outWorkers:{=WorkMessage=};
+    input[numWorkers] inWorkers:{=double=};
     
     logical action sendWorkMessages:void;
     
     reaction(inStart) -> sendWorkMessages {=
-        
         // reset local state
         numTermsReceived = 0;
         resultArea = 0.0;
@@ -90,7 +49,6 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
     =}
     
     reaction(sendWorkMessages) -> outWorkers {=
-        
         double workerRange = (R - L) / numWorkers;
         double precision = (R - L) / N;
         for(int i = 0; i < outWorkers.size(); ++i) {
@@ -102,7 +60,6 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
     =}
     
     reaction(inWorkers) -> outFinished {=
-        
         for(int i = 0; i < inWorkers.size(); ++i) {
             if(inWorkers[i].is_present()) {
                 numTermsReceived += 1;
@@ -118,8 +75,7 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
 }
 
 
-reactor Worker(instance:int(0)) {
-    
+reactor Worker {
     private preamble {=
         #include <cmath>
     =}
@@ -128,7 +84,6 @@ reactor Worker(instance:int(0)) {
     output outMaster:{=double=};
     
     reaction(inMaster) -> outMaster {=
-        
         double r = inMaster.get()->r;
         double l = inMaster.get()->l;
         double h = inMaster.get()->h;
@@ -153,7 +108,6 @@ reactor Worker(instance:int(0)) {
     =}
     
     private preamble {=
-        
         // the function to integrate
         double fx(double x) {
             
@@ -168,13 +122,9 @@ reactor Worker(instance:int(0)) {
 }
 
 
-main reactor (numIterations:int(12), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0)) {
+main reactor (numIterations:int(12), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0), numWorkers:size_t(100)) {
     
-    /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers}, L=leftEndPoint, R=rightEndPoint, N=numPieces);')
-    ]]] */
-    master = new Master(numWorkers=100, L=leftEndPoint, R=rightEndPoint, N=numPieces);
-    // [[[end]]]
+    master = new Master(numWorkers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> master.inStart;
@@ -182,20 +132,12 @@ main reactor (numIterations:int(12), numPieces:int(10000000), leftEndPoint:doubl
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("TrapezoidalBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numPieces", numPieces, "leftEndPoint", leftEndPoint, "rightEndPoint", rightEndPoint, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numPieces", numPieces, "leftEndPoint", leftEndPoint, "rightEndPoint", rightEndPoint, "numWorkers", 100);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "numPieces", numPieces, "leftEndPoint", leftEndPoint, "rightEndPoint", rightEndPoint, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker();')
-    ]]] */
-    workers = new[100] Worker();
-    // [[[end]]]
+    workers = new[numWorkers] Worker();
     
     workers.outMaster -> master.inWorkers;
     master.outWorkers -> workers.inMaster;
