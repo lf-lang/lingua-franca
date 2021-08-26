@@ -1,5 +1,7 @@
-package org.lflang.validation.document
+package org.lflang.validation.document.generated
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import org.lflang.generator.ts.sourcemap.getSourceMapOf
 import org.lflang.generator.ts.sourcemap.SourceMap
 import org.lflang.generator.ts.sourcemap.SourceMapSegment
@@ -13,9 +15,44 @@ import java.util.TreeMap
 import kotlin.collections.List as ListKt
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
+import org.lflang.validation.document.DiagnosticAcceptor
+import org.lflang.validation.document.Position
 
 class TypeScriptDocument(lines: MutableList<String>, directory: File) :
     GeneratedDocument(lines, getMap(lines, directory), directory) {
+
+    @Serializable
+    data class ESLintDiagnosticsGroup(
+        val filePath: String,
+        val messages: kotlin.collections.List<ESLintDiagnostic>,
+        val errorCount: Int,
+        val fatalErrorCount: Int,
+        val warningCount: Int,
+        val fixableErrorCount: Int,
+        val fixableWarningCount: Int,
+        val source: String
+    ) {
+        companion object {
+            val serializer: KSerializer<ESLintDiagnosticsGroup> = kotlinx.serialization.serializer()
+        }
+    }
+
+    @Serializable
+    data class ESLintDiagnostic(
+        val ruleId: String,
+        val severity: Int,
+        val message: String,
+        val line: Int,
+        val column: Int,
+        val nodeType: String,
+        val messageId: String,
+        val endLine: Int,
+        val endColumn: Int,
+        val fix: ESLintFix? = null
+    )
+
+    @Serializable
+    data class ESLintFix(val range: kotlin.collections.List<Int>, val text: String)
 
     /* ---------------------  PROTECTED METHODS  ------------------------ */
 
@@ -92,8 +129,7 @@ class TypeScriptDocument(lines: MutableList<String>, directory: File) :
          * <code>severity</code>.
          */
         private fun intToSeverity(severity: Int): Severity {
-            // FIXME: Factor out? (Could not place in ESLintDiagnosticsGroup due to wish that
-            //  DiagnosticAcceptor be package private)
+            // FIXME: Factor out?
             return when (severity) {
                 2 -> Severity.ERROR;
                 1 -> Severity.WARNING;
@@ -101,5 +137,4 @@ class TypeScriptDocument(lines: MutableList<String>, directory: File) :
             }
         }
     }
-
 }

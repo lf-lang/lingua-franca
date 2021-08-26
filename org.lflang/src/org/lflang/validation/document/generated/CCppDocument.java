@@ -1,4 +1,4 @@
-package org.lflang.validation.document;
+package org.lflang.validation.document.generated;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,8 +8,11 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.lflang.validation.document.DiagnosticAcceptor;
 import org.lflang.validation.document.DiagnosticAcceptor.Severity;
+import org.lflang.validation.document.Position;
 
+/** Represents a generated C or C++ document. */
 public class CCppDocument extends GeneratedDocument {
 
     /** Matches line numbers that occur in line directives. */

@@ -1,4 +1,4 @@
-package org.lflang.validation.document;
+package org.lflang.validation.document.generated;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,6 +14,10 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.lflang.validation.document.DiagnosticAcceptor;
+import org.lflang.validation.document.LFDocument;
+import org.lflang.validation.document.Position;
+
 /**
  * Represents a document generated from a Lingua Franca
  * file. Encapsulates any logic associated with the syntax
@@ -21,11 +25,25 @@ import java.util.regex.Pattern;
  * it.
  */
 public abstract class GeneratedDocument {
+    // FIXME: Account for multiple LF documents that produce code in
+    //  the same generated document -- perhaps simply by instantiating
+    //  multiple GeneratedDocuments per generated document as needed?
 
-    Pattern INDENTATION = Pattern.compile("^ *");
+    /** Matches indentation at the beginning of a line. */
+    Pattern INDENTATION = Pattern.compile("^ *"); // FIXME: What if '\t' is used?
 
+    /**
+     * The directory (typically src-gen) in which this
+     * document lives.
+     */
     private final File directory;
+    /** The content of this <code>GeneratedDocument</code>. */
     private final List<String> lines;
+    /**
+     * The mappings from positions in this
+     * <code>GeneratedDocument</code> to positions in the
+     * source LF document.
+     */
     private final NavigableMap<Position, Position> sourceMap;
 
     /* ------------------------  CONSTRUCTORS  -------------------------- */
