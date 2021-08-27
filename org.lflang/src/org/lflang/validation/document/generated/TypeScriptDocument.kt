@@ -60,16 +60,17 @@ class TypeScriptDocument(lines: MutableList<String>, directory: File) :
         val eslint = ProcessBuilder(
             "npx", "eslint", "--stdin",
             "--format", "json"
-        );
-        var srcGenRoot: File = directory;
+        )
+        var srcGenRoot: File = directory
         while (!srcGenRoot.parentFile.name.equals("src-gen")) {
-            srcGenRoot = srcGenRoot.parentFile;
+            srcGenRoot = srcGenRoot.parentFile
         }
-        eslint.directory(srcGenRoot);
-        return eslint;
+        eslint.directory(srcGenRoot)
+        return eslint
     }
 
     override fun addDiagnostic(line: String, acceptor: DiagnosticAcceptor) {
+        if (line.isBlank()) return
         val diagnosticsGroups = Json.decodeFromString<ListKt<ESLintDiagnosticsGroup>>(line);
         for (group: ESLintDiagnosticsGroup in diagnosticsGroups) {
             // FIXME: diagnosticsGroups should always have length 1 (or maybe zero) -- unless there
@@ -81,9 +82,13 @@ class TypeScriptDocument(lines: MutableList<String>, directory: File) :
                     diagnostic.message,
                     Position.fromOneBased(diagnostic.line, diagnostic.column),
                     Position.fromOneBased(diagnostic.endLine, diagnostic.endColumn)
-                );
+                )
             }
         }
+    }
+
+    override fun getVerificationUsesStdout(): Boolean {
+        return true;
     }
 
     /* -----------------------  PRIVATE METHODS  ------------------------ */

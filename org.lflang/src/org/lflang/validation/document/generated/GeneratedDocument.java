@@ -86,7 +86,7 @@ public abstract class GeneratedDocument {
         pipeline.add(getVerificationProcess());
         final List<Process> processes = ProcessBuilder.startPipeline(pipeline);
         final BufferedReader reader = new BufferedReader(
-            new InputStreamReader(processes.get(1).getErrorStream())
+            new InputStreamReader(getVerificationUsesStdout() ? processes.get(1).getInputStream() : processes.get(1).getErrorStream())
         );
         String line;
         while ((line = reader.readLine()) != null) {
@@ -201,6 +201,10 @@ public abstract class GeneratedDocument {
      * stderr
      */
     protected abstract ProcessBuilder getVerificationProcess();
+
+    protected boolean getVerificationUsesStdout() {
+        return false;
+    }
 
     /**
      * Searches line for a diagnostic and, if one is found,
