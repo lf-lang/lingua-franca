@@ -58,7 +58,7 @@
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "GuidedSearch/GuidedSearch.cmake",
-    logging: "info"
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
