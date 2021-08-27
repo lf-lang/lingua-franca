@@ -12,13 +12,15 @@ target Cpp {
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
+reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}, priorities: size_t{30}) {
     
     public preamble {=
         #include <list>
         #include "GuidedSearchCommon.hh"
         #include "GridNode.hh"
     =}
+    
+    state grid: Grid(gridSize, priorities);
     
     state numWorkSent: size_t{0};
     state numWorkCompleted: size_t{0};
@@ -41,14 +43,14 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
     logical action sendWork:void;
     
     reaction(inInitializeStart) -> outInitializeFinished {=
-        initializeData();
+        grid.initializeData();
         outInitializeFinished.set();
     =}
     
     reaction(inCleanupIteration) -> outCleanupIterationFinished {=
-        bool valid = validate();
+        bool valid = grid.validate();
         reactor::log::Info() << std::boolalpha << "Result valid: " << valid << std::noboolalpha;
-        initializeData(); // reset graph for next iteration
+        grid.initializeData(); // reset graph for next iteration
         outCleanupIterationFinished.set();
     =}
     
@@ -63,7 +65,7 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
         shortestPathIsFound = false;
         
         // start execution
-        workList.emplace_back(originNode(), targetNode());
+        workList.emplace_back(grid.originNode(), grid.targetNode());
         sendWork.schedule();
     =}
     
@@ -71,7 +73,7 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
         if(shortestPathIsFound) return;
         if(workList.empty()) {
             // Shutdown because with no work left, there is no shortest path to be found.
-            outFinished.set();
+            //outFinished.set();
             return;
         }
 
@@ -129,7 +131,7 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}) {
 }
 
 
-reactor Worker(bank_index: size_t{0}, priorities: size_t{30}) {
+reactor Worker(bank_index: size_t{0}, threshold: size_t{1024}) {
     
     public preamble {=
         #include <list>
@@ -188,8 +190,8 @@ reactor Worker(bank_index: size_t{0}, priorities: size_t{30}) {
         workQueue = std::make_unique<std::list<GridNode*>>();
         workQueue->push_front(workMessage.node);
         
-        int nodesProcessed = 0;
-        while(!workQueue->empty() && nodesProcessed < THRESHOLD) {
+        size_t nodesProcessed{0};
+        while(!workQueue->empty() && nodesProcessed < threshold) {
             
             nodesProcessed += 1;
             busyWait();
@@ -227,6 +229,12 @@ reactor Worker(bank_index: size_t{0}, priorities: size_t{30}) {
             sendStop.schedule();
         }
     =}
+    
+    method busyWait() {=
+	    for (int i = 0; i < 100; i++) {
+		    rand();
+	    }
+    =}
 }
 
 
@@ -236,7 +244,7 @@ main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size
         #include "GuidedSearchCommon.hh"
     =}
     
-    master = new Master(numWorkers=numWorkers, gridSize=gridSize);
+    master = new Master(numWorkers=numWorkers, gridSize=gridSize, priorities=priorities);
     runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
     
     runner.outInitializeStart -> master.inInitializeStart;
@@ -249,21 +257,13 @@ main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size
     master.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=       
-        // initializations of global variables that are not states in a reactor
-        // those variables are global to be used in the helper functions
-        PRIORITY_GRANULARITY = 8; // hard coded
-        NUM_WORKERS = numWorkers;
-        GRID_SIZE = gridSize;
-        PRIORITIES = priorities;
-        THRESHOLD = threshold;
-        
         printBenchmarkInfo("GuidedSearchBenchmark");
         printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    workers = new[numWorkers] Worker();
+    workers = new[numWorkers] Worker(threshold=threshold);
     
     workers.outMaster -> master.inWorkers;
     workers.outWork -> master.inWorkersWork;
