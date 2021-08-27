@@ -5,30 +5,35 @@
 
 #include "GridNode.hh"
 
-// global variables, need initialization
-extern std::map<int,GridNode*> * allNodes;
+class Grid {
+  private:
+	const size_t gridSize;
+	const size_t priorities;
 
-extern int PRIORITY_GRANULARITY;
-extern int NUM_WORKERS;
-extern int GRID_SIZE;
-extern int PRIORITIES;
-extern int THRESHOLD;
+	std::map<size_t, GridNode> allNodes;
+  public:
+	Grid(size_t gridSize, size_t priorities)
+	  : gridSize(gridSize), priorities(priorities) {}
 
-int calcPriority(GridNode * gridNode);
-void initializeData();
-GridNode * originNode();
-GridNode * targetNode();
-bool validate();
+	void initializeData();
+	size_t calcPriority(const GridNode* gridNode) const;
+	GridNode* originNode() { return &allNodes.at(0); }
+	const GridNode* originNode() const { return &allNodes.at(0); }
+	GridNode* targetNode();
+	const GridNode* targetNode() const;
+	bool validate() const;
+
+	size_t calcPriority(GridNode* gridNode) const;
+};
+
 void busyWait();
-int calcPriority(GridNode * gridNode);
 
 struct WorkMessage {
+	GridNode* node;
+	GridNode* target;
 
-	GridNode * node;
-	GridNode * target;
-	int priority;
-
-	WorkMessage(GridNode * node, GridNode * target);
+	WorkMessage(GridNode* node, GridNode* target)
+	  : node{node}, target{target} {}
 };
 
 enum MsgType {
@@ -38,6 +43,5 @@ enum MsgType {
 };
 
 struct Message {
-
 	MsgType type;
 };
