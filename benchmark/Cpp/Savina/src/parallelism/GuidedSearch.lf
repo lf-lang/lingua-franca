@@ -57,14 +57,14 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "GuidedSearch.cmake",
+    cmake-include: "GuidedSearch/GuidedSearch.cmake",
     logging: "info"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
-    #include "GuidedSearchCommon.hh"
+    #include "GuidedSearch/GuidedSearchCommon.hh"
     #include <deque>
     #include <list>
 =}
