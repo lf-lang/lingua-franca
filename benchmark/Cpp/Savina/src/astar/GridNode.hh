@@ -3,6 +3,7 @@
 #include <vector>
 #include <atomic>
 #include <cstddef>
+#include <ostream>
 
 class GridNode {
 public:
@@ -29,3 +30,5 @@ public:
 
 	bool addNeighbor(GridNode * node);
 };
+
+std::ostream& operator<<(std::ostream& os, const GridNode& g);

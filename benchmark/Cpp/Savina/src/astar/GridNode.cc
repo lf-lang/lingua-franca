@@ -5,7 +5,7 @@
 
 bool GridNode::setParent(GridNode* node) {
 	GridNode* tmp = nullptr;
-	return parentInPath.compare_exchange_strong(tmp, node, std::memory_order_acq_rel);
+	return parentInPath.compare_exchange_strong(tmp, node, std::memory_order_relaxed);
 }
 
 double GridNode::distanceFrom(const GridNode* node) {
@@ -25,4 +25,9 @@ bool GridNode::addNeighbor(GridNode* node) {
 		return true;
 	}
 	return false;
+}
+
+std::ostream& operator<<(std::ostream& os, const GridNode& g) {
+	os << "[" << g.i << ", " << g.j << ", " << g.k << "]";
+	return os;
 }

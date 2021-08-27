@@ -7,229 +7,132 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "GuidedSearch.cmake"
+    cmake-include: "GuidedSearch.cmake",
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
+public preamble {=
+    #include "GuidedSearchCommon.hh"
+    #include <deque>
+    #include <list>
+=}
+
 reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}, priorities: size_t{30}) {
-    
-    public preamble {=
-        #include <list>
-        #include "GuidedSearchCommon.hh"
-        #include "GridNode.hh"
-    =}
-    
+
     state grid: Grid(gridSize, priorities);
+    state nodesToVisit: std::deque<GridNode*>;
+    state pathWasFound: bool{false};
     
-    state numWorkSent: size_t{0};
-    state numWorkCompleted: size_t{0};
-    state workersWorking: std::vector<bool>(numWorkers, false);
-    state workList: std::list<WorkMessage>;
-    state shortestPathIsFound:bool(false);
+    input start: void;
+    output finished: void;
     
-    input inStart:void;
-    output outFinished:void;
-    input inInitializeStart:void;
-    output outInitializeFinished:void;
-    input inCleanupIteration:void;
-    output outCleanupIterationFinished:void;
+    output[numWorkers] search: WorkMessage;
+    input[numWorkers] pathFound: void;
+    input[numWorkers] moreNodesToVisit: std::deque<GridNode*>;
     
-    output[numWorkers] outWorkersWork: WorkMessage;
-    input[numWorkers] inWorkersWork: std::list<WorkMessage>;
-    output[numWorkers] outWorkers: Message;
-    input[numWorkers] inWorkers: Message;
+    logical action next;
     
-    logical action sendWork:void;
-    
-    reaction(inInitializeStart) -> outInitializeFinished {=
-        grid.initializeData();
-        outInitializeFinished.set();
-    =}
-    
-    reaction(inCleanupIteration) -> outCleanupIterationFinished {=
-        bool valid = grid.validate();
-        reactor::log::Info() << std::boolalpha << "Result valid: " << valid << std::noboolalpha;
-        grid.initializeData(); // reset graph for next iteration
-        outCleanupIterationFinished.set();
-    =}
-    
-    reaction(inStart) -> sendWork {=
-        // reset local state
-        numWorkSent = 0;
-        numWorkCompleted = 0;
-        srand(100); // arbitrary seed
-        workersWorking.clear();
-        workersWorking.resize(numWorkers, false);
-        workList = std::list<WorkMessage>();
-        shortestPathIsFound = false;
+    reaction (start) -> next {=
+        grid.initializeData(); // reset the grid
+        nodesToVisit.clear();
+        pathWasFound = false;
         
-        // start execution
-        workList.emplace_back(grid.originNode(), grid.targetNode());
-        sendWork.schedule();
+        // start execution, first visit the origin node
+        nodesToVisit.push_back(grid.originNode());
+        next.schedule();
     =}
     
-    reaction(sendWork) -> outWorkersWork, outFinished {=
-        if(shortestPathIsFound) return;
-        if(workList.empty()) {
-            // Shutdown because with no work left, there is no shortest path to be found.
-            //outFinished.set();
+    reaction (next) -> next, search {=
+        // abort if path was found
+        if (pathWasFound) {
             return;
         }
 
+        // send nodes from the internal queue to all workers
         size_t workerIndex{0};        
-        while(!workList.empty()) {
-            numWorkSent += 1;
-
-            while(workersWorking[workerIndex]) ++workerIndex;
-            if (workerIndex < numWorkers) {
-            	workersWorking[workerIndex] = true;
-            	outWorkersWork[workerIndex].set(workList.front());
-            	workList.pop_front();
-            } else {
-                break;
-            }
+        while(!nodesToVisit.empty() && workerIndex < numWorkers) {
+            GridNode* startNode = nodesToVisit.front();
+            nodesToVisit.pop_front();
+            search[workerIndex].set(WorkMessage{startNode, grid.targetNode()});
+            workerIndex++;
         }
+        
+         // continue with the next iteration
+         next.schedule();
     =}
     
-    reaction(inWorkersWork) {=
-        for(size_t i{0}; i < inWorkersWork.size(); i++) {
-            if(inWorkersWork[i].is_present()) {
-                workList.insert(end(workList), begin(*(inWorkersWork[i].get())), end(*(inWorkersWork[i].get())) );
-            }
-        }
-        // Do not schedule work here.
-        // Trigger work only after confirmation ReceivedMsg.
-        // We assume that ReceivedMsg arrives after this reaction is executed.
+    reaction(pathFound) -> finished {=
+        pathWasFound = true;
+        bool valid = grid.validate();
+        reactor::log::Info() << "Found a path through the grid";
+        reactor::log::Info() << std::boolalpha << "Result valid: " << valid << std::noboolalpha;
+        finished.set();
     =}
     
-    reaction(inWorkers) -> outFinished, sendWork {=
-        for(size_t i{0}; i < inWorkers.size(); i++) {
-            if(inWorkers[i].is_present()) {
-                if(inWorkers[i].get()->type == ReceivedMsg) {
-                    numWorkCompleted += 1;
-                    workersWorking[i] = false;
-//                    if(numWorkCompleted == numWorkSent) {
-//                        //stop because no path found
-//                        int j = 0;
-//                        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
-//                        while(j < numWorkers) {
-//                            outWorkers[j].set(msg);
-//                            j += 1;
-//                        }
-//                    } else {
-                        sendWork.schedule();
-//                    }
-                    
-                } else if(inWorkers[i].get()->type == DoneMsg) {
-                    shortestPathIsFound = true;
-                    outFinished.set();
-                }
+    reaction (moreNodesToVisit) {=
+        // collect more nodes to visit from all workers and store them in the internal queue
+        for (auto& port : moreNodesToVisit) {
+            if (port.is_present()) {
+                const auto& nodes = *port.get();
+                if (!nodes.empty()) {
+                	nodesToVisit.insert(nodesToVisit.end(), nodes.begin(), nodes.end());
+               	}
             }
         }
     =}
 }
 
-
 reactor Worker(bank_index: size_t{0}, threshold: size_t{1024}) {
     
-    public preamble {=
-        #include <list>
-        #include "GridNode.hh"
-        #include "GuidedSearchCommon.hh"
-    =}
+    input search: WorkMessage;
+    output pathFound: void;
+    output moreNodesToVisit: std::deque<GridNode*>;
     
-    state workQueue: std::unique_ptr<std::list<GridNode*>>; // linked list
-    state targetNode: GridNode*;
-    
-    input inWork: WorkMessage; // work from the master
-    output outWork: std::list<WorkMessage>; // work back to the master to distribute
-    input inMaster: Message; // control messages from the master
-    output outMaster: Message; // control messages to the master
-    
-    logical action messageToMaster: Message;
-    logical action sendStop:void;
-    logical action confirmReceiving:void; // confirm receiving work
-    logical action success:void; // found solution
-    logical action returnWorkToMaster:void; // execution threshold exceeded, return new work
-    
-    reaction(messageToMaster) -> outMaster {=
-        outMaster.set(messageToMaster.get());
-    =}
-    
-    reaction(sendStop) -> messageToMaster {=
-        messageToMaster.schedule(Message{StopMsg});
-    =}
-    
-    reaction(confirmReceiving) -> messageToMaster {=
-        messageToMaster.schedule(Message{ReceivedMsg});
-    =}
-    
-    reaction(success) -> outMaster, confirmReceiving {=
-        outMaster.set(Message{DoneMsg});
-        confirmReceiving.schedule();
-    =}
-    
-    reaction(returnWorkToMaster) -> outWork, confirmReceiving {=
-        std::list<WorkMessage> newWork;
-        while(!workQueue->empty()) {
-            GridNode * loopNode = workQueue->front();
-            workQueue->pop_front();
-            newWork.emplace_back(loopNode, targetNode);
-        }
-        outWork.set(newWork);
-        confirmReceiving.schedule();
-    =}
-    
-    reaction(inWork) -> success,returnWorkToMaster,confirmReceiving {=
-        // do the work inline instead of in an external thread
-        reactor::log::Info() << "Worker " << bank_index << " received some work";
+    reaction(search) -> pathFound, moreNodesToVisit {=
+        auto workMessage = search.get();
+        GridNode* targetNode = workMessage->target;
+        GridNode* currentNode = workMessage->node;
+
+        reactor::log::Info() << "Worker " << bank_index << ": search path from "
+                             << *currentNode << " to " << *targetNode;
+
+        auto workQueue = reactor::make_mutable_value<std::deque<GridNode*>>();
         
-        WorkMessage workMessage = *(inWork.get());
-        targetNode = workMessage.target;
-        workQueue = std::make_unique<std::list<GridNode*>>();
-        workQueue->push_front(workMessage.node);
+        workQueue->push_back(currentNode);
         
+        // start the search, but visit at most threshold nodes
         size_t nodesProcessed{0};
         while(!workQueue->empty() && nodesProcessed < threshold) {
             
-            nodesProcessed += 1;
+            nodesProcessed++;
             busyWait();
             
-            GridNode * loopNode = workQueue->front();
+            GridNode* loopNode = workQueue->front();
             workQueue->pop_front();
-            int numNeighbors = loopNode->numNeighbors();
+            size_t numNeighbors = loopNode->numNeighbors();
             
-            int i = 0;
-            while(i < numNeighbors) {
-                GridNode * loopNeighbor = loopNode->neighbor(i);
-                bool res = loopNeighbor->setParent(loopNode);
-                if(res) {
+            for (size_t i{0}; i < numNeighbors; i++) {
+                GridNode* loopNeighbor = loopNode->neighbor(i);
+                bool success = loopNeighbor->setParent(loopNode);
+                if(success) {
                     if(loopNeighbor == targetNode) {
-                        success.schedule();
+                        pathFound.set();
                         return;
                     } else {
                         workQueue->push_back(loopNeighbor);
                     }
                 }
-                i += 1;
             }
         }
         
         if(!workQueue->empty()) {
-            returnWorkToMaster.schedule();
-        } else {
-            confirmReceiving.schedule(); // found only dead end
-        }
+            moreNodesToVisit.set(std::move(workQueue));
+        } 
+        // Otherwise (if the queue is empty) we have hit a dead end
     =}
-    
-    reaction(inMaster) -> sendStop {=
-        
-        if(inMaster.get()->type == StopMsg) {
-            sendStop.schedule();
-        }
-    =}
-    
+
     method busyWait() {=
 	    for (int i = 0; i < 100; i++) {
 		    rand();
@@ -240,21 +143,9 @@ reactor Worker(bank_index: size_t{0}, threshold: size_t{1024}) {
 
 main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size_t{30}, priorities: size_t{30}, numWorkers: size_t{20}) {
     
-    private preamble {=
-        #include "GuidedSearchCommon.hh"
-    =}
-    
     master = new Master(numWorkers=numWorkers, gridSize=gridSize, priorities=priorities);
-    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
-    
-    runner.outInitializeStart -> master.inInitializeStart;
-    master.outInitializeFinished -> runner.inInitializeFinish;
-    
-    runner.outCleanupIterationStart -> master.inCleanupIteration;
-    master.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
-    
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    workers = new[numWorkers] Worker(threshold=threshold);
     
     reaction(startup) -> runner.inStart {=       
         printBenchmarkInfo("GuidedSearchBenchmark");
@@ -262,11 +153,11 @@ main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size
         printSystemInfo();
         runner.inStart.set();
     =}
+
+    runner.outIterationStart -> master.start;
+    master.finished -> runner.inIterationFinish;
     
-    workers = new[numWorkers] Worker(threshold=threshold);
-    
-    workers.outMaster -> master.inWorkers;
-    workers.outWork -> master.inWorkersWork;
-    master.outWorkers -> workers.inMaster;
-    master.outWorkersWork -> workers.inWork;
+    master.search -> workers.search;
+    workers.pathFound -> master.pathFound;
+    workers.moreNodesToVisit -> master.moreNodesToVisit;
 }
