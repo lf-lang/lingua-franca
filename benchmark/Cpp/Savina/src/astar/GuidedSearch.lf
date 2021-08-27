@@ -1,14 +1,64 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
+ * This benchmarks is supposed to implement an A*-search through a grid.
+ * However, it appears that the Savina implementation is incomplete and does not
+ * correctly implement A*. A key component of A* is cost estimation, which helps
+ * to guide the search into the right direction. However, this is completely
+ * missing in the Savina implementation. Instead the search is underacted and
+ * behaves more like a brute force algorithm. It seems more to be directed by
+ * accident, as some neighbors are visited before others due to the way each
+ * nodes lists its neighbors. Moreover, the algorithm does not search for the
+ * optimal path, but only finds a path.
+ *
+ * The manager reactor contains and initializes a 3-dimensional grid of nodes.
+ * Each node is connected to some of its neighbors. To which ones, is decided
+ * randomly during initialization.
+ *
+ * The search starts at a single origin node. This node is send to the first
+ * worker. The worker then collects all neighbors of this node into a queue.
+ * When done, it retrieves the first node from this queue and again adds all
+ * unvisited neighbors to the queue. This process is continued until a certain
+ * number of nodes have been visited. How many nodes each worker visits is
+ * specified by the `threshold` parameter.
+ *
+ * When finished, the worker sends the list of remaining nodes to visit back to
+ * the manager, which then forwards one of these nodes to each of the workers to
+ * start a searches from these nodes.
+ *
+ * The use of a list for sending nodes back from the workers to the master is a
+ * noteworthy difference between our implementation and the Savina suite. In the
+ * Akka implementation, each node is send as an individual message. However, in
+ * LF, we cannot send multiple messages at the same tag, and introducing a delay
+ * via a logical action would be very costly for many messages. Instead, we send
+ * only a single message containing a list of nodes.
+ *
+ * It is also important to note that the workers in this benchmark operate on
+ * shared state (the grid). Each node has an attribute that indicates its
+ * parent. Initially, this attribute is uninitialized, but it is updated when it
+ * is visited by a worker. Thus, the parent attribute can also be used to
+ * determine whether a node was already visited. However, multiple reactions may
+ * access the parent attribute of the same node at the same time. Thus,
+ * similarly to the Akka implementation, the attribute is implemented as an
+ * atomic variable. However, this does not fully eliminate the race condition.
+ * Sometimes one reaction might write first and sometimes another reaction
+ * writes first, effectively introducing none-determinism into the benchmark.
+ *
+ * The peculiarities of this design also lead to another quirk. The benchmark
+ * does not scale well with the number of threads. A single threaded execution
+ * is much faster than a multi threaded one. Interestingly the same effect can
+ * be observed in the Akka implementation. This indicates that the problem lies
+ * in the benchmark itself, and not (only) in the LF runtime. In fact,
+ * multi-threaded executions have the tendency to perform much more work as
+ * compared to single threaded execution. This is likely to the race-conditions
+ * mentioned before.
+ *  
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "GuidedSearch.cmake",
-    logging: "warn"
+    logging: "info"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -19,7 +69,7 @@ public preamble {=
     #include <list>
 =}
 
-reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}, priorities: size_t{30}) {
+reactor Manager(numWorkers: size_t{20}, gridSize: size_t{30}, priorities: size_t{30}) {
 
     state grid: Grid(gridSize, priorities);
     state nodesToVisit: std::deque<GridNode*>;
@@ -35,6 +85,7 @@ reactor Master(numWorkers: size_t{20}, gridSize: size_t{30}, priorities: size_t{
     logical action next;
     
     reaction (start) -> next {=
+        srand(123456);
         grid.initializeData(); // reset the grid
         nodesToVisit.clear();
         pathWasFound = false;
@@ -143,7 +194,7 @@ reactor Worker(bank_index: size_t{0}, threshold: size_t{1024}) {
 
 main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size_t{30}, priorities: size_t{30}, numWorkers: size_t{20}) {
     
-    master = new Master(numWorkers=numWorkers, gridSize=gridSize, priorities=priorities);
+    manager = new Manager(numWorkers=numWorkers, gridSize=gridSize, priorities=priorities);
     runner = new BenchmarkRunner(numIterations=numIterations);
     workers = new[numWorkers] Worker(threshold=threshold);
     
@@ -154,10 +205,10 @@ main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size
         runner.inStart.set();
     =}
 
-    runner.outIterationStart -> master.start;
-    master.finished -> runner.inIterationFinish;
+    runner.outIterationStart -> manager.start;
+    manager.finished -> runner.inIterationFinish;
     
-    master.search -> workers.search;
-    workers.pathFound -> master.pathFound;
-    workers.moreNodesToVisit -> master.moreNodesToVisit;
+    manager.search -> workers.search;
+    workers.pathFound -> manager.pathFound;
+    workers.moreNodesToVisit -> manager.moreNodesToVisit;
 }
