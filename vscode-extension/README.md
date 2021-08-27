@@ -3,7 +3,9 @@ It is straightforward to build the Language and Diagram Server. As stated by Ale
 > Simply run: `gradlew startCode`. You also need `mvn` on your path and if Java 11 is not your default JDK you need to prepend something like this: `JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/`
 
 If this does not work, it could be because:
-* Your operating system is Windows. The simplest solution to this issue is not to use Windows.
+* Your operating system is Windows. The simplest solution to this issue is not to use Windows. However, if you must use windows, you will need to:
+  * Prefix any Gradle Exec commands with 'cmd', '\c'. For example, if the content of an Exec command is "commandLine 'mvn', 'clean'", then it will become "commandLine 'cmd', '\c', 'mvn', 'clean'
+  * Make sure that the absolute path to the repository "lingua-franca" is at most 14 characters long so that you do not reach the 260-character limit.
 * Your Python version does not match the Python version used in `org.lflang.lds/pom.xml`. To resolve this, simply edit `org.lflang.lds/pom.xml` to say "python" instead of "python3", or vice versa.
 
 Additional details about the VS Code extension can be found at the pull request #376.
