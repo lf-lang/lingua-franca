@@ -251,6 +251,10 @@ class TSGenerator(
             fsa.generateFile(relativeTsFilePath, cleanedTsCode)
             fsa.generateFile("$relativeTsFilePath.map", sourceMap)
         }
+        if (!targetConfig.noCompile) compile(resource);
+    }
+
+    private fun compile(resource: Resource) {
 
         // Run necessary commands.
 
@@ -260,7 +264,7 @@ class TSGenerator(
             "pnpm",
             listOf("install"),
             fileConfig.srcGenPkgPath,
-        false // only produce a warning if command is not found
+            false // only produce a warning if command is not found
         )
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
@@ -308,9 +312,9 @@ class TSGenerator(
 
             protocArgs.addAll(
                 listOf(
-                "--plugin=protoc-gen-ts=" + tsFileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
-                "--js_out=import_style=commonjs,binary:"+tsOutPath,
-                "--ts_out=" + tsOutPath)
+                    "--plugin=protoc-gen-ts=" + tsFileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                    "--js_out=import_style=commonjs,binary:"+tsOutPath,
+                    "--ts_out=" + tsOutPath)
             )
             protocArgs.addAll(targetConfig.protoFiles)
             val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
@@ -322,7 +326,7 @@ class TSGenerator(
 
             val returnCode = protoc.run()
             if (returnCode == 0) {
-                  // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
+                // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
 //                val nameSansProto = fileConfig.name.substring(0, fileConfig.name.length - 6)
 //
 //                targetConfig.compileAdditionalSources.add(
