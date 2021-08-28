@@ -131,7 +131,7 @@ public class LFGenerator extends AbstractGenerator {
                     + "This is likely because you built Epoch using "
                     + "Eclipse. The " + target + " code generator is written in Kotlin "
                     + "and, unfortunately, the plugin that Eclipse uses "
-                    + "for compiling Kotlin code, is broken. "
+                    + "for compiling Kotlin code is broken. "
                     + "Please consider building Epoch using Maven.\n"
                     + "For step-by-step instructions, see: "
                     + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
