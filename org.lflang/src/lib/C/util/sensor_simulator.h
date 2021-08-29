@@ -35,6 +35,7 @@ To use this, include the following flags in your target properties:
 <pre>
 target C {
     flags: "-lncurses",
+    cmake: false,
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
 };
 </pre>
