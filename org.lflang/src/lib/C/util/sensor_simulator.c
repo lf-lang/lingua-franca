@@ -439,7 +439,7 @@ int start_sensor_simulator(
 
         // ncurses is not thread safe, so create a one thread that does all
         // the writing to the window and one that does all the reading.
-        int result = lf_thread_create(&_lf_sensor.output_thread_id, &_lf_sensor_simulator_thread, NULL);
+        result = lf_thread_create(&_lf_sensor.output_thread_id, &_lf_sensor_simulator_thread, NULL);
         if (result != 0) {
             error_print("Failed to start sensor simulator!");
         }
