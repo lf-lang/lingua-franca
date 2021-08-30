@@ -14,18 +14,16 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "FilterBank.cmake"
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
-    #include "FilterBankCommon.hh"
-    
     using CoefficientMatrix = std::vector<std::vector<double>>;
 =}
 
-reactor ProducerReactor(numChannels: size_t{8}, numSimulations: size_t{34816}, numColumns: size_t{16384}) {
+reactor Producer(numChannels: size_t{8}, numSimulations: size_t{34816}, numColumns: size_t{16384}) {
         
     state numMessagesSent: size_t{0};
     
@@ -54,7 +52,7 @@ reactor ProducerReactor(numChannels: size_t{8}, numSimulations: size_t{34816}, n
     =}
 }
 
-reactor SourceReactor {
+reactor Source {
     
     state maxValue: size_t{1000};
     state current: size_t{0};
@@ -77,7 +75,7 @@ reactor SourceReactor {
     =}
 }
 
-reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannels: size_t{8}) {    
+reactor Bank(bank_index: size_t{0}, numColumns: size_t{16384}, numChannels: size_t{8}) {    
     input inValue: double;
     input inFinished: void;
     output outValue: double;
@@ -86,11 +84,11 @@ reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannel
     input setF: CoefficientMatrix;
     input setH: CoefficientMatrix;
     
-    delay0 = new DelayReactor(delayLength={=numColumns - 1=});
-    fir0 = new FirFilterReactor(bank_index=bank_index, peekLength=numColumns);
-    sample = new SampleFilterReactor(sampleRate=numColumns);
-    delay1 = new DelayReactor(delayLength={=numColumns - 1=});
-    fir1 = new FirFilterReactor(bank_index=bank_index, peekLength=numColumns);
+    delay0 = new Delay(delayLength={=numColumns - 1=});
+    fir0 = new FirFilter(bank_index=bank_index, peekLength=numColumns);
+    sample = new SampleFilter(sampleRate=numColumns);
+    delay1 = new Delay(delayLength={=numColumns - 1=});
+    fir1 = new FirFilter(bank_index=bank_index, peekLength=numColumns);
     
     inFinished, delay0.outFinished, fir0.outFinished, sample.outFinished, delay1.outFinished, fir1.outFinished -> 
         delay0.inFinished, fir0.inFinished, sample.inFinished, delay1.inFinished, fir1.inFinished, outFinished;
@@ -102,7 +100,7 @@ reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannel
     setF -> fir1.setCoefficients;
 }
 
-reactor DelayReactor(delayLength: size_t{16383}) {
+reactor Delay(delayLength: size_t{16383}) {
     state myState: std::vector<double>;
     state placeHolder: size_t{0};
     
@@ -133,7 +131,7 @@ reactor DelayReactor(delayLength: size_t{16383}) {
     =}
 }
 
-reactor FirFilterReactor(bank_index:size_t{0}, peekLength: size_t{16384}) {
+reactor FirFilter(bank_index:size_t{0}, peekLength: size_t{16384}) {
     state data: std::vector<double>;
     state dataIndex: size_t{0};
     state dataFull: bool{false};
@@ -184,7 +182,7 @@ reactor FirFilterReactor(bank_index:size_t{0}, peekLength: size_t{16384}) {
     =}
 }
 
-reactor SampleFilterReactor(sampleRate: size_t{16384}) {
+reactor SampleFilter(sampleRate: size_t{16384}) {
     state samplesReceived: size_t{0};
     
     input inValue: double;
@@ -209,7 +207,7 @@ reactor SampleFilterReactor(sampleRate: size_t{16384}) {
     =}
 }
 
-reactor CombineReactor(numChannels: size_t{8}) {
+reactor Combine(numChannels: size_t{8}) {
     
     input[numChannels] inValues: double;
     input[numChannels] inFinished: void;
@@ -240,7 +238,7 @@ reactor CombineReactor(numChannels: size_t{8}) {
     =}
 }
 
-reactor SinkReactor(printRate: size_t{100}) {
+reactor Sink(printRate: size_t{100}) {
     
     state count: size_t{0};
     
@@ -295,11 +293,11 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     =}
 
     runner = new BenchmarkRunner(numIterations=numIterations);    
-    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=numChannels, numColumns=numColumns);
-    source = new SourceReactor();
-    banks = new[numChannels] BankReactor(numColumns=numColumns, numChannels=numChannels);
-    combine = new CombineReactor(numChannels=numChannels);
-    sink = new SinkReactor(printRate=100);
+    producer = new Producer(numSimulations=numSimulations, numChannels=numChannels, numColumns=numColumns);
+    source = new Source();
+    banks = new[numChannels] Bank(numColumns=numColumns, numChannels=numChannels);
+    combine = new Combine(numChannels=numChannels);
+    sink = new Sink(printRate=100);
     
     runner.outIterationStart -> producer.start;
     
