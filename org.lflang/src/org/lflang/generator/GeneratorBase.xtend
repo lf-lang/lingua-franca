@@ -1200,8 +1200,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) {
         for (file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file)
+            copyFileFromClassPath(useForwardSlashes(srcDir) + '/' + useForwardSlashes(file), dstDir + File.separator + file)
         }
+    }
+
+    /**
+     * Replaces all instances of the path separator character with a forward slash.
+     */
+    private def String useForwardSlashes(String file) {
+        file.replace(File.separatorChar, '/')
     }
 
     /** If the mode is INTEGRATED (the code generator is running in an

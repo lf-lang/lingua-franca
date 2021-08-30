@@ -33,6 +33,23 @@ from subprocess import check_call
 from fnmatch import fnmatch
 from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
+IGNORED_JARS = [
+    'org.apache.ant*',
+    'kotlin-compiler.jar',
+    'kotlin-reflect.jar',
+    'ide-dependencies.jar',
+    'intellij-core-analysis.jar',
+    'kotlin-plugin-parts.jar',
+]
+
+OVERRIDING_JARS = [ # FIXME: Added by Peter, who does not understand this script
+    #'kotlin-stdlib.jar',
+]
+INSERTED_JARS = [
+    'kotlinx-serialization-json-jvm-1.0.1.jar',
+    'kotlinx-serialization-core-jvm-1.0.1.jar'
+]
+
 IGNORE_NESTED_JARS = [
 ]
 IGNORED_FILES = [
@@ -228,6 +245,8 @@ def extract(args, extracted, merged, klighd):
                                 errPrint('[ERROR] Could not merge', jar, 'Conflicting file:', file)
                                 conflicts = True
                         else:
+                            if isfile(dest):
+                                os.remove(dest) # jar is in OVERRIDING_JARS
                             os.renames(src, dest)
                 processed_jars.append((jar.split("_")[0], jar))
     return conflicts

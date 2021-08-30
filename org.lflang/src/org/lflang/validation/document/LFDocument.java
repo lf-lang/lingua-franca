@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.PrintWriter;
 
 import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 
 // FIXME: Substitute RuntimeExceptions out in favor of a more
 //  appropriate type of error report.
@@ -400,7 +401,17 @@ public class LFDocument {
         // FIXME: It is surprising that it is necessary to delete the directory, but it is:
         //  If it is not deleted, the LF compiler will crash because lib files already exist.
         if (getCompileDir().exists()) {
-            MoreFiles.deleteRecursively(getCompileDir().toPath()); // This function is in beta.
+            // FIXME: This looks bad, and I think it is bad -- but what else can I do?
+            //  There is an edge case where it's possible that that a normal directory could
+            //  be replaced with a symlink of the same name immediately after one has already
+            //  checked to make sure it is a normal directory, potentially causing library files
+            //  in a completely different part of the file system to be deleted. But I have no
+            //  reason to believe that the other solutions available to us are much better, and
+            //  without ALLOW_INSECURE, this code doesn't run on Windows.
+            MoreFiles.deleteRecursively(
+                getCompileDir().toPath(),
+                RecursiveDeleteOption.ALLOW_INSECURE
+                ); // This function is in beta.
         }
         final PrintWriter writer = new PrintWriter(getSrcFile()); // FIXME: Do not create a new file?
         for (String lfLine : lines) {
