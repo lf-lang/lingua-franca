@@ -13,6 +13,6 @@ main reactor {
         #include <cmath>
     =}
     reaction (startup) {=
-        std::cout << "Maximum of 4.20 and 3 is %f" << fmax(4.20, 3.0) << std::endl;
+        std::cout << "Maximum of 4.20 and 3 is " << fmax(4.20, 3.0) << std::endl;
     =}
 }
