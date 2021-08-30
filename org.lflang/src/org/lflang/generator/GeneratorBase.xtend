@@ -86,6 +86,7 @@ import org.lflang.validation.AbstractLFValidator
 import static extension org.lflang.ASTUtils.*
 import java.util.HashSet
 import org.lflang.federated.SupportedSerializations
+import org.lflang.federated.FederateInstance
 
 /**
  * Generator base class for shared code between code generators.
@@ -211,7 +212,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * A list of federate instances or a list with a single empty string
      * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
      */
-    protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
+    public var List<FederateInstance> federates = new LinkedList<FederateInstance>
 
     /**
      * A map from federate IDs to federate instances.

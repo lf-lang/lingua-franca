@@ -34,6 +34,8 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.common.CommonPlugin
 import org.eclipse.emf.ecore.EObject
@@ -46,14 +48,18 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
 import org.lflang.federated.FedCLauncher
+import org.lflang.federated.FedFileConfig
+import org.lflang.federated.FedROS2CPPSerialization
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializations
 import org.lflang.generator.ActionInstance
-import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
@@ -69,12 +75,14 @@ import org.lflang.lf.Code
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
+import org.lflang.lf.TargetDecl
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
@@ -82,14 +90,6 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.FedFileConfig
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import org.lflang.lf.TargetDecl
-import org.lflang.TargetProperty
-import org.lflang.lf.Model
-import org.lflang.federated.SupportedSerializations
-import org.lflang.federated.FedROS2CPPSerialization
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -4412,7 +4412,7 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 val ROSDeserializer = new FedROS2CPPSerialization()
-                value = org.lflang.federated.FedROS2CPPSerialization.deserializedVarName;
+                value = FedROS2CPPSerialization.deserializedVarName;
                 result.append(
                     ROSDeserializer.generateNetworkDeserializerCode(
                         '''self->___«action.name»''',
@@ -4757,7 +4757,7 @@ class CGenerator extends GeneratorBase {
         // this.
         if (!targetConfig.protoFiles.isNullOrEmpty) {
             // Enable support for proto serialization
-            enabledSerializations.add(org.lflang.federated.SupportedSerializations.PROTO)
+            enabledSerializations.add(SupportedSerializations.PROTO)
         }
     }
     

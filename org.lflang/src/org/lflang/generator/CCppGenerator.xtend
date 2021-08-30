@@ -32,6 +32,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.Target
+import org.lflang.federated.FederateInstance
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.ReactorDecl
 

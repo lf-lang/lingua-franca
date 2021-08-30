@@ -38,7 +38,6 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
