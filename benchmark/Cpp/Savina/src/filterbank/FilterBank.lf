@@ -1,16 +1,43 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This benchmark is particularly interesting for LF, as it has an interesting
+ * structure and highlights a significant advantage compared to Akka. The
+ * benchmark implements a "filter bank". Each bank consists of a pipeline of
+ * several filters. The banks operate in parallel. The input data stream is
+ * split, so that each bank receives a copy of the data value, and the data
+ * streams are merged again by summing the results. In principle, this design
+ * exposes both data level parallelism due to the separate banks and pipeline
+ * parallelism within a bank. However, this LF implementation does not exploit
+ * the pipeline parallelism. This would require additional logical actions
+ * between the pipeline stages. The effect of this unknown and it might be
+ * worthwhile to explore if pipeline parallelism can be exploited by this
+ * benchmakr in an efficient way. However, since only the FIR filter perform
+ * large computations and most other reactions are small, likely there is not
+ * much to gain from implementing a real pipeline.
+ *
+ * An interesting note can also be made about the structure and complexity of
+ * the LF benchmark compared to the Akka implementation. The Akka implementation
+ * uses a "Branches" actor that distributes the single input signal to the
+ * banks. In LF, this actor is not needed and we simply use a broadcast
+ * connection.
+
+ * More interesting, is how the outputs of the different banks are merged in the
+ * Akka implementation. This is done by two actors: "TaggedForward" and
+ * "Integrator". "TaggedForward" simply assigns tags to each message which
+ * indicate the bank that the message originates from. Essentially this merges
+ * the N data streams from the N banks to a single data stream. Unless the name
+ * might suggest, the "Integrate" does not apply an integrarion filter on the
+ * data, but rather collects results and "integrates" them in a vector.
+ * Basically the input is 1 value from N banks, and the output is one
+ * N-dimensional vector. The integrate vector simply stores all received values
+ * in a buffer, and sends out a vector containing values from all banks once
+ * messages from all banks have been received. This synchronization mechanism is
+ * not needed at all in the LF implementation and makes both the "TaggedForward"
+ * and the "Integrate" actors superflous. The combine reactor simply has a
+ * multiport import and thus simultaneously receives values from all N banks.
  * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
-
-// This benchmark does not contain the Branches and TaggedForward reactors as they are redundant in LF.
-// Their functionality is simply implemented by port connections in LF. 
-// Also the integrator reactor became superfluous. In the Akka implementation, its whole purpose is to realign
-// messages received from the different banks. Using actors, these messages could arrive in any order and
-// we need to synchronize between the channels in order to combine results from each channel into a single vector.
-// However, this is not needed in LF where all the outputs from the banks/channels are synchronous.
 
 target Cpp {
     build-type : RelWithDebInfo,
