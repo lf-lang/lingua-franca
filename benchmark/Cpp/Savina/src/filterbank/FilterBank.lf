@@ -7,6 +7,10 @@
 
 // This benchmark does not contain the Branches and TaggedForward reactors as they are redundant in LF.
 // Their functionality is simply implemented by port connections in LF. 
+// Also the integrator reactor became superfluous. In the Akka implementation, its whole purpose is to realign
+// messages received from the different banks. Using actors, these messages could arrive in any order and
+// we need to synchronize between the channels in order to combine results from each channel into a single vector.
+// However, this is not needed in LF where all the outputs from the banks/channels are synchronous.
 
 target Cpp {
     build-type : RelWithDebInfo,
@@ -25,42 +29,27 @@ reactor ProducerReactor(numChannels: size_t{8}, numSimulations: size_t{34816}, n
         
     state numMessagesSent: size_t{0};
     
-    input inStart:void;
-    output outFinished:void;
-    input inInitializeStart:void;
-    output outInitializeFinished:void;
+    input start: void;
+    output next: void;
+    output finished: void
     
-    input inSource: Message;
-    output outSource: Message;
+    logical action sendNext: void;
     
-    logical action sendToSource: Message;
-    logical action start: Message;
-    
-    reaction(inInitializeStart) -> outInitializeFinished {=
-        outInitializeFinished.set();
-    =}
-    
-    reaction(inStart) -> sendToSource {=
+    reaction(start) -> sendNext {=
         // reset local state
         numMessagesSent = 0;
         
         // start execution
-        sendToSource.schedule(Message{BootMsg});
-        numMessagesSent += 1;
+        sendNext.schedule();
     =}
     
-    reaction(sendToSource) -> outSource {=
-        outSource.set(sendToSource.get());
-    =}
-    
-    reaction(inSource) -> sendToSource {=
-        if(inSource.get()->type == NextMsg) {            
-            if(numMessagesSent >= numSimulations) {
-                sendToSource.schedule(Message{ExitMsg}); //TODO directly sending possible?
-            } else {
-                sendToSource.schedule(Message{BootMsg});
-                numMessagesSent += 1;
-            }
+    reaction (sendNext) -> sendNext, next, finished {=
+        if (numMessagesSent < numSimulations) {
+            next.set();
+            numMessagesSent++;
+            sendNext.schedule();
+        } else {
+            finished.set();
         }
     =}
 }
@@ -70,81 +59,57 @@ reactor SourceReactor {
     state maxValue: size_t{1000};
     state current: size_t{0};
     
-    input inProducer: Message;
-    output outProducer: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message;
+    input next: void;
+    output value: double;
+
+    input inFinished: void;
+    output outFinished: void;
     
-    reaction(inProducer) -> outSuccessorValue, outSuccessorControl, outProducer {=
-        if(inProducer.get()->type == BootMsg) {
-            outSuccessorValue.set(current);
-            current = (current + 1) % maxValue;
-            outProducer.set(Message{NextMsg});
-        } else if(inProducer.get()->type == ExitMsg) {
-            outSuccessorControl.set(inProducer.get());
-            
-            // reset local state
-            current = 0;
-        }
+    reaction (next) -> value {=
+        value.set(current);
+        current = (current + 1) % maxValue;
+    =}
+    
+    reaction (inFinished) -> outFinished {=
+        outFinished.set();
+        // reset local state
+        current = 0;
     =}
 }
 
 reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannels: size_t{8}) {    
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message;
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
     
     input setF: CoefficientMatrix;
     input setH: CoefficientMatrix;
     
-    delay0 = new DelayReactor(
-        sourceId={=std::to_string(bank_index) + ".1"=},
-        delayLength={=numColumns - 1=}
-    );
-    fir0 = new FirFilterReactor(
-        bank_index=bank_index,
-        sourceId={=std::to_string(bank_index) + ".1"=},
-        peekLength=numColumns
-    );
+    delay0 = new DelayReactor(delayLength={=numColumns - 1=});
+    fir0 = new FirFilterReactor(bank_index=bank_index, peekLength=numColumns);
     sample = new SampleFilterReactor(sampleRate=numColumns);
-    delay1 = new DelayReactor(
-        sourceId={=std::to_string(bank_index) + ".2"=},
-        delayLength={=numColumns - 1=}
-    );
-    fir1 = new FirFilterReactor(
-        bank_index=bank_index,
-        sourceId={=std::to_string(bank_index) + ".2"=},
-        peekLength=numColumns
-    );
+    delay1 = new DelayReactor(delayLength={=numColumns - 1=});
+    fir1 = new FirFilterReactor(bank_index=bank_index, peekLength=numColumns);
     
-    inPredecessorControl -> delay0.inPredecessorControl;
-    inPredecessorValue -> delay0.inPredecessorValue;
-    
-    delay0.outSuccessorControl -> fir0.inPredecessorControl;
-    delay0.outSuccessorValue -> fir0.inPredecessorValue;
-    fir0.outSuccessorControl -> sample.inPredecessorControl;
-    fir0.outSuccessorValue -> sample.inPredecessorValue;
-    sample.outSuccessorControl -> delay1.inPredecessorControl;
-    sample.outSuccessorValue -> delay1.inPredecessorValue;
-    delay1.outSuccessorControl -> fir1.inPredecessorControl;
-    delay1.outSuccessorValue -> fir1.inPredecessorValue;
-    fir1.outSuccessorControl -> outSuccessorControl;
-    fir1.outSuccessorValue -> outSuccessorValue;
+    inFinished, delay0.outFinished, fir0.outFinished, sample.outFinished, delay1.outFinished, fir1.outFinished -> 
+        delay0.inFinished, fir0.inFinished, sample.inFinished, delay1.inFinished, fir1.inFinished, outFinished;
+        
+    inValue, delay0.outValue, fir0.outValue, sample.outValue, delay1.outValue, fir1.outValue -> 
+        delay0.inValue, fir0.inValue, sample.inValue, delay1.inValue, fir1.inValue, outValue;   
     
     setH -> fir0.setCoefficients;
     setF -> fir1.setCoefficients;
 }
 
-reactor DelayReactor(sourceId: std::string{"no source id"}, delayLength: size_t{16383}) {
-    
+reactor DelayReactor(delayLength: size_t{16383}) {
     state myState: std::vector<double>;
     state placeHolder: size_t{0};
     
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message ;
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
     
     reaction(startup) {=
         // one time init
@@ -152,15 +117,15 @@ reactor DelayReactor(sourceId: std::string{"no source id"}, delayLength: size_t{
         placeHolder = 0;
     =}
     
-    reaction(inPredecessorValue) -> outSuccessorValue {=
-        double result = *inPredecessorValue.get();
-        outSuccessorValue.set(myState[placeHolder]);
+    reaction(inValue) -> outValue {=
+        double result = *inValue.get();
+        outValue.set(myState[placeHolder]);
         myState[placeHolder] = result;
         placeHolder = (placeHolder + 1) % delayLength;
     =}
     
-    reaction(inPredecessorControl) -> outSuccessorControl {=
-        outSuccessorControl.set(inPredecessorControl.get());
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
         
         // reset local state
         myState = std::vector<double>(delayLength, 0.0);
@@ -168,21 +133,17 @@ reactor DelayReactor(sourceId: std::string{"no source id"}, delayLength: size_t{
     =}
 }
 
-reactor FirFilterReactor(
-    bank_index:size_t{0},
-    sourceId: std::string{"no source id"},
-    peekLength: size_t{16384}) {
-    
+reactor FirFilterReactor(bank_index:size_t{0}, peekLength: size_t{16384}) {
     state data: std::vector<double>;
     state dataIndex: size_t{0};
     state dataFull: bool{false};
     state coefficients: {=reactor::ImmutableValuePtr<CoefficientMatrix>=}{{=nullptr=}}
     
     input setCoefficients: CoefficientMatrix
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message;
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
     
     reaction(startup) {=
         // reset local state
@@ -195,10 +156,9 @@ reactor FirFilterReactor(
         coefficients = setCoefficients.get();
     =}
     
-    reaction(inPredecessorValue) -> outSuccessorValue {=
-        double result = *inPredecessorValue.get();
-        data[dataIndex] = result;
-        dataIndex += 1;
+    reaction(inValue) -> outValue {=
+        data[dataIndex] = *inValue.get();
+        dataIndex++;
         
         if(dataIndex == peekLength) {
             dataFull = true;
@@ -207,17 +167,15 @@ reactor FirFilterReactor(
         
         if(dataFull) {
             double sum{0.0};
-            size_t i{0};
-            while(i < peekLength) {
+            for (size_t i{0}; i < peekLength; i++) {
                 sum += data[i] * (*coefficients)[bank_index][peekLength - i - 1];
-                i += 1;
             }
-            outSuccessorValue.set(sum);
+            outValue.set(sum);
         }
     =}
     
-    reaction(inPredecessorControl) -> outSuccessorControl {=
-        outSuccessorControl.set(inPredecessorControl.get());
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
         
         // reset local state
         data = std::vector<double>(peekLength, 0.0);
@@ -227,124 +185,58 @@ reactor FirFilterReactor(
 }
 
 reactor SampleFilterReactor(sampleRate: size_t{16384}) {
-    
-    state ZERO_RESULT:double(0.0);
     state samplesReceived: size_t{0};
     
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message;
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
     
-    reaction(startup) {=
-        // reset local state
-        samplesReceived = 0;
-    =}
-    
-    reaction(inPredecessorValue) -> outSuccessorValue {=
+    reaction(inValue) -> outValue {=
         if(samplesReceived == 0) {
-            outSuccessorValue.set(inPredecessorValue.get());
+            outValue.set(inValue.get());
         } else {
-            outSuccessorValue.set(ZERO_RESULT);
+            outValue.set(0.0);
         }
         samplesReceived = (samplesReceived + 1) % sampleRate;
     =}
     
-    reaction(inPredecessorControl) -> outSuccessorControl {=
-        outSuccessorControl.set(inPredecessorControl.get());
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
         
         // reset local state
         samplesReceived = 0;
     =}
 }
 
-reactor IntegratorReactor(numChannels: size_t{8}) {
+reactor CombineReactor(numChannels: size_t{8}) {
     
-    state data: std::vector<std::map<int,double>>;
-    state exitsReceived: size_t{0};
+    input[numChannels] inValues: double;
+    input[numChannels] inFinished: void;
+    output outValue: double;
+    output outFinished: void;
     
-    input[numChannels] inPredecessorsValue: double ;
-    input[numChannels] inPredecessorsControl: Message;
-    output outSuccessorCollection: std::vector<double>;
-    output outSuccessorControl: Message;
+    state numFinished: size_t{0};
     
-    reaction(startup) {=
-        // reset local state
-        data = std::vector<std::map<int,double>>();
-        exitsReceived = 0;
-    =}
-    
-    reaction(inPredecessorsValue) -> outSuccessorCollection {=
-        for(size_t i{0}; i < inPredecessorsValue.size(); ++i) {
-            if(inPredecessorsValue[i].is_present()) {
-                size_t sourceId{i};
-                double result{*inPredecessorsValue[i].get()};
-                size_t dataSize{data.size()};
-                bool processed{false};
-                
-                for (size_t j{0}; j < dataSize; j++) {
-                    std::map<int, double>& loopMap = data[j];
-                    if(loopMap.find(sourceId) == end(loopMap)) {
-                        loopMap.emplace(sourceId, result);
-                        processed = true;
-                        break;
-                    }
-                }
-                
-                if(!processed) {
-                    data.emplace_back();
-                    data.back().emplace(sourceId, result);
-                }
-                
-                auto& firstMap = data[0];
-                if(firstMap.size() == numChannels) {
-                    auto collection = reactor::make_mutable_value<std::vector<double>>();
-                    collection->reserve(firstMap.size());
-                    for(auto& val: firstMap) {
-                        collection->push_back(val.second);
-                    }
-                    outSuccessorCollection.set(reactor::ImmutableValuePtr<std::vector<double>>(std::move(collection)));
-                    data.erase(begin(data));
-                }
-            }
-        }
-    =}
-    
-    reaction(inPredecessorsControl) -> outSuccessorControl {=
-        for(size_t i{0}; i < inPredecessorsControl.size(); ++i) {
-            if(inPredecessorsControl[i].is_present()) {
-                exitsReceived += 1;
-            }
-        }
-        if(exitsReceived == numChannels) {
-            outSuccessorControl.set(Message{ExitMsg});
-            // reset local state
-            data = std::vector<std::map<int,double>>();
-            exitsReceived = 0;
-        }
-    =}
-}
-
-reactor CombineReactor {
-    
-    input inPredecessorCollection: std::vector<double>;
-    input inPredecessorControl: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message;
-    
-    reaction(inPredecessorCollection) -> outSuccessorValue {=
+    reaction(inValues) -> outValue {=
         double sum{0};
-        const std::vector<double>& result = *inPredecessorCollection.get();
-        for(const auto loopValue: result) {
-            sum += loopValue;
+        for(const auto& x: inValues) {
+            sum += *x.get();
         }
-        outSuccessorValue.set(sum);
+        outValue.set(sum);
     =}
     
-    reaction(inPredecessorControl) -> outSuccessorControl {=
-        outSuccessorControl.set(inPredecessorControl.get());
-        
-        // reset local state
+    reaction(inFinished) -> outFinished {=
+        for(const auto& port: inFinished) {
+            if(port.is_present()) {
+                numFinished++;
+            }
+        }
+        if(numFinished == numChannels) {
+            outFinished.set();
+            // reset local state
+            numFinished = 0;
+        }
     =}
 }
 
@@ -352,37 +244,27 @@ reactor SinkReactor(printRate: size_t{100}) {
     
     state count: size_t{0};
     
+    input inValue: double;
+    input inFinished: void;
     output outFinished: void;
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
     
-    reaction(inPredecessorValue) {=
-        double result = *inPredecessorValue.get();
+    reaction(inValue) {=
+        double result = *inValue.get();
         
-        if(count == 0) {
+        if(count % printRate == 0) {
             reactor::log::Info() << "SinkActor: result = " << result;
         }
-        
-        count = (count + 1) % printRate;
+        count++;
     =}
     
-    reaction(inPredecessorControl) -> outFinished {=
+    reaction(inFinished) -> outFinished {=
         outFinished.set();
         // reset local state
+        count = 0;
     =}
 }
 
 main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColumns: size_t{16384}, numChannels: size_t{8}) {
-    
-    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=numChannels, numColumns=numColumns);
-    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true);
-    sink = new SinkReactor(printRate=100);
-    
-    runner.outInitializeStart -> producer.inInitializeStart;
-    producer.outInitializeFinished -> runner.inInitializeFinish;
-    
-    runner.outIterationStart -> producer.inStart;
-    sink.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart, banks.setF, banks.setH {=
         // initialize the coefficients of all FIR filters
@@ -411,21 +293,27 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
         printSystemInfo();
         runner.inStart.set();
     =}
-    
-    combine = new CombineReactor();
+
+    runner = new BenchmarkRunner(numIterations=numIterations);    
+    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=numChannels, numColumns=numColumns);
     source = new SourceReactor();
-    
-    integrator = new IntegratorReactor(numChannels=numChannels);
     banks = new[numChannels] BankReactor(numColumns=numColumns, numChannels=numChannels);
+    combine = new CombineReactor(numChannels=numChannels);
+    sink = new SinkReactor(printRate=100);
     
-    producer.outSource -> source.inProducer;
-    source.outProducer -> producer.inSource;
-    (source.outSuccessorControl)+ -> banks.inPredecessorControl;
-    (source.outSuccessorValue)+ -> banks.inPredecessorValue;
-    banks.outSuccessorControl -> integrator.inPredecessorsControl;
-    banks.outSuccessorValue -> integrator.inPredecessorsValue;
-    integrator.outSuccessorControl -> combine.inPredecessorControl;
-    integrator.outSuccessorCollection -> combine.inPredecessorCollection;
-    combine.outSuccessorControl -> sink.inPredecessorControl;
-    combine.outSuccessorValue -> sink.inPredecessorValue;
+    runner.outIterationStart -> producer.start;
+    
+    producer.next -> source.next;
+    producer.finished -> source.inFinished;
+    
+    (source.value)+ -> banks.inValue;
+    (source.outFinished)+ -> banks.inFinished;
+   
+    banks.outValue -> combine.inValues;
+    banks.outFinished -> combine.inFinished
+  
+    combine.outValue -> sink.inValue;
+    combine.outFinished -> sink.inFinished;
+    
+    sink.outFinished -> runner.inIterationFinish;
 }
