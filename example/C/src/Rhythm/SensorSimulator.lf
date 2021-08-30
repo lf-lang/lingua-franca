@@ -15,10 +15,11 @@ preamble {=
 main reactor {
     timer t(0, 1 sec);
     timer r(0, 2 sec);
-    reaction(startup) {=
+    physical action key:char*;
+    reaction(startup) -> key {=
     	info_print("Starting sensor simulator.");
         start_sensor_simulator(messages, num_messages, 16, NULL, LOG_LEVEL_INFO);
-    	info_print("Started sensor simulator.");
+    	register_sensor_key('\0', key);
    =}
     reaction(t) {=
         show_tick("*");
@@ -26,5 +27,8 @@ main reactor {
     reaction(r) {=
         info_print("Elapsed logical time: %lld.", get_elapsed_logical_time());
         show_tick(".");
+    =}
+    reaction(key) {=
+        info_print("You typed '%s' at elapsed time %lld.", key->value, get_elapsed_logical_time());
     =}
 }
