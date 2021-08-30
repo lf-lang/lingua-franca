@@ -34,8 +34,7 @@ provides a convenient way to do that.
 To use this, include the following flags in your target properties:
 <pre>
 target C {
-    flags: "-lncurses",
-    cmake: false,
+    cmake-include: "include/ncurses-cmake-extension.txt", // Adds support for ncurses
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
 };
 </pre>
