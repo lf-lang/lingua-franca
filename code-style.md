@@ -33,6 +33,13 @@ Keeping fields and constructors next to each other helps understanding the initi
 - avoid public non-final fields
 - avoid public collection fields (even if final, they may be mutable)
 
+### Design for inheritance or prohibit it
+
+Make new classes final by default, and don't use protected members.
+The class should only be unsealed if a use case for inheritance shows up, which is in many cases never.
+
+(This is in [Effective Java](https://medium.com/@rufuszh90/effective-java-item-17-design-and-document-for-inheritance-or-else-prohibit-it-be6041719fbc).)
+
 
 ### Collections
 
