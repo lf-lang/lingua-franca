@@ -5,24 +5,27 @@
 target C {
     threads: 2,
     flags: "-lncurses",
+    cmake: false,
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
 };
 preamble {=
     #include "sensor_simulator.c"
+    char* messages[] = {"Hello", "World"};
+    int num_messages = 2;
 =}
 main reactor {
     timer t(0, 1 sec);
     timer r(0, 2 sec);
     reaction(startup) {=
-    	char* messages[] = {"Hello", "World"};
     	info_print("Starting sensor simulator.");
-        start_sensor_simulator(messages, 2, 16, NULL, -1);
+        start_sensor_simulator(messages, num_messages, 16, NULL, LOG_LEVEL_INFO);
     	info_print("Started sensor simulator.");
    =}
     reaction(t) {=
         show_tick("*");
     =}
     reaction(r) {=
+        info_print("Elapsed logical time: %lld.", get_elapsed_logical_time());
         show_tick(".");
     =}
 }
