@@ -247,7 +247,7 @@ do { \
 #define _LF_SET_MODE(mode) \
 do { \
 	self->___mode_state.next_mode = mode; \
-    self->___mode_state.mode_change = 1; \
+    self->___mode_state.mode_change = _##mode##_change_type; \
 } while(0)
 
 /**

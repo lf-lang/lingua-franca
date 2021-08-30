@@ -1919,6 +1919,7 @@ bool _lf_mode_is_active(reactor_mode_t* mode) {
  * @param num_states The number of mode state.
  */
 void _lf_handle_mode_changes(reactor_mode_state_t* states[], int num_states) {
+	char transition = 0;
 	// Perform mode changes bottom up (reverse)
     for (int i = num_states - 1; i >= 0; i--) {
     	reactor_mode_state_t* state = states[i];
@@ -1926,23 +1927,35 @@ void _lf_handle_mode_changes(reactor_mode_state_t* states[], int num_states) {
         	if (state->next_mode != NULL) {
         		state->active_mode = state->next_mode;
         		state->next_mode = NULL;
+        		//debug_print("Mode transition to %s", state->active_mode->name);
+        		transition = 1;
 			}
         }
     }
-    // Apply reset top down
-    for (int i = 0; i < num_states; i++) {
-    	reactor_mode_state_t* state = states[i];
-		if (state != NULL) {
-			// has parent and is now active and is entered in this step with a reset
-			if (state->parent_mode != NULL &&
-				state->parent_mode->state != NULL &&
-				state->parent_mode->state->active_mode == state->parent_mode &&
-				state->mode_change == 1) {
-				// Reset to initial state
-				state->active_mode = state->initial_mode;
-				state->mode_change = 1;
-				// TODO perform reset reaction
+    if (transition) {
+		// Apply reset top down
+		for (int i = 0; i < num_states; i++) {
+			reactor_mode_state_t* state = states[i];
+			if (state != NULL) {
+				// has parent and is now active and is entered in this step with a reset
+				if (state->parent_mode != NULL &&
+					state->parent_mode->state != NULL &&
+					state->parent_mode->state->active_mode == state->parent_mode &&
+					state->parent_mode->state->mode_change == 1) {
+					// Reset to initial state
+					state->active_mode = state->initial_mode;
+					state->mode_change = 1; // Cascade reset further down
+					//debug_print("Mode reset to %s", state->active_mode->name);
+					// TODO perform reset reaction
+				}
 			}
 		}
-	}
+		// Clear mode change flags
+		for (int i = 0; i < num_states; i++) {
+			reactor_mode_state_t* state = states[i];
+			if (state != NULL) {
+				state->mode_change = 0;
+			}
+		}
+    }
 }

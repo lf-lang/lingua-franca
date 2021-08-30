@@ -71,6 +71,7 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Mode
+import org.lflang.lf.ModeTransitionTypes
 import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
@@ -300,6 +301,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -2519,6 +2521,7 @@ class CGenerator extends GeneratorBase {
                     if (idx >= 0) {
                         pr(reactionInitialization, '''
                             reactor_mode_t* «effect.variable.name» = &self->___modes[«idx»];
+                            char _«effect.variable.name»_change_type = «effect.modeTransitionType === ModeTransitionTypes.HISTORY ? 2 : 1»;
                         ''')
                     } else {
                         errorReporter.reportError(

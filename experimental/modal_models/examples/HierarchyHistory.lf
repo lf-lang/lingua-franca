@@ -14,8 +14,8 @@ reactor Processor {
             printf("Sleeping (discarded: %c)\n", char_in->value);
 		=}
 
-		reaction(pause) -> Process reset {=
-            printf("Resuming (reset)\n");
+		reaction(pause) -> Process continue {=
+            printf("Resuming\n");
             SET_MODE(Process);
 		=}
     }
@@ -32,7 +32,7 @@ reactor Processor {
     }
 }
 
-main reactor Hierarchy {
+main reactor HierarchyHistory {
     step = new TimedStep();
     chars = new TimedSeparator(offset=250msec, period=250msec,message="AaB xxxxAaBbxxxx AaB");
     processor = new Processor();
