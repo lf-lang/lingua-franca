@@ -8,9 +8,12 @@ Here is one possible way for an interaction with the user to be handled by the s
 1. The user edits the document and (somehow) triggers a more lightweight request for validation.
 1. This does not trigger a full compilation, but it does trigger an update of the generated code. The linter is run again, and the results are again sent to the language client.
 
+This means that there are two distinct types of round trip between the language client and the language server, as illustrated below. The round trip depicted on the left is slow, whereas the round trip on the right is (supposed to be) fast.
+![image](https://user-images.githubusercontent.com/33707478/130903997-0854b94c-d3b9-40d2-88e2-585df38d90a2.png)
+
 This all depends on programmatic access to various command-line tools that resolve names, check for problems, perform style checks, automate formatting, etc.
 
-It is worth noting that this plan is just a sketch in the sense that it may not be how our final product actually works. Software that is published as part of a language extension cannot make an unreasonable use of computing resources without being explicitly requested to do so by the user.
+It is worth noting that this plan is just a sketch in the sense that it may not be how our final product actually works. Software that is published as part of a language extension cannot make an unreasonable use of computing resources without being explicitly requested to do so by the user. Furthermore, the current method of updating the generated code without re-running the generator may not be very robust.
 
 However, this plan is not just a sketch in the sense that a working prototype already exists. It is still possible that at least some aspects of this package will survive into the language extension -- possibly presented as a computationally intensive option that users can opt into once they know the consequences.
 
