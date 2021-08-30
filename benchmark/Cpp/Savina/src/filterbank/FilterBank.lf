@@ -5,6 +5,9 @@
  * @author Hannes Klein
  */
 
+// This benchmark does not contain the Branches and TaggedForward reactors as they are redundant in LF.
+// Their functionality is simply implemented by port connections in LF. 
+
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "FilterBank.cmake"
@@ -86,28 +89,6 @@ reactor SourceReactor {
     =}
 }
 
-reactor BranchesReactor(numChannels: size_t{8}, numColumns: size_t{16384}) {
-    
-    output[numChannels] outBanksValue: double;
-    output[numChannels] outBanksControl: Message;
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
-    
-    reaction(inPredecessorValue) -> outBanksValue {=
-        for(size_t i{0}; i < numChannels; i++) {
-            outBanksValue[i].set(inPredecessorValue.get());
-        }
-    =}
-    
-    reaction(inPredecessorControl) -> outBanksControl {=
-        if(inPredecessorControl.get()->type == ExitMsg) {
-            for(size_t i{0}; i < numChannels; i++) {
-                outBanksControl[i].set(inPredecessorControl.get());
-            }
-        }
-    =}
-}
-
 reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannels: size_t{8}) {    
     input inPredecessorValue: double;
     input inPredecessorControl: Message;
@@ -136,7 +117,6 @@ reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannel
         sourceId={=std::to_string(bank_index) + ".2"=},
         peekLength=numColumns
     );
-    tagged = new TaggedForwardReactor();
     
     inPredecessorControl -> delay0.inPredecessorControl;
     inPredecessorValue -> delay0.inPredecessorValue;
@@ -149,11 +129,8 @@ reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannel
     sample.outSuccessorValue -> delay1.inPredecessorValue;
     delay1.outSuccessorControl -> fir1.inPredecessorControl;
     delay1.outSuccessorValue -> fir1.inPredecessorValue;
-    fir1.outSuccessorControl -> tagged.inPredecessorControl;
-    fir1.outSuccessorValue -> tagged.inPredecessorValue;
-    
-    tagged.outSuccessorControl -> outSuccessorControl;
-    tagged.outSuccessorValue -> outSuccessorValue;
+    fir1.outSuccessorControl -> outSuccessorControl;
+    fir1.outSuccessorValue -> outSuccessorValue;
     
     setH -> fir0.setCoefficients;
     setF -> fir1.setCoefficients;
@@ -278,24 +255,6 @@ reactor SampleFilterReactor(sampleRate: size_t{16384}) {
         
         // reset local state
         samplesReceived = 0;
-    =}
-}
-
-//FIXME this reactor does nothing in the reactor model. Because messages are tagged by the input
-// port they arrive through.
-reactor TaggedForwardReactor { 
-    input inPredecessorValue: double;
-    input inPredecessorControl: Message;
-    output outSuccessorValue: double;
-    output outSuccessorControl: Message;
-    
-    reaction(inPredecessorValue) -> outSuccessorValue {=
-        double result = *inPredecessorValue.get();
-        outSuccessorValue.set(result);
-    =}
-    
-    reaction(inPredecessorControl) -> outSuccessorControl {=
-        outSuccessorControl.set(inPredecessorControl.get());
     =}
 }
 
@@ -457,15 +416,12 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     source = new SourceReactor();
     
     integrator = new IntegratorReactor(numChannels=numChannels);
-    branches = new BranchesReactor(numChannels=numChannels, numColumns=numColumns);
-    banks = new[8] BankReactor(numColumns=numColumns, numChannels=numChannels);
+    banks = new[numChannels] BankReactor(numColumns=numColumns, numChannels=numChannels);
     
     producer.outSource -> source.inProducer;
     source.outProducer -> producer.inSource;
-    source.outSuccessorControl -> branches.inPredecessorControl;
-    source.outSuccessorValue -> branches.inPredecessorValue;
-    branches.outBanksControl -> banks.inPredecessorControl;
-    branches.outBanksValue -> banks.inPredecessorValue;
+    (source.outSuccessorControl)+ -> banks.inPredecessorControl;
+    (source.outSuccessorValue)+ -> banks.inPredecessorValue;
     banks.outSuccessorControl -> integrator.inPredecessorsControl;
     banks.outSuccessorValue -> integrator.inPredecessorsValue;
     integrator.outSuccessorControl -> combine.inPredecessorControl;
