@@ -5,42 +5,6 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numChannels=8
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numChannels' in globals():
-    numChannels = int(numChannels)
-  else:
-    globals()['numChannels'] = 8
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numChannels = {numChannels}')
-]]] */
-// Generated file with the following parameters:
-// numChannels = 8
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "FilterBank.cmake"
@@ -50,7 +14,6 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
     #include "FilterBankCommon.hh"
-    #include <sstream>
     
     using CoefficientMatrix = std::vector<std::vector<double>>;
 =}
@@ -125,13 +88,8 @@ reactor SourceReactor {
 
 reactor BranchesReactor(numChannels: size_t{8}, numColumns: size_t{16384}) {
     
-    /* [[[cog
-      cog.outl(f'output[{numChannels}] outBanksValue:{{=double=}};')
-      cog.outl(f'output[{numChannels}] outBanksControl:{{=Message=}};')
-    ]]] */
-    output[8] outBanksValue: double;
-    output[8] outBanksControl: Message;
-    // [[[end]]]
+    output[numChannels] outBanksValue: double;
+    output[numChannels] outBanksControl: Message;
     input inPredecessorValue: double;
     input inPredecessorControl: Message;
     
@@ -147,7 +105,6 @@ reactor BranchesReactor(numChannels: size_t{8}, numColumns: size_t{16384}) {
                 outBanksControl[i].set(inPredecessorControl.get());
             }
         }
-        // resetting the local state is not necessary
     =}
 }
 
@@ -347,13 +304,8 @@ reactor IntegratorReactor(numChannels: size_t{8}) {
     state data: std::vector<std::map<int,double>>;
     state exitsReceived: size_t{0};
     
-    /* [[[cog
-      cog.outl(f'input[{numChannels}] inPredecessorsValue:{{=double=}};')
-      cog.outl(f'input[{numChannels}] inPredecessorsControl:{{=Message=}};')
-    ]]] */
-    input[8] inPredecessorsValue: double ;
-    input[8] inPredecessorsControl: Message;
-    // [[[end]]]
+    input[numChannels] inPredecessorsValue: double ;
+    input[numChannels] inPredecessorsControl: Message;
     output outSuccessorCollection: std::vector<double>;
     output outSuccessorControl: Message;
     
@@ -364,15 +316,12 @@ reactor IntegratorReactor(numChannels: size_t{8}) {
     =}
     
     reaction(inPredecessorsValue) -> outSuccessorCollection {=
-        std::stringstream ss;
         for(size_t i{0}; i < inPredecessorsValue.size(); ++i) {
             if(inPredecessorsValue[i].is_present()) {
                 size_t sourceId{i};
                 double result{*inPredecessorsValue[i].get()};
                 size_t dataSize{data.size()};
                 bool processed{false};
-                
-                ss << result << ", ";
                 
                 for (size_t j{0}; j < dataSize; j++) {
                     std::map<int, double>& loopMap = data[j];
@@ -466,11 +415,7 @@ reactor SinkReactor(printRate: size_t{100}) {
 
 main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColumns: size_t{16384}, numChannels: size_t{8}) {
     
-    /* [[[cog
-      cog.outl(f'producer = new ProducerReactor(numSimulations=numSimulations, numChannels={numChannels}, numColumns=numColumns);')
-    ]]] */
-    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=8, numColumns=numColumns);
-    // [[[end]]]
+    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=numChannels, numColumns=numColumns);
     runner = new BenchmarkRunner(numIterations=numIterations, useInit=true);
     sink = new SinkReactor(printRate=100);
     
@@ -503,11 +448,7 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
         }
         
         printBenchmarkInfo("FilterBankBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", {numChannels});')
-        ]]] */
-        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", 8);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", numChannels);
         printSystemInfo();
         runner.inStart.set();
     =}
@@ -515,15 +456,9 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     combine = new CombineReactor();
     source = new SourceReactor();
     
-    /* [[[cog
-      cog.outl(f'integrator = new IntegratorReactor(numChannels={numChannels});')
-      cog.outl(f'branches = new BranchesReactor(numChannels={numChannels}, numColumns=numColumns);')
-      cog.outl(f'banks = new[{numChannels}] BankReactor(numColumns=numColumns);')
-    ]]] */
-    integrator = new IntegratorReactor(numChannels=8);
-    branches = new BranchesReactor(numChannels=8, numColumns=numColumns);
-    banks = new[8] BankReactor(numColumns=numColumns, numChannels=8);
-    // [[[end]]]
+    integrator = new IntegratorReactor(numChannels=numChannels);
+    branches = new BranchesReactor(numChannels=numChannels, numColumns=numColumns);
+    banks = new[8] BankReactor(numColumns=numColumns, numChannels=numChannels);
     
     producer.outSource -> source.inProducer;
     source.outProducer -> producer.inSource;
