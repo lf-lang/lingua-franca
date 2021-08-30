@@ -22,48 +22,48 @@ target C {
 preamble {=
     #include "rclcpp/rclcpp.hpp"
     #include "std_msgs/msg/int32.hpp"
-   	#include "rcutils/allocator.h"
+    #include "rcutils/allocator.h"
     #include "rclcpp/rclcpp.hpp"
     #include "rclcpp/serialization.hpp"
     
     
     #include "rclcpp/serialized_message.hpp"
-	
-	#include "rosidl_typesupport_cpp/message_type_support.hpp"    
+    
+    #include "rosidl_typesupport_cpp/message_type_support.hpp"    
 =}
 
 reactor Clock(offset:time(0), period:time(1 sec)) {
-	output y:uint8_t*;
-	
-	timer t(0, period);
-	state count:int(0);
+    output y:uint8_t*;
+    
+    timer t(0, period);
+    state count:int(0);
     state serialized_msg:rclcpp::SerializedMessage({=0u=});
-	reaction(t) -> y {=
+    reaction(t) -> y {=
         
-		(self->count)++;
-		
-		// From https://github.com/ros2/demos/blob/master/demo_nodes_cpp/src/topics/talker_serialized_message.cpp
-       	
-       	auto msg = std::make_shared<std_msgs::msg::Int32>();
+        (self->count)++;
+        
+        // From https://github.com/ros2/demos/blob/master/demo_nodes_cpp/src/topics/talker_serialized_message.cpp
+        
+        auto msg = std::make_shared<std_msgs::msg::Int32>();
         msg->data = self->count;
         
         auto message_header_length = 8u;
         auto message_payload_length = 10u;
         self->serialized_msg.reserve(message_header_length + message_payload_length);
         
-        static rclcpp::Serialization<std_msgs::msg::Int32> serializer;
-        serializer.serialize_message(msg.get(), &self->serialized_msg);
+        static rclcpp::Serialization<std_msgs::msg::Int32> serializer_obj;
+        serializer_obj.serialize_message(msg.get(), &self->serialized_msg);
         
         SET_NEW_ARRAY(y, self->serialized_msg.size());
         y->value = self->serialized_msg.get_rcl_serialized_message().buffer;
-	=}
+    =}
 }
 reactor Destination {
-	input x:uint8_t*;
-	
-	state s:int(1);
-	reaction(x) {=
-		auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{
+    input x:uint8_t*;
+    
+    state s:int(1);
+    reaction(x) {=
+        auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{
             .buffer = (uint8_t*)x->token->value,
             .buffer_length = x->token->length,
             .buffer_capacity = x->token->length,
@@ -74,25 +74,25 @@ reactor Destination {
         // info_print("%d", x->token->ref_count);
         // assert(x->token->ref_count == 1); // Might be optimized away (see validate in cpp target)
         
-		//rclcpp::SerializedMessage* msg = new rclcpp::SerializedMessage(x->token->length, rcl_get_default_allocator());
-		auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));
-		x->token->value = NULL; // Manually move it
-		
+        //rclcpp::SerializedMessage* msg = new rclcpp::SerializedMessage(x->token->length, rcl_get_default_allocator());
+        auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));
+        x->token->value = NULL; // Manually move it
+
         // In order to deserialize the message we have to manually create a ROS2
         // message in which we want to convert the serialized data.
         std_msgs::msg::Int32 int_msg;
-        auto serializer = rclcpp::Serialization<std_msgs::msg::Int32>();
-        serializer.deserialize_message(msg.get(), &int_msg);
-		
-		info_print("Received %d.", int_msg.data);
-		if (int_msg.data != self->s) {
-		    warning_print("Expected %d and got %d.", self->s, int_msg.data);
-		}
-		self->s++;
-	=}
+        auto serializer_obj = rclcpp::Serialization<std_msgs::msg::Int32>();
+        serializer_obj.deserialize_message(msg.get(), &int_msg);
+        
+        info_print("Received %d.", int_msg.data);
+        if (int_msg.data != self->s) {
+            warning_print("Expected %d and got %d.", self->s, int_msg.data);
+        }
+        self->s++;
+    =}
 }
 federated reactor (period:time(1 sec)) {
-	c = new Clock(period = period);
-	d = new Destination();
-	c.y -> d.x;
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y -> d.x;
 }
