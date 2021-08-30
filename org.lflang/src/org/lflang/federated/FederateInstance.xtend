@@ -256,7 +256,7 @@ class FederateInstance {
     def containsAction(Reactor reactor, Action action) {
         if (!reactor.federated || isSingleton) return true
         
-        // If the action is used as a trigger or source for a top-level reaction
+        // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (react : reactor.allReactions) {
             if (containsReaction(reactor, react)) {
