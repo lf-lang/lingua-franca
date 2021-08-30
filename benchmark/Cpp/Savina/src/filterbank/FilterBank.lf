@@ -272,8 +272,8 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
         auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
 
         for(size_t j{0}; j < numChannels; ++j) {
-            for(size_t i{0}; i < numChannels; ++i) {
-                (*mH)[j][i] = (1.0 * i * numChannels) + (1.0 * j * numChannels) + j + i + j + 1;
+            for(size_t i{0}; i < numColumns; ++i) {
+                (*mH)[j][i] = (1.0 * i * numColumns) + (1.0 * j * numChannels) + j + i + j + 1;
                 (*mF)[j][i] = (1.0 * i * j) + (1.0 * j * j) + j + i;
             }
         }
