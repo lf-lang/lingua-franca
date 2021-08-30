@@ -864,7 +864,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
     
     /**
-     * Add necessary code to the source and necessary build supports to
+     * Add necessary code to the source and necessary build support to
      * enable the requested serializations in 'enabledSerializations'
      */   
     def void enableSupportForSerialization() {
@@ -932,11 +932,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 pr(p.code.toText)
             }
         }
-//        for (m : models) {
-//            for (p : m.preambles) {
-//                pr(p.code.toText)
-//            }
-//        }
     }
 
     /**
