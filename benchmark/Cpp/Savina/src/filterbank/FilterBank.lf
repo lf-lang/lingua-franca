@@ -48,41 +48,33 @@ target Cpp {
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor ProducerReactor(numChannels:int(8), numSimulations:int(34816), numColumns:int(16384)) {
+public preamble {=
+    #include "FilterBankCommon.hh"
+    #include <sstream>
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
-    
-    state numMessagesSent:int(0);
+    using CoefficientMatrix = std::vector<std::vector<double>>;
+=}
+
+reactor ProducerReactor(numChannels: size_t{8}, numSimulations: size_t{34816}, numColumns: size_t{16384}) {
+        
+    state numMessagesSent: size_t{0};
     
     input inStart:void;
     output outFinished:void;
     input inInitializeStart:void;
     output outInitializeFinished:void;
     
-    input inSource:{=Message=};
-    output outSource:{=Message=};
+    input inSource: Message;
+    output outSource: Message;
     
-    logical action sendToSource:{=Message=};
-    logical action start:{=Message=};
+    logical action sendToSource: Message;
+    logical action start: Message;
     
     reaction(inInitializeStart) -> outInitializeFinished {=
-        H = new std::vector<std::vector<double>>(numChannels, std::vector<double>(numColumns, 0.0));
-        F = new std::vector<std::vector<double>>(numChannels, std::vector<double>(numColumns, 0.0));
-        
-        for(int j = 0; j < numChannels; ++j) {
-            for(int i = 0; i < numChannels; ++i) {
-                (*H)[j][i] = (1.0 * i * numChannels) + (1.0 * j * numChannels) + j + i + j + 1;
-                (*F)[j][i] = (1.0 * i * j) + (1.0 * j * j) + j + i;
-            }
-        }
-        
         outInitializeFinished.set();
     =}
     
-    reaction(inStart) {=
-        
+    reaction(inStart) -> sendToSource {=
         // reset local state
         numMessagesSent = 0;
         
@@ -96,9 +88,7 @@ reactor ProducerReactor(numChannels:int(8), numSimulations:int(34816), numColumn
     =}
     
     reaction(inSource) -> sendToSource {=
-        
-        if(inSource.get()->type == NextMsg) {
-            
+        if(inSource.get()->type == NextMsg) {            
             if(numMessagesSent >= numSimulations) {
                 sendToSource.schedule(Message{ExitMsg}); //TODO directly sending possible?
             } else {
@@ -111,28 +101,20 @@ reactor ProducerReactor(numChannels:int(8), numSimulations:int(34816), numColumn
 
 reactor SourceReactor {
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
+    state maxValue: size_t{1000};
+    state current: size_t{0};
     
-    state maxValue:int(1000);
-    state current:int(0);
-    
-    input inProducer:{=Message=};
-    output outProducer:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+    input inProducer: Message;
+    output outProducer: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message;
     
     reaction(inProducer) -> outSuccessorValue, outSuccessorControl, outProducer {=
-        
         if(inProducer.get()->type == BootMsg) {
-            
             outSuccessorValue.set(current);
             current = (current + 1) % maxValue;
             outProducer.set(Message{NextMsg});
-            
         } else if(inProducer.get()->type == ExitMsg) {
-            
             outSuccessorControl.set(inProducer.get());
             
             // reset local state
@@ -141,33 +123,27 @@ reactor SourceReactor {
     =}
 }
 
-reactor BranchesReactor(numChannels:int(8), numColumns:int(16384)) {
-    
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
+reactor BranchesReactor(numChannels: size_t{8}, numColumns: size_t{16384}) {
     
     /* [[[cog
       cog.outl(f'output[{numChannels}] outBanksValue:{{=double=}};')
       cog.outl(f'output[{numChannels}] outBanksControl:{{=Message=}};')
     ]]] */
-    output[8] outBanksValue:{=double=};
-    output[8] outBanksControl:{=Message=};
+    output[8] outBanksValue: double;
+    output[8] outBanksControl: Message;
     // [[[end]]]
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
     
     reaction(inPredecessorValue) -> outBanksValue {=
-        
-        for(int i = 0; i < outBanksValue.size(); i++) {
+        for(size_t i{0}; i < numChannels; i++) {
             outBanksValue[i].set(inPredecessorValue.get());
         }
     =}
     
     reaction(inPredecessorControl) -> outBanksControl {=
-        
         if(inPredecessorControl.get()->type == ExitMsg) {
-            for(int i = 0; i < outBanksValue.size(); i++) {
+            for(size_t i{0}; i < numChannels; i++) {
                 outBanksControl[i].set(inPredecessorControl.get());
             }
         }
@@ -175,39 +151,35 @@ reactor BranchesReactor(numChannels:int(8), numColumns:int(16384)) {
     =}
 }
 
-reactor BankReactor(instance:int(-1), numColumns:int(16384)) {
+reactor BankReactor(bank_index: size_t{0}, numColumns: size_t{16384}, numChannels: size_t{8}) {    
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message;
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
-    
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+    input setF: CoefficientMatrix;
+    input setH: CoefficientMatrix;
     
     delay0 = new DelayReactor(
-        sourceId={=std::to_string(instance) + ".1"=},
+        sourceId={=std::to_string(bank_index) + ".1"=},
         delayLength={=numColumns - 1=}
     );
     fir0 = new FirFilterReactor(
-        bankIndex=instance,
-        sourceId={=std::to_string(instance) + ".1"=},
-        peekLength=numColumns,
-        coefficients={=&H=}
+        bank_index=bank_index,
+        sourceId={=std::to_string(bank_index) + ".1"=},
+        peekLength=numColumns
     );
     sample = new SampleFilterReactor(sampleRate=numColumns);
     delay1 = new DelayReactor(
-        sourceId={=std::to_string(instance) + ".2"=},
+        sourceId={=std::to_string(bank_index) + ".2"=},
         delayLength={=numColumns - 1=}
     );
     fir1 = new FirFilterReactor(
-        bankIndex=instance,
-        sourceId={=std::to_string(instance) + ".2"=},
-        peekLength=numColumns,
-        coefficients={=&F=}
+        bank_index=bank_index,
+        sourceId={=std::to_string(bank_index) + ".2"=},
+        peekLength=numColumns
     );
-    tagged = new TaggedForwardReactor(sourceId=instance);
+    tagged = new TaggedForwardReactor();
     
     inPredecessorControl -> delay0.inPredecessorControl;
     inPredecessorValue -> delay0.inPredecessorValue;
@@ -225,21 +197,20 @@ reactor BankReactor(instance:int(-1), numColumns:int(16384)) {
     
     tagged.outSuccessorControl -> outSuccessorControl;
     tagged.outSuccessorValue -> outSuccessorValue;
+    
+    setH -> fir0.setCoefficients;
+    setF -> fir1.setCoefficients;
 }
 
-reactor DelayReactor(sourceId:{=std::string=}({="no source id"=}), delayLength:int(16383)) {
+reactor DelayReactor(sourceId: std::string{"no source id"}, delayLength: size_t{16383}) {
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
+    state myState: std::vector<double>;
+    state placeHolder: size_t{0};
     
-    state myState:{=std::vector<double>=};
-    state placeHolder:int(0);
-    
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message ;
     
     reaction(startup) {=
         // one time init
@@ -248,7 +219,6 @@ reactor DelayReactor(sourceId:{=std::string=}({="no source id"=}), delayLength:i
     =}
     
     reaction(inPredecessorValue) -> outSuccessorValue {=
-        
         double result = *inPredecessorValue.get();
         outSuccessorValue.set(myState[placeHolder]);
         myState[placeHolder] = result;
@@ -256,7 +226,6 @@ reactor DelayReactor(sourceId:{=std::string=}({="no source id"=}), delayLength:i
     =}
     
     reaction(inPredecessorControl) -> outSuccessorControl {=
-        
         outSuccessorControl.set(inPredecessorControl.get());
         
         // reset local state
@@ -266,23 +235,20 @@ reactor DelayReactor(sourceId:{=std::string=}({="no source id"=}), delayLength:i
 }
 
 reactor FirFilterReactor(
-    bankIndex:int(-1),
-    sourceId:{=std::string=}({="no source id"=}),
-    peekLength:int(16384),
-    coefficients:{=std::vector<std::vector<double>>**=}({=nullptr=})) {
+    bank_index:size_t{0},
+    sourceId: std::string{"no source id"},
+    peekLength: size_t{16384}) {
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
+    state data: std::vector<double>;
+    state dataIndex: size_t{0};
+    state dataFull: bool{false};
+    state coefficients: {=reactor::ImmutableValuePtr<CoefficientMatrix>=}{{=nullptr=}}
     
-    state data:{=std::vector<double>=};
-    state dataIndex:int(0);
-    state dataFull:{=bool=}({=false=});
-    
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+    input setCoefficients: CoefficientMatrix
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message;
     
     reaction(startup) {=
         // reset local state
@@ -291,8 +257,11 @@ reactor FirFilterReactor(
         dataFull = false;
     =}
     
+    reaction (setCoefficients) {=
+        coefficients = setCoefficients.get();
+    =}
+    
     reaction(inPredecessorValue) -> outSuccessorValue {=
-        
         double result = *inPredecessorValue.get();
         data[dataIndex] = result;
         dataIndex += 1;
@@ -303,10 +272,10 @@ reactor FirFilterReactor(
         }
         
         if(dataFull) {
-            double sum = 0.0;
-            int i = 0;
+            double sum{0.0};
+            size_t i{0};
             while(i < peekLength) {
-                sum += data[i] * ((**coefficients)[bankIndex][peekLength - i - 1]);
+                sum += data[i] * (*coefficients)[bank_index][peekLength - i - 1];
                 i += 1;
             }
             outSuccessorValue.set(sum);
@@ -314,7 +283,6 @@ reactor FirFilterReactor(
     =}
     
     reaction(inPredecessorControl) -> outSuccessorControl {=
-        
         outSuccessorControl.set(inPredecessorControl.get());
         
         // reset local state
@@ -324,19 +292,15 @@ reactor FirFilterReactor(
     =}
 }
 
-reactor SampleFilterReactor(sampleRate:int(16384)) {
-    
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
+reactor SampleFilterReactor(sampleRate: size_t{16384}) {
     
     state ZERO_RESULT:double(0.0);
-    state samplesReceived:int(0);
+    state samplesReceived: size_t{0};
     
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message;
     
     reaction(startup) {=
         // reset local state
@@ -344,7 +308,6 @@ reactor SampleFilterReactor(sampleRate:int(16384)) {
     =}
     
     reaction(inPredecessorValue) -> outSuccessorValue {=
-        
         if(samplesReceived == 0) {
             outSuccessorValue.set(inPredecessorValue.get());
         } else {
@@ -354,7 +317,6 @@ reactor SampleFilterReactor(sampleRate:int(16384)) {
     =}
     
     reaction(inPredecessorControl) -> outSuccessorControl {=
-        
         outSuccessorControl.set(inPredecessorControl.get());
         
         // reset local state
@@ -364,49 +326,36 @@ reactor SampleFilterReactor(sampleRate:int(16384)) {
 
 //FIXME this reactor does nothing in the reactor model. Because messages are tagged by the input
 // port they arrive through.
-reactor TaggedForwardReactor(sourceId:int(-1)) {
-    
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
-    
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+reactor TaggedForwardReactor { 
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message;
     
     reaction(inPredecessorValue) -> outSuccessorValue {=
-        
         double result = *inPredecessorValue.get();
         outSuccessorValue.set(result);
     =}
     
     reaction(inPredecessorControl) -> outSuccessorControl {=
-        
         outSuccessorControl.set(inPredecessorControl.get());
-        
-        // reset local state
     =}
 }
 
-reactor IntegratorReactor(numChannels:int(8)) {
+reactor IntegratorReactor(numChannels: size_t{8}) {
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
-    
-    state data:{=std::vector<std::map<int,double>>=};
-    state exitsReceived:int(0);
+    state data: std::vector<std::map<int,double>>;
+    state exitsReceived: size_t{0};
     
     /* [[[cog
       cog.outl(f'input[{numChannels}] inPredecessorsValue:{{=double=}};')
       cog.outl(f'input[{numChannels}] inPredecessorsControl:{{=Message=}};')
     ]]] */
-    input[8] inPredecessorsValue:{=double=};
-    input[8] inPredecessorsControl:{=Message=};
+    input[8] inPredecessorsValue: double ;
+    input[8] inPredecessorsControl: Message;
     // [[[end]]]
-    output outSuccessorCollection:{=std::vector<double>=};
-    output outSuccessorControl:{=Message=};
+    output outSuccessorCollection: std::vector<double>;
+    output outSuccessorControl: Message;
     
     reaction(startup) {=
         // reset local state
@@ -415,24 +364,23 @@ reactor IntegratorReactor(numChannels:int(8)) {
     =}
     
     reaction(inPredecessorsValue) -> outSuccessorCollection {=
-        
-        for(int i = 0; i < inPredecessorsValue.size(); ++i) {
+        std::stringstream ss;
+        for(size_t i{0}; i < inPredecessorsValue.size(); ++i) {
             if(inPredecessorsValue[i].is_present()) {
+                size_t sourceId{i};
+                double result{*inPredecessorsValue[i].get()};
+                size_t dataSize{data.size()};
+                bool processed{false};
                 
-                int sourceId = i;
-                double result = *inPredecessorsValue[i].get();
-                int dataSize = data.size();
-                bool processed = false;
-                int i = 0;
+                ss << result << ", ";
                 
-                while(i < dataSize) {
-                    std::map<int,double>& loopMap = data[i];
+                for (size_t j{0}; j < dataSize; j++) {
+                    std::map<int, double>& loopMap = data[j];
                     if(loopMap.find(sourceId) == end(loopMap)) {
                         loopMap.emplace(sourceId, result);
                         processed = true;
-                        i = dataSize;
+                        break;
                     }
-                    i += 1;
                 }
                 
                 if(!processed) {
@@ -455,8 +403,7 @@ reactor IntegratorReactor(numChannels:int(8)) {
     =}
     
     reaction(inPredecessorsControl) -> outSuccessorControl {=
-        
-        for(int i = 0; i < inPredecessorsControl.size(); ++i) {
+        for(size_t i{0}; i < inPredecessorsControl.size(); ++i) {
             if(inPredecessorsControl[i].is_present()) {
                 exitsReceived += 1;
             }
@@ -472,18 +419,13 @@ reactor IntegratorReactor(numChannels:int(8)) {
 
 reactor CombineReactor {
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-    =}
-    
-    input inPredecessorCollection:{=std::vector<double>=};
-    input inPredecessorControl:{=Message=};
-    output outSuccessorValue:{=double=};
-    output outSuccessorControl:{=Message=};
+    input inPredecessorCollection: std::vector<double>;
+    input inPredecessorControl: Message;
+    output outSuccessorValue: double;
+    output outSuccessorControl: Message;
     
     reaction(inPredecessorCollection) -> outSuccessorValue {=
-        
-        double sum = 0;
+        double sum{0};
         const std::vector<double>& result = *inPredecessorCollection.get();
         for(const auto loopValue: result) {
             sum += loopValue;
@@ -492,32 +434,24 @@ reactor CombineReactor {
     =}
     
     reaction(inPredecessorControl) -> outSuccessorControl {=
-        
         outSuccessorControl.set(inPredecessorControl.get());
         
         // reset local state
     =}
 }
 
-reactor SinkReactor(printRate:int(100)) {
+reactor SinkReactor(printRate: size_t{100}) {
     
-    public preamble {=
-        #include "FilterBankCommon.hh"
-        #include "reactor-cpp/logging.hh"
-    =}
+    state count: size_t{0};
     
-    state count:int(0);
-    
-    output outFinished:void;
-    
-    input inPredecessorValue:{=double=};
-    input inPredecessorControl:{=Message=};
+    output outFinished: void;
+    input inPredecessorValue: double;
+    input inPredecessorControl: Message;
     
     reaction(inPredecessorValue) {=
         double result = *inPredecessorValue.get();
         
-        bool debug = false;
-        if(debug && (count == 0)) {
+        if(count == 0) {
             reactor::log::Info() << "SinkActor: result = " << result;
         }
         
@@ -530,7 +464,7 @@ reactor SinkReactor(printRate:int(100)) {
     =}
 }
 
-main reactor (numIterations:int(12), numSimulations:int(34816), numColumns:int(16384)) {
+main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColumns: size_t{16384}, numChannels: size_t{8}) {
     
     /* [[[cog
       cog.outl(f'producer = new ProducerReactor(numSimulations=numSimulations, numChannels={numChannels}, numColumns=numColumns);')
@@ -546,7 +480,28 @@ main reactor (numIterations:int(12), numSimulations:int(34816), numColumns:int(1
     runner.outIterationStart -> producer.inStart;
     sink.outFinished -> runner.inIterationFinish;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) -> runner.inStart, banks.setF, banks.setH {=
+        // initialize the coefficients of all FIR filters
+    	auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
+        auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
+
+        for(size_t j{0}; j < numChannels; ++j) {
+            for(size_t i{0}; i < numChannels; ++i) {
+                (*mH)[j][i] = (1.0 * i * numChannels) + (1.0 * j * numChannels) + j + i + j + 1;
+                (*mF)[j][i] = (1.0 * i * j) + (1.0 * j * j) + j + i;
+            }
+        }
+        
+        // convert to immutable pointers before sending. This ensures that all recipients can receive a pointer
+        // to the same matrix and no copying is needed
+        reactor::ImmutableValuePtr<CoefficientMatrix> H{std::move(mH)};
+        reactor::ImmutableValuePtr<CoefficientMatrix> F{std::move(mF)}; 
+        
+        for (auto& b: banks) {
+            b.setH.set(H);
+            b.setF.set(F);
+        }
+        
         printBenchmarkInfo("FilterBankBenchmark");
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", {numChannels});')
@@ -567,7 +522,7 @@ main reactor (numIterations:int(12), numSimulations:int(34816), numColumns:int(1
     ]]] */
     integrator = new IntegratorReactor(numChannels=8);
     branches = new BranchesReactor(numChannels=8, numColumns=numColumns);
-    banks = new[8] BankReactor(numColumns=numColumns);
+    banks = new[8] BankReactor(numColumns=numColumns, numChannels=8);
     // [[[end]]]
     
     producer.outSource -> source.inProducer;
