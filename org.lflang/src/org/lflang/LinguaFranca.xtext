@@ -210,7 +210,7 @@ Reaction:
     ('reaction')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
-    ('->' effects+=VarRef (',' effects+=VarRef)*)?
+    ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code
     (stp=STP)?
     (deadline=Deadline)?;
@@ -289,6 +289,9 @@ Effect:
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+;
+VarRefOrModeTransition returns VarRef:
+    VarRef | variable=[Mode] modeTransitionType=ModeTransitionTypes
 ;
 
 Assignment:
@@ -477,6 +480,9 @@ enum TimeUnit:
     HOUR='hour' | HOURS='hours' |
     DAY='day' | DAYS='days' |
     WEEK='week' | WEEKS='weeks';
+
+enum ModeTransitionTypes:
+    RESET='reset' | HISTORY='continue';
 
 // An arbitrary sequence of terminals.
 Body:
