@@ -18,6 +18,7 @@
   <properties>
     <category.file>${basedir}/category.xml</category.file>
     <update.site.jars>${project.build.directory}/repository/plugins</update.site.jars>
+    <gradle.jars>${basedir}/non_eclipse_supported</gradle.jars>
     <python.script>${basedir}/uberjar.py</python.script>
     <executableName>lflang-lds</executableName>
     <mainClass>org.lflang.diagram.lsp.LanguageDiagramServer</mainClass>
@@ -57,7 +58,9 @@
           <arguments>
             <argument>${python.script}</argument>
             <argument>--noswt</argument>
+            <argument>--ignore-conflicts</argument>
             <argument>${update.site.jars}</argument>
+            <argument>${gradle.jars}</argument>
             <argument>${executableName}</argument>
             <argument>${mainClass}</argument>
             <argument>${python.script.output}</argument>

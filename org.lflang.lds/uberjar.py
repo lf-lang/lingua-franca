@@ -33,23 +33,6 @@ from subprocess import check_call
 from fnmatch import fnmatch
 from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
-IGNORED_JARS = [
-    'org.apache.ant*',
-    'kotlin-compiler.jar',
-    'kotlin-reflect.jar',
-    'ide-dependencies.jar',
-    'intellij-core-analysis.jar',
-    'kotlin-plugin-parts.jar',
-]
-
-OVERRIDING_JARS = [ # FIXME: Added by Peter, who does not understand this script
-    'kotlin-stdlib.jar',
-]
-INSERTED_JARS = [
-    'kotlinx-serialization-json-jvm-1.0.1.jar',
-    'kotlinx-serialization-core-jvm-1.0.1.jar'
-]
-
 IGNORE_NESTED_JARS = [
 ]
 IGNORED_FILES = [
@@ -136,10 +119,16 @@ def main(args):
 
     extracted = abspath(join(args.build, 'extracted'))
     merged = abspath(join(args.build, 'merged'))
+    
+    def assert_is_dir(s):
+        if not isdir(s):
+            stop('%s is not a directory or does not exist' % s)
 
     # Check input
-    if not isdir(args.source):
-        stop('%s is not a directory' % args.source)
+    assert_is_dir(args.source)
+
+    # Check input
+    assert_is_dir(args.gradle_source)
 
     # Create build folders
     if isdir(extracted):
@@ -171,19 +160,14 @@ def main(args):
     if args.scripts:
         create_standalone_scripts(args, jar, target_dir,klighd)
 
-def insert_jars(args):
-    """Inserts INSERTED_JARS into the update site."""
-    for jar in INSERTED_JARS:
-        path = abspath(join(args.build, '..', jar))
-        shutil.copy(path, args.source)
-
 def extract(args, extracted, merged, klighd):
     conflicts = False
-    insert_jars(args)
+    for jar in os.listdir(args.gradle_source):
+        shutil.copy(abspath(join(args.gradle_source, jar)), args.source)
     jars = sorted(os.listdir(args.source))
     processed_jars = [] # Tuples of plugin name and jar
     for jar in jars:
-        if not jar.endswith('.jar') or any(fnmatch(jar, ign) for ign in IGNORED_JARS):
+        if not jar.endswith('.jar'):
             print('Skipping file:', jar)
             continue
         elif klighd and any(fnmatch(jar, ign) for ign in KLIGHD_JARS_BLACKLIST) and not any(fnmatch(jar, req) for req in KLIGHD_JARS_WHITELIST):
@@ -232,7 +216,7 @@ def extract(args, extracted, merged, klighd):
                         src = join(target, file)
                         dest = join(merged, file)
 
-                        if isfile(dest) and (jar not in OVERRIDING_JARS): # potential conflict
+                        if isfile(dest): # potential conflict
                             if any(fnmatch(file, match) for match in APPEND_MERGE): # merge by append
                                 with open(src, 'r') as i:
                                     with open(dest, 'a') as o:
@@ -244,9 +228,7 @@ def extract(args, extracted, merged, klighd):
                                 errPrint('[ERROR] Could not merge', jar, 'Conflicting file:', file)
                                 conflicts = True
                         else:
-                            if not isdir(dirname(dest)):
-                                os.makedirs(dirname(dest))
-                            os.rename(src, dest)
+                            os.renames(src, dest)
                 processed_jars.append((jar.split("_")[0], jar))
     return conflicts
 
@@ -377,6 +359,7 @@ if __name__ == '__main__':
     argParser.add_argument('--noswt', dest='noswt', action='store_true', help='skips bundling platform specific SWT dependencies.')
     argParser.add_argument('--ignore-conflicts', dest='ignore_conflicts', action='store_true', help='prevents failing if merge fail due to a conflict.')
     argParser.add_argument('source', help='directory containing all plugins that should be bundled (self-contained update site)')
+    argParser.add_argument('gradle_source', help='directory for gradle-provided jars')
     argParser.add_argument('name', help='name of the generated executable jar/script')
     argParser.add_argument('main', help='main class of the generated jar')
     argParser.add_argument('target', help='target directory to store generated jar/ and scripts')
