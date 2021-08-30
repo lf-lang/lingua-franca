@@ -21,32 +21,32 @@ preamble {=
 =}
 
 reactor Clock(offset:time(0), period:time(1 sec)) {
-	output y:std::shared_ptr<std_msgs::msg::Int32>;
-	
-	timer t(0, period);
-	state count:int(0);
+    output y:std::shared_ptr<std_msgs::msg::Int32>;
+    
+    timer t(0, period);
+    state count:int(0);
     state serialized_msg:rclcpp::SerializedMessage({=0u=});
-	reaction(t) -> y {=
+    reaction(t) -> y {=
         
-		(self->count)++;
-       	
-       	auto msg = std::make_shared<std_msgs::msg::Int32>();
+        (self->count)++;
+           
+        auto msg = std::make_shared<std_msgs::msg::Int32>();
         msg->data = self->count;
         
         SET(y, msg);
-	=}
+    =}
 }
 reactor Destination {
-	input x:std::shared_ptr<std_msgs::msg::Int32>;
-	
-	state s:int(1);
-	reaction(x) {=
-		// info_print("Received %d.", int_msg.data);
-		if (x->value->data != self->s) {
-		    warning_print("Expected %d and got %d.", self->s, x->value->data);
-		}
-		self->s++;
-	=}
+    input x:std::shared_ptr<std_msgs::msg::Int32>;
+    
+    state s:int(1);
+    reaction(x) {=
+        // info_print("Received %d.", int_msg.data);
+        if (x->value->data != self->s) {
+            warning_print("Expected %d and got %d.", self->s, x->value->data);
+        }
+        self->s++;
+    =}
     reaction(shutdown) {=
         info_print("**** shutdown reaction invoked.");
         if (self->s != 10000002) {
@@ -56,7 +56,7 @@ reactor Destination {
     =}
 }
 federated reactor (period:time(17 usec)) {
-	c = new Clock(period = period);
-	d = new Destination();
-	c.y -> d.x serializer "ros2";
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y -> d.x serializer "ros2";
 }
