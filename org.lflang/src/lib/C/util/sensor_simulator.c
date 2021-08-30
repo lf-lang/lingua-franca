@@ -288,6 +288,7 @@ void* _lf_sensor_simulator_thread(void* ignored) {
     noecho();          // Don't echo input
     cbreak();          // Don't wait for Return or Enter
     wtimeout(stdscr, WGETCHR_TIMEOUT); // Don't wait longer than this for input.
+    keypad(stdscr, TRUE);  // Enable keypad input.
     refresh();         // Not documented, but needed?
 
     _lf_sensor.default_window = stdscr;
