@@ -27,13 +27,10 @@ package org.lflang.federated;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.generator.FederateInstance;
-import org.lflang.generator.c.CCmakeCompiler;
 import org.lflang.generator.c.CCompiler;
 
 /**

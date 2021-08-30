@@ -92,6 +92,11 @@ reactor Destination {
     =}
 }
 federated reactor (period:time(1 sec)) {
+    logical action act(0);
+    input in:int;
+    reaction (in) act {=
+        
+    =}
     c = new Clock(period = period);
     d = new Destination();
     c.y -> d.x;

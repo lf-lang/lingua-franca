@@ -42,6 +42,8 @@ import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializations
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
@@ -57,7 +59,6 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SupportedSerializations
 
 /** Generator for TypeScript target.
  *

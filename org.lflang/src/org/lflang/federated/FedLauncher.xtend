@@ -33,7 +33,6 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty.ClockSyncMode
-import org.lflang.generator.FederateInstance
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.

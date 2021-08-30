@@ -39,6 +39,8 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializations
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.Input
@@ -56,7 +58,6 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SupportedSerializations
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
