@@ -33,23 +33,6 @@ from subprocess import check_call
 from fnmatch import fnmatch
 from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
-IGNORED_JARS = [
-    'org.apache.ant*',
-    'kotlin-compiler.jar',
-    'kotlin-reflect.jar',
-    'ide-dependencies.jar',
-    'intellij-core-analysis.jar',
-    'kotlin-plugin-parts.jar',
-]
-
-OVERRIDING_JARS = [ # FIXME: Added by Peter, who does not understand this script
-    #'kotlin-stdlib.jar',
-]
-INSERTED_JARS = [
-    'kotlinx-serialization-json-jvm-1.0.1.jar',
-    'kotlinx-serialization-core-jvm-1.0.1.jar'
-]
-
 IGNORE_NESTED_JARS = [
 ]
 IGNORED_FILES = [
@@ -131,6 +114,14 @@ KLIGHD_IGNORED_FILES = [
 ]
 klighd_swt = {}
 
+def windows_safe_abspath(path):
+    """Returns an absolute path that will not be invalidated by the
+    Windows maximum path length.
+    """
+    if sys.platform == 'win32':
+        return '\\\\?\\' + abspath(path)
+    return abspath(path)
+
 def main(args):
     print('-- Creating uber jar --')
 
@@ -180,7 +171,7 @@ def main(args):
 def extract(args, extracted, merged, klighd):
     conflicts = False
     for jar in os.listdir(args.gradle_source):
-        shutil.copy(abspath(join(args.gradle_source, jar)), args.source)
+        shutil.copy(windows_safe_abspath(join(args.gradle_source, jar)), args.source)
     jars = sorted(os.listdir(args.source))
     processed_jars = [] # Tuples of plugin name and jar
     for jar in jars:
@@ -245,9 +236,7 @@ def extract(args, extracted, merged, klighd):
                                 errPrint('[ERROR] Could not merge', jar, 'Conflicting file:', file)
                                 conflicts = True
                         else:
-                            if isfile(dest):
-                                os.remove(dest) # jar is in OVERRIDING_JARS
-                            os.renames(src, dest)
+                            os.renames(windows_safe_abspath(src), windows_safe_abspath(dest))
                 processed_jars.append((jar.split("_")[0], jar))
     return conflicts
 
@@ -273,7 +262,11 @@ def handleNestedJarsOnClasspath(dir, jars_dir):
                         jarFile = join(dir, cpFile)
                         if isfile(jarFile):
                             print('Found nested jar on bundle class path: ', cpFile)
-                            os.rename(jarFile, join(jars_dir, basename(jarFile))) # Move to input folder
+                            dest = join(jars_dir, basename(jarFile))
+                            if isfile(dest):
+                                continue # The nested jar is already in the directory
+                                         # and does not need to be added again.
+                            os.rename(jarFile, dest) # Move to input folder
                             jars.append(basename(jarFile))
                         else:
                             print('[Warning] Could not find file for nested jar on bundle class path: ', cpFile)

@@ -15,18 +15,24 @@ task copyLSJar(type: Sync) {
     into './ls'
 }
 
-task mvnClean(type: Exec) {
-    workingDir rootProject.getProjectDir()
-    // A workaround to a problem that appeared unexpectedly after a
-    // merge from master
-    commandLine 'cmd', '/c', 'mvn', 'clean'
+task copyNonEclipseSupportedDependencies(type: Copy) {
+    from project(':org.lflang').configurations.lds
+    into '../org.lflang.lds/non_eclipse_supported'
+}
+
+task deleteNonEclipseSupportedDependencies(type: Delete) {
+    delete copyNonEclipseSupportedDependencies.outputs
 }
 
 task generateLDSJar(type: Exec, dependsOn: copyNonEclipseSupportedDependencies) {
     workingDir rootProject.getProjectDir()
     // Run maven to build language server with diagram support (LDS)
     // This requires mvn on PATH
-    commandLine 'cmd', '/c', 'mvn', 'package', '-P', 'lds'
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'mvn', 'clean', 'package', '-P', 'lds'
+    } else {
+        commandLine 'mvn', 'clean', 'package', '-P', 'lds'
+    }
 }
 generateLDSJar.finalizedBy deleteNonEclipseSupportedDependencies
 
