@@ -1,16 +1,14 @@
 
 #include "NQueensCommon.hh"
 
-
-
-int NUM_WORKERS = 20;
-int SIZE = 12;
-int THRESHOLD = 4;
-int PRIORITIES = 10;
-int SOLUTIONS_LIMIT = 1500000;
+size_t NUM_WORKERS = 20;
+size_t SIZE = 12;
+size_t THRESHOLD = 4;
+size_t PRIORITIES = 10;
+size_t SOLUTIONS_LIMIT = 1500000;
 
 // solutions to validate results
-const long SOLUTIONS[] = {
+const size_t SOLUTIONS[] = {
             1,
             0,
             0,
@@ -34,15 +32,13 @@ const long SOLUTIONS[] = {
 };
 
 
-bool boardValid(int n, std::vector<int> a) {
+bool boardValid(size_t n, const std::vector<size_t>& a) {
+	size_t p{0};
+	size_t q{0};
 
-	int i, j;
-	int p, q;
-
-	for(i = 0; i < n; ++i) {
+	for(size_t i{0}; i < n; ++i) {
 		p = a[i];
-
-		for(j = (i + 1); j < n; ++j) {
+		for(size_t j{i + 1}; j < n; ++j) {
 			q = a[j];
 			if(q == p || q == p - (j - i) || q == p + (j - i)) {
 				return false;
@@ -52,20 +48,18 @@ bool boardValid(int n, std::vector<int> a) {
 	return true;
 }
 
-
 // Searches for results recursively and return the number of found
 // solutions.
-int nqueensKernelSeq(std::vector<int> a, int depth, int size) {
-
+size_t nqueensKernelSeq(const std::vector<size_t>& a, size_t depth, size_t size) {
 	if(size == depth) {
 		return 1;
 	}
 
-	int numberOfSolutionsFound = 0;
-	std::vector<int> b;
+	size_t numberOfSolutionsFound{0};
+	std::vector<size_t> b;
 	b.reserve(depth + 1);
 
-	int i = 0;
+	size_t i{0};
 	while(i < size) {
 		b.insert(begin(b), begin(a), begin(a) + depth);
 		b[depth] = i;
@@ -77,7 +71,7 @@ int nqueensKernelSeq(std::vector<int> a, int depth, int size) {
 	return numberOfSolutionsFound;
 }
 
-WorkMessage::WorkMessage(int _priority, std::vector<int> _data, int _depth):
+WorkMessage::WorkMessage(size_t _priority, const std::vector<size_t>& _data, size_t _depth):
 						data(_data), depth(_depth) {
-	priority = std::min(PRIORITIES -1, std::max(0, _priority));
+	priority = std::min(PRIORITIES - 1, std::max(0ul, _priority));
 }
