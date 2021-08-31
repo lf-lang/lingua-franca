@@ -44,7 +44,6 @@ public preamble {=
     #include <deque>
     
     struct WorkItem {
-	    size_t priority;
 	    std::vector<size_t> data;
 	    size_t depth;
     };
@@ -54,7 +53,7 @@ public preamble {=
     using WorkQueue = std::deque<ImmutableWorkItem> ;
 =}
 
-reactor Manager(numWorkers: size_t{20}, priorities: size_t{10}, solutionsLimit: size_t{1500000}, size: size_t{12}) {
+reactor Manager(numWorkers: size_t{20}, solutionsLimit: size_t{1500000}, size: size_t{12}) {
     
     state numSolutions: size_t{0};
     state workQueue: WorkQueue;
@@ -112,7 +111,7 @@ reactor Manager(numWorkers: size_t{20}, priorities: size_t{10}, solutionsLimit: 
         numSolutions = 0;
         
         // start execution
-        auto item = reactor::make_immutable_value<WorkItem>(WorkItem{priorities, {}, 0});
+        auto item = reactor::make_immutable_value<WorkItem>(WorkItem{{}, 0});
         workQueue.push_back(item);
         next.schedule();
     =}
@@ -169,10 +168,9 @@ reactor Worker(bank_index: size_t{0}, size: size_t{12}, threshold: size_t{4}) {
         auto workItem = doWork.get();
         const auto& a = workItem->data;
         size_t depth = workItem->depth;
-        size_t priority = workItem->priority;
         
         reactor::log::Info() << "Worker " << bank_index << ": received " << a.size() 
-                             << " data items; priority=" << priority << "; depth=" << depth;
+                             << " data items; depth=" << depth;
         
         if(size == depth) {
             // It is unclear when exactly this evaluates to true and what this means. 
@@ -191,15 +189,12 @@ reactor Worker(bank_index: size_t{0}, size: size_t{12}, threshold: size_t{4}) {
         } else {
             // Otherwise, if depth is less than the threshold, the worker splits up the workload and
             // produces new work items.
-            
-		    size_t newPriority = priority - 1;
 		    size_t newDepth = depth + 1;
-		    
 		    // prepare a mutable work queue to be sent later
 		    auto workQueue = reactor::make_mutable_value<WorkQueue>();
 		    for (size_t i{0}; i < size; i++) {
                 // prepare a mutable work item
-                auto item = reactor::make_mutable_value<WorkItem>(WorkItem{newPriority, std::vector<size_t>(newDepth, 0), newDepth});
+                auto item = reactor::make_mutable_value<WorkItem>(WorkItem{std::vector<size_t>(newDepth, 0), newDepth});
                 auto& b = item->data;
                 // copy depth items from a to b
                 b.insert(b.begin(), a.begin(), a.begin() + depth);
@@ -264,7 +259,7 @@ main reactor (
     priorities: size_t{10},
     numWorkers: size_t{20}
 ) {
-    manager = new Manager(numWorkers=numWorkers, priorities=priorities, solutionsLimit=solutionsLimit, size=size);
+    manager = new Manager(numWorkers=numWorkers, solutionsLimit=solutionsLimit, size=size);
     runner = new BenchmarkRunner(numIterations=numIterations);
     workers = new[numWorkers] Worker(size=size, threshold=threshold);
     
