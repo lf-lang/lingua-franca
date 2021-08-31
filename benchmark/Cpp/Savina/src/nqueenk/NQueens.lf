@@ -93,11 +93,13 @@ reactor Master(numWorkers: size_t{20}, priorities: size_t{10}, solutionsLimit: s
     
     reaction(inCleanupIterationStart) -> outCleanupIterationFinished {=
         size_t expSolution{SOLUTIONS[size-1]};
-        size_t actSolution{resultCounter};
-        bool valid = actSolution >= solutionsLimit && actSolution <= expSolution;
+        bool valid{resultCounter == expSolution};
+        if (solutionsLimit < expSolution) {
+            valid = resultCounter >= solutionsLimit && resultCounter <= expSolution;
+        }
+        // The validation check above is a corrected version. The original Savina implementation will
+        // wrongly mark results as invalid if the solutions limit is above the expected solution.
         reactor::log::Info() << std::boolalpha << "Result valid = " << valid << std::noboolalpha;
-        reactor::log::Info() << "resultCounter: " << resultCounter;
-        reactor::log::Info() << "expSolution: " << expSolution;
         outCleanupIterationFinished.set();
     =}
     
