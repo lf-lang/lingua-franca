@@ -133,12 +133,12 @@ public class LFGenerator extends AbstractGenerator {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
                 "The code generator for the " + target + " target could not be found. "
-                    + "This is likely because you are running the RCA from"
-                    + "Eclipse. The " + target + " code generator is written in Kotlin"
-                    + "and, unfortunately, the Eclipse Kotlin plugin is "
-                    + "broken, preventing us from loading the generator"
-                    + "properly. Please consider building the RCA via Maven.\n"
-                    + "For instructions building RCA via Maven, see: "
+                    + "This is likely because you built Epoch using "
+                    + "Eclipse. The " + target + " code generator is written in Kotlin "
+                    + "and, unfortunately, the plugin that Eclipse uses "
+                    + "for compiling Kotlin code is broken. "
+                    + "Please consider building Epoch using Maven.\n"
+                    + "For step-by-step instructions, see: "
                     + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
             return null;
         }
