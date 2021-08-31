@@ -1,26 +1,27 @@
 #pragma once
 
 #include <vector>
+#include <cstddef>
 
 // global variables, initialized in LF
-extern int NUM_WORKERS;
-extern int SIZE;
-extern int THRESHOLD;
-extern int PRIORITIES;
-extern int SOLUTIONS_LIMIT;
+extern size_t NUM_WORKERS;
+extern size_t SIZE;
+extern size_t THRESHOLD;
+extern size_t PRIORITIES;
+extern size_t SOLUTIONS_LIMIT;
 
-extern const long SOLUTIONS[];
+extern const size_t SOLUTIONS[];
 
-bool boardValid(int n, std::vector<int> a);
-int nqueensKernelSeq(std::vector<int> a, int depth, int size);
+bool boardValid(size_t n, const std::vector<size_t>& a);
+size_t nqueensKernelSeq(const std::vector<size_t>& a, size_t depth, size_t size);
 
 struct WorkMessage {
 
-	int priority;
-	std::vector<int> data;
-	int depth;
+	size_t priority;
+	std::vector<size_t> data;
+	size_t depth;
 
-	WorkMessage(int _priority, std::vector<int> _data, int _depth);
+	WorkMessage(size_t _priority, const std::vector<size_t>& _data, size_t _depth);
 };
 
 enum MsgType {
@@ -32,5 +33,5 @@ enum MsgType {
 struct Message {
 
 	MsgType type;
-	int numResults;
+	size_t numResults;
 };
