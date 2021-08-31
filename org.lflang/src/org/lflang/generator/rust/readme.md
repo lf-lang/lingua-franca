@@ -5,7 +5,8 @@ Things that are supported:
 - timers
 - composition of reactors (with a caveat)
 - reactor parameters and state vars
-- array types are poorly supported right now because of LF syntax
+- array types are poorly supported right now because of LF syntax (todo open issues)
+
 
 Not supported yet:
 - the dependency ordering in the runtime is a placeholder and doesn't work properly, this is maybe the biggest roadblock right now
