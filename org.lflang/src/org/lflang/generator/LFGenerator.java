@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
@@ -13,6 +14,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
@@ -21,7 +23,7 @@ import com.google.inject.Inject;
 
 /**
  * Generates code from your model files on save.
- * 
+ *
  * See
  * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
@@ -126,12 +128,12 @@ public class LFGenerator extends AbstractGenerator {
             generatorErrorsOccurred = true;
             errorReporter.reportError(
                 "The code generator for the " + target + " target could not be found. "
-                    + "This is likely because you are running the RCA from"
-                    + "Eclipse. The " + target + " code generator is written in Kotlin"
-                    + "and, unfortunately, the Eclipse Kotlin plugin is "
-                    + "broken, preventing us from loading the generator"
-                    + "properly. Please consider building the RCA via Maven.\n"
-                    + "For instructions building RCA via Maven, see: "
+                    + "This is likely because you built Epoch using "
+                    + "Eclipse. The " + target + " code generator is written in Kotlin "
+                    + "and, unfortunately, the plugin that Eclipse uses "
+                    + "for compiling Kotlin code is broken. "
+                    + "Please consider building Epoch using Maven.\n"
+                    + "For step-by-step instructions, see: "
                     + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
             return null;
         }
@@ -145,11 +147,18 @@ public class LFGenerator extends AbstractGenerator {
 
         FileConfig fileConfig;
         try {
-            fileConfig = createFileConfig(target, resource, fsa, context);
+            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, context));
         } catch (IOException e) {
             throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
-        final ErrorReporter errorReporter = new EclipseErrorReporter(fileConfig);
+        final ErrorReporter errorReporter;
+        if (fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+            errorReporter = new EclipseErrorReporter(fileConfig);
+        } else {
+            assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;
+            errorReporter = Objects.requireNonNull(((StandaloneContext) context).getReporter());
+        }
+
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
