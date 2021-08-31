@@ -47,19 +47,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         val runtimeVersion = targetConfig.runtimeVersion ?: CppGenerator.defaultRuntimeVersion
 
         // Resolve path to the cmake include files if any was provided
-        var includeFiles = LinkedHashSet<String>();
-        targetConfig.cmakeIncludes?.forEach { file ->
-            var includeFile = file
-                .takeIf { !it.isNullOrBlank() }
-                .let { fileConfig.srcPath.resolve(it).toUnixString() }
-            
-            includeFiles.add(
-                """
-                   |
-                   |include($includeFile) 
-                """.trimMargin()
-            )
-        }
+        val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
@@ -150,9 +138,8 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |install(TARGETS $S{LF_MAIN_TARGET}
                 |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
                 |)
-            ${
-               if (includeFiles.isNullOrEmpty()) "" else includeFiles.joinToString("\n")
-            }
+                |
+            ${" |"..(includeFiles?.joinToString("\n") { "include($it)" } ?: "") }
             """.trimMargin()
         }
     }
