@@ -7,311 +7,253 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numWorkers=20
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numWorkers' in globals():
-    numWorkers = int(numWorkers)
-  else:
-    globals()['numWorkers'] = 20
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numWorkers = {numWorkers}')
-]]] */
-// Generated file with the following parameters:
-// numWorkers = 20
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "NQueens.cmake"
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
   
 public preamble {=
-    #include "NQueensCommon.hh"
-    #include <bitset>
-    #include <list>
+    #include <deque>
+    
+    struct WorkItem {
+	    size_t priority;
+	    std::vector<size_t> data;
+	    size_t depth;
+    };
+    using ImmutableWorkItem = reactor::ImmutableValuePtr<WorkItem>;
+    using MutableWorkItem = reactor::MutableValuePtr<WorkItem>;
+    // we store smart pointers in the queue to avoid copying when sending work back to the workers
+    using WorkQueue = std::deque<ImmutableWorkItem> ;
 =}
 
-reactor Master(numWorkers: size_t{20}, priorities: size_t{10}, solutionsLimit: size_t{1500000}, size: size_t{12}) {
+reactor Manager(numWorkers: size_t{20}, priorities: size_t{10}, solutionsLimit: size_t{1500000}, size: size_t{12}) {
     
-    state resultCounter: size_t{0};
-    state messageCounter: size_t{0};
-    state numWorkersTerminated: size_t{0};
-    state numWorkSent: size_t{0};
-    state numWorkCompleted: size_t{0};
-    /* [[[cog
-      cog.outl(f'state workersWorking:{{=std::bitset<{numWorkers}>=}};')
-    ]]] */
-    state workersWorking: {=std::bitset<20>=};
-    // [[[end]]]
-    state workList: std::list<WorkMessage>;
-    state problemSolved:bool(false);
+    state numSolutions: size_t{0};
+    state workQueue: WorkQueue;
     
-    input inStart:void;
-    output outFinished:void;
-    input inCleanupIterationStart:void;
-    output outCleanupIterationFinished:void;
+    input start: void;
+    output finished:void;
     
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outWorkersWork:{{=WorkMessage=}};')
-      cog.outl(f'input[{numWorkers}] inWorkersWork:{{=std::list<WorkMessage>=}};')
-      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
-      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
-    ]]] */
-    output[20] outWorkersWork: WorkMessage;
-    input[20] inWorkersWork: std::list<WorkMessage>;
-    output[20] outWorkers: Message;
-    input[20] inWorkers: Message;
-    // [[[end]]]
+    output[numWorkers] doWork: WorkItem;
+    input[numWorkers] solutionsFound: size_t;
+    input[numWorkers] moreWork: WorkQueue;
     
-    logical action sendWork: void;
-    logical action shutdownWorkers: void;
+    logical action next;
+    logical action done;
     
-    reaction(inCleanupIterationStart) -> outCleanupIterationFinished {=
-        size_t expSolution{SOLUTIONS[size-1]};
-        bool valid{resultCounter == expSolution};
-        if (solutionsLimit < expSolution) {
-            valid = resultCounter >= solutionsLimit && resultCounter <= expSolution;
+    reaction(done) -> finished {=
+        // expected solutions for various problem sizes
+        constexpr size_t solutions[] = {
+            1,
+            0,
+            0,
+            2,
+            10,     /* 5 */
+            4,
+            40,
+            92,
+            352,
+            724,    /* 10 */
+            2680,
+            14200,
+            73712,
+            365596,
+            2279184, /* 15 */
+            14772512,
+            95815104,
+            666090624,
+            4968057848,
+            39029188884, /* 20 */
+        };
+        
+        // validate the result
+        size_t expected{solutions[size-1]};
+        bool valid{numSolutions == expected};
+        if (solutionsLimit < expected) {
+            valid = numSolutions >= solutionsLimit && numSolutions <= expected;
         }
         // The validation check above is a corrected version. The original Savina implementation will
         // wrongly mark results as invalid if the solutions limit is above the expected solution.
         reactor::log::Info() << std::boolalpha << "Result valid = " << valid << std::noboolalpha;
-        outCleanupIterationFinished.set();
+        
+        finished.set();
     =}
     
-    reaction(inStart) -> sendWork {=
+    reaction(start) -> next {=
         // reset local state
-        resultCounter = 0l;
-        messageCounter = 0;
-        numWorkersTerminated = 0;
-        numWorkSent = 0;
-        numWorkCompleted = 0;
-        workersWorking.reset();
-        workList.clear();
-        problemSolved = false;
+        numSolutions = 0;
         
         // start execution
-        workList.emplace_back(priorities, std::vector<size_t>(), 0);
-        sendWork.schedule();
+        auto item = reactor::make_immutable_value<WorkItem>(WorkItem{priorities, {}, 0});
+        workQueue.push_back(item);
+        next.schedule();
     =}
     
-    reaction(sendWork) -> outWorkersWork, shutdownWorkers {=
-        if(problemSolved) 
-            return;
-        if(workList.empty()) {
-            // Assuming that no worker is working in parallel.
-            // Shutdown because with no work left,
-            // there is no shortest path to be found.
-            problemSolved = true;
-            shutdownWorkers.schedule();
-            return;
-        }
-        
-        while(!workList.empty() && !workersWorking.all()) {
-            numWorkSent += 1;
-            size_t workerIndex{0};
-            while(workersWorking[workerIndex]) ++workerIndex;
-            workersWorking[workerIndex] = true;
-            outWorkersWork[workerIndex].set(workList.front());
-            workList.pop_front();
-            reactor::log::Debug() << "Giving work to worker " << workerIndex;
+    reaction (next) -> next, done, doWork {=
+        if (workQueue.empty()) {
+            // we are done if there is no more work
+            done.schedule();
+        } else {
+            // send a work item to each worker (until there is no more work)
+            for (size_t i{0}; i < numWorkers && !workQueue.empty(); i++) {
+                doWork[i].set(workQueue.front());
+                workQueue.pop_front();
+            }
+            // and schedule the next iteration
+            next.schedule();
         }
     =}
     
-    reaction(shutdownWorkers) -> outWorkers {=
-        // Assuming that it is safe to shut down the workers
-        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg, 0});
-        for(size_t i{0}; i < outWorkers.size(); i++) {
-            outWorkers[i].set(msg);
-        }
-    =}
-    
-    reaction(inWorkersWork) {=
-        for(size_t i{0}; i < inWorkersWork.size(); i++) {
-            if(inWorkersWork[i].is_present()) {
-                workList.insert( end(workList), begin(*(inWorkersWork[i].get())), end(*(inWorkersWork[i].get())) );
+    reaction (solutionsFound) {=
+        // accumulate all the solutions found
+        size_t s{0};
+        for (const auto& port : solutionsFound) {
+            if (port.is_present()) {
+                s += *port.get();
             }
         }
-        // Do not schedule work here.
-        // Trigger work only after confirmation ReceivedMsg.
-        // We assume that ReceivedMsg arrives after this reaction is executed.
+        if (s > 0) {
+            numSolutions += s;
+            reactor::log::Info() << "Found " << s << " solutions; Total solutions: " << numSolutions;
+        }
     =}
     
-    reaction(inWorkers) -> outFinished, sendWork, shutdownWorkers {=
-        for(size_t i{0}; i < inWorkers.size(); i++) {
-            if(inWorkers[i].is_present()) {
-                if(inWorkers[i].get()->type == ResultMsg) {
-                    resultCounter += inWorkers[i].get()->numResults;
-                    reactor::log::Debug() << "Results found. Total numResults = " << resultCounter;
-                    if(resultCounter >= solutionsLimit) {
-                        reactor::log::Debug() << " Solutions limit reached. Shutdown." << resultCounter;
-                        problemSolved = true;
-                        shutdownWorkers.schedule();
-                    }
-                    // Do not schedule new work here.
-                } else if(inWorkers[i].get()->type == DoneMsg) {
-                    numWorkCompleted += 1;
-                    workersWorking[i] = false;
-                    sendWork.schedule();
-                } else if(inWorkers[i].get()->type == StopMsg) {
-                    // Confirmation that worker shut down.
-                    numWorkersTerminated += 1;
-                    if(numWorkersTerminated == numWorkers) {
-                        outFinished.set();
-                    }
-                }
+    reaction (moreWork) {=
+        // append all work items received from the workers to the internal work queue
+        for (const auto& port : moreWork) {
+            if (port.is_present()) {
+                const auto& items = *port.get();
+                if (!items.empty()) {
+                	workQueue.insert(workQueue.end(), items.begin(), items.end());
+               	}
             }
         }
     =}
 }
 
 reactor Worker(bank_index: size_t{0}, size: size_t{12}, threshold: size_t{4}) {
+
+    input doWork: WorkItem;
+    output solutionsFound: size_t;
+    output moreWork: WorkQueue;
     
-    state workQueue: std::unique_ptr<std::list<WorkMessage>>; // linked list
-    
-    input inWork: WorkMessage; // work from the master
-    output outWork: std::list<WorkMessage>; // work back to the master to distribute
-    input inMaster: Message; // control messages from the master
-    output outMaster: Message; // control messages to the master
-    
-    logical action sendResultMsg: size_t;
-    logical action sendDoneMsg: void;
-    logical action returnWorkToMaster: void; // execution threshold exceeded, return new work
-    logical action sendStop: void;
-    
-    reaction(sendStop) -> outMaster {=
-        outMaster.set(Message{StopMsg, 0});
-    =}
-    
-    reaction(sendDoneMsg) -> outMaster {=
-        outMaster.set(Message{DoneMsg, 0});
-    =}
-    
-    reaction(sendResultMsg) -> outMaster, sendDoneMsg {=
-        outMaster.set(Message{ResultMsg, *sendResultMsg.get()});
-        sendDoneMsg.schedule();
-    =}
-    
-    reaction(returnWorkToMaster) -> outWork, sendDoneMsg {=
-        outWork.set(*(workQueue.release()));
-        sendDoneMsg.schedule();
-    =}
-    
-    reaction(inWork) -> sendResultMsg, returnWorkToMaster {=
-        workQueue = std::make_unique<std::list<WorkMessage>>();
-        WorkMessage workMessage = *(inWork.get());
-        std::vector<size_t> a = workMessage.data;
-        size_t depth = inWork.get()->depth;
+    reaction(doWork) -> solutionsFound, moreWork {=
+        auto workItem = doWork.get();
+        const auto& a = workItem->data;
+        size_t depth = workItem->depth;
+        size_t priority = workItem->priority;
+        
+        reactor::log::Info() << "Worker " << bank_index << ": received " << a.size() 
+                             << " data items; priority=" << priority << "; depth=" << depth;
         
         if(size == depth) {
-            //TODO what situation triggers this?
-            sendResultMsg.schedule(1);
+            // It is unclear when exactly this evaluates to true and what this means. 
+            // However, this seems to be essential for some sizes, including size=1.
+            solutionsFound.set(1);
+            // abort the reaction
             return;
         }
         
         if(depth >= threshold) {
-            // Search for solutions.
+            // If depth is greater or equal to the threshold, the worker searches for solutions.
             size_t numSolutions = nqueensKernelSeq(a, depth, size);
-            sendResultMsg.schedule(numSolutions);
-            return;
-        }
-            
-        // Generate new work
-        size_t newPriority = workMessage.priority - 1;
-        size_t newDepth = depth + 1;
-        size_t i{0};
-        while(i < size) {
-            std::vector<size_t> b(newDepth, 0);
-            b.insert(begin(b), begin(a), begin(a) + depth);
-            b[depth] = i;
-            
-            if(boardValid(newDepth, b)) {
-                workQueue->emplace_back(newPriority, b, newDepth);
+            if (numSolutions > 0) {
+                solutionsFound.set(numSolutions);
             }
-            i += 1;
-        }
-        returnWorkToMaster.schedule();
+        } else {
+            // Otherwise, if depth is less than the threshold, the worker splits up the workload and
+            // produces new work items.
+            
+		    size_t newPriority = priority - 1;
+		    size_t newDepth = depth + 1;
+		    
+		    // prepare a mutable work queue to be sent later
+		    auto workQueue = reactor::make_mutable_value<WorkQueue>();
+		    for (size_t i{0}; i < size; i++) {
+                // prepare a mutable work item
+                auto item = reactor::make_mutable_value<WorkItem>(WorkItem{newPriority, std::vector<size_t>(newDepth, 0), newDepth});
+                auto& b = item->data;
+                // copy depth items from a to b
+                b.insert(b.begin(), a.begin(), a.begin() + depth);
+                b[depth] = i;
+                
+                // add the item to the list if is valid
+                if(boardValid(newDepth, b)) {
+		            workQueue->push_back(ImmutableWorkItem{std::move(item)});
+		        }
+		    }
+		    if (!workQueue->empty()) {
+                moreWork.set(std::move(workQueue));
+		    }   
+		}
     =}
     
-    reaction(inMaster) -> sendStop {=
-        if(inMaster.get()->type == StopMsg) {
-            sendStop.schedule();
-        }
-    =}
+    // check if the board is valid
+    const method boardValid(n: size_t, a: {=const std::vector<size_t>&=}): bool {=
+	    size_t p{0};
+	    size_t q{0};
+
+	    for(size_t i{0}; i < n; ++i) {
+			p = a[i];
+			for(size_t j{i + 1}; j < n; ++j) {
+				q = a[j];
+				if(q == p || q == p - (j - i) || q == p + (j - i)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	=}
+	
+	// Searches for results recursively and returns the number of found solutions.
+	const method nqueensKernelSeq(a: {=const std::vector<size_t>&=}, depth: size_t, size: size_t): size_t {=
+		if(size == depth) {
+			return 1;
+		}
+	
+		size_t numberOfSolutionsFound{0};
+		std::vector<size_t> b;
+		b.reserve(depth + 1);
+	
+		size_t i{0};
+		while(i < size) {
+			b.insert(begin(b), begin(a), begin(a) + depth);
+			b[depth] = i;
+			if(boardValid(depth + 1, b)) {
+				numberOfSolutionsFound += nqueensKernelSeq(b, depth + 1, size);
+			}
+			i += 1;
+		}
+		return numberOfSolutionsFound;
+	=}
 }
 
-main reactor (numIterations: size_t{12}, size: size_t{12}, threshold: size_t{4}, solutionsLimit: size_t{1500000}, priorities: size_t{10}) {
-    
-    /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers}, priorities=priorities, solutionsLimit=solutionsLimit, size=size);')
-    ]]] */
-    master = new Master(numWorkers=20, priorities=priorities, solutionsLimit=solutionsLimit, size=size);
-    // [[[end]]]
-    runner = new BenchmarkRunner(numIterations=numIterations, useCleanupIteration=true);
-    
-    runner.outCleanupIterationStart -> master.inCleanupIterationStart;
-    master.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
-    
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
+main reactor (
+    numIterations: size_t{12}, 
+    size: size_t{12},
+    threshold: size_t{4},
+    solutionsLimit: size_t{1500000},
+    priorities: size_t{10},
+    numWorkers: size_t{20}
+) {
+    manager = new Manager(numWorkers=numWorkers, priorities=priorities, solutionsLimit=solutionsLimit, size=size);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    workers = new[numWorkers] Worker(size=size, threshold=threshold);
     
     reaction(startup) -> runner.inStart {=
-        
-        // initializations of global variables that are not states in a reactor
-        // those variables are global to be used in the helper functions
-        /* [[[cog
-          cog.outl(f'NUM_WORKERS = {numWorkers};')
-        ]]] */
-        NUM_WORKERS = 20;
-        // [[[end]]]
-        SIZE = size;
-        THRESHOLD = threshold;
-        PRIORITIES = priorities;
-        SOLUTIONS_LIMIT = solutionsLimit;
-        
         printBenchmarkInfo("NQueensKSolutionsBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "size", size, "threshold", threshold, "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "size", size, "threshold", threshold, "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", 20);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "size", size, "threshold", threshold, 
+                  "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
+
+    runner.outIterationStart -> manager.start;
+    manager.finished -> runner.inIterationFinish;
     
-    /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker(size=size, threshold=threshold);')
-    ]]] */
-    workers = new[20] Worker(size=size, threshold=threshold);
-    // [[[end]]]
-    
-    master.outWorkers -> workers.inMaster;
-    master.outWorkersWork -> workers.inWork;
-    workers.outMaster -> master.inWorkers;
-    workers.outWork -> master.inWorkersWork;
-    
+    manager.doWork -> workers.doWork;
+    workers.solutionsFound -> manager.solutionsFound;
+    workers.moreWork -> manager.moreWork;    
 }
