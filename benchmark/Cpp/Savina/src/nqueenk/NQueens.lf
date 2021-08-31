@@ -1,9 +1,35 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This benchmark implements a solution to the N queens problem. In particular,
+ * the benchmark implements a recursive search algorithm that finds all possible
+ * solution. Given N (size), the board has a size of N x N fields and N queens
+ * need to placed. The algorithm starts from an empty board. Then, the first
+ * queen is placed on the first line. There are N different options, and in the
+ * first operation, all of them are valid. These possible solutions are recorded
+ * in a list. In the second iteration, all possible solutions are expanded by
+ * adding a second queen to all N positions in the second line. Thereby, each
+ * solution is checked for validity and is discarded if invalid. This process
+ * continues until the Nth iteration completed and all solutions have been
+ * found.
  * 
- * This version manually connects the reactors.
+ * In this benchmark, the workload is distributed across multiple workers. Each
+ * worker receives an initial position, and then adds a queen to the next line.
+ * The worker sends all valid solutions back to the manager which then again
+ * distributes the positions to the workers for further processing. Only for the
+ * last `threshold` iterations, the workers directly implement the search to the
+ * end and don't produce new work items.
+ *
+ * This benchmark is very similar to the A* (GuidedSearch) benchmark. An
+ * important difference of this LF implementation compared to the Akka
+ * implementation is the handling of messages send back from the workers to the
+ * master. In the Akka implementation, each work item produced by the workers is
+ * send as an individual message. This is not easily possible as each port in LF
+ * is limited to a single value per tag. Thus, we accumulate multiple work items
+ * in a single list, and send this list back to the manager. An alternative
+ * solution could use a logical action and call schedule multiple times to defer
+ * sending a message. It could be worthwhile to try this out, but it would also
+ * complicate the design.
  * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
