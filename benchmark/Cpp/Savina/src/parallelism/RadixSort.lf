@@ -2,6 +2,23 @@
  * Parallelism benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
+ * This benchmark implements a radix sorting algorithm for numbers. It iteratively
+ * sorts them bit-wise, employing one reactor for each bit position. The
+ * `IntSourceReactor` creates a certain amount of random numbers and sends them to
+ * the first Sorting Reactor in the chain.
+ *
+ * Starting with the Least Significant Bit (LSB), each reactor analyzes their
+ * assigned bit position in each incoming number and holds back all numbers where
+ * the bit is one, sending through all numbers with a zero in the observed
+ * position. This will iteratively sort the numbers, like in this example:
+ *
+ * 111    110    101    001
+ * 101    010    001    010
+ * 110 -> 111 -> 110 -> 011
+ * 011    101    010    101
+ * 010    011    111    110
+ * 001    001    011    111
+ *
  * TODO(Hannes): evaluate the maxValue parameter and create the pipeline accordingly.
  * 
  * @author Hannes Klein
