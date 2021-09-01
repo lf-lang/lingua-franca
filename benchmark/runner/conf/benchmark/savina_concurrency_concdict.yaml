@@ -31,3 +31,10 @@ targets:
     run_args:
       messages_per_worker: ["--numMessagesPerWorker", "<value>"]
       write_percentage: ["--writePercentage", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/Dict.lf"
+    lf_file: "Dict.lf"
+    binary: "Dict"
+    gen_args:
+      workers: ["-D", "num_workers=<value>"]

@@ -43,4 +43,4 @@ targets:
     lf_file: "SortedLinkList.lf"
     binary: "SortedLinkList"
     gen_args:
-      messages: ["-D", "num_workers=<value>"]
+      workers: ["-D", "num_workers=<value>"]

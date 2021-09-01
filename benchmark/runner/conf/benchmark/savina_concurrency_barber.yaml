@@ -36,4 +36,4 @@ targets:
     lf_file: "Barber.lf"
     binary: "Barber"
     gen_args:
-      messages: ["-D", "num_customers=<value>"]
+      haircuts: ["-D", "num_customers=<value>"]
