@@ -123,7 +123,6 @@ reactor Worker {
 
 
 main reactor (numIterations:int(12), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0), numWorkers:size_t(100)) {
-    
     master = new Master(numWorkers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
