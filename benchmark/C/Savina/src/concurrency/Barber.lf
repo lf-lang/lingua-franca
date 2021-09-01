@@ -53,7 +53,7 @@
  
 target C {
     fast: true,
-    threads: 4,
+    threads: 1,
     tracing: true
 };
 reactor SleepingBarber(
@@ -124,7 +124,7 @@ reactor SleepingBarber(
             if (cut[i]->is_present){
         		if (self->sleep){
             		self->sleep = false;
-            		printf("*********** Barber wakes up at %lld\n", get_elapsed_logical_time());
+         //   		printf("*********** Barber wakes up at %lld\n", get_elapsed_logical_time());
             		schedule(done_cutting, self->cut_time);
             		self->customerID = i;
         		} else if (put_customer(self->chairs, self->num_chairs,i)){
@@ -137,7 +137,7 @@ reactor SleepingBarber(
     =}
     
     reaction(done_cutting)->check_waitingroom, done {=
-        printf("Barber is done serving customer %d.\n", self->customerID);
+     //   printf("Barber is done serving customer %d.\n", self->customerID);
         SET(done[self->customerID],true);
         self->customerID = -1;
         self->customer_served++; 
@@ -151,7 +151,7 @@ reactor SleepingBarber(
             schedule(done_cutting, self->cut_time);
         } else {
             self->sleep = true;
-            printf("*********** Barber going to sleep at %lld\n", get_elapsed_logical_time());
+       //    printf("*********** Barber going to sleep at %lld\n", get_elapsed_logical_time());
         }
     =}
 }
@@ -174,25 +174,26 @@ reactor Customer(instance:int(0),retry_time:time(2 nsec)){
     =}
     reaction(enter) -> cut{=
         SET(cut,true);
-        printf("Customer %d arrived.\n", self->instance);
+     // printf("Customer %d arrived.\n", self->instance);
     =}
     reaction(wait){=
-        printf("Customer %d is in the wait room.\n", self->instance);
+     //   printf("Customer %d is in the wait room.\n", self->instance);
     =}
     reaction(full) -> enter {=
-        printf("Waiting room full customer %d left.\n", self->instance);
+     //   printf("Waiting room full customer %d left.\n", self->instance);
         schedule(enter,self->retry_time);
     =}
     reaction(done) -> finish {=
         SET(finish,true);
     =}
 }
-/* [[[cog
-  cog.outl(f'main reactor Barber(cut_time:time(1 nsec), num_chairs:int(100), num_customers:int({num_customers})){')
-]]] */
+
 main reactor Barber(cut_time:time(1 nsec), num_chairs:int(100), num_customers:int(500)){  
-// [[[end]]]
+	/* [[[cog
+      cog.outl(f'barber = new SleepingBarber(cut_time=cut_time, num_chairs=num_chairs, num_customers={num_customers});')
+	]]] */
     barber = new SleepingBarber(cut_time=cut_time, num_chairs=num_chairs, num_customers=num_customers);
+	// [[[end]]]
     customers = new[num_customers] Customer();
 
     customers.cut -> barber.cut;

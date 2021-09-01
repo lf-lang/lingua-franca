@@ -46,59 +46,99 @@
 // num_workers = 20
 // [[[end]]] 
 
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D num_workers=20
+# 
+
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'num_workers' in globals():
+    num_workers = int(num_workers)
+  else:
+    globals()['num_workers'] = 20
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// num_workers = {num_workers}')
+]]] */
+// Generated file with the following parameters:
+// num_workers = 20
+// [[[end]]] 
+
 target C {
     fast: true,
     threads: 1,
     tracing: true
 };
 
-reactor LinkedList(num_workers:int(20)){
+reactor Dictionary(num_workers:int(20)){
     preamble {=
-        typedef struct listnode {
-            int val;
-            struct listnode * next;
-        } linklist;
-        void insert (linklist **head, int val){
-            linklist * node = NULL;
-            node = (linklist *) malloc(sizeof(linklist));
-            node->val = val;
-            node-> next = NULL;
-            
-            if (*head == NULL || (*head)->val > val){
-                node->next = *head;
-                *head = node;
-          		return;
-            }
-            linklist * curr = *head;
-            while (curr->next != NULL && curr->next->val <= val) {
-                if(curr->next->val == val){
-                    return;
-                }
-        		curr = curr->next;
+		struct node{
+		    struct node * next; 
+		    int key; 
+		    int val; 
+		};
+		
+		#define HASHSIZE 1001
+		static struct node *table[HASHSIZE]; 
+		
+		unsigned hash(int i){
+		    return (i*2654435761 % 4294967296) % HASHSIZE;
+		}
+		
+		/* lookup: look for s in hashtab */
+		struct node * lookup(int key){
+		    struct node *curr = table[hash(key)];
+		    while(curr != NULL){
+		        if (curr->key == key){
+		          return curr;
+		          }
+		        curr = curr->next;  
+		      }
+		    return NULL;
+		}
+		
+		bool insert(int key, int val){
+		    struct node *curr;
+		    unsigned hashval;
+		    if ((curr = lookup(key)) == NULL) { /* not found */
+		        curr = (struct node *) malloc(sizeof(*curr));
+		        curr->key = key;
+		        hashval = hash(key);
+		        curr->next = table[hashval];
+		        table[hashval] = curr;
+		    } 
+		    curr->val = val;
+		    return true;
+		}
+		
+        void printlist() {
+   			for (int i=0; i<HASHSIZE;i++){
+				struct node *current = table[i];
+    			while (current != NULL) {
+        			printf("Key %d: %d \n", current->key, current->val);
+        			current = current->next;
+    			}
     		}
-    		linklist * temp = curr->next;
-    		curr->next = node;
-            curr->next->next = temp;
-            return;
-        }
-        bool lookup (linklist *head, int val){
-            linklist * curr = head;
-            while (curr != NULL){
-                if (curr->val == val){
-                    return true;
-                }
-                curr = curr->next;
-            }
-            return false;
-        }
-        void printlist(linklist * head) {
-   			linklist * current = head;
-
-    		while (current != NULL) {
-        		printf("%d ", current->val);
-        		current = current->next;
-    		}
-    		printf("\n");
 		}
     =}
     
@@ -106,23 +146,21 @@ reactor LinkedList(num_workers:int(20)){
     input[num_workers] write:int;
     input start:bool;
     
-    state list:{=linklist*=};
   
     output[num_workers] result:bool;
     
     reaction(start){=
         // initialize linked list with random elements
-        self->list = (linklist*) NULL;
         for (int i = 0; i < 10; i ++){
-            insert(&(self->list),rand()%1000);
+            insert(rand()%1000,rand()%100);
         }
     =}
     reaction(write)->result{=
     	for (int i = 0; i < self->num_workers; i++){
             if(write[i]->is_present){
-                insert(&(self->list),write[i]->value);
-            //    printf("List content after insert: ");
-            //    printlist(self->list);
+                insert(write[i]->value,rand()%100);
+         //       printf("Dictionary content after insert: \n");
+         //      printlist();
                 SET(result[i],true);
             }
         }
@@ -130,8 +168,12 @@ reactor LinkedList(num_workers:int(20)){
 	reaction(read)->result{=
 		for (int i = 0; i < self->num_workers; i++){
             if(read[i]->is_present){
-                bool found = lookup(self->list,read[i]->value);
-            //    printf("Result of looking up %d: %d \n",read[i]->value, found);
+                struct node * res = lookup(read[i]->value);
+          		int found = -1;
+          		if (res != NULL){
+                    found = res->val;
+                }
+           //     printf("Result of looking up %d: %d \n",read[i]->value, found);
                 SET(result[i],true);
             }
         }
@@ -159,10 +201,10 @@ reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
  		int val = rand()%1000;
  		if (coin <= self->write_percentage){
             SET(write,val);
-         //   printf("Worker %d sent write request for %d \n", self->instance, val);
+          //  printf("Worker %d sent write request for %d \n", self->instance, val);
         }else{
             SET(read,val);
-         //   printf("Worker %d sent read request for %d \n", self->instance, val);
+          //  printf("Worker %d sent read request for %d \n", self->instance, val);
         }
         self->requests_sent++;
 	=}
@@ -177,19 +219,20 @@ reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
 }
 
 main reactor(num_workers:int(20),num_requests:int(8000),write_percentance:int(10)){
+
 	/* [[[cog
-  	  cog.outl(f'list = new LinkedList(num_workers={num_workers});')
+ 	  cog.outl(f'dictionary = new Dictionary(num_workers={num_workers});')
 	]]] */
-	list = new LinkedList(num_workers=num_workers);
-	// [[[end]]]	
+    dictionary = new Dictionary(num_workers=num_workers);
+	// [[[end]]]
 	workers = new[num_workers] Worker(num_requests=num_requests,write_percentage=write_percentance);
 	
-	workers.read -> list.read;
-	workers.write ->list.write;
-	list.result -> workers.result;
+	workers.read->dictionary.read;
+	workers.write->dictionary.write;
+	dictionary.result->workers.result;
 	
-	reaction(startup)->list.start, workers.start{=
-        SET(list.start,true);
+	reaction(startup)->dictionary.start, workers.start{=
+        SET(dictionary.start,true);
         for (int i = 0; i<self->num_workers; i++){
         	SET(workers[i].start,true);
         }

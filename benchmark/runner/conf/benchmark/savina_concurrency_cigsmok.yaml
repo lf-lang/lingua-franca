@@ -30,4 +30,4 @@ targets:
     lf_file: "Smokers.lf"
     binary: "Smokers"
     gen_args:
-      messages: ["-D", "num_smokers=<value>"]
+      smokers: ["-D", "num_smokers=<value>"]
