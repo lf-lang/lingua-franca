@@ -179,7 +179,9 @@ ${"             |            "..syntheticTimerReactions(reactor)}
                 |    }
                 |
                 |    fn cleanup_tag(&mut self, ctx: ReactionCtx) {
-                |        // todo
+                |        // todo:
+                |        // - clear ports
+                |        // - clear actions
                 |    }
                 |    
                 |    fn enqueue_startup(&self, ctx: &mut StartupCtx) {

@@ -180,9 +180,6 @@ data class ReactionInfo(
 
     // those are implementation details
 
-    /** The ID of the reaction in the reaction enum. */
-    val rustId: String = "R$idx"
-
     /** The name of the worker function for this reaction. */
     val workerId: String = "react_$idx"
 
