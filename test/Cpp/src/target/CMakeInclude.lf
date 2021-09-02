@@ -3,7 +3,7 @@
  * The failure for this test is failure to compile.
  */
 target Cpp {
-    cmake-include: ["../include/mlib-cmake-extension.cmake", "../include/mlib-cmake-extension.txt"],
+    cmake-include: ["../include/mlib-cmake-extension.cmake", "../include/bar-cmake-compile-definition.txt"],
     timeout: 0 sec
 };
 
@@ -13,6 +13,6 @@ main reactor {
         #include <cmath>
     =}
     reaction (startup) {=
-        std::cout << "Maximum of 4.20 and 3 is " << fmax(4.20, 3.0) << std::endl;
+        std::cout << "Maximum of 4.20 and " << BAR << " is " << fmax(4.20, BAR) << std::endl;
     =}
 }

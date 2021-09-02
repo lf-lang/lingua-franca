@@ -3,7 +3,7 @@
  * The failure for this test is failure to compile.
  */
 target C {
-    cmake-include: ["../include/mlib-cmake-extension.cmake", "../include/mlib-cmake-extension.txt"],
+    cmake-include: ["../include/mlib-cmake-extension.cmake", "../include/bar-cmake-compile-definition.txt"],
     timeout: 0 sec
 };
 
@@ -13,6 +13,6 @@ main reactor {
         #include <math.h>
     =}
     reaction (startup) {=
-        info_print("Maximum of 4.20 and 3 is %f", fmax(4.20, 3.0));
+        info_print("Maximum of 4.20 and %.2f is %.2f", BAR, fmax(4.20, BAR));
     =}
 }
