@@ -1,9 +1,16 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
+ * This benchmark calculates Pi to a very high precision. The workers operate
+ * independently and each worker calculates one digit of the result. Similar to
+ * to the other parallelism benchmarks, the execution is controlled by a central
+ * manager. The overall structure in this benchmark is quite simple. The manager
+ * tells the workers which digit to calculate and collects the results to build Pi.
+ *
+ * Note that the validation isn't precise. Due to rounding errors on the last digit,
+ * it might return false although the result is correct.
+ *
  * This version uses the library GMP with C++ bindings and depends on it.
  * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
