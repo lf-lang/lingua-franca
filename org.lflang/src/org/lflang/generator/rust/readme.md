@@ -5,6 +5,8 @@
 - [x] reactor composition
 - [ ] ports
     - [x] values
+    - [ ] missing values at some tags
+    - [ ] port value is cleaned up at the end of a tag
     - [x] connections
       - [x] input of self to input of child
       - [x] input of self to output of self
@@ -30,6 +32,7 @@
 - [x] logical actions
     - [x] delays
     - [x] actions with values
+    - [ ] action value is cleaned up at the end of a tag
     - [x] check whether the action is present
 - [ ] physical actions
 - [x] timers
