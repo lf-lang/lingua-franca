@@ -199,7 +199,7 @@ reactor Worker(threshold: size_t{16384}) {
 }
 
 main reactor (numIterations: size_t{12}, dataLength: size_t{1024}, blockThreshold: size_t{16384}, priorities:size_t{10}, numWorkers: size_t{20}) {
-    
+    // The priorities parameter is not used, but we keep it for compatibility with Akka
     runner = new BenchmarkRunner(numIterations=numIterations);
     manager = new Manager(numWorkers=numWorkers, dataLength=dataLength);
     workers = new[numWorkers] Worker(threshold=blockThreshold) 
