@@ -20,7 +20,13 @@ reactor Foo(x: i32(0),
     timer tick(0);      // Units missing but not required
     timer tock(1 sec);  // Implicit type time
     timer toe(z);       // Implicit type time
-    state baz({=p=});       // Implicit type i32[]
+    // fixme following should be equivalent:
+    // state baz(p);
+    // state baz: i32[4](p);
+    // state baz: i32[4]({=p=});
+    // because the initializer is the same modulo fat braces
+
+    // state baz(p);       // Implicit type i32[] fixme this interplays badly with syntax for array init
     state period(z);    // Implicit type time
     state times: Vec<Vec<{=Duration=}>>(q, g); // a list of lists
     reaction(tick) {=
