@@ -1,7 +1,31 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This benchmarks implements a parallel matrix multiplication algorithm.
+ * Overall, the benchmark uses a divide and conquer approach that is very
+ * similar to the N Queens benchmark. The Manager at first produces a WorkItem
+ * that encompasses the whole problem, and the workers then split the work items
+ * into smaller chunks that they send back to the manager. Only if the problem
+ * size is below a threshold, the workers perform an actual multiplication over
+ * a subset of the matrix. When the problem is split, always 8 new work items
+ * are generated.
  * 
+ * It is important to note that the Savina implementation makes a severe
+ * mistake. Both the operand matrices and the result matrix are stored in shared
+ * memory. Tor the operands, this is not much of an issue since they are
+ * read-only. However, the matrix is written to by all workers using an
+ * accumulate (read-write) operation. Since multiple workers can write to the
+ * same cell simultaneously, we have a race condition. This makes the result
+ * nondeterministic. The problem is illustrated nicely by the Akka
+ * implementation which, on my machine and in the default configuration, prints
+ * "valid: false". Due to the nature of race conditions, this might be hard to
+ * reproduce on other machines. However, I found that when we change the problem
+ * size, the error appears or disappears sometimes.
+ *
+ * This implementation in LF reproduces the mistake described above. This is to
+ * replicate the same behaviour. If we would only fix the LF variant, this would
+ * make a comparison to the Akka version hard. This is of course less than
+ * ideal...
+ * 
+ * @author Christian Menard
  * @author Hannes Klein
  */
 
