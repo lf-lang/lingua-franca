@@ -60,14 +60,14 @@ object RustEmitter {
             fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
                 fileConfig.emit("src/reactors/${reactor.names.modName}.rs") {
-                    makeReactorModule(reactor)
+                    makeReactorModule(this, reactor)
                 }
             }
         }
     }
 
-    private fun Emitter.makeReactorModule(reactor: ReactorInfo) {
-        this += with(reactor) {
+    private fun makeReactorModule(out: Emitter, reactor: ReactorInfo) {
+        out += with(reactor) {
             with (reactor.names) {
             with(ReactorComponentEmitter) {
                 with(PrependOperator) {
@@ -285,7 +285,7 @@ ${"         |    "..declarations}
 
 
         return reactor.otherComponents.joinToString("\n") {
-            "_self." + it.rustFieldName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral { it } + ".into());"
+            "_self." + it.rustFieldName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral() + ".into());"
         }
     }
 
@@ -374,7 +374,7 @@ ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName + ":"
                     """.trimMargin()
 
                 this.writeInBlock("mod ${reactor.names.modName} {") {
-                    makeReactorModule(reactor)
+                    makeReactorModule(this, reactor)
                 }
                 this.skipLines(2)
             }
@@ -589,7 +589,7 @@ private fun <T> Iterable<T>.joinWithCommas(
     }
 }
 
-private fun <T> List<T>.toVecLiteral(transform: (T) -> String) =
+private fun <T> List<T>.toVecLiteral(transform: (T) -> String = { it.toString() }) =
     joinWithCommas("vec![", "]", transform = transform)
 
 private fun <T> Iterable<T>.joinWithCommasLn(

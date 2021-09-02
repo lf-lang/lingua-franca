@@ -59,15 +59,25 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGene
 
 }
 
+/**
+ * Builds the contents of a file. This is used with RAII, closing
+ * the object writes to the file.
+ */
 class Emitter(
+    /** File to which this emitter should write. */
     private val output: Path,
 ) : Closeable {
 
+    /** Accumulates the result. */
     private val sb = StringBuilder()
     private var indent: String = ""
 
-    operator fun plusAssign(s: String) {
-        sb.append(s.replaceIndent(indent))
+    /**
+     * Add the given string, which is taken as an entire line.
+     * Indent is replaced with the contextual value.
+     */
+    operator fun plusAssign(line: String) {
+        sb.append(line.replaceIndent(indent))
     }
 
     /**
