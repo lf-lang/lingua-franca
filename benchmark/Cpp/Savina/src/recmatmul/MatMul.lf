@@ -105,7 +105,7 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
         finished.set();
     =}
     
-    method isValid(): bool {=
+    const method isValid(): bool {=
         for (size_t i{0}; i < dataLength; i++) {
 		    for (size_t j{0}; j < dataLength; j++) {
 			    double actual = C[i][j];
@@ -120,257 +120,65 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
     =}
 }
 
-/*reactor Master(numWorkers:int(20), dataLength:int(1024)) {
+reactor Worker(threshold: size_t{16384}) {
+
+    state A: {=const Matrix*=};
+    state B: {=const Matrix*=};
+    state C: Matrix*;
     
-    public preamble {=
-        #include "MatMulCommon.hh"
-        #include "reactor-cpp/logging.hh"
-        #include <bitset>
-        #include <list>
+    input data: {=std::tuple<const Matrix*, const Matrix*, Matrix*>=};
+    input doWork: WorkItem;    
+    output moreWork: {=std::array<reactor::ImmutableValuePtr<WorkItem>, 8>=};
+    
+    reaction (data) {=
+        const auto& tuple = *data.get();
+        A = std::get<0>(tuple);
+        B = std::get<1>(tuple);
+        C = std::get<2>(tuple);
     =}
     
-    state numWorkersTerminated:int(0);
-    state numWorkSent:int(0);
-    state numWorkCompleted:int(0);
-    state workersWorking:{=std::bitset<20>=};
-    // [[[end]]]
-    state workList:{=std::list<WorkMessage>=};
-    state problemSolved:bool(false);
-    
-    input inStart:void;
-    output outFinished:void;
-    input inInitializeStart:void;
-    output outInitializeFinished:void;
-    input inCleanupIterationStart:void;
-    output outCleanupIterationFinished:void;
-    
-    output[20] outWorkersWork:{=WorkMessage=};
-    input[20] inWorkersWork:{=std::list<WorkMessage>=};
-    output[20] outWorkers:{=Message=};
-    input[20] inWorkers:{=Message=};
-    // [[[end]]]
-    
-    logical action sendWork:void;
-    logical action shutdownWorkers:void;
-    
-    reaction(inInitializeStart) -> outInitializeFinished {=
-        initializeData(dataLength);
-        outInitializeFinished.set();
-    =}
-    
-    reaction(inCleanupIterationStart) -> outCleanupIterationFinished {=
-        bool isValid = valid(dataLength);
-        reactor::log::Info() << std::boolalpha << "Result valid = " << isValid << std::noboolalpha;
-        initializeData(dataLength);
-        outCleanupIterationFinished.set();
-    =}
-    
-    reaction(inStart) -> sendWork {=
+    reaction(doWork) -> moreWork {=
+        const WorkItem& wi = *doWork.get();
         
-        // reset local state
-        numWorkersTerminated = 0;
-        numWorkSent = 0;
-        numWorkCompleted = 0;
-        workersWorking.reset();
-        workList.clear();
-        problemSolved = false;
-    
-        // start execution
-        int numBlocks = dataLength * dataLength;
-        workList.emplace_back(0, 0, 0, 0, 0, 0, 0, numBlocks, dataLength);
-        sendWork.schedule();
-    =}
-    
-    reaction(sendWork) -> outWorkersWork, shutdownWorkers {=
-        
-        reactor::log::Debug() << "sending work. I have currently " << workList.size() << " pieces of work and " << workersWorking.count() << " workers are working.";
-        if(problemSolved) return;
-        if(workList.empty()) {
-            // Assuming that no worker is working in parallel.
-            // Shutdown because with no work left,
-            // there is no shortest path to be found.
-            problemSolved = true;
-            shutdownWorkers.schedule();
-            return;
-        }
-        
-        // The scheduling here has to make sure that no two reactors
-        // are accessing the same entries in C at the same time,
-        // otherwise we have race conditions and potentially lost updates.
-        if(workersWorking.all()) return;
-        if(workList.empty()) return;
-        auto compare = [](const WorkMessage& w1, const WorkMessage& w2) -> bool {
-            return w1.dim > w2.dim;
-        };
-        workList.sort(compare); // sort for efficiency: generate new pieces of work first
-        //int dimToSchedule = begin(workList)->dim;
-        std::set<std::pair<int,int>> partsGivenOut;
-        int freeWorkerIndex = 0;
-        while(workersWorking[freeWorkerIndex]) ++freeWorkerIndex; // out of bounds ruled out
-        
-        for(auto work = begin(workList); work != end(workList); work++) {
-            //if(work->dim != dimToSchedule) break; //only schedule work of the same dim in one run
-            bool inserted = partsGivenOut.emplace(std::pair<int,int>(work->srC,work->scC)).second;
+        // If the number of blocks to process is above the threshold,
+        // then we split the problem into smaller chunks and generate more work items
+        if (wi.numBlocks > threshold) {
+            auto workQueue = reactor::make_mutable_value<std::array<reactor::ImmutableValuePtr<WorkItem>, 8>>();            
+
+            size_t dim = wi.dim / 2;
+            size_t numBlocks = wi.numBlocks / 4;
             
-            if(inserted) {
-                outWorkersWork[freeWorkerIndex].set(*work);
-                work = workList.erase(work);
-                workersWorking[freeWorkerIndex] = true;
-                numWorkSent += 1;
-                if(workersWorking.all()) break;
-                while(workersWorking[freeWorkerIndex]) ++freeWorkerIndex; // out of bounds ruled out
-            }
-        }
-    =}
-    
-    reaction(shutdownWorkers) -> outWorkers {=
+            workQueue->at(0) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA      , wi.scA      , wi.srB      , wi.scB      , wi.srC      , wi.scC      , numBlocks, dim});
+            workQueue->at(1) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA      , wi.scA + dim, wi.srB + dim, wi.scB      , wi.srC      , wi.scC      , numBlocks, dim});
+            workQueue->at(2) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA      , wi.scA      , wi.srB      , wi.scB + dim, wi.srC      , wi.scC + dim, numBlocks, dim});
+            workQueue->at(3) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA      , wi.scA + dim, wi.srB + dim, wi.scB + dim, wi.srC      , wi.scC + dim, numBlocks, dim});
+            workQueue->at(4) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA + dim, wi.scA      , wi.srB      , wi.scB      , wi.srC + dim, wi.scC      , numBlocks, dim});
+            workQueue->at(5) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA + dim, wi.scA + dim, wi.srB + dim, wi.scB      , wi.srC + dim, wi.scC      , numBlocks, dim});
+            workQueue->at(6) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA + dim, wi.scA      , wi.srB      , wi.scB + dim, wi.srC + dim, wi.scC + dim, numBlocks, dim});
+            workQueue->at(7) = reactor::make_immutable_value<WorkItem>(WorkItem{wi.srA + dim, wi.scA + dim, wi.srB + dim, wi.scB + dim, wi.srC + dim, wi.scC + dim, numBlocks, dim});
+
+            moreWork.set(std::move(workQueue));
+        } else {
+             // otherwise we compute the result directly
+             size_t endR{wi.srC + wi.dim};
+             size_t endC{wi.scC + wi.dim};
         
-        // Assuming that it is safe to shut down the workers
-        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
-        for(int i = 0; i < outWorkers.size(); i++) {
-            outWorkers[i].set(msg);
-        }
-    =}
-    
-    reaction(inWorkersWork) {=
-        
-        for(int i = 0; i < inWorkersWork.size(); i++) {
-            if(inWorkersWork[i].is_present()) {
-                
-                workList.insert( end(workList), begin(*(inWorkersWork[i].get())), end(*(inWorkersWork[i].get())) );
-            }
-        }
-        // Do not schedule work here.
-        // Trigger work only after confirmation ReceivedMsg.
-        // We assume that ReceivedMsg arrives after this reaction is executed.
-    =}
-    
-    reaction(inWorkers) -> outFinished, sendWork {=
-        
-        for(int i = 0; i < inWorkers.size(); i++) {
-            if(inWorkers[i].is_present()) {
-                
-                if(inWorkers[i].get()->type == DoneMsg) {
-                    
-                    numWorkCompleted += 1;
-                    workersWorking[i] = false;
-                    sendWork.schedule();
-                    reactor::log::Debug() << "Received DoneMsg from worker " << i;
-                    
-                } else if(inWorkers[i].get()->type == StopMsg) {
-                    
-                    // Confirmation that worker shut down.
-                    numWorkersTerminated += 1;
-                    if(numWorkersTerminated == numWorkers) {
-                        outFinished.set();
-                    }
-                }
-            }
-        }
+            for (size_t i{wi.srC}; i < endR; i++) {
+                for (size_t j{wi.scC}; j < endC; j++) {
+		            for (size_t k{0}; k < wi.dim; k++) {
+		                C->at(i)[j] += A->at(i)[wi.scA + k] * B->at(wi.srB + k)[j];
+		            }
+		        }
+		    }
+		}
     =}
 }
-
-
-reactor Worker(instance:int(0), threshold:int(16384)) {
-    
-    public preamble {=
-        #include "MatMulCommon.hh"
-        #include "reactor-cpp/logging.hh"
-        #include <list>
-    =}
-    
-    state workQueue:{=std::unique_ptr<std::list<WorkMessage>>=}; // linked list
-    
-    input inWork:{=WorkMessage=}; // work from the master
-    output outWork:{=std::list<WorkMessage>=}; // work back to the master to distribute
-    input inMaster:{=Message=}; // control messages from the master
-    output outMaster:{=Message=}; // control messages to the master
-    
-    logical action sendDoneMsg:void;
-    logical action returnWorkToMaster:void; // execution threshold exceeded, return new work
-    logical action sendStop:void;
-    
-    reaction(sendStop) -> outMaster {=
-        outMaster.set(Message{StopMsg});
-    =}
-    
-    reaction(sendDoneMsg) -> outMaster {=
-        outMaster.set(Message{DoneMsg});
-    =}
-    
-    reaction(returnWorkToMaster) -> outWork, outMaster, sendDoneMsg {=
-        
-        outWork.set(*workQueue);
-        outMaster.set(Message{DoneMsg});
-    =}
-    
-    reaction(inWork) -> sendDoneMsg, returnWorkToMaster {=
-        
-        workQueue = std::make_unique<std::list<WorkMessage>>();
-        WorkMessage workMessage = *(inWork.get());
-        
-        int srA = workMessage.srA;
-        int scA = workMessage.scA;
-        int srB = workMessage.srB;
-        int scB = workMessage.scB;
-        int srC = workMessage.srC;
-        int scC = workMessage.scC;
-        int numBlocks = workMessage.numBlocks;
-        int dim = workMessage.dim;
-        int newPriority = workMessage.priority + 1;
-        
-        if (numBlocks > threshold) {
-            
-            int zerDim = 0;
-            int newDim = dim / 2;
-            int newNumBlocks = numBlocks / 4;
-            
-            workQueue->emplace_back(newPriority, srA + zerDim, scA + zerDim, srB + zerDim, scB + zerDim, srC + zerDim, scC + zerDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + zerDim, scA + newDim, srB + newDim, scB + zerDim, srC + zerDim, scC + zerDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + zerDim, scA + zerDim, srB + zerDim, scB + newDim, srC + zerDim, scC + newDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + zerDim, scA + newDim, srB + newDim, scB + newDim, srC + zerDim, scC + newDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + newDim, scA + zerDim, srB + zerDim, scB + zerDim, srC + newDim, scC + zerDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + newDim, scA + newDim, srB + newDim, scB + zerDim, srC + newDim, scC + zerDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + newDim, scA + zerDim, srB + zerDim, scB + newDim, srC + newDim, scC + newDim, newNumBlocks, newDim);
-            workQueue->emplace_back(newPriority, srA + newDim, scA + newDim, srB + newDim, scB + newDim, srC + newDim, scC + newDim, newNumBlocks, newDim);
-            
-            returnWorkToMaster.schedule();
-            return;
-        }
-        
-        int endR = srC + dim;
-        int endC = scC + dim;
-        
-        int i = srC;
-        while(i < endR) {
-            int j = scC;
-            while(j < endC) {
-                int k = 0;
-                while(k < dim) {
-                    reactor::log::Debug() << i << " " << j << " " << scA + k << " " << srB + k << " ";
-                    C->at(i)[j] += A->at(i)[scA + k] * B->at(srB + k)[j];
-                    k += 1;
-                }
-                j += 1;
-            }
-            i += 1;
-        }
-        
-        sendDoneMsg.schedule();
-    =}
-    
-    reaction(inMaster) -> sendStop {=
-        
-        if(inMaster.get()->type == StopMsg) {
-            sendStop.schedule();
-        }
-    =}
-}*/
 
 main reactor (numIterations: size_t{12}, dataLength: size_t{1024}, blockThreshold: size_t{16384}, priorities:size_t{10}, numWorkers: size_t{20}) {
     
     runner = new BenchmarkRunner(numIterations=numIterations);
     manager = new Manager(numWorkers=numWorkers, dataLength=dataLength);
+    workers = new[numWorkers] Worker(threshold=blockThreshold) 
     
     reaction(startup) -> runner.inStart {=        
         printBenchmarkInfo("MatMulBenchmark");
@@ -378,4 +186,11 @@ main reactor (numIterations: size_t{12}, dataLength: size_t{1024}, blockThreshol
         printSystemInfo();
         runner.inStart.set();
     =}
+    
+    runner.outIterationStart -> manager.start;
+    manager.finished -> runner.inIterationFinish;
+    
+    (manager.data)+ -> workers.data;
+    manager.doWork -> workers.doWork;
+    workers.moreWork -> manager.moreWork;
 }
