@@ -53,6 +53,7 @@ import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
+import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -60,6 +61,7 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
+import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
@@ -1743,5 +1745,21 @@ class ASTUtils {
         }
         return inst
     }
-    
+
+    /**
+     * Returns the target declaration in the given model.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Model model) {
+        return model.eAllContents.filter(TargetDecl).head
+    }
+
+    /**
+     * Returns the target declaration in the given resource.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Resource model) {
+        return model.allContents.filter(TargetDecl).head
+    }
+
 }

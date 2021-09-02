@@ -26,6 +26,8 @@
 package org.lflang.generator.c;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -64,12 +66,12 @@ class CCmakeCompiler extends CCompiler {
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary) {
+    public boolean runCCompiler(String file, boolean noBinary) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         // Make sure the build directory exists
-        FileConfig.createDirectories(buildPath);
-        
+        Files.createDirectories(buildPath);
+
         LFCommand compile = compileCmakeCommand(file, noBinary);
         if (compile == null) {
             return false;

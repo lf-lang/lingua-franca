@@ -37,6 +37,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
+import java.nio.file.Files
 import java.util.LinkedList
 
 /**
@@ -158,16 +159,16 @@ class TSGenerator(
                 tsFileName += '_' + federate.name
             }
 
-            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve(tsFileName + ".ts")
+            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile.toPath(),
+            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile,
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
             val parameterGenerator = TSParameterGenerator(this, fileConfig, targetConfig, reactors)
-            val (mainParameters, parameterCode) = parameterGenerator.generatePrameters()
+            val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
             tsCode.append(parameterCode)
 
             val reactorGenerator = TSReactorGenerator(this, errorReporter)
@@ -182,17 +183,19 @@ class TSGenerator(
 
         // Run necessary commands.
 
+        Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
+
         val pnpmInstall = commandFactory.createCommand(
             "pnpm",
             listOf("install"),
-        fileConfig.getSrcGenPkgPath(),
-        false // only produce a warning if command is not found
+            fileConfig.srcGenPkgPath,
+            false // only produce a warning if command is not found
         )
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
-        if (pnpmInstall !== null) {
+        if (pnpmInstall != null) {
             val ret = pnpmInstall.run()
-            if (ret !== 0) {
+            if (ret != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
             }
@@ -200,9 +203,9 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
-            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.getSrcGenPkgPath())
+            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.srcGenPkgPath)
 
-            if (npmInstall === null) {
+            if (npmInstall == null) {
                 errorReporter.reportError(
                     "The TypeScript target requires npm >= 6.14.4. " +
                             "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -210,7 +213,7 @@ class TSGenerator(
                 return
             }
 
-            if (npmInstall.run() !== 0) {
+            if (npmInstall.run() != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
@@ -234,14 +237,15 @@ class TSGenerator(
 
             protocArgs.addAll(
                 listOf(
-                "--plugin=protoc-gen-ts=" + tsFileConfig.getSrcGenPkgPath().resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
-                "--js_out=import_style=commonjs,binary:"+tsOutPath,
-                "--ts_out=" + tsOutPath)
+                "--plugin=protoc-gen-ts=" + tsFileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                    "--js_out=import_style=commonjs,binary:$tsOutPath",
+                    "--ts_out=$tsOutPath"
+                )
             )
             protocArgs.addAll(targetConfig.protoFiles)
             val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
 
-            if (protoc === null) {
+            if (protoc == null) {
                 errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
                 return
             }
@@ -257,7 +261,7 @@ class TSGenerator(
 //                targetConfig.compileLibraries.add('-l')
 //                targetConfig.compileLibraries.add('protobuf-c')
             } else {
-                errorReporter.reportError("protoc returns error code " + returnCode)
+                errorReporter.reportError("protoc returns error code $returnCode")
             }
             // FIXME: report errors from this command.
         } else {
@@ -269,8 +273,8 @@ class TSGenerator(
 
         // Invoke the compiler on the generated code.
         println("Type Checking")
-        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.getSrcGenPkgPath())
-        if (tsc === null) {
+        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.srcGenPkgPath)
+        if (tsc == null) {
             errorReporter.reportError(errorMessage);
             return
         }
@@ -281,9 +285,9 @@ class TSGenerator(
             //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
             // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
             println("Compiling")
-            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.getSrcGenPkgPath())
+            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
-            if (babel === null) {
+            if (babel == null) {
                 errorReporter.reportError(errorMessage);
                 return
             }
@@ -322,10 +326,10 @@ class TSGenerator(
      * @return The TS type.
      */
     private fun getActionType(action: Action): String {
-        if (action.type !== null) {
-            return getTargetType(action.type)
+        return if (action.type != null) {
+            getTargetType(action.type)
         } else {
-            return "Present"
+            "Present"
         }
     }
 
@@ -336,7 +340,7 @@ class TSGenerator(
      */
     override fun timeInTargetLanguage(value: TimeValue): String {
         return if (value.unit != TimeUnit.NONE) {
-            """TimeValue.${value.unit}(${value.time})"""
+            "TimeValue.${value.unit}(${value.time})"
         } else {
             // The value must be zero.
             "TimeValue.zero()"
@@ -346,14 +350,14 @@ class TSGenerator(
     override fun getTargetType(s: StateVar): String {
         val type = super.getTargetType(s)
         return if (!isInitialized(s)) {
-            type + " | undefined"
+            "$type | undefined"
         } else {
             type
         }
     }
 
     override fun getTargetReference(param: Parameter): String {
-        return """this.${param.name}.get()"""
+        return "this.${param.name}.get()"
     }
 
     /**
@@ -395,15 +399,15 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return """actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"""
+        return "actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return """${generateVarRef(port)} = ${action.name} as ${getActionType(action)};"""
+        return "${generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
     }
 
     override fun generateDelayGeneric(): String {
-        return """T extends Present"""
+        return "T extends Present"
     }
 
     override fun supportsGenerics(): Boolean {
@@ -427,11 +431,11 @@ class TSGenerator(
     }
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return """Array(${size})<${baseType}>"""
+        return "Array(${size})<${baseType}>"
     }
 
     override fun getTargetVariableSizeListType(baseType: String): String {
-        return """Array<${baseType}>"""
+        return "Array<${baseType}>"
     }
 
     override fun getTarget(): Target {
