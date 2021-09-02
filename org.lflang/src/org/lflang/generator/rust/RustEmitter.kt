@@ -163,14 +163,14 @@ ${"             |        "..nestedInstances.joinToString("\n") { "assembler.regi
                 |}
                 |
                 |
-                |impl $rsRuntime::ReactorBehavior for $wrapperName {
+                |impl ReactorBehavior for $wrapperName {
                 |
                 |    #[inline]
                 |    fn id(&self) -> ReactorId {
                 |        self._id
                 |    }
                 |
-                |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: LocalReactionId) {
+                |    fn react_erased(&mut self, ctx: &mut ReactionCtx, rid: LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls(reactor)}
 ${"             |            "..syntheticTimerReactions(reactor)}
@@ -178,7 +178,7 @@ ${"             |            "..syntheticTimerReactions(reactor)}
                 |        }
                 |    }
                 |
-                |    fn cleanup_tag(&mut self, ctx: $rsRuntime::ReactionCtx) {
+                |    fn cleanup_tag(&mut self, ctx: ReactionCtx) {
                 |        // todo
                 |    }
                 |    
