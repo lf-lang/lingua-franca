@@ -183,9 +183,10 @@ void _lf_start_print_window(int above, int right) {
 
 /**
  * Post a message to be displayed.
+ * This acquires the mutex lock.
  * @param type The message type, one of
- *  _lf_sensor_message, _lf_sensor_tick, or _lf_sesor_close_window.
- * @param message The message, or NULL for exit type.
+ *  _lf_sensor_message, _lf_sensor_tick, or _lf_sensor_close_window.
+ * @param body The message, or NULL for exit type.
  */
 void _lf_sensor_post_message(enum _lf_sensor_message_type type, char* body) {
     lf_mutex_lock(&_lf_sensor_mutex);
@@ -199,18 +200,20 @@ void _lf_sensor_post_message(enum _lf_sensor_message_type type, char* body) {
     }
     message->message = body;
     message->type = type;
-	message->next = NULL;
-	// Find the tail of the message queue.
+	message->next = NULL; // Will be the new last message in the queue.
+	// Find the tail of the message queue and put the message there.
 	_lf_sensor_message_t* tail = _lf_sensor.message_q;
 	if (tail == NULL) {
 		_lf_sensor.message_q = message;
 	} else {
 		while (tail != NULL) {
-			_lf_sensor_message_t* next = tail->next;
-			if (next == NULL) {
+			if (tail->next == NULL) {
+				// tail is the last message in the queue.
 				tail->next = message;
+				break;
 			}
-			tail = next;
+			// Not yet at the last message.
+			tail = tail->next;
 		}
 	}
 	lf_cond_signal(&_lf_sensor_simulator_cond_var);
@@ -223,9 +226,8 @@ void _lf_sensor_post_message(enum _lf_sensor_message_type type, char* body) {
  */
 void _lf_print_message_function(char* format, va_list args) {
 	if (_lf_sensor.log_file != NULL) {
-		// Write to a log file instead of to the window.
+		// Write to a log file in addition to the window.
 		vfprintf(_lf_sensor.log_file, format, args);
-		return;
 	}
     char* copy;
     vasprintf(&copy, format, args);
@@ -286,6 +288,7 @@ void* _lf_sensor_simulator_thread(void* ignored) {
     noecho();          // Don't echo input
     cbreak();          // Don't wait for Return or Enter
     wtimeout(stdscr, WGETCHR_TIMEOUT); // Don't wait longer than this for input.
+    keypad(stdscr, TRUE);  // Enable keypad input.
     refresh();         // Not documented, but needed?
 
     _lf_sensor.default_window = stdscr;
@@ -308,10 +311,11 @@ void* _lf_sensor_simulator_thread(void* ignored) {
     }
 
     while(_lf_sensor.thread_created != 0) {
-    	// Sadly, ncurses is not thread safe, so there is no way to
+    	// Sadly, ncurses is not thread safe, so this thread deals with all messages.
     	while (_lf_sensor.message_q == NULL) {
             lf_cond_wait(&_lf_sensor_simulator_cond_var, &_lf_sensor_mutex);
     	}
+    	// Show all messages in the queue.
 		while (_lf_sensor.message_q != NULL) {
 			if (_lf_sensor.message_q->type == _lf_sensor_close_windows) {
 			    register_print_function(NULL, -1);
@@ -333,10 +337,6 @@ void* _lf_sensor_simulator_thread(void* ignored) {
 			    }
 			    wmove(_lf_sensor.tick_window, _lf_sensor.tick_cursor_y, _lf_sensor.tick_cursor_x);
 			    wrefresh(_lf_sensor.tick_window);
-
-			    // Move the standard string cursor to 0, 0, so printf()
-			    // calls don't mess up the screen as much.
-			    // wmove(stdscr, 0, 0);
 			} else if (_lf_sensor.message_q->type == _lf_sensor_message) {
 				wmove(_lf_sensor.print_window, _lf_sensor.print_cursor_y, _lf_sensor.print_cursor_x);
 				wclrtoeol(_lf_sensor.print_window);
@@ -356,8 +356,8 @@ void* _lf_sensor_simulator_thread(void* ignored) {
 			_lf_sensor_message_t* tmp_recycle = _lf_sensor.message_recycle_q;
 			_lf_sensor_message_t* tmp_message = _lf_sensor.message_q;
 			_lf_sensor.message_recycle_q = _lf_sensor.message_q;
-			_lf_sensor.message_recycle_q->next = tmp_recycle;
 			_lf_sensor.message_q = tmp_message->next;
+			_lf_sensor.message_recycle_q->next = tmp_recycle;
 		}
     }
     lf_mutex_unlock(&_lf_sensor_mutex);
@@ -389,7 +389,10 @@ void end_sensor_simulator() {
  * call to register_sensor_key.  The specified message
  * is an initial message to display at the upper left,
  * typically a set of instructions, that remains displayed
- * throughout the lifetime of the window.
+ * throughout the lifetime of the window. Please ensure that
+ * the message_lines array and its contained strings are not
+ * on the stack because they will be used later in a separate
+ * thread.
  * @param message_lines The message lines.
  * @param number_of_lines The number of lines.
  * @param tick_window_width The width of the tick window or 0 for none.
@@ -439,7 +442,7 @@ int start_sensor_simulator(
 
         // ncurses is not thread safe, so create a one thread that does all
         // the writing to the window and one that does all the reading.
-        int result = lf_thread_create(&_lf_sensor.output_thread_id, &_lf_sensor_simulator_thread, NULL);
+        result = lf_thread_create(&_lf_sensor.output_thread_id, &_lf_sensor_simulator_thread, NULL);
         if (result != 0) {
             error_print("Failed to start sensor simulator!");
         }

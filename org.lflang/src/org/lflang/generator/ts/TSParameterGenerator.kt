@@ -53,10 +53,10 @@ class TSParameterGenerator(
     private fun getTargetType(p: Parameter): String = tsGenerator.getTargetTypeW(p)
 
     private fun getTimeoutTimeValue(): String {
-        if (targetConfig.timeout !== null) {
-            return timeInTargetLanguage(targetConfig.timeout)
+        return if (targetConfig.timeout != null) {
+            timeInTargetLanguage(targetConfig.timeout)
         } else {
-            return "undefined"
+            "undefined"
         }
     }
 
@@ -79,20 +79,11 @@ class TSParameterGenerator(
         return mainReactor?.parameters ?: emptyList()
     }
 
-    private fun getCustomArgsList(parameters: List<Parameter>): String {
-        // Build the argument spec for commandLineArgs and commandLineUsage
-        var customArgs = StringJoiner(",\n")
-
-        for (parameter in getParameters()) {
-        }
-        return "[\n" + customArgs + "]"
-    }
-
     /**
      * Assign results of parsing custom command line arguments
      */
     private fun assignCustomCLArgs(mainParameters: HashSet<Parameter>): String {
-        var code = StringJoiner("\n")
+        val code = StringJoiner("\n")
         for (parameter in mainParameters) {
             code.add("""
                 |let __CL${parameter.name}: ${getTargetType(parameter)} | undefined = undefined;
@@ -114,7 +105,7 @@ class TSParameterGenerator(
      * from the object returned from commandLineArgs
      */
     private fun logCustomCLArgs(mainParameters: Set<Parameter>): String {
-        var code = StringJoiner("\n")
+        val code = StringJoiner("\n")
         for (parameter in mainParameters) {
             // We can't allow the programmer's parameter names
             // to cause the generation of variables with a "__" prefix
@@ -129,17 +120,17 @@ class TSParameterGenerator(
         return code.toString()
     }
 
-    fun generatePrameters(): Pair<Set<Parameter>, String> {
+    fun generateParameters(): Pair<Set<Parameter>, String> {
         /**
          * Set of parameters (AST elements) associated with the main reactor.
          */
-        var mainParameters = HashSet<Parameter>()
+        val mainParameters = HashSet<Parameter>()
 
         // Build the argument spec for commandLineArgs and commandLineUsage
-        var customArgs = StringJoiner(",\n")
+        val customArgs = StringJoiner(",\n")
 
         // Extend the return type for commandLineArgs
-        var clTypeExtension = StringJoiner(", ")
+        val clTypeExtension = StringJoiner(", ")
 
         for (parameter in getParameters()) {
             var customArgType: String? = null
@@ -163,9 +154,9 @@ class TSParameterGenerator(
             }
             // Otherwise don't add the parameter to customCLArgs
 
-            if (customArgType !== null) {
+            if (customArgType != null) {
                 clTypeExtension.add(parameter.name + ": " + paramType)
-                if (customTypeLabel !== null) {
+                if (customTypeLabel != null) {
                     customArgs.add(with(PrependOperator) {"""
                     |{
                     |    name: '${parameter.name}',
@@ -184,8 +175,8 @@ class TSParameterGenerator(
             }
         }
 
-        var customArgsList = "[\n" + customArgs + "]"
-        var clTypeExtensionDef = "{" + clTypeExtension + "}"
+        val customArgsList = "[\n$customArgs]"
+        val clTypeExtensionDef = "{$clTypeExtension}"
 
         val codeText = with(PrependOperator) {"""
             |// ************* App Parameters
