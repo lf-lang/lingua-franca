@@ -5,50 +5,122 @@
  * @author Hannes Klein
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D numWorkers=20
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'numWorkers' in globals():
-    numWorkers = int(numWorkers)
-  else:
-    globals()['numWorkers'] = 20
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// numWorkers = {numWorkers}')
-]]] */
-// Generated file with the following parameters:
-// numWorkers = 20
-// [[[end]]]
-
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "MatMul.cmake"
+    logging: "info"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor Master(numWorkers:int(20), dataLength:int(1024)) {
+public preamble {=
+    #include <deque>
+    #include <cmath>
+    
+    using Matrix = std::vector<std::vector<double>>;
+    
+    struct WorkItem {
+		size_t srA; // srA = start row in matrix A
+		size_t scA; // scA = start column in matrix A
+		size_t srB;
+		size_t scB;
+		size_t srC;
+		size_t scC;
+		size_t numBlocks; // total number of elements per block in both dimensions
+		size_t dim; // number of elements in one dimension in one block
+    };
+=}
+
+reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
+    state A: Matrix(dataLength, {=std::vector<double>(dataLength)=});
+    state B: Matrix(dataLength, {=std::vector<double>(dataLength)=});
+    state C: Matrix;
+    
+    state workQueue: std::deque<{=reactor::ImmutableValuePtr<WorkItem>=}>;
+    
+    logical action next;
+    logical action done;
+    
+    input start: void;
+    output finished: void;
+    
+    output data: {=std::tuple<const Matrix*, const Matrix*, Matrix*>=};
+    output[numWorkers] doWork: WorkItem;
+    input[numWorkers] moreWork: {=std::array<reactor::ImmutableValuePtr<WorkItem>, 8>=};
+   
+    reaction (startup) {=
+        // Fill both input arrays with data
+        for (size_t i{0}; i < dataLength; ++i) {
+            for (size_t j{0}; j < dataLength; ++j) {
+				A[i][j] = i;
+        		B[i][j] = j;
+			}
+        }
+    =}
+    
+    reaction (start) -> data, next {=
+        // reset the result matrix C
+        C = std::vector<std::vector<double>>(dataLength, std::vector<double>(dataLength));
+
+        // send pointers to all 3 matrixes to the workers
+        data.set(std::make_tuple(&A, &B, &C));
+        
+        // produce the first work item, instructing the worker to multiply the complete matrix
+        size_t numBlocks = dataLength * dataLength;
+        auto item = reactor::make_immutable_value<WorkItem>(WorkItem{0, 0, 0, 0, 0, 0, numBlocks, dataLength});
+        workQueue.emplace_back(std::move(item));
+        // and start the first iteration
+        next.schedule();
+    =}
+    
+    reaction (next) -> next, done, doWork {=
+        if (workQueue.empty()) {
+            // we are done if there is no more work
+            done.schedule();
+        } else {
+            // send a work item to each worker (until there is no more work)
+            for (size_t i{0}; i < numWorkers && !workQueue.empty(); i++) {
+                doWork[i].set(workQueue.front());
+                workQueue.pop_front();
+            }
+            // and schedule the next iteration
+            next.schedule();
+        }
+    =}
+    
+    reaction (moreWork) {=
+        // append all work items received from the workers to the internal work queue
+        for (const auto& port : moreWork) {
+            if (port.is_present()) {
+                const auto& items = *port.get();
+                if (!items.empty()) {
+                	workQueue.insert(workQueue.end(), items.begin(), items.end());
+               	}
+            }
+        }
+    =}
+    
+    reaction (done) -> finished {=
+        bool valid = isValid();
+        reactor::log::Info() << std::boolalpha << "Result valid = " << valid << std::noboolalpha;
+        finished.set();
+    =}
+    
+    method isValid(): bool {=
+        for (size_t i{0}; i < dataLength; i++) {
+		    for (size_t j{0}; j < dataLength; j++) {
+			    double actual = C[i][j];
+			    double expected = 1.0 * dataLength * i * j;
+		        if (fabs(actual-expected) > 0.0001) { // allow some rounding errors
+			        reactor::log::Info() << "Validation failed for (i,j)=" << i << "," << j << " with (" << actual << "," << expected << ")";
+			        return false;    
+			    }
+			}
+		}
+		return true;
+    =}
+}
+
+/*reactor Master(numWorkers:int(20), dataLength:int(1024)) {
     
     public preamble {=
         #include "MatMulCommon.hh"
@@ -60,9 +132,6 @@ reactor Master(numWorkers:int(20), dataLength:int(1024)) {
     state numWorkersTerminated:int(0);
     state numWorkSent:int(0);
     state numWorkCompleted:int(0);
-    /* [[[cog
-      cog.outl(f'state workersWorking:{{=std::bitset<{numWorkers}>=}};')
-    ]]] */
     state workersWorking:{=std::bitset<20>=};
     // [[[end]]]
     state workList:{=std::list<WorkMessage>=};
@@ -75,12 +144,6 @@ reactor Master(numWorkers:int(20), dataLength:int(1024)) {
     input inCleanupIterationStart:void;
     output outCleanupIterationFinished:void;
     
-    /* [[[cog
-      cog.outl(f'output[{numWorkers}] outWorkersWork:{{=WorkMessage=}};')
-      cog.outl(f'input[{numWorkers}] inWorkersWork:{{=std::list<WorkMessage>=}};')
-      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
-      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
-    ]]] */
     output[20] outWorkersWork:{=WorkMessage=};
     input[20] inWorkersWork:{=std::list<WorkMessage>=};
     output[20] outWorkers:{=Message=};
@@ -302,46 +365,17 @@ reactor Worker(instance:int(0), threshold:int(16384)) {
             sendStop.schedule();
         }
     =}
-}
+}*/
 
-main reactor (numIterations:int(12), dataLength:int(1024), blockThreshold:int(16384), priorities:int(10)) {
+main reactor (numIterations: size_t{12}, dataLength: size_t{1024}, blockThreshold: size_t{16384}, priorities:size_t{10}, numWorkers: size_t{20}) {
     
-    /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers}, dataLength=dataLength);')
-    ]]] */
-    master = new Master(numWorkers=20, dataLength=dataLength);
-    // [[[end]]]
-    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    manager = new Manager(numWorkers=numWorkers, dataLength=dataLength);
     
-    runner.outInitializeStart -> master.inInitializeStart;
-    master.outInitializeFinished -> runner.inInitializeFinish;
-    
-    runner.outCleanupIterationStart -> master.inCleanupIterationStart;
-    master.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
-    
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
-    
-    reaction(startup) -> runner.inStart {=
-        
+    reaction(startup) -> runner.inStart {=        
         printBenchmarkInfo("MatMulBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "dataLength", dataLength, "blockThreshold", blockThreshold, "priorities", priorities, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "dataLength", dataLength, "blockThreshold", blockThreshold, "priorities", priorities, "numWorkers", 20);
-        /// [[[end]]]
+        printArgs("numIterations", numIterations, "dataLength", dataLength, "blockThreshold", blockThreshold, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
         runner.inStart.set();
     =}
-    
-    /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker();')
-    ]]] */
-    workers = new[20] Worker();
-    // [[[end]]]
-    
-    workers.outMaster -> master.inWorkers;
-    workers.outWork -> master.inWorkersWork;
-    master.outWorkers -> workers.inMaster;
-    master.outWorkersWork -> workers.inWork;
 }
