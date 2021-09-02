@@ -24,10 +24,10 @@ preamble {=
 import glob
 import os
 try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob("../carla/dist/carla-*%d.%d-%s.egg" % (
         sys.version_info.major,
         sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+        "win-amd64" if os.name == "nt" else "linux-x86_64"))[0])
 except IndexError:
     pass
     
@@ -45,13 +45,13 @@ reactor Carla (
     vehicle_name(""), 
     initial_speeds({=[]=}),
     initial_speed({=carla.Vector3D(x = 12.0)=}), 
-    vehicle_type('vehicle.tesla.model3'),
+    vehicle_type("vehicle.tesla.model3"),
     positions({=[]=}),
     spawn_point({= { \
-        'x': -122.0, \
-        'y': 39.6, \
-        'z': 0.3, \
-        'yaw': -90.0}
+        "x": -122.0, \
+        "y": 39.6, \
+        "z": 0.3, \
+        "yaw": -90.0}
     =})
 ) {
     preamble {=
@@ -80,30 +80,30 @@ reactor Carla (
         sensors_bp = {}
         sensors = {}
         sensors_to_spawn = { \
-            'gps': 'sensor.other.gnss', \
-            'imu': 'sensor.other.imu'
+            "gps": "sensor.other.gnss", \
+            "imu": "sensor.other.imu"
         }
         
         spawn_point = self.spawn_point(self)
         # Spawn the vehicle        
         vehicle_bp = blueprint_library.find(self.vehicle_type)
         transform = carla.Transform(carla.Location( \
-                x = spawn_point['x'], \
-                y = spawn_point['y'], \
-                z = spawn_point['z'] \
-                ), carla.Rotation(yaw = spawn_point['yaw']))
+                x = spawn_point["x"], \
+                y = spawn_point["y"], \
+                z = spawn_point["z"] \
+                ), carla.Rotation(yaw = spawn_point["yaw"]))
         self.vehicle = self.world.spawn_actor(vehicle_bp, transform)
         
         for key in sensors_to_spawn.keys():
             sensors_bp[key] =  blueprint_library.find(sensors_to_spawn[key])
-            if key == 'gps':
+            if key == "gps":
                 # Spawn the GPS sensor that is attached to the vehicle        
                 relative_transform = carla.Transform(carla.Location( \
                         x = 1.0, \
                         y = 0.0, \
                         z = 2.0), carla.Rotation())
             
-            elif key == 'imu':
+            elif key == "imu":
                 # Spawn the imu unit
                 relative_transform = carla.Transform(carla.Location( \
                         x = 2.0, \
@@ -119,7 +119,7 @@ reactor Carla (
                 attachment_type=carla.AttachmentType.Rigid \
             )
         
-        self.gps = sensors['gps']
+        self.gps = sensors["gps"]
         self.gps_queue = queue.Queue()
         self.gps.listen(self.gps_queue.put)
         
@@ -179,11 +179,11 @@ reactor Ticker (interval(16 msec)){
     state client;
     state world;
     reaction(startup) -> world {=
-        self.client=carla.Client('localhost', 2000)
+        self.client=carla.Client("localhost", 2000)
         self.client.set_timeout(10.0) # seconds
         
         # Set the world to town 5
-        self.world = self.client.load_world('Town05')
+        self.world = self.client.load_world("Town05")
         
         settings = self.world.get_settings()
         settings.fixed_delta_seconds =  self.interval / SEC(1) 
@@ -225,25 +225,25 @@ reactor Ticker (interval(16 msec)){
 main reactor (
     num_entries(4),
     positions({= [{   \
-        'x': -122.0,  \
-        'y': 39.6,    \
-        'z': 0.3,     \
-        'yaw': -90.0, \
+        "x": -122.0,  \
+        "y": 39.6,    \
+        "z": 0.3,     \
+        "yaw": -90.0, \
         }, {          \
-        'x': -177.77, \
-        'y': 6.48,    \
-        'z': 0.3,     \
-        'yaw': 0.0    \
+        "x": -177.77, \
+        "y": 6.48,    \
+        "z": 0.3,     \
+        "yaw": 0.0    \
         }, {          \
-        'x': -132.77, \
-        'y': -40,     \
-        'z': 0.3,     \
-        'yaw': 90.0   \
+        "x": -132.77, \
+        "y": -40,     \
+        "z": 0.3,     \
+        "yaw": 90.0   \
         }, {          \
-        'x': -80.77,  \
-        'y': -4.5,    \
-        'z': 0.3,     \
-        'yaw': 180.0} \
+        "x": -80.77,  \
+        "y": -4.5,    \
+        "z": 0.3,     \
+        "yaw": 180.0} \
         ]=}),
       initial_speeds({= \
         [ \
