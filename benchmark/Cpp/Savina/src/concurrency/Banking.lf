@@ -113,9 +113,9 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
 
         // reset all accounts
         for (auto& r : reset)
-        	r.set();
+            r.set();
 
-		generateWork();
+        generateWork();
                 
         // start execution
         next.schedule();
@@ -126,7 +126,7 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
         bool work_found{false};
         for (size_t i{0}; i < numAccounts; i++) {
             auto& queue = messageQueues[i];
-			if (!queue.empty()) {
+            if (!queue.empty()) {
                 work_found = true;
                 const auto& message = queue.front();  
                 credit[message.recipient].set(message);
@@ -140,16 +140,16 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
             reactor::log::Info() << "Teller: Finished iteration";
             finished.set();
         }
-	=}
+    =}
 }
 
 reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:double(0.0)) {
     state balance: double{0.0};
     
-	input reset: void; 
+    input reset: void; 
     input inCredit: CreditMessage;
    
-   	input[numAccounts] inDebit: double; 
+    input[numAccounts] inDebit: double; 
     output[numAccounts] outDebit: double;
        
     reaction (reset) {=
@@ -170,9 +170,9 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:d
         for (auto& port : inDebit) {
             if (port.is_present()) {
                 double amount = *port.get();
-				// increase the balance
-        		balance += amount;
-        		reactor::log::Info() << "Account " << bank_index << " received " << amount;                
+                // increase the balance
+                balance += amount;
+                reactor::log::Info() << "Account " << bank_index << " received " << amount;                
             }
         }
     =}

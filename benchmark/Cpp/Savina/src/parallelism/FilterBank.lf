@@ -298,7 +298,7 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     
     reaction(startup) -> banks.setF, banks.setH {=
         // initialize the coefficients of all FIR filters
-    	auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
+        auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
         auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
 
         for(size_t j{0}; j < numChannels; ++j) {

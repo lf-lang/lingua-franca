@@ -46,8 +46,8 @@ public preamble {=
     #include <deque>
     
     struct WorkItem {
-	    std::vector<size_t> data;
-	    size_t depth;
+        std::vector<size_t> data;
+        size_t depth;
     };
     using ImmutableWorkItem = reactor::ImmutableValuePtr<WorkItem>;
     using MutableWorkItem = reactor::MutableValuePtr<WorkItem>;
@@ -153,8 +153,8 @@ reactor Manager(numWorkers: size_t{20}, solutionsLimit: size_t{1500000}, size: s
             if (port.is_present()) {
                 const auto& items = *port.get();
                 if (!items.empty()) {
-                	workQueue.insert(workQueue.end(), items.begin(), items.end());
-               	}
+                    workQueue.insert(workQueue.end(), items.begin(), items.end());
+                }
             }
         }
     =}
@@ -191,10 +191,10 @@ reactor Worker(bank_index: size_t{0}, size: size_t{12}, threshold: size_t{4}) {
         } else {
             // Otherwise, if depth is less than the threshold, the worker splits up the workload and
             // produces new work items.
-		    size_t newDepth = depth + 1;
-		    // prepare a mutable work queue to be sent later
-		    auto workQueue = reactor::make_mutable_value<WorkQueue>();
-		    for (size_t i{0}; i < size; i++) {
+            size_t newDepth = depth + 1;
+            // prepare a mutable work queue to be sent later
+            auto workQueue = reactor::make_mutable_value<WorkQueue>();
+            for (size_t i{0}; i < size; i++) {
                 // prepare a mutable work item
                 auto item = reactor::make_mutable_value<WorkItem>(WorkItem{std::vector<size_t>(newDepth, 0), newDepth});
                 auto& b = item->data;
@@ -204,53 +204,53 @@ reactor Worker(bank_index: size_t{0}, size: size_t{12}, threshold: size_t{4}) {
                 
                 // add the item to the list if is valid
                 if(boardValid(newDepth, b)) {
-		            workQueue->push_back(ImmutableWorkItem{std::move(item)});
-		        }
-		    }
-		    if (!workQueue->empty()) {
+                    workQueue->push_back(ImmutableWorkItem{std::move(item)});
+                }
+            }
+            if (!workQueue->empty()) {
                 moreWork.set(std::move(workQueue));
-		    }   
-		}
+            }   
+        }
     =}
     
     // check if the board is valid
     const method boardValid(n: size_t, a: {=const std::vector<size_t>&=}): bool {=
-	    size_t p{0};
-	    size_t q{0};
+        size_t p{0};
+        size_t q{0};
 
-	    for(size_t i{0}; i < n; ++i) {
-			p = a[i];
-			for(size_t j{i + 1}; j < n; ++j) {
-				q = a[j];
-				if(q == p || q == p - (j - i) || q == p + (j - i)) {
-					return false;
-				}
-			}
-		}
-		return true;
-	=}
-	
-	// Searches for results recursively and returns the number of found solutions.
-	const method nqueensKernelSeq(a: {=const std::vector<size_t>&=}, depth: size_t, size: size_t): size_t {=
-		if(size == depth) {
-			return 1;
-		}
-	
-		size_t numberOfSolutionsFound{0};
-		std::vector<size_t> b;
-		b.reserve(depth + 1);
-	
-		size_t i{0};
-		while(i < size) {
-			b.insert(begin(b), begin(a), begin(a) + depth);
-			b[depth] = i;
-			if(boardValid(depth + 1, b)) {
-				numberOfSolutionsFound += nqueensKernelSeq(b, depth + 1, size);
-			}
-			i += 1;
-		}
-		return numberOfSolutionsFound;
-	=}
+        for(size_t i{0}; i < n; ++i) {
+            p = a[i];
+            for(size_t j{i + 1}; j < n; ++j) {
+                q = a[j];
+                if(q == p || q == p - (j - i) || q == p + (j - i)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    =}
+    
+    // Searches for results recursively and returns the number of found solutions.
+    const method nqueensKernelSeq(a: {=const std::vector<size_t>&=}, depth: size_t, size: size_t): size_t {=
+        if(size == depth) {
+            return 1;
+        }
+    
+        size_t numberOfSolutionsFound{0};
+        std::vector<size_t> b;
+        b.reserve(depth + 1);
+    
+        size_t i{0};
+        while(i < size) {
+            b.insert(begin(b), begin(a), begin(a) + depth);
+            b[depth] = i;
+            if(boardValid(depth + 1, b)) {
+                numberOfSolutionsFound += nqueensKernelSeq(b, depth + 1, size);
+            }
+            i += 1;
+        }
+        return numberOfSolutionsFound;
+    =}
 }
 
 main reactor (

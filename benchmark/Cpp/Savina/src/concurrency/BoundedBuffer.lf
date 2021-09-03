@@ -96,7 +96,7 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
         size_t consumer_id{0};
         size_t activatedProducers{0};
         while(!pendingData.empty() && consumer_id < numConsumers) {
-			if (consumerAvailable[consumer_id].is_present()) {
+            if (consumerAvailable[consumer_id].is_present()) {
                 consumerData[consumer_id].set(pendingData.front());
                 pendingData.pop_front();
                 // tell a producer to create a new data item for the next round
@@ -104,7 +104,7 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
                     producerCommand[producer_id].set();
                     producer_id = (producer_id + 1) % numProducers;
                     activatedProducers++;
-               	}
+                }
             }
             consumer_id++;
         }
@@ -114,7 +114,7 @@ reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numCons
     reaction(producerData) {=
         for (const auto& data : producerData) {
             if (data.is_present()) {
-            	pendingData.push_back(*data.get());
+                pendingData.push_back(*data.get());
             }
         }
     =}
@@ -153,10 +153,10 @@ reactor ProducerReactor(bank_index: size_t{0}, numItemsToProduce: size_t{1000}, 
         prodItem = processItem(prodItem, prodCost);
         reactor::log::Info() << "Producer " << bank_index << ": producing item "
                              << itemsProduced << " (" << prodItem << ')';
-    	data.set(prodItem);
-    	itemsProduced++;
-    	
-    	if (itemsProduced == numItemsToProduce) {
+        data.set(prodItem);
+        itemsProduced++;
+        
+        if (itemsProduced == numItemsToProduce) {
             finished.set();
         }
     =}
