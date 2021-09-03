@@ -2,7 +2,7 @@
 name: "Big"
 params:
   messages: 20000
-  actors: 50
+  actors: 120
 
 # target specific configuration
 targets:
