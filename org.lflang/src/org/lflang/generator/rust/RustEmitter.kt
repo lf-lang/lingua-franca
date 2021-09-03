@@ -178,10 +178,8 @@ ${"             |            "..syntheticTimerReactions(reactor)}
                 |        }
                 |    }
                 |
-                |    fn cleanup_tag(&mut self, ctx: ReactionCtx) {
-                |        // todo:
-                |        // - clear ports
-                |        // - clear actions
+                |    fn cleanup_tag(&mut self, ctx: &CleanupCtx) {
+${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn() }
                 |    }
                 |    
                 |    fn enqueue_startup(&self, ctx: &mut StartupCtx) {
@@ -507,6 +505,12 @@ private object ReactorComponentEmitter {
         is PortData   -> "Port::labeled(\"$lfName\")"
     }
 
+    fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
+        is ActionData -> "ctx.cleanup_action(&mut self.$rustFieldName);"
+        is PortData   -> "ctx.cleanup_port(&mut self.$rustFieldName);"
+        is TimerData  -> null
+    }
+
 
     fun ReactorComponent.toStructField(): TargetCode {
         val fieldVisibility = if (this is PortData) "pub " else ""
@@ -574,6 +578,9 @@ private fun generatedByComment(delim: String) =
 private fun TargetCode?.toRustOption(): TargetCode =
     if (this == null) "None"
     else "Some($this)"
+
+private fun Iterable<CharSequence>.joinLn(): String =
+    joinToString("\n")
 
 private fun <T> Iterable<T>.joinWithCommas(
     prefix: CharSequence = "",
