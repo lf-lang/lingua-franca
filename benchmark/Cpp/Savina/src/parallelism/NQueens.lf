@@ -23,7 +23,7 @@
  * This benchmark is very similar to the A* (GuidedSearch) benchmark. An
  * important difference of this LF implementation compared to the Akka
  * implementation is the handling of messages send back from the workers to the
- * master. In the Akka implementation, each work item produced by the workers is
+ * manager. In the Akka implementation, each work item produced by the workers is
  * send as an individual message. This is not easily possible as each port in LF
  * is limited to a single value per tag. Thus, we accumulate multiple work items
  * in a single list, and send this list back to the manager. An alternative
