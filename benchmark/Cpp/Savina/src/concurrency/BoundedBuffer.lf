@@ -21,7 +21,7 @@
 target Cpp {
     build-type : RelWithDebInfo,
     cmake-include: "../IncludeHeaders.cmake",
-    logging: "info"
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
