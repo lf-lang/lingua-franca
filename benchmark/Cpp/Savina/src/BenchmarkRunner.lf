@@ -1,67 +1,42 @@
 target Cpp;
 
 /**
- * Reactor that starts the kernel of a benchmark, measures its runtime and outputs
- * the results for a given number of iterations.
+ * A reactor that manages the execution of a benchmark. It triggers multiple
+ * iterations of a benchmark, measures the execution time of each iteration, and prints
+ * a summary of all results.
  * 
- * This reactor is instantiated by the main reactor of a benchmark and
- * the startup reaction of this reactor is the starting point for that benchmark.
- * The reactor runs a given number of iterations of the benchmark, measures
- * the runtime of each iteration and outputs them. The benchmark itself is responsible
- * to reset its state between the iterations.
- * A benchmark can have an optional initialization phase that is run once before
- * the first iteration and is not measured.
- * A benchmark can have an optional cleanup phase after each iteration before
- * the next iteration start which is not considered in the runtime measurement.
+ * This reactor should be instantiated by the main reactor of each benchmark.
+ * To indicate the start of an iteration, the BenchmarkRunner sets the `start` port.
+ * The benchmark should then start its operation and report when its finished by 
+ * setting the `finished` port of the BenchmarkRunner. This will trigger a recording
+ * of the total execution time for the benchmark. The BenchmarkRunner will then start
+ * a new iteration by setting `start` again.
  * 
- * How to use:
- * - Instantiate this reactor in the main reactor of the benchmark.
- * - Connect the ports inStart, outIterationStart, inIterationFinish with
- *   the appropriate reactors of the benchmark.
- * - Optionally connect the ports for initialization and cleanup.
- * - Create a startup reaction in the main reactor that calls printBenchmarkInfo(),
+ * The benchmark runner further defines a few functions that are useful for printing
+ * additional information about a benchmark and the precise parameters used.
  * 
- * Prototype startup reaction in the main reactor of a benchmark:
+ * For example, the starup reaction of a benchmark could look like this:
  *     runner = new BenchmarkRunner(numIterations=numIterations);
- *     reaction(startup) -> runner.inStart {=
+ *     reaction(startup)  {=
  *         printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
  *         printArgs("numIterations", numIterations, "numPings", numPings);
  *         printSystemInfo();
- *         runner.inStart.set();
  *     =}
  * 
- * @param numIterations How many times to execute the kernel of the benchmark to measure.
- * @param useInit Benchmarks needs initialization and handles the corresponding signals.
- * @param useCleanupIteration Benchmark needs cleanup after each iteration and handles the corresponding signals.
- * 
  * @author Hannes Klein
+ * @autho Christian Menard
  */
-reactor BenchmarkRunner(numIterations:size_t(12), useInit:bool(false), useCleanupIteration:bool(false)) {
+reactor BenchmarkRunner(numIterations:size_t(12)) {
     
     private preamble {=
         #include <algorithm>
     =}
+
+    output start: void;
+    input finished :void;    
     
-    /** Signal to start execution. Set this input from a startup reaction in the main reactor. */
-    input inStart:void;
-    
-    /** Signals for starting and finishing the kernel and runtime measurement. */
-    output outIterationStart:void;
-    input inIterationFinish:void;
-    
-    /** Signals for initializations that are not part of the measured kernel. */
-    output outInitializeStart:void;
-    input inInitializeFinish:void;
-    
-    /** Signals for cleanup operations after each iteration of the kernel. */
-    output outCleanupIterationStart:void;
-    input inCleanupIterationFinish:void;
-    
-    /** Events to switch between the phases of running the iterations. */
-    logical action initBenchmark:void;
-    logical action cleanupIteration:void;
-    logical action nextIteration:void;
-    logical action finish:void;
+    logical action nextIteration;
+    logical action done;
     
     /** Number of iterations already executed. */
     state count:size_t(0);
@@ -71,47 +46,20 @@ reactor BenchmarkRunner(numIterations:size_t(12), useInit:bool(false), useCleanu
     state measuredTimes:{=std::vector<reactor::Duration>=};
     
     
-    reaction(startup) {=
+    reaction(startup) -> nextIteration {=
         // initializations
         measuredTimes = std::vector<reactor::Duration>( static_cast<std::vector<reactor::Duration>::size_type>(numIterations) );
-    =}
-    
-    reaction(inStart) -> nextIteration, initBenchmark {=
-        
-        if(useInit) {
-            initBenchmark.schedule();
-        } else {
-            nextIteration.schedule();
-        }
-    =}
-    
-    reaction(initBenchmark) -> outInitializeStart {=
-        outInitializeStart.set();
-    =}
-    
-    reaction(inInitializeFinish) -> nextIteration {=
+        // start the first iteration
         nextIteration.schedule();
     =}
-    
-    reaction(cleanupIteration) -> outCleanupIterationStart {=
-        outCleanupIterationStart.set();
-    =}
-    
-    reaction(inCleanupIterationFinish) -> nextIteration {=
-        nextIteration.schedule();
-    =}
-    
-    reaction(nextIteration) -> outIterationStart, finish {=
         
-        if (count < numIterations) { 
-            startTime = get_physical_time();
-            outIterationStart.set();
-        } else {
-            finish.schedule();
-        }
+    reaction(nextIteration) -> start {= 
+        startTime = get_physical_time();
+        count++;
+        start.set();
     =}
     
-    reaction(inIterationFinish) -> nextIteration, cleanupIteration {=
+    reaction(finished) -> nextIteration, done {=
         
         auto end_time = get_physical_time();
         auto duration = end_time - startTime;
@@ -121,15 +69,14 @@ reactor BenchmarkRunner(numIterations:size_t(12), useInit:bool(false), useCleanu
         auto duration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(duration);
         std::cout << "Iteration " << count << " - " << duration_ms.count() << " ms\n";
         
-        if(useCleanupIteration) {
-            cleanupIteration.schedule();
-        } else {
+        if (count < numIterations) {
             nextIteration.schedule();
+        } else {
+            done.schedule();
         }
     =}
     
-    reaction(finish) {=
-        
+    reaction(done) {=
         std::vector<double> measuredMillis;
         for(auto& t: measuredTimes) {
             measuredMillis.push_back(std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(t).count());
