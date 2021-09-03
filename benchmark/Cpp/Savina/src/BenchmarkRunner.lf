@@ -64,7 +64,6 @@ reactor BenchmarkRunner(numIterations:size_t(12)) {
         auto end_time = get_physical_time();
         auto duration = end_time - startTime;
         measuredTimes[count] = duration;
-        count += 1;
         
         auto duration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(duration);
         std::cout << "Iteration " << count << " - " << duration_ms.count() << " ms\n";
