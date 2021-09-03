@@ -26,7 +26,7 @@
  * the manager, which then forwards one of these nodes to each of the workers to
  * start a searches from these nodes.
  *
- * The use of a list for sending nodes back from the workers to the master is a
+ * The use of a list for sending nodes back from the workers to the manager is a
  * noteworthy difference between our implementation and the Savina suite. In the
  * Akka implementation, each node is send as an individual message. However, in
  * LF, we cannot send multiple messages at the same tag, and introducing a delay
