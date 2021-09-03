@@ -142,15 +142,14 @@ main reactor (numIterations: size_t{12}, precision: size_t{5000}, numWorkers: si
     runner = new BenchmarkRunner(numIterations=numIterations);
     workers = new[numWorkers] Worker();
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("PiPrecisionBenchmark");
         printArgs("numIterations", numIterations, "precision", precision, "numWorkers", numWorkers);   
         printSystemInfo();
-        runner.inStart.set();
     =}
     
-    runner.outIterationStart -> manager.start;
-    manager.finished -> runner.inIterationFinish;
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
 
     manager.doWork -> workers.doWork;
     workers.response -> manager.response;

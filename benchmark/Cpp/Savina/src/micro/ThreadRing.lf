@@ -128,16 +128,14 @@ main reactor (numIterations:int(12), numPings:int(100000), numReactors:size_t(10
     init = new Initializer(numReactors=numReactors, numPings=numPings);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> init.inStart;
-    init.outFinished -> runner.inIterationFinish;
+    runner.start -> init.inStart;
+    init.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("ThreadRingBenchmark");
         printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", numReactors);
         printSystemInfo();
-        runner.inStart.set();
     =}
-    
     
     loopOpener = new ThreadRingReactorLoopOpener();
 

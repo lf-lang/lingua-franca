@@ -264,14 +264,13 @@ main reactor (numIterations:int(12), numMeetings:int(200000), numChameneos:size_
     mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=numChameneos);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> mall.inStart;
-    mall.outFinished -> runner.inIterationFinish;
+    runner.start -> mall.inStart;
+    mall.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("ChameneosReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "numMeetings", numMeetings, "numChameneos", numChameneos);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     chameneos = new[numChameneos] ChameneosChameneoReactor(numChameneos=numChameneos);

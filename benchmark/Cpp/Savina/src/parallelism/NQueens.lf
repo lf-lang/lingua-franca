@@ -263,16 +263,15 @@ main reactor (
     runner = new BenchmarkRunner(numIterations=numIterations);
     workers = new[numWorkers] Worker(size=size, threshold=threshold);
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("NQueensKSolutionsBenchmark");
         printArgs("numIterations", numIterations, "size", size, "threshold", threshold, 
                   "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
 
-    runner.outIterationStart -> manager.start;
-    manager.finished -> runner.inIterationFinish;
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
     
     manager.doWork -> workers.doWork;
     workers.solutionsFound -> manager.solutionsFound;

@@ -133,17 +133,16 @@ main reactor (numIterations:size_t(12), numRounds:size_t(1000), numSmokers:size_
     arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=numSmokers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> arbiter.inStart;
-    arbiter.outFinished -> runner.inIterationFinish;
+    runner.start -> arbiter.inStart;
+    arbiter.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         // based on the Savina implementation:
         srand(time(NULL));
         
         printBenchmarkInfo("CigaretteSmokerReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", numSmokers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     smokers = new[numSmokers] SmokerReactor();

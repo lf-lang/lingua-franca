@@ -204,15 +204,14 @@ main reactor (numIterations: size_t{12}, dataLength: size_t{1024}, blockThreshol
     manager = new Manager(numWorkers=numWorkers, dataLength=dataLength);
     workers = new[numWorkers] Worker(threshold=blockThreshold) 
     
-    reaction(startup) -> runner.inStart {=        
+    reaction(startup) {=        
         printBenchmarkInfo("MatMulBenchmark");
         printArgs("numIterations", numIterations, "dataLength", dataLength, "blockThreshold", blockThreshold, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
-    runner.outIterationStart -> manager.start;
-    manager.finished -> runner.inIterationFinish;
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
     
     (manager.data)+ -> workers.data;
     manager.doWork -> workers.doWork;

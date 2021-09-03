@@ -103,14 +103,13 @@ main reactor (numIterations:int(12), countTo:int(1000000)) {
     producer = new ProducerReactor(countTo = countTo);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> producer.inStartCounting;
-    producer.outFinishedCounting -> runner.inIterationFinish;
+    runner.start -> producer.inStartCounting;
+    producer.outFinishedCounting -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("CountingBenchmark");
         printArgs("numIterations", numIterations, "countTo", countTo);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     counter = new CountingReactor();

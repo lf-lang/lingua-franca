@@ -117,14 +117,13 @@ main reactor (numIterations:int(12), numMessagesPerReactor:int(10000), numWorker
     producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> producer.inStart;
-    producer.outFinished -> runner.inIterationFinish;
+    runner.start -> producer.inStart;
+    producer.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("ThroughputBenchmark");
         printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
@@ -132,5 +131,4 @@ main reactor (numIterations:int(12), numMessagesPerReactor:int(10000), numWorker
     producer.outMessage -> worker.inMessage;
     producer.outReset -> worker.inReset;
     worker.outFinished -> producer.inFinished;
-    
 }

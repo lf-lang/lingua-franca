@@ -198,15 +198,14 @@ main reactor (numIterations: size_t{12}, threshold: size_t{1024}, gridSize: size
     runner = new BenchmarkRunner(numIterations=numIterations);
     workers = new[numWorkers] Worker(threshold=threshold);
     
-    reaction(startup) -> runner.inStart {=       
+    reaction(startup) {=       
         printBenchmarkInfo("GuidedSearchBenchmark");
         printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
 
-    runner.outIterationStart -> manager.start;
-    manager.finished -> runner.inIterationFinish;
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
     
     manager.search -> workers.search;
     workers.pathFound -> manager.pathFound;

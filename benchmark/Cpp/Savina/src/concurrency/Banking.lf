@@ -182,16 +182,15 @@ main reactor (numIterations:size_t(12), numTransactions:size_t(50000), numAccoun
     teller = new Teller(numAccounts=numAccounts, numBankings=numTransactions);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> teller.start;
-    teller.finished -> runner.inIterationFinish;
+    runner.start -> teller.start;
+    teller.finished -> runner.finished;
     
     accounts = new[numAccounts] Account(numAccounts=numAccounts, initialBalance={=std::numeric_limits<double>::max() / (numAccounts * numTransactions)=});
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("BankingReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "numTransactions", numTransactions, "numAccounts", numAccounts, "initialBalance", std::numeric_limits<double>::max() / (numAccounts * numTransactions));
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     teller.credit -> accounts.inCredit;
