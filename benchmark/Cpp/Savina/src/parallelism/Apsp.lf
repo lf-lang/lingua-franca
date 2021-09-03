@@ -23,7 +23,9 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
 public preamble {=
-    using MatrixOfLong = std::vector<std::vector<long>>;
+    #include "Matrix.hh"
+    
+    using MatrixOfLong = Matrix<long>;
     using DataPtr = reactor::ImmutableValuePtr<MatrixOfLong>;
     using MutDataPtr = reactor::MutableValuePtr<MatrixOfLong>;
 =}
@@ -43,7 +45,7 @@ reactor ApspFloydWarshallBlock(
     state k: size_t{0}; // iteration counter
     state reportedFinish: bool {false};
 
-	  input start: MatrixOfLong;
+	input start: MatrixOfLong;
 
     input[dimension] fromRow: MatrixOfLong;
     input[dimension] fromCol: MatrixOfLong;
@@ -75,7 +77,7 @@ reactor ApspFloydWarshallBlock(
         }
         
         // perform computation
-        auto matrix = reactor::make_mutable_value<MatrixOfLong>(blockSize, std::vector<long>(blockSize, 0));
+        auto matrix = reactor::make_mutable_value<MatrixOfLong>(blockSize, blockSize);
         
         for(size_t i = 0; i < blockSize; i++) {
             for(size_t j = 0; j < blockSize; j++) {
@@ -83,7 +85,7 @@ reactor ApspFloydWarshallBlock(
                 int gj = colOffset + j;
                 
                 long result = getElementAt(gi, k, fromRow, fromCol) + getElementAt(k, gj, fromRow, fromCol);
-                (*matrix)[i][j] = std::min(getElementAt(gi, gj, fromRow, fromCol), result);
+                matrix->at(i, j) = std::min(getElementAt(gi, gj, fromRow, fromCol), result);
             }
         }
        
@@ -93,9 +95,9 @@ reactor ApspFloydWarshallBlock(
        if(k == graphSize) {
 			if(verbose && bank_index == 0 && row_index == 0) {
                 // debugging and result checking
-         		for(auto vec: *matrix) {
-            		for(auto lon: vec) {
-                		std::cout << lon << ' ';
+         		for(size_t i = 0; i < blockSize; i++) {
+                    for(size_t j = 0; j < blockSize; j++) {
+                		std::cout << matrix->at(i, j) << ' ';
                 	}
                 	std::cout << '\n';
                 }
@@ -109,12 +111,12 @@ reactor ApspFloydWarshallBlock(
 
     // Extract (copy) the data block that is relevant for this instance from the given matrix 
     const method extractDataFromMatrix(srcData: {=const DataPtr&=}): DataPtr {=
-        auto localData = reactor::make_mutable_value<MatrixOfLong>(std::vector(blockSize, std::vector<long>(blockSize, 0)));
+        auto localData = reactor::make_mutable_value<MatrixOfLong>(blockSize, blockSize);
         
         // FIXME memcpy should be much faster here, but on the other hand this is only done during initialization
         for(size_t i = 0; i < blockSize; i++) {
             for(size_t j = 0; j < blockSize; j++) {
-                (*localData)[i][j] = (*srcData)[rowOffset + i][colOffset + j];
+                localData->at(i, j) = srcData->at(rowOffset + i, colOffset + j);
             }
         }
         return DataPtr{std::move(localData)};
@@ -136,10 +138,10 @@ reactor ApspFloydWarshallBlock(
         
         if (destRow == row_index) {
             const auto& data = *rowPorts[destCol].get();
-            return data[localRow][localCol];
+            return data.at(localRow, localCol);
         } else if (destCol == bank_index) {
             const auto& data = *colPorts[destRow].get();
-            return data[localRow][localCol];
+            return data.at(localRow, localCol);
         } else {
             std::cerr << "Error: unexpected target location (" << destCol << ',' << destRow << ")\n";
             exit(2);
@@ -251,17 +253,15 @@ main reactor (
     private preamble {=  
         #include "PseudoRandom.hh"
         
-        MutDataPtr generateGraph(int N, int W) {
+        MutDataPtr generateGraph(size_t N, size_t W) {
             PseudoRandom random(N);
-            reactor::MutableValuePtr<MatrixOfLong> localData =
-                reactor::make_mutable_value<MatrixOfLong>(std::vector(N, std::vector<long>(N, 0)));
-            //MatrixOfLong localData(N, std::vector<long>(N, 0));
+            reactor::MutableValuePtr<MatrixOfLong> localData = reactor::make_mutable_value<MatrixOfLong>(N, N);
             
-            for(int i = 0; i < N; i++) {
-                for(int j = i+1; j < N; j++) {
+            for(size_t i{0}; i < N; i++) {
+                for(size_t j{i+1}; j < N; j++) {
                     int r = random.nextInt(W)+1;
-                    (*localData)[i][j] = r;
-                    (*localData)[j][i] = r;
+                    localData->at(i, j) = r;
+                    localData->at(j, i) = r;
                 }
             }
             
