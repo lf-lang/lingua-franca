@@ -1,4 +1,3 @@
-# @package _group_
 name: lf-c
 prepare: ["mkdir", "src"]
 copy: ["cp", "-r", "${benchmark.targets.lf-c.copy_sources}", "src"]
