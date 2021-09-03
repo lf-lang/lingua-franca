@@ -34,7 +34,7 @@ target Cpp {
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
-reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
+reactor IntSourceReactor(numValues: int(100000), maxValue: long({=1l << 60=}), seed: long(2048)) {
     
     public preamble {=
         #include "PseudoRandom.hh"
@@ -174,24 +174,22 @@ reactor ValidationReactor(numValues:int(100000)) {
     =}
 }
 
-main reactor (numIterations:int(12), dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) {
+main reactor (numIterations:int(12), dataSize:int(100000), maxValue: long({=1l << 60=}), seed: long({=2048l=})) {
     
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> source.inStart;
-    validator.outFinished -> runner.inIterationFinish;
+    runner.start -> source.inStart;
+    validator.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("RadixSortBenchmark");
         printArgs("numIterations", numIterations, "dataSize", dataSize, "maxValue", maxValue, "seed", seed);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     sorters = new[60] SortActor(numValues=dataSize);
 
     source.outNextSortReactor, sorters.outValue -> sorters.inValue, validator.inValue;
-    
 }

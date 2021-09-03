@@ -257,15 +257,14 @@ main reactor (numIterations:size_t(12), waitingRoomSize:size_t(1000), averagePro
     barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
     customers = new[numHaircuts] Customer();
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", numHaircuts);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
-    (runner.outIterationStart)+ -> factory.start, barber.reset, room.reset;
-    factory.finished -> runner.inIterationFinish;
+    (runner.start)+ -> factory.start, barber.reset, room.reset;
+    factory.finished -> runner.finished;
     
     factory.sendCustomer -> room.receiveCustomer;
     room.full -> customers.roomFull;

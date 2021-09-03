@@ -102,18 +102,17 @@ main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: dou
     manager = new Manager(numSeries=numSeries, numTerms=numTerms);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("LogisticMapReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "numTerms", numTerms, "startRate", startRate, "numSeries", numSeries);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
     seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
     
-    (runner.outIterationStart)+ -> manager.start, rateComputers.reset, seriesWorkers.reset;
-    manager.finished -> runner.inIterationFinish;
+    (runner.start)+ -> manager.start, rateComputers.reset, seriesWorkers.reset;
+    manager.finished -> runner.finished;
     
     (manager.nextTerm)+ -> seriesWorkers.nextTerm;
     (manager.getTerm)+ -> seriesWorkers.getTerm;

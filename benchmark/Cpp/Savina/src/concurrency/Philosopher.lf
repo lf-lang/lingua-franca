@@ -198,14 +198,13 @@ main reactor (numIterations:size_t(12), numEatingRounds:size_t(10000), numPhilos
     arbitrator = new ArbitratorReactor(numPhilosophers=numPhilosophers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> arbitrator.inStart;
-    arbitrator.outFinished -> runner.inIterationFinish;
+    runner.start -> arbitrator.inStart;
+    arbitrator.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("PhilosopherReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", numPhilosophers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     philosophers = new[numPhilosophers] PhilosopherReactor(rounds=numEatingRounds);

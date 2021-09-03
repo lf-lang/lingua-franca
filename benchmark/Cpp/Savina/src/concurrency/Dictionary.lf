@@ -170,15 +170,14 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{10000}, wr
     manager = new Manager(numWorkers=numWorkers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> manager.start;
-    manager.finished -> runner.inIterationFinish;
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("DictionaryReactorLFCppBenchmark");
         printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker,
                   "writePercentage", writePercentage, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     dict = new DictionaryImpl(numWorkers=numWorkers);

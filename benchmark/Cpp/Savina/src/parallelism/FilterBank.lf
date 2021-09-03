@@ -291,7 +291,7 @@ reactor Sink(printRate: size_t{100}) {
 
 main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColumns: size_t{16384}, numChannels: size_t{8}) {
     
-    reaction(startup) -> runner.inStart, banks.setF, banks.setH {=
+    reaction(startup) -> banks.setF, banks.setH {=
         // initialize the coefficients of all FIR filters
     	auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
         auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
@@ -316,7 +316,6 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
         printBenchmarkInfo("FilterBankBenchmark");
         printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", numChannels);
         printSystemInfo();
-        runner.inStart.set();
     =}
 
     runner = new BenchmarkRunner(numIterations=numIterations);    
@@ -326,7 +325,7 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     combine = new Combine(numChannels=numChannels);
     sink = new Sink(printRate=100);
     
-    runner.outIterationStart -> producer.start;
+    runner.start -> producer.start;
     
     producer.next -> source.next;
     producer.finished -> source.inFinished;
@@ -340,5 +339,5 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     combine.outValue -> sink.inValue;
     combine.outFinished -> sink.inFinished;
     
-    sink.outFinished -> runner.inIterationFinish;
+    sink.outFinished -> runner.finished;
 }

@@ -220,16 +220,15 @@ main reactor (
         verbose=verbose
     );
 	  
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("ApspBenchmark");
         printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "blockSize", blockSize);
         printSystemInfo();
-        runner.inStart.set();
         
         graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(numNodes, maxEdgeWeight));
     =}
     
-    reaction(runner.outIterationStart) -> matrix.start {=
+    reaction(runner.start) -> matrix.start {=
         // reset local state
         numBlocksFinished = 0;
 
@@ -237,7 +236,7 @@ main reactor (
         matrix.start.set(graphData);
 	=}
 
-	reaction (matrix.finished) -> runner.inIterationFinish {=
+	reaction (matrix.finished) -> runner.finished {=
         for (auto& f : matrix.finished) {
             if (f.is_present()) {
                 numBlocksFinished++;
@@ -245,7 +244,7 @@ main reactor (
         }
         size_t dimension = numNodes / blockSize;
         if (numBlocksFinished == dimension*dimension) {
-            runner.inIterationFinish.set();
+            runner.finished.set();
         }
     =}
 

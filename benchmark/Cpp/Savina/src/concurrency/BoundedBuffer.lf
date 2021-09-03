@@ -202,16 +202,15 @@ main reactor (
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    (runner.outIterationStart)+ -> manager.start, producers.reset, consumers.reset;
-    manager.finished -> runner.inIterationFinish;
+    (runner.start)+ -> manager.start, producers.reset, consumers.reset;
+    manager.finished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup){=
         printBenchmarkInfo("ProdConsBenchmark");
         printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost,
                   "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, 
                   "numProducers", numProducers, "numConsumers", numConsumers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);

@@ -328,16 +328,15 @@ main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, wri
     
     runner = new BenchmarkRunner(numIterations=numIterations);
         
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("SortedListBenchmark");
         printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker,
                   "writePercentage", writePercentage, "sizePercentage", sizePercentage, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
-    (runner.outIterationStart)+ -> manager.start, workers.doWork;
-    manager.finished -> runner.inIterationFinish;
+    (runner.start)+ -> manager.start, workers.doWork;
+    manager.finished -> runner.finished;
     manager.finished -> sortedList.printResult;
    
     workers.request -> sortedList.requests;

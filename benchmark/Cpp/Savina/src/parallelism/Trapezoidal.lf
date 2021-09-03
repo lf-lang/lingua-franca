@@ -126,14 +126,13 @@ main reactor (numIterations:int(12), numPieces:int(10000000), leftEndPoint:doubl
     master = new Master(numWorkers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
+    runner.start -> master.inStart;
+    master.outFinished -> runner.finished;
     
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("TrapezoidalBenchmark");
         printArgs("numIterations", numIterations, "numPieces", numPieces, "leftEndPoint", leftEndPoint, "rightEndPoint", rightEndPoint, "numWorkers", numWorkers);
         printSystemInfo();
-        runner.inStart.set();
     =}
     
     workers = new[numWorkers] Worker();
