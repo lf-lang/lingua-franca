@@ -40,7 +40,18 @@ public preamble {=
     #include <deque>
     #include <cmath>
     
-    using Matrix = std::vector<std::vector<double>>;
+    template<class T>
+    class Matrix {
+      private:
+        std::vector<T> data;
+        size_t size_y;
+
+      public:        
+        Matrix(size_t size_x, size_t size_y) : data(size_x * size_y), size_y(size_y) {}
+      
+        const T& at(size_t x, size_t y) const { return data[x*size_y+y]; }
+        T& at(size_t x, size_t y) { return data[x*size_y+y]; }
+    };
     
     struct WorkItem {
 		size_t srA; // srA = start row in matrix A
@@ -55,9 +66,9 @@ public preamble {=
 =}
 
 reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
-    state A: Matrix(dataLength, {=std::vector<double>(dataLength)=});
-    state B: Matrix(dataLength, {=std::vector<double>(dataLength)=});
-    state C: Matrix;
+    state A: Matrix<double>(dataLength, dataLength);
+    state B: Matrix<double>(dataLength, dataLength);
+    state C: Matrix<double>(dataLength, dataLength);
     
     state workQueue: std::deque<{=reactor::ImmutableValuePtr<WorkItem>=}>;
     
@@ -67,7 +78,7 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
     input start: void;
     output finished: void;
     
-    output data: {=std::tuple<const Matrix*, const Matrix*, Matrix*>=};
+    output data: {=std::tuple<const Matrix<double>*, const Matrix<double>*, Matrix<double>*>=};
     output[numWorkers] doWork: WorkItem;
     input[numWorkers] moreWork: {=std::array<reactor::ImmutableValuePtr<WorkItem>, 8>=};
    
@@ -75,15 +86,15 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
         // Fill both input arrays with data
         for (size_t i{0}; i < dataLength; ++i) {
             for (size_t j{0}; j < dataLength; ++j) {
-				A[i][j] = i;
-        		B[i][j] = j;
+				A.at(i, j) = i;
+        		B.at(i, j) = j;
 			}
         }
     =}
     
     reaction (start) -> data, next {=
         // reset the result matrix C
-        C = std::vector<std::vector<double>>(dataLength, std::vector<double>(dataLength));
+        C = Matrix<double>(dataLength, dataLength);
 
         // send pointers to all 3 matrixes to the workers
         data.set(std::make_tuple(&A, &B, &C));
@@ -132,7 +143,7 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
     const method isValid(): bool {=
         for (size_t i{0}; i < dataLength; i++) {
 		    for (size_t j{0}; j < dataLength; j++) {
-			    double actual = C[i][j];
+			    double actual = C.at(i, j);
 			    double expected = 1.0 * dataLength * i * j;
 		        if (fabs(actual-expected) > 0.0001) { // allow some rounding errors
 			        reactor::log::Info() << "Validation failed for (i,j)=" << i << "," << j << " with (" << actual << "," << expected << ")";
@@ -146,11 +157,11 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
 
 reactor Worker(threshold: size_t{16384}) {
 
-    state A: {=const Matrix*=};
-    state B: {=const Matrix*=};
-    state C: Matrix*;
+    state A: {=const Matrix<double>*=};
+    state B: {=const Matrix<double>*=};
+    state C: {=Matrix<double>*=};
     
-    input data: {=std::tuple<const Matrix*, const Matrix*, Matrix*>=};
+    input data: {=std::tuple<const Matrix<double>*, const Matrix<double>*, Matrix<double>*>=};
     input doWork: WorkItem;    
     output moreWork: {=std::array<reactor::ImmutableValuePtr<WorkItem>, 8>=};
     
@@ -183,14 +194,14 @@ reactor Worker(threshold: size_t{16384}) {
 
             moreWork.set(std::move(workQueue));
         } else {
-             // otherwise we compute the result directly
-             size_t endR{wi.srC + wi.dim};
-             size_t endC{wi.scC + wi.dim};
+            // otherwise we compute the result directly
+            size_t endR{wi.srC + wi.dim};
+            size_t endC{wi.scC + wi.dim};
         
             for (size_t i{wi.srC}; i < endR; i++) {
                 for (size_t j{wi.scC}; j < endC; j++) {
 		            for (size_t k{0}; k < wi.dim; k++) {
-		                C->at(i)[j] += A->at(i)[wi.scA + k] * B->at(wi.srB + k)[j];
+		                C->at(i, j) += A->at(i, wi.scA + k) * B->at(wi.srB + k, j);
 		            }
 		        }
 		    }
