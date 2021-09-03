@@ -140,7 +140,7 @@ reactor BigReactor(bank_index:int(0), numMessages:int(20000), numWorkers:size_t(
     =}
 }
 
-main reactor (numIterations:int(12), numPingsPerReactor:int(20000), numReactors:size_t(10)) {
+main reactor (numIterations:int(12), numPingsPerReactor:int(20000), numReactors:size_t(120)) {
     sink = new SinkReactor(numWorkers=numReactors);
     runner = new BenchmarkRunner(numIterations=numIterations);
     
