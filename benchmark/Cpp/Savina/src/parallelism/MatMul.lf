@@ -31,7 +31,8 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    logging: "info"
+    cmake-include : "../IncludeHeaders.cmake",
+    logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -39,19 +40,7 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 public preamble {=
     #include <deque>
     #include <cmath>
-    
-    template<class T>
-    class Matrix {
-      private:
-        std::vector<T> data;
-        size_t size_y;
-
-      public:        
-        Matrix(size_t size_x, size_t size_y) : data(size_x * size_y), size_y(size_y) {}
-      
-        const T& at(size_t x, size_t y) const { return data[x*size_y+y]; }
-        T& at(size_t x, size_t y) { return data[x*size_y+y]; }
-    };
+    #include "Matrix.hh"
     
     struct WorkItem {
 		size_t srA; // srA = start row in matrix A

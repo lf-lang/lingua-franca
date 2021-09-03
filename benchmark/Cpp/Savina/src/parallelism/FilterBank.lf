@@ -41,13 +41,16 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
+    cmake-include : "../IncludeHeaders.cmake",
     logging: "warn"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
-    using CoefficientMatrix = std::vector<std::vector<double>>;
+    #include "Matrix.hh"
+    
+    using CoefficientMatrix = Matrix<double>;
 =}
 
 reactor Producer(numChannels: size_t{8}, numSimulations: size_t{34816}, numColumns: size_t{16384}) {
@@ -193,7 +196,7 @@ reactor FirFilter(bank_index:size_t{0}, peekLength: size_t{16384}) {
         if(dataFull) {
             double sum{0.0};
             for (size_t i{0}; i < peekLength; i++) {
-                sum += data[i] * (*coefficients)[bank_index][peekLength - i - 1];
+                sum += data[i] * coefficients->at(bank_index, peekLength - i - 1);
             }
             outValue.set(sum);
         }
@@ -293,13 +296,13 @@ main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColum
     
     reaction(startup) -> banks.setF, banks.setH {=
         // initialize the coefficients of all FIR filters
-    	auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
-        auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, std::vector<double>(numColumns, 0.0));
+    	auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
+        auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
 
         for(size_t j{0}; j < numChannels; ++j) {
             for(size_t i{0}; i < numColumns; ++i) {
-                (*mH)[j][i] = (1.0 * i * numColumns) + (1.0 * j * numChannels) + j + i + j + 1;
-                (*mF)[j][i] = (1.0 * i * j) + (1.0 * j * j) + j + i;
+                mH->at(j, i) = (1.0 * i * numColumns) + (1.0 * j * numChannels) + j + i + j + 1;
+                mF->at(j, i) = (1.0 * i * j) + (1.0 * j * j) + j + i;
             }
         }
         
