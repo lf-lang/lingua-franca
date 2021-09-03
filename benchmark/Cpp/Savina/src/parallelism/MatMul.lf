@@ -45,14 +45,14 @@ public preamble {=
     #include "Matrix.hh"
     
     struct WorkItem {
-		size_t srA; // srA = start row in matrix A
-		size_t scA; // scA = start column in matrix A
-		size_t srB;
-		size_t scB;
-		size_t srC;
-		size_t scC;
-		size_t numBlocks; // total number of elements per block in both dimensions
-		size_t dim; // number of elements in one dimension in one block
+        size_t srA; // srA = start row in matrix A
+        size_t scA; // scA = start column in matrix A
+        size_t srB;
+        size_t scB;
+        size_t srC;
+        size_t scC;
+        size_t numBlocks; // total number of elements per block in both dimensions
+        size_t dim; // number of elements in one dimension in one block
     };
 =}
 
@@ -77,9 +77,9 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
         // Fill both input arrays with data
         for (size_t i{0}; i < dataLength; ++i) {
             for (size_t j{0}; j < dataLength; ++j) {
-				A.at(i, j) = i;
-        		B.at(i, j) = j;
-			}
+                A.at(i, j) = i;
+                B.at(i, j) = j;
+            }
         }
     =}
     
@@ -119,8 +119,8 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
             if (port.is_present()) {
                 const auto& items = *port.get();
                 if (!items.empty()) {
-                	workQueue.insert(workQueue.end(), items.begin(), items.end());
-               	}
+                    workQueue.insert(workQueue.end(), items.begin(), items.end());
+                }
             }
         }
     =}
@@ -133,16 +133,16 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
     
     const method isValid(): bool {=
         for (size_t i{0}; i < dataLength; i++) {
-		    for (size_t j{0}; j < dataLength; j++) {
-			    double actual = C.at(i, j);
-			    double expected = 1.0 * dataLength * i * j;
-		        if (fabs(actual-expected) > 0.0001) { // allow some rounding errors
-			        reactor::log::Info() << "Validation failed for (i,j)=" << i << "," << j << " with (" << actual << "," << expected << ")";
-			        return false;    
-			    }
-			}
-		}
-		return true;
+            for (size_t j{0}; j < dataLength; j++) {
+                double actual = C.at(i, j);
+                double expected = 1.0 * dataLength * i * j;
+                if (fabs(actual-expected) > 0.0001) { // allow some rounding errors
+                    reactor::log::Info() << "Validation failed for (i,j)=" << i << "," << j << " with (" << actual << "," << expected << ")";
+                    return false;    
+                }
+            }
+        }
+        return true;
     =}
 }
 
@@ -191,12 +191,12 @@ reactor Worker(threshold: size_t{16384}) {
         
             for (size_t i{wi.srC}; i < endR; i++) {
                 for (size_t j{wi.scC}; j < endC; j++) {
-		            for (size_t k{0}; k < wi.dim; k++) {
-		                C->at(i, j) += A->at(i, wi.scA + k) * B->at(wi.srB + k, j);
-		            }
-		        }
-		    }
-		}
+                    for (size_t k{0}; k < wi.dim; k++) {
+                        C->at(i, j) += A->at(i, wi.scA + k) * B->at(wi.srB + k, j);
+                    }
+                }
+            }
+        }
     =}
 }
 

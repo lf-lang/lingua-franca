@@ -130,8 +130,8 @@ reactor Manager(numWorkers: size_t{20}, gridSize: size_t{30}, priorities: size_t
             if (port.is_present()) {
                 const auto& nodes = *port.get();
                 if (!nodes.empty()) {
-                	nodesToVisit.insert(nodesToVisit.end(), nodes.begin(), nodes.end());
-               	}
+                    nodesToVisit.insert(nodesToVisit.end(), nodes.begin(), nodes.end());
+                }
             }
         }
     =}
@@ -187,9 +187,9 @@ reactor Worker(bank_index: size_t{0}, threshold: size_t{1024}) {
     =}
 
     method busyWait() {=
-	    for (int i = 0; i < 100; i++) {
-		    rand();
-	    }
+        for (int i = 0; i < 100; i++) {
+            rand();
+        }
     =}
 }
 

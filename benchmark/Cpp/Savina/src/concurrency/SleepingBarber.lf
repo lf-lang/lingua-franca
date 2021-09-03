@@ -121,11 +121,11 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         for (size_t i{0}; i < numCustomers; i++) {
             if (customerDone[i].is_present()) {
                 doneCustomers++;
-        	    if (doneCustomers == numCustomers) {
+                if (doneCustomers == numCustomers) {
                     std::cout << "Hair cuts given: " << doneCustomers << "; Total attempts: " << attempts << "\n";
                     finished.set();
                 }
-        	}
+            }
         }
     =}
 }
@@ -161,8 +161,8 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
                 barberEnter.set(customer_id);
             } else {
                 queue.push_back(customer_id);
-                wait[customer_id].set();	
-           	}
+                wait[customer_id].set();    
+            }
         }
     =}
     
@@ -200,9 +200,9 @@ reactor Customer(bank_index:size_t(0)) {
     =}
     
     reaction (doneCutting) -> done {=
-    	reactor::log::Info() << "Customer " << bank_index << ": I have been served.";
-    	done.set();
-	=}
+        reactor::log::Info() << "Customer " << bank_index << ": I have been served.";
+        done.set();
+    =}
 }
 
 reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {

@@ -47,7 +47,7 @@ reactor ApspFloydWarshallBlock(
     state k: size_t{0}; // iteration counter
     state reportedFinish: bool {false};
 
-	input start: MatrixOfLong;
+    input start: MatrixOfLong;
 
     input[dimension] fromRow: MatrixOfLong;
     input[dimension] fromCol: MatrixOfLong;
@@ -95,13 +95,13 @@ reactor ApspFloydWarshallBlock(
        k++;
        
        if(k == graphSize) {
-			if(verbose && bank_index == 0 && row_index == 0) {
+            if(verbose && bank_index == 0 && row_index == 0) {
                 // debugging and result checking
-         		for(size_t i = 0; i < blockSize; i++) {
+                for(size_t i = 0; i < blockSize; i++) {
                     for(size_t j = 0; j < blockSize; j++) {
-                		std::cout << matrix->at(i, j) << ' ';
-                	}
-                	std::cout << '\n';
+                        std::cout << matrix->at(i, j) << ' ';
+                    }
+                    std::cout << '\n';
                 }
             }
             finished.set();
@@ -148,7 +148,7 @@ reactor ApspFloydWarshallBlock(
             std::cerr << "Error: unexpected target location (" << destCol << ',' << destRow << ")\n";
             exit(2);
         }
-	=}
+    =}
 }
 
 
@@ -193,12 +193,12 @@ reactor ApspMatrix(
     dimension: size_t{6},
     verbose: bool{false})
 {
-	input start: MatrixOfLong;
-	output[{=dimension*dimension=}] finished: void;
-	
-	rows = new[dimension] ApspRow(blockSize=blockSize, numNodes=numNodes, dimension=dimension, verbose=verbose);
-	
-	// broadcast the incoming matrix to all rows
+    input start: MatrixOfLong;
+    output[{=dimension*dimension=}] finished: void;
+    
+    rows = new[dimension] ApspRow(blockSize=blockSize, numNodes=numNodes, dimension=dimension, verbose=verbose);
+    
+    // broadcast the incoming matrix to all rows
     (start)+ -> rows.start;
     // collect and forward finished signals from all blocks
     rows.finished -> finished;
@@ -212,18 +212,18 @@ main reactor (
     blockSize: size_t{50},
     numNodes: size_t{300},
     verbose: bool{false}) {
-	
-	state graphData: DataPtr;
+    
+    state graphData: DataPtr;
     state numBlocksFinished: size_t{0};
-	
-	runner = new BenchmarkRunner(numIterations=numIterations);
-	matrix = new ApspMatrix(
+    
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    matrix = new ApspMatrix(
         blockSize=blockSize,
         numNodes=numNodes,
         dimension={=numNodes / blockSize=},
         verbose=verbose
     );
-	  
+      
     reaction(startup) {=
         printBenchmarkInfo("ApspBenchmark");
         printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "blockSize", blockSize);
@@ -238,9 +238,9 @@ main reactor (
 
         // start execution
         matrix.start.set(graphData);
-	=}
+    =}
 
-	reaction (matrix.finished) -> runner.finished {=
+    reaction (matrix.finished) -> runner.finished {=
         for (auto& f : matrix.finished) {
             if (f.is_present()) {
                 numBlocksFinished++;

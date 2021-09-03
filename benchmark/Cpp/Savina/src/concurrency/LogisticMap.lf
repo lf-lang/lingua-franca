@@ -41,7 +41,7 @@ reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
     output computeRate: double;
     input rate: double;
 
-	reaction (reset) {=
+    reaction (reset) {=
         //reset local state
         curTerm = bank_index * termIncrement;   
     =}
