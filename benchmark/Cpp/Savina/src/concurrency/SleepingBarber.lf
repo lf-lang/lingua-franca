@@ -1,6 +1,5 @@
 /**
- * Concurrency benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * Copyright (C) 2020 TU Dresden
  * 
  * In this benchmark, there are three main components: The barber, a waiting room and the customers.
  * The customers are produced and controlled by a CustomerFactory.

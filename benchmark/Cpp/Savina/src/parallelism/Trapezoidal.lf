@@ -1,6 +1,5 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * Copyright (C) 2020 TU Dresden
  * 
  * @author Hannes Klein
  * @author Felix Wittwer

@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * This is a relatively simple benchmarks where multiple workers interact concurrently with
  * a central dictionary. The original Akka implementation does not make an effort to synchronize and order the incoming requests. It simply processes requests in the order they are delivered to the dictinary actor by the runtime.
  * The only synchroniztion applied, is that the workers wait for a response from the dictionary before sending the next request.

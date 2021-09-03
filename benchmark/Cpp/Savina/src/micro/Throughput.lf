@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * Micro-benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
@@ -9,6 +11,7 @@
  * message delivery.
  * 
  * @author Hannes Klein
+ * @author Felix Wittwer
  */
 
 

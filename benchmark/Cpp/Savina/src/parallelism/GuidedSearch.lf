@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * This benchmarks is supposed to implement an A*-search through a grid.
  * However, it appears that the Savina implementation is incomplete and does not
  * correctly implement A*. A key component of A* is cost estimation, which helps

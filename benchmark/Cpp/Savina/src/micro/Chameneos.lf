@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * Micro-benchmark from the Savina benchmark suite. Intended
  * to measure the effects on shared resources (the mailbox of
  * the mall actor) while processing messages in the actor model.

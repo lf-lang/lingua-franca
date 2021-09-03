@@ -1,18 +1,10 @@
-/**
- * Concurrency benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
- * This implementation uses a thread to simulate a smoker
- * smoking to catch the original Savina implementation closely.
- * 
- * @author Hannes Klein
- */
-
 /*
- * This benchmark "solves" the Cigarette Smoker Problem similiarly to the
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark "solves" the Cigarette Smoker Problem similarly to the
  * original Savina implementation in Akka. However, it is important to note
  * first, that the Savina implementation does not actually model the resources
- * (paper, matches, tobaco) and thus does not provide a complete solution. It
+ * (paper, matches, tobacco) and thus does not provide a complete solution. It
  * only uses a pattern similar to a common solution of the Cigaratte Smokers
  * Problem. This solution uses an arbitrator that tells the smokers when they
  * can grab the resources and smoke. Since no resources are modelled in Savina,
@@ -23,29 +15,32 @@
  * language is non-trivial, as likely no similar function with the precise same
  * implementation exists. For the C++ port here, we use `rand()` from stdlib.
  * This is a significant restriction of this benchmark and limits the
- * comparibility of results obtained from Akka and from LF C++.
+ * comparability of results obtained from Akka and from LF C++.
  *
  * Since actors operate asynchronously, several smokers can actually smoke in
- * parallel. In theory, this allows for a fast execurion, as the workload of
+ * parallel. In theory, this allows for a fast execution, as the workload of
  * each smoker can be processed in parallel by many smokers. Achieving this in
- * LF, however, is non-trivial. In LF, all the communication is synchonous and
+ * LF, however, is non-trivial. In LF, all the communication is synchronous and
  * instantaneous. When the arbitrator tells a smoker to smoke, the smoker will
  * start smoking at the same tag and the execution will wait until this smoker
  * finished. Only then the runtime will forward logical time to the next tag and
- * the arbitrator will tell the next smoler to smoke. Obviously, there is no
+ * the arbitrator will tell the next smoker to smoke. Obviously, there is no
  * parallelism in this solution.
  *
  * In an alternative solution (this was actually implemented earlier), each
  * smoker could have an additional thread and use this thread to process the
- * workload asynchrously. This requires explict synchronization mechanisms and
- * getting the interaction between abitrator, smoker and worker thread right
+ * workload asynchronously. This requires explicit synchronization mechanisms and
+ * getting the interaction between arbitrator, smoker and worker thread right
  * seems to be hard. However, apparently the workload is processed very rapidly
  * (it produces at most 1000 random numbers). Thus, the synchronisation overhead
- * required when using an additional worker thread outweigs the benefit of
+ * required when using an additional worker thread outweighs the benefit of
  * parallel execution. The synchronous implementation where only one smoker
- * smokes at a time prooved to be significanlty faster. Still, finding a simple
- * and eficient solution that processes the smoker workload asynchronously would
+ * smokes at a time proved to be significantly faster. Still, finding a simple
+ * and efficient solution that processes the smoker workload asynchronously would
  * be an interesting problem
+ *
+ * @author Christian Menard 
+ * @author Hannes Klein
  */
 
 target Cpp {

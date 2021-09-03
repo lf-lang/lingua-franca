@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * This benchmark implements a parallel all pairs shortest path algorithm. In
  * order to split the workload, the large input matrix of size graphSize x
  * graphSize is split into smaller blocks of size blockSize x blockSize. Each of

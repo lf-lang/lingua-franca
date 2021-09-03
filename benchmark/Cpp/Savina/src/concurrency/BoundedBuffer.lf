@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * This benchmark models a bounded buffer that is used to synchronize between a
  * group of consumers and a group of producers. In the Akka implementation of
  * this benchmark, all producers, consumers and the manager operate fully
