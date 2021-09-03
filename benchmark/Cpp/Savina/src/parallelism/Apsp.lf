@@ -1,9 +1,17 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * This benchmark implements a parallel all pairs shortest path algorithm. In
+ * order to split the workload, the large input matrix of size graphSize x
+ * graphSize is split into smaller blocks of size blockSize x blockSize. Each of
+ * the worker reactors (ApspFloydWarshallBlock) processes one of these blocks.
+ * The worker reactors are organized in the same matrix pattern, replication the
+ * structure of the blocks within the large input matrix. Each of the workers
+ * operates on its local block data, and sends results to all other workers in
+ * the same column or in the same row. The data from the neighbors is then used
+ * to compute the next intermediate result and to update the local state
+ * accordingly.
  * 
- * @author Hannes Klein
  * @author Christian Menard
+ * @author Hannes Klein
  */
 
 target Cpp {
@@ -20,16 +28,6 @@ public preamble {=
     using MutDataPtr = reactor::MutableValuePtr<MatrixOfLong>;
 =}
 
-/*
- * This benchmark performs a matrix computation. It splits a larger graphSize x graphSize matrix 
- * into smaller blocks of size blockSize x blockSize. Each of the worker reactors 
- * (ApspFloydWarshallBlock) processes one of those blocks. Thereby, the worker reactors are 
- * organized also in a matrix, replicating the structure of the blocks. Given 
- * dimension = graphSize / blocksize, there are dimension x dimension workers. Each of the workers
- * utilizes for its internal computation the data of its neighbors, which are all reactors in the 
- * same row and in the same column. After performing the internal computation, each reactor sends
- * its data to the neighbors.
- */
 reactor ApspFloydWarshallBlock(
     bank_index: size_t{0},
     row_index: size_t{0},
@@ -45,48 +43,7 @@ reactor ApspFloydWarshallBlock(
     state k: size_t{0}; // iteration counter
     state reportedFinish: bool {false};
 
-    // Extract the data block that is relevant for this instance from the given matrix 
-    const method extractDataFromMatrix(
-        srcData: {=const reactor::ImmutableValuePtr<MatrixOfLong>&=}
-    ): {=reactor::ImmutableValuePtr<MatrixOfLong>=} {=
-        auto localData = reactor::make_mutable_value<MatrixOfLong>(std::vector(blockSize, std::vector<long>(blockSize, 0)));
-        
-        // FIXME memcpy should be much faster here, but on the other hand this is only done during initialization
-        for(size_t i = 0; i < blockSize; i++) {
-            for(size_t j = 0; j < blockSize; j++) {
-                (*localData)[i][j] = (*srcData)[rowOffset + i][colOffset + j];
-            }
-        }
-        return reactor::ImmutableValuePtr<MatrixOfLong>(std::move(localData));
-    =}
-    
-    // retrieve the element at the given position from the known data
-    const method getElementAt(
-        row: size_t,
-        col: size_t,
-        rowPorts: {=const std::vector<reactor::Input<MatrixOfLong>>&=},
-        colPorts: {=const std::vector<reactor::Input<MatrixOfLong>>&=}
-    ): long {=
-
-        size_t destRow = row / blockSize;
-        size_t destCol = col / blockSize;
-        
-        size_t localRow = row % blockSize;
-        size_t localCol = col % blockSize;
-        
-        if (destRow == row_index) {
-            const auto& data = *rowPorts[destCol].get();
-            return data[localRow][localCol];
-        } else if (destCol == bank_index) {
-            const auto& data = *colPorts[destRow].get();
-            return data[localRow][localCol];
-        } else {
-            std::cerr << "Error: unexpected target location (" << destCol << ',' << destRow << ")\n";
-            exit(2);
-        }
-	=}
-
-	input matrix: MatrixOfLong;
+	  input start: MatrixOfLong;
 
     input[dimension] fromRow: MatrixOfLong;
     input[dimension] fromCol: MatrixOfLong;
@@ -96,13 +53,14 @@ reactor ApspFloydWarshallBlock(
     
     logical action notifyNeighbors: MatrixOfLong;
     
-    reaction(matrix) -> notifyNeighbors {=
+    reaction(start) -> notifyNeighbors {=
         // reset local state
         k = 0;
         reportedFinish = false;
         
         // start execution
-        notifyNeighbors.schedule(std::move(extractDataFromMatrix(matrix.get())));
+        auto matrix = extractDataFromMatrix(start.get());
+        notifyNeighbors.schedule(std::move(matrix));
     =}
     
     reaction(notifyNeighbors) -> toNeighbors {=
@@ -148,6 +106,45 @@ reactor ApspFloydWarshallBlock(
         // send the result to all neighbors in the next iteration
         notifyNeighbors.schedule(std::move(matrix));        
     =}
+
+    // Extract (copy) the data block that is relevant for this instance from the given matrix 
+    const method extractDataFromMatrix(srcData: {=const DataPtr&=}): DataPtr {=
+        auto localData = reactor::make_mutable_value<MatrixOfLong>(std::vector(blockSize, std::vector<long>(blockSize, 0)));
+        
+        // FIXME memcpy should be much faster here, but on the other hand this is only done during initialization
+        for(size_t i = 0; i < blockSize; i++) {
+            for(size_t j = 0; j < blockSize; j++) {
+                (*localData)[i][j] = (*srcData)[rowOffset + i][colOffset + j];
+            }
+        }
+        return DataPtr{std::move(localData)};
+    =}
+    
+    // retrieve the element at the given position from the known data
+    const method getElementAt(
+        row: size_t,
+        col: size_t,
+        rowPorts: {=const std::vector<reactor::Input<MatrixOfLong>>&=},
+        colPorts: {=const std::vector<reactor::Input<MatrixOfLong>>&=}
+    ): long {=
+
+        size_t destRow = row / blockSize;
+        size_t destCol = col / blockSize;
+        
+        size_t localRow = row % blockSize;
+        size_t localCol = col % blockSize;
+        
+        if (destRow == row_index) {
+            const auto& data = *rowPorts[destCol].get();
+            return data[localRow][localCol];
+        } else if (destCol == bank_index) {
+            const auto& data = *colPorts[destRow].get();
+            return data[localRow][localCol];
+        } else {
+            std::cerr << "Error: unexpected target location (" << destCol << ',' << destRow << ")\n";
+            exit(2);
+        }
+	=}
 }
 
 
@@ -158,7 +155,7 @@ reactor ApspRow(
     dimension: size_t{6},
     verbose: bool{false}) {
         
-    input matrix: MatrixOfLong;
+    input start: MatrixOfLong;
     output[dimension] finished: void;
 
     input[{=dimension*dimension=}] fromCol: MatrixOfLong;
@@ -181,7 +178,7 @@ reactor ApspRow(
     fromCol -> interleaved(blocks.fromCol);
     
     // broadcast the incoming matrix to all blocks
-    (matrix)+ -> blocks.matrix;
+    (start)+ -> blocks.start;
     // collect and forward finished signals from all blocks
     blocks.finished -> finished;
 }
@@ -192,13 +189,13 @@ reactor ApspMatrix(
     dimension: size_t{6},
     verbose: bool{false})
 {
-	input matrix: MatrixOfLong;
+	input start: MatrixOfLong;
 	output[{=dimension*dimension=}] finished: void;
 	
 	rows = new[dimension] ApspRow(blockSize=blockSize, numNodes=numNodes, dimension=dimension, verbose=verbose);
 	
 	// broadcast the incoming matrix to all rows
-    (matrix)+ -> rows.matrix;
+    (start)+ -> rows.start;
     // collect and forward finished signals from all blocks
     rows.finished -> finished;
     
@@ -212,10 +209,10 @@ main reactor (
     numNodes: size_t{300},
     verbose: bool{false}) {
 	
-	state graphData: {=reactor::ImmutableValuePtr<MatrixOfLong>=};
+	state graphData: DataPtr;
     state numBlocksFinished: size_t{0};
 	
-	runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
+	runner = new BenchmarkRunner(numIterations=numIterations);
 	matrix = new ApspMatrix(
         blockSize=blockSize,
         numNodes=numNodes,
@@ -228,29 +225,16 @@ main reactor (
         printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "blockSize", blockSize);
         printSystemInfo();
         runner.inStart.set();
-    =}
-    
-    reaction(runner.outInitializeStart) -> runner.inInitializeFinish {=
-        // initialization of graph is not measured
-        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(numNodes, maxEdgeWeight));
-        runner.inInitializeFinish.set();
-    =}
-    
-    reaction(runner.outCleanupIterationStart) -> runner.inCleanupIterationFinish {=
-        //TODO check if result is correct
         
-        // initialization of the graph for the next iteration
         graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(numNodes, maxEdgeWeight));
-        runner.inCleanupIterationFinish.set();
     =}
-
-	// FIXME This should not produce an unused variable warning
-    reaction(runner.outIterationStart) -> matrix.matrix {=
+    
+    reaction(runner.outIterationStart) -> matrix.start {=
         // reset local state
         numBlocksFinished = 0;
 
         // start execution
-        matrix.matrix.set(graphData);
+        matrix.start.set(graphData);
 	=}
 
 	reaction (matrix.finished) -> runner.inIterationFinish {=
@@ -268,7 +252,7 @@ main reactor (
     private preamble {=  
         #include "PseudoRandom.hh"
         
-        reactor::MutableValuePtr<MatrixOfLong> generateGraph(int N, int W) {
+        MutDataPtr generateGraph(int N, int W) {
             PseudoRandom random(N);
             reactor::MutableValuePtr<MatrixOfLong> localData =
                 reactor::make_mutable_value<MatrixOfLong>(std::vector(N, std::vector<long>(N, 0)));
