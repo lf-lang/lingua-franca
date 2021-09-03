@@ -97,7 +97,7 @@ void _lf_message_print(
         } else {
             vfprintf(stdout, message, args);
         }
-    } else if (log_level < print_message_level) {
+    } else if (log_level <= print_message_level) {
         (*print_message_function)(message, args);
     }
 }
