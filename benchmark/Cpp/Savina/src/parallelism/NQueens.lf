@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * This benchmark implements a solution to the N queens problem. In particular,
  * the benchmark implements a recursive search algorithm that finds all possible
  * solution. Given N (size), the board has a size of N x N fields and N queens

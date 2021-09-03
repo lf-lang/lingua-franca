@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * This benchmark is very similar to the concurrent Dictionary benchmark.
  * It only uses a sorted linked list instead of a dictionary.
  * 

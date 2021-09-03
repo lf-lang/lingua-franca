@@ -1,6 +1,5 @@
 /**
- * Concurrency benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * Copyright (C) 2020 TU Dresden
  * 
  * This implementation stays close to the Savina implementation
  * with Akka. There is no notion of time and there is no delay

@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
  * This is based on https://www.scala-lang.org/old/node/54

@@ -1,4 +1,6 @@
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * Concurrency benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 

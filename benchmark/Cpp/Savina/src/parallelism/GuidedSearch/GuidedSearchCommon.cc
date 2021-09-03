@@ -1,3 +1,4 @@
+// Copyright (C) 2020 TU Dresden
 
 #include "GuidedSearchCommon.hh"
 

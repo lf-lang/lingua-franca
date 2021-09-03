@@ -1,6 +1,8 @@
 target Cpp;
 
 /**
+ * Copyright (C) 2020 TU Dresden
+ * 
  * A reactor that manages the execution of a benchmark. It triggers multiple
  * iterations of a benchmark, measures the execution time of each iteration, and prints
  * a summary of all results.

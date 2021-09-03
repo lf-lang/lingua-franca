@@ -1,3 +1,5 @@
+// Copyright (C) 2020 TU Dresden
+
 #pragma once
 
 #include <vector>
