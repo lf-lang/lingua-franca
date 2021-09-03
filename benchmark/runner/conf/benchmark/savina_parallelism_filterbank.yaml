@@ -18,6 +18,8 @@ targets:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/Matrix.hh"
     lf_file: "parallelism/FilterBank.lf"
     binary: "FilterBank"
     gen_args: null

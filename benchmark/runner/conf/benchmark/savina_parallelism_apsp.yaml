@@ -26,6 +26,7 @@ targets:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
+      - "${lf_path}/benchmark/Cpp/Savina/src/Matrix.hh"
     lf_file: "parallelism/Apsp.lf"
     binary: "Apsp"
     gen_args: null
