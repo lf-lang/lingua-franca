@@ -218,7 +218,7 @@ class TSReactorGenerator(
         pr(reactorConstructor, stateGenerator.generateInstantiations())
 
         val actionGenerator = TSActionGenerator(tsGenerator, reactor)
-        pr(reactorConstructor, actionGenerator.generateClassProperties())
+        pr(actionGenerator.generateClassProperties())
         pr(reactorConstructor, actionGenerator.generateInstantiations())
 
         // Next handle inputs.
