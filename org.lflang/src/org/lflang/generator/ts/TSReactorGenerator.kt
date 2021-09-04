@@ -1,7 +1,6 @@
 package org.lflang.generator.ts
 
 import org.lflang.*
-import org.lflang.ASTUtils.isInitialized
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
@@ -40,11 +39,8 @@ class TSReactorGenerator(
 
     private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-    private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
-    private fun getInitializerList(state: StateVar): List<String> =
-        tsGenerator.getInitializerListW(state)
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
     private fun getInitializerList(param: Parameter, i: Instantiation): List<String> =
@@ -133,26 +129,6 @@ class TSReactorGenerator(
             """.trimMargin()}
     }
 
-    private fun getTargetInitializer(state: StateVar): String {
-        return getInitializerList(state).joinToString(",")
-    }
-    private fun generateStates(reactor: Reactor): String {
-        val stateInstantiations = LinkedList<String>()
-        // Next handle states.
-        for (stateVar in reactor.stateVars) {
-            if (isInitialized(stateVar)) {
-                stateInstantiations.add("this.${stateVar.name} = new __State(${getTargetInitializer(stateVar)});");
-            } else {
-                stateInstantiations.add("this.${stateVar.name} = new __State(undefined);");
-            }
-        }
-        return with(PrependOperator) {
-            """
-            ${" |"..stateInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
-    }
-
     private fun generateActions(reactor: Reactor): String {
         val actionInstantiations = LinkedList<String>()
         for (action in reactor.actions) {
@@ -210,8 +186,7 @@ class TSReactorGenerator(
         indent()
 
         val reactorConstructor = StringBuilder()
-        pr(reactorConstructor, generateConstructorArguments(reactor))
-        pr(reactorConstructor, "{")
+        pr(reactorConstructor, "${generateConstructorArguments(reactor)} {")
         indent(reactorConstructor)
         var superCall: String
         if (reactor.isMain) {
@@ -282,11 +257,10 @@ class TSReactorGenerator(
                     " = new __Parameter(" + param.name + ");" )
         }
 
-        for (stateVar in reactor.stateVars) {
-            pr(stateVar.name + ": " + "__State<" + stateVar.getTargetType() + ">;");
-        }
+        val stateGenerator = TSStateGenerator(tsGenerator, reactor)
 
-        pr(reactorConstructor, generateStates(reactor))
+        pr(stateGenerator.generateClassProperties())
+        pr(reactorConstructor, stateGenerator.generateInstantiations())
 
         // Next handle actions.
         for (action in reactor.actions) {
