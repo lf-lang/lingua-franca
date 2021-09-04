@@ -122,6 +122,81 @@ class TSReactorGenerator(
         }
     }
 
+    private fun generateDeadlineHandler(
+        reaction: Reaction,
+        reactPrologue: String,
+        reactEpilogue: String,
+        reactSignature: StringJoiner
+    ): String {
+        var deadlineArgs = ""
+        if (reaction.deadline.delay.parameter != null) {
+            deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
+        } else {
+            deadlineArgs += reaction.deadline.delay.getTargetValue()
+        }
+
+        return with(PrependOperator) {
+            """
+            |},
+            |$deadlineArgs,
+            |function($reactSignature) {
+            |    // =============== START deadline prologue
+        ${" |    "..reactPrologue}
+            |    // =============== END deadline prologue
+            |    try {
+        ${" |        "..reaction.deadline.code.toText()}
+            |    } finally {
+            |        // =============== START deadline epilogue
+        ${" |        "..reactEpilogue}
+            |        // =============== END deadline epilogue
+            |    }
+            |}
+        """.trimMargin()
+        }
+
+    }
+
+    private fun generateReaction(
+        reaction: Reaction,
+        reactPrologue: String,
+        reactEpilogue: String,
+        reactFunctArgs: StringJoiner,
+        reactSignature: StringJoiner
+    ): String {
+        // Assemble reaction triggers
+        val reactionTriggers = StringJoiner(",\n")
+        for (trigger in reaction.triggers) {
+            if (trigger is VarRef) {
+                reactionTriggers.add("this." + trigger.generateVarRef())
+            } else if (trigger.isStartup) {
+                reactionTriggers.add("this.startup")
+            } else if (trigger.isShutdown) {
+                reactionTriggers.add("this.shutdown")
+            }
+        }
+        return with(PrependOperator) {
+            """
+            |
+            |this.addReaction(
+            |    new __Triggers($reactionTriggers),
+            |    new __Args($reactFunctArgs),
+            |    function ($reactSignature) {
+            |        // =============== START react prologue
+        ${" |        "..reactPrologue}
+            |        // =============== END react prologue
+            |        try {
+        ${" |            "..reaction.code.toText()}
+            |        } finally {
+            |            // =============== START react epilogue
+        ${" |            "..reactEpilogue}            
+            |            // =============== END react epilogue
+            |        }
+        ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
+            |);
+        """.trimMargin()
+        }
+    }
+
     // TODO(hokeun): Split this method into smaller methods.
     fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
         pr("// =============== START reactor class " + reactor.name)
@@ -369,15 +444,6 @@ class TSReactorGenerator(
             val reactSignature = StringJoiner(", ")
             reactSignature.add("this")
 
-            // The prologue to the react function writes state
-            // and parameters to local variables of the same name
-            val reactPrologue = StringBuilder()
-            pr(reactPrologue, "const util = this.util;")
-
-            // The epilogue to the react function writes local
-            // state variables back to the state
-            val reactEpilogue = StringBuilder()
-
             // Assemble react function arguments from sources and effects
             // Arguments are either elements of this reactor, or an object
             // representing a contained reactor with properties corresponding
@@ -418,6 +484,11 @@ class TSReactorGenerator(
                 effectSet.add(Pair(key, value))
             }
 
+            // The prologue to the react function writes state
+            // and parameters to local variables of the same name
+            val reactPrologue = LinkedList<String>()
+            reactPrologue.add("const util = this.util;")
+
             // Add triggers and sources to the react function
             val containerToArgs = HashMap<Instantiation, HashSet<Variable>>();
             for (trigOrSource in triggersUnionSources) {
@@ -445,7 +516,7 @@ class TSReactorGenerator(
                     reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
                     reactFunctArgs.add("this." + trigOrSource.generateVarRef())
                     if (trigOrSource.container == null) {
-                        pr(reactPrologue, "let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
+                        reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                     } else {
                         var args = containerToArgs.get(trigOrSource.container)
                         if (args == null) {
@@ -459,6 +530,10 @@ class TSReactorGenerator(
                 }
             }
             val schedActionSet = HashSet<Action>();
+
+            // The epilogue to the react function writes local
+            // state variables back to the state
+            val reactEpilogue = StringBuilder()
             for (effect in reaction.effects) {
                 var functArg = ""
                 var reactSignatureElement = "" + generateArg(effect)
@@ -488,7 +563,7 @@ class TSReactorGenerator(
                 }
 
                 if (effect.container == null) {
-                    pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
+                    reactPrologue.add("let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
                 } else {
                     // Hierarchical references are handled later because there
                     // could be references to other members of the same reactor.
@@ -508,8 +583,10 @@ class TSReactorGenerator(
                 prologueActionObjectBody.add(act.name + ": __" + act.name)
             }
             if (schedActionSet.size > 0) {
-                pr(reactPrologue, "let actions = {"
-                        + prologueActionObjectBody + "};")
+                reactPrologue.add(
+                    "let actions = {"
+                            + prologueActionObjectBody + "};"
+                )
             }
 
             // Add parameters to the react function
@@ -520,7 +597,7 @@ class TSReactorGenerator(
                         + param.getTargetType() + ">")
                 reactFunctArgs.add("this." + param.name)
 
-                pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
+                reactPrologue.add("let " + param.name + " = __" + param.name + ".get();")
             }
 
             // Add state to the react function
@@ -530,10 +607,10 @@ class TSReactorGenerator(
                         + state.getTargetType() + ">")
                 reactFunctArgs.add("this." + state.name )
 
-                pr(reactPrologue, "let " + state.name + " = __" + state.name + ".get();")
+                reactPrologue.add("let " + state.name + " = __" + state.name + ".get();")
                 pr(reactEpilogue, "if (" + state.name + " !== undefined) {")
                 indent(reactEpilogue)
-                pr(reactEpilogue,  "__" + state.name + ".set(" + state.name + ");")
+                pr(reactEpilogue, "__" + state.name + ".set(" + state.name + ");")
                 unindent(reactEpilogue)
                 pr(reactEpilogue, "}")
             }
@@ -551,75 +628,19 @@ class TSReactorGenerator(
                                 |}""".trimMargin()})
                     }
                 }
-                pr(reactPrologue, "let ${entry.key.name} = {${initializer}}")
-            }
-
-            // Assemble reaction triggers
-            val reactionTriggers = StringJoiner(",\n")
-            for (trigger in reaction.triggers) {
-                if (trigger is VarRef) {
-                    reactionTriggers.add("this." + trigger.generateVarRef())
-                } else if (trigger.isStartup) {
-                    reactionTriggers.add("this.startup")
-                } else if (trigger.isShutdown) {
-                    reactionTriggers.add("this.shutdown")
-                }
+                reactPrologue.add("let ${entry.key.name} = {${initializer}}")
             }
 
             // Write the reaction itself
-            pr(reactorConstructor, "this.addReaction(")//new class<T> extends Reaction<T> {")
-            indent(reactorConstructor)
-            pr(reactorConstructor, "new __Triggers($reactionTriggers),")
-            pr(reactorConstructor, "new __Args($reactFunctArgs),")
-            pr(reactorConstructor, "function ($reactSignature) {")
-            indent(reactorConstructor)
-            pr(reactorConstructor, "// =============== START react prologue")
-            pr(reactorConstructor, reactPrologue)
-            pr(reactorConstructor, "// =============== END react prologue")
-            pr(reactorConstructor, "try {")
-            indent(reactorConstructor)
-            pr(reactorConstructor, reaction.code.toText())
-            unindent(reactorConstructor)
-            pr(reactorConstructor, "} finally {")
-            indent(reactorConstructor)
-            pr(reactorConstructor, "// =============== START react epilogue")
-            pr(reactorConstructor, reactEpilogue)
-            pr(reactorConstructor, "// =============== END react epilogue")
-            unindent(reactorConstructor)
-            pr(reactorConstructor, "}")
-            unindent(reactorConstructor)
-            if (reaction.deadline == null) {
-                pr(reactorConstructor, "}")
-            } else {
-                pr(reactorConstructor, "},")
-                var deadlineArgs = ""
-                if (reaction.deadline.delay.parameter != null) {
-                    deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
-                } else {
-                    deadlineArgs += reaction.deadline.delay.getTargetValue()
-                }
-                pr(reactorConstructor, "$deadlineArgs,")
-                pr(reactorConstructor, "function($reactSignature) {")
-                indent(reactorConstructor)
-                pr(reactorConstructor, "// =============== START deadline prologue")
-                pr(reactorConstructor, reactPrologue)
-                pr(reactorConstructor, "// =============== END deadline prologue")
-                pr(reactorConstructor, "try {")
-                indent(reactorConstructor)
-                pr(reactorConstructor, toText(reaction.deadline.code))
-                unindent(reactorConstructor)
-                pr(reactorConstructor, "} finally {")
-                indent(reactorConstructor)
-                pr(reactorConstructor, "// =============== START deadline epilogue")
-                pr(reactorConstructor, reactEpilogue)
-                pr(reactorConstructor, "// =============== END deadline epilogue")
-                unindent(reactorConstructor)
-                pr(reactorConstructor, "}")
-                unindent(reactorConstructor)
-                pr(reactorConstructor, "}")
-            }
-            unindent(reactorConstructor)
-            pr(reactorConstructor, ");")
+            pr(
+                reactorConstructor, generateReaction(
+                    reaction,
+                    reactPrologue.joinToString("\n"),
+                    reactEpilogue.toString(),
+                    reactFunctArgs,
+                    reactSignature
+                )
+            )
         }
         ///////////////////// Reaction generation ends /////////////////////
 
