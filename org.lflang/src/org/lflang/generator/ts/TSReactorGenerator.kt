@@ -294,7 +294,7 @@ class TSReactorGenerator(
 
         // The epilogue to the react function writes local
         // state variables back to the state
-        val reactEpilogue = StringBuilder()
+        val reactEpilogue = LinkedList<String>()
         for (effect in reaction.effects) {
             var functArg = ""
             var reactSignatureElement = "" + generateArg(effect)
@@ -306,11 +306,10 @@ class TSReactorGenerator(
             } else if (effect.variable is Port){
                 reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
                 if (effect.container == null) {
-                    pr(reactEpilogue, "if (" + effect.variable.name + " !== undefined) {")
-                    indent(reactEpilogue)
-                    pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
-                    unindent(reactEpilogue)
-                    pr(reactEpilogue, "}")
+                    reactEpilogue.add(with(PrependOperator) {"""
+                        |if (${effect.variable.name} !== undefined) {
+                        |    __${effect.variable.name}.set(${effect.variable.name});
+                        |}""".trimMargin()})
                 }
             }
 
@@ -369,11 +368,10 @@ class TSReactorGenerator(
             reactFunctArgs.add("this." + state.name )
 
             reactPrologue.add("let " + state.name + " = __" + state.name + ".get();")
-            pr(reactEpilogue, "if (" + state.name + " !== undefined) {")
-            indent(reactEpilogue)
-            pr(reactEpilogue, "__" + state.name + ".set(" + state.name + ");")
-            unindent(reactEpilogue)
-            pr(reactEpilogue, "}")
+            reactEpilogue.add(with(PrependOperator) {"""
+                    |if (${state.name} !== undefined) {
+                    |    __${state.name}.set(${state.name});
+                    |}""".trimMargin()})
         }
 
         // Initialize objects to enable hierarchical references.
@@ -382,8 +380,7 @@ class TSReactorGenerator(
             for (variable in entry.value) {
                 initializer.add("${variable.name}: __${entry.key.name}_${variable.name}.get()")
                 if (variable is Input) {
-                    pr(reactEpilogue, with(PrependOperator) {
-                        """
+                    reactEpilogue.add(with(PrependOperator) {"""
                                 |if (${entry.key.name}.${variable.name} !== undefined) {
                                 |    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
                                 |}""".trimMargin()})
@@ -396,7 +393,7 @@ class TSReactorGenerator(
         return generateReactionString(
             reaction,
             reactPrologue.joinToString("\n"),
-            reactEpilogue.toString(),
+            reactEpilogue.joinToString("\n"),
             reactFunctArgs,
             reactSignature
         )
