@@ -55,9 +55,6 @@ class TSReactorGenerator(
     }
 
     // Initializer functions
-    private fun getTargetInitializer(state: StateVar): String {
-        return getInitializerList(state).joinToString(",")
-    }
     private fun getTargetInitializerHelper(param: Parameter,
                                            list: List<String>): String {
         return if (list.size == 0) {
@@ -108,6 +105,83 @@ class TSReactorGenerator(
         }
     }
 
+    private fun generateConstructorArguments(reactor: Reactor): String {
+        val arguments = LinkedList<String>()
+        if (reactor.isMain || reactor.isFederated) {
+            arguments.add("timeout: TimeValue | undefined = undefined")
+            arguments.add("keepAlive: boolean = false")
+            arguments.add("fast: boolean = false")
+        } else {
+            arguments.add("parent: __Reactor")
+        }
+
+        // For TS, parameters are arguments of the class constructor.
+        for (parameter in reactor.parameters) {
+            arguments.add(initializeParameter(parameter))
+        }
+
+        if (reactor.isMain || reactor.isFederated) {
+            arguments.add("success?: () => void")
+            arguments.add("fail?: () => void")
+        }
+
+        return with(PrependOperator) {
+            """
+                |constructor (
+            ${" |    "..arguments.joinToString(", \n")}
+                |)
+            """.trimMargin()}
+    }
+
+    private fun getTargetInitializer(state: StateVar): String {
+        return getInitializerList(state).joinToString(",")
+    }
+    private fun generateStates(reactor: Reactor): String {
+        val stateInstantiations = LinkedList<String>()
+        // Next handle states.
+        for (stateVar in reactor.stateVars) {
+            if (isInitialized(stateVar)) {
+                stateInstantiations.add("this.${stateVar.name} = new __State(${getTargetInitializer(stateVar)});");
+            } else {
+                stateInstantiations.add("this.${stateVar.name} = new __State(undefined);");
+            }
+        }
+        return with(PrependOperator) {
+            """
+            ${" |"..stateInstantiations.joinToString("\n")}
+            """.trimMargin()
+        }
+    }
+
+    private fun generateActions(reactor: Reactor): String {
+        val actionInstantiations = LinkedList<String>()
+        for (action in reactor.actions) {
+            // Shutdown actions are handled internally by the
+            // TypeScript reactor framework. There would be a
+            // duplicate action if we included the one generated
+            // by LF.
+            if (action.name != "shutdown") {
+                var actionArgs = "this, __Origin." + action.origin
+                if (action.minDelay != null) {
+                    // Actions in the TypeScript target are constructed
+                    // with an optional minDelay argument which defaults to 0.
+                    if (action.minDelay.parameter != null) {
+                        actionArgs+= ", " + action.minDelay.parameter.name
+                    } else {
+                        actionArgs+= ", " + action.minDelay.getTargetValue()
+                    }
+                }
+                actionInstantiations.add(
+                    "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
+            }
+        }
+        return with(PrependOperator) {
+            """
+            ${" |"..actionInstantiations.joinToString("\n")}
+            """.trimMargin()
+        }
+    }
+
     // TODO(hokeun): Split this method into smaller methods.
     fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
         pr("// =============== START reactor class " + reactor.name)
@@ -135,39 +209,10 @@ class TSReactorGenerator(
 
         indent()
 
-        val arguments = LinkedList<String>()
-        if (reactor.isMain || reactor.isFederated) {
-            arguments.add("timeout: TimeValue | undefined = undefined")
-            arguments.add("keepAlive: boolean = false")
-            arguments.add("fast: boolean = false")
-        } else {
-            arguments.add("parent: __Reactor")
-        }
-
-        // For TS, parameters are arguments of the class constructor.
-        for (parameter in reactor.parameters) {
-            arguments.add(initializeParameter(parameter))
-        }
-
         val reactorConstructor = StringBuilder()
-        if (reactor.isMain || reactor.isFederated) {
-            arguments.add("success?: () => void")
-            arguments.add("fail?: () => void")
-            pr(reactorConstructor, "constructor (")
-            indent(reactorConstructor)
-            pr(reactorConstructor, arguments.joinToString(", \n"))
-            unindent(reactorConstructor)
-            pr(reactorConstructor, ") {")
-            indent(reactorConstructor)
-        } else {
-            pr(reactorConstructor, "constructor (")
-            indent(reactorConstructor)
-            pr(reactorConstructor, arguments.joinToString(", \n"))
-            unindent(reactorConstructor)
-            pr(reactorConstructor, ") {")
-            indent(reactorConstructor)
-        }
-
+        pr(reactorConstructor, generateConstructorArguments(reactor))
+        pr(reactorConstructor, "{")
+        indent(reactorConstructor)
         var superCall: String
         if (reactor.isMain) {
             superCall = "super(timeout, keepAlive, fast, success, fail);"
@@ -237,20 +282,11 @@ class TSReactorGenerator(
                     " = new __Parameter(" + param.name + ");" )
         }
 
-        // Next handle states.
-        for (stateVar in reactor.stateVars) {
-            if (isInitialized(stateVar)) {
-                pr(reactorConstructor, "this." + stateVar.name + " = " +
-                        "new __State(" + getTargetInitializer(stateVar) + ");");
-            } else {
-                pr(reactorConstructor, "this." + stateVar.name + " = " +
-                        "new __State(undefined);");
-            }
-        }
-
         for (stateVar in reactor.stateVars) {
             pr(stateVar.name + ": " + "__State<" + stateVar.getTargetType() + ">;");
         }
+
+        pr(reactorConstructor, generateStates(reactor))
 
         // Next handle actions.
         for (action in reactor.actions) {
@@ -260,22 +296,10 @@ class TSReactorGenerator(
             // by LF.
             if (action.name != "shutdown") {
                 pr(action.name + ": __Action<" + getActionType(action) + ">;")
-
-                var actionArgs = "this, __Origin." + action.origin
-                if (action.minDelay != null) {
-                    // Actions in the TypeScript target are constructed
-                    // with an optional minDelay argument which defaults to 0.
-                    if (action.minDelay.parameter != null) {
-                        actionArgs+= ", " + action.minDelay.parameter.name
-                    } else {
-                        actionArgs+= ", " + action.minDelay.getTargetValue()
-                    }
-                }
-                pr(reactorConstructor, "this." +
-                        action.name + " = new __Action<" + getActionType(action) +
-                        ">(" + actionArgs  + ");")
             }
         }
+
+        pr(reactorConstructor, generateActions(reactor))
 
         // Next handle inputs.
         for (input in reactor.inputs) {
