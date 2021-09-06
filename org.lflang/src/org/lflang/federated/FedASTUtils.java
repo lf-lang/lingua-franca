@@ -430,7 +430,7 @@ public class FedASTUtils {
         var serialization = SupportedSerializations.NATIVE;
         if (connection.getSerialization() != null) {
             serialization = SupportedSerializations.valueOf(
-                    connection.getSerialization().getSerialization().toUpperCase()
+                    connection.getSerialization().getName().toUpperCase()
             );
             // Add it to the list of enabled serializations
             generator.enabledSerializations.add(serialization);

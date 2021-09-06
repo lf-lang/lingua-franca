@@ -248,7 +248,7 @@ Delay:
 
 // Chooses the serialization type to use for the connection
 Serialization:
-    'serializer' serialization=STRING
+    'serializer' name=STRING
 ;
 
 /////////// For target parameters
