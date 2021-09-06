@@ -15,7 +15,6 @@ target C {
     timeout: 10 sec,
     cmake-include: "include/CMakeListsExtension.txt",
     files: ["include/ament_target_dependencies.cmake"],
-    cmake: true,
     compiler: "g++",
 };
 
