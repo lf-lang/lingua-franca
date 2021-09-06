@@ -403,12 +403,9 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        // Note that net_util.h/c are not used by the infrastructure
-        // unless the program is federated, but they are often useful for user code,
-        // so we include them anyway.
+        // Note that these files will be copied from the class path, therefore, the path
+        // separator must always be '/'.
         var coreFiles = newArrayList(
-            "federated" + File.separator + "net_util.c",
-            "federated" + File.separator + "net_util.h",
             "reactor_common.c",
             "reactor.h",
             "pqueue.c",
@@ -433,12 +430,20 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
-            coreFiles.addAll(  
-                "federated" + File.separator + "net_common.h", 
-                "federated" + File.separator + "federate.c", 
-                "federated" + File.separator + "federate.h", 
-                "federated" + File.separator + "clock-sync.h", 
-                "federated" + File.separator + "clock-sync.c"
+            val OS = System.getProperty("os.name").toLowerCase();
+            if (OS.indexOf("win") >= 0) {
+                throw new UnsupportedOperationException(
+                    "Windows is not supported for C target federated programs."
+                )
+            }
+            coreFiles.addAll(
+                "federated/net_util.c",
+                "federated/net_util.h",
+                "federated/net_common.h", 
+                "federated/federate.c", 
+                "federated/federate.h", 
+                "federated/clock-sync.h", 
+                "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
         }
@@ -807,6 +812,16 @@ class CGenerator extends GeneratorBase {
         refreshProject()
     }
     
+    /**
+     * Add platform-specific files to 'coreFiles'.
+     * Also add platform-specific sources to be linked against the main
+     * .c file during compile if CMake is disabled (the cmake build system
+     * automatically detects the platform and links the correct platform files).
+     * 
+     * @param coreFiles List of files that need to be copied from class path
+     *  Since these files are copied from class path, they must all use the '/'
+     *  path separator.
+     */
     def addPlatformFiles(ArrayList<String> coreFiles) {
         // Check the operating system
         val OS = System.getProperty("os.name").toLowerCase();
@@ -816,13 +831,13 @@ class CGenerator extends GeneratorBase {
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_macos_support.c")            
-            coreFiles.add("platform" + File.separator + "lf_macos_support.h")
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.h")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_macos_support.c")            
+            coreFiles.add("platform/lf_macos_support.h")
+            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -833,12 +848,12 @@ class CGenerator extends GeneratorBase {
             }
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_windows_support.c")
-            coreFiles.add("platform" + File.separator + "lf_windows_support.h")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_windows_support.c")
+            coreFiles.add("platform/lf_windows_support.h")
             // For 64-bit epoch time
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -849,13 +864,13 @@ class CGenerator extends GeneratorBase {
             }
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.c")
-            coreFiles.add("platform" + File.separator + "lf_POSIX_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_C11_threads_support.h")
-            coreFiles.add("platform" + File.separator + "lf_linux_support.c")
-            coreFiles.add("platform" + File.separator + "lf_linux_support.h")
-            coreFiles.add("platform" + File.separator + "lf_unix_clock_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.h")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_linux_support.c")
+            coreFiles.add("platform/lf_linux_support.h")
+            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
