@@ -244,7 +244,7 @@ class FederateInstance {
     
     
     /**
-     * Return true if the specified reactor is not the main reactor,
+     * Return true if the specified reactor is not the top-level federated reactor,
      * or if it is and the action should be included in the code generated
      * for the federate. This means that either the action is used as a trigger,
      * a source, or an effect in a top-level reaction that belongs to this federate.
@@ -287,7 +287,7 @@ class FederateInstance {
     }
     
     /**
-     * Return true if the specified reactor is not the main reactor,
+     * Return true if the specified reactor is not the top-level federated reactor,
      * or if it is and the port should be included in the code generated
      * for the federate. This means that the port has been used as a trigger, 
      * a source, or an effect in a top-level reaction that belongs to this federate.
@@ -330,7 +330,7 @@ class FederateInstance {
     }
         
     /** 
-     * Return true if the specified reactor is not the main reactor,
+     * Return true if the specified reactor is not the top-level federated reactor,
      * or if it is and the reaction should be included in the code generated for the
      * federate. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reactor
