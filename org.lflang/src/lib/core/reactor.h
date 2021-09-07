@@ -337,7 +337,7 @@ typedef enum {absent = false, present = true, unknown} port_status_t;
  * used to cancel a future scheduled event, but this is not
  * implemented yet.
  */
-typedef int handle_t;
+typedef int trigger_handle_t;
 
 /**
  * String type so that we don't have to use {= char* =}.
@@ -599,7 +599,7 @@ void __pop_events();
  * @param token The token payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay, lf_token_t* token);
+trigger_handle_t __schedule(trigger_t* trigger, interval_t delay, lf_token_t* token);
 
 /**
  * Function (to be code generated) to schedule timers.
@@ -642,7 +642,7 @@ lf_token_t* create_token(size_t element_size);
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value);
+trigger_handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Get a new event. If there is a recycled event available, use that.
@@ -727,7 +727,7 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
+trigger_handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -741,7 +741,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length);
+trigger_handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length);
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -756,7 +756,7 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, s
  * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length);
+trigger_handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length);
 
 /**
  * For a federated execution, send a STOP_REQUEST message
