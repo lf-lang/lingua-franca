@@ -77,7 +77,7 @@ void calculate_epoch_offset() {
 
         _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
     }
-    printf("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+    printf("Clock sync: Initial epoch offset set to %lld.\n", _lf_epoch_offset);
 }
 
 NtDelayExecution_t *NtDelayExecution = NULL;
