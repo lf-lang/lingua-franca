@@ -54,7 +54,7 @@ typedef CRITICAL_SECTION _lf_mutex_t;
  * For compatibility with other platform APIs, we assume
  * that mutex is analogous to critical section.
  */
-typedef _lf_mutex_t _lf_critical_section_t
+typedef _lf_mutex_t _lf_critical_section_t;
 
 typedef CONDITION_VARIABLE _lf_cond_t;
 typedef HANDLE _lf_thread_t;

@@ -303,7 +303,7 @@ int _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
+trigger_handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     lf_mutex_lock(&mutex);
     int return_value = __schedule(trigger, extra_delay, token);
@@ -318,7 +318,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length) {
+trigger_handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length) {
     if (value == NULL) {
         return _lf_schedule_token(action, offset, NULL);
     }
@@ -334,7 +334,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t 
     // Copy the value into the newly allocated memory.
     memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
-    handle_t result = __schedule(trigger, offset, token);
+    trigger_handle_t result = __schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_signal(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -345,7 +345,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t 
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length) {
+trigger_handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
     lf_mutex_lock(&mutex);

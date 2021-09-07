@@ -1434,7 +1434,7 @@ void wait_until_port_status_known(int port_ID, interval_t STP) {
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_message_received_from_network_already_locked(
+trigger_handle_t schedule_message_received_from_network_already_locked(
         trigger_t* trigger,
         tag_t tag,
         lf_token_t* token) {

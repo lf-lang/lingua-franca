@@ -220,7 +220,7 @@ pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* next_q;      // For temporarily storing the next event lined 
                        // up in superdense time.
 
-handle_t __handle = 1;
+trigger_handle_t __handle = 1;
 
 // ********** Priority Queue Support Start
 
@@ -1029,7 +1029,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
  * @param token The token wrapping the payload or NULL for no payload.
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
-handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* token) {
+trigger_handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* token) {
     if (_lf_is_tag_after_stop_tag(current_tag)) {
         // If schedule is called after stop_tag
         // This is a critical condition.
@@ -1268,7 +1268,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
  * @return 1 if successful, or 0 if no new reaction was scheduled because the function
  *  was called incorrectly.
  */
-handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token) {
+trigger_handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token) {
     // The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
@@ -1401,7 +1401,7 @@ void _lf_advance_logical_time(instant_t next_time) {
  * See reactor.h for documentation.
  * @param action Pointer to an action on the self struct.
  */
-handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value) {
+trigger_handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     // NOTE: This doesn't acquire the mutex lock in the multithreaded version
     // until schedule_value is called. This should be OK because the element_size

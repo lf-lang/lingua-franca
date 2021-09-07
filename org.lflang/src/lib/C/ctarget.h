@@ -149,7 +149,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule(void* action, interval_t offset) {
+trigger_handle_t schedule(void* action, interval_t offset) {
     return _lf_schedule_token(action, offset, NULL);
 }
 
@@ -164,7 +164,7 @@ handle_t schedule(void* action, interval_t offset) {
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(void* action, interval_t extra_delay, int value)
+trigger_handle_t schedule_int(void* action, interval_t extra_delay, int value)
 {
     return _lf_schedule_int(action, extra_delay, value);
 }
@@ -219,7 +219,7 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value)
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
+trigger_handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     return _lf_schedule_token(action, extra_delay, token);
 }
 
@@ -239,7 +239,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+trigger_handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
     if (length < 0) {
         error_print(
             "schedule_copy():"
@@ -268,7 +268,7 @@ handle_t schedule_copy(void* action, interval_t offset, void* value, int length)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {    
+trigger_handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {    
     if (length < 0) {
         error_print(
             "schedule_value():"
