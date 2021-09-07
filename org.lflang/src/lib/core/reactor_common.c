@@ -74,7 +74,7 @@ bool _lf_execution_started = false;
  * 
  * FIXME: This variable might need to be volatile
  */
-tag_t stop_tag = FOREVER_TAG;
+tag_t stop_tag = FOREVER_TAG_INITIALIZER;
 
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
