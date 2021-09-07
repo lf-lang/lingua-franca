@@ -1,4 +1,4 @@
-name: lf-c
+name: lf-c-unthreaded
 prepare: ["mkdir", "src"]
 copy: ["cp", "-r", "${benchmark.targets.lf-c.copy_sources}", "src"]
 gen: ["cog", "-r", "${args:benchmark.targets.lf-c.gen_args}",
