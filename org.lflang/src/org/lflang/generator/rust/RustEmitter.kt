@@ -433,7 +433,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             if (localPath != null) {
                 append("path = \"${Paths.get(localPath).toAbsolutePath()}\"")
             } else {
-                append("git = \"ssh://git@github.com/icyphy/reactor-rust.git\"")
+                append("git = \"ssh://git@github.com/lf-lang/reactor-rust.git\"")
             }
         }
 
