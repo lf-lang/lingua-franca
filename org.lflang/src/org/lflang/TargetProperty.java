@@ -95,9 +95,9 @@ public enum TargetProperty {
      * This gives full control over the C++ build as any cmake parameters
      * can be adjusted in the included file.
      */
-    CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING,
+    CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.CPP, Target.C), (config, value) -> {
-                config.cmakeInclude = ASTUtils.toText(value);
+                config.cmakeIncludes = ASTUtils.toListOfStrings(value);
             }),
     
     /**
