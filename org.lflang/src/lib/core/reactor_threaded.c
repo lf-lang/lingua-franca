@@ -78,7 +78,7 @@ typedef struct _lf_tag_advancement_barrier {
  * Create a global tag barrier and
  * initialize the barrier's semaphore to 0 and its horizon to FOREVER_TAG.
  */
-_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, FOREVER_TAG};
+_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, FOREVER_TAG_INITIALIZER};
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q; // Sorted by index (precedence sort)
