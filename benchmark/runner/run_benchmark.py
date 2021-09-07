@@ -50,7 +50,11 @@ def main(cfg):
     log.info(f"Running {benchmark_name} using the {target_name} target.")
 
     # perform some sanity checks
-    if not check_benchmark_target_config(benchmark, target_name):
+    if "validation_alias" in target:
+        target_validation_name = target["validation_alias"]
+    else:
+        target_validation_name = target_name
+    if not check_benchmark_target_config(benchmark, target_validation_name):
         if continue_on_error:
             return
         else:
