@@ -627,6 +627,28 @@ class CGenerator extends GeneratorBase {
                 pr('void __initialize_trigger_objects() {\n')
                 indent()
                 
+                // Initialize the LF clock.
+                pr('''
+                    // Initialize the _lf_clock
+                    lf_initialize_clock();
+                ''')
+                
+                // Initialize tracing if it is enabled
+                if (targetConfig.tracing !== null) {
+                    var traceFileName = topLevelName;
+                    if (targetConfig.tracing.traceFileName !== null) {
+                        traceFileName = targetConfig.tracing.traceFileName;
+                        // Since all federates would have the same name, we need to append the federate name.
+                        if (isFederated) {
+                            traceFileName += "_" + federate.name;
+                        }
+                    }
+                    pr('''
+                        // Initialize tracing
+                        start_trace("«traceFileName».lft");
+                    ''') // .lft is for Lingua Franca trace
+                }
+                
                 // Create the table used to decrement reference counts between time steps.
                 if (startTimeStepTokens > 0) {
                     // Allocate the initial (before mutations) array of pointers to tokens.
@@ -664,11 +686,6 @@ class CGenerator extends GeneratorBase {
                 
                 setReactionPriorities(main, federate)
                 
-                // Initialize the LF clock.
-                pr('''
-                    lf_initialize_clock();
-                ''')
-                
                 initializeFederate(federate)
                 unindent()
                 pr('}\n')
@@ -692,17 +709,6 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
-                if (targetConfig.tracing !== null) {
-                    var traceFileName = topLevelName;
-                    if (targetConfig.tracing.traceFileName !== null) {
-                        traceFileName = targetConfig.tracing.traceFileName;
-                        // Since all federates would have the same name, we need to append the federate name.
-                        if (!federate.isSingleton()) {
-                            traceFileName += "_" + federate.name;
-                        }
-                    }
-                    pr('''start_trace("«traceFileName».lft");''') // .lft is for Lingua Franca trace
-                }
                 if (timerCount > 0) {
                     pr('''
                        for (int i = 0; i < __timer_triggers_size; i++) {

@@ -88,18 +88,19 @@ NtQuerySystemTime_t *NtQuerySystemTime = NULL;
  * Initialize the LF clock.
  */
 void lf_initialize_clock() {
-    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
-    // done here for better uniformity across platforms. This requires access to
-    // an epoch-based clock to begin with, which many baremetal target platforms
-    // will most likely not have.
-    calculate_epoch_offset();
-
+    // Load the appropriate Windows APIs
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (ntdll) {
         NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
         NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
         NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
     }
+
+    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
+    // done here for better uniformity across platforms. This requires access to
+    // an epoch-based clock to begin with, which many baremetal target platforms
+    // will most likely not have.
+    calculate_epoch_offset();
 }
 
 #ifdef NUMBER_OF_WORKERS
