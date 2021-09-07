@@ -83,7 +83,7 @@ void _lf_message_print(
     // interleaved between threads.
     // vprintf() is a version that takes an arg list rather than multiple args.
     size_t length = strlen(prefix) + strlen(format) + 32;
-    char message[length + 1];
+    char* message = (char*) malloc(length + 1);
     if (_lf_my_fed_id < 0) {
         snprintf(message, length, "%s%s\n",
                 prefix, format);
@@ -100,6 +100,7 @@ void _lf_message_print(
     } else if (log_level <= print_message_level) {
         (*print_message_function)(message, args);
     }
+    free(message);
 }
 
 /**
