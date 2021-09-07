@@ -1796,14 +1796,6 @@ int process_args(int argc, char* argv[]) {
 void initialize() {
     __count_payload_allocations = 0;
     __count_token_allocations = 0;
-#if _WIN32 || WIN32
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    if (ntdll) {
-        NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
-        NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
-        NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
-    }
-#endif
 
     // Initialize our priority queues.
 

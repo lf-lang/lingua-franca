@@ -38,6 +38,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include "lf_windows_support.h"
 #include "../platform.h"
+#include <time.h>
 
 /**
  * Offset to _LF_CLOCK that would convert it
@@ -48,6 +49,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 interval_t _lf_epoch_offset = 0LL;
 
+#define BILLION 1000000000
 
 /**
  * Calculate the necessary offset to bring _LF_CLOCK in parity with the epoch
@@ -61,18 +63,26 @@ void calculate_epoch_offset() {
         // Initialize _lf_epoch_offset to the difference between what is
         // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC) and
         // what is reported by CLOCK_REALTIME.
-        struct timespec physical_clock_snapshot, real_time_start;
+        instant_t physical_clock_snapshot_ns, real_time_start_ns;
 
-        clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
-        instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+        lf_clock_gettime(&physical_clock_snapshot_ns);
 
-        clock_gettime(CLOCK_REALTIME, &real_time_start);
-        instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
+        // Get the CLOCK_REALTIME snapshot
+        int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
+        long long timestamp, counts, counts_per_sec;
+        NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
+        timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
+        timestamp += _lf_epoch_offset;
+        real_time_start_ns = timestamp;
 
         _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
     }
-    LOG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+    printf("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
 }
+
+NtDelayExecution_t *NtDelayExecution = NULL;
+NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
+NtQuerySystemTime_t *NtQuerySystemTime = NULL;
 
 /**
  * Initialize the LF clock.
@@ -82,14 +92,18 @@ void lf_initialize_clock() {
     // done here for better uniformity across platforms. This requires access to
     // an epoch-based clock to begin with, which many baremetal target platforms
     // will most likely not have.
-    _lf_epoch_offset = calculate_epoch_offset(_LF_CLOCK);
+    calculate_epoch_offset();
+
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    if (ntdll) {
+        NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
+        NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
+        NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
+    }
 }
 
+#ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-
-NtDelayExecution_t *NtDelayExecution = NULL;
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
-NtQuerySystemTime_t *NtQuerySystemTime = NULL;
 
 /**
  * Create a new thread, starting with execution of lf_thread
@@ -98,9 +112,9 @@ NtQuerySystemTime_t *NtQuerySystemTime = NULL;
  * @return 0 on success, 1 otherwise.
  */
 int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
-    uintptr_t handle = _beginthread((windows_thread)lf_thread,0,arg);
-	thread->handle = (HANDLE)handle;
-	if(thread->handle == (HANDLE)-1){
+    uintptr_t handle = _beginthread(lf_thread, 0, arguments);
+	thread = (HANDLE)handle;
+	if(thread == (HANDLE)-1){
 		return 1;
 	}else{
 		return 0;
@@ -115,7 +129,7 @@ int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* ar
  * @return 0 on success, EINVAL otherwise.
  */
 int lf_thread_join(_lf_thread_t thread, void** thread_return) {    
-	DWORD retvalue = WaitForSingleObject(thread.handle,INFINITE);
+	DWORD retvalue = WaitForSingleObject(thread, INFINITE);
 	if(retvalue == WAIT_OBJECT_0){
 		return 0;
 	}else{
@@ -261,9 +275,15 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
      }
 }
 
+
+#else
+#include "lf_C11_threads_support.c"
+#endif
+#endif
+
 /**
- * Fetch the value of _LF_CLOCK (see lf_windows_support.h) and store it in tp.
- * The timestamp value in 'tp' will always be epoch time, which is the number of
+ * Fetch the value of _LF_CLOCK (see lf_windows_support.h) and store it in t.
+ * The timestamp value in 't' will always be epoch time, which is the number of
  * nanoseconds since January 1st, 1970.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
@@ -313,21 +333,21 @@ int lf_clock_gettime(instant_t* t) {
  *   - EINTR: The sleep was interrupted by a signal handler
  *   - EINVAL: All other errors
  */
-int lf_nanosleep(const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
-    unsigned char alertable = remaining ? 1 : 0;
-    long long duration = -(requested_time->tv_sec * (BILLION / 100) + requested_time->tv_nsec / 100);
+int lf_nanosleep(instant_t requested_time) {
+    unsigned char alertable = requested_time ? 1 : 0;
+    long long duration = -(requested_time/ 100);
     NTSTATUS status = (*NtDelayExecution)(alertable, (PLARGE_INTEGER)&duration);
+    instant_t now;
+    if (lf_clock_gettime(now) == -1) {
+        error_print("Failed to get the clock value in lf_nanosleep.");
+    }
     int result = status == 0 ? 0 : -1;
     if (alertable) {
         if (status < 0) {
             errno = EINVAL;
-        } else if (status > 0 && lf_clock_gettime(clk_id, remaining) == 0) {
+        } else if (status > 0 && now == 0) {
             errno = EINTR;
         }
     }
     return result;
 }
-
-#else
-#include "lf_C11_threads_support.c"
-#endif
