@@ -1,0 +1,5 @@
+# This file allows all tests to share the same compilation output for dependencies,
+# which speeds up tests.
+[workspace]
+members = ["*"]
+exclude = ["target", "StartupOutFromInside"]
