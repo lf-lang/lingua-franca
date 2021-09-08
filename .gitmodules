@@ -4,3 +4,4 @@
 [submodule "org.lflang/src/lib/Rust/reactor-rust"]
 	path = org.lflang/src/lib/Rust/reactor-rust
 	url = git@github.com:icyphy/reactor-rust.git
+	branch = main
