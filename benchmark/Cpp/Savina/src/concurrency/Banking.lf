@@ -1,25 +1,6 @@
 /**
  * Copyright (C) 2020 TU Dresden
  * 
- * Concurrency benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
- * Based on the version BankingAkkaManualStashActorBenchmark.scala
- * from the Savina suite.
- * 
- * @author Hannes Klein
- * @author Christian Menard
- */
-
-target Cpp {
-    cmake-include: "../IncludeHeaders.cmake",
-    build-type : RelWithDebInfo,
-    logging : WARN
-};
-
-import BenchmarkRunner from "../BenchmarkRunner.lf";
-
-/*
  * This benchmark consists of a so-called 'Teller' and a number of Account reactors.
  * The Accounts keep an internal balance. The Teller generates a series of random 
  * credit messages which it sends to the various accounts. Each credit message
@@ -54,8 +35,18 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
  * instance a std::vector). This could be done in a single logical step and should
  * thus be much faster. However, this is likely an unfair advantage over the Akka 
  * implementation, which also sends all messages individually.
+ * 
+ * @author Hannes Klein
+ * @author Christian Menard
  */
 
+target Cpp {
+    cmake-include: "../IncludeHeaders.cmake",
+    build-type : RelWithDebInfo,
+    logging : WARN
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 public preamble {=
     #include <deque>
@@ -178,7 +169,8 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), initialBalance:d
     =}
 }
 
-// FIXME default value of numAccounts should be 1000
+// FIXME default value of numAccounts should be 1000.
+// Increasing the accounts to 1000 is currently not possible as Epoch would crash (see #433)
 main reactor (numIterations:size_t(12), numTransactions:size_t(50000), numAccounts:size_t(20)) {
     
     teller = new Teller(numAccounts=numAccounts, numBankings=numTransactions);
