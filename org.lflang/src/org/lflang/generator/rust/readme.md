@@ -38,10 +38,16 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] check whether the action is present
 - [ ] physical actions
 - [x] timers
+- [ ] `shutdown` trigger & `request_shutdown`
+  - [ ] `request_shutdown` schedules a shutdown at T+(1 microstep)
+  - [ ] ports are cleaned up before the shutdown wave executes
+  - [ ] shutdown wave occurs in topological order like a normal wave
+  - [ ] `shutdown` is triggered even if the program exits because of timeout target property
 - [x] state variables
-  - [x] time type
-  - [x] not accessible in initializers
-  - [x] accessible in reactions
+  - [x] support time type
+  - [x] are accessible within reactions
+  - [x] are *not* accessible within initializers
+  - [x] are initialized to their proper value
 - [x] reactor parameters
   - [x] accessible in initializers
   - [x] accessible in reactions
