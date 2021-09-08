@@ -4,8 +4,6 @@
 
 reactor Sender {
     output out: u32;
-    logical action act;
-    state sent_messages: u32(0);
     reaction(startup) -> out {=
         assert_eq!(MicroStep::ZERO, ctx.get_logical_time().microstep, "Wrong microstep for startup execution");
         // executes at (T0, 0)
@@ -19,6 +17,7 @@ reactor Consumer {
 
     reaction(shutdown) in_ {=
         assert!(ctx.get(in_).is_none(), "Port should have been cleaned up before shutdown");
+        assert!(ctx.get_elapsed_logical_time().is_zero(), "Should be called on startup step");
         assert_eq!(MicroStep::ZERO + 1, ctx.get_logical_time().microstep, "Wrong microstep for stop execution");
     =}
 } 
