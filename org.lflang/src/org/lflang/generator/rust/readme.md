@@ -38,11 +38,12 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] check whether the action is present
 - [ ] physical actions
 - [x] timers
-- [ ] `shutdown` trigger & `request_stop`
+- [x] `shutdown` trigger & `request_stop`
   - [x] `Stop.lf`: `request_stop` schedules a shutdown at T+(1 microstep)
   - [x] `StopCleanup.lf`: ports are cleaned up before the shutdown wave executes
-  - [ ] shutdown wave occurs in topological order like a normal wave
-  - [ ] `shutdown` is triggered even if the program exits because of timeout target property
+  - [x] `StopTopology.lf`: shutdown wave occurs in topological order like a normal wave
+  - [x] `StopTimeout.lf`: `shutdown` is triggered even if the program exits because of timeout target property
+  - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
 - [x] state variables
   - [x] support time type
   - [x] are accessible within reactions
