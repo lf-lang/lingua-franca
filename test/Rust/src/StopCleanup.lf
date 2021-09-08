@@ -1,0 +1,31 @@
+/* Tests that ports are cleaned up before the shutdown wave executes. */
+
+ target Rust;
+
+reactor Sender {
+    output out: u32;
+    logical action act;
+    state sent_messages: u32(0);
+    reaction(startup) -> out {=
+        assert_eq!(MicroStep::ZERO, ctx.get_logical_time().microstep, "Wrong microstep for startup execution");
+        // executes at (T0, 0)
+        ctx.set(out, 43);
+        ctx.request_stop(); // requested for (T0, 1)
+    =}
+}
+ 
+reactor Consumer {
+    input in_: u32;
+
+    reaction(shutdown) in_ {=
+        assert!(ctx.get(in_).is_none(), "Port should have been cleaned up before shutdown");
+        assert_eq!(MicroStep::ZERO + 1, ctx.get_logical_time().microstep, "Wrong microstep for stop execution");
+    =}
+} 
+
+main reactor StopCleanup {
+   consumer = new Consumer();
+   producer = new Sender();
+   
+   producer.out -> consumer.in_;
+}

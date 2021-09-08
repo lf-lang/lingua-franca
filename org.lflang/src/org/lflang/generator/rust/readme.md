@@ -38,8 +38,8 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] check whether the action is present
 - [ ] physical actions
 - [x] timers
-- [ ] `shutdown` trigger & `request_shutdown`
-  - [ ] `request_shutdown` schedules a shutdown at T+(1 microstep)
+- [ ] `shutdown` trigger & `request_stop`
+  - [x] `Stop.lf`: `request_stop` schedules a shutdown at T+(1 microstep)
   - [ ] ports are cleaned up before the shutdown wave executes
   - [ ] shutdown wave occurs in topological order like a normal wave
   - [ ] `shutdown` is triggered even if the program exits because of timeout target property
