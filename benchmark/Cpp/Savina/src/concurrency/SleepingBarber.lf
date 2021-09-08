@@ -1,22 +1,34 @@
 /**
  * Copyright (C) 2020 TU Dresden
- * 
- * In this benchmark, there are three main components: The barber, a waiting room and the customers.
- * The customers are produced and controlled by a CustomerFactory.
- * This implementation is close to the Savina Akka implementation
- * in terms of the work that is done in each actor/reactor and
- * that for each message sent in Savina there is a message sent
- * in this implementation. But this implementation does not
- * show the basic idea of the problem in that the waiting
- * room is basically never because the customers arrival is
- * in sync with the barber cutting the hair of customers.
- * 
- * There are some interesting different possibilities to implement the
- * benchmark more based on the original idea behind it instead
- * of the Savina implementation. For example by using threads that
- * trigger events in physical time and handling missed
- * deadlines if the waiting room is full. But these would lack
- * comparability with the Savina benchmark even more.
+ *
+ * In this benchmark, there are four main components: The barber, a waiting
+ * room, a customer factory and the customers. The customer factory controls the
+ * production of new customers and sends them to the waiting room. If the
+ * waiting room is full, then the customers return and try again later. If the
+ * waiting room has empty seats, then the customer enters and waits to be served
+ * by the barber. In the Savina implementation, the waiting room takes the role
+ * of a central manager. If the room is empty, it tells the barber to go sleep.
+ * If a customer comes and the barber sleeps, the waiting room wakes up the
+ * barber and sends the customer in to the barber to be served. When the barber
+ * finishes, the waiting room sends in the next customer. If there are no more
+ * customers, the waiting room tells the barber to sleep again.
+ *
+ * In the Akka implementation production of customers and processing at the
+ * barber happens at certain rates. The workload of the factory and the barber
+ * has a random length and the average workload duration is controlled by the
+ * rate parameters. Depending on the rates selected and the precise runtime
+ * scheduling, the waiting room will have a constantly changing state in an
+ * actor implementation.
+ *
+ * In an LF implementation, the processing time of the workload does not
+ * influence the logical arrival and processing rates. Even with a random
+ * workload, the customer factory and the barber could operate logically
+ * synchronously in LF. To mimic the behaviour of the original Akka
+ * implementation and to have a more realistic setup, this LF implementation
+ * also uses varying logical delays. The factory will produce customers with a
+ * random logical delay between iterations and the barber processes customers
+ * with a varying logical delay. This also ensures that the waiting room
+ * constantly changes state and fills up or empties out occasionally.
  * 
  * @author Christian Menard
  * @author Hannes Klein
@@ -109,9 +121,11 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         for (size_t i{0}; i < numCustomers; i++) {
             if (customerReturned[i].is_present()) {
                 // the customer returned because the waiting room is full
-                // We send the customer again, but apply a logical delay, equal to the production rate.
-                // This is different from the Savina Akka implementation, but only with a delay we can ensure in LF,
-                // that the program moves forward in logical time and completes at some point.
+                // We send the customer again, but apply a logical delay, equal
+                // to the production rate. This is different from the Savina
+                // Akka implementation, but only with a delay we can ensure in LF,
+                // that the program moves forward in logical time and completes
+                // at some point.
                 sendCustomerAgain.schedule(i, reactor::Duration{averageProductionRate});                
             }
         }
