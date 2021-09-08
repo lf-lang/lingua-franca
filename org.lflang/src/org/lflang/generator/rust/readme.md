@@ -38,6 +38,9 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] check whether the action is present
 - [ ] physical actions
 - [x] timers
+  - [x] `TimerDefaults`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
+  - [ ] timer with delay
+  - [ ] timer is not accessible from within reactions, cannot be scheduled manually
 - [x] `shutdown` trigger & `request_stop`
   - [x] `Stop.lf`: `request_stop` schedules a shutdown at T+(1 microstep)
   - [x] `StopCleanup.lf`: ports are cleaned up before the shutdown wave executes

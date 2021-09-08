@@ -9,4 +9,9 @@ main reactor TimerPeriodic {
         println!("Tick {} after {} ms", self.i, ctx.get_elapsed_physical_time().as_millis());
         self.i += 1;
     =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.i, 51);
+        println!("success");
+    =}
 }

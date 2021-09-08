@@ -9,14 +9,14 @@ main reactor StopIdempotence {
 
     reaction(startup) {=
         ctx.request_stop(); // requested for (T0, 1)
-        ctx.assert_tag_equals(Duration::from_millis(0), 0);
+        ctx.assert_tag_eq(Duration::from_millis(0), 0);
     =}
 
     reaction(shutdown) {=
         ctx.request_stop(); // requested for (T0, 1)
         assert_eq!(self.count, 0, "Shutdown was run several times");
         self.count += 1;
-        ctx.assert_tag_equals(Duration::from_millis(0), 1);
+        ctx.assert_tag_eq(Duration::from_millis(0), 1);
         println!("success");
     =}
 }
