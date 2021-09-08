@@ -44,7 +44,7 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
  * value. In order to send multiple messages to the same account, the teller needs to
  * use an action and advance in logical time before sending the next message. This is
  * currently implemented such that the Teller creates an initial queue per account
- * which contains all credit messages that should be send to this account. Then it 
+ * which contains all credit messages that should be sent to this account. Then it 
  * schedules it `next` action and the corresponding reaction will send the first 
  * round of messages to the accounts. Then it schedules next again. This continues
  * until all messages are sent.

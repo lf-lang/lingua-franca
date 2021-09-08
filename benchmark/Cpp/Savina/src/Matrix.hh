@@ -1,6 +1,6 @@
 // Copyright (C) 2020 TU Dresden
 
-// A simple classes for strocing a matrix compactly and providing convenient access
+// A simple class for storing a matrix compactly and providing convenient access.
 template<class T>
 class Matrix {
   private:

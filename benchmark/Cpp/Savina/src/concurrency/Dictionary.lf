@@ -5,7 +5,7 @@
  * a central dictionary. The original Akka implementation does not make an effort to synchronize and order the incoming requests. It simply processes requests in the order they are delivered to the dictinary actor by the runtime.
  * The only synchroniztion applied, is that the workers wait for a response from the dictionary before sending the next request.
  * 
- * In the LF implementation, all components operate synchronously. This means at each logical time step all workers send a request to the dictionary. The dictionary processes the requests in a fixed order which makes the whole application deterministic.   
+ * In the LF implementation, all components operate synchronously. This means that at each logical time step all workers send a request to the dictionary. The dictionary processes the requests in a fixed order which makes the whole application deterministic.   
  * 
  * To break the causality loop the dictionary reactor contains a logical
  * action. This appears to be more efficient than using a logical action within each worker.
