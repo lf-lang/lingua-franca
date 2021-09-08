@@ -5,7 +5,7 @@
  * The customers are produced and controlled by a CustomerFactory.
  * This implementation is close to the Savina Akka implementation
  * in terms of the work that is done in each actor/reactor and
- * that for each message sent in Savina there is a message send
+ * that for each message sent in Savina there is a message sent
  * in this implementation. But this implementation does not
  * show the basic idea of the problem in that the waiting
  * room is basically never because the customers arrival is
