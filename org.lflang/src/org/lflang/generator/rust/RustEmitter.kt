@@ -143,7 +143,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
-                |        let mut _self = Self::user_assemble(assembler.get_next_id(), args);
+                |        let mut _self: Self = Self::user_assemble(assembler.get_next_id(), args);
                 |
 ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLocalDecl() }}
                 |
@@ -313,6 +313,8 @@ ${"         |    "..declarations}
             |
             |#[macro_use]
             |extern crate $runtimeCrateFullName;
+            |#[macro_use]
+            |extern crate assert_matches;
             |extern crate env_logger;
             |
             |use $rsRuntime::*;
@@ -418,6 +420,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |$runtimeCrateFullName = { ${gen.runtime.runtimeCrateSpec()} }
             |# Other dependencies
             |env_logger = "0.9"
+            |assert_matches = "1.5.0" # useful for tests
             |
             |[[bin]]
             |name = "${gen.executableName}"

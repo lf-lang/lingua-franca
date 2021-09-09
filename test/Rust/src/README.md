@@ -5,15 +5,17 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 ## Language
 
 - [x] reactor composition
+  - [x] `CompositionInitializationOrder.lf`: startup reactions are called bottom-up
+  - [x] `CompositionWithPorts.lf`: port bindings work
 - [ ] ports
     - [x] values
     - [ ] missing values at some tags
     - [x] port value is cleaned up at the end of a tag
     - [x] connections
-      - [x] input of self to input of child
+      - [x] `PortConnectionInSelfInChild.lf`: input of self to input of child
       - [x] input of self to output of self
       - [x] output of child to output of self
-      - [x] output of child to input of child
+      - [x] `CompositionWithPorts.lf`: output of child to input of child
     - [ ] mutable inputs
 - [ ] reaction dependency handling
     - [ ] trigger dependencies
