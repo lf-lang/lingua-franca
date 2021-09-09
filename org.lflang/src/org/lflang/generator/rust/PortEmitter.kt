@@ -108,7 +108,7 @@ object PortEmitter {
             val containerRef = if (container.isBank) "${container.name}[$containerIndex]" else container.name
             "$containerRef.$portRef"
         } else {
-            portRef
+            "_self.$portRef"
         }
     }
 
