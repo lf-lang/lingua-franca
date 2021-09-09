@@ -20,12 +20,12 @@ import static org.eclipse.core.runtime.IStatus.*
  */
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	override getProjectTemplates() {
-		#[new HelloWorldProject]
+		#[new HelloWorldProject, new InteractiveProject]
 	}
 }
 
 @ProjectTemplate(label="Hello World", icon="project_template.png", description="<p><b>Hello World</b></p>
-<p>Print \"Hello World!\" in a target language of choice.</p>")
+<p>Print \"Hello world!\" in a target language of choice.</p>")
 final class HelloWorldProject {
 	//val advanced = check("Advanced:", false)
 	val config = group("Configuration")
@@ -97,4 +97,63 @@ final class HelloWorldProject {
 			''')
 		])
 	}
+}
+
+@ProjectTemplate(label="Interactive", icon="project_template.png", description="<p><b>Interactive</b></p>
+<p>Simulate sensor input through key strokes.</p>")
+final class InteractiveProject {
+    //val advanced = check("Advanced:", false)
+    val config = group("Configuration")
+    val target = combo("Target:", #["C"], "The target language to compile down to", config)
+    
+    override generateProjects(IProjectGenerator generator) {
+        generator.generate(new PluginProjectFactory => [
+            projectName = projectInfo.projectName
+            location = projectInfo.locationPath
+            projectNatures += #[XtextProjectHelper.NATURE_ID]
+            builderIds += #[XtextProjectHelper.BUILDER_ID] 
+            folders += #["src", "src/include"]
+            addFile("src/Interactive.lf", '''
+                /**
+                 * Simple demonstration of the sensor simulator (used in the Rhythm examples).
+                 * This has no audio output, but just tests the ncurses interface.
+                 */
+                target C {
+                    threads: 2,
+                    cmake-include: "include/ncurses-cmake-extension.txt", // Adds support for ncurses
+                    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
+                };
+                preamble {=
+                    #include "sensor_simulator.c"
+                    char* messages[] = {"Hello", "World"};
+                    int num_messages = 2;
+                =}
+                main reactor {
+                    timer t(0, 1 sec);
+                    timer r(0, 2 sec);
+                    physical action key:char*;
+                    reaction(startup) -> key {=
+                        info_print("Starting sensor simulator.");
+                        start_sensor_simulator(messages, num_messages, 16, NULL, LOG_LEVEL_INFO);
+                        register_sensor_key('\0', key);
+                   =}
+                    reaction(t) {=
+                        show_tick("*");
+                    =}
+                    reaction(r) {=
+                        info_print("Elapsed logical time: %lld.", get_elapsed_logical_time());
+                        show_tick(".");
+                    =}
+                    reaction(key) {=
+                        info_print("You typed '%s' at elapsed time %lld.", key->value, get_elapsed_logical_time());
+                    =}
+                }
+            ''')
+            addFile("include/ncurses-cmake-extension.txt", '''
+                find_package(Curses REQUIRED) # Finds the lncurses library
+                include_directories(${CURSES_INCLUDE_DIR}) # "The include directories needed to use Curses"
+                target_link_libraries( ${LF_MAIN_TARGET} ${CURSES_LIBRARIES} ) # Links the Curses library
+            ''')
+        ])
+    }
 }
