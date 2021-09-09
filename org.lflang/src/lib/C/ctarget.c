@@ -29,140 +29,44 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Target-specific runtime functions for the C target language.
  * This API layer can be used in conjunction with:
  *     target C;
- * 
- * Note for target language developers. This is one way of developing a target language where 
- * the C core runtime is adopted. This file is a translation layer that implements Lingua Franca 
- * APIs which interact with the internal _lf_SET and _lf_schedule APIs. This file can act as a 
+ *
+ * Note for target language developers. This is one way of developing a target language where
+ * the C core runtime is adopted. This file is a translation layer that implements Lingua Franca
+ * APIs which interact with the internal _lf_SET and _lf_schedule APIs. This file can act as a
  * template for future runtime developement for target languages.
  * For source generation, see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CCppGenerator.xtend.
  */
 
-
-#ifndef CTARGET_H
-#define CTARGET_H
-
-#include "core/reactor.h"
-
-//////////////////////////////////////////////////////////////
-/////////////  SET Functions (to produce an output)
-
-// NOTE: According to the "Swallowing the Semicolon" section on this page:
-//    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
-// the following macros should use an odd do-while construct to avoid
-// problems with if ... else statements that do not use braces around the
-// two branches.
-
-/**
- * Set the specified output (or input of a contained reactor)
- * to the specified value.
- *
- * This version is used for primitive types such as int,
- * double, etc. as well as the built-in types bool and string.
- * The value is copied and therefore the variable carrying the
- * value can be subsequently modified without changing the output.
- * This can also be used for structs with a type defined by a typedef
- * so that the type designating string does not end in '*'.
- * @param out The output port (by name) or input of a contained
- *  reactor in form input_name.port_name.
- * @param value The value to insert into the self struct.
- */
-#define SET(out, val) _LF_SET(out, val)
-
-/**
- * Version of set for output types given as 'type[]' where you
- * want to send a previously dynamically allocated array.
- *
- * The deallocation is delegated to downstream reactors, which
- * automatically deallocate when the reference count drops to zero.
- * It also sets the corresponding _is_present variable in the self
- * struct to true (which causes the object message to be sent).
- * @param out The output port (by name).
- * @param val The array to send (a pointer to the first element).
- * @param length The length of the array to send.
- * @see lf_token_t
- */
-#define SET_ARRAY(out, val, element_size, length) _LF_SET_ARRAY(out, val, element_size, length)
-
-/**
- * Version of set() for output types given as 'type*' that
- * allocates a new object of the type of the specified output port.
- *
- * This macro dynamically allocates enough memory to contain one
- * instance of the output datatype and sets the variable named
- * by the argument to point to the newly allocated memory.
- * The user code can then populate it with whatever value it
- * wishes to send.
- *
- * This macro also sets the corresponding _is_present variable in the self
- * struct to true (which causes the object message to be sent),
- * @param out The output port (by name).
- */
-#define SET_NEW(out) _LF_SET_NEW(out)
-
-/**
- * Version of set() for output types given as 'type[]'.
- *
- * This allocates a new array of the specified length,
- * sets the corresponding _is_present variable in the self struct to true
- * (which causes the array message to be sent), and sets the variable
- * given by the first argument to point to the new array so that the
- * user code can populate the array. The freeing of the dynamically
- * allocated array will be handled automatically
- * when the last downstream reader of the message has finished.
- * @param out The output port (by name).
- * @param len The length of the array to be sent.
- */
-#define SET_NEW_ARRAY(out, len) _LF_SET_NEW_ARRAY(out, len)
-
-/**
- * Version of set() for output types given as 'type[number]'.
- *
- * This sets the _is_present variable corresponding to the specified output
- * to true (which causes the array message to be sent). The values in the
- * output are normally written directly to the array or struct before or
- * after this is called.
- * @param out The output port (by name).
- */
-#define SET_PRESENT(out) _LF_SET_PRESENT(out)
-
-/**
- * Version of set() for output types given as 'type*' or 'type[]' where you want
- * to forward an input or action without copying it.
- *
- * The deallocation of memory is delegated to downstream reactors, which
- * automatically deallocate when the reference count drops to zero.
- * @param out The output port (by name).
- * @param token A pointer to token obtained from an input or action.
- */
-#define SET_TOKEN(out, newtoken) _LF_SET_TOKEN(out, newtoken)
-
-//////////////////////////////////////////////////////////////
-/////////////  Schedule Functions
- 
+#include "ctarget.h"
 
 /**
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
  * See schedule_token(), which this uses, for details.
- * 
+ *
  * @param action Pointer to an action on the self struct.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule(void* action, interval_t offset);
+handle_t schedule(void* action, interval_t offset) {
+    return _lf_schedule_token(action, offset, NULL);
+}
 
 /**
  * Schedule the specified action with an integer value at a later logical
  * time that depends on whether the action is logical or physical and
  * what its parameter values are. This wraps a copy of the integer value
  * in a token. See schedule_token() for more details.
- * 
+ *
  * @param action The action to be triggered.
  * @param extra_delay Extra offset of the event release above that in the action.
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(void* action, interval_t extra_delay, int value);
+handle_t schedule_int(void* action, interval_t extra_delay, int value)
+{
+    return _lf_schedule_int(action, extra_delay, value);
+}
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -214,7 +118,9 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value);
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
+handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
+    return _lf_schedule_token(action, extra_delay, token);
+}
 
 /**
  * Schedule an action to occur with the specified value and time offset with a
@@ -222,7 +128,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token)
  * into newly allocated memory under the assumption that its size is given in
  * the trigger's token object's element_size field multiplied by the specified
  * length.
- * 
+ *
  * See schedule_token(), which this uses, for details.
  *
  * @param action Pointer to an action on a self struct.
@@ -232,7 +138,18 @@ handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    if (length < 0) {
+        error_print(
+            "schedule_copy():"
+            " Ignoring request to copy a value with a negative length (%d).",
+            length
+        );
+        return -1;
+    }
+    return _lf_schedule_copy(action, offset, value, (size_t)length);
+}
+
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -250,6 +167,14 @@ handle_t schedule_copy(void* action, interval_t offset, void* value, int length)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
-
-#endif // CTARGET_H
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    if (length < 0) {
+        error_print(
+            "schedule_value():"
+            " Ignoring request to schedule an action with a value that has a negative length (%d).",
+            length
+        );
+        return -1;
+    }
+    return _lf_schedule_value(action, extra_delay, value, (size_t)length);
+}
