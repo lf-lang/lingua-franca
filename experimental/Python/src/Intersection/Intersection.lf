@@ -434,7 +434,7 @@ reactor Simulator(
     state current_throttle(0);
     state current_brake(0);
     state velocity_vector(
-        {={'x':0, 'y':0}=}
+        {={"x":0, "y":0}=}
     );
     
     reaction(startup) -> vehicle_stat, vehicle_pos {=
@@ -448,10 +448,10 @@ reactor Simulator(
         # simulation. An improvement would be for the vehicles
         # to be able to change directions at the intersection.
         if not isclose(self.current_velocity.x, 0):
-            self.velocity_vector['x'] = self.current_velocity.x / abs(self.current_velocity.x) # Keep the sign
+            self.velocity_vector["x"] = self.current_velocity.x / abs(self.current_velocity.x) # Keep the sign
         
         if not isclose(self.current_velocity.y, 0):
-            self.velocity_vector['y'] = self.current_velocity.y / abs(self.current_velocity.y) # Keep the sign
+            self.velocity_vector["y"] = self.current_velocity.y / abs(self.current_velocity.y) # Keep the sign
         
         """
         print("Simulator: Vehicle {}:\n".format(self.bank_index + 1),
@@ -466,8 +466,8 @@ reactor Simulator(
                 self.current_velocity.z
             ),
             "Velocity vector: x={:f}, y={:f}".format(
-                self.velocity_vector['x'],
-                self.velocity_vector['y']
+                self.velocity_vector["x"],
+                self.velocity_vector["y"]
             )
             )
         """
@@ -502,16 +502,16 @@ reactor Simulator(
                 current_acceleration
             ),
             "Velocity vector: x={:f}, y={:f}".format(
-                self.velocity_vector['x'],
-                self.velocity_vector['y']
+                self.velocity_vector["x"],
+                self.velocity_vector["y"]
             )
         )
         
         # Apply acceleration
         self.current_velocity.x += (current_acceleration * (self.interval / BILLION)) \
-            * self.velocity_vector['x']  # Keep the direction
+            * self.velocity_vector["x"]  # Keep the direction
         self.current_velocity.y += (current_acceleration * (self.interval / BILLION)) \
-            * self.velocity_vector['y']  # Keep the direction
+            * self.velocity_vector["y"]  # Keep the direction
             
         vehicle_stat.set(vehicle_status(self.current_velocity))
             
