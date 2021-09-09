@@ -1,0 +1,23 @@
+// Test logical action with delay.
+target Rust;
+
+main reactor ActionScheduleMicrostep {
+    logical action act;
+    state count: u32(1);
+
+    reaction(startup) -> act {=
+        // executes at (T0, 0)
+        ctx.schedule(act, Asap);
+    =}
+
+    reaction(act) -> act {=
+        // executes at (T0, [123])
+        ctx.assert_tag_eq(Duration::from_millis(0), self.count);
+        self.count += 1;
+        if self.count <= 3 {
+            ctx.schedule(act, Asap);
+        } else {
+            println!("SUCCESS")
+        }
+    =}
+}

@@ -30,5 +30,6 @@ main reactor ActionValues {
 
     reaction (shutdown) {=
        assert!(self.r1done && self.r2done);
+       println!("Success")
     =}
 }
