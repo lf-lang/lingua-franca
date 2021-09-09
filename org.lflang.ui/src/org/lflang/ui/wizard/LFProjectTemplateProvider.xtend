@@ -3,7 +3,6 @@
  */
 package org.lflang.ui.wizard
 
-
 import org.eclipse.core.runtime.Status
 import org.eclipse.jdt.core.JavaCore
 import org.eclipse.xtext.ui.XtextProjectHelper
@@ -26,42 +25,75 @@ class LFProjectTemplateProvider implements IProjectTemplateProvider {
 }
 
 @ProjectTemplate(label="Hello World", icon="project_template.png", description="<p><b>Hello World</b></p>
-<p>This is a parameterized hello world for LF. You can set a parameter to modify the content in the generated file
-and a parameter to set the package the file is created in.</p>")
+<p>Print \"Hello World!\" in a target language of choice.</p>")
 final class HelloWorldProject {
-	val advanced = check("Advanced:", false)
-	val advancedGroup = group("Properties")
-	val name = combo("Name:", #["Xtext", "World", "Foo", "Bar"], "The name to say 'Hello' to", advancedGroup)
-	val path = text("Package:", "mydsl", "The package path to place the files in", advancedGroup)
+	//val advanced = check("Advanced:", false)
+	val config = group("Configuration")
+	val target = combo("Target:", #["C", "C++", "Python", "TypeScript"], "The target language to compile down to", config)
+	//val path = text("Package:", "mydsl", "The package path to place the files in", advancedGroup)
+    //target.enabled = true
+    
+//	override protected updateVariables() {
+//		name.enabled = advanced.value
+//		path.enabled = advanced.value
+//		if (!advanced.value) {
+//			name.value = "Xtext"
+//			path.value = "lf"
+//		}
+//	}
 
-	override protected updateVariables() {
-		name.enabled = advanced.value
-		path.enabled = advanced.value
-		if (!advanced.value) {
-			name.value = "Xtext"
-			path.value = "lf"
-		}
-	}
-
-	override protected validate() {
-		if (path.value.matches('[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*'))
-			null
-		else
-			new Status(ERROR, "Wizard", "'" + path + "' is not a valid package name")
-	}
+//	override protected validate() {
+//		if (path.value.matches('[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*'))
+//			null
+//		else
+//			new Status(ERROR, "Wizard", "'" + path + "' is not a valid package name")
+//	}
 
 	override generateProjects(IProjectGenerator generator) {
 		generator.generate(new PluginProjectFactory => [
 			projectName = projectInfo.projectName
 			location = projectInfo.locationPath
-			projectNatures += #[JavaCore.NATURE_ID, "org.eclipse.pde.PluginNature", XtextProjectHelper.NATURE_ID]
-			builderIds += #[JavaCore.BUILDER_ID, XtextProjectHelper.BUILDER_ID]
+			projectNatures += #[XtextProjectHelper.NATURE_ID] // JavaCore.NATURE_ID, "org.eclipse.pde.PluginNature", 
+			builderIds += #[XtextProjectHelper.BUILDER_ID] // JavaCore.BUILDER_ID, 
 			folders += "src"
-			addFile('''src/«path»/Model.lf''', '''
-				/*
-				 * This is an example model
+			addFile('''src/HelloWorld.lf''', '''
+				/**
+				 * Print "Hello World!" in «target».
 				 */
-				Hello «name»!
+				«IF target.value.equals("C")»
+				target C
+				
+				main reactor {
+				    reaction(startup) {=
+				        // Using a thread-safe print function provided by the runtime.
+				        info_print("Hello World!");
+				    =}
+				}
+				«ELSEIF target.value.equals("C++")»
+                target Cpp
+                
+                main reactor {
+                    reaction(startup) {=
+                        std::cout << "Hello World!";
+                    =}
+                }
+                «ELSEIF target.value.equals("Python")»
+                target Python
+                
+                main reactor {
+                    reaction(startup) {=
+                        print("Hello World!")
+                    =}
+                }
+                «ELSEIF target.value.equals("TypeScript")»
+                target TypeScript
+                
+                main reactor {
+                    reaction(startup) {=
+                        console.log("Hello World!")
+                    =}
+                }
+				«ENDIF»
 			''')
 		])
 	}
