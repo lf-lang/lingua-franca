@@ -1,48 +1,29 @@
 // Test logical action with delay.
 target Rust;
 
-reactor GeneratedDelay {
-    input y_in: i32;
-    output y_out: i32;
-    state y_state: i32(0);
-    logical action act(100 msec);
-    reaction(y_in) -> act {=
-        self.y_state = ctx.get(y_in).unwrap();
-        ctx.schedule(act, Asap);
-    =}
-
-    reaction(act) -> y_out {=
-        ctx.set(y_out, self.y_state);
-    =}
-}
-
-reactor Source {
-    output out: i32;
-    reaction(startup) -> out {=
-        ctx.set(out, 1);
-    =} 
-}
-
-reactor Sink {
-	input inp: i32;
-	reaction(inp) {=
-        let elapsed_logical = ctx.get_elapsed_logical_time();
-        let logical = ctx.get_logical_time();
-
-        println!("logical time: {}", logical);
-        println!("elapsed physical time: {} ns", ctx.get_elapsed_physical_time().as_nanos());
-        println!("elapsed logical time: {} ns", elapsed_logical.as_nanos());
-
-        // the framework appears precise to e-4 s so we can't use Duration#Eq
-        assert_eq!(100, elapsed_logical.as_millis(), "Expected 100 ms elapsed");
-	=}
-}
-
 main reactor ActionDelay {
-    source = new Source();
-    sink = new Sink();
-    g = new GeneratedDelay();
-    
-    source.out -> g.y_in;
-    g.y_out -> sink.inp;
+    logical action act0;
+    logical action act1(100 msec);
+    state count:u32(0);
+
+    reaction(startup) -> act0, act1 {=
+        ctx.schedule(act0, After(Duration::from_millis(100)));
+        ctx.schedule(act1, After(Duration::from_millis(40)));
+    =}
+
+    reaction(act0) {=
+        ctx.assert_tag_eq(Duration::from_millis(100), 0);
+        self.count += 1;
+    =}
+
+    reaction(act1) {=
+        ctx.assert_tag_eq(Duration::from_millis(140), 0);
+        self.count += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(2, self.count);
+        println!("SUCCESS")
+    =}
+
 }

@@ -1,0 +1,41 @@
+// Test logical action with delay.
+target Rust;
+
+main reactor ActionValuesCleanup {
+    preamble {=
+        use std::sync::atomic::AtomicBool;
+        use std::sync::atomic::Ordering;
+        // set to true when destructor is called
+        static mut DROPPED: AtomicBool = AtomicBool::new(false);
+
+        #[derive(Clone, Debug)]
+        struct FooDrop { }
+        impl std::ops::Drop for FooDrop {
+            fn drop(&mut self) {
+                unsafe {
+                    DROPPED.store(true, Ordering::SeqCst);
+                }
+            }
+        }
+    =}
+
+
+    logical action act: FooDrop;
+    state count: u32(0);
+
+    reaction(startup) -> act {=
+        ctx.schedule_with_v(act, Some(FooDrop { }), Asap)
+    =}
+
+    reaction(act) {=
+        println!("{:?}", ctx.get_action(act));
+        if self.count == 0 {
+            self.count = 1;
+            assert!(ctx.get_action(act).is_some());
+            ctx.schedule(act, Asap);
+        } else if self.count == 1 {
+            assert!(ctx.get_action(act).is_none());
+            assert!(unsafe { DROPPED.load(Ordering::SeqCst) });
+        }
+    =}
+}

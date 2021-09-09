@@ -31,11 +31,15 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [ ] reaction priority is respected
       - [x] locally
       - [ ] between different child reactors fixme
+- [ ] imports
 - [x] logical actions
-    - [x] delays
-    - [x] actions with values
-    - [x] action value is cleaned up at the end of a tag
-    - [x] check whether the action is present
+    - [x] `ActionImplicitDelay.lf`: scheduling an action with no additional delay uses its implicit delay 
+    - [x] `ActionDelay.lf`: 
+    - [x] `ActionScheduleMicrostep.lf`: an action scheduled with a zero delay is only triggered on the next microstep
+    - [x] `ActionValues.lf`: scheduling an action with a value at multiple different tags preserves each value
+    - [x] `ActionValuesCleanup.lf`: action value is cleaned up at the end of a tag
+    - [x] `ActionIsPresent.lf`: function `is_action_present` checks whether an action is present at the current tag
+    - [x] `ActionIsPresentDouble.lf`: several actions may be present at the same tag
 - [ ] physical actions
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
@@ -65,6 +69,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - ...
 - [ ] reactor inheritance
   - ...
+- [ ] multiports
 
 ### Runtime
 
