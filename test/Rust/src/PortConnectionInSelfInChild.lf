@@ -9,20 +9,15 @@ reactor Source {
     =}
 }
 reactor Parent {
-    input inp: i32;
-    child = new Child();
-    inp -> child.inp;
-}
-reactor Child {
-    input inp: i32;
-    reaction(inp) {=
+    output out: i32;
+    child = new Source();
+    child.out -> out;
+
+    reaction(out) {=
         assert_matches!(ctx.get(inp), Some(76600));
         println!("Success")
     =}
 }
 main reactor {
-      source = new Source();
-      sink = new Parent();
-
-      source.out -> sink.inp;
+    parent = new Parent();
 }
