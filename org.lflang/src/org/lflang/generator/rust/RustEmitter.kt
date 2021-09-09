@@ -322,7 +322,7 @@ ${"         |    "..declarations}
             |use self::reactors::${mainReactorNames.paramStructName} as _MainParams;
             |
             |fn main() {
-            |    env_logger::init();
+            |    init_logger();
             |
             |    // todo CLI parsing
             |    let options = SchedulerOptions {
@@ -335,6 +335,12 @@ ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName + ":"
             |    };
             |
             |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
+            |}
+            |
+            |fn init_logger() {
+            |    env_logger::Builder::from_env(env_logger::Env::default())
+            |        .format_target(false)
+            |        .init();
             |}
             |
         """.trimMargin()
