@@ -8,6 +8,7 @@ import org.lflang.lf.Value
 import java.util.*
 
 class TSActionGenerator (
+    // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
     private val reactor: Reactor
 ) {

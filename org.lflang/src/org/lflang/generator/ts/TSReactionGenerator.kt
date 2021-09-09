@@ -18,6 +18,7 @@ import kotlin.collections.HashSet
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TSReactionGenerator(
+    // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter
 ) {
@@ -141,6 +142,7 @@ class TSReactionGenerator(
         }
     }
 
+    // TODO(hokeun): Decompose this function further.
     fun generateReaction(
         reactor : Reactor,
         reaction: Reaction
