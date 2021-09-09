@@ -50,6 +50,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `StopCleanup.lf`: ports are cleaned up before the shutdown wave executes
   - [x] `StopTopology.lf`: shutdown wave occurs in topological order like a normal wave
   - [x] `StopTimeout.lf`: `shutdown` is triggered even if the program exits because of timeout target property
+  - [x] `StopNoEvent.lf`: `shutdown` is triggered even if the program exits because of an empty event queue
   - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
 - [x] state variables
   - [x] support time type
@@ -57,8 +58,9 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] are *not* accessible within initializers
   - [x] are initialized to their proper value
 - [x] reactor parameters
-  - [x] accessible in initializers
-  - [x] accessible in reactions
+  - [x] `CtorParamSimple.lf`: ctor parameters are accessible in initializers and reactions
+  - [x] `CtorParamDefault.lf`: ctor arguments may be defaulted
+  - [x] `CtorParamMixed.lf`: ctor arguments may be mentioned in any order, even with defaulted parameters
   - note: must be `Clone`
 - [ ] array types
   - [x] support fixed-sized arrays
