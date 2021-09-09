@@ -4,11 +4,16 @@
  */
 target C {
     threads: 2,
-    cmake-include: "include/ncurses-cmake-extension.txt", // Adds support for ncurses
-    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
+    cmake-include: ["ncurses-cmake-extension.txt", "sensor_simulator.cmake"], // Adds support for ncurses
+    files: [
+        "/lib/C/util/sensor_simulator.c", 
+        "/lib/C/util/sensor_simulator.h",
+        "/lib/C/util/sensor_simulator.cmake",
+        "include/ncurses-cmake-extension.txt"
+    ]
 };
 preamble {=
-    #include "sensor_simulator.c"
+    #include "sensor_simulator.h"
     char* messages[] = {"Hello", "World"};
     int num_messages = 2;
 =}
