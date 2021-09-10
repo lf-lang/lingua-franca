@@ -198,6 +198,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     public var boolean isFederated = false
 
+    /**
+     * Indicates whether or not the current Lingua Franca program
+     * contains model reactors.
+     */
+    public var boolean hasModalReactors = false
+
     // //////////////////////////////////////////
     // // Target properties, if they are included.
     /**
@@ -393,6 +399,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         // Invoke this function a second time because transformations may have introduced new reactors!
         setReactorsAndInstantiationGraph()
+        
+        checkModalReactorSupport(false)
 
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
@@ -722,6 +730,18 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
     // //////////////////////////////////////////
     // // Protected methods.
+    
+    /**
+     * Checks whether modal reactors are present and require appropriate code generation.
+     * This will set the hasModalReactors variable.
+     * @param isSupported indicates if modes are supported by this code generation.
+     */
+    protected def checkModalReactorSupport(boolean isSupported) {
+        hasModalReactors = reactors.exists[!modes.empty]
+        if (hasModalReactors && !isSupported) {
+            errorReporter.reportError("The currently selected code generation does not support modal reactors!")
+        }
+    }
 
     /**
      * Clear the buffer of generated code.

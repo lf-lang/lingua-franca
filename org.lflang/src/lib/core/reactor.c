@@ -132,10 +132,13 @@ void print_snapshot() {
  * @param reaction The reaction.
  */
 void _lf_enqueue_reaction(reaction_t* reaction) {
+#ifdef MODAL_REACTORS
 	// Check if reaction is disabled by mode inactivity
 	if (!_lf_mode_is_active(reaction->mode)) {
+		DEBUG_PRINT("Suppressing downstream reaction %s due inactivity of mode %s.", reaction->name, reaction->mode->name);
 		return; // Suppress reaction by preventing entering reaction queue
 	}
+#endif
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         DEBUG_PRINT("Enqueing downstream reaction %s.", reaction->name);
@@ -203,8 +206,10 @@ int _lf_do_step() {
         }
     }
     
+#ifdef MODAL_REACTORS
 	// At the end of the step, perform mode transitions
 	__handle_mode_changes();
+#endif
 
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);

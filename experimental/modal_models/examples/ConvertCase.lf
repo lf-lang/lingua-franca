@@ -21,8 +21,10 @@ reactor Converter(log:bool(false)) {
             }
             if (c == ' ') {
                 SET_MODE(Lower);
-            }
-            if (self->log) {
+                if (self->log) {
+					printf("%c -> TOGGLE\n", c, converted->value);
+                }
+            } else if (self->log) {
             	printf("%c -> %c\n", c, converted->value);
             }
 		=}
@@ -37,8 +39,10 @@ reactor Converter(log:bool(false)) {
             }
             if (c == ' ') {
                 SET_MODE(Upper);
-            }
-            if (self->log) {
+                if (self->log) {
+					printf("%c -> TOGGLE\n", c, converted->value);
+                }
+            } else if (self->log) {
             	printf("%c -> %c\n", c, converted->value);
             }
 		=}

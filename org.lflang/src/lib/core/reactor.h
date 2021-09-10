@@ -237,6 +237,7 @@ do { \
 } while(0)
 #endif
 
+
 /**
  * Sets the next mode of a modal reactor. Same as SET for outputs, only
  * the last value will have effect if invoked multiple times.
@@ -244,11 +245,13 @@ do { \
  *
  * @param mode The target mode to set for activation.
  */
+#ifdef MODAL_REACTORS
 #define _LF_SET_MODE(mode) \
 do { \
 	self->___mode_state.next_mode = mode; \
     self->___mode_state.mode_change = _##mode##_change_type; \
 } while(0)
+#endif
 
 /**
  * Macro for extracting the deadline from the index of a reaction.
@@ -432,6 +435,7 @@ typedef struct token_present_t {
 } token_present_t;
 
 
+#ifdef MODAL_REACTORS
 /** Typedef for reactor_mode_t struct, used for representing a mode. */
 typedef struct reactor_mode_t reactor_mode_t;
 /** Typedef for reactor_mode_state_t struct, used for storing modal state of reactor and/or its relation to enclosing modes. */
@@ -441,6 +445,7 @@ typedef struct reactor_mode_state_t reactor_mode_state_t;
 struct reactor_mode_t {
 	reactor_mode_state_t* state;    // Pointer to a struct with the reactor's mode state. INSTANCE.
     string name;                    // Name of this mode.
+    instant_t deactivation_time;	// Time when the mode was left.
 };
 /** A struct to store state of the modes in a reactor instance and/or its relation to enclosing modes. */
 struct reactor_mode_state_t {
@@ -450,6 +455,14 @@ struct reactor_mode_state_t {
 	reactor_mode_t* next_mode;      // Pointer to the next mode to activate at the end of this step (if set).
 	char mode_change;				// A mode change type flag (0: no change, 1: reset, 2: history).
 };
+#else
+/*
+ * Reactions and triggers must have a mode pointer to set up connection to enclosing modes,
+ * also when they are precompiled without modal reactors in order to later work in modal reactors.
+ * Hence define mode type as void in the absence of modes to treat mode pointer as void pointers for that time being.
+ */
+typedef reactor_mode_t void;
+#endif
 
 /**
  * Reaction activation record to push onto the reaction queue.
@@ -546,6 +559,8 @@ struct trigger_t {
                               //   coordination. 
                               // - Finally, if status is 'present', then this is an error since multiple 
                               //   downstream messages have been produced for the same port for the same logical time.
+    reactor_mode_t* mode;     // The enclosing mode of this reaction (if exists).
+    					      // If enclosed in multiple, this will point to the innermost mode.
 #ifdef FEDERATED
     tag_t last_known_status_tag;        // Last known status of the port, either via a timed message, a port absent, or a
                                         // TAG from the RTI.
@@ -660,7 +675,9 @@ bool __trigger_shutdown_reactions();
 /**
  * Function (to be code generated) to handle mode changes.
  */
+#ifdef MODAL_REACTORS
 void __handle_mode_changes();
+#endif
 
 /**
  * Create a new token and initialize it.
