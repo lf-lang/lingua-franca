@@ -550,7 +550,7 @@ class ASTUtils {
         }
         result.addAll(definition.reactions)
         for (mode : definition.allModes) {
-            result.addAll(mode.reactions)
+            result.addAll(findInsertPosition(result, definition.reactions, mode), mode.reactions)
         }
         return result
     }
@@ -1806,5 +1806,28 @@ class ASTUtils {
     def static TargetDecl targetDecl(Resource model) {
         return model.allContents.filter(TargetDecl).head
     }
-
+    
+    /**
+     * Find the correct position for obj in the given list based on the textual ordering
+     * relative to the given candidates already present in the list.
+     * @param list the list to find a position in
+     * @param candidates the candidates that in the list that should be used to position obj (already in textual order)
+     * @param obj the object to find a position for
+     * @return the index in list appropriate for obj
+     */
+    private def static <T extends EObject> int findInsertPosition(List<T> list, List<T> candidates, EObject obj) {
+        if (list.empty || candidates.empty) {
+            return list.size // append
+        }
+        if (obj.eResource instanceof XtextResource) {
+            val objOffset = NodeModelUtils.findActualNodeFor(obj).offset
+            for (i : 0..< candidates.size) {
+                val candidateOffset = NodeModelUtils.findActualNodeFor(candidates.get(i)).offset
+                if (candidateOffset > objOffset) { // if the candidate comes textually after obj then its position it the right one
+                    return list.indexOf(candidates.get(i))
+                }
+            }
+        }
+        return list.size // append
+    }
 }
