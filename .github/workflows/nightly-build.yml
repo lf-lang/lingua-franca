@@ -26,6 +26,8 @@ jobs:
 
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1
