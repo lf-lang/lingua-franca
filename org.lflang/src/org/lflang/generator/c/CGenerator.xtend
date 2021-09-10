@@ -464,6 +464,10 @@ class CGenerator extends GeneratorBase {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 fileConfig = new FedFileConfig(fileConfig, federate.name);
                 
+                 // Need to copy user files again since the source structure changes
+                 // for federated programs.
+                 copyUserFiles();
+                
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
