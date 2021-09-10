@@ -146,7 +146,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @param mode The target mode to set for activation.
  */
+#ifdef MODAL_REACTORS
 #define SET_MODE(mode) _LF_SET_MODE(mode)
+#endif
 
 //////////////////////////////////////////////////////////////
 /////////////  Schedule Functions

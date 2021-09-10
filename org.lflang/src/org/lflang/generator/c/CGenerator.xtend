@@ -584,20 +584,13 @@ class CGenerator extends GeneratorBase {
                 ''')
                 
                 // If there are modes, create a table of mode state to be checked for transitions.
-                if (modalReactorCount > 0) {
+                if (hasModalReactors) {
                     pr('''
                         // Array of pointers to mode states to be handled in __handle_mode_changes().
                         reactor_mode_state_t* __modal_reactor_states[«modalReactorCount»];
-                    ''')
-                } else {
-                    pr('''
-                        // Array of pointers to mode states to be handled in __handle_mode_changes().
-                        reactor_mode_state_t** __modal_reactor_states = NULL;
+                        int __modal_reactor_states_size = «modalReactorCount»;
                     ''')
                 }
-                pr('''
-                    int __modal_reactor_states_size = «modalReactorCount»;
-                ''')
                 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
@@ -769,12 +762,14 @@ class CGenerator extends GeneratorBase {
                     pr("void terminate_execution() {}");
                 }
                 
-                // Generate mode change detection
-                pr('''
-                    void __handle_mode_changes() {
-                        _lf_handle_mode_changes(__modal_reactor_states, __modal_reactor_states_size);
-                    }
-                ''')
+                if (hasModalReactors) {
+                    // Generate mode change detection
+                    pr('''
+                        void __handle_mode_changes() {
+                            _lf_handle_mode_changes(__modal_reactor_states, __modal_reactor_states_size);
+                        }
+                    ''')
+                }
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
@@ -832,6 +827,11 @@ class CGenerator extends GeneratorBase {
         }
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    override checkModalReactorSupport(boolean _) {
+        // Modal reactors are currently only supported for single threaded non federated applications
+        super.checkModalReactorSupport(!isFederated && targetConfig.threads == 0)
     }
     
     def addPlatformFiles(ArrayList<String> coreFiles) {
@@ -1663,6 +1663,7 @@ class CGenerator extends GeneratorBase {
                 pr(mode, constructorCode, '''
                     self->___modes[«modeAndIdx.key»].state = &self->___mode_state;
                     self->___modes[«modeAndIdx.key»].name = "«mode.name»";
+                    self->___modes[«modeAndIdx.key»].deactivation_time = 0;
                 ''')
             }
             
@@ -3076,6 +3077,16 @@ class CGenerator extends GeneratorBase {
                 // The trigger is either a port or a startup or shutdown trigger.
                 // Nothing to do in initialize_trigger_objects
             }
+            if (trigger instanceof Timer || trigger instanceof Action) {
+                // Establish connection to enclosing mode
+                val mode = triggerInstance.getMode(false)
+                if (mode !== null) {
+                    val modeRef = '''&«selfStructName(mode.parent)»->___modes[«mode.parent.modes.indexOf(mode)»];'''
+                    pr(initializeTriggerObjects, '''«triggerStructName».mode = «modeRef»;''')
+                } else {
+                    pr(initializeTriggerObjects, '''«triggerStructName».mode = NULL;''')
+                }
+            }
             count++
             triggerCount++
         }
@@ -4456,6 +4467,11 @@ class CGenerator extends GeneratorBase {
                     #define FEDERATED_DECENTRALIZED
                 ''')
             }
+        }
+        if (hasModalReactors) {
+            pr('''
+                #define MODAL_REACTORS
+            ''')
         }
         
         includeTargetLanguageHeaders()

@@ -1,0 +1,61 @@
+target C {
+    logging: info
+};
+
+main reactor TimersHistory {
+    timer next(1sec, 1sec);
+    timer Tbase(250msec, 250msec);
+        
+    preamble {=
+    	#include <stdio.h>
+    =}
+        
+	reaction(startup) {=
+        printf("Starting in mode One\n");
+    =}
+    
+    reaction(Tbase) {=
+        printf("Tbase\n");
+    =}
+    
+    initial mode One {
+        timer T1(250msec, 250msec)
+        
+        reaction(T1) {=
+            printf("T1\n");
+        =}
+    	
+		reaction(next) -> Two continue {=
+            printf("Transitioning to mode Two\n");
+            SET_MODE(Two);
+		=}
+    }
+    mode Two {
+        timer T2(500msec, 500msec)
+        
+        reaction(T2) {=
+            printf("T2\n");
+        =}
+    	
+		reaction(next) -> Three continue {=
+            printf("Transitioning to mode Three\n");
+            SET_MODE(Three);
+		=}
+    }
+    mode Three {
+        timer T3(0msec, 500msec)
+        
+        reaction(T3) {=
+            printf("T3\n");
+        =}
+    	
+		reaction(next) -> One continue {=
+            printf("Transitioning to mode One\n");
+            SET_MODE(One);
+		=}
+    }
+    
+    reaction(Tbase) {=
+        printf("---\n");
+    =}
+}
