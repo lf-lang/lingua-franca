@@ -20,7 +20,7 @@ import static org.eclipse.core.runtime.IStatus.*
  */
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	override getProjectTemplates() {
-		#[new HelloWorldProject, new InteractiveProject]
+		#[new HelloWorldProject, new InteractiveProject, new WebServerProject]
 	}
 }
 
@@ -118,13 +118,18 @@ final class InteractiveProject {
                  * Simple demonstration of the sensor simulator (used in the Rhythm examples).
                  * This has no audio output, but just tests the ncurses interface.
                  */
-                target C {
+                target «target» {
                     threads: 2,
-                    cmake-include: "include/ncurses-cmake-extension.txt", // Adds support for ncurses
-                    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
+                    cmake-include: ["ncurses-cmake-extension.txt", "sensor_simulator.cmake"], // Adds support for ncurses
+                    files: [
+                            "/lib/C/util/sensor_simulator.c", 
+                            "/lib/C/util/sensor_simulator.h",
+                            "/lib/C/util/sensor_simulator.cmake",
+                            "include/ncurses-cmake-extension.txt"
+                        ]
                 };
                 preamble {=
-                    #include "sensor_simulator.c"
+                    #include "sensor_simulator.h"
                     char* messages[] = {"Hello", "World"};
                     int num_messages = 2;
                 =}
@@ -149,7 +154,7 @@ final class InteractiveProject {
                     =}
                 }
             ''')
-            addFile("include/ncurses-cmake-extension.txt", '''
+            addFile("src/include/ncurses-cmake-extension.txt", '''
                 find_package(Curses REQUIRED) # Finds the lncurses library
                 include_directories(${CURSES_INCLUDE_DIR}) # "The include directories needed to use Curses"
                 target_link_libraries( ${LF_MAIN_TARGET} ${CURSES_LIBRARIES} ) # Links the Curses library
@@ -157,3 +162,60 @@ final class InteractiveProject {
         ])
     }
 }
+
+@ProjectTemplate(label="WebServer", icon="project_template.png", description="<p><b>Web Server</b></p>
+<p>A simple web server implemented using TypeScript.</p>")
+final class WebServerProject {
+    //val advanced = check("Advanced:", false)
+    val config = group("Configuration")
+    val target = combo("Target:", #["TypeScript"], "The target language to compile down to", config)
+    
+    override generateProjects(IProjectGenerator generator) {
+        generator.generate(new PluginProjectFactory => [
+            projectName = projectInfo.projectName
+            location = projectInfo.locationPath
+            projectNatures += #[XtextProjectHelper.NATURE_ID]
+            builderIds += #[XtextProjectHelper.BUILDER_ID] 
+            folders += #["src"]
+            addFile("src/WebServer.lf", '''
+                target «target» {
+                    keepalive : true
+                };
+                
+                main reactor {
+                    preamble {=
+                        import * as http from "http"
+                    =}
+                    state server:{=http.Server | undefined=}({=undefined=});
+                    physical action serverRequest:{= [http.IncomingMessage, http.ServerResponse] =};
+                    reaction (startup) -> serverRequest {=
+                        let options = {};
+                        server = http.createServer(options, (req : http.IncomingMessage, res : http.ServerResponse) => {
+                            // Generally, browsers make two requests; the first is for favicon.ico.
+                            // See https://stackoverflow.com/questions/11961902/nodejs-http-createserver-seems-to-call-twice
+                            if (req.url != "/favicon.ico") {
+                                actions.serverRequest.schedule(0, [req, res])
+                            }
+                        }).listen(8000);
+                        console.log("Started web server at http://localhost:8000/")
+                    =}
+                    reaction (serverRequest) {=
+                        let requestArray = serverRequest;
+                        if (requestArray) {
+                            let req = requestArray[0];
+                            let res = requestArray[1];
+                            res.writeHead(200);
+                            res.end("Hello world!\n");
+                        }
+                    =}
+                    reaction (shutdown) {=
+                        if (server) {
+                            server.close();
+                        }
+                    =} 
+                }
+            ''')
+        ])
+    }
+}
+

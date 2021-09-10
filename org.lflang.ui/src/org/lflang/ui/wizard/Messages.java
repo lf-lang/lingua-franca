@@ -12,6 +12,10 @@ public class Messages extends NLS {
 	public static String HelloWorldProject_Description;
 	public static String InteractiveProject_Label;
 	public static String InteractiveProject_Description;
+	public static String WebserverProject_Label;
+	public static String WebserverProject_Description;
+	public static String WebServerProject_Label;
+	public static String WebServerProject_Description;
 	
 	static {
 	// initialize resource bundle
