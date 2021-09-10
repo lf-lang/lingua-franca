@@ -33,7 +33,7 @@ reactor SourceProto {
 reactor SinkProto {
     input _in;
     reaction(_in) {=
-        print('Received: name="{:s}", number={:d}.'.format(_in.value.name, _in.value.number))
+        print("Received: name='{:s}', number={:d}.".format(_in.value.name, _in.value.number))
     =}
 }
 

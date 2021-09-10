@@ -92,15 +92,12 @@ class TSGenerator(
     fun getTargetValueW(v: Value): String = getTargetValue(v)
     fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = getTargetType(state)
-    fun getTargetTypeW(a: Action): String = getTargetType(a)
-    fun getTargetTypeW(p: Port): String = getTargetType(p)
     fun getTargetTypeW(t: Type): String = getTargetType(t)
 
     fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state)
     fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param)
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
         getInitializerList(param, i)
-    fun generateVarRefW(reference: VarRef): String =generateVarRef(reference)
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
