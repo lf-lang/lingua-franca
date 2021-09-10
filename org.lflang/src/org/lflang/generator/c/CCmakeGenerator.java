@@ -64,17 +64,10 @@ class CCmakeGenerator {
      * 
      * @param sources A list of .c files to build.
      * @param executableName The name of the output executable.
-     * @param extras Add any custom extra syntax to the CMakeLists.txt file
      * @param errorReporter Used to report errors.
      * @return The content of the CMakeLists.txt.
      */
-    StringBuilder generateCMakeCode(
-            List<String> sources, 
-            String executableName,
-            String extras,
-            String includeFile,
-            ErrorReporter errorReporter
-        ) {
+    StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
         StringBuilder cMakeCode = new StringBuilder();
         // Decide if the compilation should happen in C++ mode
         boolean CppMode = false;
@@ -87,14 +80,6 @@ class CCmakeGenerator {
             CppMode = true;
         }
         
-<<<<<<< HEAD
-        // Resolve path to the cmake include file if one was provided
-        if (!includeFile.isBlank()) {
-            try {
-                includeFile = FileConfig.toUnixString(fileConfig.srcPath.resolve(includeFile));
-            } catch (Exception e) {
-                errorReporter.reportError(e.getMessage());
-=======
         // Resolve path to the cmake include files if any was provided
         LinkedHashSet<String> resolvedIncludeFiles = new LinkedHashSet<String>();
         for (String includeFile : targetConfig.cmakeIncludes) { 
@@ -110,7 +95,6 @@ class CCmakeGenerator {
                 } catch (Exception e) {
                     errorReporter.reportError(e.getMessage());
                 }
->>>>>>> origin/master
             }
         }
         
@@ -239,8 +223,9 @@ class CCmakeGenerator {
         cMakeCode.append("        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})\n");
         cMakeCode.append("\n");
         
-        if (!extras.isBlank()) {
-            cMakeCode.append(extras+"\n");
+        // Add the include file
+        for (String includeFile : resolvedIncludeFiles) {
+            cMakeCode.append("include("+includeFile+")\n");
         }
         
         // Add the include file
