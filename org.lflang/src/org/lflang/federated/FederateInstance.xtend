@@ -330,18 +330,18 @@ class FederateInstance {
     }
         
     /** 
-     * Return true if the specified reactor is not the top-level federated reactor,
-     * or if it is and the reaction should be included in the code generated for the
+     * Return true if the specified reaction is not defined in the top-level reactor,
+     * or if the top-level reactor is not federated,
+     * or if it is and the reaction should be included in the code generated for this
      * federate. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reactor
      * is in the federate. Otherwise, return false.
      * This will also return false if the reaction is not a reaction of the specified reactor,
      *
      * @param reaction The reaction.
-     * @param federate The federate instance or null if there
-     *  is no federation.
      */
     def containsReaction(Reactor reactor, Reaction reaction) {
+        // val reactor  = reaction.eContainer as Reactor
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
         
