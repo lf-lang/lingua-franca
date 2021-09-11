@@ -28,6 +28,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.generator.StandaloneContext;
 import org.lflang.lf.Reactor;
+import org.lflang.generator.Main;
 
 /**
  * Base class that governs the interactions between code generators and the file system.
@@ -443,7 +444,7 @@ public class FileConfig {
     /**
      * Copy a given file from 'src' to 'dest'.
      *
-     * @param source The source file path string.
+     * @param src The source file path string.
      * @param dest The destination file path string.
      * @throws IOException if copy fails.
      */
@@ -458,7 +459,7 @@ public class FileConfig {
     /**
      * Copy a given file from 'src' to 'dest'.
      *
-     * @param source The source file path.
+     * @param src The source file path.
      * @param dest The destination file path.
      * @throws IOException if copy fails.
      */
@@ -560,6 +561,7 @@ public class FileConfig {
     
     private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
         if (resource.getURI().isPlatform()) {
+            // Case 1: we are in the RCA.
             File srcFile = toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
@@ -569,10 +571,12 @@ public class FileConfig {
                 }
             }
         } else if (context instanceof StandaloneContext) {
+            // Case 2: We are in the command-line compiler.
             return ((StandaloneContext)context).getPackageRoot();
         }
-        
-        throw new IOException("Unable to determine the package root.");
+        // Case 3: We are in a language server. This is actually the same function call that provides the package root
+        //  of the standalone context, so this is really no different from Case 2.
+        return Main.findPackageRoot(toPath(resource).toFile());
     }
     
     /**
