@@ -461,7 +461,7 @@ struct reactor_mode_state_t {
  * also when they are precompiled without modal reactors in order to later work in modal reactors.
  * Hence define mode type as void in the absence of modes to treat mode pointer as void pointers for that time being.
  */
-typedef reactor_mode_t void;
+typedef void reactor_mode_t;
 #endif
 
 /**
