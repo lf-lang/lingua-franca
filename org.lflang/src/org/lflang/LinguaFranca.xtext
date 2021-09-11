@@ -231,7 +231,7 @@ Connection:
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
     (delay=Delay)?
-    (serialization=Serialization)?
+    (serializer=Serializer)?
     ';'?
     ;
 
@@ -243,8 +243,8 @@ Delay:
     'after' (parameter=[Parameter] | (interval=INT ((unit=TimeUnit))))
 ;
 
-// Chooses the serialization type to use for the connection
-Serialization:
+// Chooses the serializer to use for the connection
+Serializer:
     'serializer' name=STRING
 ;
 

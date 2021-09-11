@@ -426,19 +426,19 @@ public class FedASTUtils {
         generator.setReactionBankIndex(r1, leftBankIndex);
         generator.setReactionBankIndex(r2, rightBankIndex);
         
-        // Get the serialization method
-        var serialization = SupportedSerializations.NATIVE;
-        if (connection.getSerialization() != null) {
-            serialization = SupportedSerializations.valueOf(
-                    connection.getSerialization().getName().toUpperCase()
+        // Get the serializer
+        var serializer = SupportedSerializers.NATIVE;
+        if (connection.getSerializer() != null) {
+            serializer = SupportedSerializers.valueOf(
+                    connection.getSerializer().getName().toUpperCase()
             );
-            // Add it to the list of enabled serializations
-            generator.enabledSerializations.add(serialization);
+            // Add it to the list of enabled serializers
+            generator.enabledSerializers.add(serializer);
         }
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
-        if (serialization == SupportedSerializations.NATIVE) {
+        if (serializer == SupportedSerializers.NATIVE) {
             action.setType(type);
         } else {
             Type action_type = factory.createType();
@@ -504,7 +504,7 @@ public class FedASTUtils {
             InferredType.fromAST(type),
             connection.isPhysical(),
             connection.getDelay(),
-            serialization
+            serializer
         ));
               
         // Add the sending reaction to the parent.
@@ -549,7 +549,7 @@ public class FedASTUtils {
             rightChannelIndex,
             ASTUtils.getInferredType(action),
             connection.isPhysical(),
-            serialization
+            serializer
         ));
         
         // Add the receiver reaction to the parent

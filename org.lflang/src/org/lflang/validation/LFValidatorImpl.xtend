@@ -72,7 +72,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
-import org.lflang.lf.Serialization
+import org.lflang.lf.Serializer
 import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
@@ -87,7 +87,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.SupportedSerializations
+import org.lflang.federated.SupportedSerializers
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -1121,18 +1121,18 @@ class LFValidatorImpl extends AbstractLFValidator {
      * Check if the requested serialization is supported.
      */
     @Check(FAST)
-    def checkSerialization(Serialization serialization) {
+    def checkSerialization(Serializer serializer) {
         var boolean isValidSerialization = false;
-        for (SupportedSerializations method : SupportedSerializations.values()) {
-          if (method.name().equalsIgnoreCase(serialization.name)){
+        for (SupportedSerializers method : SupportedSerializers.values()) {
+          if (method.name().equalsIgnoreCase(serializer.name)){
               isValidSerialization = true;
           }          
         }
         
         if (!isValidSerialization) {
             error(
-                "Serialization can be " + SupportedSerializations.values.toList, 
-                Literals.SERIALIZATION__NAME
+                "Serialization can be " + SupportedSerializers.values.toList, 
+                Literals.SERIALIZER__NAME
             );
         }
     }

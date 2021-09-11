@@ -85,8 +85,8 @@ import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
 import java.util.HashSet
-import org.lflang.federated.SupportedSerializations
 import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializers
 
 /**
  * Generator base class for shared code between code generators.
@@ -196,9 +196,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected var Map<Reaction,Integer> reactionBankIndices = null
     
     /**
-     * Keep a unique list of enabled serializations
+     * Keep a unique list of enabled serializers
      */
-    public var HashSet<SupportedSerializations> enabledSerializations = new HashSet<SupportedSerializations>();
+    public var HashSet<SupportedSerializers> enabledSerializers = new HashSet<SupportedSerializers>();
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -407,7 +407,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
         
-        if (!enabledSerializations.isNullOrEmpty) {
+        if (!enabledSerializers.isNullOrEmpty) {
             // If serialization support is
             // requested by the programmer 
             // enable support for them.
@@ -776,7 +776,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
-     * @param serialization The serialization method used on the connection.
+     * @param serializer The serializer used on the connection.
      */
     def String generateNetworkReceiverBody(
         Action action,
@@ -789,7 +789,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SupportedSerializations serialization
+        SupportedSerializers serializer
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
@@ -808,7 +808,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
-     * @param serialization The serialization method used on the connection.
+     * @param serializer The serializer used on the connection.
      */
     def String generateNetworkSenderBody(
         VarRef sendingPort,
@@ -821,7 +821,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         InferredType type,
         boolean isPhysical,
         Delay delay,
-        SupportedSerializations serialization
+        SupportedSerializers serializer
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }

@@ -39,7 +39,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.lang.StringBuilder
 import java.nio.file.Files
 import java.util.LinkedList
-import org.lflang.federated.SupportedSerializations
+import org.lflang.federated.SupportedSerializers
 
 /**
  * Generator for TypeScript target.
@@ -372,7 +372,7 @@ class TSGenerator(
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
-     * @param serialization The serialization method used on the connection.
+     * @param serializer The serializer used on the connection.
      */
     override fun generateNetworkReceiverBody(
         action: Action,
@@ -385,7 +385,7 @@ class TSGenerator(
         receivingChannelIndex: Int,
         type: InferredType,
         isPhysical: Boolean,
-        serialization: SupportedSerializations
+        serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
         // FIXME: For now assume the data is a Buffer, but this is not checked.
