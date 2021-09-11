@@ -2,19 +2,18 @@ package org.lflang.generator.ts
 
 import org.lflang.ASTUtils
 import org.lflang.generator.PrependOperator
-import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 import java.util.*
 
 class TSStateGenerator (
     private val tsGenerator: TSGenerator,
-    private val reactor: Reactor
+    private val stateVars: List<StateVar>
 ) {
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
-        for (stateVar in reactor.stateVars) {
+        for (stateVar in stateVars) {
             stateClassProperties.add("${stateVar.name}: __State<${stateVar.getTargetType()}>;");
         }
         return with(PrependOperator) {
@@ -33,7 +32,7 @@ class TSStateGenerator (
     fun generateInstantiations(): String {
         val stateInstantiations = LinkedList<String>()
         // Next handle states.
-        for (stateVar in reactor.stateVars) {
+        for (stateVar in stateVars) {
             if (ASTUtils.isInitialized(stateVar)) {
                 stateInstantiations.add("this.${stateVar.name} = new __State(${getTargetInitializer(stateVar)});");
             } else {

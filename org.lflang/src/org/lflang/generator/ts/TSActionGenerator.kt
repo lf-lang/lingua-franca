@@ -2,7 +2,6 @@ package org.lflang.generator.ts
 
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Action
-import org.lflang.lf.Reactor
 import org.lflang.lf.Type
 import org.lflang.lf.Value
 import java.util.*
@@ -10,7 +9,7 @@ import java.util.*
 class TSActionGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val reactor: Reactor
+    private val actions: List<Action>
 ) {
     private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -32,7 +31,7 @@ class TSActionGenerator (
 
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
-        for (action in reactor.actions) {
+        for (action in actions) {
             // Shutdown actions are handled internally by the
             // TypeScript reactor framework. There would be a
             // duplicate action if we included the one generated
@@ -50,7 +49,7 @@ class TSActionGenerator (
 
     fun generateInstantiations(): String {
         val actionInstantiations = LinkedList<String>()
-        for (action in reactor.actions) {
+        for (action in actions) {
             // Shutdown actions are handled internally by the
             // TypeScript reactor framework. There would be a
             // duplicate action if we included the one generated
