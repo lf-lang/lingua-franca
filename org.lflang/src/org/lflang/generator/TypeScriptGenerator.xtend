@@ -581,7 +581,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if (reactor.isFederated()) {
             generatedReactions = new LinkedList<Reaction>()
             for (reaction : reactor.reactions) {
-                if (federate.containsReaction(reactor, reaction)) {
+                if (federate.containsReaction(reaction)) {
                     generatedReactions.add(reaction)
                 }
             }

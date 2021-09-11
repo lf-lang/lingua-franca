@@ -1507,7 +1507,7 @@ class CGenerator extends GeneratorBase {
         var reactor = decl.toDefinition
         var reactionCount = 0
         for (reaction : reactor.reactions) {
-            if (federate === null || federate.containsReaction(reactor, reaction)) {
+            if (federate === null || federate.containsReaction(reaction)) {
                 pr(destructorCode, '''
                     for(int i = 0; i < self->___reaction_«reactionCount».num_outputs; i++) {
                         free(self->___reaction_«reactionCount».triggers[i]);
@@ -1557,7 +1557,7 @@ class CGenerator extends GeneratorBase {
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(reactor, input as Port)) {
+            if (federate === null || federate.containsPort(input as Port)) {
                 var token = ''
                 if (input.inferredType.isTokenType) {
                     token = '''
@@ -1579,7 +1579,7 @@ class CGenerator extends GeneratorBase {
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.containsPort(reactor, output as Port)) {
+            if (federate === null || federate.containsPort(output as Port)) {
                 var token = ''
                 if (output.inferredType.isTokenType) {
                      token = '''
@@ -1604,7 +1604,7 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(reactor, action)) {
+            if (federate === null || federate.containsAction(action)) {
                 pr(action, code, '''
                     typedef struct {
                         trigger_t* trigger;
@@ -1728,7 +1728,7 @@ class CGenerator extends GeneratorBase {
         
         // Next handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(reactor, action)) {
+            if (federate === null || federate.containsAction(action)) {
                 pr(action, body, '''
                     «variableStructType(action, decl)» __«action.name»;
                 ''')
@@ -1741,7 +1741,7 @@ class CGenerator extends GeneratorBase {
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(reactor, input as Port)) {
+            if (federate === null || federate.containsPort(input as Port)) {
                 // If the port is a multiport, the input field is an array of
                 // pointers that will be allocated separately for each instance
                 // because the sizes may be different. Otherwise, it is a simple
@@ -1778,7 +1778,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.containsPort(reactor, output as Port)) {
+            if (federate === null || federate.containsPort(output as Port)) {
                 // If the port is a multiport, create an array to be allocated
                 // at instantiation.
                 if (output.isMultiport) {
@@ -2070,7 +2070,7 @@ class CGenerator extends GeneratorBase {
         val startupReactions = new LinkedHashSet<Integer>
         val shutdownReactions = new LinkedHashSet<Integer>
         for (reaction : reactor.allReactions) {
-            if (federate === null || federate.containsReaction(reactor, reaction)) {
+            if (federate === null || federate.containsReaction(reaction)) {
                 // Create the reaction_t struct.
                 pr(reaction, body, '''reaction_t ___reaction_«reactionCount»;''')
                 
@@ -2222,7 +2222,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(reactor, action)) {
+            if (federate === null || federate.containsAction(action)) {
                 createTriggerT(body, action, triggerMap, constructorCode, destructorCode)
                 var isPhysical = "true";
                 if (action.origin == ActionOrigin.LOGICAL) {
@@ -2249,7 +2249,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(reactor, input as Port)) {            
+            if (federate === null || federate.containsPort(input as Port)) {            
                 createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
             }
         }
@@ -2347,7 +2347,7 @@ class CGenerator extends GeneratorBase {
         var reactionIndex = 0;
         val reactor = decl.toDefinition
         for (reaction : reactor.allReactions) {
-            if (federate === null || federate.containsReaction(reactor, reaction)) {
+            if (federate === null || federate.containsReaction(reaction)) {
                 generateReaction(reaction, decl, reactionIndex)
             }
             // Increment reaction index even if the reaction is not in the federate
@@ -2830,7 +2830,6 @@ class CGenerator extends GeneratorBase {
         var reactionCount = 0
         for (reaction : reactorInstance.reactions) {
             if (federate === null || federate.containsReaction(
-                reactorInstance.definition.reactorClass.toDefinition,
                 reaction.definition
             )) {
                 var Collection<PortInstance> destinationPorts = null
@@ -2844,7 +2843,6 @@ class CGenerator extends GeneratorBase {
                 while (dominatingReaction !== null 
                     && (federate !== null && 
                         !federate.containsReaction(
-                            reactorInstance.definition.reactorClass.toDefinition, 
                             dominatingReaction.definition
                             )
                         )
@@ -2854,7 +2852,6 @@ class CGenerator extends GeneratorBase {
                 if (dominatingReaction !== null
                     && (federate !== null 
                         && federate.containsReaction(
-                            reactorInstance.definition.reactorClass.toDefinition, 
                             dominatingReaction.definition
                             )
                         )
@@ -3072,7 +3069,6 @@ class CGenerator extends GeneratorBase {
         val portsSeen = new LinkedHashSet<PortInstance>();
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(
-                instance.definition.reactorClass.toDefinition,
                 reaction.definition
             )) {
                 for (port : reaction.effects.filter(PortInstance)) {
@@ -3178,7 +3174,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         for (action : instance.actions) {
-            if (federate === null || federate.containsAction(instance.reactorDefinition, action.definition)) {
+            if (federate === null || federate.containsAction(action.definition)) {
                 pr(startTimeStep, '''
                     // Add action «action.getFullName» to array of is_present fields.
                     __is_present_fields[«startTimeStepIsPresentCount»] 
@@ -3228,7 +3224,7 @@ class CGenerator extends GeneratorBase {
                 timerCount++
             } else if (trigger instanceof Action && !triggerInstance.isShutdown) {
                 if (federate === null ||
-                    federate.containsAction(reactorInstance.reactorDefinition, triggerInstance.definition as Action)) {
+                    federate.containsAction(triggerInstance.definition as Action)) {
                     var minDelay = (triggerInstance as ActionInstance).minDelay
                     var minSpacing = (triggerInstance as ActionInstance).minSpacing
                     pr(initializeTriggerObjects, '''
@@ -3549,7 +3545,7 @@ class CGenerator extends GeneratorBase {
                 _lf_register_trace_event(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
             ''')
             for (action : instance.actions) {
-                if (federate === null || federate.containsAction(instance.reactorDefinition, action.definition)) {
+                if (federate === null || federate.containsAction(action.definition)) {
                     pr(builder, '''
                         _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name»), trace_trigger, "«description».«action.name»");
                     ''')
@@ -3629,7 +3625,7 @@ class CGenerator extends GeneratorBase {
         // Allocate memory for outputs.
         for (output : reactorClass.toDefinition.outputs) {
             if (federate === null || 
-                federate.containsPort(reactorClass.toDefinition, output as Port)
+                federate.containsPort(output as Port)
             ) {
                 // If the port is a multiport, create an array.
                 if (output.isMultiport) {
@@ -3650,7 +3646,7 @@ class CGenerator extends GeneratorBase {
         val portAllocatedAlready = new LinkedHashSet<PortInstance>()
         var reactionCount = 0
         for (reaction : instance.reactions) {
-            if (federate === null || federate.containsReaction(reactorClass.toDefinition, reaction.definition)) {
+            if (federate === null || federate.containsReaction(reaction.definition)) {
                 generateReactionOutputs(reaction, portAllocatedAlready);
 
                 // Next handle triggers of the reaction that come from a multiport output
@@ -3703,7 +3699,7 @@ class CGenerator extends GeneratorBase {
         // Next, allocate memory for input. 
         for (input : reactorClass.toDefinition.inputs) {
             if (federate === null || 
-                federate.containsPort(reactorClass.toDefinition, input as Port)
+                federate.containsPort(input as Port)
             ) {
                 // If the port is a multiport, create an array.
                 if (input.isMultiport) {
@@ -3744,7 +3740,7 @@ class CGenerator extends GeneratorBase {
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            if (federate === null || federate.containsPort(instance.reactorDefinition, output.definition)) {
+            if (federate === null || federate.containsPort(output.definition)) {
                 if (output instanceof MultiportInstance) {
                     var j = 0
                     for (multiportInstance : output.instances) {
@@ -3767,7 +3763,6 @@ class CGenerator extends GeneratorBase {
         // of this reactor.
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(
-                instance.definition.reactorClass.toDefinition,
                 reaction.definition
             )) {
                 // Handle reactions that produce outputs sent to inputs
@@ -3800,7 +3795,7 @@ class CGenerator extends GeneratorBase {
         for (action : instance.actions) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action) && 
-                (federate === null || federate.containsAction(instance.reactorDefinition, action.definition))
+                (federate === null || federate.containsAction(action.definition))
             ) {
                 var type = action.definition.inferredType
                 var payloadSize = "0"
@@ -3843,7 +3838,6 @@ class CGenerator extends GeneratorBase {
         reactionCount = 0
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(
-                instance.definition.reactorClass.toDefinition,
                 reaction.definition
             )) {
                 if (reaction.declaredDeadline !== null) {
@@ -4250,7 +4244,6 @@ class CGenerator extends GeneratorBase {
         var reactionCount = 0
         for (reactionInstance : reactor.reactions) {
             if (federate === null || federate.containsReaction(
-                reactor.definition.reactorClass.toDefinition,
                 reactionInstance.definition
             )) {
                 val reactionStructName = '''«selfStructName(reactionInstance.parent)»->___reaction_«reactionCount»'''
@@ -5784,7 +5777,6 @@ class CGenerator extends GeneratorBase {
             var reactionCount = 0
             for (reaction : reactor.allReactions) {
                 if (federate === null || federate.containsReaction(
-                    reactor,
                     reaction
                 )) {
                     // First, handle reactions that produce data sent to inputs

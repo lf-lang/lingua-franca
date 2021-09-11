@@ -249,17 +249,17 @@ class FederateInstance {
      * for the federate. This means that either the action is used as a trigger,
      * a source, or an effect in a top-level reaction that belongs to this federate.
      * 
-     * @param reactor The reactor
      * @param action The action
      * @return True if this federate contains the action in the specified reactor
      */
-    def containsAction(Reactor reactor, Action action) {
+    def containsAction(Action action) {
+        val reactor  = action.eContainer as Reactor
         if (!reactor.federated || isSingleton) return true
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (react : reactor.allReactions) {
-            if (containsReaction(reactor, react)) {
+            if (containsReaction(react)) {
                 // Look in triggers
                 for (TriggerRef trigger : react.triggers ?: emptyList) {
                     if (trigger instanceof VarRef) {
@@ -292,17 +292,17 @@ class FederateInstance {
      * for the federate. This means that the port has been used as a trigger, 
      * a source, or an effect in a top-level reaction that belongs to this federate.
      * 
-     * @param reactor The reactor
      * @param port The Port
      * @return True if this federate contains the action in the specified reactor
      */
-    def containsPort(Reactor reactor, Port port) {
+    def containsPort(Port port) {
+        val reactor  = port.eContainer as Reactor
         if (!reactor.federated || isSingleton) return true
         
         // If the port is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (react : reactor.allReactions) {
-            if (containsReaction(reactor, react)) {
+            if (containsReaction(react)) {
                 // Look in triggers
                 for (TriggerRef trigger : react.triggers ?: emptyList) {
                     if (trigger instanceof VarRef) {
@@ -340,8 +340,8 @@ class FederateInstance {
      *
      * @param reaction The reaction.
      */
-    def containsReaction(Reactor reactor, Reaction reaction) {
-        // val reactor  = reaction.eContainer as Reactor
+    def containsReaction(Reaction reaction) {
+        val reactor  = reaction.eContainer as Reactor
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
         
