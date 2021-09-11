@@ -510,17 +510,13 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
             
             // Copy the header files
             copyTargetHeaderFile()
             
-            // Generate preamble for federate
-            generatePreambleForFederate(federate);
-            
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
-                // generateReactorFederated(this.mainDef.reactorClass, federate)
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
@@ -794,38 +790,6 @@ class CGenerator extends GeneratorBase {
                 // If cmake is requested, generated the CMakeLists.txt
                 val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
                 val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
-                // If the reactor is imported, look at the
-                // target definition of the .lf file in which the reactor is imported from and
-                // append any cmake-include.
-                // Check if the reactor definition is imported
-                if (federate.instantiation !== null &&
-                    federate.instantiation.reactorClass.toDefinition.eResource !== mainDef.eResource
-                ) {
-                    // Create a temporary FileConfig instance for the imported resource
-                    // FIXME: probably should keep a list of fileConfigs?
-                    val fc = new FileConfig(
-                        federate.instantiation.reactorClass.toDefinition.eResource, 
-                        fsa, 
-                        context
-                    )
-                    // Extract the contents of the imported file
-                    val contents = federate.instantiation.reactorClass.toDefinition.eResource.contents;
-                    val model = contents.get(0) as Model
-                    for (c : model.eContents) {
-                        if (c instanceof TargetDecl) {
-                            val targetProp = c
-                            if (targetProp.config !== null) {
-                                for (pair : targetProp.config.pairs) {
-                                    if (pair.name.equals(TargetProperty.CMAKE_INCLUDE.toString)) {
-                                        val relativePath = ASTUtils.toText(pair.value)
-                                        val absolutePath = fc.srcPath.resolve(relativePath)
-                                        targetConfig.cmakeIncludes.add(FileConfig.toUnixString(absolutePath))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 writeSourceCodeToFile(
                 cmakeGenerator.generateCMakeCode(
                         #[cFilename], 
@@ -898,29 +862,44 @@ class CGenerator extends GeneratorBase {
         refreshProject()
     }
     
+    
     /**
-     * Generate preambles for 'federate' provided that the preambles in question
-     * are not already in the .lf file that contains the main reactor. 
-     * Therefore, either there is no main reactor or the federate is imported from
-     * another .lf file.
+     * Look at the 'reactor' eResource.
+     * If it is an imported .lf file, incorporate it into the current 
+     * program in the following manner:
+     * - If there are any cmake-include files, add them to the current list
+     *  of cmake-include files.
+     * - If there are any preambles, add them to the preambles of the reactor.
      */
-    def generatePreambleForFederate(FederateInstance federate) {
-        // Check if it is imported. If not imported, the preamble is already contained in the
-        // main resource and has already been added.
-        var Resource mainResource = null;
-        if (mainDef !== null) {
-            mainResource = mainDef.reactorClass.eResource
-        }
-        if (federate.instantiation !== null &&
-            federate.instantiation.reactorClass.eResource !== null &&
-            federate.instantiation.reactorClass.eResource != mainResource
+    def inspectReactorEResource(ReactorDecl reactor) {
+        // If the reactor is imported, look at the
+        // target definition of the .lf file in which the reactor is imported from and
+        // append any cmake-include.
+        // Check if the reactor definition is imported
+        if (reactor.toDefinition.eResource !== 
+            mainDef.reactorClass.toDefinition.eResource
         ) {
             // Extract the contents of the imported file
-            val contents = federate.instantiation.reactorClass.toDefinition.eResource.contents;
+            val contents = reactor.toDefinition.eResource.contents;
             val model = contents.get(0) as Model
-            for (p : model.preambles?: emptyList) {
-                pr(p.code.toText)
+            for (c : model.eContents) {
+                if (c instanceof TargetDecl) {
+                    val targetProp = c
+                    if (targetProp.config !== null) {
+                        // If it has a target config
+                        for (pair : targetProp.config.pairs) {
+                            if (pair.name.equals(TargetProperty.CMAKE_INCLUDE.toString)) {
+                                // If it has any cmake-include files, add them
+                                targetConfig.cmakeIncludes.addAll(
+                                    ASTUtils.toListOfStrings(pair.value)
+                                );
+                            }
+                        }
+                    }
+                }
             }
+            // Add the preambles from the imported .lf file
+            reactor.toDefinition.preambles.addAll(model.preambles)
         }
     }
     
@@ -929,32 +908,18 @@ class CGenerator extends GeneratorBase {
      * including all the child reactors down the hierarchy. Duplicate
      * Duplicates are avoided.
      * 
+     * Imported reactors' original .lf file is 
+     * incorporated in the following manner:
+     * - If there are any cmake-include files, add them to the current list
+     *  of cmake-include files.
+     * - If there are any preambles, add them to the preambles of the reactor.
+     * 
      * @param federate The federate to generate reactors for
      */
     def void generateReactorDefinitionsForFederate(FederateInstance federate) {
         val generatedReactorDecls = newLinkedHashSet
         if (this.main !== null) {
-            for (r : this.main.children) {
-                // FIXME: If the reactor is the bank itself, it is just a placeholder and should be skipped.
-                // It seems that the way banks are instantiated is that
-                // for a bank new[4] Foo, there will be a reactor instance Foo and four additional
-                // reactor instances of Foo (5 total), but the first instance doesn't include
-                // any of the reactor instances within Foo in its children structure.
-                if (r.bankIndex != -2 && federate.contains(r)) {
-                    val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
-                    if (!declarations.isNullOrEmpty) {
-                        for (d : declarations) {
-                            if (!generatedReactorDecls.contains(d)) {
-                                generatedReactorDecls.add(d)
-                                generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDecls);
-
-                                generateReactorFederated(d, federate);
-                            }
-
-                        }
-                    }
-                }
-            }
+            generateReactorChildrenForReactorInFederate(this.main, federate, generatedReactorDecls);
         }
 
         if (this.mainDef !== null) {
@@ -977,7 +942,13 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate code for the children of 'reactor' that belong to 'federate'.
-     * Duplicates are avoided.
+     * Duplicates are avoided. 
+     * 
+     * Imported reactors' original .lf file is 
+     * incorporated in the following manner:
+     * - If there are any cmake-include files, add them to the current list
+     *  of cmake-include files.
+     * - If there are any preambles, add them to the preambles of the reactor.
      * 
      * @param reactor Used to extract children from
      * @param federate All generated reactors will belong to this federate
@@ -1000,6 +971,7 @@ class CGenerator extends GeneratorBase {
                         if (!generatedReactorDecls.contains(d)) {
                             generatedReactorDecls.add(d);
                             generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDecls);
+                            inspectReactorEResource(d);
                             generateReactorFederated(d, federate);
                         }
                     }
@@ -1308,8 +1280,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
-        copyFileFromClassPath("/lib/C/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
+        fileConfig.copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
+        fileConfig.copyFileFromClassPath("/lib/C/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
     }
 
     ////////////////////////////////////////////

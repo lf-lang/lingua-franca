@@ -81,11 +81,10 @@ class CCmakeGenerator {
             if (!includeFile.isBlank()) {
                 try {
                     resolvedIncludeFiles.add(
-                            FileConfig.toUnixString(
-                                    fileConfig.getSrcGenPath().relativize(
-                                            fileConfig.getSrcGenPath().resolve(includeFile)
-                                            )
-                                    )
+                            fileConfig.copyFileOrResource(
+                                    includeFile,
+                                    this.fileConfig.srcFile.getParent(),
+                                    this.fileConfig.getSrcGenPath())
                             );
                 } catch (Exception e) {
                     errorReporter.reportError(e.getMessage());

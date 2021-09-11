@@ -203,7 +203,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     
         for (file : TypeScriptGenerator.RUNTIME_FILES) {
-            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file,
+            fileConfig.copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file,
                 fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
         }
 
@@ -1298,7 +1298,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 Files.copy(src.toPath, dst.toPath, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 println("No '" + fName + "' exists in " + fileConfig.srcPath + ". Using default configuration.")
-                copyFileFromClassPath(alt, dst.absolutePath)
+                fileConfig.copyFileFromClassPath(alt, dst.absolutePath)
             }
         ]
     }
