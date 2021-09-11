@@ -160,11 +160,11 @@ class TSGenerator(
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile,
+            val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
-            val parameterGenerator = TSParameterGenerator(this, fileConfig, targetConfig, reactors)
+            val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
             val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
             tsCode.append(parameterCode)
 
