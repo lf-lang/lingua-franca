@@ -81,7 +81,6 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -573,36 +572,6 @@ class LFValidatorImpl extends AbstractLFValidator {
                 println("Warning: Deleting markers in the IDE failed: " + e)
             }
         }
-        checkGeneratedCodeNormal(model)
-    }
-    
-    //@Check(NORMAL)
-    def checkGeneratedCodeNormal(Model model) {
-    	checkGeneratedCode(model, false)
-    }
-    
-    //@Check(FAST)
-    def checkGeneratedCodeFast(Model model) {
-        checkGeneratedCode(model, true)
-    }
-    
-    private def checkGeneratedCode(Model model, boolean fast) {
-        println("Checking generated code...")
-        val uri = model.eResource?.URI
-    	if (uri !== null && !targetLanguageValidationDisabled(model)) {
-        	DocumentRegistry.getInstance().getDocument(model).validate(model, getMessageAcceptor(), fast)
-        }
-    }
-    
-    /**
-     * Returns true if the document contains a marker
-     * stating that target language validation is
-     * disabled.
-     */
-    private def boolean targetLanguageValidationDisabled(Model model) {
-    	// FIXME: Likely sub-optimal time complexity; perhaps not sufficiently selective
-    	val String text = NodeModelUtils.getNode(model).getText
-    	return text.contains("//DisableTargetLanguageValidation") || text.contains("#DisableTargetLanguageValidation")
     }
 
     @Check(FAST)
@@ -738,7 +707,6 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (!info.updated) {
             info.update(model, DefaultErrorReporter.DEFAULT)
         }
-        checkGeneratedCodeFast(model)
     }
 
     @Check(NORMAL)
