@@ -4,6 +4,7 @@ import org.lflang.*
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
+import org.lflang.lf.Timer
 import java.lang.StringBuilder
 import java.util.*
 import kotlin.collections.LinkedHashMap
@@ -195,16 +196,9 @@ class TSReactorGenerator(
                     "(" + childReactorArguments + ")" )
         }
 
-        // Next handle timers.
-        for (timer in reactor.timers) {
-            val timerPeriod: String = timer.period?.getTargetValue() ?: "0"
-            val timerOffset: String = timer.offset?.getTargetValue() ?: "0"
-
-            pr(timer.name + ": __Timer;")
-            pr(reactorConstructor, "this." + timer.name
-                    + " = new __Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
-
-        }
+        var timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
+        pr(timerGenerator.generateClassProperties())
+        pr(reactorConstructor, timerGenerator.generateInstantiations())
 
         // Create properties for parameters
         for (param in reactor.parameters) {
@@ -213,11 +207,11 @@ class TSReactorGenerator(
                     " = new __Parameter(" + param.name + ");" )
         }
 
-        val stateGenerator = TSStateGenerator(tsGenerator, reactor)
+        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
         pr(stateGenerator.generateClassProperties())
         pr(reactorConstructor, stateGenerator.generateInstantiations())
 
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor)
+        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
         pr(actionGenerator.generateClassProperties())
         pr(reactorConstructor, actionGenerator.generateInstantiations())
 
