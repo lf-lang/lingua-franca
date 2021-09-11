@@ -39,7 +39,7 @@ import java.util.*
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 
-class TSPreambleGenerator(
+class TSImportPreambleGenerator(
     private val filePath: Path,
     private val protoFiles: MutableList<String>
 ) {
