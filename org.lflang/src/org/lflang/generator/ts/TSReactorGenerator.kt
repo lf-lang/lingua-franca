@@ -285,7 +285,7 @@ class TSReactorGenerator(
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
-                if (federate.containsReaction(reactor, reaction)) {
+                if (federate.containsReaction(reaction)) {
                     generatedReactions.add(reaction)
                 }
             }

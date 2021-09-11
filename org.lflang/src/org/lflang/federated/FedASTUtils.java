@@ -204,7 +204,7 @@ public class FedASTUtils {
         // Find a list of STP offsets (if any exists)
         if (generator.isFederatedAndDecentralized()) {
             for (Reaction r : safe(reactionsWithPort)) {
-                if (!instance.containsReaction(reactor, r)) {
+                if (!instance.containsReaction(r)) {
                     continue;
                 }
                 // If STP offset is determined, add it
@@ -245,7 +245,7 @@ public class FedASTUtils {
                         }).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
-                    if (!instance.containsReaction(childReactor, r)) {
+                    if (!instance.containsReaction(r)) {
                         continue;
                     }
                     // If STP offset is determined, add it
