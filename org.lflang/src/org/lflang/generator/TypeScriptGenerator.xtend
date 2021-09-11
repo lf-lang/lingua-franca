@@ -43,7 +43,6 @@ import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializations
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
@@ -59,6 +58,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SupportedSerializers
 
 /** Generator for TypeScript target.
  *
@@ -945,7 +945,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
-     * @param serialization The serialization method used on the connection.
+     * @param serializer The serializer used on the connection.
      */
     override generateNetworkReceiverBody(
         Action action,
@@ -958,7 +958,7 @@ class TypeScriptGenerator extends GeneratorBase {
         int receivingChannelIndex,
         InferredType type,
         boolean isPhysical,
-        SupportedSerializations serialization
+        SupportedSerializers serializer
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
@@ -984,7 +984,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
-     * @param serialization The serialization method used on the connection.
+     * @param serializer The serializer used on the connection.
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     override String generateNetworkSenderBody(
@@ -998,7 +998,7 @@ class TypeScriptGenerator extends GeneratorBase {
         InferredType type,
         boolean isPhysical,
         Delay delay,
-        SupportedSerializations serialization
+        SupportedSerializers serializer
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.

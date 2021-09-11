@@ -40,7 +40,7 @@ import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializations
+import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.Input
@@ -905,7 +905,7 @@ class PythonGenerator extends CGenerator {
         // this.
         if (!targetConfig.protoFiles.isNullOrEmpty) {
             // Enable support for proto serialization
-            enabledSerializations.add(SupportedSerializations.PROTO)
+            enabledSerializers.add(SupportedSerializers.PROTO)
         }
     }
     
@@ -914,7 +914,7 @@ class PythonGenerator extends CGenerator {
      * enable the requested serializations in 'enabledSerializations'
      */  
     override enableSupportForSerialization() {
-        for (serialization : enabledSerializations) {
+        for (serialization : enabledSerializers) {
             switch (serialization) {
                 case NATIVE: {
                     // No need to do anything at this point.
