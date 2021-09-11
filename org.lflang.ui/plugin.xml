@@ -434,18 +434,32 @@
 	</extension>
     <extension
          point="org.eclipse.ui.newWizards">
+       <category
+             id="org.lflang.ui.category"
+             name="Lingua Franca">
+       </category>
       <wizard
             canFinishEarly="false"
+            category="org.lflang.ui.category"
             class="org.lflang.ui.wizard.LFFileWizard"
             finalPerspective="org.lflang.product.perspective"
             hasPages="true"
             icon="icons/new-lf-file.png"
             id="org.lflang.ui.wizard.LFFileWizard"
-            name="Lingua Franca"
+            name="Lingua Franca File"
             project="false">
          <description>
             Create a new Lingua Franca file.
          </description>
+      </wizard>
+      <wizard
+            category="org.lflang.ui.category"
+            class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.wizard.template.TemplateNewProjectWizard"
+            finalPerspective="org.lflang.product.perspective"
+            icon="icons/new_LF_proj.gif"
+            id="org.lflang.ui.wizard.LFNewProjectWizard"
+            name="Lingua Franca Project"
+            project="true">
       </wizard>
    </extension>
    <extension
@@ -455,6 +469,25 @@
          <newWizardShortcut
                id="org.lflang.ui.wizard.LFFileWizard">
          </newWizardShortcut>
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFNewProjectWizard">
+         </newWizardShortcut>
+      </perspectiveExtension>
+      <perspectiveExtension
+            targetID="org.eclipse.ui.resourcePerspective">
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFFileWizard">
+         </newWizardShortcut>
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFNewProjectWizard">
+         </newWizardShortcut>
       </perspectiveExtension>
    </extension>
+	<extension
+		point="org.eclipse.xtext.ui.projectTemplate">
+		<projectTemplateProvider
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.lflang.ui.wizard.LFProjectTemplateProvider"
+			grammarName="org.lflang.LF">
+		</projectTemplateProvider>
+	</extension>
 </plugin>

@@ -95,9 +95,9 @@ public enum TargetProperty {
      * This gives full control over the C++ build as any cmake parameters
      * can be adjusted in the included file.
      */
-    CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING,
+    CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.CPP, Target.C), (config, value) -> {
-                config.cmakeInclude = ASTUtils.toText(value);
+                config.cmakeIncludes = ASTUtils.toListOfStrings(value);
             }),
     
     /**
@@ -823,14 +823,14 @@ public enum TargetProperty {
             v.getKeyvalue() == null && v.getArray() == null
                 && v.getLiteral() == null && v.getId() == null
                 && (v.getTime() == 0 || v.getUnit() != TimeUnit.NONE)),
-        STRING("a string", v -> v.getLiteral() != null || v.getId() != null),
+        STRING("a string", v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
         FILE("a path to a file", STRING.validator);
     
         /**
          * A description of this type, featured in error messages.
          */
         private final String description;
-    
+
         /**
          * A predicate for determining whether a given Element conforms to this
          * type.
@@ -891,6 +891,13 @@ public enum TargetProperty {
         @Override
         public String toString() {
             return this.description;
+        }
+
+
+        private static boolean isCharLiteral(String s) {
+            return s.length() > 2
+                && '\'' == s.charAt(0)
+                && '\'' == s.charAt(s.length() - 1);
         }
     }
 
