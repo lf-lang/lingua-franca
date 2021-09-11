@@ -283,7 +283,7 @@ class TSReactorGenerator(
      *  main one.
      *  @param instance A reactor instance.
      */
-    fun generateReactorInstance(defn: Instantiation, mainParameters: Set<Parameter>) {
+    fun generateReactorInstance(defn: Instantiation, mainParameters: Set<Parameter>): String {
         val fullName = defn.name
 
         // Iterate through parameters in the order they appear in the
@@ -302,25 +302,23 @@ class TSReactorGenerator(
             }
         }
 
-        pr("// ************* Instance " + fullName + " of class " +
-                defn.reactorClass.name)
-
-        pr("let __app;")
-        pr("if (!__noStart) {")
-        indent()
-        pr("__app = new "+ fullName + "(__timeout, __keepAlive, __fast, "
-                + mainReactorParams + ");")
-        unindent()
-        pr("}")
+        return with(PrependOperator) {
+            """
+            |// ************* Instance $fullName of class ${defn.reactorClass.name}
+            |let __app;
+            |if (!__noStart) {
+            |    __app = new $fullName(__timeout, __keepAlive, __fast, $mainReactorParams);
+            |}
+            """
+        }.trimMargin()
     }
 
     /** Generate code to call the _start function on the main App
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    private fun generateRuntimeStart(defn: Instantiation) {
-        pr(
-            with(PrependOperator) {
+    private fun generateRuntimeStart(defn: Instantiation): String {
+        return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
@@ -328,7 +326,6 @@ class TSReactorGenerator(
             |}
             """
             }.trimMargin()
-        )
     }
 
     fun generateReactor(reactor: Reactor, federate: FederateInstance) {
@@ -336,8 +333,8 @@ class TSReactorGenerator(
     }
 
     fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: Set<Parameter>) {
-        generateReactorInstance(mainDef, mainParameters)
-        generateRuntimeStart(mainDef)
+        pr(generateReactorInstance(mainDef, mainParameters))
+        pr(generateRuntimeStart(mainDef))
     }
 
     fun getCode(): String {
