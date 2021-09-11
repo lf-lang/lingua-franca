@@ -44,15 +44,13 @@ class TSReactorGenerator(
 
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
-    private fun getInitializerList(param: Parameter, i: Instantiation): List<String> =
-        tsGenerator.getInitializerListW(param, i)
 
     private fun federationRTIProperties(): LinkedHashMap<String, Any> {
         return tsGenerator.federationRTIPropertiesW()
     }
 
     // Initializer functions
-    private fun getTargetInitializerHelper(param: Parameter,
+    public fun getTargetInitializerHelper(param: Parameter,
                                            list: List<String>): String {
         return if (list.size == 0) {
             errorReporter.reportError(param, "Parameters must have a default value!")
@@ -64,9 +62,6 @@ class TSReactorGenerator(
     }
     private fun getTargetInitializer(param: Parameter): String {
         return getTargetInitializerHelper(param, getInitializerList(param))
-    }
-    private fun getTargetInitializer(param: Parameter, i: Instantiation): String {
-        return getTargetInitializerHelper(param, getInitializerList(param, i))
     }
     private fun initializeParameter(p: Parameter): String {
         return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
@@ -164,56 +159,35 @@ class TSReactorGenerator(
         }
         pr(reactorConstructor, superCall)
 
-        // Next handle child reactors instantiations.
-        // If the app isn't federated, instantiate all
-        // the child reactors. If the app is federated
-        val childReactors: List<Instantiation>
-        if (!reactor.isFederated) {
-            childReactors = reactor.instantiations
-        } else {
-            childReactors = LinkedList<Instantiation>()
-            childReactors.add(federate.instantiation)
+        var instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
+        pr(instanceGenerator.generateClassProperties())
+        pr(reactorConstructor, instanceGenerator.generateInstantiations())
+
+        if (!reactor.timers.isEmpty()) {
+            var timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
+            pr(timerGenerator.generateClassProperties())
+            pr(reactorConstructor, timerGenerator.generateInstantiations())
         }
-
-        for (childReactor in childReactors) {
-            pr(childReactor.name + ": " + childReactor.reactorClass.name +
-                    if (childReactor.typeParms.isEmpty()) {""} else {
-                        childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }})
-
-            val childReactorArguments = StringJoiner(", ");
-            childReactorArguments.add("this")
-
-            // Iterate through parameters in the order they appear in the
-            // reactor class, find the matching parameter assignments in
-            // the reactor instance, and write the corresponding parameter
-            // value as an argument for the TypeScript constructor
-            for (parameter in childReactor.reactorClass.toDefinition().parameters) {
-                childReactorArguments.add(getTargetInitializer(parameter, childReactor))
-            }
-
-            pr(reactorConstructor, "this." + childReactor.name
-                    + " = new " + childReactor.reactorClass.name +
-                    "(" + childReactorArguments + ")" )
-        }
-
-        var timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
-        pr(timerGenerator.generateClassProperties())
-        pr(reactorConstructor, timerGenerator.generateInstantiations())
 
         // Create properties for parameters
         for (param in reactor.parameters) {
             pr(param.name + ": __Parameter<" + param.getTargetType() + ">;")
             pr(reactorConstructor, "this." + param.name +
-                    " = new __Parameter(" + param.name + ");" )
+                        " = new __Parameter(" + param.name + ");"
+            )
         }
 
-        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        pr(stateGenerator.generateClassProperties())
-        pr(reactorConstructor, stateGenerator.generateInstantiations())
+        if (!reactor.stateVars.isEmpty()) {
+            val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
+            pr(stateGenerator.generateClassProperties())
+            pr(reactorConstructor, stateGenerator.generateInstantiations())
+        }
 
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
-        pr(actionGenerator.generateClassProperties())
-        pr(reactorConstructor, actionGenerator.generateInstantiations())
+        if (!reactor.actions.isEmpty()) {
+            val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
+            pr(actionGenerator.generateClassProperties())
+            pr(reactorConstructor, actionGenerator.generateInstantiations())
+        }
 
         // Next handle inputs.
         for (input in reactor.inputs) {
