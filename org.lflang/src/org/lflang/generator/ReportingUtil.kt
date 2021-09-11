@@ -294,14 +294,23 @@ class ReportingBackend constructor(
 
 
         private fun makeErrorLine(pad: Int): String {
-            val caretLine = with(issue) { buildCaretLine(message.trim(), column!!, length!!) }
+            // tabs are replaced with spaces to align messages properly
+            fun makeOffset(startIdx: Int, length: Int): Int {
+                val numTabs = lines[errorIdx].substring(startIdx, startIdx + length).count { it == '\t' }
+                return numTabs * (TAB_REPLACEMENT.length - 1)
+            }
+
+            val tabOffset = makeOffset(0, issue.column!!)
+            val tabSpanOffset = makeOffset(issue.column - 1, issue.length!!)
+
+            val caretLine = with(issue) { buildCaretLine(message.trim(), column!! + tabOffset, length!! + tabSpanOffset) }
             // gutter has its own ANSI stuff so only caretLine gets severityColors
             return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
         }
 
         private fun numberedLine(idx: Int, pad: Int): String {
             val lineNum = 1 + idx + first
-            val line = lines[idx]
+            val line = lines[idx].replace("\t", TAB_REPLACEMENT)
             return formatLineNum("$lineNum |".padStart(pad)) + " $line"
         }
 
@@ -320,6 +329,10 @@ class ReportingBackend constructor(
                 append(' ').append(message)
             }
         }
+    }
+
+    companion object {
+        const val TAB_REPLACEMENT = "    "
     }
 }
 
