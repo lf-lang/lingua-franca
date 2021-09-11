@@ -35,7 +35,7 @@ import org.lflang.lf.TimeUnit
 import java.util.StringJoiner
 
 /**
- * Parameter generator for TypeScript target.
+ * Preamble generator for global parameters in TypeScript target.
  *
  *  @author{Matt Weber <matt.weber@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}

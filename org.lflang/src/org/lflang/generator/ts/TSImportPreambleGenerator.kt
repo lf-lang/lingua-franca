@@ -30,7 +30,7 @@ import java.nio.file.Path
 import java.util.*
 
 /**
- * Preamble generator for TypeScript target.
+ * Preamble generator for imports in TypeScript target.
  *
  *  @author{Matt Weber <matt.weber@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
