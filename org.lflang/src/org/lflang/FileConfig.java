@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -679,6 +680,104 @@ public class FileConfig {
         }
         // Not found.
         return null;
+    }
+    
+     /**
+      *  Lookup a file in the classpath and copy its contents to a destination path 
+      *  in the filesystem.
+      * 
+      *  This also creates new directories for any directories on the destination
+      *  path that do not yet exist.
+      * 
+      *  @param source The source file as a path relative to the classpath.
+      *  @param destination The file system path that the source file is copied to.
+      * @throws IOException 
+      */
+     public void copyFileFromClassPath(String source, String destination) throws IOException {
+         InputStream sourceStream = this.getClass().getResourceAsStream(source);
+
+         if (sourceStream == null) {
+             throw new IOException(
+                 "A required target resource could not be found: " + source + "\n" +
+                     "Perhaps a git submodule is missing or not up to date.\n" +
+                     "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n" +
+                     "Also try to refresh and clean the project explorer if working from eclipse.");
+         }
+
+         // Copy the file.
+         try {
+             // Make sure the directory exists
+             File destFile = new File(destination);
+             destFile.getParentFile().mkdirs();
+
+             Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
+         } catch (IOException ex) {
+             throw new IOException(
+                 "A required target resource could not be copied: " + source + "\n" +
+                     "Perhaps a git submodule is missing or not up to date.\n" +
+                     "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
+                 ex);
+         } finally {
+             sourceStream.close();
+         }
+     }
+
+     /**
+      * Copy a list of files from a given source directory to a given destination directory.
+      * @param srcDir The directory to copy files from.
+      * @param dstDir The directory to copy files to.
+      * @param files The files to copy.
+      * @throws IOException 
+      */
+     public void copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) throws IOException {
+         for (String file : files) {
+             copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file);
+         }
+     }
+     
+    /**
+     * Copy the 'fileName' from the 'srcDirectory' to the 'destinationDirectory'.
+     * This function has a fallback search mechanism, where if `fileName` is not
+     * found in the `srcDirectory`, it will try to find `fileName` via the following procedure:
+     * 1- Search in LF_CLASSPATH. @see findFile()
+     * 2- Search in CLASSPATH. @see findFile()
+     * 3- Search for 'fileName' as a resource.
+     *  That means the `fileName` can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
+     * 
+     * @param fileName Name of the file
+     * @param srcDirectory Where the file is currently located
+     * @param destinationDirectory Where the file should be placed
+     * @return The name of the file in targetDir
+     */
+    public String copyFileOrResource(String fileName, Path srcDirectory, Path destinationDirectory) {
+        // Try to copy the file from the file system.
+        Path file = findFile(fileName, srcDirectory);
+        if (file != null) {
+            Path target = destinationDirectory.resolve(file.getFileName());
+            try {
+                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                // Will try to find the file as a resource.
+            }
+            return file.getFileName().toString();
+        } 
+        
+        // Try to copy the file as a resource.
+        // If this is missing, it should have been previously reported as an error.
+        try {
+            String filenameWithoutPath = fileName;
+            int lastSeparator = fileName.lastIndexOf(File.separator);
+            if (lastSeparator > 0) {
+                filenameWithoutPath = fileName.substring(lastSeparator + 1); // FIXME: brittle. What if the file is in a subdirectory?
+            }
+            copyFileFromClassPath(fileName, destinationDirectory + File.separator + filenameWithoutPath);
+            return filenameWithoutPath;
+        } catch (IOException ex) {
+            // Ignore. Previously reported as a warning.
+            System.err.println("WARNING: Failed to find file " + fileName);
+        }
+        
+        return "";
     }
      
      /**

@@ -28,10 +28,9 @@ package org.lflang.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
+import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -61,6 +60,8 @@ import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializations
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -500,27 +501,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            val file = FileConfig.findFile(filename, this.fileConfig.srcFile.parent)
-            if (file !== null) {
-                val target = targetDir.resolve(file.fileName)
-                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING)
-                targetConfig.filesNamesWithoutPath.add(file.fileName.toString());
-            } else {
-                // Try to copy the file as a resource.
-                // If this is missing, it should have been previously reported as an error.
-                try {
-                    var filenameWithoutPath = filename
-                    val lastSeparator = filename.lastIndexOf(File.separator)
-                    if (lastSeparator > 0) {
-                        filenameWithoutPath = filename.substring(lastSeparator + 1) // FIXME: brittle. What if the file is in a subdirectory?
-                    }
-                    copyFileFromClassPath(filename, targetDir + File.separator + filenameWithoutPath)
-                    targetConfig.filesNamesWithoutPath.add(filenameWithoutPath);
-                } catch (IOException ex) {
-                    // Ignore. Previously reported as a warning.
-                    System.err.println('''WARNING: Failed to find file «filename».''')
-                }
-            }
+            targetConfig.filesNamesWithoutPath.add(
+                fileConfig.copyFileOrResource(
+                    filename,
+                    this.fileConfig.srcFile.parent,
+                    targetDir)
+            );
         }
     }
 
@@ -1184,57 +1170,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
                 }
             }
-        }
-    }
-
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path 
-     *  in the filesystem.
-     * 
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     * 
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     */
-    protected def copyFileFromClassPath(String source, String destination) {
-        val sourceStream = this.class.getResourceAsStream(source)
-
-        if (sourceStream === null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n" +
-                    "Also try to refresh and clean the project explorer if working from eclipse.")
-        }
-
-        // Copy the file.
-        try {
-            // Make sure the directory exists
-            val destFile = new File(destination);
-            destFile.getParentFile().mkdirs();
-
-            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            throw new IOException(
-                "A required target resource could not be copied: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
-                ex)
-        } finally {
-            sourceStream.close()
-        }
-    }
-
-    /**
-     * Copy a list of files from a given source directory to a given destination directory.
-     * @param srcDir The directory to copy files from.
-     * @param dstDir The directory to copy files to.
-     * @param files The files to copy.
-     */
-    protected def copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) {
-        for (file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file)
         }
     }
 

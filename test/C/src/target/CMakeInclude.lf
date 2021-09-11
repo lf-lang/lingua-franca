@@ -4,22 +4,21 @@
  */
 target C {
     cmake-include: [
-        "mlib-cmake-extension.cmake", 
-        "bar-cmake-compile-definition.txt"
-    ],
-    files: [
         "../include/mlib-cmake-extension.cmake", 
         "../include/bar-cmake-compile-definition.txt"
     ],
     timeout: 0 sec
 };
 
-
-main reactor {
+reactor Foo {
     preamble {=
         #include <math.h>
     =}
     reaction (startup) {=
         info_print("Maximum of 4.20 and %.2f is %.2f", BAR, fmax(4.20, BAR));
     =}
+}
+
+main reactor {
+    f = new Foo();
 }
