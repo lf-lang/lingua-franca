@@ -42,13 +42,13 @@ However, to compile the generated code and to create a binary (which is done by 
 
 **C:**
   - gcc >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019)
-  - CMAKE >= 3.13
+  - CMAKE >= 3.13 (follow https://cmake.org/install/ for installation instructions)
   - **Windows Only:** Windows Subsystem for Linux (WSL) version 1 or 2 with gcc installed - see https://docs.microsoft.com/en-us/windows/wsl/install-win10.
   - **Programs using Protocol Buffers:** protoc-c 1.3.3 - see https://github.com/icyphy/lingua-franca/wiki/Protobufs.
 
 **C++:**
  - g++ >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019)
- - CMAKE >= 3.16
+ - CMAKE >= 3.16 (follow https://cmake.org/install/ for installation instructions)
 
 **Python:**
  - Python >= 3.6
