@@ -756,10 +756,10 @@ public class FileConfig {
             Path target = destinationDirectory.resolve(file.getFileName());
             try {
                 Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+                return file.getFileName().toString();
             } catch (IOException e) {
                 // Will try to find the file as a resource.
             }
-            return file.getFileName().toString();
         } 
         
         // Try to copy the file as a resource.
