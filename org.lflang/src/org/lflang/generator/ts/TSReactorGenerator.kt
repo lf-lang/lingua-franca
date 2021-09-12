@@ -162,7 +162,6 @@ class TSReactorGenerator(
         val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
         val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
         val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
-        val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
 
         pr(with(PrependOperator) {
             """
@@ -175,6 +174,9 @@ class TSReactorGenerator(
             """.trimMargin()
         })
 
+        val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
+        val reactionGenerator = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
+
         pr(reactorConstructor, with(PrependOperator) {
             """
             ${" |"..instanceGenerator.generateInstantiations()}
@@ -185,32 +187,9 @@ class TSReactorGenerator(
             ${" |"..portGenerator.generateInstantiations()}
             ${" |"..connectionGenerator.generateInstantiations()}
             ${" |"..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
+            ${" |"..reactionGenerator.generateAllReactions()}
             """.trimMargin()
         })
-
-        // Next handle reaction instances.
-        // If the app is federated, only generate
-        // reactions that are contained by that federate
-        val generatedReactions: List<Reaction>
-        if (reactor.isFederated) {
-            generatedReactions = LinkedList<Reaction>()
-            for (reaction in reactor.reactions) {
-                if (federate.containsReaction(reactor, reaction)) {
-                    generatedReactions.add(reaction)
-                }
-            }
-        } else {
-            generatedReactions = reactor.reactions
-        }
-
-        ///////////////////// Reaction generation begins /////////////////////
-        // TODO(hokeun): Consider separating this out as a new class.
-        for (reaction in generatedReactions) {
-            // Write the reaction itself
-            val reactionGenerator = TSReactionGenerator(tsGenerator, errorReporter)
-            pr(reactorConstructor, reactionGenerator.generateReaction(reactor, reaction))
-        }
-        ///////////////////// Reaction generation ends /////////////////////
 
         unindent(reactorConstructor)
         pr(reactorConstructor, "}")
