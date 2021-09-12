@@ -4,7 +4,6 @@ import org.lflang.*
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
-import org.lflang.lf.Timer
 import java.lang.StringBuilder
 import java.util.*
 import kotlin.collections.LinkedHashMap
@@ -93,6 +92,21 @@ class TSReactorGenerator(
             """.trimMargin()}
     }
 
+    // If the app is federated, register its
+    // networkMessageActions with the RTIClient
+    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String {
+        var fedPortID = 0;
+        val connectionInstantiations = LinkedList<String>()
+        for (nAction in networkMessageActions) {
+            val registration = """
+                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
+                """
+            connectionInstantiations.add(registration)
+            fedPortID++
+        }
+        return connectionInstantiations.joinToString("\n")
+    }
+
     // TODO(hokeun): Split this method into smaller methods.
     fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
         pr("// =============== START reactor class " + reactor.name)
@@ -148,6 +162,7 @@ class TSReactorGenerator(
         val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
         val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
         val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
+        val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
 
         pr(with(PrependOperator) {
             """
@@ -168,49 +183,10 @@ class TSReactorGenerator(
             ${" |"..stateGenerator.generateInstantiations()}
             ${" |"..actionGenerator.generateInstantiations()}
             ${" |"..portGenerator.generateInstantiations()}
+            ${" |"..connectionGenerator.generateInstantiations()}
+            ${" |"..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
             """.trimMargin()
         })
-
-        // Next handle connections
-        for (connection in reactor.connections) {
-            var leftPortName = ""
-            // FIXME: Add support for multiports.
-            if (connection.leftPorts.size > 1) {
-                errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
-            } else {
-                if (connection.leftPorts[0].container != null) {
-                    leftPortName += connection.leftPorts[0].container.name + "."
-                }
-                leftPortName += connection.leftPorts[0].variable.name
-            }
-            var rightPortName = ""
-            if (connection.leftPorts.size > 1) {
-                errorReporter.reportError(connection, "Multiports are not yet supported in the TypeScript target.")
-            } else {
-                if (connection.rightPorts[0].container != null) {
-                    rightPortName += connection.rightPorts[0].container.name + "."
-                }
-                rightPortName += connection.rightPorts[0].variable.name
-            }
-            if (leftPortName != "" && rightPortName != "") {
-                pr(reactorConstructor, "this._connect(this.$leftPortName, this.$rightPortName);")
-            }
-        }
-
-        // If the app is federated, register its
-        // networkMessageActions with the RTIClient
-        if (reactor.isFederated) {
-            // The ID of the receiving port is simply
-            // the position of the action in the networkMessageActions list.
-            var fedPortID = 0;
-            for (nAction in federate.networkMessageActions) {
-                val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-                """
-                pr(reactorConstructor, registration)
-                fedPortID++
-            }
-        }
 
         // Next handle reaction instances.
         // If the app is federated, only generate
