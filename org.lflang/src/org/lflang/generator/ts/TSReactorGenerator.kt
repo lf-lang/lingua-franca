@@ -143,38 +143,33 @@ class TSReactorGenerator(
         pr(reactorConstructor, superCall)
 
         var instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
-        pr(instanceGenerator.generateClassProperties())
-        pr(reactorConstructor, instanceGenerator.generateInstantiations())
+        var timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
+        var parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
+        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
+        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
+        val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
 
-        if (!reactor.timers.isEmpty()) {
-            var timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
-            pr(timerGenerator.generateClassProperties())
-            pr(reactorConstructor, timerGenerator.generateInstantiations())
-        }
+        pr(with(PrependOperator) {
+            """
+            ${" |"..instanceGenerator.generateClassProperties()}
+            ${" |"..timerGenerator.generateClassProperties()}
+            ${" |"..parameterGenerator.generateClassProperties()}
+            ${" |"..stateGenerator.generateClassProperties()}
+            ${" |"..actionGenerator.generateClassProperties()}
+            ${" |"..portGenerator.generateClassProperties()}
+            """.trimMargin()
+        })
 
-        if (!reactor.parameters.isEmpty()) {
-            var parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
-            pr(parameterGenerator.generateClassProperties())
-            pr(reactorConstructor, parameterGenerator.generateInstantiations())
-        }
-
-        if (!reactor.stateVars.isEmpty()) {
-            val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-            pr(stateGenerator.generateClassProperties())
-            pr(reactorConstructor, stateGenerator.generateInstantiations())
-        }
-
-        if (!reactor.actions.isEmpty()) {
-            val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
-            pr(actionGenerator.generateClassProperties())
-            pr(reactorConstructor, actionGenerator.generateInstantiations())
-        }
-
-        if (!reactor.inputs.isEmpty() || !reactor.outputs.isEmpty()) {
-            val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
-            pr(portGenerator.generateClassProperties())
-            pr(reactorConstructor, portGenerator.generateInstantiations())
-        }
+        pr(reactorConstructor, with(PrependOperator) {
+            """
+            ${" |"..instanceGenerator.generateInstantiations()}
+            ${" |"..timerGenerator.generateInstantiations()}
+            ${" |"..parameterGenerator.generateInstantiations()}
+            ${" |"..stateGenerator.generateInstantiations()}
+            ${" |"..actionGenerator.generateInstantiations()}
+            ${" |"..portGenerator.generateInstantiations()}
+            """.trimMargin()
+        })
 
         // Next handle connections
         for (connection in reactor.connections) {

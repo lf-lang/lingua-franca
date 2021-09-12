@@ -20,11 +20,7 @@ class TSTimerGenerator (
         for (timer in timers) {
             timerClassProperties.add("${timer.name}: __Timer;")
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..timerClassProperties.joinToString("\n")}
-            """.trimMargin()
-        }
+        return timerClassProperties.joinToString("\n")
     }
 
     fun generateInstantiations(): String {
@@ -35,10 +31,6 @@ class TSTimerGenerator (
 
             timerInstantiations.add("this.${timer.name} = new __Timer(this, $timerOffset, $timerPeriod);")
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..timerInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
+        return timerInstantiations.joinToString("\n")
     }
 }

@@ -16,11 +16,7 @@ class TSStateGenerator (
         for (stateVar in stateVars) {
             stateClassProperties.add("${stateVar.name}: __State<${stateVar.getTargetType()}>;");
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..stateClassProperties.joinToString("\n")}
-            """.trimMargin()
-        }
+        return stateClassProperties.joinToString("\n")
     }
 
     private fun getInitializerList(state: StateVar): List<String> =
@@ -39,10 +35,6 @@ class TSStateGenerator (
                 stateInstantiations.add("this.${stateVar.name} = new __State(undefined);");
             }
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..stateInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
+        return stateInstantiations.joinToString("\n")
     }
 }

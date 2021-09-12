@@ -40,11 +40,7 @@ class TSActionGenerator (
                 stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
             }
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..stateClassProperties.joinToString("\n")}
-            """.trimMargin()
-        }
+        return stateClassProperties.joinToString("\n")
     }
 
     fun generateInstantiations(): String {
@@ -69,10 +65,6 @@ class TSActionGenerator (
                     "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
             }
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..actionInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
+        return actionInstantiations.joinToString("\n")
     }
 }
