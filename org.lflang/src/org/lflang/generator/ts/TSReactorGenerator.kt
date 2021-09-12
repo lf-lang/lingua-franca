@@ -107,6 +107,25 @@ class TSReactorGenerator(
         return connectionInstantiations.joinToString("\n")
     }
 
+    private fun generateSuperConstructorCall(reactor: Reactor, federate: FederateInstance): String {
+        if (reactor.isMain) {
+            return "super(timeout, keepAlive, fast, success, fail);"
+        } else if (reactor.isFederated) {
+            var port = federationRTIProperties()["port"]
+            // Default of 0 is an indicator to use the default port, 15045.
+            if (port == 0) {
+                port = 15045
+            }
+            return """
+            super(${federate.id}, ${port},
+                "${federationRTIProperties()["host"]}",
+                timeout, keepAlive, fast, success, fail);
+            """
+        } else {
+            return "super(parent);"
+        }
+    }
+
     // TODO(hokeun): Split this method into smaller methods.
     fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
         pr("// =============== START reactor class " + reactor.name)
@@ -134,31 +153,9 @@ class TSReactorGenerator(
 
         indent()
 
-        val reactorConstructor = StringBuilder()
-        pr(reactorConstructor, "${generateConstructorArguments(reactor)} {")
-        indent(reactorConstructor)
-        var superCall: String
-        if (reactor.isMain) {
-            superCall = "super(timeout, keepAlive, fast, success, fail);"
-        } else if (reactor.isFederated) {
-            var port = federationRTIProperties()["port"]
-            // Default of 0 is an indicator to use the default port, 15045.
-            if (port == 0) {
-                port = 15045
-            }
-            superCall = """
-            super(${federate.id}, ${port},
-                "${federationRTIProperties()["host"]}",
-                timeout, keepAlive, fast, success, fail);
-            """
-        } else {
-            superCall = "super(parent);"
-        }
-        pr(reactorConstructor, superCall)
-
-        var instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
-        var timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
-        var parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
+        val instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
+        val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
+        val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
         val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
         val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
         val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
@@ -177,8 +174,13 @@ class TSReactorGenerator(
         val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactionGenerator = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
 
+        val reactorConstructor = StringBuilder()
+        pr(reactorConstructor, "${generateConstructorArguments(reactor)} {")
+        indent(reactorConstructor)
+        
         pr(reactorConstructor, with(PrependOperator) {
             """
+            ${" |"..generateSuperConstructorCall(reactor, federate)}
             ${" |"..instanceGenerator.generateInstantiations()}
             ${" |"..timerGenerator.generateInstantiations()}
             ${" |"..parameterGenerator.generateInstantiations()}
