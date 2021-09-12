@@ -41,11 +41,7 @@ class TSPortGenerator (
         for (output in outputs) {
             portClassProperties.add("${output.name}: __OutPort<${getPortType(output)}>;")
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..portClassProperties.joinToString("\n")}
-            """.trimMargin()
-        }
+        return portClassProperties.joinToString("\n")
     }
 
     fun generateInstantiations(): String {
@@ -56,10 +52,6 @@ class TSPortGenerator (
         for (output in outputs) {
             porInstantiations.add("this.${output.name} = new __OutPort<${getPortType(output)}>(this);")
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..porInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
+        return porInstantiations.joinToString("\n")
     }
 }

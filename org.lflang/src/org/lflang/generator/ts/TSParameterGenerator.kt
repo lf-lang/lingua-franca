@@ -19,11 +19,7 @@ class TSParameterGenerator (
         for (param in parameters) {
             paramClassProperties.add("${param.name}: __Parameter<${param.getTargetType()}>;")
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..paramClassProperties.joinToString("\n")}
-            """.trimMargin()
-        }
+        return paramClassProperties.joinToString("\n")
     }
 
     fun generateInstantiations(): String {
@@ -31,10 +27,6 @@ class TSParameterGenerator (
         for (param in parameters) {
             paramInstantiations.add("this.${param.name} = new __Parameter(${param.name});")
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..paramInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
+        return paramInstantiations.joinToString("\n")
     }
 }

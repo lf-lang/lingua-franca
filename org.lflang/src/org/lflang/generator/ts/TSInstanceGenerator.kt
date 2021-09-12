@@ -47,11 +47,7 @@ class TSInstanceGenerator (
                 childReactor.typeParms.joinToString(", ", "<", ">") { it.toText() }}
             childReactorClassProperties.add("${childReactor.name}: ${childReactor.reactorClass.name}$childReactorParams")
         }
-        return with(PrependOperator) {
-            """
-        ${" |"..childReactorClassProperties.joinToString("\n")}
-        """.trimMargin()
-        }
+        return childReactorClassProperties.joinToString("\n")
     }
 
     fun generateInstantiations(): String {
@@ -71,10 +67,6 @@ class TSInstanceGenerator (
             childReactorInstantiations.add(
                 "this.${childReactor.name} = new ${childReactor.reactorClass.name}($childReactorArguments)")
         }
-        return with(PrependOperator) {
-            """
-        ${" |"..childReactorInstantiations.joinToString("\n")}
-        """.trimMargin()
-        }
+        return childReactorInstantiations.joinToString("\n")
     }
 }
