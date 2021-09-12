@@ -5,10 +5,13 @@ import org.lflang.lf.Timer
 import org.lflang.lf.Value
 import java.util.*
 
+/**
+ * Generator timers for TypeScript target.
+ */
 class TSTimerGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val timers:List<Timer>
+    private val timers: List<Timer>
 ) {
     private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
 

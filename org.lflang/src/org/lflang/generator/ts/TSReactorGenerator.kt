@@ -38,9 +38,7 @@ class TSReactorGenerator(
     private fun pr(builder: StringBuilder, text: Any) = tsGenerator.prw(builder, text)
     private fun pr(text: Any) = tsGenerator.prw(code, text)
 
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-    private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
@@ -65,21 +63,6 @@ class TSReactorGenerator(
     }
     private fun initializeParameter(p: Parameter): String {
         return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
-    }
-
-    /**
-     * Return a TS type for the specified port.
-     * If the type has not been specified, return
-     * "Present" which is the base type for ports.
-     * @param port The port
-     * @return The TS type.
-     */
-    private fun getPortType(port: Port): String {
-        if (port.type != null) {
-            return port.type.getTargetType()
-        } else {
-            return "Present"
-        }
     }
 
     private fun generateConstructorArguments(reactor: Reactor): String {
@@ -189,18 +172,10 @@ class TSReactorGenerator(
             pr(reactorConstructor, actionGenerator.generateInstantiations())
         }
 
-        // Next handle inputs.
-        for (input in reactor.inputs) {
-            pr(input.name + ": " + "__InPort<" + getPortType(input) + ">;")
-            pr(reactorConstructor, "this." + input.name + " = new __InPort<"
-                    + getPortType(input) + ">(this);")
-        }
-
-        // Next handle outputs.
-        for (output in reactor.outputs) {
-            pr(output.name + ": " + "__OutPort<" + getPortType(output) + ">;")
-            pr(reactorConstructor, "this." + output.name + " = new __OutPort<"
-                    + getPortType(output) + ">(this);")
+        if (!reactor.inputs.isEmpty() || !reactor.outputs.isEmpty()) {
+            val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
+            pr(portGenerator.generateClassProperties())
+            pr(reactorConstructor, portGenerator.generateInstantiations())
         }
 
         // Next handle connections
