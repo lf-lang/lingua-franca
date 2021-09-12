@@ -511,7 +511,7 @@ public class Main {
      * @return The package root, or the current working directory if none
      *         exists.
      */
-    private static Path findPackageRoot(File f) {
+    public static Path findPackageRoot(File f) { // FIXME: Does this belong elsewhere? Perhaps in StandaloneContext?
         Path p = f.toPath();
         do {
             p = p.getParent();
