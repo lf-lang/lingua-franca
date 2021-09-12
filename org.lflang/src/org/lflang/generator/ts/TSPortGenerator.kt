@@ -8,7 +8,7 @@ import org.lflang.lf.Type
 import java.util.*
 
 /**
- * Generator input and output ports for TypeScript target.
+ * Generate input and output ports for TypeScript target.
  */
 class TSPortGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
@@ -36,10 +36,10 @@ class TSPortGenerator (
     fun generateClassProperties(): String {
         val portClassProperties = LinkedList<String>()
         for (input in inputs) {
-            portClassProperties.add(input.name + ": " + "__InPort<" + getPortType(input) + ">;")
+            portClassProperties.add("${input.name}: __InPort<${getPortType(input)}>;")
         }
         for (output in outputs) {
-            portClassProperties.add(output.name + ": " + "__OutPort<" + getPortType(output) + ">;")
+            portClassProperties.add("${output.name}: __OutPort<${getPortType(output)}>;")
         }
         return with(PrependOperator) {
             """
@@ -51,12 +51,10 @@ class TSPortGenerator (
     fun generateInstantiations(): String {
         val porInstantiations = LinkedList<String>()
         for (input in inputs) {
-            porInstantiations.add("this." + input.name + " = new __InPort<"
-                    + getPortType(input) + ">(this);")
+            porInstantiations.add("this.${input.name} = new __InPort<${getPortType(input)}>(this);")
         }
         for (output in outputs) {
-            porInstantiations.add("this." + output.name + " = new __OutPort<"
-                    + getPortType(output) + ">(this);")
+            porInstantiations.add("this.${output.name} = new __OutPort<${getPortType(output)}>(this);")
         }
         return with(PrependOperator) {
             """
