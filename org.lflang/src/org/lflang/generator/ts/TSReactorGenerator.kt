@@ -48,7 +48,7 @@ class TSReactorGenerator(
     }
 
     // Initializer functions
-    public fun getTargetInitializerHelper(param: Parameter,
+    fun getTargetInitializerHelper(param: Parameter,
                                            list: List<String>): String {
         return if (list.size == 0) {
             errorReporter.reportError(param, "Parameters must have a default value!")
@@ -152,12 +152,10 @@ class TSReactorGenerator(
             pr(reactorConstructor, timerGenerator.generateInstantiations())
         }
 
-        // Create properties for parameters
-        for (param in reactor.parameters) {
-            pr(param.name + ": __Parameter<" + param.getTargetType() + ">;")
-            pr(reactorConstructor, "this." + param.name +
-                        " = new __Parameter(" + param.name + ");"
-            )
+        if (!reactor.parameters.isEmpty()) {
+            var parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
+            pr(parameterGenerator.generateClassProperties())
+            pr(reactorConstructor, parameterGenerator.generateInstantiations())
         }
 
         if (!reactor.stateVars.isEmpty()) {
