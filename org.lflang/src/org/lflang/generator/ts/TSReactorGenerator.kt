@@ -34,7 +34,6 @@ class TSReactorGenerator(
     private fun indent() = indent(code)
     private fun unindent() = unindent(code)
 
-    private fun pr(builder: StringBuilder, text: Any) = tsGenerator.prw(builder, text)
     private fun pr(text: Any) = tsGenerator.prw(code, text)
 
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -84,12 +83,7 @@ class TSReactorGenerator(
             arguments.add("fail?: () => void")
         }
 
-        return with(PrependOperator) {
-            """
-                |constructor (
-            ${" |    "..arguments.joinToString(", \n")}
-                |)
-            """.trimMargin()}
+        return arguments.joinToString(", \n")
     }
 
     // If the app is federated, register its
@@ -174,28 +168,25 @@ class TSReactorGenerator(
         val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactionGenerator = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
 
-        val reactorConstructor = StringBuilder()
-        pr(reactorConstructor, "${generateConstructorArguments(reactor)} {")
-        indent(reactorConstructor)
-        
-        pr(reactorConstructor, with(PrependOperator) {
+        pr(with(PrependOperator) {
             """
-            ${" |"..generateSuperConstructorCall(reactor, federate)}
-            ${" |"..instanceGenerator.generateInstantiations()}
-            ${" |"..timerGenerator.generateInstantiations()}
-            ${" |"..parameterGenerator.generateInstantiations()}
-            ${" |"..stateGenerator.generateInstantiations()}
-            ${" |"..actionGenerator.generateInstantiations()}
-            ${" |"..portGenerator.generateInstantiations()}
-            ${" |"..connectionGenerator.generateInstantiations()}
-            ${" |"..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
-            ${" |"..reactionGenerator.generateAllReactions()}
+                |constructor (
+            ${" |    "..generateConstructorArguments(reactor)}
+                |) {
+            ${" |    "..generateSuperConstructorCall(reactor, federate)}
+            ${" |    "..instanceGenerator.generateInstantiations()}
+            ${" |    "..timerGenerator.generateInstantiations()}
+            ${" |    "..parameterGenerator.generateInstantiations()}
+            ${" |    "..stateGenerator.generateInstantiations()}
+            ${" |    "..actionGenerator.generateInstantiations()}
+            ${" |    "..portGenerator.generateInstantiations()}
+            ${" |    "..connectionGenerator.generateInstantiations()}
+            ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
+            ${" |    "..reactionGenerator.generateAllReactions()}
+                |}
             """.trimMargin()
         })
 
-        unindent(reactorConstructor)
-        pr(reactorConstructor, "}")
-        pr(reactorConstructor.toString())
         unindent()
         pr("}")
         pr("// =============== END reactor class " + reactor.name)
