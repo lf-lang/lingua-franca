@@ -82,10 +82,6 @@ class TSGenerator(
     }
 
     // Wrappers to expose GeneratorBase methods.
-    fun prw(builder: StringBuilder, text: Any) = pr(builder, text)
-    fun indentw(builder: StringBuilder) = indent(builder)
-    fun unindentw(builder: StringBuilder) = unindent(builder)
-
     fun federationRTIPropertiesW() = federationRTIProperties
 
     fun getTargetValueW(v: Value): String = getTargetValue(v)
@@ -170,10 +166,9 @@ class TSGenerator(
 
             val reactorGenerator = TSReactorGenerator(this, errorReporter)
             for (reactor in reactors) {
-                reactorGenerator.generateReactor(reactor, federate)
+                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
             }
-            reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters)
-            tsCode.append(reactorGenerator.getCode())
+            tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
         }
