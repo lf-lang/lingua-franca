@@ -4,9 +4,7 @@ import org.lflang.*
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
-import java.lang.StringBuilder
 import java.util.*
-import kotlin.collections.LinkedHashMap
 
 /**
  * Reactor generator for TypeScript target.
@@ -21,81 +19,16 @@ class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter
 ) {
-    private val code = StringBuilder()
-
-    private fun pr(text: Any) = tsGenerator.prw(code, text)
-
-    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-
-    private fun getInitializerList(param: Parameter): List<String> =
-        tsGenerator.getInitializerListW(param)
-
     // Initializer functions
     fun getTargetInitializerHelper(param: Parameter,
-                                           list: List<String>): String {
-        return if (list.size == 0) {
+                                   list: List<String>): String {
+        return if (list.isEmpty()) {
             errorReporter.reportError(param, "Parameters must have a default value!")
         } else if (list.size == 1) {
             list[0]
         } else {
             list.joinToString(", ", "[", "]")
         }
-    }
-    private fun getTargetInitializer(param: Parameter): String {
-        return getTargetInitializerHelper(param, getInitializerList(param))
-    }
-    private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
-    }
-
-    // TODO(hokeun): Split this method into smaller methods.
-    fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
-        pr("// =============== START reactor class " + reactor.name)
-
-        for (p in reactor.preambles?: emptyList()) {
-            pr("// *********** From the preamble, verbatim:")
-            pr(p.code.toText())
-            pr("\n// *********** End of preamble.")
-        }
-
-        var reactorName = reactor.name
-        if (!reactor.typeParms.isEmpty()) {
-            reactorName +=
-                reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
-        }
-        // NOTE: type parameters that are referenced in ports or actions must extend
-        // Present in order for the program to type check.
-        val classDefinition: String = if (reactor.isMain()) {
-            "class $reactorName extends __App {"
-        } else if (reactor.isFederated) {
-            "class $reactorName extends __FederatedApp {"
-        } else {
-            "export class $reactorName extends __Reactor {"
-        }
-
-        val instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
-        val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
-        val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
-        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
-        val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
-
-        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate)
-        pr(with(PrependOperator) {
-            """
-                |$classDefinition
-            ${" |    "..instanceGenerator.generateClassProperties()}
-            ${" |    "..timerGenerator.generateClassProperties()}
-            ${" |    "..parameterGenerator.generateClassProperties()}
-            ${" |    "..stateGenerator.generateClassProperties()}
-            ${" |    "..actionGenerator.generateClassProperties()}
-            ${" |    "..portGenerator.generateClassProperties()}
-            ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator)}
-                |}
-                |// =============== END reactor class ${reactor.name}
-            """.trimMargin()
-        })
     }
 
     /** Generate the main app instance. This function is only used once
@@ -144,20 +77,78 @@ class TSReactorGenerator(
             |if (!__noStart && __app) {
             |    __app._start();
             |}
+            |
             """
             }.trimMargin()
     }
 
-    fun generateReactor(reactor: Reactor, federate: FederateInstance) {
-        generateReactorFederated(reactor, federate)
+    private fun generateReactorPreambles(preambles: List<Preamble>): String {
+        val preambleCodes = LinkedList<String>()
+
+        for (preamble in preambles) {
+            preambleCodes.add(with(PrependOperator) {
+                """
+                |// *********** From the preamble, verbatim:
+                |${preamble.code.toText()}
+                |
+                |// *********** End of preamble."""}.trimMargin())
+        }
+        return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: Set<Parameter>) {
-        pr(generateReactorInstance(mainDef, mainParameters))
-        pr(generateRuntimeStart(mainDef))
+    fun generateReactor(reactor: Reactor, federate: FederateInstance): String {
+        var reactorName = reactor.name
+        if (!reactor.typeParms.isEmpty()) {
+            reactorName +=
+                reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
+        }
+
+        // NOTE: type parameters that are referenced in ports or actions must extend
+        // Present in order for the program to type check.
+        val classDefinition: String = if (reactor.isMain()) {
+            "class $reactorName extends __App {"
+        } else if (reactor.isFederated) {
+            "class $reactorName extends __FederatedApp {"
+        } else {
+            "export class $reactorName extends __Reactor {"
+        }
+
+        val instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
+        val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
+        val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
+        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
+        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
+        val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
+
+        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate)
+        return with(PrependOperator) {
+            """
+                |// =============== START reactor class ${reactor.name}
+                |${generateReactorPreambles(reactor.preambles)}
+                |
+                |$classDefinition
+            ${" |    "..instanceGenerator.generateClassProperties()}
+            ${" |    "..timerGenerator.generateClassProperties()}
+            ${" |    "..parameterGenerator.generateClassProperties()}
+            ${" |    "..stateGenerator.generateClassProperties()}
+            ${" |    "..actionGenerator.generateClassProperties()}
+            ${" |    "..portGenerator.generateClassProperties()}
+            ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
+                stateGenerator, actionGenerator, portGenerator)}
+                |}
+                |// =============== END reactor class ${reactor.name}
+                |
+            """.trimMargin()
+        }
     }
 
-    fun getCode(): String {
-        return code.toString()
+    fun generateReactorInstanceAndStart(mainDef: Instantiation, mainParameters: Set<Parameter>): String {
+        return with(PrependOperator) {
+            """
+            |${generateReactorInstance(mainDef, mainParameters)}
+            |${generateRuntimeStart(mainDef)}
+            |
+            """
+        }.trimMargin()
     }
 }
