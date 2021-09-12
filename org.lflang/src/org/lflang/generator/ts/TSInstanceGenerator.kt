@@ -16,8 +16,8 @@ class TSInstanceGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
     private val tsReactorGenerator: TSReactorGenerator,
-    private val reactor: Reactor,
-    private val federate: FederateInstance
+    reactor: Reactor,
+    federate: FederateInstance
 ) {
     private val childReactors: List<Instantiation>
 

@@ -23,27 +23,12 @@ class TSReactorGenerator(
 ) {
     private val code = StringBuilder()
 
-    /**
-     * Map from builder to its current indentation.
-     */
-    val indentation = LinkedHashMap<StringBuilder, String>()
-
-    // Wrapper functions and their helpers
-    private fun indent(builder: StringBuilder) = tsGenerator.indentw(builder)
-    private fun unindent(builder: StringBuilder) = tsGenerator.unindentw(builder)
-    private fun indent() = indent(code)
-    private fun unindent() = unindent(code)
-
     private fun pr(text: Any) = tsGenerator.prw(code, text)
 
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
-
-    private fun federationRTIProperties(): LinkedHashMap<String, Any> {
-        return tsGenerator.federationRTIPropertiesW()
-    }
 
     // Initializer functions
     fun getTargetInitializerHelper(param: Parameter,
@@ -63,63 +48,6 @@ class TSReactorGenerator(
         return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
     }
 
-    private fun generateConstructorArguments(reactor: Reactor): String {
-        val arguments = LinkedList<String>()
-        if (reactor.isMain || reactor.isFederated) {
-            arguments.add("timeout: TimeValue | undefined = undefined")
-            arguments.add("keepAlive: boolean = false")
-            arguments.add("fast: boolean = false")
-        } else {
-            arguments.add("parent: __Reactor")
-        }
-
-        // For TS, parameters are arguments of the class constructor.
-        for (parameter in reactor.parameters) {
-            arguments.add(initializeParameter(parameter))
-        }
-
-        if (reactor.isMain || reactor.isFederated) {
-            arguments.add("success?: () => void")
-            arguments.add("fail?: () => void")
-        }
-
-        return arguments.joinToString(", \n")
-    }
-
-    // If the app is federated, register its
-    // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String {
-        var fedPortID = 0;
-        val connectionInstantiations = LinkedList<String>()
-        for (nAction in networkMessageActions) {
-            val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-                """
-            connectionInstantiations.add(registration)
-            fedPortID++
-        }
-        return connectionInstantiations.joinToString("\n")
-    }
-
-    private fun generateSuperConstructorCall(reactor: Reactor, federate: FederateInstance): String {
-        if (reactor.isMain) {
-            return "super(timeout, keepAlive, fast, success, fail);"
-        } else if (reactor.isFederated) {
-            var port = federationRTIProperties()["port"]
-            // Default of 0 is an indicator to use the default port, 15045.
-            if (port == 0) {
-                port = 15045
-            }
-            return """
-            super(${federate.id}, ${port},
-                "${federationRTIProperties()["host"]}",
-                timeout, keepAlive, fast, success, fail);
-            """
-        } else {
-            return "super(parent);"
-        }
-    }
-
     // TODO(hokeun): Split this method into smaller methods.
     fun generateReactorFederated(reactor: Reactor, federate: FederateInstance) {
         pr("// =============== START reactor class " + reactor.name)
@@ -137,15 +65,13 @@ class TSReactorGenerator(
         }
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
-        if (reactor.isMain()) {
-            pr("class $reactorName extends __App {")
+        val classDefinition: String = if (reactor.isMain()) {
+            "class $reactorName extends __App {"
         } else if (reactor.isFederated) {
-            pr("class $reactorName extends __FederatedApp {")
+            "class $reactorName extends __FederatedApp {"
         } else {
-            pr("export class $reactorName extends __Reactor {")
+            "export class $reactorName extends __Reactor {"
         }
-
-        indent()
 
         val instanceGenerator = TSInstanceGenerator(tsGenerator, this, reactor, federate)
         val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
@@ -154,44 +80,22 @@ class TSReactorGenerator(
         val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
         val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
 
+        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate)
         pr(with(PrependOperator) {
             """
-            ${" |"..instanceGenerator.generateClassProperties()}
-            ${" |"..timerGenerator.generateClassProperties()}
-            ${" |"..parameterGenerator.generateClassProperties()}
-            ${" |"..stateGenerator.generateClassProperties()}
-            ${" |"..actionGenerator.generateClassProperties()}
-            ${" |"..portGenerator.generateClassProperties()}
-            """.trimMargin()
-        })
-
-        val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactionGenerator = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
-
-        pr(with(PrependOperator) {
-            """
-                |constructor (
-            ${" |    "..generateConstructorArguments(reactor)}
-                |) {
-            ${" |    "..generateSuperConstructorCall(reactor, federate)}
-            ${" |    "..instanceGenerator.generateInstantiations()}
-            ${" |    "..timerGenerator.generateInstantiations()}
-            ${" |    "..parameterGenerator.generateInstantiations()}
-            ${" |    "..stateGenerator.generateInstantiations()}
-            ${" |    "..actionGenerator.generateInstantiations()}
-            ${" |    "..portGenerator.generateInstantiations()}
-            ${" |    "..connectionGenerator.generateInstantiations()}
-            ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
-            ${" |    "..reactionGenerator.generateAllReactions()}
+                |$classDefinition
+            ${" |    "..instanceGenerator.generateClassProperties()}
+            ${" |    "..timerGenerator.generateClassProperties()}
+            ${" |    "..parameterGenerator.generateClassProperties()}
+            ${" |    "..stateGenerator.generateClassProperties()}
+            ${" |    "..actionGenerator.generateClassProperties()}
+            ${" |    "..portGenerator.generateClassProperties()}
+            ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
+                stateGenerator, actionGenerator, portGenerator)}
                 |}
+                |// =============== END reactor class ${reactor.name}
             """.trimMargin()
         })
-
-        unindent()
-        pr("}")
-        pr("// =============== END reactor class " + reactor.name)
-        pr("")
-
     }
 
     /** Generate the main app instance. This function is only used once
