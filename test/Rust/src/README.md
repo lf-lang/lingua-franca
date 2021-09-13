@@ -34,6 +34,9 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
       - [x] locally
       - [ ] between different child reactors fixme
 - [ ] imports
+- [x] preambles
+  - [x] `Preamble.lf`: preamble within reactor
+  - [ ] top-level preamble
 - [x] logical actions
     - [x] `ActionImplicitDelay.lf`: scheduling an action with no additional delay uses its implicit delay 
     - [x] `ActionDelay.lf`: 
