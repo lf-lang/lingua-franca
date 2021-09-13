@@ -177,6 +177,8 @@ class CCmakeGenerator {
                     cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
                 }
                 cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+                // Finally, set the CXX compiler to what the user has requested.
+                cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
             } else {
                 cMakeCode.append("set(CMAKE_C_COMPILER "+targetConfig.compiler+")\n");
             }
