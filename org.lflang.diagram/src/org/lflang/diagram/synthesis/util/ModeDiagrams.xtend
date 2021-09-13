@@ -20,6 +20,8 @@ import de.cau.cs.kieler.klighd.kgraph.KLabel
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
+import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData
+import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
@@ -52,10 +54,10 @@ import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 import org.lflang.generator.ModeInstance
-import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ModeInstance.Transition
 import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Action
-import org.lflang.lf.Mode
+import org.lflang.lf.ModeTransitionTypes
 import org.lflang.lf.Timer
 import org.lflang.lf.VarRef
 
@@ -64,7 +66,6 @@ import static org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
 import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
-import org.lflang.generator.ModeInstance.Transition
 
 /**
  * @author als
@@ -192,17 +193,17 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                 // add transitions
                 val representedTargets = newHashSet
                 for (transition : mode.transitions.reverseView) {
-                    if (!representedTargets.contains(transition.target)) {
+                    if (!representedTargets.contains(new Pair(transition.target, transition.type))) {
                         val edge = createEdge()
                         edge.source = modeNode
                         edge.target = modeNodes.get(transition.target)
-                            
+                        edge.addTransitionFigure(transition)
+                        
                         if (SHOW_TRANSITION_LABELS.booleanValue) {
                             edge.associateWith(transition.definition)
-                            edge.addTransitionFigure(transition)
                         } else {
-                            edge.addTransitionFigure(null)
-                            representedTargets += transition.target // do not create another transition to this state
+                            // Bundle similar transitions
+                            representedTargets += new Pair(transition.target, transition.type)
                         }
                     }
                 }
@@ -336,14 +337,21 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
             lineWidth = 1.5f
             
             foreground = MODE_FG
-            foreground.propagateToChildren = true
             background = MODE_FG
-            background.propagateToChildren = true
             
             boldLineSelectionStyle()
-            addHeadArrowDecorator()
         ]
-        if (transition !== null) {
+
+        if (transition.type === ModeTransitionTypes.HISTORY) {
+            spline.addHistoryDecorator()
+        } else {
+            spline.addHeadArrowDecorator() => [
+                foreground = MODE_FG
+                background = MODE_FG
+            ]
+        }
+            
+        if (SHOW_TRANSITION_LABELS.booleanValue) {
             spline.associateWith(transition.definition)
             
             edge.addCenterEdgeLabel(transition.toTransitionLabel) => [
@@ -388,6 +396,28 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                 //.addDecoratorRenderingProvider(DirectionalArrowsDecorator.create().withColor(foreground))
         }
         _onEdgeTransitionLabelConfigurator.applyTo(label)
+    }
+    
+    def addHistoryDecorator(KPolyline line) {
+        line.addHeadArrowDecorator() => [
+            (placementData as KDecoratorPlacementData).absolute = -15.0f;
+        ]
+        line.addEllipse() => [
+            setDecoratorPlacementData(16, 16, -6, 1, false);
+            lineWidth = 0.8f;
+            foreground = MODE_FG;
+            background = Colors.WHITE;
+            addPolyline => [
+                lineWidth = 2;
+                points += createKPosition(LEFT, 5, 0, TOP, 4, 0);
+                points += createKPosition(LEFT, 5, 0, BOTTOM, 4, 0);
+                points += createKPosition(LEFT, 5, 0, TOP, 0, 0.5f);
+                points += createKPosition(RIGHT, 5, 0, TOP, 0, 0.5f);
+                points += createKPosition(RIGHT, 5, 0, BOTTOM, 4, 0);
+                points += createKPosition(RIGHT, 5, 0, TOP, 4, 0);
+                foreground = MODE_FG;
+            ]
+        ]
     }
     
 }
