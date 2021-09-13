@@ -192,6 +192,10 @@ class ModeInstance extends NamedInstance<Mode> {
             return this.parent.root()
         }
         
+        def getType() {
+            return definition.modeTransitionType
+        }
+        
     }
     
 }
