@@ -1124,7 +1124,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkSerialization(Serializer serializer) {
         var boolean isValidSerializer = false;
         for (SupportedSerializers method : SupportedSerializers.values()) {
-          if (method.name().equalsIgnoreCase(serializer.method)){
+          if (method.name().equalsIgnoreCase(serializer.type)){
               isValidSerializer = true;
           }          
         }
@@ -1132,7 +1132,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (!isValidSerializer) {
             error(
                 "Serialization can be " + SupportedSerializers.values.toList, 
-                Literals.SERIALIZER__METHOD
+                Literals.SERIALIZER__TYPE
             );
         }
     }

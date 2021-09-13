@@ -430,7 +430,7 @@ public class FedASTUtils {
         var serializer = SupportedSerializers.NATIVE;
         if (connection.getSerializer() != null) {
             serializer = SupportedSerializers.valueOf(
-                    connection.getSerializer().getMethod().toUpperCase()
+                    connection.getSerializer().getType().toUpperCase()
             );
             // Add it to the list of enabled serializers
             generator.enabledSerializers.add(serializer);
