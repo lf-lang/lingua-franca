@@ -85,8 +85,14 @@ public class CCmakeCompiler extends CCompiler {
                     targetConfig.compiler.equals("clang++")) {
                 // Interpret this as the user wanting their .c programs to be treated as
                 // C++ files. We can't just simply use g++ to compile C code. We use a 
-                // specific CMake flag to set the language of all .c files to C++.
+                // specific CMake flag to set the language of all .c files to C++ (@see
+                // CCmakeGenerator.java, and set the CXX compiler to what the user has requested.
+                // Using other C++ compilers will result in CMake throwing the following
+                // error:
+                //    "The CMAKE_C_COMPILER is set to a C++ compiler"
+                compile.replaceEnvironmentVariable("CXX", targetConfig.compiler);
             } else {
+                // Set the CC environment variable to change the C compiler.
                 compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
             }
             // cmakeEnv.put("CXX", targetConfig.compiler);
