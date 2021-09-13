@@ -245,7 +245,7 @@ Delay:
 
 // Chooses the serializer to use for the connection
 Serializer:
-    'serializer' name=STRING
+    'serializer' method=STRING
 ;
 
 /////////// For target parameters
