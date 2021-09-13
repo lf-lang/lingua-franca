@@ -86,7 +86,7 @@ public class CCmakeCompiler extends CCompiler {
                 // Interpret this as the user wanting their .c programs to be treated as
                 // C++ files. We can't just simply use g++ to compile C code. We use a 
                 // specific CMake flag to set the language of all .c files to C++ (@see
-                // CCmakeGenerator.java, and set the CXX compiler to what the user has requested.
+                // CCmakeGenerator.java), and set the CXX compiler to what the user has requested.
                 // Using other C++ compilers will result in CMake throwing the following
                 // error:
                 //    "The CMAKE_C_COMPILER is set to a C++ compiler"
