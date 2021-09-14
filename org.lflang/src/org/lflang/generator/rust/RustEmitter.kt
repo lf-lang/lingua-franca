@@ -116,11 +116,11 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |
                 |impl $wrapperName {
                 |    #[inline]
-                |    fn user_assemble(_id: $rsRuntime::ReactorId, args: $paramStructName) -> Self {
-                |        let $ctorParamsDeconstructor = args.clone();
+                |    fn user_assemble(_assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
+                |        let $ctorParamsDeconstructor = _params.clone();
                 |        Self {
-                |            _id,
-                |            _params: args,
+                |            _id: _assembler.fix_cur_id(),
+                |            _params,
                 |            _startup_reactions: Default::default(),
                 |            _shutdown_reactions: Default::default(),
                 |            _impl: $structName {
@@ -143,7 +143,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
-                |        let mut _self: Self = Self::user_assemble(assembler.get_next_id(), args);
+                |        let mut _self: Self = Self::user_assemble(assembler, args);
                 |
 ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLocalDecl() }}
                 |
@@ -508,10 +508,10 @@ private object ReactorComponentEmitter {
     fun ReactorComponent.initialExpression(): TargetCode = when (this) {
         is ActionData -> {
             val delay = minDelay.toRustOption()
-            toType() + "::new(\"$lfName\", $delay)"
+            toType() + "::new(_assembler.next_comp_id(\"$lfName\"), $delay)"
         }
-        is TimerData  -> toType() + "::new(\"$lfName\", /*offset:*/$offset, /*period:*/$period)"
-        is PortData   -> "Port::labeled(\"$lfName\")"
+        is TimerData  -> toType() + "::new(_assembler.next_comp_id(\"$lfName\"), /*offset:*/$offset, /*period:*/$period)"
+        is PortData   -> "Port::new(_assembler.next_comp_id(\"$lfName\"))"
     }
 
     fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
