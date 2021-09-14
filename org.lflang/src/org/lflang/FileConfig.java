@@ -3,11 +3,9 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,7 +23,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.generator.StandaloneContext;
 import org.lflang.lf.Reactor;
 import org.lflang.generator.Main;
@@ -179,7 +176,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = getOutputRoot(srcGenBasePath);
+        this.outPath = srcGenBasePath.getParent();
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -205,7 +202,7 @@ public class FileConfig {
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
-        this.outPath = getOutputRoot(srcGenBasePath);
+        this.outPath = srcGenBasePath.getParent();
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
         this.iResource = getIResource(resource);
     }
@@ -354,10 +351,6 @@ public class FileConfig {
      */
     public Path getRTIBinPath() {
         return this.binPath;
-    }
-
-    private static Path getOutputRoot(Path srcGenRoot) {
-        return Paths.get(".").resolve(srcGenRoot);
     }
 
     /**
@@ -576,7 +569,28 @@ public class FileConfig {
         }
         // Case 3: We are in a language server. This is actually the same function call that provides the package root
         //  of the standalone context, so this is really no different from Case 2.
-        return Main.findPackageRoot(toPath(resource).toFile());
+        return findPackageRoot(toPath(resource));
+    }
+
+    /**
+     * Find the package root by looking for an 'src'
+     * directory. If none can be found, return the current
+     * working directory instead.
+     *
+     * @param input The *.lf file to find the package root
+     *              for.
+     * @return The package root, or the current working
+     * directory if none exists.
+     */
+    private static Path findPackageRoot(final Path input) {
+        Path p = input;
+        do {
+            p = p.getParent();
+            if (p == null) {
+                return Paths.get(".").toAbsolutePath();
+            }
+        } while (!p.toFile().getName().equals("src"));
+        return p.getParent();
     }
     
     /**

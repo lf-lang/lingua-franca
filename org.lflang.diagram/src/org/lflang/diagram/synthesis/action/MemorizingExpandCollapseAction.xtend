@@ -17,11 +17,11 @@ import de.cau.cs.kieler.klighd.IViewer
 import de.cau.cs.kieler.klighd.SynthesisOption
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import java.util.WeakHashMap
-import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
 import org.lflang.generator.NamedInstance
 
 import static extension com.google.common.base.Preconditions.*
 import static extension org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization.updateInterfaceDependencyVisibility
+import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 
 /**
  * Action for toggling collapse/expand state of reactors that memorizes the state and
@@ -82,10 +82,8 @@ class MemorizingExpandCollapseAction extends AbstractAction {
         val vc = context.viewContext
         val v = vc.viewer 
         val node = context.KNode
-        val source = node.sourceElement()
         
-        var memorizableObj = node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)
-        node.setExpansionState(memorizableObj, v, !v.isExpanded(node)) // toggle
+        node.setExpansionState(node.linkedInstance, v, !v.isExpanded(node)) // toggle
         
         return IAction.ActionResult.createResult(true);
     }

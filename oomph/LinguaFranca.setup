@@ -97,6 +97,14 @@
     </setupTask>
     <setupTask
         xsi:type="setup:CompoundTask"
+        name="org.eclipse.ui.ide">
+      <setupTask
+          xsi:type="setup:PreferenceTask"
+          key="/instance/org.eclipse.ui.ide/unassociatedEditorStrategy"
+          value="org.eclipse.epp.internal.mpc.ui.askMarketPlace"/>
+    </setupTask>
+    <setupTask
+        xsi:type="setup:CompoundTask"
         name="org.eclipse.xtend.core.Xtend">
       <setupTask
           xsi:type="setup:PreferenceTask"
@@ -147,6 +155,8 @@
         name="org.eclipse.emf.mwe2.language.sdk.feature.group"/>
     <requirement
         name="org.eclipse.jdt.feature.group"/>
+    <requirement
+        name="org.eclipse.cdt.feature.group"/>
     <requirement
         name="org.eclipse.egit.feature.group"/>
     <requirement

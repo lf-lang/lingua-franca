@@ -4,6 +4,7 @@ name: Nightly Build
 on:
   schedule:
     - cron: '0 5 * * *'
+  workflow_dispatch:
 
 jobs:
   package:
@@ -25,6 +26,8 @@ jobs:
 
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1

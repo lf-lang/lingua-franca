@@ -26,11 +26,14 @@
  ***************/
 package org.lflang.validation
 
+import com.google.inject.Inject
+
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -38,7 +41,9 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.lflang.DefaultErrorReporter
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
+import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
@@ -99,6 +104,12 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     public var info = new ModelInfo()
 
+    @Inject
+    ErrorReporter errorReporter
+
+    @Inject(optional = true)
+    ValidationMessageAcceptor messageAcceptor
+
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
      */
@@ -139,6 +150,10 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
+    }
+
+    override def ValidationMessageAcceptor getMessageAcceptor() {
+        return messageAcceptor == null ? this : messageAcceptor
     }
 
     @Check
@@ -705,13 +720,13 @@ class LFValidatorImpl extends AbstractLFValidator {
         // we use the old information and update it during a normal
         // check (see below).
         if (!info.updated) {
-            info.update(model, DefaultErrorReporter.DEFAULT)
+            info.update(model, errorReporter)
         }
     }
 
     @Check(NORMAL)
     def updateModelInfo(Model model) {
-        info.update(model, DefaultErrorReporter.DEFAULT)
+        info.update(model, errorReporter)
     }
 
     @Check(FAST)
