@@ -33,9 +33,9 @@ def main(args):
                 )
                 previous_condition = condition
                 condition = lambda f: (
-                    previous_condition(f) and
-                    os.path.splitext(f)[0].endswith(
-                        args.name[(class_name_start+1):]
+                    previous_condition(f) and (
+                        os.path.splitext(os.path.basename(f))[0]
+                        == args.name[(class_name_start+1):]
                     )
                 )
             if not directory: continue
