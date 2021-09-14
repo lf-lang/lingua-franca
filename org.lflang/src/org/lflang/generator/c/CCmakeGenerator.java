@@ -27,6 +27,7 @@ package org.lflang.generator.c;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -69,13 +70,21 @@ class CCmakeGenerator {
     StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
         StringBuilder cMakeCode = new StringBuilder();
         
-        // Resolve path to the cmake include file if one was provided
-        String includeFile = targetConfig.cmakeInclude;
-        if (!includeFile.isBlank()) {
-            try {
-                includeFile = FileConfig.toUnixString(fileConfig.srcPath.resolve(includeFile));
-            } catch (Exception e) {
-                errorReporter.reportError(e.getMessage());
+        // Resolve path to the cmake include files if any was provided
+        LinkedHashSet<String> resolvedIncludeFiles = new LinkedHashSet<String>();
+        for (String includeFile : targetConfig.cmakeIncludes) { 
+            if (!includeFile.isBlank()) {
+                try {
+                    resolvedIncludeFiles.add(
+                            FileConfig.toUnixString(
+                                    fileConfig.getSrcGenPath().relativize(
+                                            fileConfig.getSrcGenPath().resolve(includeFile)
+                                            )
+                                    )
+                            );
+                } catch (Exception e) {
+                    errorReporter.reportError(e.getMessage());
+                }
             }
         }
         
@@ -205,7 +214,7 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         // Add the include file
-        if (!includeFile.isBlank()) {
+        for (String includeFile : resolvedIncludeFiles) {
             cMakeCode.append("include("+includeFile+")\n");
         }  
         
