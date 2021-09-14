@@ -1131,7 +1131,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         
         if (!isValidSerializer) {
             error(
-                "Serialization can be " + SupportedSerializers.values.toList, 
+                "Serializer can be " + SupportedSerializers.values.toList, 
                 Literals.SERIALIZER__TYPE
             );
         }
