@@ -2,7 +2,7 @@
  * Copyright (C) 2020 TU Dresden
  * 
  * This benchmarks implements a parallel matrix multiplication algorithm.
- * Overall, the benchmark uses a divide and conquer approach that is very
+ * Overall, the benchmark uses a divide-and-conquer approach that is very
  * similar to the N Queens benchmark. The Manager at first produces a WorkItem
  * that encompasses the whole problem, and the workers then split the work items
  * into smaller chunks that they send back to the manager. Only if the problem
@@ -12,7 +12,7 @@
  * 
  * It is important to note that the Savina implementation makes a severe
  * mistake. Both the operand matrices and the result matrix are stored in shared
- * memory. Tor the operands, this is not much of an issue since they are
+ * memory. For the operands, this is not much of an issue since they are
  * read-only. However, the matrix is written to by all workers using an
  * accumulate (read-write) operation. Since multiple workers can write to the
  * same cell simultaneously, we have a race condition. This makes the result

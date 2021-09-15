@@ -1,22 +1,39 @@
 /**
  * Copyright (C) 2020 TU Dresden
- * 
- * In this benchmark, there are three main components: The barber, a waiting room and the customers.
- * The customers are produced and controlled by a CustomerFactory.
- * This implementation is close to the Savina Akka implementation
- * in terms of the work that is done in each actor/reactor and
- * that for each message sent in Savina there is a message send
- * in this implementation. But this implementation does not
- * show the basic idea of the problem in that the waiting
- * room is basically never because the customers arrival is
- * in sync with the barber cutting the hair of customers.
- * 
- * There are some interesting different possibilities to implement the
- * benchmark more based on the original idea behind it instead
- * of the Savina implementation. For example by using threads that
- * trigger events in physical time and handling missed
- * deadlines if the waiting room is full. But these would lack
- * comparability with the Savina benchmark even more.
+ *
+ * In this benchmark, there are four main components: The barber, a waiting
+ * room, a customer factory and the customers. The customer factory controls the
+ * production of new customers and sends them to the waiting room. If the
+ * waiting room is full, then the customers return and try again later. If the
+ * waiting room has empty seats, then the customer enters and waits to be served
+ * by the barber. In the Savina implementation, the waiting room takes the role
+ * of a central manager. If the room is empty, it tells the barber to go sleep.
+ * If a customer comes and the barber sleeps, the waiting room wakes up the
+ * barber and sends the customer in to the barber to be served. When the barber
+ * finishes, the waiting room sends in the next customer. If there are no more
+ * customers, the waiting room tells the barber to sleep again.
+ *
+ * In the Akka implementation production of customers and processing at the
+ * barber happens at certain rates. The workload of the factory and the barber
+ * has a random length and the average workload duration is controlled by the
+ * rate parameters. Depending on the rates selected and the precise runtime
+ * scheduling, the waiting room will have a constantly changing state in an
+ * actor implementation.
+ *
+ * In an LF implementation, the processing time of the workload does not
+ * influence the logical arrival and processing rates. Even with a random
+ * workload, the customer factory and the barber could operate logically
+ * synchronously in LF. To mimic the behaviour of the original Akka
+ * implementation and to have a more realistic setup, this LF implementation
+ * also uses physical actions to provide varying logical (and physical) delays.
+ * This also ensures that the waiting room constantly changes state and fills up
+ * or empties out occasionally. Note that due to the use of physical actions,
+ * simultaneous events are very unlikely (if not impossible since two readings
+ * of the physical clock should always show an increment on common hardware).
+ * With our current runtime, this eliminates all opportunities for letting the
+ * barber and the factory operate in parallel. Since the complexity of
+ * computations involved in this benchmark is low, this isn't a problem for
+ * performance though.
  * 
  * @author Christian Menard
  * @author Hannes Klein
@@ -24,7 +41,7 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "SleepingBarber.cmake",
+    cmake-include: "../IncludeHeaders.cmake",
     keepalive: true,
     logging: "warn"
 };
@@ -60,8 +77,8 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     input[numCustomers] customerDone: void;
     input[numCustomers] customerReturned: void;
 
-    logical action createNextCustomer: void;
-    logical action sendCustomerAgain: size_t
+    physical action createNextCustomer: void;
+    physical action sendCustomerAgain: size_t
     
     state doneCustomers: size_t{0};
     state attempts: size_t{0};
@@ -92,8 +109,8 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
         
         next_customer_id++;
         if (next_customer_id < numCustomers) {
-            // schedule again with logical delay that is (proportionally) equal to the physical delay.
-            createNextCustomer.schedule(reactor::Duration{delay});
+            // schedule again
+            createNextCustomer.schedule();
         }
     =}
     
@@ -108,11 +125,13 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     reaction (customerReturned) -> sendCustomerAgain {=
         for (size_t i{0}; i < numCustomers; i++) {
             if (customerReturned[i].is_present()) {
-                // the customer returned because the waiting room is full
-                // We send the customer again, but apply a logical delay, equal to the production rate.
-                // This is different from the Savina Akka implementation, but only with a delay we can ensure in LF,
-                // that the program moves forward in logical time and completes at some point.
-                sendCustomerAgain.schedule(i, reactor::Duration{averageProductionRate});                
+                /*
+                 * The customer returned because the waiting room is full. We
+                 * send the customer back again immediately. Due to the use of a
+                 * physical action, we always introduce a small logical delay,
+                 * which ensures that the program can move forward.
+                 */
+                sendCustomerAgain.schedule(i);                
             }
         }
     =}
@@ -214,7 +233,7 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
     output[numCustomers] doneCutting: void;
     output next: void;
     
-    logical action done: size_t;
+    physical action done: size_t;
     
     state random: PseudoRandom;
     
@@ -239,8 +258,8 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
         reactor::log::Info() << "Barber: Processing customer " << customer_id;
         busyWait(delay);
         
-        // also apply a logical delay before notifying the customer 
-        done.schedule(customer_id, reactor::Duration(delay));
+        // Notify the customer 
+        done.schedule(customer_id);
     =}
     
     reaction (wait) {=

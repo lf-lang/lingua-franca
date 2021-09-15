@@ -44,6 +44,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <poll.h>
 #include <alsa/asoundlib.h>
+#include <stdbool.h>
 
 // Audio device to use for playback
 #define AUDIO_DEVICE "default"

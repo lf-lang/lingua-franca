@@ -1,6 +1,6 @@
 // This pattern creates a matrix of nodes, where each of the nodes can send 
 // messages to all other nodes in the same row or in the same column. Since
-// banks in LF are one dimensional, we use hierachy to implement the two 
+// banks in LF are one dimensional, we use hierachy to implement the second 
 // dimension. Nodes are organized in Rows which are grouped to form the matrix.
 
 target Cpp {
