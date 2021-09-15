@@ -170,6 +170,8 @@
     <requirement
         name="org.eclipse.epp.mpc.feature.group"/>
     <requirement
+        name="org.eclipse.tm.terminal.feature.feature.group"/>
+    <requirement
         name="org.eclipse.xtext.sdk.feature.group"
         versionRange="2.25.0"/>
     <repository
@@ -321,6 +323,8 @@
             name="org.eclipse.wildwebdeveloper.feature.feature.group"/>
         <requirement
             name="org.python.pydev.feature.feature.group"/>
+        <requirement
+            name="org.eclipse.tm.terminal.feature.feature.group"/>
         <requirement
             name="com.google.inject"/>
         <requirement
