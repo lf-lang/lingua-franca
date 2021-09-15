@@ -138,12 +138,12 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    type Params = $paramStructName;
                 |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const(${reactions.size + timers.size /*timers have a reschedule reaction*/});
                 |
-                |    fn assemble(args: Self::Params, assembler: &mut AssemblyCtx) -> Self {
+                |    fn assemble(args: Self::Params, _assembler: &mut AssemblyCtx) -> Self {
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
-                |        let mut _self: Self = Self::user_assemble(assembler, args);
+                |        let mut _self: Self = Self::user_assemble(_assembler, args);
                 |
 ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLocalDecl() }}
                 |
@@ -156,7 +156,7 @@ ${"             |           "..localDependencyDeclarations(reactor)}
                 |        {
 ${"             |            "..declareChildConnections()}
                 |        }
-${"             |        "..nestedInstances.joinToString("\n") { "assembler.register_reactor(${it.lfName});" }}
+${"             |        "..nestedInstances.joinToString("\n") { "_assembler.register_reactor(${it.lfName});" }}
                 |
                 |       _self
                 |    }
@@ -277,8 +277,7 @@ ${"         |    "..declarations}
             }.let { base ->
                 if (component is TimerData) {
                     // timers have an additional reaction to reschedule themselves
-                    val timerLocalId = reactor.timerReactionId(component)
-                    val rescheduleReactionId = "$rsRuntime::GlobalReactionId::new(_self.id(), LocalReactionId::new($timerLocalId))"
+                    val rescheduleReactionId = "_assembler.new_reaction(Some(\"timer-${component.lfName}\"))"
                     base + rescheduleReactionId
                 } else base
             }
@@ -508,10 +507,11 @@ private object ReactorComponentEmitter {
     fun ReactorComponent.initialExpression(): TargetCode = when (this) {
         is ActionData -> {
             val delay = minDelay.toRustOption()
-            toType() + "::new(_assembler.next_comp_id(\"$lfName\"), $delay)"
+            val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
+            "_assembler.$ctorName(\"$lfName\", $delay)"
         }
-        is TimerData  -> toType() + "::new(_assembler.next_comp_id(\"$lfName\"), /*offset:*/$offset, /*period:*/$period)"
-        is PortData   -> "Port::new(_assembler.next_comp_id(\"$lfName\"))"
+        is TimerData  -> "_assembler.new_timer(\"$lfName\", $offset, $period)"
+        is PortData   -> "_assembler.new_port(\"$lfName\")"
     }
 
     fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
@@ -529,8 +529,10 @@ private object ReactorComponentEmitter {
     fun ReactionInfo.reactionInvokerLocalDecl() =
         "let $invokerId = ${reactionInvokerInitializer()}"
 
-    fun ReactionInfo.reactionInvokerInitializer() =
-        "GlobalReactionId::new(_self.id(), LocalReactionId::from_raw_unchecked($idx));"
+    fun ReactionInfo.reactionInvokerInitializer(): String {
+        val label = debugLabel?.withDQuotes().toRustOption()
+        return "_assembler.new_reaction($label);"
+    }
 
     fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
