@@ -1,7 +1,7 @@
 /**
  * Stand-alone version of the Lingua Franca compiler (lfc).
  */
-package org.lflang.generator;
+package org.lflang.lfc;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +41,11 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.generator.LfIssue;
+import org.lflang.generator.Io;
+import org.lflang.generator.IssueCollector;
+import org.lflang.generator.ReportingBackend;
+import org.lflang.generator.StandaloneContext;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
