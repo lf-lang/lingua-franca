@@ -229,7 +229,7 @@ jobs:
         run: pip3 install -r benchmark/runner/requirements.txt      
       - name: Build lfc;
         run: |
-          ./gradlew generateStandaloneComiler
+          ./gradlew generateStandaloneCompiler
       - name: "Set LF_PATH environmental variable"
         run: |
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
