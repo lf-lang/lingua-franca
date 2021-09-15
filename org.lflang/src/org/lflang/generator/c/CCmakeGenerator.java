@@ -33,6 +33,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.lf.LfPackage.Literals;
 
 /**
  * A helper class that generates a CMakefile that can be used to compile the generated C code.
@@ -80,12 +81,18 @@ class CCmakeGenerator {
         for (String includeFile : targetConfig.cmakeIncludes) { 
             if (!includeFile.isBlank()) {
                 try {
-                    resolvedIncludeFiles.add(
-                            fileConfig.copyFileOrResource(
-                                    includeFile,
-                                    this.fileConfig.srcFile.getParent(),
-                                    this.fileConfig.getSrcGenPath())
-                            );
+                    String relativeFileName = fileConfig.copyFileOrResource(
+                            includeFile,
+                            this.fileConfig.srcFile.getParent(),
+                            this.fileConfig.getSrcGenPath());
+                    if (!relativeFileName.isBlank()) {
+                        resolvedIncludeFiles.add(relativeFileName);
+                    } else {
+                        errorReporter.reportError(
+                                "Could not find cmake-include resource " +
+                                includeFile  + "."
+                        );
+                    }
                 } catch (Exception e) {
                     errorReporter.reportError(e.getMessage());
                 }

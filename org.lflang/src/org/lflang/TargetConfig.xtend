@@ -183,7 +183,7 @@ class TargetConfig {
      * The default is null.
      */
     public TracingOptions tracing = null
-    
+
 }
 
 /**

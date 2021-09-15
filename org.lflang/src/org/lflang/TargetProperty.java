@@ -92,12 +92,15 @@ public enum TargetProperty {
      * Directive to specify a cmake to be included by the generated build
      * systems.
      *
-     * This gives full control over the C++ build as any cmake parameters
+     * This gives full control over the C/C++ build as any cmake parameters
      * can be adjusted in the included file.
      */
     CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value) -> {
                 config.cmakeIncludes = ASTUtils.toListOfStrings(value);
+            },
+            (config, value) -> {
+                config.cmakeIncludes.addAll(ASTUtils.toListOfStrings(value));
             }),
     
     /**
@@ -328,10 +331,17 @@ public enum TargetProperty {
     
     /**
      * Function that given a configuration object and an Element AST node
-     * updates the configuration. It is assumed that validation already
+     * sets the configuration. It is assumed that validation already
      * occurred, so this code should be straightforward.
      */
     public final BiConsumer<TargetConfig, Element> setter;
+    
+    /**
+     * Function that given a configuration object and an Element AST node
+     * sets the configuration. It is assumed that validation already
+     * occurred, so this code should be straightforward.
+     */
+    public final BiConsumer<TargetConfig, Element> updater;
     
     /**
      * Private constructor for target properties.
@@ -349,6 +359,45 @@ public enum TargetProperty {
         this.type = type;
         this.supportedBy = supportedBy;
         this.setter = setter;
+        this.updater = (config, value) -> { /* Ignore the update by default */ };
+    }
+    
+    /**
+     * Private constructor for target properties. This will take an additional
+     * `updater`, which will be used to merge target properties from imported resources.
+     * 
+     * @param description String representation of this property.
+     * @param type        The type that values assigned to this property
+     *                    should conform to.
+     * @param supportedBy List of targets that support this property.
+     * @param setter      Function for setting configuration values.
+     * @param updater     Function for updating configuration values.
+     */
+    private TargetProperty(String description, TargetPropertyType type,
+            List<Target> supportedBy,
+            BiConsumer<TargetConfig, Element> setter,
+            BiConsumer<TargetConfig, Element> updater) {
+        this.description = description;
+        this.type = type;
+        this.supportedBy = supportedBy;
+        this.setter = setter;
+        this.updater = updater;
+    }
+    
+    /**
+     * Set the given configuration using the given target properties.
+     * 
+     * @param config     The configuration object to update.
+     * @param properties AST node that holds all the target properties.
+     */
+    public static void set(TargetConfig config,
+            List<KeyValuePair> properties) {
+        properties.forEach(property ->  {
+            TargetProperty p = forName(property.getName());
+            if (p != null) {
+                p.setter.accept(config, property.getValue());
+            }
+        });
     }
 
     /**
@@ -362,7 +411,7 @@ public enum TargetProperty {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
-                p.setter.accept(config, property.getValue());
+                p.updater.accept(config, property.getValue());
             }
         });
     }

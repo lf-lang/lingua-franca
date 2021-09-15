@@ -90,6 +90,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.TargetConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -473,6 +474,7 @@ class CGenerator extends GeneratorBase {
         
         var commonCode = code;
         var commonStartTimers = startTimers;
+        // Keep a separate file config for each federate
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
@@ -867,8 +869,7 @@ class CGenerator extends GeneratorBase {
      * Look at the 'reactor' eResource.
      * If it is an imported .lf file, incorporate it into the current 
      * program in the following manner:
-     * - If there are any cmake-include files, add them to the current list
-     *  of cmake-include files.
+     * - Merge its target property with `targetConfig`
      * - If there are any preambles, add them to the preambles of the reactor.
      */
     def inspectReactorEResource(ReactorDecl reactor) {
@@ -876,28 +877,15 @@ class CGenerator extends GeneratorBase {
         // target definition of the .lf file in which the reactor is imported from and
         // append any cmake-include.
         // Check if the reactor definition is imported
-        if (reactor.toDefinition.eResource !== 
-            mainDef.reactorClass.toDefinition.eResource
-        ) {
-            // Extract the contents of the imported file
+        if (reactor.toDefinition.eResource !== mainDef.reactorClass.toDefinition.eResource) {
+            val target = reactor.toDefinition.eResource.findTarget
+            if (target.config !== null) {
+                // Update the configuration according to the set target properties.
+                TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
+            }
+            // Extract the contents of the imported file for the preambles
             val contents = reactor.toDefinition.eResource.contents;
             val model = contents.get(0) as Model
-            for (c : model.eContents) {
-                if (c instanceof TargetDecl) {
-                    val targetProp = c
-                    if (targetProp.config !== null) {
-                        // If it has a target config
-                        for (pair : targetProp.config.pairs) {
-                            if (pair.name.equals(TargetProperty.CMAKE_INCLUDE.toString)) {
-                                // If it has any cmake-include files, add them
-                                targetConfig.cmakeIncludes.addAll(
-                                    ASTUtils.toListOfStrings(pair.value)
-                                );
-                            }
-                        }
-                    }
-                }
-            }
             // Add the preambles from the imported .lf file
             reactor.toDefinition.preambles.addAll(model.preambles)
         }
