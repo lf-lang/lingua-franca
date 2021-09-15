@@ -237,7 +237,7 @@ public class EclipseErrorReporter implements ErrorReporter {
                 resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
             } catch (Exception e) {
                 // Ignore, but print a warning
-                reportWarning("Deleting markers in the IDE failed: $e");
+                reportWarning("Deleting markers in the IDE failed: " + e);
             }
         }
     }

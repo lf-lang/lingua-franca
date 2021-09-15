@@ -72,8 +72,8 @@ class CCmakeCompiler extends CCompiler {
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
-        LFCommand compile = compileCmakeCommand(file, noBinary);
-        if (compile == null) {
+        LFCommand configure = configureCmakeCommand();
+        if (configure == null) {
             return false;
         }
 
@@ -85,13 +85,12 @@ class CCmakeCompiler extends CCompiler {
                 // C++ files. We can't just simply use g++ to compile C code. We use a 
                 // specific CMake flag to set the language of all .c files to C++.
             } else {
-                compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
+                configure.replaceEnvironmentVariable("CC", targetConfig.compiler);
             }
             // cmakeEnv.put("CXX", targetConfig.compiler);
         }
         
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        int cMakeReturnCode = compile.run();
+        int cMakeReturnCode = configure.run();
         
         if (cMakeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
@@ -100,39 +99,32 @@ class CCmakeCompiler extends CCompiler {
         int makeReturnCode = 0;
 
         if (cMakeReturnCode == 0) {            
-            LFCommand build = buildCmakeCommand(file, noBinary);
+            LFCommand build = buildCmakeCommand();
             
             makeReturnCode = build.run();
             
             if (makeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
-                errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
+                errorReporter.reportError("CMake terminated with error code " + makeReturnCode);
+                errorReporter.reportError(build.getErrors().toString());
             }
-            
+
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (build.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+                errorReporter.reportError(build.getErrors().toString());
+            }
         }
         
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            errorReporter.reportError(stderr.toString());
-        }
-        
-        return ((cMakeReturnCode == 0) && (makeReturnCode == 0));
+        return cMakeReturnCode == 0 && makeReturnCode == 0;
     }
     
     
     /**
-     * Return a command to compile the specified C file using CMake.
-     * This produces a C-specific compile command.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
-     *  If false, the compile command will produce a binary.
+     * Return a command to configure the specified C file
+     * using CMake.
+     * This produces a C-specific configure command.
      */
-    public LFCommand compileCmakeCommand(
-            String fileToCompile, 
-            boolean noBinary
-    ) {
-        
+    public LFCommand configureCmakeCommand() {
 
         if (!targetConfig.compileLibraries.isEmpty()) {
             errorReporter.reportError("The current CMake build system does not support -l libraries.\n"+
@@ -164,27 +156,22 @@ class CCmakeCompiler extends CCompiler {
     
     
     /**
-     * Return a command to build the specified C file using CMake.
+     * Return a command to build (compile and link) the
+     * specified C file using CMake.
      * This produces a C-specific build command.
-     * 
-     * @note It appears that configuration and build cannot happen in one command.
-     *  Therefore, this is separated into a compile and a build command. 
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
-     *  If false, the compile command will produce a binary.
+     *
+     * It appears that configuration and build cannot
+     * happen in one command. Therefore, this is separated
+     * into a configuration command and a build command.
      */
-    public LFCommand buildCmakeCommand(
-            String fileToCompile, 
-            boolean noBinary
-    ) { 
+    public LFCommand buildCmakeCommand() {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
         LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
                         "--build", ".", "--target", "install", "--parallel", cores, "--config",
-                        ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release")
+                        targetConfig.cmakeBuildType!=null ? targetConfig.cmakeBuildType.toString() : "Release"
                     ),
                 buildPath);
         if (command == null) {

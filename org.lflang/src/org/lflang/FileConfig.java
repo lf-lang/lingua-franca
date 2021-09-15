@@ -220,6 +220,7 @@ public class FileConfig {
      * @throws IOException
      */
     public IResource getIResource(Resource r) throws IOException {
+        // FIXME: Logic is duplicate of getIResource(java.net.URI uri)
         IResource iResource = null;
         java.net.URI uri = toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
@@ -567,8 +568,7 @@ public class FileConfig {
             // Case 2: We are in the command-line compiler.
             return ((StandaloneContext)context).getPackageRoot();
         }
-        // Case 3: We are in a language server. This is actually the same function call that provides the package root
-        //  of the standalone context, so this is really no different from Case 2.
+        // Case 3: We are in a language server.
         return findPackageRoot(toPath(resource));
     }
 
@@ -583,6 +583,8 @@ public class FileConfig {
      * directory if none exists.
      */
     private static Path findPackageRoot(final Path input) {
+        // FIXME: This method is largely a duplicate of one
+        //  found in StandaloneContext
         Path p = input;
         do {
             p = p.getParent();
@@ -590,6 +592,8 @@ public class FileConfig {
                 return Paths.get(".").toAbsolutePath();
             }
         } while (!p.toFile().getName().equals("src"));
+        // FIXME: Logically this seems right, but src-gen ends up one step
+        //  too high in the file hierarchy.
         return p.getParent();
     }
     
@@ -736,21 +740,32 @@ public class FileConfig {
      
      /**
       * Determine which mode the compiler is running in.
-      * Integrated mode means that it is running within an Eclipse IDE.
+      * Integrated mode means that it is running within an IDE or text editor.
       * Standalone mode means that it is running on the command line.
       * 
       * FIXME: Not sure if that us the right place for this function. But
       *  the decision which mode we are in depends on a file (the resource),
       *  thus it seems to fit here.
+      * FIXME: Mode is never undefined. Remove Mode.UNDEFINED?
+      * FIXME: Search code base for consequences of the assumption that we
+      *   are always either in Eclipse or the standalone compiler. For
+      *   instance, should EclipseErrorReporter be renamed to IdeErrorReporter,
+      *   to include IDEs and extensible text editors that use LSP? Or must we
+      *   distinguish between the two? (The Xtext team probably worked
+      *   hard to try to make it unnecessary for us to distinguish between the
+      *   two.)
+      * FIXME: This method is now effectively reduced to little more than an
+      *  alias for `instanceof`. Replace calls of this method with `instanceof`?
       */
      public Mode getCompilerMode() {
-         if (resource.getURI().isPlatform()) {
-             return Mode.INTEGRATED;
-         } else if (resource.getURI().isFile()) {
-             return Mode.STANDALONE;
-         } else {
-             System.err.println("ERROR: Source file protocol is not recognized: " + resource.getURI());
-             return Mode.UNDEFINED;
-         }
+         return context instanceof StandaloneContext ? Mode.STANDALONE : Mode.INTEGRATED;
      }
+
+    /**
+     * Returns whether files are being handled via an Eclipse IDE.
+     * @return whether files are being handled via an Eclipse IDE
+     */
+    public boolean isEclipse() {
+         return resource.getURI().isPlatform();
+    }
 }
