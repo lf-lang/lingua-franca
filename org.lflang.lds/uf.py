@@ -86,7 +86,8 @@ def _javac_like_compiler(name):
         clean_print('Compiling {}...'.format(file))
         subprocess.check_call(
             [name, '-cp', classpath, '-d', output_dir, file],
-            cwd=directory
+            cwd=directory,
+            shell=True
         )
     return compiler
 
