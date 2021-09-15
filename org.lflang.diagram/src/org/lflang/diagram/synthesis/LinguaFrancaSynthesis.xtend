@@ -566,6 +566,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (timer : reactorInstance.timers) {
 			val node = createNode().associateWith(timer.definition)
 			node.linkInstance(timer)
+			node.ID = timer.uniqueID
 			nodes += node
 			nodes += timer.definition.createUserComments(node)
 			timerNodes.put(timer, node)
@@ -578,6 +579,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val idx = reactorInstance.reactions.indexOf(reaction)
 			val node = createNode().associateWith(reaction.definition)
 			node.linkInstance(reaction)
+			node.ID = reaction.uniqueID
 			nodes += node
 			nodes += reaction.definition.createUserComments(node)
 			reactionNodes.put(reaction, node)
@@ -710,6 +712,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		actions += actionDestinations.keySet
 		for (ActionInstance action : actions) {
 			val node = createNode().associateWith(action.definition)
+			node.ID = action.uniqueID
 			node.linkInstance(action)
 			nodes += node
 			nodes += action.definition.createUserComments(node)
