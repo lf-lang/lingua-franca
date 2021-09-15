@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.generator;
+package org.lflang.lfc;
 
 import java.nio.file.Path;
 
