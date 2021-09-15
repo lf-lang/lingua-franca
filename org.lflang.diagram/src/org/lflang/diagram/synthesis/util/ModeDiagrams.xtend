@@ -101,6 +101,7 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
             for (mode : reactor.modes) {
                 val node = createNode().associateWith(mode.definition)
                 node.linkInstance(mode)
+                node.ID = mode.uniqueID
                 modeNodes.put(mode, node)
                 modeDefinitionMap.put(mode.definition, mode)
                 
@@ -211,9 +212,9 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                 // handle cross hierarchy edges
                 val portCopies = newHashMap
                 for (edge : edges.filter[!it.getProperty(CoreOptions.NO_LAYOUT)]) {
-                    val sourceNodeMode = nodeModes.get(edge.source)
+                    val sourceNodeMode = nodeModes.get(edge.source)?:nodeModes.get(edge.source.parent)
                     val sourceIsInMode = sourceNodeMode !== null
-                    val targetNodeMode = nodeModes.get(edge.target)
+                    val targetNodeMode = nodeModes.get(edge.target)?:nodeModes.get(edge.target.parent)
                     val targetIsInMode = targetNodeMode !== null
                     if (!sourceIsInMode || !targetIsInMode) {
                         var node = sourceIsInMode ? edge.target : edge.source
@@ -266,12 +267,12 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                             portCopies.put(port, copy)
                             
                             val dummyNode = createNode()
+                            dummyNode.ID = mode.uniqueID + "_" + port.labels?.head?.text
                             dummyNode.addInvisibleContainerRendering()
                             dummyNode.ports += copy
                             dummyNode.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, port.getProperty(CoreOptions.PORT_SIDE) === PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST)
                             
                             modeNode.children += dummyNode
-                            // TODO adjust appearance
                         }
                         val newPort = portCopies.get(port)
                         if (sourceIsInMode) {
