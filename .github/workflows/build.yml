@@ -215,8 +215,6 @@ jobs:
   
   benchmark-tests:
     runs-on: ubuntu-latest
-    env:
-      LF_PATH: ${{ env.GITHUB_WORKSPACE }}
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -232,6 +230,9 @@ jobs:
       - name: Build lfc;
         run: |
           ./gradlew generateStandaloneComiler
+      - name: "Set LF_PATH environmental variable"
+        run: |
+          echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       # this tests all benchmarks for all lf targets
       - name: run tests;
         run: |
