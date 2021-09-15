@@ -85,6 +85,11 @@ int start_sensor_simulator(
 );
 
 /**
+ * End ncurses control of the terminal.
+ */
+void end_sensor_simulator();
+
+/**
  * Place a tick (usually a single character) in the tick window.
  * @param character The tick character.
  */

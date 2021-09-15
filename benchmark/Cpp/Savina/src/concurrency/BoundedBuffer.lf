@@ -7,12 +7,13 @@
  * asynchronously. However, in the LF implementation everything is synchronous.
  * Thus, strictly speaking, the buffer isn't actually needed as we can design
  * the program so that every tick a producer produces data and a consumer
- * consumes it. But, the number of consumers and producers can be seleced
- * arbitrarily. Therefore, we still need some logic that takes care of or
+ * consumes it. But, the number of consumers and producers can be selected
+ * arbitrarily. Therefore, we still need some logic that takes care of
  * orchestrating the producers according to the rate at which the consumers
- * consume. Also, we could implement the consumer such that they don't become
- * available again immediately after consuming. Therefore, we still implement
- * most of the logic of the original manager in the Akka version.
+ * consume. Also, we could think about using an alternative design, where the
+ * consumers don't become available again immediately after consuming (at a
+ * later tag). Therefore, this benchmark still implements most of
+ * synchronization logic of the original manager in the Akka version.
  * 
  * @author Christian Menard
  * @author Hannes Klein
