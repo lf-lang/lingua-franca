@@ -1,14 +1,28 @@
 /**
- * Test that cmake-include in an included file is being imported correctly.
+ * Test that cmake-include in a federated program works correctly.
+ * Both federates should see FOO = 3.14.
  * The failure for this test is failure to compile.
  */
 target C {
-    timeout: 0 sec
+    timeout: 0 sec,
+    cmake-include: "include/foo-cmake-compile-definition.cmake"
 };
 
-import Foo from "../target/CMakeInclude.lf"
+reactor Bar {
+    preamble {=
+        #include <math.h>
+    =}
+    reaction (startup) {=
+        info_print("Maximum of 4.20 and %.2f is %.2f", FOO, fmax(4.20, FOO));
+        
+        // Check if BAR is defined, which is an error condition (@see DistributedCMakeIncludeSeparateCompile.lf).
+        #ifdef BAR
+        #error "Failed to compile federates separately
+        #endif // BAR
+    =}
+}
 
 main reactor {
-    f1 = new Foo();
-    f2 = new Foo();
+    f1 = new Bar();
+    f2 = new Bar();
 }
