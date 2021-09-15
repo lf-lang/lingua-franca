@@ -14,7 +14,7 @@ reactor Processor {
             printf("Sleeping (discarded: %c)\n", char_in->value);
 		=}
 
-		reaction(pause) -> Process reset {=
+		reaction(pause) -> Process {=
             printf("Resuming (reset)\n");
             SET_MODE(Process);
 		=}
@@ -34,7 +34,7 @@ reactor Processor {
 
 main reactor Hierarchy {
     step = new TimedStep();
-    chars = new TimedSeparator(offset=250msec, period=250msec,message="AaB xxxxAaBbxxxx AaB");
+    chars = new TimedSeparator(offset=250msec, period=250msec,message="Aa BxxxxAa B");
     processor = new Processor();
     printer = new PrintChar(prefix="Result: ");
     

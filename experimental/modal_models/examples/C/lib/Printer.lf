@@ -23,3 +23,16 @@ reactor PrintChar(prefix:string("")) {
         printf("%s%c\n", self->prefix, character->value);
 	=}
 }
+
+
+reactor PrintBool(prefix:string("")) {
+    input boolean:bool;
+    
+    preamble {=
+    	#include <stdio.h>
+    =}
+    
+	reaction(boolean) {=
+        printf("%s%s\n", self->prefix, boolean->value ? "true" : "false");
+	=}
+}

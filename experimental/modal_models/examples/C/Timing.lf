@@ -1,36 +1,82 @@
-target Python;
+target C {
+    logging: info
+};
 
-import ConvertCase from "ConvertCase.lf";
+import PrintBool from "lib/Printer.lf";
+import TimedStep from "lib/Timer.lf";
 
-reactor Timing {
-	input next;
-	input inp;
-    output outp;
+main reactor Timing {
+    timer next(1sec, 1sec);
+    timer Tbase(250msec, 250msec);
     
-    initial mode Timer {
-        timer t(5 msec, 10 msec);
+    preamble {=
+    	#include <stdio.h>
+    =}
         
-		reaction(t) -> outp {=
-		=}
-		reaction(next) -> Action {=
-		=}
-    }
-    mode Action {
-	    logical action delay(5 msec);
+	reaction(startup) {=
+        printf("Starting in mode One\n");
+    =}
+    
+    reaction(Tbase) {=
+        printf("Tbase\n");
+    =}
+    
+    initial mode One {
+        timer T1(0, 750msec);
+	    logical action delay(500msec);
 	    
-		reaction(inp) -> delay {=
+		reaction(T1) -> delay {=
+            printf("Scheduled Action\n");
+            schedule(delay, MSEC(500));
 		=}
-		reaction(delay) -> outp {=
+		reaction(delay) {=
+            printf("Executed Action\n");
 		=}
-		reaction(next) -> After {=
-		=}
-    }
-    mode After {
-		converter = new ConvertCase();
-		inp -> converter.raw
-		converter.conv -> outp after 5 msec
 		
-		reaction(next) -> Timer {=
+		reaction(next) -> Two {=
+            printf("Transitioning to mode Two (reset)\n");
+            SET_MODE(Two);
 		=}
     }
+    mode Two {
+        producer = new TimedStep(offset=0, period=750msec, message="Produced Token\n");
+    	consumer = new PrintBool(prefix="Consumed Token: ");
+        producer.step -> consumer.boolean after 500msec
+    	
+//		reaction(next) -> Three continue {=
+//            printf("Transitioning to mode Three (continue)\n");
+//            SET_MODE(Three);
+//		=}
+    }
+//    mode Three {
+//        timer T2(0, 750msec);
+//	    logical action delay2(500msec);
+//	    
+//		reaction(T2) -> delay2 {=
+//            printf("Scheduled Action2\n");
+//            schedule(delay2, 0);
+//		=}
+//		reaction(delay2) {=
+//            printf("Executed Action2\n");
+//		=}
+//		
+//		reaction(next) -> Four continue {=
+//            printf("Transitioning to mode Four (continue)\n");
+//            SET_MODE(Four);
+//		=}
+//    }
+//    mode Four {
+//        producer2 = new TimedStep(offset=0, period=750msec, message="Produced Token2\n");
+//    	consumer2 = new PrintBool(prefix="Consumed Token2: ");
+//        producer2.step -> consumer2.boolean after 500msec
+//    	
+//		reaction(next) -> One {=
+//            printf("Transitioning to mode One (reset)\n");
+//            SET_MODE(One);
+//		=}
+//    }
+    
+    reaction(Tbase) {=
+        printf("---\n");
+    =}
 }
