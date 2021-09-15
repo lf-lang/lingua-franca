@@ -50,11 +50,18 @@ def main(cfg):
 
     log.info(f"Running {benchmark_name} using the {target_name} target.")
 
+
+
     # perform some sanity checks
     if "validation_alias" in target:
         target_validation_name = target["validation_alias"]
     else:
         target_validation_name = target_name
+
+    if target_name not in benchmark["targets"]:
+        log.warning(f"target {target_name} is not supported by the benchmark {benchmark_name}")
+        return
+
     if not check_benchmark_target_config(benchmark, target_validation_name):
         if continue_on_error:
             return
@@ -103,9 +110,6 @@ def check_return_code(code, continue_on_error):
 
 def check_benchmark_target_config(benchmark, target_name):
     benchmark_name = benchmark["name"]
-    if target_name not in benchmark["targets"]:
-        log.error(f"target {target_name} is not supported by the benchmark {benchmark_name}")
-        return False
     # keep a list of all benchmark parameters
     bench_params = list(benchmark["params"].keys())
 
