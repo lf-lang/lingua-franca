@@ -41,13 +41,7 @@ target C {
 }
 preamble {= 
     #include "wave_file_reader.c"
-    #if __APPLE__
-    #include "audio_loop_mac.c"
-    #elif __linux__
-    #include "audio_loop_linux.c"
-    #else
-    #error "Platform not supported."
-    #endif
+    #include "audio_loop.h"
         
     // wav files giving the waveforms.
     // These have to also be included in the files target directive.

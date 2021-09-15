@@ -19,12 +19,12 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/astar"
-    lf_file: "astar/GuidedSearch.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+    lf_file: "parallelism/GuidedSearch.lf"
     binary: "GuidedSearch"
-    gen_args:
-      num_workers: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       threshold: ["--threshold", "<value>"]
       grid_size: ["--gridSize", "<value>"]
       priorities: ["--priorities", "<value>"]
+      num_workers: ["--numWorkers", "<value>"]
