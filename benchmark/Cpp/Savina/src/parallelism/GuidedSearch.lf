@@ -42,7 +42,7 @@
  * similarly to the Akka implementation, the attribute is implemented as an
  * atomic variable. However, this does not fully eliminate the race condition.
  * Sometimes one reaction might write first and sometimes another reaction
- * writes first, effectively introducing none-determinism into the benchmark.
+ * writes first, effectively introducing nondeterminism into the benchmark.
  *
  * The peculiarities of this design also lead to another quirk. The benchmark
  * does not scale well with the number of threads. A single threaded execution
@@ -50,7 +50,7 @@
  * be observed in the Akka implementation. This indicates that the problem lies
  * in the benchmark itself, and not (only) in the LF runtime. In fact,
  * multi-threaded executions have the tendency to perform much more work as
- * compared to single threaded execution. This is likely to the race-conditions
+ * compared to single threaded execution. This is likely due to the race-conditions
  * mentioned before.
  *  
  * @author Christian Menard
