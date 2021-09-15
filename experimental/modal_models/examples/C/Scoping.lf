@@ -1,0 +1,52 @@
+target C;
+
+import PrintInt from "lib/Printer.lf";
+import TimedStep, TimedInt from "lib/Timer.lf";
+
+reactor CounterCycle {
+	input next:bool;
+	output count0:int;
+	output count1:int;
+	output count2:int;
+	
+    tint = new TimedInt(offset=0, period=500msec, value=0);
+	tint.integer -> count0;
+			
+    initial mode One {
+		tint = new TimedInt(offset=0, period=500msec, value=1);
+		tint.integer -> count1;
+
+		reaction(next) -> Two {=
+            SET_MODE(Two);
+		=}
+    }
+    mode Two {
+		tint = new TimedInt(offset=0, period=500msec, value=2);
+		tint.integer -> count2;
+		
+		reaction(next) -> One {=
+            SET_MODE(One);
+		=}
+    }
+}
+
+main reactor {
+    stepper = new TimedStep(offset=1sec, message="Next\n");
+    counter = new CounterCycle();
+    printer0 = new PrintInt(prefix="Count0: ");
+    printer1 = new PrintInt(prefix="Count1: ");
+    printer2 = new PrintInt(prefix="Count2: ");
+    
+    stepper.step -> counter.next;
+    counter.count0 -> printer0.integer;
+    counter.count1 -> printer1.integer;
+    counter.count2 -> printer2.integer;
+    
+    preamble {=
+    	#include <stdio.h>
+    =}
+    
+    reaction(startup) {=
+        printf("Start\n");
+    =}
+}
