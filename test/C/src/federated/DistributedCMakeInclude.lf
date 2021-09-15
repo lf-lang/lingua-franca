@@ -22,7 +22,7 @@ reactor Bar {
     =}
 }
 
-main reactor {
+federated reactor {
     f1 = new Bar();
     f2 = new Bar();
 }
