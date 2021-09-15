@@ -1,7 +1,7 @@
 # @package benchmark
 name: "Bank Transaction"
 params:
-  accounts: 20
+  accounts: 1000
   transactions: 50000
 
 # target specific configuration
@@ -20,12 +20,12 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/banking"
+      - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-    lf_file: "banking/Banking.lf"
+    lf_file: "concurrency/Banking.lf"
     binary: "Banking"
-    gen_args:
-      accounts: ["-D", "numAccounts=<value>"]
+    gen_args: null
     run_args:
       transactions: ["--numTransactions", "<value>"]
+      accounts: ["--numAccounts", "<value>"]

@@ -55,6 +55,9 @@ Workflow {
             generator = {
                 generateXtendMain = false
             }
+            projectWizard = {
+                generate = true
+            }
         }
     }
 }
