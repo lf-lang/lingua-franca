@@ -32,9 +32,9 @@ import java.util.Objects;
 
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import org.lflang.generator.ReportingBackend;
-import org.lflang.generator.StandaloneErrorReporter;
-import org.lflang.generator.StandaloneIssueAcceptor;
+import org.lflang.lfc.ReportingBackend;
+import org.lflang.lfc.StandaloneErrorReporter;
+import org.lflang.lfc.StandaloneIssueAcceptor;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;

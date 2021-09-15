@@ -41,10 +41,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.generator.LfIssue;
-import org.lflang.generator.Io;
-import org.lflang.generator.IssueCollector;
-import org.lflang.generator.ReportingBackend;
 import org.lflang.generator.StandaloneContext;
 
 import com.google.inject.Inject;
