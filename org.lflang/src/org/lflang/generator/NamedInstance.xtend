@@ -79,11 +79,7 @@ abstract class NamedInstance<T extends EObject> {
      * @return The full name of this instance.
      */
     def String getFullName() {
-        if (this.parent === null) {
-            this.getName
-        } else {
-            parent.getFullName() + "." + this.getName
-        }
+        return getFullNameWithJoiner(".")
     }
     
     /**
@@ -208,6 +204,8 @@ abstract class NamedInstance<T extends EObject> {
     protected def String getFullNameWithJoiner(String joiner) {
         if (this.parent === null) {
             this.getName
+        } else if (getMode(true) !== null) {
+            parent.getFullNameWithJoiner(joiner) + joiner + getMode(true).name + joiner + this.getName
         } else {
             parent.getFullNameWithJoiner(joiner) + joiner + this.getName
         }
