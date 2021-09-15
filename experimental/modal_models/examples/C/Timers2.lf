@@ -2,7 +2,7 @@ target C {
     logging: info
 };
 
-main reactor Timers {
+main reactor Timers2 {
     timer next(1sec, 1sec);
     timer Tbase(250msec, 250msec);
 
@@ -19,7 +19,7 @@ main reactor Timers {
     =}
     
     initial mode One {
-        timer T1(500msec, 500msec)
+        timer T1(250msec, 250msec)
         
         reaction(T1) {=
             printf("T1\n");
@@ -31,10 +31,22 @@ main reactor Timers {
 		=}
     }
     mode Two {
-        timer T2(0msec, 500msec)
+        timer T2(500msec, 500msec)
         
         reaction(T2) {=
             printf("T2\n");
+        =}
+    	
+		reaction(next) -> Three {=
+            printf("Transitioning to mode Three\n");
+            SET_MODE(Three);
+		=}
+    }
+    mode Three {
+        timer T3(0msec, 500msec)
+        
+        reaction(T3) {=
+            printf("T3\n");
         =}
     	
 		reaction(next) -> One {=

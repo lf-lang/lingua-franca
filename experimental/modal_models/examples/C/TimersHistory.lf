@@ -19,38 +19,26 @@ main reactor TimersHistory {
     =}
     
     initial mode One {
-        timer T1(250msec, 250msec)
+        timer T1(500msec, 500msec)
         
         reaction(T1) {=
             printf("T1\n");
         =}
     	
-		reaction(next) -> Two continue {=
-            printf("Transitioning to mode Two\n");
+		reaction(next) -> Two history {=
+            printf("Transitioning to mode Two (history)\n");
             SET_MODE(Two);
 		=}
     }
     mode Two {
-        timer T2(500msec, 500msec)
+        timer T2(0msec, 500msec)
         
         reaction(T2) {=
             printf("T2\n");
         =}
     	
-		reaction(next) -> Three continue {=
-            printf("Transitioning to mode Three\n");
-            SET_MODE(Three);
-		=}
-    }
-    mode Three {
-        timer T3(0msec, 500msec)
-        
-        reaction(T3) {=
-            printf("T3\n");
-        =}
-    	
-		reaction(next) -> One continue {=
-            printf("Transitioning to mode One\n");
+		reaction(next) -> One history {=
+            printf("Transitioning to mode Three (history)\n");
             SET_MODE(One);
 		=}
     }

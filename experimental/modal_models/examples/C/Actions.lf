@@ -1,0 +1,59 @@
+target C {
+    logging: info
+};
+
+main reactor Actions {
+    timer next(1sec, 1sec);
+    timer Tbase(250msec, 250msec);
+    
+    preamble {=
+    	#include <stdio.h>
+    =}
+        
+	reaction(startup) {=
+        printf("Starting in mode One\n");
+    =}
+    
+    reaction(Tbase) {=
+        printf("Tbase\n");
+    =}
+    
+    initial mode One {
+        timer T1(0, 750msec);
+	    logical action delay(500msec);
+	    
+		reaction(T1) -> delay {=
+            printf("Scheduled Action\n");
+            schedule(delay, 0);
+		=}
+		reaction(delay) {=
+            printf("Executed Action\n");
+		=}
+		
+		reaction(next) -> Two {=
+            printf("Transitioning to mode Two (reset)\n");
+            SET_MODE(Two);
+		=}
+    }
+    mode Two {
+        timer T2(0, 750msec);
+	    logical action delay2(500msec);
+	    
+		reaction(T2) -> delay2 {=
+            printf("Scheduled Action2\n");
+            schedule(delay2, 0);
+		=}
+		reaction(delay2) {=
+            printf("Executed Action2\n");
+		=}
+		
+		reaction(next) -> One history {=
+            printf("Transitioning to mode One (continue)\n");
+            SET_MODE(One);
+		=}
+    }
+    
+    reaction(Tbase) {=
+        printf("---\n");
+    =}
+}
