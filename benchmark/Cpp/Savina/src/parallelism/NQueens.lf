@@ -4,7 +4,8 @@
  * This benchmark implements a solution to the N queens problem. In particular,
  * the benchmark implements a recursive search algorithm that finds all possible
  * solution. Given N (size), the board has a size of N x N fields and N queens
- * need to placed. The algorithm starts from an empty board. Then, the first
+ * need to be placed such that no two queens threaten each other.
+ * The algorithm starts from an empty board. Then, the first
  * queen is placed on the first line. There are N different options, and in the
  * first operation, all of them are valid. These possible solutions are recorded
  * in a list. In the second iteration, all possible solutions are expanded by
@@ -24,7 +25,7 @@
  * important difference of this LF implementation compared to the Akka
  * implementation is the handling of messages send back from the workers to the
  * manager. In the Akka implementation, each work item produced by the workers is
- * send as an individual message. This is not easily possible as each port in LF
+ * sent as an individual message. This is not easily possible as each port in LF
  * is limited to a single value per tag. Thus, we accumulate multiple work items
  * in a single list, and send this list back to the manager. An alternative
  * solution could use a logical action and call schedule multiple times to defer
