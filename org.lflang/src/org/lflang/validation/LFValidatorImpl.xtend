@@ -1121,7 +1121,7 @@ class LFValidatorImpl extends AbstractLFValidator {
      * Check if the requested serialization is supported.
      */
     @Check(FAST)
-    def checkSerialization(Serializer serializer) {
+    def checkSerializer(Serializer serializer) {
         var boolean isValidSerializer = false;
         for (SupportedSerializers method : SupportedSerializers.values()) {
           if (method.name().equalsIgnoreCase(serializer.type)){
