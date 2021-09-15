@@ -294,7 +294,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
-            TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
+            TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList)
         }
 
         // Override target properties if specified as command line arguments.
