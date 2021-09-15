@@ -17,8 +17,8 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/pingpong"
-    lf_file: "pingpong/PingPong.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/micro"
+    lf_file: "micro/PingPong.lf"
     binary: "PingPong"
     gen_args: null
     run_args:
