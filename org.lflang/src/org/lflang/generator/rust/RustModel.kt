@@ -165,7 +165,9 @@ data class ReactionInfo(
     val isShutdown: Boolean,
 
     /** Location metadata. */
-    val loc: LocationInfo
+    val loc: LocationInfo,
+
+    val debugLabel: String? = null
 ) {
 
     /** Dependencies that trigger the reaction. */
