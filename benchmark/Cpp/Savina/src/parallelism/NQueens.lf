@@ -1,0 +1,282 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark implements a solution to the N queens problem. In particular,
+ * the benchmark implements a recursive search algorithm that finds all possible
+ * solution. Given N (size), the board has a size of N x N fields and N queens
+ * need to be placed such that no two queens threaten each other.
+ * The algorithm starts from an empty board. Then, the first
+ * queen is placed on the first line. There are N different options, and in the
+ * first operation, all of them are valid. These possible solutions are recorded
+ * in a list. In the second iteration, all possible solutions are expanded by
+ * adding a second queen to all N positions in the second line. Thereby, each
+ * solution is checked for validity and is discarded if invalid. This process
+ * continues until the Nth iteration completed and all solutions have been
+ * found.
+ * 
+ * In this benchmark, the workload is distributed across multiple workers. Each
+ * worker receives an initial position, and then adds a queen to the next line.
+ * The worker sends all valid solutions back to the manager which then again
+ * distributes the positions to the workers for further processing. Only for the
+ * last `threshold` iterations, the workers directly implement the search to the
+ * end and don't produce new work items.
+ *
+ * This benchmark is very similar to the A* (GuidedSearch) benchmark. An
+ * important difference of this LF implementation compared to the Akka
+ * implementation is the handling of messages send back from the workers to the
+ * manager. In the Akka implementation, each work item produced by the workers is
+ * sent as an individual message. This is not easily possible as each port in LF
+ * is limited to a single value per tag. Thus, we accumulate multiple work items
+ * in a single list, and send this list back to the manager. An alternative
+ * solution could use a logical action and call schedule multiple times to defer
+ * sending a message. It could be worthwhile to try this out, but it would also
+ * complicate the design.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    logging: "warn"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+  
+public preamble {=
+    #include <deque>
+    
+    struct WorkItem {
+        std::vector<size_t> data;
+        size_t depth;
+    };
+    using ImmutableWorkItem = reactor::ImmutableValuePtr<WorkItem>;
+    using MutableWorkItem = reactor::MutableValuePtr<WorkItem>;
+    // we store smart pointers in the queue to avoid copying when sending work back to the workers
+    using WorkQueue = std::deque<ImmutableWorkItem> ;
+=}
+
+reactor Manager(numWorkers: size_t{20}, solutionsLimit: size_t{1500000}, size: size_t{12}) {
+    
+    state numSolutions: size_t{0};
+    state workQueue: WorkQueue;
+    
+    input start: void;
+    output finished:void;
+    
+    output[numWorkers] doWork: WorkItem;
+    input[numWorkers] solutionsFound: size_t;
+    input[numWorkers] moreWork: WorkQueue;
+    
+    logical action next;
+    logical action done;
+    
+    reaction(done) -> finished {=
+        // expected solutions for various problem sizes
+        constexpr size_t solutions[] = {
+            1,
+            0,
+            0,
+            2,
+            10,     /* 5 */
+            4,
+            40,
+            92,
+            352,
+            724,    /* 10 */
+            2680,
+            14200,
+            73712,
+            365596,
+            2279184, /* 15 */
+            14772512,
+            95815104,
+            666090624,
+            4968057848,
+            39029188884, /* 20 */
+        };
+        
+        // validate the result
+        size_t expected{solutions[size-1]};
+        bool valid{numSolutions == expected};
+        if (solutionsLimit < expected) {
+            valid = numSolutions >= solutionsLimit && numSolutions <= expected;
+        }
+        // The validation check above is a corrected version. The original Savina implementation will
+        // wrongly mark results as invalid if the solutions limit is above the expected solution.
+        reactor::log::Info() << std::boolalpha << "Result valid = " << valid << std::noboolalpha;
+        
+        finished.set();
+    =}
+    
+    reaction(start) -> next {=
+        // reset local state
+        numSolutions = 0;
+        
+        // start execution
+        auto item = reactor::make_immutable_value<WorkItem>(WorkItem{{}, 0});
+        workQueue.push_back(item);
+        next.schedule();
+    =}
+    
+    reaction (next) -> next, done, doWork {=
+        if (workQueue.empty()) {
+            // we are done if there is no more work
+            done.schedule();
+        } else {
+            // send a work item to each worker (until there is no more work)
+            for (size_t i{0}; i < numWorkers && !workQueue.empty(); i++) {
+                doWork[i].set(workQueue.front());
+                workQueue.pop_front();
+            }
+            // and schedule the next iteration
+            next.schedule();
+        }
+    =}
+    
+    reaction (solutionsFound) {=
+        // accumulate all the solutions found
+        size_t s{0};
+        for (const auto& port : solutionsFound) {
+            if (port.is_present()) {
+                s += *port.get();
+            }
+        }
+        if (s > 0) {
+            numSolutions += s;
+            reactor::log::Info() << "Found " << s << " solutions; Total solutions: " << numSolutions;
+        }
+    =}
+    
+    reaction (moreWork) {=
+        // append all work items received from the workers to the internal work queue
+        for (const auto& port : moreWork) {
+            if (port.is_present()) {
+                const auto& items = *port.get();
+                if (!items.empty()) {
+                    workQueue.insert(workQueue.end(), items.begin(), items.end());
+                }
+            }
+        }
+    =}
+}
+
+reactor Worker(bank_index: size_t{0}, size: size_t{12}, threshold: size_t{4}) {
+
+    input doWork: WorkItem;
+    output solutionsFound: size_t;
+    output moreWork: WorkQueue;
+    
+    reaction(doWork) -> solutionsFound, moreWork {=
+        auto workItem = doWork.get();
+        const auto& a = workItem->data;
+        size_t depth = workItem->depth;
+        
+        reactor::log::Info() << "Worker " << bank_index << ": received " << a.size() 
+                             << " data items; depth=" << depth;
+        
+        if(size == depth) {
+            // It is unclear when exactly this evaluates to true and what this means. 
+            // However, this seems to be essential for some sizes, including size=1.
+            solutionsFound.set(1);
+            // abort the reaction
+            return;
+        }
+        
+        if(depth >= threshold) {
+            // If depth is greater or equal to the threshold, the worker searches for solutions.
+            size_t numSolutions = nqueensKernelSeq(a, depth, size);
+            if (numSolutions > 0) {
+                solutionsFound.set(numSolutions);
+            }
+        } else {
+            // Otherwise, if depth is less than the threshold, the worker splits up the workload and
+            // produces new work items.
+            size_t newDepth = depth + 1;
+            // prepare a mutable work queue to be sent later
+            auto workQueue = reactor::make_mutable_value<WorkQueue>();
+            for (size_t i{0}; i < size; i++) {
+                // prepare a mutable work item
+                auto item = reactor::make_mutable_value<WorkItem>(WorkItem{std::vector<size_t>(newDepth, 0), newDepth});
+                auto& b = item->data;
+                // copy depth items from a to b
+                b.insert(b.begin(), a.begin(), a.begin() + depth);
+                b[depth] = i;
+                
+                // add the item to the list if is valid
+                if(boardValid(newDepth, b)) {
+                    workQueue->push_back(ImmutableWorkItem{std::move(item)});
+                }
+            }
+            if (!workQueue->empty()) {
+                moreWork.set(std::move(workQueue));
+            }   
+        }
+    =}
+    
+    // check if the board is valid
+    const method boardValid(n: size_t, a: {=const std::vector<size_t>&=}): bool {=
+        size_t p{0};
+        size_t q{0};
+
+        for(size_t i{0}; i < n; ++i) {
+            p = a[i];
+            for(size_t j{i + 1}; j < n; ++j) {
+                q = a[j];
+                if(q == p || q == p - (j - i) || q == p + (j - i)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    =}
+    
+    // Searches for results recursively and returns the number of found solutions.
+    const method nqueensKernelSeq(a: {=const std::vector<size_t>&=}, depth: size_t, size: size_t): size_t {=
+        if(size == depth) {
+            return 1;
+        }
+    
+        size_t numberOfSolutionsFound{0};
+        std::vector<size_t> b;
+        b.reserve(depth + 1);
+    
+        size_t i{0};
+        while(i < size) {
+            b.insert(begin(b), begin(a), begin(a) + depth);
+            b[depth] = i;
+            if(boardValid(depth + 1, b)) {
+                numberOfSolutionsFound += nqueensKernelSeq(b, depth + 1, size);
+            }
+            i += 1;
+        }
+        return numberOfSolutionsFound;
+    =}
+}
+
+main reactor (
+    numIterations: size_t{12}, 
+    size: size_t{12},
+    threshold: size_t{4},
+    solutionsLimit: size_t{1500000},
+    priorities: size_t{10},
+    numWorkers: size_t{20}
+) {
+    manager = new Manager(numWorkers=numWorkers, solutionsLimit=solutionsLimit, size=size);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    workers = new[numWorkers] Worker(size=size, threshold=threshold);
+    
+    reaction(startup) {=
+        printBenchmarkInfo("NQueensKSolutionsBenchmark");
+        printArgs("numIterations", numIterations, "size", size, "threshold", threshold, 
+                  "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", numWorkers);
+        printSystemInfo();
+    =}
+
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
+    
+    manager.doWork -> workers.doWork;
+    workers.solutionsFound -> manager.solutionsFound;
+    workers.moreWork -> manager.moreWork;    
+}

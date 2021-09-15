@@ -20,13 +20,13 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/fjthrput"
-    lf_file: "fjthrput/Throughput.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/micro"
+    lf_file: "micro/Throughput.lf"
     binary: "Throughput"
-    gen_args:
-      actors: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       messages: ["--numMessagesPerReactor", "<value>"]
+      actors: ["--numWorkers", "<value>"]
   lf-c:
     copy_sources:
       - "${lf_path}/benchmark/C/Savina/src/micro/Throughput.lf"

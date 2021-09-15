@@ -1,0 +1,228 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark models a bounded buffer that is used to synchronize between a
+ * group of consumers and a group of producers. In the Akka implementation of
+ * this benchmark, all producers, consumers and the manager operate fully
+ * asynchronously. However, in the LF implementation everything is synchronous.
+ * Thus, strictly speaking, the buffer isn't actually needed as we can design
+ * the program so that every tick a producer produces data and a consumer
+ * consumes it. But, the number of consumers and producers can be selected
+ * arbitrarily. Therefore, we still need some logic that takes care of
+ * orchestrating the producers according to the rate at which the consumers
+ * consume. Also, we could think about using an alternative design, where the
+ * consumers don't become available again immediately after consuming (at a
+ * later tag). Therefore, this benchmark still implements most of
+ * synchronization logic of the original manager in the Akka version.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "../IncludeHeaders.cmake",
+    logging: "warn"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+public preamble {=
+    #include <deque>
+    
+    double processItem(const double curTerm, const size_t cost);
+=}
+
+private preamble {=
+    #include <cmath>
+    #include "PseudoRandom.hh"
+    
+    double processItem(const double curTerm, const size_t cost) {
+        double res = curTerm;
+        
+        PseudoRandom random(cost);
+        if(cost > 0) {
+            for(size_t i{0}; i < cost; i++) {
+                for(size_t j{0}; j < 100; j++) {
+                    res += log(abs(random.nextDouble()) + 0.01);
+                }
+            }
+        } else {
+            res += log(abs(random.nextDouble()) + 0.01);
+        }
+        
+        return res;
+    }
+=}
+
+reactor ManagerReactor(bufferSize: size_t{50}, numProducers: size_t{40}, numConsumers: size_t{40}) {
+    
+    state adjustedBuffersize: size_t{{=bufferSize-numProducers=}};
+    state pendingData: std::deque<double>;
+    state numTerminatedProducers: size_t{0};
+    state producerTerminated: std::vector<bool>;
+    state producer_id: size_t{0};
+    
+    input start: void;
+    output finished: void;
+    
+    input[numProducers] producerData: double;
+    input[numProducers] producerFinished: void;
+    output[numProducers] producerCommand: void;
+    
+    input[numConsumers] consumerAvailable: void;
+    output[numConsumers] consumerData: double;
+    
+    reaction(start) -> producerCommand {=
+        // reset local state
+        pendingData.clear();
+        numTerminatedProducers = 0;
+        producerTerminated = std::vector<bool>(numProducers, false);
+        producer_id = 0;
+
+        // start execution by signalling all producers that they should send data        
+        for (auto& port: producerCommand) {
+            port.set();
+        }
+    =}
+        
+    reaction(consumerAvailable) -> consumerData, producerCommand, finished {=
+        // abort and signal finished if all producers have terminated and all data has been send
+        if(numTerminatedProducers == numProducers && pendingData.empty()) {
+            finished.set();
+            return;
+        }
+        
+        size_t consumer_id{0};
+        size_t activatedProducers{0};
+        while(!pendingData.empty() && consumer_id < numConsumers) {
+            if (consumerAvailable[consumer_id].is_present()) {
+                consumerData[consumer_id].set(pendingData.front());
+                pendingData.pop_front();
+                // tell a producer to create a new data item for the next round
+                if (activatedProducers < numProducers && !producerTerminated[producer_id]) {
+                    producerCommand[producer_id].set();
+                    producer_id = (producer_id + 1) % numProducers;
+                    activatedProducers++;
+                }
+            }
+            consumer_id++;
+        }
+ 
+    =}
+        
+    reaction(producerData) {=
+        for (const auto& data : producerData) {
+            if (data.is_present()) {
+                pendingData.push_back(*data.get());
+            }
+        }
+    =}
+    
+    reaction(producerFinished) {=
+        for (size_t i{0}; i < numProducers; i++) {
+            if (producerFinished[i].is_present()) {
+                numTerminatedProducers++;
+                producerTerminated[i] = true;
+                reactor::log::Info() << "Prdoucer " << i << " finished";                
+            }
+        }
+    =}           
+        
+}
+
+reactor ProducerReactor(bank_index: size_t{0}, numItemsToProduce: size_t{1000}, prodCost: size_t{25}) {
+
+    state prodItem: double{0.0};
+    state itemsProduced: size_t{0};
+    
+    input produce: void;
+    output data: double
+    
+    input reset: void;
+    output finished: void;
+    
+    reaction (reset) {=   
+        // reset local state
+        prodItem = 0.0;
+        itemsProduced = 0;
+        return;
+    =}
+    
+    reaction(produce) -> data, finished {=
+        prodItem = processItem(prodItem, prodCost);
+        reactor::log::Info() << "Producer " << bank_index << ": producing item "
+                             << itemsProduced << " (" << prodItem << ')';
+        data.set(prodItem);
+        itemsProduced++;
+        
+        if (itemsProduced == numItemsToProduce) {
+            finished.set();
+        }
+    =}
+}
+
+reactor ConsumerReactor(bank_index: size_t{0}, consCost: size_t{25}) {
+    
+    state consItem: double{0.0};
+    
+    input reset: void;
+    
+    input data: double;
+    output available: void;
+    
+    logical action sendAvailable;
+    
+    reaction (reset) -> sendAvailable {=
+        // reset local state
+        consItem = 0.0;
+        sendAvailable.schedule();
+    =}
+    
+    reaction(sendAvailable) -> available {=
+        reactor::log::Info() << "Consumer " << bank_index << ": Send available";
+        available.set();
+    =}
+    
+    reaction(data) -> sendAvailable {=
+        consItem = processItem(consItem + *data.get(), consCost);
+        reactor::log::Info() << "Consumer " << bank_index << ": consuming item "
+                             <<  *data.get() << "; result " << consItem;
+        sendAvailable.schedule();
+    =}
+}
+
+main reactor (
+    numIterations: size_t{12},
+    bufferSize: size_t{50},
+    prodCost: size_t{25},
+    consCost: size_t{25},
+    numItemsPerProducer: size_t{1000},
+    numConsumers: size_t{40},
+    numProducers: size_t{40}
+) {
+    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    (runner.start)+ -> manager.start, producers.reset, consumers.reset;
+    manager.finished -> runner.finished;
+    
+    reaction(startup){=
+        printBenchmarkInfo("ProdConsBenchmark");
+        printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost,
+                  "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, 
+                  "numProducers", numProducers, "numConsumers", numConsumers);
+        printSystemInfo();
+    =}
+    
+    producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+    consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
+    
+    manager.producerCommand -> producers.produce;
+    producers.data -> manager.producerData;
+    producers.finished -> manager.producerFinished;
+    
+    consumers.available -> manager.consumerAvailable;
+    manager.consumerData -> consumers.data;
+}
