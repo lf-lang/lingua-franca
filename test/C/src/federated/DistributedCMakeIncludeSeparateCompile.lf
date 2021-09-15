@@ -1,0 +1,15 @@
+/**
+ * Test that cmake-include in an included file is being imported correctly.
+ * The failure for this test is failure to compile.
+ */
+target C {
+    timeout: 0 sec
+};
+
+import Foo from "../target/CMakeInclude.lf"
+import Bar from "DistributedCMakeInclude.lf"
+
+main reactor {
+    f1 = new Foo();
+    b1 = new Bar();
+}
