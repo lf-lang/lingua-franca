@@ -1,14 +1,26 @@
 # VS Code Extension
+Additional details about the VS Code extension can be found at the pull request #376.
+
+## Production Build
 It is straightforward to build the Language and Diagram Server. As stated by Alexander:
 > Simply run: `gradlew startCode`. You also need `mvn` on your path and if Java 11 is not your default JDK you need to prepend something like this: `JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/`
 
 If this does not work, it could be because:
-* Your operating system is Windows. The simplest solution to this issue is not to use Windows. However, if you must use windows, you will need to:
-  * Prefix any Gradle Exec commands with 'cmd', '\c'. For example, if the content of an Exec command is "commandLine 'mvn', 'clean'", then it will become "commandLine 'cmd', '\c', 'mvn', 'clean'
-  * Make sure that the absolute path to the repository "lingua-franca" is at most 14 characters long so that you do not reach the 260-character limit.
 * Your Python version does not match the Python version used in `org.lflang.lds/pom.xml`. To resolve this, simply edit `org.lflang.lds/pom.xml` to say "python" instead of "python3", or vice versa.
 
-Additional details about the VS Code extension can be found at the pull request #376.
+## Development Build
+For development purposes, it is possible to manually perform an incremental build simply by bypassing Maven and Gradle entirely and instead running the Python script `org.lflang.lds/uf.py`. This script will re-compile Java and Kotlin files and add them to the fat jar using the `jar` command with the `-uf` flag. This is far from ideal. If there were an IDE that could build the Language and Diagram Server, development would be easier; however, to my knowledge, there is no such IDE.
+
+The following steps permit one to see the effects of a change to a file or package in about 1 minute as opposed to (say) twenty, thirty, or even forty minutes.
+1. Ensure that the appropriate compiler is on your PATH.
+  * To build Java files, `javac` is required.
+  * To build Kotlin files, [the Kotlin JVM compiler](https://github.com/JetBrains/kotlin/releases/tag/v1.5.30) `kotlinc` is required. It must be the JVM compiler, not the native compiler.
+2. Ensure that the language and diagram server fat JAR exists. This file is called `vscode-extension\ls\lflang-lds.jar`.
+3. `cd` into the `org.lflang.lds` directory and run the command: ```python3 uf.py <CANONICAL_NAME>``` where <CANONICAL_NAME> is either:
+* The canonical name of a package that you would like to update
+* The canonical name of a package, followed by the base name of a file that you would like to update, without the extension. For Java files, this corresponds to the canonical name of a class. An example would be: ```python3 uf.py org.lflang.FileConfig```.
+4. Open `vscode-extension\src\extension.ts` in Visual Studio Code.
+5. Press <kbd>F5</kbd> to run the extension in a new Extension Development Host window.
 
 ## Notes
 I made some configuration changes that I am not sure are right. These include the following:
