@@ -1,16 +1,17 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.PrependOperator
 import org.lflang.lf.Action
-import org.lflang.lf.Reactor
 import org.lflang.lf.Type
 import org.lflang.lf.Value
 import java.util.*
 
+/**
+ * Generator for actions in TypeScript target.
+ */
 class TSActionGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val reactor: Reactor
+    private val actions: List<Action>
 ) {
     private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -32,7 +33,7 @@ class TSActionGenerator (
 
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
-        for (action in reactor.actions) {
+        for (action in actions) {
             // Shutdown actions are handled internally by the
             // TypeScript reactor framework. There would be a
             // duplicate action if we included the one generated
@@ -41,16 +42,12 @@ class TSActionGenerator (
                 stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
             }
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..stateClassProperties.joinToString("\n")}
-            """.trimMargin()
-        }
+        return stateClassProperties.joinToString("\n")
     }
 
     fun generateInstantiations(): String {
         val actionInstantiations = LinkedList<String>()
-        for (action in reactor.actions) {
+        for (action in actions) {
             // Shutdown actions are handled internally by the
             // TypeScript reactor framework. There would be a
             // duplicate action if we included the one generated
@@ -70,10 +67,6 @@ class TSActionGenerator (
                     "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")
             }
         }
-        return with(PrependOperator) {
-            """
-            ${" |"..actionInstantiations.joinToString("\n")}
-            """.trimMargin()
-        }
+        return actionInstantiations.joinToString("\n")
     }
 }
