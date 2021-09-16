@@ -1,11 +1,13 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.PrependOperator
 import org.lflang.lf.Action
 import org.lflang.lf.Type
 import org.lflang.lf.Value
 import java.util.*
 
+/**
+ * Generator for actions in TypeScript target.
+ */
 class TSActionGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
