@@ -1,4 +1,4 @@
-package org.lflang.generator;
+package org.lflang.lfc;
 
 import java.io.IOException;
 import java.nio.file.Path;
