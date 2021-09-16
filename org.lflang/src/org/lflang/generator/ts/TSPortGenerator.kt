@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.PrependOperator
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port

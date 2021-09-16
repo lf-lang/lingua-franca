@@ -1,7 +1,6 @@
 package org.lflang.generator.ts
 
 import org.lflang.generator.FederateInstance
-import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -10,7 +9,7 @@ import org.lflang.toText
 import java.util.*
 
 /**
- * Generator child reactor instantiations in TypeScript target.
+ * Generator for child reactor instantiations in TypeScript target.
  */
 class TSInstanceGenerator (
     // TODO(hokeun): Remove dependency on TSGenerator.

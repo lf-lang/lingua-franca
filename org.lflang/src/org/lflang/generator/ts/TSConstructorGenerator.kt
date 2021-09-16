@@ -8,6 +8,14 @@ import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import java.util.*
 
+/**
+ * Generator for code in the constructor of reactor class in TypeScript target.
+ * Specifically, this generator generates the code for constructor argument,
+ * call to the super class constructor. This generator uses other code generators
+ * for child reactors, timers, parameters, state variables, actions, ports, connections,
+ * and code to register reactions. This generator also generates federate port action
+ * registrations.
+ */
 class TSConstructorGenerator (
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
@@ -106,8 +114,8 @@ class TSConstructorGenerator (
         actions: TSActionGenerator,
         ports: TSPortGenerator
     ): String {
-        val connectionGenerator = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactionGenerator = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
+        val connections = TSConnectionGenerator(reactor.connections, errorReporter)
+        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
 
         return with(PrependOperator) {
             """
@@ -121,9 +129,9 @@ class TSConstructorGenerator (
             ${" |    "..states.generateInstantiations()}
             ${" |    "..actions.generateInstantiations()}
             ${" |    "..ports.generateInstantiations()}
-            ${" |    "..connectionGenerator.generateInstantiations()}
+            ${" |    "..connections.generateInstantiations()}
             ${" |    "..if (reactor.isFederated) generateFederatePortActionRegistrations(federate.networkMessageActions) else ""}
-            ${" |    "..reactionGenerator.generateAllReactions()}
+            ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()
         }

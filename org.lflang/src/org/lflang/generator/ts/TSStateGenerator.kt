@@ -5,6 +5,9 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.StateVar
 import java.util.*
 
+/**
+ * Generator for state variables in TypeScript target.
+ */
 class TSStateGenerator (
     private val tsGenerator: TSGenerator,
     private val stateVars: List<StateVar>
