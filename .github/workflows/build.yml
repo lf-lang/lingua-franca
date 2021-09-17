@@ -202,8 +202,10 @@ jobs:
       - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgArguments: protobuf
+          vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+          vcpkgTriplet: x64-windows-static
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
