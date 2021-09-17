@@ -30,14 +30,18 @@ reactor Destination {
             exit(1)
         self.s += 1
     =}
+    reaction(shutdown) {=
+        print("**** shutdown reaction invoked.")
+        if self.s != 1000002:
+            sys.stderr.write("Error: Expected 1000002 but got {:d}.\n".format(self.s))
+            exit(1)
+        print("Approx. time per reaction: {:f}ns".format(get_elapsed_physical_time()/(self.s+1)))
+    =}
 }
 main reactor TimeLimit(period(1 usec)) {
     timer stop(1 secs);
     reaction(stop) {=
         request_stop()
-    =}
-    reaction(shutdown) {=
-        print("**** shutdown reaction invoked.")
     =}
     c = new Clock(period = period);
     d = new Destination();
