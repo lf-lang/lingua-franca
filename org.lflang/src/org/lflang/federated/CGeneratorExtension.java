@@ -30,6 +30,7 @@ import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.FederateInstance;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
@@ -86,9 +87,10 @@ public class CGeneratorExtension {
             // thus, we reuse startTimeStepIsPresentCount as the counter.
             builder.append(
                     "// Create the array that will contain pointers to intended_tag fields to reset on each step.\n"
-                            + "__intended_tag_fields_size = "
+                            + GeneratorBase.lf_reserved_prefix + "intended_tag_fields_size = "
                             + generator.startTimeStepIsPresentCount + ";\n"
-                            + "__intended_tag_fields = (tag_t**)malloc(__intended_tag_fields_size * sizeof(tag_t*));\n");
+                            + GeneratorBase.lf_reserved_prefix + "intended_tag_fields = (tag_t**)malloc("
+                            + GeneratorBase.lf_reserved_prefix + "intended_tag_fields_size * sizeof(tag_t*));\n");
         }
 
         if (generator.isFederated) {
@@ -158,13 +160,13 @@ public class CGeneratorExtension {
                 });
             })) {
                 // Initialize the triggers_for_network_input_control_reactions for the input
-                builder.append("// Add trigger " + nameOfSelfStruct + "->___"
+                builder.append("// Add trigger " + nameOfSelfStruct + "->" + GeneratorBase.lf_reserved_prefix + "_"
                         + trigger.getName()
                         + " to the global list of network input ports.\n"
                         + "_fed.triggers_for_network_input_control_reactions["
                         + federate.networkInputControlReactionsTriggers
                         .indexOf(trigger)
-                        + "]= &" + nameOfSelfStruct + "" + "->___"
+                        + "]= &" + nameOfSelfStruct + "" + "->" + GeneratorBase.lf_reserved_prefix + "_"
                         + trigger.getName() + ";\n");
             }
         }
@@ -175,7 +177,7 @@ public class CGeneratorExtension {
         if (federate.networkOutputControlReactionsTrigger != null) {
             builder.append("_fed.trigger_for_network_output_control_reactions=&"
                     + nameOfSelfStruct
-                    + "->___outputControlReactionTrigger;\n");
+                    + "->" + GeneratorBase.lf_reserved_prefix + "_outputControlReactionTrigger;\n");
         }
 
         return builder;
@@ -198,7 +200,7 @@ public class CGeneratorExtension {
             // triggers for each channel of
             // the multiport to keep track of the status of each channel
             // individually
-            builder.append("trigger_t* ___" + input.getName()
+            builder.append("trigger_t* " + GeneratorBase.lf_reserved_prefix + "_" + input.getName()
             + "_network_port_status;\n");
         } else {
             // If it is not a multiport, then we could re-use the port trigger,
