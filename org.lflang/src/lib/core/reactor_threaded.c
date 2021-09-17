@@ -1309,10 +1309,12 @@ int lf_reactor_c_main(int argc, char* argv[]) {
     // As a consequence, we need to also trap ctrl-C, which issues a SIGINT,
     // and cause it to call exit.
     signal(SIGINT, exit);
+#ifdef SIGPIPE
     // Ignore SIGPIPE errors, which terminate the entire application if
     // socket write() fails because the reader has closed the socket.
     // Instead, cause an EPIPE error to be set when write() fails.
     signal(SIGPIPE, SIG_IGN);
+#endif SIGPIPE
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
