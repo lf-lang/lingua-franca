@@ -80,7 +80,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                     |
                     |ExternalProject_Add(dep-reactor-cpp
                     |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
-                    |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
+                    |   GIT_REPOSITORY "https://github.com/lf-lang/reactor-cpp.git"
                     |   GIT_TAG "$runtimeVersion"
                     |   CMAKE_ARGS
                     |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
