@@ -525,7 +525,9 @@ class CGenerator extends GeneratorBase {
                 // A literal array needs to be given outside any function definition,
                 // so start with that.
                 if (runCommand.length > 0) {
-                    pr('char* «lf_reserved_prefix»default_argv[] = {"' + runCommand.join('", "') + '"};')
+                    pr('''
+                        char* «lf_reserved_prefix»default_argv[] = { "«runCommand.join('", "')»" };
+                    ''');
                 }
                 pr('''
                     void «lf_reserved_prefix»set_default_command_line_options() {
@@ -533,7 +535,9 @@ class CGenerator extends GeneratorBase {
                 indent()
                 if (runCommand.length > 0) {
                     pr('default_argc = ' + runCommand.length + ';')
-                    pr('default_argv = «lf_reserved_prefix»default_argv;')
+                    pr('''
+                        default_argv = «lf_reserved_prefix»default_argv;
+                    ''')
                 }
                 unindent()
                 pr('}\n')

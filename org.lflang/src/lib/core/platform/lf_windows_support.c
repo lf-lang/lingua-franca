@@ -41,15 +41,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <time.h>
 
 /**
- * Offset to _LF_CLOCK that would convert it
- * to epoch time.
- * For CLOCK_REALTIME, this offset is always zero.
- * For CLOCK_MONOTONIC, it is the difference between those
- * clocks at the start of the execution.
- */
-LARGE_INTEGER _lf_epoch_offset;
-
-/**
  * Indicates wether or not the underlying hardware
  * supports Windows' high-resolution counter. It should
  * always be supported for Windows Xp and later.
@@ -60,51 +51,9 @@ int _lf_use_performance_counter = 0;
  * The denominator to convert the performance counter
  * to nanoseconds.
  */
-double _lf_frequency_to_ns = 1;
+double _lf_frequency_to_ns = 1.0;
 
 #define BILLION 1000000000
-
-/**
- * Calculate the necessary offset to bring _LF_CLOCK in parity with the epoch
- * time.
- */
-void calculate_epoch_offset() {
-    SYSTEMTIME s;
-    FILETIME f;
-    LARGE_INTEGER t;
-
-    s.wYear = 1970;
-    s.wMonth = 1;
-    s.wDay = 1;
-    s.wHour = 0;
-    s.wMinute = 0;
-    s.wSecond = 0;
-    s.wMilliseconds = 0;
-    SystemTimeToFileTime(&s, &f);
-    t.QuadPart = f.dwHighDateTime;
-    t.QuadPart <<= 32;
-    t.QuadPart |= f.dwLowDateTime;
-
-    _lf_epoch_offset = t;
-}
-
-/**
- * Initialize the LF clock.
- */
-void lf_initialize_clock() {    
-    // Check if the performance counter is available
-    LARGE_INTEGER performanceFrequency;
-    _lf_use_performance_counter = QueryPerformanceFrequency(&performanceFrequency);
-    if (_lf_use_performance_counter) {
-        QueryPerformanceCounter(&_lf_epoch_offset);
-        _lf_frequency_to_ns = (double)performanceFrequency.QuadPart / 1000000000.;
-    } else {
-        error_print(
-            "High resolution performance counter is not supported on this machine.");
-        calculate_epoch_offset();
-        _lf_frequency_to_ns = 0.01;
-    }
-}
 
 #ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
@@ -286,9 +235,26 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
 #endif
 
 /**
- * Fetch the value of _LF_CLOCK (see lf_windows_support.h) and store it in t.
- * The timestamp value in 't' will always be epoch time, which is the number of
- * nanoseconds since January 1st, 1970.
+ * Initialize the LF clock.
+ */
+void lf_initialize_clock() {    
+    // Check if the performance counter is available
+    LARGE_INTEGER performance_frequency;
+    _lf_use_performance_counter = QueryPerformanceFrequency(&performance_frequency);
+    if (_lf_use_performance_counter) {
+        _lf_frequency_to_ns = (double)performance_frequency.QuadPart / BILLION;
+    } else {
+        error_print(
+            "High resolution performance counter is not supported on this machine.");
+        _lf_frequency_to_ns = 0.01;
+    }
+}
+
+
+/**
+ * Fetch the value of the physical clock (see lf_windows_support.h) and store it in t.
+ * The timestamp value in 't' will be based on QueryPerformanceCounter, adjusted to
+ * reflect time passed in nanoseconds, on most modern Windows systems.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
  *  set to EINVAL or EFAULT.
@@ -304,19 +270,19 @@ int lf_clock_gettime(instant_t* t) {
         return result;
     }
     LARGE_INTEGER windows_time;
-    FILETIME f;
-
     if (_lf_use_performance_counter) {
-        QueryPerformanceCounter(&windows_time);
-    }
-    else {
+        int result = QueryPerformanceCounter(&windows_time);
+        if ( result == 0) {
+            error_print("lf_clock_gettime(): Failed to read the value of the physical clock.");
+            return result;
+        }
+    } else {
+        FILETIME f;
         GetSystemTimeAsFileTime(&f);
         windows_time.QuadPart = f.dwHighDateTime;
         windows_time.QuadPart <<= 32;
         windows_time.QuadPart |= f.dwLowDateTime;
     }
-
-    windows_time.QuadPart -= _lf_epoch_offset.QuadPart;
     *t = (instant_t)((double)windows_time.QuadPart / _lf_frequency_to_ns);
     return (0);
 }

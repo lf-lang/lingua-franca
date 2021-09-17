@@ -64,19 +64,9 @@ typedef HANDLE _lf_thread_t;
 #endif
 #endif
 
-
-#ifndef CLOCK_REALTIME
-#define CLOCK_REALTIME 0
-#endif
-#ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC 1
-#endif
-
 /**
  * Time instant. Both physical and logical times are represented
  * using this typedef.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a 64-bit long long will be insufficient.
  */
 typedef int64_t _instant_t;
 
@@ -91,9 +81,6 @@ typedef int64_t _interval_t;
 typedef uint32_t _microstep_t;
 
 #define _LF_TIMEOUT ETIMEDOUT
-
-// The underlying physical clock for Windows
-#define _LF_CLOCK CLOCK_MONOTONIC
 
 #endif // LF_WINDOWS_SUPPORT_H
 
