@@ -197,6 +197,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * contains a federation.
      */
     public var boolean isFederated = false
+    
+    /**
+     * A prefix for target code predicates like variables and definitions that is reserved for
+     * internal (user-inaccessible) aspects of the generated code.
+     */
+    public static var String lf_reserved_prefix = "_lf_"
 
     // //////////////////////////////////////////
     // // Target properties, if they are included.
@@ -234,12 +240,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
-
-    /**
-     * A prefix for target code predicates like variables and definitions that is reserved for
-     * internal (user-inaccessible) aspects of the generated code.
-     */
-    protected static var String lf_reserved_prefix = "_lf_"
     
     // //////////////////////////////////////////
     // // Private fields.
