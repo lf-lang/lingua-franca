@@ -50,7 +50,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * The ID of this federate. For a non-federated execution, this will
  * be -1.  For a federated execution, it will be assigned when the generated function
- * __initialize_trigger_objects() is called.
+ * _lf_initialize_trigger_objects() is called.
  * @see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CGenerator.xtend.
  */
 int _lf_my_fed_id = -1;

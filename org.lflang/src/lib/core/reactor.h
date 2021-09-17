@@ -122,7 +122,7 @@ do { \
 #define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    lf_token_t* token = __initialize_token_with_value(out->token, val, length); \
+    lf_token_t* token = _lf_initialize_token_with_value(out->token, val, length); \
     token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = token->value; \
@@ -131,7 +131,7 @@ do { \
 #define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    lf_token_t* token = __initialize_token_with_value(out->token, val, length); \
+    lf_token_t* token = _lf_initialize_token_with_value(out->token, val, length); \
     token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = static_cast<decltype(out->value)>(token->value); \
@@ -570,26 +570,26 @@ void request_stop();
 /** 
  * Generated function that optionally sets default command-line options.
  */
-void __set_default_command_line_options();
+void _lf_set_default_command_line_options();
 
 /** 
  * Generated function that resets outputs to be absent at the
  * start of a new time step.
  */
-void __start_time_step();
+void _lf_start_time_step();
 
 /** 
  * Generated function that produces a table containing all triggers
  * (i.e., inputs, timers, and actions).
  */
-void __initialize_trigger_objects();
+void _lf_initialize_trigger_objects();
 
 /**
  * Pop all events from event_q with timestamp equal to current_time, extract all
  * the reactions triggered by these events, and stick them into the reaction
  * queue.
  */
-void __pop_events();
+void _lf_pop_events();
 
 /** 
  * Internal version of the schedule() function, used by generated 
@@ -599,17 +599,17 @@ void __pop_events();
  * @param token The token payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-trigger_handle_t __schedule(trigger_t* trigger, interval_t delay, lf_token_t* token);
+trigger_handle_t _lf_schedule(trigger_t* trigger, interval_t delay, lf_token_t* token);
 
 /**
  * Function (to be code generated) to schedule timers.
  */
-void __initialize_timers();
+void _lf_initialize_timers();
 
 /**
  * Function (to be code generated) to trigger startup reactions.
  */
-void __trigger_startup_reactions();
+void _lf_trigger_startup_reactions();
 
 
 /**
@@ -621,7 +621,7 @@ void terminate_execution();
 /**
  * Function (to be code generated) to trigger shutdown reactions.
  */
-bool __trigger_shutdown_reactions();
+bool _lf_trigger_shutdown_reactions();
 
 /**
  * Create a new token and initialize it.

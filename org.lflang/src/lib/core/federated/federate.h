@@ -154,13 +154,13 @@ typedef struct federate_instance_t {
 
 	/**
 	 * Indicator of whether this federate has upstream federates.
-	 * The default value of false may be overridden in __initialize_trigger_objects.
+	 * The default value of false may be overridden in _lf_initialize_trigger_objects.
 	 */
 	bool has_upstream;
 
 	/**
 	 * Indicator of whether this federate has downstream federates.
-	 * The default value of false may be overridden in __initialize_trigger_objects.
+	 * The default value of false may be overridden in _lf_initialize_trigger_objects.
 	 */
 	bool has_downstream;
 

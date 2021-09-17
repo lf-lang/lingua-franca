@@ -82,25 +82,25 @@ bool keepalive_specified = false;
 // Define the array of pointers to the _is_present fields of all the
 // self structs that need to be reinitialized at the start of each time step.
 // NOTE: This may have to be resized for a mutation.
-bool** __is_present_fields = NULL;
-int __is_present_fields_size = 0;
+bool** _lf_is_present_fields = NULL;
+int _lf_is_present_fields_size = 0;
 
 // Define the array of pointers to the intended_tag fields of all
 // ports and actions that need to be reinitialized at the start
 // of each time step.
-tag_t** __intended_tag_fields = NULL;
-int __intended_tag_fields_size = 0;
+tag_t** _lf_intended_tag_fields = NULL;
+int _lf_intended_tag_fields_size = 0;
 
 // Define the array of pointers to the token fields of all the
 // actions and inputs that need to have their reference counts
 // decremented at the start of each time step.
 // NOTE: This may have to be resized for a mutation.
-token_present_t* __tokens_with_ref_count = NULL;
+token_present_t* _lf_tokens_with_ref_count = NULL;
 // Dynamically created list of tokens that are copies made
 // as a result of mutable inputs. These need to also have
-// __done_using() called on them at the start of the next time step.
+// _lf_done_using() called on them at the start of the next time step.
 lf_token_t* _lf_more_tokens_with_ref_count = NULL;
-int __tokens_with_ref_count_size = 0;
+int _lf_tokens_with_ref_count_size = 0;
 
 /**
  * Global STP offset uniformly applied to advancement of each
@@ -326,7 +326,7 @@ static void print_event(void *event) {
  * Counter used to issue a warning if memory is
  * allocated for message payloads and never freed.
  */
-static int __count_payload_allocations;
+static int _lf_count_payload_allocations;
 
 /**
  * Counter used to issue a warning if memory is
@@ -335,25 +335,25 @@ static int __count_payload_allocations;
  * it. That token is not counted because it is not
  * expected to be freed.
  */
-static int __count_token_allocations;
+static int _lf_count_token_allocations;
 
 /**
  * Tokens always have the same size in memory so they are easily recycled.
  * When a token is freed, this pointer will be updated to point to it.
  * Freed tokens are chained using their next_free field.
  */
-lf_token_t* __token_recycling_bin = NULL;
+lf_token_t* _lf_token_recycling_bin = NULL;
 
 /** Count of the number of tokens in the recycling bin. */
-int __token_recycling_bin_size = 0;
+int _lf_token_recycling_bin_size = 0;
 
 /**
  * To allow a system to recover from burst of activity, the token recycling
  * bin has a limited size. When it becomes full, token are freed using free().
  */
-#define __TOKEN_RECYCLING_BIN_SIZE_LIMIT 512
+#define _LF_TOKEN_RECYCLING_BIN_SIZE_LIMIT 512
 
-/** Possible return values for __done_using. */
+/** Possible return values for _lf_done_using. */
 typedef enum token_freed {
     NOT_FREED,     // Nothing was freed.
     VALUE_FREED,   // The value (payload) was freed.
@@ -370,7 +370,7 @@ typedef enum token_freed {
  *  was freed, and TOKEN_FREED if both the value and the token were
  *  freed.
  */
-token_freed __done_using(lf_token_t* token) {
+token_freed _lf_done_using(lf_token_t* token) {
     token_freed result = NOT_FREED;
     if (token == NULL) return result;
     if (token->ref_count == 0) {
@@ -378,14 +378,14 @@ token_freed __done_using(lf_token_t* token) {
         return NOT_FREED;
     }
     token->ref_count--;
-    DEBUG_PRINT("__done_using: ref_count = %d.", token->ref_count);
+    DEBUG_PRINT("_lf_done_using: ref_count = %d.", token->ref_count);
     if (token->ref_count == 0) {
         if (token->value != NULL) {
             // Count frees to issue a warning if this is never freed.
             // Do not free the value field if it is garbage collected.
-            __count_payload_allocations--;
+            _lf_count_payload_allocations--;
             if(OK_TO_FREE != token_only) {
-                DEBUG_PRINT("__done_using: Freeing allocated memory for payload (token value): %p", token->value);
+                DEBUG_PRINT("_lf_done_using: Freeing allocated memory for payload (token value): %p", token->value);
                 free(token->value);
             }
             token->value = NULL;
@@ -396,17 +396,17 @@ token_freed __done_using(lf_token_t* token) {
         // ports and should not be freed. They are expected to be reused instead.
         if (token->ok_to_free) {
             // Need to free the lf_token_t struct also.
-            if (__token_recycling_bin_size < __TOKEN_RECYCLING_BIN_SIZE_LIMIT) {
+            if (_lf_token_recycling_bin_size < _LF_TOKEN_RECYCLING_BIN_SIZE_LIMIT) {
                 // Recycle instead of freeing.
-                token->next_free = __token_recycling_bin;
-                __token_recycling_bin = token;
-                __token_recycling_bin_size++;
+                token->next_free = _lf_token_recycling_bin;
+                _lf_token_recycling_bin = token;
+                _lf_token_recycling_bin_size++;
             } else {
                 // Recycling bin is full.
                 free(token);
             }
-            __count_token_allocations--;
-            DEBUG_PRINT("__done_using: Freeing allocated memory for token: %p", token);
+            _lf_count_token_allocations--;
+            DEBUG_PRINT("_lf_done_using: Freeing allocated memory for token: %p", token);
             result = TOKEN_FREED;
         }
     }
@@ -426,28 +426,28 @@ void _lf_enqueue_reaction(reaction_t* reaction);
  * to the current_tag, and decrement reference
  * counts between time steps and at the end of execution.
  */
-void __start_time_step() {
+void _lf_start_time_step() {
     LOG_PRINT("--------- Start time step at tag (%lld, %u).", current_tag.time - start_time, current_tag.microstep);
-    for(int i = 0; i < __tokens_with_ref_count_size; i++) {
-        if (*(__tokens_with_ref_count[i].status) == present) {
-            if (__tokens_with_ref_count[i].reset_is_present) {
-                *(__tokens_with_ref_count[i].status) = absent;
+    for(int i = 0; i < _lf_tokens_with_ref_count_size; i++) {
+        if (*(_lf_tokens_with_ref_count[i].status) == present) {
+            if (_lf_tokens_with_ref_count[i].reset_is_present) {
+                *(_lf_tokens_with_ref_count[i].status) = absent;
             }
-            __done_using(*(__tokens_with_ref_count[i].token));
+            _lf_done_using(*(_lf_tokens_with_ref_count[i].token));
         }
     }
     // Also handle dynamically created tokens for mutable inputs.
     while (_lf_more_tokens_with_ref_count != NULL) {
         lf_token_t* next = _lf_more_tokens_with_ref_count->next_free;
-        __done_using(_lf_more_tokens_with_ref_count);
+        _lf_done_using(_lf_more_tokens_with_ref_count);
         _lf_more_tokens_with_ref_count = next;
     }
-    for(int i = 0; i < __is_present_fields_size; i++) {
-        *__is_present_fields[i] = false;
+    for(int i = 0; i < _lf_is_present_fields_size; i++) {
+        *_lf_is_present_fields[i] = false;
 #ifdef FEDERATED_DECENTRALIZED
         // FIXME: For now, an intended tag of (NEVER, 0)
         // indicates that it has never been set.
-        *__intended_tag_fields[i] = (tag_t) {NEVER, 0};
+        *_lf_intended_tag_fields[i] = (tag_t) {NEVER, 0};
 #endif
     }
 #ifdef FEDERATED
@@ -467,17 +467,17 @@ void __start_time_step() {
  *  0 if there is no payload.
  * @return A new or recycled lf_token_t struct.
  */
-lf_token_t* __create_token(size_t element_size) {
+lf_token_t* _lf_create_token(size_t element_size) {
     lf_token_t* token;
     // Check the recycling bin.
-    if (__token_recycling_bin != NULL) {
-        token = __token_recycling_bin;
-        __token_recycling_bin = token->next_free;
-        __token_recycling_bin_size--;
-        DEBUG_PRINT("__create_token: Retrieved token from the recycling bin: %p", token);
+    if (_lf_token_recycling_bin != NULL) {
+        token = _lf_token_recycling_bin;
+        _lf_token_recycling_bin = token->next_free;
+        _lf_token_recycling_bin_size--;
+        DEBUG_PRINT("_lf_create_token: Retrieved token from the recycling bin: %p", token);
     } else {
         token = (lf_token_t*)malloc(sizeof(lf_token_t));
-        DEBUG_PRINT("__create_token: Allocated memory for token: %p", token);
+        DEBUG_PRINT("_lf_create_token: Allocated memory for token: %p", token);
     }
     token->value = NULL;
     token->length = 0;
@@ -500,8 +500,8 @@ lf_token_t* __create_token(size_t element_size) {
  */
 lf_token_t* create_token(size_t element_size) {
     DEBUG_PRINT("create_token: element_size: %zu", element_size);
-    __count_token_allocations++;
-    lf_token_t* result = __create_token(element_size);
+    _lf_count_token_allocations++;
+    lf_token_t* result = _lf_create_token(element_size);
     result->ok_to_free = OK_TO_FREE;
     return result;
 }
@@ -520,7 +520,7 @@ lf_token_t* create_token(size_t element_size) {
  * @return Either the specified token or a new one, in each case with a value
  *  field pointing to newly allocated memory.
  */
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length) {
+lf_token_t* _lf_initialize_token_with_value(lf_token_t* token, void* value, size_t length) {
     // assert(token != NULL);
 
     // If necessary, allocate memory for a new lf_token_t struct.
@@ -550,14 +550,14 @@ lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t
  * @return Either the specified token or a new one, in each case with a value
  *  field pointing to newly allocated memory.
  */
-lf_token_t* __initialize_token(lf_token_t* token, size_t length) {
+lf_token_t* _lf_initialize_token(lf_token_t* token, size_t length) {
     // assert(token != NULL);
 
     // Allocate memory for storing the array.
     void* value = malloc(token->element_size * length);
     // Count allocations to issue a warning if this is never freed.
-    __count_payload_allocations++;
-    return __initialize_token_with_value(token, value, length);
+    _lf_count_payload_allocations++;
+    return _lf_initialize_token_with_value(token, value, length);
 }
 
 /**
@@ -574,7 +574,7 @@ bool _lf_is_tag_after_stop_tag(tag_t tag) {
  * the reactions triggered by these events, and stick them into the reaction
  * queue.
  */
-void __pop_events() {
+void _lf_pop_events() {
     event_t* event = (event_t*)pqueue_peek(event_q);
     while(event != NULL && event->time == current_tag.time) {
         event = (event_t*)pqueue_pop(event_q);
@@ -633,10 +633,10 @@ void __pop_events() {
         // If the trigger is a periodic timer, create a new event for its next execution.
         if (event->trigger->is_timer && event->trigger->period > 0LL) {
             // Reschedule the trigger.
-            // Note that the delay here may be negative because the __schedule
+            // Note that the delay here may be negative because the _lf_schedule
             // function will add the trigger->offset, which we don't want at this point.
             // NULL argument indicates that there is no value.
-            __schedule(event->trigger,
+            _lf_schedule(event->trigger,
                     event->trigger->period - event->trigger->offset, NULL);
         }
 
@@ -647,10 +647,10 @@ void __pop_events() {
                 && event->trigger->token != NULL) {
             // Mark the previous one ok_to_free so we don't get a memory leak.
             event->trigger->token->ok_to_free = OK_TO_FREE;
-            // Free the token if its reference count is zero. Since __done_using
+            // Free the token if its reference count is zero. Since _lf_done_using
             // decrements the reference count, first increment it here.
             event->trigger->token->ref_count++;
-            __done_using(event->trigger->token);
+            _lf_done_using(event->trigger->token);
         }
         event->trigger->token = token;
         // Prevent this token from being freed. It is the new template.
@@ -794,7 +794,7 @@ event_t* _lf_create_dummy_events(trigger_t* trigger, instant_t time, event_t* ne
 void _lf_replace_token(event_t* event, lf_token_t* token) {
     if (event->token != token) {
         // Free the existing token, if any
-        __done_using(event->token);
+        _lf_done_using(event->token);
     }
     // Replace the token with ours.
     event->token = token;
@@ -846,7 +846,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
     // Do not schedule events if the tag is after the stop tag
     if (_lf_is_tag_after_stop_tag(tag)) {
         warning_print("_lf_schedule_at_tag: event time is past the timeout. Discarding event.");
-        __done_using(token);
+        _lf_done_using(token);
         return -1;
     }
     
@@ -880,7 +880,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
                 switch (trigger->policy) {
                     case drop:
                         if (found->token != token) {
-                            __done_using(token);
+                            _lf_done_using(token);
                         }
                         _lf_recycle_event(e);
                         return(0);
@@ -948,7 +948,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
                 switch (trigger->policy) {
                     case drop:
                         if (found->next->token != token) {
-                            __done_using(token);
+                            _lf_done_using(token);
                         }
                         _lf_recycle_event(e);
                         return 0;
@@ -1029,11 +1029,11 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
  * @param token The token wrapping the payload or NULL for no payload.
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
-trigger_handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* token) {
+trigger_handle_t _lf_schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* token) {
     if (_lf_is_tag_after_stop_tag(current_tag)) {
         // If schedule is called after stop_tag
         // This is a critical condition.
-        __done_using(token);
+        _lf_done_using(token);
         warning_print("schedule() called after stop tag.");
         return 0;
     }
@@ -1043,14 +1043,14 @@ trigger_handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token
         extra_delay = 0LL;
     }
 
-    DEBUG_PRINT("__schedule: scheduling trigger %p with delay %lld and token %p.",
+    DEBUG_PRINT("_lf_schedule: scheduling trigger %p with delay %lld and token %p.",
             trigger, extra_delay, token);
     
 	// The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
 	if (trigger == NULL) {
-	    __done_using(token);
+	    _lf_done_using(token);
 	    return 0;
 	}
 
@@ -1064,7 +1064,7 @@ trigger_handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
     interval_t intended_time = current_tag.time + delay;
-    DEBUG_PRINT("__schedule: current_tag.time = %lld. Total logical delay = %lld",
+    DEBUG_PRINT("_lf_schedule: current_tag.time = %lld. Total logical delay = %lld",
             current_tag.time, delay);
     interval_t min_spacing = trigger->period;
 
@@ -1156,7 +1156,7 @@ trigger_handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token
                             pqueue_find_equal_same_priority(event_q, existing) != NULL) {
                         // Recycle the new event and the token.
                         if (existing->token != token) {
-                            __done_using(token);
+                            _lf_done_using(token);
                         }
                         _lf_recycle_event(e);
                         return(0);
@@ -1225,8 +1225,8 @@ trigger_handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token
     // (current microsteps are checked earlier).
     DEBUG_PRINT("Comparing event with elapsed time %lld against stop time %lld.", e->time - start_time, stop_tag.time - start_time);
     if (e->time > stop_tag.time) {
-        DEBUG_PRINT("__schedule: event time is past the timeout. Discarding event.");
-        __done_using(token);
+        DEBUG_PRINT("_lf_schedule: event time is past the timeout. Discarding event.");
+        _lf_done_using(token);
         _lf_recycle_event(e);
         return(0);
     }
@@ -1274,7 +1274,7 @@ trigger_handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t
     // payload will be freed, if there is one.
 	if (trigger == NULL) {
         warning_print("_lf_schedule_init_reactions() called with a NULL trigger");
-	    __done_using(token);
+	    _lf_done_using(token);
 	    return 0;
 	}
     
@@ -1312,10 +1312,10 @@ trigger_handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t
     if (trigger->token != token && trigger->token != NULL) {
         // Mark the previous one ok_to_free so we don't get a memory leak.
         trigger->token->ok_to_free = OK_TO_FREE;
-        // Free the token if its reference count is zero. Since __done_using
+        // Free the token if its reference count is zero. Since _lf_done_using
         // decrements the reference count, first increment it here.
         trigger->token->ref_count++;
-        __done_using(trigger->token);
+        _lf_done_using(trigger->token);
     }
     trigger->token = token;
     // Prevent this token from being freed. It is the new template.
@@ -1432,7 +1432,7 @@ lf_token_t* __set_new_array_impl(lf_token_t* token, size_t length, int num_desti
         return NULL;
     }
     // First, initialize the token, reusing the one given if possible.
-    lf_token_t* new_token = __initialize_token(token, length);
+    lf_token_t* new_token = _lf_initialize_token(token, length);
     new_token->ref_count = num_destinations;
     DEBUG_PRINT("__set_new_array_impl: Allocated memory for payload %p.", new_token->value);
     return new_token;
@@ -1631,7 +1631,7 @@ lf_token_t* writable_copy(lf_token_t* token) {
         DEBUG_PRINT("Allocating memory for writable copy %p.", copy);
         memcpy(copy, token->value, size);
         // Count allocations to issue a warning if this is never freed.
-        __count_payload_allocations++;
+        _lf_count_payload_allocations++;
         // Create a new, dynamically allocated token.
         lf_token_t* result = create_token(token->element_size);
         result->length = token->length;
@@ -1794,8 +1794,8 @@ int process_args(int argc, char* argv[]) {
  * physical time. This also prints a message reporting the start time.
  */
 void initialize() {
-    __count_payload_allocations = 0;
-    __count_token_allocations = 0;
+    _lf_count_payload_allocations = 0;
+    _lf_count_token_allocations = 0;
 
     // Initialize our priority queues.
 
@@ -1814,7 +1814,7 @@ void initialize() {
             get_event_position, set_event_position, event_matches, print_event);
 
     // Initialize the trigger table.
-    __initialize_trigger_objects();
+    _lf_initialize_trigger_objects();
 
     physical_start_time = get_physical_time();
     current_tag.time = physical_start_time;
@@ -1844,7 +1844,7 @@ void termination() {
     stop_trace();
 
     // In order to free tokens, we perform the same actions we would have for a new time step.
-    __start_time_step();
+    _lf_start_time_step();
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
@@ -1854,13 +1854,13 @@ void termination() {
         warning_print("---- The first future event has timestamp %lld after start time.", event_time);
     }
     // Issue a warning if a memory leak has been detected.
-    if (__count_payload_allocations > 0) {
+    if (_lf_count_payload_allocations > 0) {
         warning_print("Memory allocated for messages has not been freed.");
-        warning_print("Number of unfreed messages: %d.", __count_payload_allocations);
+        warning_print("Number of unfreed messages: %d.", _lf_count_payload_allocations);
     }
-    if (__count_token_allocations > 0) {
+    if (_lf_count_token_allocations > 0) {
         warning_print("Memory allocated for tokens has not been freed!");
-        warning_print("Number of unfreed tokens: %d.", __count_token_allocations);
+        warning_print("Number of unfreed tokens: %d.", _lf_count_token_allocations);
     }
     // Print elapsed times.
     // If these are negative, then the program failed to start up.
