@@ -99,7 +99,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 /**
  * Prototype for the internal API. @see reactor_common.c
  **/
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length);
+lf_token_t* _lf_initialize_token_with_value(lf_token_t* token, void* value, size_t length);
 
 /**
  * Prototype for API function. @see lib/core/reactor_common.c
@@ -141,7 +141,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
         // DEBUG: adjust the element_size (might not be necessary)
         trigger->token->element_size = sizeof(PyObject*);
         trigger->element_size = sizeof(PyObject*);
-        t = __initialize_token_with_value(trigger->token, value, 1);
+        t = _lf_initialize_token_with_value(trigger->token, value, 1);
 
         // Also give the new value back to the Python action itself
         Py_INCREF(value);
