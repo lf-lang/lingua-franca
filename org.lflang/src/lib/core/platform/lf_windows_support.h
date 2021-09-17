@@ -65,28 +65,6 @@ typedef HANDLE _lf_thread_t;
 #endif
 
 
-#pragma warning(disable: 4204 4255 4459 4710)
-#ifdef  _M_X64
-typedef long long intptr_t;
-#else
-typedef int intptr_t;
-#endif
-typedef intptr_t INTPTR_T;
-typedef struct HINSTANCE__ *HINSTANCE;
-typedef HINSTANCE HMODULE;
-typedef INTPTR_T (__stdcall *FARPROC)();
-HMODULE __stdcall GetModuleHandleA(char const *lpModuleName);
-FARPROC __stdcall GetProcAddress(HMODULE hModule, char const *lpProcName);
-typedef long NTSTATUS;
-typedef union _LARGE_INTEGER *PLARGE_INTEGER;
-typedef NTSTATUS __stdcall NtDelayExecution_t(unsigned char Alertable,
-  PLARGE_INTEGER Interval);
-NtDelayExecution_t *NtDelayExecution;
-typedef NTSTATUS __stdcall NtQueryPerformanceCounter_t(
-  PLARGE_INTEGER PerformanceCounter, PLARGE_INTEGER PerformanceFrequency);
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter;
-typedef NTSTATUS __stdcall NtQuerySystemTime_t(PLARGE_INTEGER SystemTime); 
-NtQuerySystemTime_t *NtQuerySystemTime;
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME 0
 #endif

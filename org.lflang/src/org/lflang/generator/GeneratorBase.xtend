@@ -235,6 +235,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
 
+    /**
+     * A prefix for target code predicates like variables and definitions that is reserved for
+     * internal (user-inaccessible) aspects of the generated code.
+     */
+    protected static var String lf_reserved_prefix = "_lf_"
+    
     // //////////////////////////////////////////
     // // Private fields.
     /**

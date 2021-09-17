@@ -47,7 +47,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * For CLOCK_MONOTONIC, it is the difference between those
  * clocks at the start of the execution.
  */
-interval_t _lf_epoch_offset = 0LL;
+LARGE_INTEGER _lf_epoch_offset;
+
+/**
+ * Indicates wether or not the underlying hardware
+ * supports Windows' high-resolution counter. It should
+ * always be supported for Windows Xp and later.
+ */
+int _lf_use_performance_counter = 0;
+
+/**
+ * The denominator to convert the performance counter
+ * to nanoseconds.
+ */
+double _lf_frequency_to_ns = 1;
 
 #define BILLION 1000000000
 
@@ -56,51 +69,41 @@ interval_t _lf_epoch_offset = 0LL;
  * time.
  */
 void calculate_epoch_offset() {
-    if (_LF_CLOCK == CLOCK_REALTIME) {
-        // Set the epoch offset to zero (see tag.h)
-        _lf_epoch_offset = 0LL;
-    } else {
-        // Initialize _lf_epoch_offset to the difference between what is
-        // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC) and
-        // what is reported by CLOCK_REALTIME.
-        instant_t physical_clock_snapshot_ns, real_time_start_ns;
+    SYSTEMTIME s;
+    FILETIME f;
+    LARGE_INTEGER t;
 
-        lf_clock_gettime(&physical_clock_snapshot_ns);
+    s.wYear = 1970;
+    s.wMonth = 1;
+    s.wDay = 1;
+    s.wHour = 0;
+    s.wMinute = 0;
+    s.wSecond = 0;
+    s.wMilliseconds = 0;
+    SystemTimeToFileTime(&s, &f);
+    t.QuadPart = f.dwHighDateTime;
+    t.QuadPart <<= 32;
+    t.QuadPart |= f.dwLowDateTime;
 
-        // Get the CLOCK_REALTIME snapshot
-        int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
-        long long timestamp, counts, counts_per_sec;
-        NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
-        timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
-        timestamp += _lf_epoch_offset;
-        real_time_start_ns = timestamp;
-
-        _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
-    }
-    printf("Clock sync: Initial epoch offset set to %lld.\n", _lf_epoch_offset);
+    _lf_epoch_offset = t;
 }
-
-NtDelayExecution_t *NtDelayExecution = NULL;
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
-NtQuerySystemTime_t *NtQuerySystemTime = NULL;
 
 /**
  * Initialize the LF clock.
  */
-void lf_initialize_clock() {
-    // Load the appropriate Windows APIs
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    if (ntdll) {
-        NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
-        NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
-        NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
+void lf_initialize_clock() {    
+    // Check if the performance counter is available
+    LARGE_INTEGER performanceFrequency;
+    _lf_use_performance_counter = QueryPerformanceFrequency(&performanceFrequency);
+    if (_lf_use_performance_counter) {
+        QueryPerformanceCounter(&_lf_epoch_offset);
+        _lf_frequency_to_ns = (double)performanceFrequency.QuadPart / 1000000000.;
+    } else {
+        error_print(
+            "High resolution performance counter is not supported on this machine.");
+        calculate_epoch_offset();
+        _lf_frequency_to_ns = 0.01;
     }
-
-    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
-    // done here for better uniformity across platforms. This requires access to
-    // an epoch-based clock to begin with, which many baremetal target platforms
-    // will most likely not have.
-    calculate_epoch_offset();
 }
 
 #ifdef NUMBER_OF_WORKERS
@@ -291,39 +294,31 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
  *  set to EINVAL or EFAULT.
  */
 int lf_clock_gettime(instant_t* t) {
+    // Adapted from gclib/GResUsage.cpp 
+    // (https://github.com/gpertea/gclib/blob/8aee376774ccb2f3bd3f8e3bf1c9df1528ac7c5b/GResUsage.cpp)
+    // License: https://github.com/gpertea/gclib/blob/master/LICENSE.txt
     int result = -1;
     if (t == NULL) {
         // The t argument address references invalid memory
         errno = EFAULT;
         return result;
     }
-    int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
-    long long timestamp, counts, counts_per_sec;
-    switch (_LF_CLOCK) {
-        case CLOCK_REALTIME:
-            NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
-            timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
-            timestamp += _lf_epoch_offset;
-            *t = timestamp;
-            result = 0;
-            break;
-        case CLOCK_MONOTONIC:
-            if ((*NtQueryPerformanceCounter)((PLARGE_INTEGER)&counts, (PLARGE_INTEGER)&counts_per_sec) == 0) {
-                counts += _lf_epoch_offset;
-                *t = counts;
-                result = 0;
-            } else {
-                errno = EINVAL;
-                result = -1;
-            }
-            break;
-        default:
-            errno = EINVAL;
-            result = -1;
-            break;
+    LARGE_INTEGER windows_time;
+    FILETIME f;
+
+    if (_lf_use_performance_counter) {
+        QueryPerformanceCounter(&windows_time);
     }
-    // Adjust the clock by the epoch offset, so epoch time is always reported.
-    return result;
+    else {
+        GetSystemTimeAsFileTime(&f);
+        windows_time.QuadPart = f.dwHighDateTime;
+        windows_time.QuadPart <<= 32;
+        windows_time.QuadPart |= f.dwLowDateTime;
+    }
+
+    windows_time.QuadPart -= _lf_epoch_offset.QuadPart;
+    *t = (instant_t)((double)windows_time.QuadPart / _lf_frequency_to_ns);
+    return (0);
 }
 
 /**
@@ -335,20 +330,22 @@ int lf_clock_gettime(instant_t* t) {
  *   - EINVAL: All other errors
  */
 int lf_nanosleep(instant_t requested_time) {
-    unsigned char alertable = requested_time ? 1 : 0;
-    long long duration = -(requested_time/ 100);
-    NTSTATUS status = (*NtDelayExecution)(alertable, (PLARGE_INTEGER)&duration);
-    instant_t now;
-    if (lf_clock_gettime(now) == -1) {
-        error_print("Failed to get the clock value in lf_nanosleep.");
-    }
-    int result = status == 0 ? 0 : -1;
-    if (alertable) {
-        if (status < 0) {
-            errno = EINVAL;
-        } else if (status > 0 && now == 0) {
-            errno = EINTR;
-        }
-    }
-    return result;
+    /* Declarations */
+	HANDLE timer;	/* Timer handle */
+	LARGE_INTEGER li;	/* Time defintion */
+	/* Create timer */
+	if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+		return FALSE;
+	/* Set timer properties */
+	li.QuadPart = -requested_time;
+	if(!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)){
+		CloseHandle(timer);
+		return FALSE;
+	}
+	/* Start & wait for timer */
+	WaitForSingleObject(timer, INFINITE);
+	/* Clean resources */
+	CloseHandle(timer);
+	/* Slept without problems */
+	return TRUE;
 }

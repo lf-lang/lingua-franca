@@ -54,7 +54,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 trigger_handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
-    return __schedule(trigger, extra_delay, token);
+    return _lf_schedule(trigger, extra_delay, token);
 }
 
 /**
@@ -85,7 +85,7 @@ trigger_handle_t _lf_schedule_copy(void* action, interval_t offset, void* value,
     }
     DEBUG_PRINT("schedule_copy: Allocating memory for payload (token value): %p.", trigger);
     // Initialize token with an array size of length and a reference count of 0.
-    lf_token_t* token = __initialize_token(trigger->token, length);
+    lf_token_t* token = _lf_initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
     memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
@@ -273,17 +273,17 @@ int next() {
     _lf_advance_logical_time(next_tag.time);
 
     if (compare_tags(current_tag, stop_tag) >= 0) {        
-        __trigger_shutdown_reactions();
+        _lf_trigger_shutdown_reactions();
     }
 
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
-    __start_time_step();
+    _lf_start_time_step();
     
     // Pop all events from event_q with timestamp equal to current_tag.time,
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
-    __pop_events();
+    _lf_pop_events();
 
     return _lf_do_step();
 }
@@ -326,7 +326,7 @@ bool _lf_is_blocked_by_executing_reaction() {
  */
 int lf_reactor_c_main(int argc, char* argv[]) {
     // Invoke the function that optionally provides default command-line options.
-    __set_default_command_line_options();
+    _lf_set_default_command_line_options();
 
     DEBUG_PRINT("Processing command line arguments.");
     if (process_args(default_argc, default_argv)
@@ -345,13 +345,13 @@ int lf_reactor_c_main(int argc, char* argv[]) {
         initialize(); // Sets start_time.
         current_tag = (tag_t){.time = start_time, .microstep = 0u};
         _lf_execution_started = true;
-        __trigger_startup_reactions();
-        __initialize_timers(); 
+        _lf_trigger_startup_reactions();
+        _lf_initialize_timers(); 
         // If the stop_tag is (0,0), also insert the shutdown
         // reactions. This can only happen if the timeout time
         // was set to 0.
         if (compare_tags(current_tag, stop_tag) >= 0) {
-            __trigger_shutdown_reactions(); // __trigger_shutdown_reactions();
+            _lf_trigger_shutdown_reactions(); // __trigger_shutdown_reactions();
         }
         DEBUG_PRINT("Running the program's main loop.");
         // Handle reactions triggered at time (T,m).

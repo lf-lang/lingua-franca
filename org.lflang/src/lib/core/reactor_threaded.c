@@ -306,7 +306,7 @@ int _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
 trigger_handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     lf_mutex_lock(&mutex);
-    int return_value = __schedule(trigger, extra_delay, token);
+    int return_value = _lf_schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -330,11 +330,11 @@ trigger_handle_t _lf_schedule_copy(void* action, interval_t offset, void* value,
     }
     lf_mutex_lock(&mutex);
     // Initialize token with an array size of length and a reference count of 0.
-    lf_token_t* token = __initialize_token(trigger->token, length);
+    lf_token_t* token = _lf_initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
     memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
-    trigger_handle_t result = __schedule(trigger, offset, token);
+    trigger_handle_t result = _lf_schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_signal(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -352,7 +352,7 @@ trigger_handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* 
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
-    int return_value = __schedule(trigger, extra_delay, token);
+    int return_value = _lf_schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_signal(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -672,7 +672,7 @@ void __next() {
 
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
-    __start_time_step();
+    _lf_start_time_step();
         
     // At this point, finally, we have an event to process.
     // Advance current time to match that of the first event on the queue.
@@ -681,13 +681,13 @@ void __next() {
     if (compare_tags(current_tag, stop_tag) >= 0) {
         // Pop shutdown events
         DEBUG_PRINT("Scheduling shutdown reactions.");
-        __trigger_shutdown_reactions();
+        _lf_trigger_shutdown_reactions();
     }
 
     // Pop all events from event_q with timestamp equal to current_tag.time,
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
-    __pop_events();
+    _lf_pop_events();
 }
 
 /**
@@ -908,13 +908,13 @@ void _lf_initialize_start_tag() {
     current_tag = (tag_t){.time = start_time, .microstep = 0u};
 #endif
 
-    __initialize_timers();
+    _lf_initialize_timers();
 
     // If the stop_tag is (0,0), also insert the shutdown
     // reactions. This can only happen if the timeout time
     // was set to 0.
     if (compare_tags(current_tag, stop_tag) >= 0) {
-        __trigger_shutdown_reactions();
+        _lf_trigger_shutdown_reactions();
     }
 
 #ifdef FEDERATED
@@ -1280,7 +1280,7 @@ void start_threads() {
  */
 int lf_reactor_c_main(int argc, char* argv[]) {
     // Invoke the function that optionally provides default command-line options.
-    __set_default_command_line_options();
+    _lf_set_default_command_line_options();
     
     // Initialize the one and only mutex to be recursive, meaning that it is OK
     // for the same thread to lock and unlock the mutex even if it already holds

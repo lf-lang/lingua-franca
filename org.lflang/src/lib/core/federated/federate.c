@@ -1470,7 +1470,7 @@ trigger_handle_t schedule_message_received_from_network_already_locked(
         LOG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
                     trigger->intended_tag.time - start_time,
                     trigger->intended_tag.microstep);
-        return_value = __schedule(trigger, extra_delay, token);
+        return_value = _lf_schedule(trigger, extra_delay, token);
 #endif
     } else {
         // In case the message is in the future, call
