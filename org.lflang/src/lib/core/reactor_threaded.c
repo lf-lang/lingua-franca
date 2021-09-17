@@ -1314,7 +1314,7 @@ int lf_reactor_c_main(int argc, char* argv[]) {
     // socket write() fails because the reader has closed the socket.
     // Instead, cause an EPIPE error to be set when write() fails.
     signal(SIGPIPE, SIG_IGN);
-#endif SIGPIPE
+#endif // SIGPIPE
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
