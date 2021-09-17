@@ -829,7 +829,7 @@ reaction_t* first_ready_reaction() {
  * on the reaction queue rather than advance time.
  * This variable should only be accessed while holding the mutex lock.
  */
-bool __advancing_time = false;
+bool _lf_advancing_time = false;
 
 /**
  * Put the specified reaction on the reaction queue.
@@ -1022,10 +1022,10 @@ void* worker(void* arg) {
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0) {
             	// Nothing more happening at this logical time.
-                if (!__advancing_time) {
+                if (!_lf_advancing_time) {
                 	// This thread will take charge of advancing time.
                 	// Block other worker threads from doing that.
-                    __advancing_time = true;
+                    _lf_advancing_time = true;
 
                     // If this is not the very first step, notify that the previous step is complete
                     // and check against the stop tag to see whether this is the last step.
@@ -1053,7 +1053,7 @@ void* worker(void* arg) {
                     tracepoint_worker_advancing_time_starts(worker_number);
                     __next();
                     tracepoint_worker_advancing_time_ends(worker_number);
-                    __advancing_time = false;
+                    _lf_advancing_time = false;
                     DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
 
                 } else if (compare_tags(current_tag, stop_tag) >= 0) {

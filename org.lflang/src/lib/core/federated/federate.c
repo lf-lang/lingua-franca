@@ -1038,7 +1038,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
  * @param port_id The port ID.
  * @return A pointer to a trigger_t struct or null if the ID is out of range.
  */
-trigger_t* __action_for_port(int port_id);
+trigger_t* _lf_action_for_port(int port_id);
 
 
 /**
@@ -1048,7 +1048,7 @@ trigger_t* __action_for_port(int port_id);
  * @param status The network port status (port_status_t)
  */
 void set_network_port_status(int portID, port_status_t status) {
-    trigger_t* network_input_port_action = __action_for_port(portID);
+    trigger_t* network_input_port_action = _lf_action_for_port(portID);
     network_input_port_action->status = status;
 }
 
@@ -1058,7 +1058,7 @@ void set_network_port_status(int portID, port_status_t status) {
  */
 void mark_all_unknown_ports_as_absent() {
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
-        trigger_t* input_port_action = __action_for_port(i);
+        trigger_t* input_port_action = _lf_action_for_port(i);
         if (input_port_action->status == unknown) {
             set_network_port_status(i, absent);
         }
@@ -1071,7 +1071,7 @@ void mark_all_unknown_ports_as_absent() {
  */
 bool is_input_control_reaction_blocked() {
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
-        trigger_t* input_port_action = __action_for_port(i);
+        trigger_t* input_port_action = _lf_action_for_port(i);
         if (input_port_action->is_a_control_reaction_waiting) {
             return true;
         }
@@ -1096,7 +1096,7 @@ bool is_input_control_reaction_blocked() {
 void update_last_known_status_on_input_ports(tag_t tag) {
 	bool notify = false;
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
-        trigger_t* input_port_action = __action_for_port(i);
+        trigger_t* input_port_action = _lf_action_for_port(i);
         // This is called when a TAG is received.
         // But it is possible for an input port to have received already
         // a message with a larger tag (if there is an after delay on the
@@ -1136,7 +1136,7 @@ void update_last_known_status_on_input_ports(tag_t tag) {
  * @param portID The port ID
  */
 void update_last_known_status_on_input_port(tag_t tag, int port_id) {
-    trigger_t* input_port_action = __action_for_port(port_id);
+    trigger_t* input_port_action = _lf_action_for_port(port_id);
     if (compare_tags(tag,
             input_port_action->last_known_status_tag) >= 0) {
                 if (compare_tags(tag,
@@ -1175,7 +1175,7 @@ void reset_status_fields_on_input_port_triggers() {
  * indicate whether a control reaction is waiting.
  */
 void mark_control_reaction_waiting(int portID, bool waiting) {
-    trigger_t* network_input_port_action = __action_for_port(portID);
+    trigger_t* network_input_port_action = _lf_action_for_port(portID);
     network_input_port_action->is_a_control_reaction_waiting = waiting;
 }
 
@@ -1188,7 +1188,7 @@ void mark_control_reaction_waiting(int portID, bool waiting) {
  */
 port_status_t get_current_port_status(int portID) {
     // Check whether the status of the port is known at the current tag.
-    trigger_t* network_input_port_action = __action_for_port(portID);
+    trigger_t* network_input_port_action = _lf_action_for_port(portID);
     if (network_input_port_action->status == present) {
         // The status of the trigger is present.
         return present;
@@ -1572,7 +1572,7 @@ void handle_port_absent_message(int socket, int fed_id) {
 
     lf_mutex_lock(&mutex);
 #ifdef FEDERATED_DECENTRALIZED
-    trigger_t* network_input_port_action = __action_for_port(port_id);
+    trigger_t* network_input_port_action = _lf_action_for_port(port_id);
     if (compare_tags(intended_tag,
             network_input_port_action->last_known_status_tag) < 0) {
         lf_mutex_unlock(&mutex);
@@ -1618,7 +1618,7 @@ void handle_message(int socket, int fed_id) {
     DEBUG_PRINT("Receiving message to port %d of length %d.", port_id, length);
 
     // Get the triggering action for the corerponding port
-    trigger_t* action = __action_for_port(port_id);
+    trigger_t* action = _lf_action_for_port(port_id);
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -1668,7 +1668,7 @@ void handle_tagged_message(int socket, int fed_id) {
     DEBUG_PRINT("Receiving message to port %d of length %d.", port_id, length);
 
     // Get the triggering action for the corerponding port
-    trigger_t* action = __action_for_port(port_id);
+    trigger_t* action = _lf_action_for_port(port_id);
 
     // Record the physical time of arrival of the message
     action->physical_time_of_arrival = get_physical_time();
@@ -1725,7 +1725,7 @@ void handle_tagged_message(int socket, int fed_id) {
        // can set the last_known_status_tag to a future tag where messages
        // have not arrived yet.
     if (action->is_a_control_reaction_waiting && 
-            __advancing_time) {
+            _lf_advancing_time) {
         error_print_and_exit("Federate was attempting to advance time "
                              "while control reactions are still present.");
     }
