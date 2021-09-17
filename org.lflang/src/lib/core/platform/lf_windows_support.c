@@ -66,7 +66,7 @@ double _lf_frequency_to_ns = 1.0;
  */
 int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
     uintptr_t handle = _beginthread(lf_thread, 0, arguments);
-	thread = (HANDLE)handle;
+	*thread = (HANDLE)handle;
 	if(thread == (HANDLE)-1){
 		return 1;
 	}else{
@@ -303,7 +303,7 @@ int lf_nanosleep(instant_t requested_time) {
 	if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
 		return FALSE;
 	/* Set timer properties */
-	li.QuadPart = -requested_time;
+	li.QuadPart = -1 * (requested_time / 100.0);
 	if(!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)){
 		CloseHandle(timer);
 		return FALSE;
