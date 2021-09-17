@@ -1145,7 +1145,7 @@ class PythonGenerator extends CGenerator {
             '''
             // Create a token
             lf_token_t* t = create_token(sizeof(PyObject*));
-            t->value = self->__«ref»->value;
+            t->value = self->«lf_reserved_prefix»«ref»->value;
             t->length = 1; // Length is 1
             
             // Pass the token along
@@ -1170,10 +1170,10 @@ class PythonGenerator extends CGenerator {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
-            self->__«outputName».token = (lf_token_t*)self->___«action.name».token;
-            ((lf_token_t*)self->___«action.name».token)->ref_count++;
-            self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
+            self->«lf_reserved_prefix»«outputName».value = («action.inferredType.targetType»)self->«lf_reserved_prefix»_«action.name».token->value;
+            self->«lf_reserved_prefix»«outputName».token = (lf_token_t*)self->«lf_reserved_prefix»_«action.name».token;
+            ((lf_token_t*)self->«lf_reserved_prefix»_«action.name».token)->ref_count++;
+            self->«getStackPortMember('''«lf_reserved_prefix»«outputName»''', "is_present")» = true;
             '''
         } else {
             '''
@@ -1297,7 +1297,7 @@ class PythonGenerator extends CGenerator {
         
         pr('''
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
-            PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+            PyObject *rValue = PyObject_CallObject(self->«lf_reserved_prefix»py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
         ''')
         pr('''
             if (rValue == NULL) {
@@ -1336,7 +1336,7 @@ class PythonGenerator extends CGenerator {
             
             pr('''
                 DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
-                PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+                PyObject *rValue = PyObject_CallObject(self->«lf_reserved_prefix»py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
             ''')
             pr('''
                 if (rValue == NULL) {
@@ -1454,7 +1454,7 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Generate code that is executed while the reactor instance is being initialized
-     * @param initializationCode The StringBuilder appended to __initialize_trigger_objects()
+     * @param initializationCode The StringBuilder appended to _lf_initialize_trigger_objects()
      * @param instance The reactor instance
      * @param federate The federate instance
      */
@@ -1472,25 +1472,25 @@ class PythonGenerator extends CGenerator {
         
         // Initialize the name field to the unique name of the instance
         pr(initializationCode, '''
-            «nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+            «nameOfSelfStruct»->«lf_reserved_prefix»name = "«instance.uniqueID»_lf";
         ''');
         
         for (reaction : instance.reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
             // Create a PyObject for each reaction
             pr(initializationCode, '''
-                «nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->«lf_reserved_prefix»py_reaction_function_«reaction.reactionIndex» = 
                     get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->__lf_name,
+                        «nameOfSelfStruct»->«lf_reserved_prefix»name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "«pythonFunctionName»");
                 ''')
         
             if (reaction.definition.deadline !== null) {
                 pr(initializationCode, '''
-                «nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->«lf_reserved_prefix»py_deadline_function_«reaction.reactionIndex» = 
                     get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->__lf_name,
+                        «nameOfSelfStruct»->«lf_reserved_prefix»name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "deadline_function_«reaction.reactionIndex»");
                 ''')
@@ -1511,17 +1511,17 @@ class PythonGenerator extends CGenerator {
     override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
         val reactor = decl.toDefinition
         // Add the name field
-        pr(selfStructBody, '''char *__lf_name;
+        pr(selfStructBody, '''char *«lf_reserved_prefix»name;
         ''');
         
         var reactionIndex = 0
         for (reaction : reactor.allReactions)
         {
             // Create a PyObject for each reaction
-            pr(selfStructBody, '''PyObject *__py_reaction_function_«reactionIndex»;''')
+            pr(selfStructBody, '''PyObject *«lf_reserved_prefix»py_reaction_function_«reactionIndex»;''')
             
             if (reaction.deadline !== null) {                
-                pr(selfStructBody, '''PyObject *__py_deadline_function_«reactionIndex»;''')
+                pr(selfStructBody, '''PyObject *«lf_reserved_prefix»py_deadline_function_«reactionIndex»;''')
             }
             
             reactionIndex++
