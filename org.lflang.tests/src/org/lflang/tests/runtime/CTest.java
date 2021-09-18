@@ -106,14 +106,14 @@ public class CTest extends ThreadedBase {
     }
     
     /** Static description of test that runs C tests as CCpp. */
-    public static final String RUN_AS_FEDERATED_DESC = "Description: Running C tests as CCpp.";
+    public static final String RUN_AS_CCPP_DESC = "Description: Running C tests as CCpp.";
     
     /**
      * Run C tests with the target CCpp.
      */
     @Test
     public void runAsCCpp() {
-        printTestHeader(RUN_AS_FEDERATED_DESC);
+        printTestHeader(RUN_AS_CCPP_DESC);
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
 
