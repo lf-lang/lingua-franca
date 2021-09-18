@@ -26,10 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.EnumSet;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
+import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * Collection of tests for the C target.
@@ -100,5 +103,23 @@ public class CTest extends ThreadedBase {
     @Override
     public void runFederatedTests() {
         super.runFederatedTests();
+    }
+    
+    /** Static description of test that runs C tests as CCpp. */
+    public static final String RUN_AS_FEDERATED_DESC = "Description: Running C tests as CCpp.";
+    
+    /**
+     * Run C tests with the target CCpp.
+     */
+    @Test
+    public void runAsCCpp() {
+        printTestHeader(RUN_AS_FEDERATED_DESC);
+
+        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
+
+        runTestsAndPrintResults(target,
+                                categories::contains,
+                                it -> ASTUtils.changeTargetName(it.fileConfig.resource, "CCpp"),
+                                true);
     }
 }
