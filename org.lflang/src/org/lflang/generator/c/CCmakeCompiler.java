@@ -88,6 +88,14 @@ public class CCmakeCompiler extends CCompiler {
     public boolean runCCompiler(String file, boolean noBinary, GeneratorBase generator) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        // Remove the previous build directory if it exists to 
+        // avoid any error residue that can occur in CMake from 
+        // a previous build.
+        // FIXME:This is slow and only needed if an error 
+        // has previously occurred. Deleting the build directory
+        // if no prior errors have occurred can prolong the compilation
+        // substantially.
+        fileConfig.deleteDirectory(buildPath);
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
@@ -109,27 +117,17 @@ public class CCmakeCompiler extends CCompiler {
         
         int cMakeReturnCode = compile.run();
         
-        if (cMakeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+        if (cMakeReturnCode != 0 && 
+                fileConfig.getCompilerMode() != Mode.INTEGRATED && 
+                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
-            
-            // Check if the error thrown is due to the wrong compiler
-            if (compile.getErrors().toString().contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
-                // If so, print an appropriate error message
-                if (targetConfig.compiler != null) {
-                    errorReporter.reportError(
-                            "A C++ compiler was requested in the compiler target property."
-                                    + " Use the CCpp or the Cpp target instead.");
-                } else {
-                    errorReporter.reportError("\"A C++ compiler was detected."
-                           + " The C target works best with a C compiler." 
-                           + " Use the CCpp or the Cpp target instead.\"");
-                }
-            }
         }
         
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+        if (compile.getErrors().toString().length() > 0 && 
+                fileConfig.getCompilerMode() == Mode.INTEGRATED &&
+                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
         
@@ -140,14 +138,23 @@ public class CCmakeCompiler extends CCompiler {
             
             makeReturnCode = build.run();
             
-            if (makeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+            if (makeReturnCode != 0 && 
+                    fileConfig.getCompilerMode() != Mode.INTEGRATED &&
+                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
             }
             
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (build.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+            if (build.getErrors().toString().length() > 0 && 
+                    fileConfig.getCompilerMode() == Mode.INTEGRATED &&
+                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 generator.reportCommandErrors(build.getErrors().toString());
+            }
+            
+
+            if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+                System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
             }
             
         }
@@ -229,6 +236,38 @@ public class CCmakeCompiler extends CCompiler {
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
+    }
+    
+    /**
+     * Check if the output produced by CMake has any known and common errors.
+     * If a known error is detected, a specialized, more informative message
+     * is shown.
+     * 
+     * Errors currently detected:
+     * - C++ compiler used to compile C files: This error shows up as 
+     *  '#error "The CMAKE_C_COMPILER is set to a C++ compiler"' in 
+     *  the 'CMakeOutput' string.
+     * 
+     * @param CMakeOutput The captured output from CMake.
+     * @return true if the provided 'CMakeOutput' contains a known error.
+     *  false otherwise.
+     */
+    private boolean outputContainsKnownCMakeErrors(String CMakeOutput) {
+        // Check if the error thrown is due to the wrong compiler
+        if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
+            // If so, print an appropriate error message
+            if (targetConfig.compiler != null) {
+                errorReporter.reportError(
+                        "A C++ compiler was requested in the compiler target property."
+                                + " Use the CCpp or the Cpp target instead.");
+            } else {
+                errorReporter.reportError("\"A C++ compiler was detected."
+                       + " The C target works best with a C compiler." 
+                       + " Use the CCpp or the Cpp target instead.\"");
+            }
+            return true;
+        }
+        return false;
     }
     
 }
