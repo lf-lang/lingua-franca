@@ -65,20 +65,15 @@ class CCmakeGenerator {
      * @param sources A list of .c files to build.
      * @param executableName The name of the output executable.
      * @param errorReporter Used to report errors.
+     * @param CppMode Indicate if the compilation should happen in C++ mode
      * @return The content of the CMakeLists.txt.
      */
-    StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
+    StringBuilder generateCMakeCode(
+            List<String> sources, 
+            String executableName, 
+            ErrorReporter errorReporter,
+            boolean CppMode) {
         StringBuilder cMakeCode = new StringBuilder();
-        // Decide if the compilation should happen in C++ mode
-        boolean CppMode = false;
-        if (targetConfig.compiler.equals("g++") || 
-                targetConfig.compiler.equals("CC") ||
-                targetConfig.compiler.equals("clang++")) {
-            // Interpret this as the user wanting their .c programs to be treated as
-            // C++ files.
-            // FIXME: Possibly need a better mechanism to switch to C++ mode.
-            CppMode = true;
-        }
         
         // Resolve path to the cmake include files if any was provided
         LinkedHashSet<String> resolvedIncludeFiles = new LinkedHashSet<String>();
@@ -169,9 +164,6 @@ class CCmakeGenerator {
                 cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
                 // We can't just simply use g++ to compile C code. We use a 
                 // specific CMake flag to set the language of all .c files to C++.
-                for (String source: sources) {
-                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
-                }
                 // Also convert any additional sources
                 for (String source: additionalSources) {
                     cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");

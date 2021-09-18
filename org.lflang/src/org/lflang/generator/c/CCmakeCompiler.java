@@ -25,7 +25,6 @@
 
 package org.lflang.generator.c;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +34,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Mode;
 import org.lflang.TargetConfig;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.util.LFCommand;
 
 
@@ -45,6 +45,23 @@ import org.lflang.util.LFCommand;
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
 public class CCmakeCompiler extends CCompiler {
+    
+    /**
+     * Create an instance of CCmakeCompiler.
+     * 
+     * @param targetConfig The current target configuration.
+     * @param fileConfig The current file configuration.
+     * @param errorReporter Used to report errors.
+     * @param CppMode Indicate if the compilation should happen in C++ mode
+     */
+    public CCmakeCompiler(
+            TargetConfig targetConfig, 
+            FileConfig fileConfig, 
+            ErrorReporter errorReporter, 
+            boolean CppMode
+            ) {
+        super(targetConfig, fileConfig, errorReporter, CppMode);
+    }
 
     /**
      * Create an instance of CCmakeCompiler.
@@ -63,10 +80,12 @@ public class CCmakeCompiler extends CCompiler {
      * @param file The source file to compile without the .c extension.
      * @param noBinary If true, the compiler will create a .o output instead of a binary. 
      *  If false, the compile command will produce a binary.
+     * @param generator An instance of GenratorBase, only used to report error line numbers
+     *  in the Eclipse IDE.
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary) throws IOException {
+    public boolean runCCompiler(String file, boolean noBinary, GeneratorBase generator) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         // Make sure the build directory exists
@@ -79,30 +98,39 @@ public class CCmakeCompiler extends CCompiler {
 
         // Use the user-specified compiler if any
         if (targetConfig.compiler != null) {
-            // cmakeEnv.remove("CXX");
-            if (targetConfig.compiler.equals("g++") || 
-                    targetConfig.compiler.equals("CC") ||
-                    targetConfig.compiler.equals("clang++")) {
-                // Interpret this as the user wanting their .c programs to be treated as
-                // C++ files. We can't just simply use g++ to compile C code. We use a 
-                // specific CMake flag to set the language of all .c files to C++ (@see
-                // CCmakeGenerator.java), and set the CXX compiler to what the user has requested.
-                // Using other C++ compilers will result in CMake throwing the following
-                // error:
-                //    "The CMAKE_C_COMPILER is set to a C++ compiler"
+            if (CppMode) {
+                // Set the CXX environment variable to change the C++ compiler.
                 compile.replaceEnvironmentVariable("CXX", targetConfig.compiler);
             } else {
                 // Set the CC environment variable to change the C compiler.
                 compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
             }
-            // cmakeEnv.put("CXX", targetConfig.compiler);
         }
         
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         int cMakeReturnCode = compile.run();
         
         if (cMakeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
+            
+            // Check if the error thrown is due to the wrong compiler
+            if (compile.getErrors().toString().contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
+                // If so, print an appropriate error message
+                if (targetConfig.compiler != null) {
+                    errorReporter.reportError(
+                            "A C++ compiler was requested in the compiler target property."
+                                    + " Use the CCpp or the Cpp target instead.");
+                } else {
+                    errorReporter.reportError("\"A C++ compiler was detected."
+                           + " The C target works best with a C compiler." 
+                           + " Use the CCpp or the Cpp target instead.\"");
+                }
+            }
+        }
+        
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (compile.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+            generator.reportCommandErrors(compile.getErrors().toString());
         }
         
         int makeReturnCode = 0;
@@ -116,12 +144,12 @@ public class CCmakeCompiler extends CCompiler {
                 errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
             }
             
-        }
-        
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            errorReporter.reportError(stderr.toString());
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (build.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+                generator.reportCommandErrors(build.getErrors().toString());
+            }
+            
         }
         
         return ((cMakeReturnCode == 0) && (makeReturnCode == 0));
@@ -164,7 +192,7 @@ public class CCmakeCompiler extends CCompiler {
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
-                    "The C target requires CMAKE >= 3.5 to compile the generated code. " +
+                    "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. " +
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
@@ -197,7 +225,7 @@ public class CCmakeCompiler extends CCompiler {
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
-                    "The C target requires CMAKE >= 3.5 to compile the generated code. " +
+                    "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. " +
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
