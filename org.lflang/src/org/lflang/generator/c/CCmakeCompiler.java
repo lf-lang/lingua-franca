@@ -174,15 +174,7 @@ public class CCmakeCompiler extends CCompiler {
     public LFCommand compileCmakeCommand(
             String fileToCompile, 
             boolean noBinary
-    ) {
-        
-
-        if (!targetConfig.compileLibraries.isEmpty()) {
-            errorReporter.reportError("The current CMake build system does not support -l libraries.\n"+
-                                        "Use the 'cmake-include' target property to include a CMakeLists file\n"+
-                                        "with the appropriate library discovery syntax.");
-        }
-        
+    ) {        
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         
