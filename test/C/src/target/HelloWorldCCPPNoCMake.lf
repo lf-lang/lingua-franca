@@ -1,17 +1,20 @@
 /**
  * This test is a variant of HelloWorld.lf that checks the basic compatibility
- * of the C runtime with g++. This test should not pass if it does not compile.
+ * of the CCpp target in conjunction with the legacy build system. This test 
+ * should not pass if it does not compile.
  */
-target C {
+target CCpp {
     tracing: true,
-    compiler: "g++",
-    flags: "-Wno-write-strings", // Suppress a ridiculous number of warnings.
-    logging: DEBUG
+    logging: DEBUG,
+    cmake: false
 };
 reactor HelloWorld {
+    preamble {=
+        #include <iostream>
+    =}
     state success:bool(false);
     reaction(startup) {=
-        printf("Hello World.\n");
+        std::cout << "Hello World." << std::endl;
         self->success = true;
     =}
     reaction(shutdown) {=
