@@ -7,7 +7,7 @@ target C {
     docker: true,
     cmake: false
 };
-reactor HelloWorld2 {
+reactor HelloWorld {
     state success:bool(false);
     reaction(startup) {=
         printf("Hello World.\n");
@@ -23,5 +23,5 @@ reactor HelloWorld2 {
 }
 
 main reactor HelloWorldNoCMake {
-    a = new HelloWorld2();
+    a = new HelloWorld();
 }
