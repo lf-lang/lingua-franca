@@ -1,5 +1,6 @@
 /**
- * Test that the compile infrastructure still works if CMake is disabled.
+ * A variant of HelloWorld.lf that checks
+ * that the compile infrastructure still works if CMake is disabled.
  */
 target C {
     tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.

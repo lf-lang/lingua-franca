@@ -1,7 +1,8 @@
 /**
- * This test is a variant of HelloWorld.lf that checks the basic compatibility
- * of the CCpp target in conjunction with the legacy build system. This test 
- * should not pass if it does not compile.
+ * A variant of HelloWorld.lf that tests the 
+ * CCpp target in conjunction with the legacy build system (
+ * CMake disabled). This test should not pass if it does not 
+ * compile.
  */
 target CCpp {
     tracing: true,

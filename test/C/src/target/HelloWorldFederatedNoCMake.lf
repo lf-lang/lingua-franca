@@ -1,6 +1,7 @@
 /**
- * This test is a variant of HelloWorld.lf that checks the compatibility
- * of the federated C runtime with no CMake. This test should not pass if it does not compile.
+ * A variant of HelloWorld.lf that checks the compatibility
+ * of the federated C runtime with no CMake. This test 
+ * should not pass if it does not compile.
  */
 target C {
     tracing: true,
