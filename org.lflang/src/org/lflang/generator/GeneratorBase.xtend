@@ -285,7 +285,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * 
      */
-    def void setTargetConfig(IGeneratorContext context) {
+    protected def void setTargetConfig(IGeneratorContext context) {
         // If there are any physical actions, ensure the threaded engine is used.
         for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
             if (action.origin == ActionOrigin.PHYSICAL) {

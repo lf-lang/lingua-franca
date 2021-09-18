@@ -26,7 +26,7 @@ public enum TargetProperty {
      * Directive to let the generator use the custom build command.
      */
     BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 config.buildCommands = ASTUtils.toListOfStrings(value);
             }),
     
@@ -43,7 +43,7 @@ public enum TargetProperty {
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
                         .forName(ASTUtils.toText(value));
             }),
@@ -52,7 +52,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
-            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C),
+            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
             (config, value) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
@@ -96,7 +96,7 @@ public enum TargetProperty {
      * can be adjusted in the included file.
      */
     CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
-            Arrays.asList(Target.CPP, Target.C), (config, value) -> {
+            Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value) -> {
                 config.cmakeIncludes = ASTUtils.toListOfStrings(value);
             }),
     
@@ -106,7 +106,7 @@ public enum TargetProperty {
      * The default is enabled.
      */
     CMAKE("cmake", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 config.useCmake = ASTUtils.toBoolean(value);
             }),
     
@@ -123,7 +123,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
@@ -195,7 +195,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C),
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
             (config, value) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
@@ -251,7 +251,7 @@ public enum TargetProperty {
      * code included in the sources.
      */
     PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
-            Arrays.asList(Target.C, Target.TS, Target.Python),
+            Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
             (config, value) -> {
                 config.protoFiles = ASTUtils.toListOfStrings(value);
             }),
@@ -286,7 +286,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();

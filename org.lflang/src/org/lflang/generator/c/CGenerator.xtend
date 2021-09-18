@@ -348,12 +348,17 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
+    
+    // Indicate whether the generator is in Cpp mode or not
+    var boolean CCppMode = false;
+
+    new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter)
+        this.CCppMode = CCppMode;        
+    }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
-        super(fileConfig, errorReporter)
-        // set defaults
-        targetConfig.compiler = "gcc"
-        targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
+        super(fileConfig, errorReporter)       
     }
 
     ////////////////////////////////////////////
@@ -362,6 +367,22 @@ class CGenerator extends GeneratorBase {
     override printInfo() {
         super.printInfo()
         println('******** generated binaries: ' + fileConfig.binPath)
+    }
+
+    /**
+     * 
+     */
+    override setTargetConfig(IGeneratorContext context) {
+        super.setTargetConfig(context);
+        // Set defaults for the compiler after parsing the target properties
+        // of the main .lf file.
+        if(this.CCppMode && targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+            targetConfig.compiler = "g++"
+            targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
+        } else if (targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+            targetConfig.compiler = "gcc"
+            targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
+        } 
     }
 
     /**
@@ -376,7 +397,7 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, fsa, context)     
+        super.doGenerate(resource, fsa, context)
 
         if (errorsOccurred) return;
 
@@ -512,7 +533,7 @@ class CGenerator extends GeneratorBase {
             generateReactorDefinitionsForFederate(federate);
         
             // Derive target filename from the .lf filename.
-            val cFilename = CCompiler.getTargetFileName(topLevelName);
+            val cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
 
 
             var file = fileConfig.getSrcGenPath().resolve(cFilename).toFile
@@ -808,7 +829,8 @@ class CGenerator extends GeneratorBase {
                 cmakeGenerator.generateCMakeCode(
                         #[cFilename], 
                         topLevelName, 
-                        errorReporter
+                        errorReporter,
+                        CCppMode
                     ).toString().getBytes(),
                     cmakeFile
                 )
@@ -830,17 +852,19 @@ class CGenerator extends GeneratorBase {
                 val cleanCode = getCode.removeLineDirectives.getBytes();
                 val execName = topLevelName
                 val threadFileConfig = fileConfig;
+                val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
+                val CppMode = CCppMode;
                 compileThreadPool.execute(new Runnable() {
                     override void run() {
                         // Create the compiler to be used later
                         var cCompiler = new CCompiler(targetConfig, threadFileConfig,
-                            errorReporter);
+                            errorReporter, CppMode);
                         if (targetConfig.useCmake) {
                             // Use CMake if requested.
                             cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
-                                errorReporter);
+                                errorReporter, CppMode);
                         }
-                        if (!cCompiler.runCCompiler(execName, main === null)) {
+                        if (!cCompiler.runCCompiler(execName, main === null, generator)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
                         }
