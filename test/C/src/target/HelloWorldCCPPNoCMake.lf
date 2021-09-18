@@ -8,23 +8,7 @@ target CCpp {
     logging: DEBUG,
     cmake: false
 };
-reactor HelloWorld {
-    preamble {=
-        #include <iostream>
-    =}
-    state success:bool(false);
-    reaction(startup) {=
-        std::cout << "Hello World." << std::endl;
-        self->success = true;
-    =}
-    reaction(shutdown) {=
-        printf("Shutdown invoked.\n");
-        if (!self->success) {
-            fprintf(stderr, "ERROR: startup reaction not executed.\n");
-            exit(1);
-        }
-    =}
-}
+import HelloWorld from "HelloWorldCCPP.lf";
 main reactor {
     a = new HelloWorld();
 }

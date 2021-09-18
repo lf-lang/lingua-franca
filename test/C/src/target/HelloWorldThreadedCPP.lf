@@ -1,0 +1,13 @@
+/**
+ * This test is a variant of HelloWorld.lf that checks the compatibility
+ * of the threaded C runtime with g++. This test should not pass if it does not compile.
+ */
+target CCpp {
+    tracing: true,
+    threads: 1,
+    logging: DEBUG
+};
+import HelloWorld from "HelloWorldCCPP.lf";
+main reactor {
+    a = new HelloWorld();
+}
