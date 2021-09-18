@@ -131,9 +131,7 @@ public class CCompiler {
         }
         
         if (returnCode == 0 && compile.getErrors().toString().length() == 0) {
-            System.out.println("SUCCESS (compiling generated code for "+ fileConfig.name +")");
-            System.out.println("Generated source code is in " + fileConfig.getSrcGenPath());
-            System.out.println("Compiled binary is in " + fileConfig.binPath);
+            System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
         }
         
         return (returnCode == 0);
