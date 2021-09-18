@@ -1113,7 +1113,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // In case errors occur within an imported file, record the original path.
         val originalPath = path;
         
-        var severity = IMarker.SEVERITY_ERROR
+        var severity = IMarker.SEVERITY_WARNING
         for (line : lines) {
             val parsed = parseCommandOutput(line)
             if (parsed !== null) {
@@ -1167,17 +1167,22 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
         if (message.length > 0) {
-            if (severity == IMarker.SEVERITY_ERROR)
+            if (severity == IMarker.SEVERITY_ERROR) {
                 errorReporter.reportError(path, lineNumber, message.toString())
-            else
+            } else {
                 errorReporter.reportWarning(path, lineNumber, message.toString())
+            }
 
             if (originalPath != path) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
-                errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                if (severity == IMarker.SEVERITY_ERROR) {
+                    errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                } else {
+                    errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                }
             }
         }
     }
