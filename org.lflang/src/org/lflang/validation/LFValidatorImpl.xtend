@@ -319,7 +319,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
-            if (this.target == Target.C &&
+            if ((this.target == Target.C || this.target == Target.CCPP) &&
                 this.info.overflowingAssignments.contains(assignment)) {
                 error(
                     "Time value used to specify a deadline exceeds the maximum of " +
@@ -340,13 +340,13 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (this.target != Target.C && this.target != Target.CPP && this.target != Target.Python) {
+        if (this.target != Target.C && this.target != Target.CCPP && this.target != Target.CPP && this.target != Target.Python) {
             error("Multiports and banks are currently only supported by the C and Cpp targets.",
                 Literals.WIDTH_SPEC__TERMS)
         } else {
             for (term : widthSpec.terms) {
                 if (term.parameter !== null) {
-                    if (this.target != Target.C && this.target != Target.Python && this.target != Target.CPP) {
+                    if (this.target != Target.C && this.target != Target.CCPP && this.target != Target.Python && this.target != Target.CPP) {
                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else if (term.port !== null) {
@@ -404,7 +404,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         // For the C target, since C has such a weak type system, check that
         // the types on both sides of every connection match. For other languages,
         // we leave type compatibility that language's compiler or interpreter.
-        if (this.target == Target.C) {
+        if (this.target == Target.C || this.target == Target.CCPP) {
             var type = null as Type
             for (port : connection.leftPorts) {
                 // If the variable is not a port, then there is some other
@@ -549,7 +549,7 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
-        if (this.target == Target.C &&
+        if ((this.target == Target.C || this.target == Target.CCPP) &&
             this.info.overflowingDeadlines.contains(deadline)) {
             error(
                 "Deadline exceeds the maximum of " +
@@ -559,7 +559,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     }
 @Check(FAST)
     def checkSTPOffset(STP stp) {
-        if (this.target == Target.C &&
+        if ((this.target == Target.C || this.target == Target.CCPP) &&
             this.info.overflowingDeadlines.contains(stp)) {
             error(
                 "STP offset exceeds the maximum of " +
@@ -649,7 +649,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (instantiation.widthSpec !== null
                 && instantiation.widthSpec.ofVariableLength
         ) {
-            if (this.target == Target.C) {
+            if (this.target == Target.C || this.target == Target.CCPP) {
                 warning("Variable-width banks are for internal use only.",
                     Literals.INSTANTIATION__WIDTH_SPEC
                 )
@@ -777,7 +777,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             }
         }
 
-        if (this.target == Target.C &&
+        if ((this.target == Target.C || this.target == Target.CCPP) &&
             this.info.overflowingParameters.contains(param)) {
             error(
                 "Time value used to specify a deadline exceeds the maximum of " +
@@ -1174,7 +1174,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
 
-        if (this.target == Target.C && stateVar.init.size > 1) {
+        if ((this.target == Target.C || this.target == Target.CCPP) && stateVar.init.size > 1) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
             if (stateVar.init.exists[it.parameter !== null]) {
@@ -1330,7 +1330,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Check(FAST)
     def checkVarRef(VarRef varRef) {        
         if (varRef.isInterleaved) {
-            if (this.target != Target.CPP && this.target != Target.C && this.target != Target.Python) {
+            if (this.target != Target.CPP && this.target != Target.C && this.target != Target.CCPP && this.target != Target.Python) {
                 error("This target does not support interleaved port references", Literals.VAR_REF__INTERLEAVED)
             }
             if (varRef.container === null || varRef.container.widthSpec === null || 
