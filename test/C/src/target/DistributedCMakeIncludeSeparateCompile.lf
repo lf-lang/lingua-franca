@@ -7,7 +7,7 @@ target C {
     timeout: 0 sec
 };
 
-import Foo from "../target/CMakeInclude.lf"
+import Foo from "CMakeInclude.lf"
 import Bar from "DistributedCMakeInclude.lf"
 
 federated reactor {
