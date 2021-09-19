@@ -99,7 +99,6 @@ class CCmakeGenerator {
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileConfig.toUnixString(relativePath));
         }
-        // additionalSources.addAll(targetConfig.compileLibraries);
         
         cMakeCode.append("cmake_minimum_required(VERSION 3.13)\n");
         cMakeCode.append("project("+executableName+" LANGUAGES C)\n");
@@ -161,14 +160,13 @@ class CCmakeGenerator {
             if (CppMode) {
                 // First enable the CXX language
                 cMakeCode.append("enable_language(CXX)\n");
+                // Suppress warnings about const char*.
                 cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
                 // Finally, set the CXX compiler to what the user has requested.
                 cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
             } else {
                 cMakeCode.append("set(CMAKE_C_COMPILER "+targetConfig.compiler+")\n");
             }
-            
-            // cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
         }
         
         // Set the compiler flags
