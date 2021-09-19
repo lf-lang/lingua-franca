@@ -165,6 +165,10 @@ class CCmakeGenerator {
                 // We can't just simply use g++ to compile C code. We use a 
                 // specific CMake flag to set the language of all .c files to C++.
                 // Also convert any additional sources
+                // FIXME: This is a deprecated functionality in clang, but intermingling
+                // C compiled code and C++ compiled code seems to require a substantial
+                // overhaul of the C target code structure. Instead, we force the usage
+                // of a C++ compiler on everything for now.
                 for (String source: additionalSources) {
                     cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
                 }
