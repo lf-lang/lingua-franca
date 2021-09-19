@@ -15,10 +15,10 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/piprecision"
-    lf_file: "piprecision/PiPrecision.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+    lf_file: "parallelism/PiPrecision.lf"
     binary: "PiPrecision"
-    gen_args:
-      workers: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       precision: ["--precision", "<value>"]
+      workers: ["--numWorkers", "<value>"]
