@@ -170,24 +170,13 @@
     <requirement
         name="org.eclipse.epp.mpc.feature.group"/>
     <requirement
+        name="org.eclipse.tm.terminal.feature.feature.group"/>
+    <requirement
         name="org.eclipse.xtext.sdk.feature.group"
         versionRange="2.25.0"/>
     <repository
         url="http://download.eclipse.org/modeling/tmf/xtext/updates/composite/releases/"/>
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
-  </setupTask>
-  <setupTask
-      xsi:type="setup.p2:P2Task">
-    <requirement
-        name="org.jetbrains.kotlin.feature.feature.group"/>
-    <requirement
-        name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
-    <requirement
-        name="org.eclipse.ajdt.feature.group"/>
-    <repository
-        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
-    <repository
-        url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
@@ -322,6 +311,8 @@
         <requirement
             name="org.python.pydev.feature.feature.group"/>
         <requirement
+            name="org.eclipse.tm.terminal.feature.feature.group"/>
+        <requirement
             name="com.google.inject"/>
         <requirement
             name="javax.annotation"/>
@@ -336,8 +327,6 @@
             versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.platform.source.feature.group"/>
-        <requirement
-            name="org.jetbrains.kotlin.feature.feature.group"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
@@ -384,8 +373,6 @@
               url="https://www.pydev.org/updates/"/>
           <repository
               url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
-          <repository
-              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last/"/>
           <repository
               url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
         </repositoryList>
@@ -462,8 +449,6 @@
             versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
-        <requirement
-            name="org.jetbrains.kotlin.feature.feature.group"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
@@ -472,8 +457,6 @@
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
               url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
-          <repository
-              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
         </repositoryList>
       </targlet>
     </setupTask>
