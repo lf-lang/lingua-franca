@@ -5,7 +5,7 @@
 target C {
     cmake-include: [
         "../include/mlib-cmake-extension.cmake", 
-        "../include/bar-cmake-compile-definition.txt"
+        "../include/foo-cmake-compile-definition.txt"
     ],
     timeout: 0 sec
 };
@@ -15,12 +15,12 @@ reactor Foo {
         #include <math.h>
     =}
     reaction (startup) {=
-        info_print("Maximum of 4.20 and %.2f is %.2f", BAR, fmax(4.20, BAR));
+        info_print("Maximum of 4.20 and %.2f is %.2f", FOO, fmax(4.20, FOO));
         
-        // Check if FOO is defined, which is an error condition (@see federated/DistributedCMakeIncludeSeparateCompile.lf).
-        #ifdef FOO
-        #error "Failed to compile federates separately
-        #endif // FOO
+        // Check if BAR is defined, which is an error condition (@see federated/DistributedCMakeIncludeSeparateCompile.lf).
+        #ifdef BAR
+        #error "Failed to compile federates separately"
+        #endif // BAR
     =}
 }
 

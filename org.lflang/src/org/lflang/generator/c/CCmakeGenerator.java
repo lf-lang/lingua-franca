@@ -33,7 +33,6 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.lf.LfPackage.Literals;
 
 /**
  * A helper class that generates a CMakefile that can be used to compile the generated C code.
