@@ -116,6 +116,13 @@ public class CTest extends ThreadedBase {
         printTestHeader(RUN_AS_CCPP_DESC);
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
+        
+        categories.removeAll(EnumSet.of(
+                // Don't need to test examples.
+                // If any of them uses CCpp, it will
+                // be tested when compileExamples is
+                // run.
+                TestCategory.EXAMPLE));
 
         runTestsAndPrintResults(target,
                                 categories::contains,
