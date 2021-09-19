@@ -17,7 +17,7 @@ reactor Bar {
         
         // Check if FOO is defined, which is an error condition (@see DistributedCMakeIncludeSeparateCompile.lf).
         #ifdef FOO
-        #error "Failed to compile federates separately"
+        #error "I found definition for FOO in Bar. Failed to compile federates separately."
         #endif // FOO
     =}
 }
