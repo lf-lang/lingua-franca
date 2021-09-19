@@ -449,10 +449,7 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
-        }
-        
-        addPlatformFiles(coreFiles);
-        
+        }        
         
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
@@ -492,6 +489,23 @@ class CGenerator extends GeneratorBase {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 fileConfig = new FedFileConfig(fileConfig, federate.name);
                 
+                // Reset the cmake-includes, to be repopulated for each federate individually.
+                // This is done to enable support for separately
+                // adding cmake-includes for different federates to prevent linking and mixing
+                // all federates' supporting libraries/files together.
+                targetConfig.cmakeIncludes.clear();
+                
+                // Re-apply the cmake-include target property of the main .lf file.
+                val target = mainDef.reactorClass.toDefinition.eResource.findTarget
+                if (target.config !== null) {
+                    // Update the cmake-include
+                    TargetProperty.updateOne(
+                        this.targetConfig, 
+                        TargetProperty.CMAKE_INCLUDE.description,
+                        target.config.pairs ?: emptyList
+                    )
+                }
+                
                 // Need to copy user files again since the source structure changes
                 // for federated programs.
                 copyUserFiles();
@@ -508,6 +522,9 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
             }
+            
+        
+            addPlatformFiles(coreFiles);
             
             // Copy the core lib
             fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)

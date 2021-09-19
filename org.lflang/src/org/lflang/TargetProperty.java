@@ -415,6 +415,39 @@ public enum TargetProperty {
             }
         });
     }
+    
+    /**
+     * Update one of the target properties, given by 'propertyName'.
+     * For convenience, a list of target properties (e.g., taken from
+     * a file or resource) can be passed without any filtering. This
+     * function will do nothing if the list of target properties doesn't
+     * include the property given by 'propertyName'.
+     * 
+     * @param config The target config to apply the update to.
+     * @param propertyName The name of the target property.
+     * @param properties AST node that holds all the target properties.
+     */
+    public static void updateOne(
+            TargetConfig config,
+            String propertyName,
+            List<KeyValuePair> properties
+            ) {
+        TargetProperty p = forName(propertyName);
+        if (p != null) {
+            Element value = properties
+                    .stream()
+                    .filter(
+                            property -> property.getName().equals(propertyName)
+                    ).findFirst()
+                    .map(o -> { return o.getValue(); }).orElse(null);
+            if (value != null) {
+                p.updater.accept(
+                        config, 
+                        value
+                );
+            }
+        }
+    }
 
     /**
      * Return the entry that matches the given string.
