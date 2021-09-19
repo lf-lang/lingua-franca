@@ -162,6 +162,13 @@ class CCmakeGenerator {
                 cMakeCode.append("enable_language(CXX)\n");
                 // Suppress warnings about const char*.
                 cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+                // We can't just simply use g++ to compile C code. We use a 
+                // specific CMake flag to set the language of all .c files to C++.
+                // Also convert any additional sources
+                for (String source: additionalSources) {
+                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
+                }
+                cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
                 // Finally, set the CXX compiler to what the user has requested.
                 cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
             } else {
