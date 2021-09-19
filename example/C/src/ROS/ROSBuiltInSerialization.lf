@@ -1,6 +1,6 @@
 /**
- * This example showcases the infrastructure that is built into LF
- * C runtime that can automatically serialize and deserialize ROS2
+ * This example showcases the infrastructure that is built into the
+ * CCpp target that can automatically serialize and deserialize ROS2
  * messages in federated programs.
  * 
  * This example contains a sender-receiver federated program in which  
@@ -21,11 +21,10 @@
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
- target C {
+ target CCpp {
     cmake: true,  // Only CMake is supported
     cmake-include: "include/CMakeListsExtension.txt",
     threads: 1,
-    compiler: "g++"
 };
 
 preamble {=

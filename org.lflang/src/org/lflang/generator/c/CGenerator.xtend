@@ -4695,6 +4695,9 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 case SupportedSerializers.ROS2: {
+                    if(!CCppMode) {
+                        throw new UnsupportedOperationException("To use the ROS 2 serializer, please use the CCpp target.")
+                    }
                     val ROSSerializer = new FedROS2CPPSerialization();
                     pr(ROSSerializer.generatePreambleForSupport.toString);
                     cMakeExtras = '''
