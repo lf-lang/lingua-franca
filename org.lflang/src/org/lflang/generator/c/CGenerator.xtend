@@ -449,7 +449,9 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
-        }        
+        }
+        
+        addPlatformFiles(coreFiles);
         
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
@@ -522,9 +524,6 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
             }
-            
-        
-            addPlatformFiles(coreFiles);
             
             // Copy the core lib
             fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
