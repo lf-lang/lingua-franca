@@ -102,6 +102,7 @@ OF SUCH DAMAGE.
       <feature id="org.eclipse.cdt"/>
       <feature id="org.python.pydev.feature"/>
       <feature id="de.cau.cs.kieler.klighd.view.feature"/>
+      <feature id="org.eclipse.tm.terminal.feature"/>
    </features>
 
    <configurations>

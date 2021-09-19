@@ -13,7 +13,7 @@ outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
 mkdir -p $outname/bin
 mkdir -p $outname/lib
 
-mv org.lflang/build/libs/org.lflang-*-SNAPSHOT-all.jar $outname/lib
+mv org.lflang.lfc/build/libs/org.lflang.lfc-*-SNAPSHOT-all.jar $outname/lib
 
 # Move & patch wrappers
 sed -e '/^lfbase=/d' -e 's/\${lfbase}build\/libs/\${base}lib/g' -e '/^if \[\[ ! -f "\$jarpath" \]\]; then/{n;N;N;d}' bin/lfc > $outname/bin/lfc

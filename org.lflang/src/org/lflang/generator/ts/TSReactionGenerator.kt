@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
+import org.lflang.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -20,7 +21,9 @@ import kotlin.collections.HashSet
 class TSReactionGenerator(
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter
+    private val errorReporter: ErrorReporter,
+    private val reactor : Reactor,
+    private val federate: FederateInstance
 ) {
     private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -75,7 +78,7 @@ class TSReactionGenerator(
     ): String {
         var deadlineArgs = ""
         if (reaction.deadline.delay.parameter != null) {
-            deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()";
+            deadlineArgs += "this.${reaction.deadline.delay.parameter.name}.get()";
         } else {
             deadlineArgs += reaction.deadline.delay.getTargetValue()
         }
@@ -112,7 +115,7 @@ class TSReactionGenerator(
         val reactionTriggers = StringJoiner(",\n")
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
-                reactionTriggers.add("this." + trigger.generateVarRef())
+                reactionTriggers.add("this.${trigger.generateVarRef()}")
             } else if (trigger.isStartup) {
                 reactionTriggers.add("this.startup")
             } else if (trigger.isShutdown) {
@@ -143,10 +146,7 @@ class TSReactionGenerator(
     }
 
     // TODO(hokeun): Decompose this function further.
-    fun generateReaction(
-        reactor : Reactor,
-        reaction: Reaction
-    ): String {
+    private fun generateSingleReaction(reactor : Reactor, reaction: Reaction): String {
         // Determine signature of the react function
         val reactSignature = StringJoiner(", ")
         reactSignature.add("this")
@@ -221,7 +221,7 @@ class TSReactionGenerator(
                 }
 
                 reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
-                reactFunctArgs.add("this." + trigOrSource.generateVarRef())
+                reactFunctArgs.add("this.${trigOrSource.generateVarRef()}")
                 if (trigOrSource.container == null) {
                     reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
                 } else {
@@ -243,7 +243,7 @@ class TSReactionGenerator(
         val reactEpilogue = LinkedList<String>()
         for (effect in reaction.effects) {
             var functArg = ""
-            var reactSignatureElement = "" + generateArg(effect)
+            var reactSignatureElement = generateArg(effect)
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
             } else if (effect.variable is Action){
@@ -269,7 +269,7 @@ class TSReactionGenerator(
             }
 
             if (effect.container == null) {
-                reactPrologue.add("let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
+                reactPrologue.add("let ${effect.variable.name} = __${effect.variable.name}.get();")
             } else {
                 // Hierarchical references are handled later because there
                 // could be references to other members of the same reactor.
@@ -287,33 +287,28 @@ class TSReactionGenerator(
         if (schedActionSet.size > 0) {
             val prologueActionObjectBody = StringJoiner(", ")
             for (act in schedActionSet) {
-                prologueActionObjectBody.add(act.name + ": __" + act.name)
+                prologueActionObjectBody.add("${act.name}: __${act.name}")
             }
-            reactPrologue.add(
-                "let actions = {"
-                        + prologueActionObjectBody + "};"
-            )
+            reactPrologue.add("let actions = {$prologueActionObjectBody};")
         }
 
         // Add parameters to the react function
         for (param in reactor.parameters) {
 
             // Underscores are added to parameter names to prevent conflict with prologue
-            reactSignature.add("__" + param.name + ": __Parameter<"
-                    + param.getTargetType() + ">")
-            reactFunctArgs.add("this." + param.name)
+            reactSignature.add("__${param.name}: __Parameter<${param.getTargetType()}>")
+            reactFunctArgs.add("this.${param.name}")
 
-            reactPrologue.add("let " + param.name + " = __" + param.name + ".get();")
+            reactPrologue.add("let ${param.name} = __${param.name}.get();")
         }
 
         // Add state to the react function
         for (state in reactor.stateVars) {
             // Underscores are added to state names to prevent conflict with prologue
-            reactSignature.add("__" + state.name + ": __State<"
-                    + state.getTargetType() + ">")
-            reactFunctArgs.add("this." + state.name )
+            reactSignature.add("__${state.name}: __State<${state.getTargetType()}>")
+            reactFunctArgs.add("this.${state.name}")
 
-            reactPrologue.add("let " + state.name + " = __" + state.name + ".get();")
+            reactPrologue.add("let ${state.name} = __${state.name}.get();")
             reactEpilogue.add(with(PrependOperator) {"""
                     |if (${state.name} !== undefined) {
                     |    __${state.name}.set(${state.name});
@@ -343,5 +338,31 @@ class TSReactionGenerator(
             reactFunctArgs,
             reactSignature
         )
+    }
+
+    fun generateAllReactions(): String {
+        val reactionCodes = LinkedList<String>()
+        // Next handle reaction instances.
+        // If the app is federated, only generate
+        // reactions that are contained by that federate
+        val generatedReactions: List<Reaction>
+        if (reactor.isFederated) {
+            generatedReactions = LinkedList<Reaction>()
+            for (reaction in reactor.reactions) {
+                if (federate.containsReaction(reactor, reaction)) {
+                    generatedReactions.add(reaction)
+                }
+            }
+        } else {
+            generatedReactions = reactor.reactions
+        }
+
+        ///////////////////// Reaction generation begins /////////////////////
+        // TODO(hokeun): Consider separating this out as a new class.
+        for (reaction in generatedReactions) {
+            // Write the reaction itself
+            reactionCodes.add(generateSingleReaction(reactor, reaction))
+        }
+        return reactionCodes.joinToString("\n")
     }
 }
