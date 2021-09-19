@@ -306,6 +306,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>
  */
 class CGenerator extends GeneratorBase {
     
