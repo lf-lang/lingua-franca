@@ -341,7 +341,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
         if (this.target != Target.C && this.target != Target.CCPP && this.target != Target.CPP && this.target != Target.Python) {
-            error("Multiports and banks are currently only supported by the C and Cpp targets.",
+            error("Multiports and banks are currently not supported by the given target.",
                 Literals.WIDTH_SPEC__TERMS)
         } else {
             for (term : widthSpec.terms) {
