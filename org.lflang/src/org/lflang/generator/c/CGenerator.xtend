@@ -89,6 +89,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.TargetConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -491,14 +492,17 @@ class CGenerator extends GeneratorBase {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 fileConfig = new FedFileConfig(fileConfig, federate.name);
                 
-                // Reset the cmake-includes, to be repopulated for each federate individually.
+                // Reset the cmake-includes and files, to be repopulated for each federate individually.
                 // This is done to enable support for separately
-                // adding cmake-includes for different federates to prevent linking and mixing
+                // adding cmake-includes/files for different federates to prevent linking and mixing
                 // all federates' supporting libraries/files together.
                 targetConfig.cmakeIncludes.clear();
+                targetConfig.cmakeIncludesWithoutPath.clear();
+                targetConfig.fileNames.clear();
+                targetConfig.filesNamesWithoutPath.clear();
                 
                 // Re-apply the cmake-include target property of the main .lf file.
-                val target = mainDef.reactorClass.toDefinition.eResource.findTarget
+                val target = mainDef.reactorClass.eResource.findTarget
                 if (target.config !== null) {
                     // Update the cmake-include
                     TargetProperty.updateOne(
@@ -506,11 +510,17 @@ class CGenerator extends GeneratorBase {
                         TargetProperty.CMAKE_INCLUDE.description,
                         target.config.pairs ?: emptyList
                     )
+                    // Update the files
+                    TargetProperty.updateOne(
+                        this.targetConfig, 
+                        TargetProperty.FILES.description,
+                        target.config.pairs ?: emptyList
+                    )
                 }
                 
                 // Need to copy user files again since the source structure changes
                 // for federated programs.
-                copyUserFiles();
+                copyUserFiles(this.targetConfig, this.fileConfig);
                 
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
@@ -891,17 +901,43 @@ class CGenerator extends GeneratorBase {
         // target definition of the .lf file in which the reactor is imported from and
         // append any cmake-include.
         // Check if the reactor definition is imported
-        if (reactor.toDefinition.eResource !== mainDef.reactorClass.toDefinition.eResource) {
-            val target = reactor.toDefinition.eResource.findTarget
-            if (target.config !== null) {
-                // Update the configuration according to the set target properties.
-                TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
+        if (reactor.eResource !== mainDef.reactorClass.eResource) {
+            // Find the LFResrouce corresponding to this eResource
+            val lfResource = resources.filter[ 
+                r | return r.EResource === reactor.eResource;
+            ].get(0);
+            
+            // Copy the user files and cmake-includes to the src-gen path of the main .lf file
+            if (lfResource !== null) {
+                copyUserFiles(lfResource.targetConfig, lfResource.fileConfig);
             }
+            
             // Extract the contents of the imported file for the preambles
             val contents = reactor.toDefinition.eResource.contents;
             val model = contents.get(0) as Model
             // Add the preambles from the imported .lf file
             reactor.toDefinition.preambles.addAll(model.preambles)
+        }
+    }
+    
+    /**
+     * Copy all files listed in the target property `files` and `cmake-include` 
+     * into the src-gen folder of the main .lf file
+     * 
+     * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
+     */
+    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+        super.copyUserFiles(targetConfig, fileConfig);
+        
+        val targetDir = this.fileConfig.getSrcGenPath
+        for (filename : targetConfig.cmakeIncludes) {
+            this.targetConfig.cmakeIncludesWithoutPath.add(
+                fileConfig.copyFileOrResource(
+                    filename,
+                    fileConfig.srcFile.parent,
+                    targetDir)
+            );
         }
     }
     

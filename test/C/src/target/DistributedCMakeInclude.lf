@@ -7,8 +7,9 @@ target C {
     timeout: 0 sec,
     cmake-include: "include/bar-cmake-compile-definition.cmake"
 };
-
+import Baz from "lib/ImportedCMakeInclude.lf";
 reactor Bar {
+    baz = new Baz();
     preamble {=
         #include <math.h>
     =}
