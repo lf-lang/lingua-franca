@@ -378,11 +378,13 @@ class CGenerator extends GeneratorBase {
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
         if(this.CCppMode && targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
-            targetConfig.compiler = "g++"
-            targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
-        } else if (targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
-            targetConfig.compiler = "gcc"
-            targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
+            if (this.CCppMode) {
+                targetConfig.compiler = "g++"
+                targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
+            } else {
+                targetConfig.compiler = "gcc"
+                targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
+            }
         } 
     }
 
