@@ -162,7 +162,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected var Set<Resource> resources = newLinkedHashSet
+    protected var Set<LFResource> resources = newLinkedHashSet
     
     /**
      * Graph that tracks dependencies between instantiations. 
@@ -384,7 +384,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         analyzeFederates()
         
         // Process target files. Copy each of them into the src-gen dir.
-        copyUserFiles()
+        // FIXME: Should we do this here? I think the Cpp target doesn't support
+        // the files property and this doesn't make sense for federates the way it is
+        // done here.
+        copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. These are needed to figure out which resources we need
         // to validate, which happens in setResources().
@@ -447,7 +450,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def transformDelays() {
          for (r : this.resources) {
-             r.insertGeneratedDelays(this)
+             r.eResource.insertGeneratedDelays(this)
         }
     }
 
@@ -458,9 +461,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param context The context providing the cancel indicator used by the validator.
      */
     protected def setResources(IGeneratorContext context) {
+        val fsa = this.fileConfig.fsa;
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         if (mainDef !== null) {
             reactors.add(mainDef.reactorClass as Reactor);
+            this.resources.add(
+                new LFResource(
+                    mainDef.reactorClass.eResource,
+                    this.fileConfig,
+                    this.targetConfig));
         }
         // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
         // as tainted or fail to validate.
@@ -482,26 +491,41 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             }
                         }
                     }
+                    // Read the target property of the imported file
+                    val target = res.findTarget
+                    var targetConfig = new TargetConfig();
+                    if (target.config !== null) {
+                        TargetProperty.set(targetConfig, target.config.pairs ?: emptyList);
+                    }
+                    // Add it to the list of LFResources
+                    this.resources.add(
+                        new LFResource(
+                            res,
+                            new FileConfig(res, fsa, context),
+                            targetConfig)
+                    )
                 }
-                this.resources.add(res)
             }
         }
     }
 
     /**
      * Copy all files listed in the target property `files` into the
-     * specified directory.
+     * src-gen folder of the main .lf file.
+     * 
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected def copyUserFiles() {
+    protected def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         // Make sure the target directory exists.
         val targetDir = this.fileConfig.getSrcGenPath
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            targetConfig.filesNamesWithoutPath.add(
+            this.targetConfig.filesNamesWithoutPath.add(
                 fileConfig.copyFileOrResource(
                     filename,
-                    this.fileConfig.srcFile.parent,
+                    fileConfig.srcFile.parent,
                     targetDir)
             );
         }

@@ -27,7 +27,6 @@ package org.lflang.generator.c;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -74,29 +73,6 @@ class CCmakeGenerator {
             ErrorReporter errorReporter,
             boolean CppMode) {
         StringBuilder cMakeCode = new StringBuilder();
-        
-        // Resolve path to the cmake include files if any was provided
-        LinkedHashSet<String> resolvedIncludeFiles = new LinkedHashSet<String>();
-        for (String includeFile : targetConfig.cmakeIncludes) { 
-            if (!includeFile.isBlank()) {
-                try {
-                    String relativeFileName = fileConfig.copyFileOrResource(
-                            includeFile,
-                            this.fileConfig.srcFile.getParent(),
-                            this.fileConfig.getSrcGenPath());
-                    if (!relativeFileName.isBlank()) {
-                        resolvedIncludeFiles.add(relativeFileName);
-                    } else {
-                        errorReporter.reportError(
-                                "Could not find cmake-include resource " +
-                                includeFile  + "."
-                        );
-                    }
-                } catch (Exception e) {
-                    errorReporter.reportError(e.getMessage());
-                }
-            }
-        }
         
         List<String> additionalSources = new ArrayList<String>();
         for (String file: targetConfig.compileAdditionalSources) {
@@ -228,14 +204,9 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         // Add the include file
-        for (String includeFile : resolvedIncludeFiles) {
+        for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
             cMakeCode.append("include("+includeFile+")\n");
-        }
-        
-        // Add the include file
-        for (String includeFile : resolvedIncludeFiles) {
-            cMakeCode.append("include("+includeFile+")\n");
-        }  
+        } 
         
         return cMakeCode;
     }

@@ -58,6 +58,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.TargetConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -1117,9 +1118,14 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Copy Python specific target code to the src-gen directory
-     */        
-    override copyUserFiles() {
-        super.copyUserFiles()
+     * Also, copy all files listed in the target property `files` into the
+     * src-gen folder of the main .lf file.
+     * 
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
+     */
+    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+        super.copyUserFiles(targetConfig, fileConfig);
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");

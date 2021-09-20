@@ -110,9 +110,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r)
+            val generator = CppPreambleGenerator(r.getEResource(), cppFileConfig, scopeProvider)
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
             cppSources.add(sourceFile)
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
