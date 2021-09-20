@@ -161,7 +161,7 @@ class CCmakeGenerator {
             cMakeCode.append("\n");
         }
         
-        if (targetConfig.compiler != null) {
+        if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
             if (CppMode) {
                 // First enable the CXX language
                 cMakeCode.append("enable_language(CXX)\n");
