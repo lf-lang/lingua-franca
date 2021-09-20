@@ -377,7 +377,7 @@ class CGenerator extends GeneratorBase {
         super.setTargetConfig(context);
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
-        if(this.CCppMode && targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+        if(targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++"
                 targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
