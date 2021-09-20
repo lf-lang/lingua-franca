@@ -540,7 +540,9 @@ public class FileConfig {
                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
                return file.getFileName().toString();
            } catch (IOException e) {
-               // Will try to find the file as a resource.
+               // Files has failed to copy the file, possibly since
+               // it doesn't exist. Will try to find the file as a 
+               // resource before giving up.
            }
        } 
        
