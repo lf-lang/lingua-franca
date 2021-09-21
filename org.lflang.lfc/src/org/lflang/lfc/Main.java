@@ -377,7 +377,7 @@ public class Main {
      * @return
      */
     private boolean rebuildAndFork() {
-        // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-0.1.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
+        // jar:file:<root>org.lflang.lfc/build/libs/org.lflang.lfc-<semver>-SNAPSHOT-all.jar!/org/lflang/lfc/Main.class
         if (needsUpdate()) {
             // Only rebuild if the jar is out-of-date.
             reporter.printInfo("Jar file is missing or out-of-date; running Gradle.");
