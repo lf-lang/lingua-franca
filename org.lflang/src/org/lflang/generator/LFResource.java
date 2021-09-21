@@ -5,7 +5,7 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 
 /**
- * An intermediate representation of discovered resources
+ * A class that keeps metadata for discovered resources
  * during code generation and the supporting structures
  * associated with that resource.
  * 
