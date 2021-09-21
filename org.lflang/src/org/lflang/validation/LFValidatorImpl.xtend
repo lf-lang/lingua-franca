@@ -1218,6 +1218,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         val fastTargetProperty = fastTargetProperties.findFirst[t | true];
 
         if (fastTargetProperty !== null) {
+            // Check for federated
             if (info.model.reactors.exists(
                 reactor |
                     // Check to see if the program has a federated reactor
@@ -1225,6 +1226,19 @@ class LFValidatorImpl extends AbstractLFValidator {
             )) {
                 error(
                     "The fast target property is incompatible with federated programs.",
+                    fastTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
+                )
+            }
+            
+            // Check for physical actions
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a physical action in a reactor
+                    reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
+            )) {
+                error(
+                    "The fast target property is incompatible with physical actions.",
                     fastTargetProperty,
                     Literals.KEY_VALUE_PAIR__NAME
                 )
