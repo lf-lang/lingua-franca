@@ -40,6 +40,4 @@ class SynthesisErrorReporter implements ErrorReporter {
     }
     
     override getErrorsOccurred() { return false }
-    
-    override reset() {}
 }

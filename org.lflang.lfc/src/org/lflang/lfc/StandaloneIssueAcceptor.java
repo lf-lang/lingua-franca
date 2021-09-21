@@ -29,11 +29,6 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
     }
 
 
-    void reset() {
-        collector.reset();
-    }
-
-
     void accept(LfIssue lfIssue) {
         collector.accept(lfIssue);
     }
