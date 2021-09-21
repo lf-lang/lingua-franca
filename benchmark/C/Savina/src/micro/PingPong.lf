@@ -31,7 +31,8 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    fast: true
+    fast: true,
+    clock-sync: off
 };
 reactor Ping(count:int(10000000)) {
     input receive:int;
