@@ -3,7 +3,14 @@
  * The failure for this test is failure to compile.
  */
 target C {
-    cmake-include: ["../include/mlib-cmake-extension.cmake", "../include/bar-cmake-compile-definition.txt"],
+    cmake-include: [
+        "mlib-cmake-extension.cmake", 
+        "bar-cmake-compile-definition.txt"
+    ],
+    files: [
+        "../include/mlib-cmake-extension.cmake", 
+        "../include/bar-cmake-compile-definition.txt"
+    ],
     timeout: 0 sec
 };
 

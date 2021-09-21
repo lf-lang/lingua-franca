@@ -400,6 +400,9 @@ class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
+        
+        // Add ctarget.c to the sources
+        targetConfig.compileAdditionalSources.add("ctarget.c");
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
@@ -460,6 +463,10 @@ class CGenerator extends GeneratorBase {
             if (isFederated) {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 fileConfig = new FedFileConfig(fileConfig, federate.name);
+                
+                 // Need to copy user files again since the source structure changes
+                 // for federated programs.
+                 copyUserFiles();
                 
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
@@ -1104,6 +1111,7 @@ class CGenerator extends GeneratorBase {
      */
     def copyTargetHeaderFile() {
         copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
+        copyFileFromClassPath("/lib/C/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
     }
 
     ////////////////////////////////////////////

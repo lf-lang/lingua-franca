@@ -75,7 +75,13 @@ class CCmakeGenerator {
         for (String includeFile : targetConfig.cmakeIncludes) { 
             if (!includeFile.isBlank()) {
                 try {
-                    resolvedIncludeFiles.add(FileConfig.toUnixString(fileConfig.srcPath.resolve(includeFile)));
+                    resolvedIncludeFiles.add(
+                            FileConfig.toUnixString(
+                                    fileConfig.getSrcGenPath().relativize(
+                                            fileConfig.getSrcGenPath().resolve(includeFile)
+                                            )
+                                    )
+                            );
                 } catch (Exception e) {
                     errorReporter.reportError(e.getMessage());
                 }

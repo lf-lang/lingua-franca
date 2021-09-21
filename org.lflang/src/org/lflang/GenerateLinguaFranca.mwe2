@@ -21,6 +21,9 @@ Workflow {
                 eclipsePluginTest = {
                     enabled = true
                 }
+                web = {
+                    enabled = false
+                }
                 createEclipseMetaData = true
             }
             code = {
@@ -49,9 +52,12 @@ Workflow {
             parserGenerator = {
                 debugGrammar = true
             }
-             generator = {
-                 generateXtendMain = false
-             }
+            generator = {
+                generateXtendMain = false
+            }
+            projectWizard = {
+                generate = true
+            }
         }
     }
 }
