@@ -76,7 +76,7 @@ class TargetConfig {
      * Useful for copying them to remote machines. This is needed because
      * target cmake-includes can be resources with resource paths.
      */
-    public List<String> cmakeIncludesWithoutPath = newLinkedList;
+    public List<String> cmakeIncludesWithoutPath = newArrayList;
 
     /**
      * The compiler to invoke, unless a build command has been specified.
