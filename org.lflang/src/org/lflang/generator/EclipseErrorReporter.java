@@ -220,25 +220,19 @@ public class EclipseErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Clear markers in the IDE if running in integrated mode.
+     * Clear markers in the IDE
      * This has the side effect of setting the iResource variable to point to
      * the IFile for the Lingua Franca program.
-     * Also reset the flag indicating that generator errors occurred.
      */
-    @Override
-    public void reset() {
-        errorsOccurred = false;
-
-        if (fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            try {
-                IResource resource = fileConfig.getIResource(fileConfig.srcFile);
-                // First argument can be null to delete all markers.
-                // But will that delete xtext markers too?
-                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
-            } catch (Exception e) {
-                // Ignore, but print a warning
-                reportWarning("Deleting markers in the IDE failed: $e");
-            }
+    public void clearMarkers() {
+        try {
+            IResource resource = fileConfig.getIResource(fileConfig.srcFile);
+            // First argument can be null to delete all markers.
+            // But will that delete xtext markers too?
+            resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+        } catch (Exception e) {
+            // Ignore, but print a warning
+            reportWarning("Deleting markers in the IDE failed: $e");
         }
     }
 }
