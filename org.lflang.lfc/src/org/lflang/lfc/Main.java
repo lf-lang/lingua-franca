@@ -347,7 +347,7 @@ public class Main {
         } else {
             cmdList.add("./gradlew");
         }
-        cmdList.add("generateStandaloneCompiler");
+        cmdList.add("buildLfc");
         if (!this.mustUpdate()) {
             cmdList.add("--offline");
         }
