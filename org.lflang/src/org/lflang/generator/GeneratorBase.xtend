@@ -497,13 +497,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     if (target.config !== null) {
                         TargetProperty.set(targetConfig, target.config.pairs ?: emptyList);
                     }
+                    val fileConfig = new FileConfig(res, fsa, context);
                     // Add it to the list of LFResources
                     this.resources.add(
                         new LFResource(
                             res,
-                            new FileConfig(res, fsa, context),
+                            fileConfig,
                             targetConfig)
-                    )
+                    );
+                    // FIXME: Should the GeneratorBase pull in `files` from imported
+                    // resources? If so, uncomment the following line.
+                    // copyUserFiles(targetConfig, fileConfig);
                 }
             }
         }
