@@ -59,7 +59,7 @@ public class Main {
      * The location of the class file of this class inside of the jar.
      */
     private static String MAIN_PATH_IN_JAR = String.join("/",
-                                                         new String[] {"!", "org", "lflang", "generator", "Main.class"});
+                                                         new String[] {"!", "org", "lflang", "lfc", "Main.class"});
 
     
     /**
@@ -240,8 +240,8 @@ public class Main {
             String jarUrl = mainClassUrl.replace("jar:", "").replace(MAIN_PATH_IN_JAR, "");
 
             main.jarPath = Paths.get(new URL(jarUrl).toURI());
-            main.srcPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "src")).normalize();
-            main.rootPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "..")).normalize();
+            main.srcPath = main.jarPath.getParent().getParent().getParent().resolve("src").normalize();
+            main.rootPath = main.jarPath.getParent().getParent().getParent().getParent().normalize();
         } catch (MalformedURLException | URISyntaxException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
