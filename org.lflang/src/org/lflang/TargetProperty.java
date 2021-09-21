@@ -174,6 +174,9 @@ public enum TargetProperty {
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL),
             (config, value) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
+            },
+            (config, value) -> {
+                config.fileNames.addAll(ASTUtils.toListOfStrings(value));
             }),
     
     /**
