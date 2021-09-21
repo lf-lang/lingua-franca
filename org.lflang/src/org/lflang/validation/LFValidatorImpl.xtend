@@ -1226,7 +1226,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                 error(
                     "The fast target property is incompatible with federated programs.",
                     fastTargetProperty,
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
 
@@ -1234,7 +1234,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         
         val clockSyncTargetProperties = targetProperties.pairs.filter(
             pair |
-                // Check to see if fast is defined
+                // Check to see if clock-sync is defined
                 TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
         )
         
@@ -1248,7 +1248,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
                     clockSyncTargetProperty,
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
         }
