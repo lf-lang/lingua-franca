@@ -902,7 +902,7 @@ class CGenerator extends GeneratorBase {
         // append any cmake-include.
         // Check if the reactor definition is imported
         if (reactor.eResource !== mainDef.reactorClass.eResource) {
-            // Find the LFResrouce corresponding to this eResource
+            // Find the LFResource corresponding to this eResource
             val lfResource = resources.filter[ 
                 r | return r.EResource === reactor.eResource;
             ].get(0);

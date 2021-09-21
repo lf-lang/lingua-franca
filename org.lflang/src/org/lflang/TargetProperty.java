@@ -99,6 +99,10 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value) -> {
                 config.cmakeIncludes = ASTUtils.toListOfStrings(value);
             },
+            // FIXME: This merging of lists is potentially dangerous since
+            // the incoming list of cmake-includes can belong to a .lf file that is
+            // located in a different location, and keeping just filename
+            // strings like this without absolute paths is incorrect.
             (config, value) -> {
                 config.cmakeIncludes.addAll(ASTUtils.toListOfStrings(value));
             }),
@@ -175,6 +179,10 @@ public enum TargetProperty {
             (config, value) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
+            // FIXME: This merging of lists is potentially dangerous since
+            // the incoming list of files can belong to a .lf file that is
+            // located in a different location, and keeping just filename
+            // strings like this without absolute paths is incorrect.
             (config, value) -> {
                 config.fileNames.addAll(ASTUtils.toListOfStrings(value));
             }),
