@@ -151,9 +151,8 @@ ${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLoc
                 |            _self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
                 |            _self._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
                 |
-${"             |           "..localDependencyDeclarations(reactor)}
-                |        }
-                |        {
+${"             |            "..graphDependencyDeclarations(reactor)}
+                |
 ${"             |            "..declareChildConnections()}
                 |        }
 ${"             |        "..nestedInstances.joinToString("\n") { "_assembler.register_reactor(${it.lfName});" }}
@@ -270,35 +269,12 @@ ${"         |    "..declarations}
     private fun ReactorInfo.timerReactionId(timer: TimerData) =
         reactions.size + timers.indexOf(timer).also { assert(it != -1) }
 
-    private fun localDependencyDeclarations(reactor: ReactorInfo): String {
-        fun allDownstreamDeps(component: ReactorComponent): List<String> =
-            reactor.influencedReactionsOf(component).map {
-                it.invokerId
-            }.let { base ->
-                if (component is TimerData) {
-                    // timers have an additional reaction to reschedule themselves
-                    val rescheduleReactionId = "_assembler.new_reaction(Some(\"timer-${component.lfName}\"))"
-                    base + rescheduleReactionId
-                } else base
-            }
-
-
-        return reactor.otherComponents.joinToString("\n") {
-            "_self." + it.rustFieldName + ".set_downstream(" + allDownstreamDeps(it).toVecLiteral() + ".into());"
-        }
-    }
-
-    /**
-     * Returns a list of the reactions which need to be triggered
-     * when the [component] is set at a specific time step. Eg if
-     * the component is a port, the reactions to trigger are all
-     * those which have registered a dependency on that port.
-     */
-    private fun ReactorInfo.influencedReactionsOf(component: ReactorComponent): List<ReactionInfo> =
-        reactions.filter {
-            component in it.triggers
-        }
-
+    private fun graphDependencyDeclarations(reactor: ReactorInfo): String =
+        reactor.reactions.flatMap {
+            it.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${it.invokerId});" } +
+            it.effects.map { trigger -> "_assembler.declare_effects(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" } +
+            it.effects.map { trigger -> "_assembler.declare_uses(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" }
+        }.joinToString("\n")
 
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
