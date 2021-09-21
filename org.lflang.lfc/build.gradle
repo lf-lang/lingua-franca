@@ -34,5 +34,5 @@ task runLfc(type: JavaExec) {
     description = "Build and run LFC, use --args to pass arguments"
     group = "application"
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'org.lflang.generator.Main'
+    mainClass = 'org.lflang.lfc.Main'
 }
