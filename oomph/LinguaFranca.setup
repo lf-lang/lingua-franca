@@ -190,7 +190,7 @@
   <setupTask
       xsi:type="git:GitCloneTask"
       id="git.clone.lingua.franca"
-      remoteURI="icyphy/lingua-franca"
+      remoteURI="lf-lang/lingua-franca"
       checkoutBranch="${git.clone.lingua.franca.branch}"
       recursive="true">
     <annotation
@@ -285,7 +285,7 @@
     <setupTask
         xsi:type="setup:EclipseIniTask"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/lf-lang/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>
@@ -392,7 +392,7 @@
     <setupTask
         xsi:type="setup:EclipseIniTask"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/lf-lang/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>
