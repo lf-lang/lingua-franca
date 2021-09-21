@@ -53,8 +53,16 @@
 // [[[end]]]
 
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     flags: "-lm",
-    fast: true
+    fast: true,
 };
 
 
