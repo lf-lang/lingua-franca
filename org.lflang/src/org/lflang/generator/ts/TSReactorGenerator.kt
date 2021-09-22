@@ -1,7 +1,9 @@
 package org.lflang.generator.ts
 
 import org.lflang.*
-import org.lflang.generator.FederateInstance
+import org.lflang.ASTUtils.isInitialized
+import org.lflang.ASTUtils.toText
+import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import java.util.*
