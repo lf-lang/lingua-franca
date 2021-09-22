@@ -14,7 +14,7 @@ reactor Processor {
             printf("Sleeping (discarded: %c)\n", char_in->value);
 		=}
 
-		reaction(pause) -> Process history {=
+		reaction(pause) -> Process continue {=
             printf("Resuming\n");
             SET_MODE(Process);
 		=}

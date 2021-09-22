@@ -499,7 +499,7 @@ enum TimeUnit:
     WEEK='week' | WEEKS='weeks';
 
 enum ModeTransitionTypes:
-    RESET='reset' | HISTORY='history';
+    RESET='reset' | HISTORY='continue';
 
 // An arbitrary sequence of terminals.
 Body:
