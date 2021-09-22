@@ -17,7 +17,6 @@ reactor Source {
 }
 
 reactor Sieve {
-        //TODO Floating point exception (core dumped) ab hier!
         private preamble {=
             #include "reactor-cpp/logging.hh"
         =}
