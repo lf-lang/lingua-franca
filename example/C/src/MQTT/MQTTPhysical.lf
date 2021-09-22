@@ -62,9 +62,11 @@
 target C {
     // Must use threaded implementation so schedule is thread safe.
     threads: 1,
+    cmake-include: "include/mosquitto-extension.cmake",
+    files: ["include/FindMosquitto.cmake","/lib/core/federated/net_util.c", "/lib/core/federated/net_util.h"],
     // Need to compile net_util.c also because this is not federated so it will not be
     // included automatically.
-    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/core/federated/net_util.c",
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
     timeout: 10 secs
 };
   
