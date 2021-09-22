@@ -63,9 +63,9 @@
  */
 target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
-    flags: "-lpaho-mqtt3c",
-    cmake-include: "include/mosquitto-extension.cmake",
-    files: "include/FindMosquitto.cmake",
+    cmake-include: [
+        "include/paho-extension.cmake", 
+        "include/mosquitto-extension.cmake"],
     timeout: 10 secs,
     keepalive: true,
     cmake: true
