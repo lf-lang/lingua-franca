@@ -121,10 +121,9 @@ class ModelInfo {
             this._topologyCycles = topologyGraph.getCycles()
         }
         
-        // Find the target. A target must exist because the grammar requires it.
-        var Target target = Target.forName(
-            model.eAllContents.toIterable.filter(TargetDecl).head.name)
-        
+        // may be null if the target is invalid
+        var Target target = Target.forName(model.targetDecl.name).orElse(null)
+
         // Perform C-specific traversals.
         if (target == Target.C) {
             this.collectOverflowingNodes()
