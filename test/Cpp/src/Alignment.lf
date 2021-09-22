@@ -24,7 +24,6 @@ reactor Sieve {
         input in:int;
         output out:bool;
         state primes:std::vector<int>;
-        state last_prime:int(0);
         reaction(startup) {=
             // There are 1229 primes between 1 and 10,000.
             // Primes 1 and 2 are not on the list.
