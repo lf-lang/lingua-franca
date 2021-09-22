@@ -34,7 +34,7 @@ provides a convenient way to do that.
 To use this, include the following flags in your target properties:
 <pre>
 target C {
-    flags: "-lncurses",
+    cmake-include: "include/ncurses-cmake-extension.txt", // Adds support for ncurses
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
 };
 </pre>
@@ -83,6 +83,11 @@ int start_sensor_simulator(
 		char* log_file,
 		int log_level
 );
+
+/**
+ * End ncurses control of the terminal.
+ */
+void end_sensor_simulator();
 
 /**
  * Place a tick (usually a single character) in the tick window.

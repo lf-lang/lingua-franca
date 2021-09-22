@@ -12,8 +12,8 @@ if [ ! "$0" = "${0##*/*}" ]; then  # Do we have a parent directory?
 	base="${0%/*}/"
 fi
 base="${base}../"
-lfbase="${base}org.lflang/"
-jarpath="${lfbase}build/libs/org.lflang-0.1.0-SNAPSHOT-all.jar"
+lfbase="${base}org.lflang.lfc/"
+jarpath="${lfbase}build/libs/org.lflang.lfc-0.1.0-SNAPSHOT-all.jar"
 
 # Report fatal error.
 function fatal_error() {
@@ -31,7 +31,7 @@ popd () {
 # Build first if no jar exists.
 if [[ ! -f "$jarpath" ]]; then
     pushd "$base"
-    ./gradlew generateStandaloneCompiler
+    ./gradlew buildLfc
     popd
 fi
 

@@ -26,15 +26,15 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/trapezoid"
-    lf_file: "trapezoid/Trapezoidal.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+    lf_file: "parallelism/Trapezoidal.lf"
     binary: "Trapezoidal"
-    gen_args:
-      workers: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       pieces: ["--numPieces", "<value>"]
       left: ["--leftEndPoint", "<value>"]
       right: ["--rightEndPoint", "<value>"]
+      workers: ["--numWorkers", "<value>"]
   lf-c:
     copy_sources:
       - "${lf_path}/benchmark/C/Savina/src/parallelism/Trapezoidal.lf"

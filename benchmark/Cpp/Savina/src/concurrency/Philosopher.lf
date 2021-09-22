@@ -1,0 +1,217 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This implementation stays close to the Savina implementation
+ * with Akka. There is no notion of time and there is no delay
+ * or work done when a philosopher is thinking or eating.
+ * 
+ * @author Hannes Klein
+ * @author Christian Menard
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+public preamble {=
+    enum MsgType {
+      StartMsg,
+      HungryMsg,
+      DoneMsg,
+      ExitMsg,
+      DeniedMsg,
+      EatMsg
+    };
+    
+    struct Message {
+    
+      MsgType type;
+    };
+=}
+
+reactor ArbitratorReactor(numPhilosophers:size_t(20)) {
+    
+    state messagesToSend: std::vector<std::pair<int,Message>>;
+    state forks: std::vector<bool>;
+    state numExitedPhilosophers: size_t{0};
+    
+    input inStart: void;
+    output outFinished: void;
+    
+    output[numPhilosophers] outPhilosophers: Message;
+    input[numPhilosophers] inPhilosophers: Message;
+    output outCounter: void;
+    
+    logical action sendMessages: void;
+    
+    reaction(startup) {=
+        forks.resize(numPhilosophers, false);
+        messagesToSend.reserve(numPhilosophers);
+    =}
+    
+    reaction(inStart) -> outPhilosophers, outCounter {=
+        
+        // reset state
+        messagesToSend.clear();
+        numExitedPhilosophers = 0;
+        std::fill(forks.begin(), forks.end(), false);
+        
+        // reset other reactors and start execution
+        for(auto& p: outPhilosophers) {
+            p.set(Message{StartMsg});
+        }
+        outCounter.set();
+    =}
+    
+    reaction(sendMessages) -> outPhilosophers {=
+        for(size_t i = 0; i < messagesToSend.size(); i++) {
+            outPhilosophers[messagesToSend[i].first].set(messagesToSend[i].second);
+        }
+        messagesToSend.clear();
+    =}
+    
+    reaction(inPhilosophers) -> outFinished, sendMessages {=
+        
+        // the order of checking the inputs gives the philosophers a priority
+        for(size_t i = 0; i < inPhilosophers.size(); i++) {
+            if(inPhilosophers[i].is_present()) {
+                if(inPhilosophers[i].get()->type == HungryMsg) {
+                    
+                    bool leftFork = forks[i];
+                    bool rightFork = forks[(i + 1) % numPhilosophers];
+                    
+                    if(leftFork || rightFork) {
+                        // someone else has access to the fork
+                        //outPhilosophers[i].set(Message{DeniedMsg});
+                        messagesToSend.push_back(std::pair{i, Message{DeniedMsg}});
+                    } else {
+                        forks[i] = true;
+                        forks[(i + 1) % numPhilosophers] = true;
+                        //outPhilosophers[i].set(Message{EatMsg});
+                        messagesToSend.push_back(std::pair{i, Message{EatMsg}});
+                    }
+                    
+                } else if(inPhilosophers[i].get()->type == DoneMsg) {
+                    
+                    forks[i] = false;
+                    forks[(i + 1) % numPhilosophers] = false;
+                    
+                } else if(inPhilosophers[i].get()->type == ExitMsg) {
+                    
+                    numExitedPhilosophers += 1;
+                    if(numPhilosophers == numExitedPhilosophers) {
+                        outFinished.set();
+                    }
+                }
+            }
+        }
+        
+        // schedule sending messages here for efficiency
+        sendMessages.schedule();
+    =}
+}
+
+reactor PhilosopherReactor(rounds:size_t(10000)) {
+    
+    state localCounter: size_t(0); // count failed tries
+    state roundsSoFar: size_t(0); // count successful tries
+    
+    input inArbitrator: Message;
+    output outArbitrator: Message;
+    output outCounterDenied: size_t;
+    
+    logical action requestToEat: void;
+    logical action finish: void;
+    
+    reaction(requestToEat) -> outArbitrator {=
+        outArbitrator.set(Message{HungryMsg});
+    =}
+    
+    reaction(finish) -> outArbitrator, outCounterDenied {=
+        outArbitrator.set(Message{ExitMsg});
+        outCounterDenied.set(localCounter);
+    =}
+    
+    reaction(inArbitrator) -> outArbitrator, requestToEat, finish {=
+        
+        if(inArbitrator.get()->type == DeniedMsg) {
+            localCounter += 1;
+            outArbitrator.set(Message{HungryMsg});
+            
+        } else if(inArbitrator.get()->type == EatMsg) {
+            roundsSoFar += 1;
+            outArbitrator.set(Message{DoneMsg});
+            
+            if(roundsSoFar < rounds) {
+                requestToEat.schedule();
+            } else {
+                finish.schedule();
+            }
+        } else if(inArbitrator.get()->type == StartMsg) {
+            //reset state
+            localCounter = 0;
+            roundsSoFar = 0;
+            
+            //start eating
+            requestToEat.schedule();
+        }
+    =}
+}
+
+reactor CounterReactor(numLocalCounters:size_t(20)) {
+    
+    private preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state counter: size_t(0);
+    state receivedLocalCounts: size_t(0);
+    
+    input[numLocalCounters] inLocalCounters: size_t;
+    input inController: void;
+    
+    reaction(inController) {=
+        //reset local state
+        counter = 0L;
+        receivedLocalCounts = 0;
+    =}
+    
+    reaction(inLocalCounters) {=
+        for(size_t i = 0; i < inLocalCounters.size(); i++) {
+            if(inLocalCounters[i].is_present()) {
+                counter += *(inLocalCounters[i].get());
+                receivedLocalCounts += 1;
+            }
+        }
+        
+        if(receivedLocalCounts >= numLocalCounters) {
+            reactor::log::Info() << "Counted: " << counter;
+        }
+    =}
+}
+
+main reactor (numIterations:size_t(12), numEatingRounds:size_t(10000), numPhilosophers:size_t(20)) {
+    
+    arbitrator = new ArbitratorReactor(numPhilosophers=numPhilosophers);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.start -> arbitrator.inStart;
+    arbitrator.outFinished -> runner.finished;
+    
+    reaction(startup) {=
+        printBenchmarkInfo("PhilosopherReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", numPhilosophers);
+        printSystemInfo();
+    =}
+    
+    philosophers = new[numPhilosophers] PhilosopherReactor(rounds=numEatingRounds);
+    counter = new CounterReactor(numLocalCounters=numPhilosophers);
+    
+    arbitrator.outPhilosophers -> philosophers.inArbitrator;
+    philosophers.outArbitrator -> arbitrator.inPhilosophers;
+    arbitrator.outCounter -> counter.inController;
+    philosophers.outCounterDenied -> counter.inLocalCounters;
+    
+}

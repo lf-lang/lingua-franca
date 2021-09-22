@@ -26,11 +26,14 @@
  ***************/
 package org.lflang.validation
 
+import com.google.inject.Inject
+
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -38,7 +41,9 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.lflang.DefaultErrorReporter
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
+import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
@@ -99,6 +104,12 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     public var info = new ModelInfo()
 
+    @Inject
+    ErrorReporter errorReporter
+
+    @Inject(optional = true)
+    ValidationMessageAcceptor messageAcceptor
+
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
      */
@@ -139,6 +150,10 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
+    }
+
+    override def ValidationMessageAcceptor getMessageAcceptor() {
+        return messageAcceptor == null ? this : messageAcceptor
     }
 
     @Check
@@ -371,7 +386,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                         (it.definition === rp.variable && it.parent === rp.container)
                     ]) {
                         if (leftInCycle) {
-                            // Only report of _both_ referenced ports are in the cycle.
+                            // Only report of _both_ reference ports are in the cycle.
                             error('''Connection in reactor «reactorName» creates ''' +
                                     '''a cyclic dependency between «lp.toText» and ''' +
                                     '''«rp.toText».''', Literals.CONNECTION__DELAY
@@ -705,13 +720,13 @@ class LFValidatorImpl extends AbstractLFValidator {
         // we use the old information and update it during a normal
         // check (see below).
         if (!info.updated) {
-            info.update(model, DefaultErrorReporter.DEFAULT)
+            info.update(model, errorReporter)
         }
     }
 
     @Check(NORMAL)
     def updateModelInfo(Model model) {
-        info.update(model, DefaultErrorReporter.DEFAULT)
+        info.update(model, errorReporter)
     }
 
     @Check(FAST)
@@ -1153,11 +1168,12 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkTargetDecl(TargetDecl target) {
-        if (!Target.hasForName(target.name)) {
-            warning("Unrecognized target: " + target.name,
+        val targetOpt = Target.forName(target.name);
+        if (targetOpt.isEmpty()) {
+            error("Unrecognized target: " + target.name,
                 Literals.TARGET_DECL__NAME)
         } else {
-            this.target = Target.forName(target.name);
+            this.target = targetOpt.get();
         }
     }
 
@@ -1285,6 +1301,23 @@ class LFValidatorImpl extends AbstractLFValidator {
                     "Types are not allowed in the Python target",
                     Literals.TYPE__ID
                 )
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkVarRef(VarRef varRef) {        
+        if (varRef.isInterleaved) {
+            if (this.target != Target.CPP && this.target != Target.C && this.target != Target.Python) {
+                error("This target does not support interleaved port references", Literals.VAR_REF__INTERLEAVED)
+            }
+            if (varRef.container === null || varRef.container.widthSpec === null || 
+                (varRef.variable as Port).widthSpec === null
+            ) {
+                error("interleaved can only be used for multiports contained within banks", Literals.VAR_REF__INTERLEAVED)
+            }
+            if (!(varRef.eContainer instanceof Connection)) {
+                error("interleaved can only be used in connections", Literals.VAR_REF__INTERLEAVED)
             }
         }
     }

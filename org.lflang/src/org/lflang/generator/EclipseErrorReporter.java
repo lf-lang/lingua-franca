@@ -47,7 +47,7 @@ public class EclipseErrorReporter implements ErrorReporter {
 
     private FileConfig fileConfig = null;
 
-    private Boolean errorsOccurred = false;
+    private boolean errorsOccurred = false;
 
     public EclipseErrorReporter(FileConfig fc) {
         fileConfig = fc;
@@ -66,8 +66,8 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
      * @param obj      The Ecore object, or null if it is not known.
      */
-    private String report(String message, Integer severity, EObject obj) {
-        final Integer line = NodeModelUtils.getNode(obj).getStartLine();
+    private String report(String message, int severity, EObject obj) {
+        final int line = NodeModelUtils.getNode(obj).getStartLine();
         Path file = null;
         try {
             file = FileConfig.toPath(obj.eResource());
@@ -89,9 +89,8 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @param line     The line number or null if it is not known.
      * @param file     The file, or null if it is not known.
      */
-    private String report(String message, Integer severity, Integer line,
-            Path file) {
-        final Boolean isError = severity == IMarker.SEVERITY_ERROR;
+    private String report(String message, int severity, Integer line, Path file) {
+        final boolean isError = severity == IMarker.SEVERITY_ERROR;
         if (isError) {
             errorsOccurred = true;
         }
@@ -188,7 +187,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * Report an error at the specified line within a file.
      *
      * @param message The error message.
-     * @param line    The line number to report at.
+     * @param line    The line number to report at, or null if not known.
      * @param file    The file to report at.
      * @return a string that describes the error.
      */
@@ -201,7 +200,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * Report a warning at the specified line within a file.
      *
      * @param message The error message.
-     * @param line    The line number to report at.
+     * @param line    The line number to report at, or null if not known.
      * @param file    The file to report at.
      * @return a string that describes the warning.
      */
@@ -216,7 +215,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @return true if errors where reported
      */
     @Override
-    public Boolean getErrorsOccurred() {
+    public boolean getErrorsOccurred() {
         return errorsOccurred;
     }
 

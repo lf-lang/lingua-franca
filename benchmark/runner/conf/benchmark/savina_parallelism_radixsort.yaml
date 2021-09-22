@@ -23,10 +23,10 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/radixsort"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-    lf_file: "radixsort/RadixSort.lf"
+    lf_file: "parallelism/RadixSort.lf"
     binary: "RadixSort"
     gen_args: null
     run_args:

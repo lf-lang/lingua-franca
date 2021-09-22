@@ -1,0 +1,197 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark implements a radix sorting algorithm for numbers. It iteratively
+ * sorts them bit-wise, employing one reactor for each bit position. The
+ * `IntSourceReactor` creates a certain amount of random numbers and sends them to
+ * the first Sorting Reactor in the chain.
+ *
+ * Starting with the Least Significant Bit (LSB), each reactor analyzes their
+ * assigned bit position in each incoming number and holds back all numbers where
+ * the bit is one, sending through all numbers with a zero in the observed
+ * position. This will iteratively sort the numbers, like in this example:
+ *
+ * 111    110    101    001
+ * 101    010    001    010
+ * 110 -> 111 -> 110 -> 011
+ * 011    101    010    101
+ * 010    011    111    110
+ * 001    001    011    111
+ *
+ * TODO(Hannes): evaluate the maxValue parameter and create the pipeline accordingly.
+ * 
+ * @author Hannes Klein
+ * @author Felix Wittwer
+ */
+
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include : "../IncludeHeaders.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor IntSourceReactor(numValues: int(100000), maxValue: long({=1l << 60=}), seed: long(2048)) {
+    
+    public preamble {=
+        #include "PseudoRandom.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state random:{=PseudoRandom=};
+    state numValuesSent:int(0);
+    
+    input inStart:void;
+    
+    output outNextSortReactor:{=long=};
+    
+    logical action sendRandomNum:void;
+    
+    reaction(inStart) -> sendRandomNum {=
+        
+        // reset local state
+        random = PseudoRandom(seed);
+        numValuesSent = 0;
+        
+        // start execution
+        sendRandomNum.schedule();
+    =}
+    
+    reaction(sendRandomNum) -> outNextSortReactor, sendRandomNum {=
+        
+        if(numValuesSent < numValues) {
+             long candidate = abs(random.nextLong()) % maxValue;
+             reactor::log::Debug() << candidate;
+             outNextSortReactor.set(candidate);
+             numValuesSent += 1;
+             sendRandomNum.schedule();
+        }
+    =}
+}
+
+
+reactor SortActor(numValues:int(100000), bank_index:int(0)) {
+    
+    public preamble {=
+        #include <list>
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state orderingArray:{=std::vector<reactor::ImmutableValuePtr<long>>=};
+    state valuesSoFar:int(0);
+    state radix:{=long=}(-1);
+    state pos:int(0);
+    state sendPos:int(0);
+    
+    input inValue:{=long=};
+    output outValue:{=long=};
+    
+    logical action sendBufferedValues:void;
+    
+    reaction(startup) {=
+        radix = 1l << bank_index;
+        orderingArray = std::vector<reactor::ImmutableValuePtr<long>>(numValues);
+    =}
+    
+    reaction(inValue) -> outValue, sendBufferedValues {=
+        
+        valuesSoFar += 1;
+        long current = *(inValue.get());
+        if((current & radix) == 0) {
+            // number with leading 0 (small) go through
+            outValue.set(current);
+        } else {
+            orderingArray[pos] = (inValue.get());
+            pos += 1;
+        }
+        
+        if(valuesSoFar == numValues) {
+            sendBufferedValues.schedule();
+        }
+    =}
+    
+    reaction(sendBufferedValues) -> outValue, sendBufferedValues {=
+        
+        if(sendPos < pos) {
+            outValue.set(orderingArray[sendPos]);
+            sendPos += 1;
+            sendBufferedValues.schedule();
+        } else {
+            
+            // reset local state
+            valuesSoFar = 0;
+            pos = 0;
+            sendPos = 0;
+        }
+    =}
+}
+
+reactor ValidationReactor(numValues:int(100000)) {
+    
+    private preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state sumSoFar:double(0.0);
+    state valuesSoFar:int(0);
+    state prevValue:{=long=}(0);
+    state errorValueLong:{=long=}(-1);
+    state errorValueInt:int(-1);
+    
+    input inValue:{=long=};
+    output outFinished:void;
+    
+    reaction(inValue) -> outFinished {=
+        
+        long value = *inValue.get();
+        valuesSoFar += 1;
+        if(value < prevValue && errorValueLong < 0) {
+            errorValueLong = value;
+            errorValueInt = valuesSoFar - 1;
+        }
+        prevValue = value;
+        sumSoFar += prevValue;
+        
+        if(valuesSoFar == numValues) {
+            if(errorValueLong >= 0) {
+                reactor::log::Error() << "ERROR: Value out of place: " << errorValueLong << " at index " << errorValueInt;
+            } else {
+                reactor::log::Info() << "Elements sum: " << sumSoFar;
+            }
+            
+            // reset local state
+            sumSoFar = 0.0;
+            valuesSoFar = 0;
+            prevValue = 0;
+            errorValueLong = -1;
+            errorValueInt = -1;
+            
+            outFinished.set();
+        }
+    =}
+}
+
+// FIXME We cannot adjust maxValue here because the number of sort actors below depends on it. The parameter should
+// actually indicate the number of sorters, and than we could calculate the max value from it. But this would require
+// changing the original Savina code ... 
+main reactor (numIterations:int(12), dataSize:int(100000), maxValue: long({=1l << 60=}), seed: long({=2048l=})) {
+    
+    source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
+    validator = new ValidationReactor(numValues=dataSize);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.start -> source.inStart;
+    validator.outFinished -> runner.finished;
+    
+    reaction(startup) {=
+        printBenchmarkInfo("RadixSortBenchmark");
+        printArgs("numIterations", numIterations, "dataSize", dataSize, "maxValue", maxValue, "seed", seed);
+        printSystemInfo();
+    =}
+    
+    sorters = new[60] SortActor(numValues=dataSize);
+
+    source.outNextSortReactor, sorters.outValue -> sorters.inValue, validator.inValue;
+}

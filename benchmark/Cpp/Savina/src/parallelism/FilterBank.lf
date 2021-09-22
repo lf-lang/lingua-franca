@@ -1,0 +1,348 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark is particularly interesting for LF, as it has an interesting
+ * structure and highlights a significant advantage compared to Akka. The
+ * benchmark implements a "filter bank". Each bank consists of a pipeline of
+ * several filters. The banks operate in parallel. The input data stream is
+ * split, so that each bank receives a copy of the data value, and the data
+ * streams are merged again by summing the results. In principle, this design
+ * exposes both data level parallelism due to the separate banks and pipeline
+ * parallelism within a bank. However, this LF implementation does not exploit
+ * the pipeline parallelism. This would require additional logical actions
+ * between the pipeline stages. The effect of this unknown and it might be
+ * worthwhile to explore if pipeline parallelism can be exploited by this
+ * benchmakr in an efficient way. However, since only the FIR filter perform
+ * large computations and most other reactions are small, likely there is not
+ * much to gain from implementing a real pipeline.
+ *
+ * An interesting note can also be made about the structure and complexity of
+ * the LF benchmark compared to the Akka implementation. The Akka implementation
+ * uses a "Branches" actor that distributes the single input signal to the
+ * banks. In LF, this actor is not needed and we simply use a broadcast
+ * connection.
+
+ * More interesting, is how the outputs of the different banks are merged in the
+ * Akka implementation. This is done by two actors: "TaggedForward" and
+ * "Integrator". "TaggedForward" simply assigns tags to each message which
+ * indicate the bank that the message originates from. Essentially this merges
+ * the N data streams from the N banks to a single data stream. Unless the name
+ * might suggest, the "Integrate" does not apply an integrarion filter on the
+ * data, but rather collects results and "integrates" them in a vector.
+ * Basically the input is 1 value from N banks, and the output is one
+ * N-dimensional vector. The integrate vector simply stores all received values
+ * in a buffer, and sends out a vector containing values from all banks once
+ * messages from all banks have been received. This synchronization mechanism is
+ * not needed at all in the LF implementation and makes both the "TaggedForward"
+ * and the "Integrate" actors superflous. The combine reactor simply has a
+ * multiport import and thus simultaneously receives values from all N banks.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include : "../IncludeHeaders.cmake",
+    logging: "warn"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+public preamble {=
+    #include "Matrix.hh"
+    
+    using CoefficientMatrix = Matrix<double>;
+=}
+
+reactor Producer(numChannels: size_t{8}, numSimulations: size_t{34816}, numColumns: size_t{16384}) {
+        
+    state numMessagesSent: size_t{0};
+    
+    input start: void;
+    output next: void;
+    output finished: void
+    
+    logical action sendNext: void;
+    
+    reaction(start) -> sendNext {=
+        // reset local state
+        numMessagesSent = 0;
+        
+        // start execution
+        sendNext.schedule();
+    =}
+    
+    reaction (sendNext) -> sendNext, next, finished {=
+        if (numMessagesSent < numSimulations) {
+            next.set();
+            numMessagesSent++;
+            sendNext.schedule();
+        } else {
+            finished.set();
+        }
+    =}
+}
+
+reactor Source {
+    
+    state maxValue: size_t{1000};
+    state current: size_t{0};
+    
+    input next: void;
+    output value: double;
+
+    input inFinished: void;
+    output outFinished: void;
+    
+    reaction (next) -> value {=
+        value.set(current);
+        current = (current + 1) % maxValue;
+    =}
+    
+    reaction (inFinished) -> outFinished {=
+        outFinished.set();
+        // reset local state
+        current = 0;
+    =}
+}
+
+reactor Bank(bank_index: size_t{0}, numColumns: size_t{16384}, numChannels: size_t{8}) {    
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
+    
+    input setF: CoefficientMatrix;
+    input setH: CoefficientMatrix;
+    
+    delay0 = new Delay(delayLength={=numColumns - 1=});
+    fir0 = new FirFilter(bank_index=bank_index, peekLength=numColumns);
+    sample = new SampleFilter(sampleRate=numColumns);
+    delay1 = new Delay(delayLength={=numColumns - 1=});
+    fir1 = new FirFilter(bank_index=bank_index, peekLength=numColumns);
+    
+    inFinished, delay0.outFinished, fir0.outFinished, sample.outFinished, delay1.outFinished, fir1.outFinished -> 
+        delay0.inFinished, fir0.inFinished, sample.inFinished, delay1.inFinished, fir1.inFinished, outFinished;
+        
+    inValue, delay0.outValue, fir0.outValue, sample.outValue, delay1.outValue, fir1.outValue -> 
+        delay0.inValue, fir0.inValue, sample.inValue, delay1.inValue, fir1.inValue, outValue;   
+    
+    setH -> fir0.setCoefficients;
+    setF -> fir1.setCoefficients;
+}
+
+reactor Delay(delayLength: size_t{16383}) {
+    state myState: std::vector<double>;
+    state placeHolder: size_t{0};
+    
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
+    
+    reaction(startup) {=
+        // one time init
+        myState = std::vector<double>(delayLength, 0.0);
+        placeHolder = 0;
+    =}
+    
+    reaction(inValue) -> outValue {=
+        double result = *inValue.get();
+        outValue.set(myState[placeHolder]);
+        myState[placeHolder] = result;
+        placeHolder = (placeHolder + 1) % delayLength;
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
+        
+        // reset local state
+        myState = std::vector<double>(delayLength, 0.0);
+        placeHolder = 0;
+    =}
+}
+
+reactor FirFilter(bank_index:size_t{0}, peekLength: size_t{16384}) {
+    state data: std::vector<double>;
+    state dataIndex: size_t{0};
+    state dataFull: bool{false};
+    state coefficients: {=reactor::ImmutableValuePtr<CoefficientMatrix>=}{{=nullptr=}}
+    
+    input setCoefficients: CoefficientMatrix
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
+    
+    reaction(startup) {=
+        // reset local state
+        data = std::vector<double>(peekLength, 0.0);
+        dataIndex = 0;
+        dataFull = false;
+    =}
+    
+    reaction (setCoefficients) {=
+        coefficients = setCoefficients.get();
+    =}
+    
+    reaction(inValue) -> outValue {=
+        data[dataIndex] = *inValue.get();
+        dataIndex++;
+        
+        if(dataIndex == peekLength) {
+            dataFull = true;
+            dataIndex = 0;
+        }
+        
+        if(dataFull) {
+            double sum{0.0};
+            for (size_t i{0}; i < peekLength; i++) {
+                sum += data[i] * coefficients->at(bank_index, peekLength - i - 1);
+            }
+            outValue.set(sum);
+        }
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
+        
+        // reset local state
+        data = std::vector<double>(peekLength, 0.0);
+        dataIndex = 0;
+        dataFull = false;
+    =}
+}
+
+reactor SampleFilter(sampleRate: size_t{16384}) {
+    state samplesReceived: size_t{0};
+    
+    input inValue: double;
+    input inFinished: void;
+    output outValue: double;
+    output outFinished: void;
+    
+    reaction(inValue) -> outValue {=
+        if(samplesReceived == 0) {
+            outValue.set(inValue.get());
+        } else {
+            outValue.set(0.0);
+        }
+        samplesReceived = (samplesReceived + 1) % sampleRate;
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
+        
+        // reset local state
+        samplesReceived = 0;
+    =}
+}
+
+reactor Combine(numChannels: size_t{8}) {
+    
+    input[numChannels] inValues: double;
+    input[numChannels] inFinished: void;
+    output outValue: double;
+    output outFinished: void;
+    
+    state numFinished: size_t{0};
+    
+    reaction(inValues) -> outValue {=
+        double sum{0};
+        for(const auto& x: inValues) {
+            sum += *x.get();
+        }
+        outValue.set(sum);
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        for(const auto& port: inFinished) {
+            if(port.is_present()) {
+                numFinished++;
+            }
+        }
+        if(numFinished == numChannels) {
+            outFinished.set();
+            // reset local state
+            numFinished = 0;
+        }
+    =}
+}
+
+reactor Sink(printRate: size_t{100}) {
+    
+    state count: size_t{0};
+    
+    input inValue: double;
+    input inFinished: void;
+    output outFinished: void;
+    
+    reaction(inValue) {=
+        double result = *inValue.get();
+        
+        if(count % printRate == 0) {
+            reactor::log::Info() << "SinkActor: result = " << result;
+        }
+        count++;
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
+        // reset local state
+        count = 0;
+    =}
+}
+
+main reactor (numIterations: size_t{12}, numSimulations: size_t{34816}, numColumns: size_t{16384}, numChannels: size_t{8}) {
+    
+    reaction(startup) -> banks.setF, banks.setH {=
+        // initialize the coefficients of all FIR filters
+        auto mH = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
+        auto mF = reactor::make_mutable_value<CoefficientMatrix>(numChannels, numColumns);
+
+        for(size_t j{0}; j < numChannels; ++j) {
+            for(size_t i{0}; i < numColumns; ++i) {
+                mH->at(j, i) = (1.0 * i * numColumns) + (1.0 * j * numChannels) + j + i + j + 1;
+                mF->at(j, i) = (1.0 * i * j) + (1.0 * j * j) + j + i;
+            }
+        }
+        
+        // convert to immutable pointers before sending. This ensures that all recipients can receive a pointer
+        // to the same matrix and no copying is needed
+        reactor::ImmutableValuePtr<CoefficientMatrix> H{std::move(mH)};
+        reactor::ImmutableValuePtr<CoefficientMatrix> F{std::move(mF)}; 
+        
+        for (auto& b: banks) {
+            b.setH.set(H);
+            b.setF.set(F);
+        }
+        
+        printBenchmarkInfo("FilterBankBenchmark");
+        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", numChannels);
+        printSystemInfo();
+    =}
+
+    runner = new BenchmarkRunner(numIterations=numIterations);    
+    producer = new Producer(numSimulations=numSimulations, numChannels=numChannels, numColumns=numColumns);
+    source = new Source();
+    banks = new[numChannels] Bank(numColumns=numColumns, numChannels=numChannels);
+    combine = new Combine(numChannels=numChannels);
+    sink = new Sink(printRate=100);
+    
+    runner.start -> producer.start;
+    
+    producer.next -> source.next;
+    producer.finished -> source.inFinished;
+    
+    (source.value)+ -> banks.inValue;
+    (source.outFinished)+ -> banks.inFinished;
+   
+    banks.outValue -> combine.inValues;
+    banks.outFinished -> combine.inFinished
+  
+    combine.outValue -> sink.inValue;
+    combine.outFinished -> sink.inFinished;
+    
+    sink.outFinished -> runner.finished;
+}

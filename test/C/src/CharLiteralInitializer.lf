@@ -1,0 +1,11 @@
+// Check that a state variable can have a char literal initializer
+target C;
+main reactor CharLiteralInitializer {
+    state c: char('x');
+    reaction(startup) {=
+        if (self->c != 'x') {
+            fprintf(stderr, "FAILED: Expected 'x', got %c.\n", self->c);
+            exit(1);
+        }
+    =}
+}
