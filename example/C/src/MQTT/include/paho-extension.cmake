@@ -2,6 +2,7 @@
 list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
 list(APPEND CMAKE_PREFIX_PATH "/usr/local/")
 
+set(PAHO_WITH_SSL true)
 # Taken from: https://github.com/eclipse/paho.mqtt.cpp/tree/master/cmake
 # find the Paho MQTT C library
 if(PAHO_WITH_SSL)
