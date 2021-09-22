@@ -113,6 +113,7 @@ class CCmakeCompiler extends CCompiler {
             if (build.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
                 errorReporter.reportError(build.getErrors().toString());
             }
+            errorReporter.reportError("DEBUG: This is a test to make sure that it is possible to report errors.");
         }
         
         return cMakeReturnCode == 0 && makeReturnCode == 0;
