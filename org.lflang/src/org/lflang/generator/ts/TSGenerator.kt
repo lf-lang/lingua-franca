@@ -118,7 +118,7 @@ class TSGenerator(
 
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/lib/TS/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
@@ -135,13 +135,13 @@ class TSGenerator(
             if (fsa.isFile(configFileInSrc)) {
                 // TODO(hokeun): Check if this logic is still necessary.
                 println("Copying '" + configFile + "' from " + fileConfig.srcPath)
-                copyFileFromClassPath(configFileInSrc, configFileDest)
+                fileConfig.copyFileFromClassPath(configFileInSrc, configFileDest)
             } else {
                 println(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
             }
         }
 

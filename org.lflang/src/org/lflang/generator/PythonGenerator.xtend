@@ -58,6 +58,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.TargetConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -1093,7 +1094,7 @@ class PythonGenerator extends CGenerator {
                     var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
                         "ctarget.h", "core")
                     
-                    copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
+                    fileConfig.copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
                     
                     // Do not compile the Python code here. They will be compiled on remote machines
                 } else {
@@ -1117,14 +1118,19 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Copy Python specific target code to the src-gen directory
-     */        
-    override copyUserFiles() {
-        super.copyUserFiles()
+     * Also, copy all files listed in the target property `files` into the
+     * src-gen folder of the main .lf file.
+     * 
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
+     */
+    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+        super.copyUserFiles(targetConfig, fileConfig);
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
         for (file : targetFiles) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/" + "lib" + "/" + "Python" + "/" + file,
                 fileConfig.getSrcGenPath.resolve(file).toString
             )
@@ -1134,7 +1140,7 @@ class PythonGenerator extends CGenerator {
         // This will also overwrite previous versions.
         var cTargetFiles = newArrayList("ctarget.h");
         for (file : cTargetFiles) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/" + "lib" + "/" + "C" + "/" + file,
                 fileConfig.getSrcGenPath.resolve(file).toString
             )

@@ -10,12 +10,11 @@
  * There is a variant of this example called ROSBuiltInSerialization.lf that uses
  * the built-in ROS 2 serialization feature that is provided in LF.
  */
-target C {
+target CCpp {
     coordination: decentralized,
     timeout: 10 sec,
     cmake-include: "include/CMakeListsExtension.txt",
     files: ["include/ament_target_dependencies.cmake"],
-    compiler: "g++",
 };
 
 preamble {=
