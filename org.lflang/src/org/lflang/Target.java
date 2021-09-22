@@ -24,9 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.emf.ecore.resource.Resource;
-
-import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 
 /** 
@@ -373,7 +370,6 @@ public enum Target {
      * Return an array of all known targets.
      */
     public final static Target[] ALL = Target.values();
-
 
     /**
      * Private constructor for targets.
