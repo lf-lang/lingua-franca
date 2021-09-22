@@ -27,7 +27,6 @@ package org.lflang.generator.c;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -74,24 +73,6 @@ class CCmakeGenerator {
             ErrorReporter errorReporter,
             boolean CppMode) {
         StringBuilder cMakeCode = new StringBuilder();
-        
-        // Resolve path to the cmake include files if any was provided
-        LinkedHashSet<String> resolvedIncludeFiles = new LinkedHashSet<String>();
-        for (String includeFile : targetConfig.cmakeIncludes) { 
-            if (!includeFile.isBlank()) {
-                try {
-                    resolvedIncludeFiles.add(
-                            FileConfig.toUnixString(
-                                    fileConfig.getSrcGenPath().relativize(
-                                            fileConfig.getSrcGenPath().resolve(includeFile)
-                                            )
-                                    )
-                            );
-                } catch (Exception e) {
-                    errorReporter.reportError(e.getMessage());
-                }
-            }
-        }
         
         List<String> additionalSources = new ArrayList<String>();
         for (String file: targetConfig.compileAdditionalSources) {
@@ -156,24 +137,27 @@ class CCmakeGenerator {
             cMakeCode.append("\n");
         }
         
-        if (targetConfig.compiler != null) {
+        // Check if CppMode is enabled
+        if (CppMode) {
+            // First enable the CXX language
+            cMakeCode.append("enable_language(CXX)\n");
+            // Suppress warnings about const char*.
+            cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+            // FIXME: Instead of mixing a C compiler and a C++ compiler, we use a 
+            // CMake flag to set the language of all .c files to C++.
+            // Also convert any additional sources. This is a deprecated functionality 
+            // in clang, but intermingling C compiled code and C++ compiled code seems 
+            // to require a substantial overhaul of the C target code structure. Instead, 
+            // we force the usage of a C++ compiler on everything for now.
+            for (String source: additionalSources) {
+                cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
+            }
+            cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+        }
+        
+        if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
             if (CppMode) {
-                // First enable the CXX language
-                cMakeCode.append("enable_language(CXX)\n");
-                // Suppress warnings about const char*.
-                cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
-                // We can't just simply use g++ to compile C code. We use a 
-                // specific CMake flag to set the language of all .c files to C++.
-                // Also convert any additional sources
-                // FIXME: This is a deprecated functionality in clang, but intermingling
-                // C compiled code and C++ compiled code seems to require a substantial
-                // overhaul of the C target code structure. Instead, we force the usage
-                // of a C++ compiler on everything for now.
-                for (String source: additionalSources) {
-                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
-                }
-                cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
-                // Finally, set the CXX compiler to what the user has requested.
+                // Set the CXX compiler to what the user has requested.
                 cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
             } else {
                 cMakeCode.append("set(CMAKE_C_COMPILER "+targetConfig.compiler+")\n");
@@ -220,14 +204,9 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         // Add the include file
-        for (String includeFile : resolvedIncludeFiles) {
+        for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
             cMakeCode.append("include("+includeFile+")\n");
-        }
-        
-        // Add the include file
-        for (String includeFile : resolvedIncludeFiles) {
-            cMakeCode.append("include("+includeFile+")\n");
-        }  
+        } 
         
         return cMakeCode;
     }
