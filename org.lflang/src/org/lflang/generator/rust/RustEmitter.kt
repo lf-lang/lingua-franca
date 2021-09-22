@@ -28,6 +28,7 @@ import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
+import org.lflang.generator.rust.ReactorComponentEmitter.reactionInvokerLocalDecl
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
@@ -145,7 +146,7 @@ ${"             |        "..assembleChildReactors()}
                 |        // assemble self
                 |        let mut _self: Self = Self::user_assemble(_assembler, args);
                 |
-${"             |        "..reactions.joinToString("\n") { it.reactionInvokerLocalDecl() }}
+${"             |        "..declareReactions()}
                 |
                 |        {
                 |            _self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
@@ -237,6 +238,12 @@ ${"         |    "..declarations}
             it.locationInfo().lfTextComment() + "\n" +
                     PortEmitter.declareConnection(it)
         }
+    }
+
+    private fun ReactorInfo.declareReactions(): String {
+        val pattern = reactions.joinToString(prefix = "let [", separator = ",\n", postfix = "]") { it.invokerId }
+
+        return "$pattern = _assembler.declare_reactions::<{Self::MAX_REACTION_ID}>();"
     }
 
     private fun ReactorComponentEmitter.workerFunctionCalls(reactor: ReactorInfo): String {
