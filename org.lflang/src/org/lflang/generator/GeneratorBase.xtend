@@ -28,10 +28,9 @@ package org.lflang.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
+import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -61,6 +60,8 @@ import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -84,9 +85,6 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
-import java.util.HashSet
-import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
 
 /**
  * Generator base class for shared code between code generators.
@@ -164,7 +162,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected var Set<Resource> resources = newLinkedHashSet
+    protected var Set<LFResource> resources = newLinkedHashSet
     
     /**
      * Graph that tracks dependencies between instantiations. 
@@ -296,7 +294,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
-            TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
+            TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList)
         }
 
         // Override target properties if specified as command line arguments.
@@ -386,7 +384,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         analyzeFederates()
         
         // Process target files. Copy each of them into the src-gen dir.
-        copyUserFiles()
+        // FIXME: Should we do this here? I think the Cpp target doesn't support
+        // the files property and this doesn't make sense for federates the way it is
+        // done here.
+        copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. These are needed to figure out which resources we need
         // to validate, which happens in setResources().
@@ -449,7 +450,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def transformDelays() {
          for (r : this.resources) {
-             r.insertGeneratedDelays(this)
+             r.eResource.insertGeneratedDelays(this)
         }
     }
 
@@ -460,9 +461,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param context The context providing the cancel indicator used by the validator.
      */
     protected def setResources(IGeneratorContext context) {
+        val fsa = this.fileConfig.fsa;
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         if (mainDef !== null) {
             reactors.add(mainDef.reactorClass as Reactor);
+            this.resources.add(
+                new LFResource(
+                    mainDef.reactorClass.eResource,
+                    this.fileConfig,
+                    this.targetConfig));
         }
         // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
         // as tainted or fail to validate.
@@ -484,43 +491,47 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             }
                         }
                     }
+                    // Read the target property of the imported file
+                    val target = res.findTarget
+                    var targetConfig = new TargetConfig();
+                    if (target.config !== null) {
+                        TargetProperty.set(targetConfig, target.config.pairs ?: emptyList);
+                    }
+                    val fileConfig = new FileConfig(res, fsa, context);
+                    // Add it to the list of LFResources
+                    this.resources.add(
+                        new LFResource(
+                            res,
+                            fileConfig,
+                            targetConfig)
+                    );
+                    // FIXME: Should the GeneratorBase pull in `files` from imported
+                    // resources? If so, uncomment the following line.
+                    // copyUserFiles(targetConfig, fileConfig);
                 }
-                this.resources.add(res)
             }
         }
     }
 
     /**
      * Copy all files listed in the target property `files` into the
-     * specified directory.
+     * src-gen folder of the main .lf file.
+     * 
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected def copyUserFiles() {
+    protected def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         // Make sure the target directory exists.
         val targetDir = this.fileConfig.getSrcGenPath
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            val file = FileConfig.findFile(filename, this.fileConfig.srcFile.parent)
-            if (file !== null) {
-                val target = targetDir.resolve(file.fileName)
-                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING)
-                targetConfig.filesNamesWithoutPath.add(file.fileName.toString());
-            } else {
-                // Try to copy the file as a resource.
-                // If this is missing, it should have been previously reported as an error.
-                try {
-                    var filenameWithoutPath = filename
-                    val lastSeparator = filename.lastIndexOf(File.separator)
-                    if (lastSeparator > 0) {
-                        filenameWithoutPath = filename.substring(lastSeparator + 1) // FIXME: brittle. What if the file is in a subdirectory?
-                    }
-                    copyFileFromClassPath(filename, targetDir + File.separator + filenameWithoutPath)
-                    targetConfig.filesNamesWithoutPath.add(filenameWithoutPath);
-                } catch (IOException ex) {
-                    // Ignore. Previously reported as a warning.
-                    System.err.println('''WARNING: Failed to find file «filename».''')
-                }
-            }
+            this.targetConfig.filesNamesWithoutPath.add(
+                fileConfig.copyFileOrResource(
+                    filename,
+                    fileConfig.srcFile.parent,
+                    targetDir)
+            );
         }
     }
 
@@ -1184,57 +1195,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
                 }
             }
-        }
-    }
-
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path 
-     *  in the filesystem.
-     * 
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     * 
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     */
-    protected def copyFileFromClassPath(String source, String destination) {
-        val sourceStream = this.class.getResourceAsStream(source)
-
-        if (sourceStream === null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n" +
-                    "Also try to refresh and clean the project explorer if working from eclipse.")
-        }
-
-        // Copy the file.
-        try {
-            // Make sure the directory exists
-            val destFile = new File(destination);
-            destFile.getParentFile().mkdirs();
-
-            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            throw new IOException(
-                "A required target resource could not be copied: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
-                ex)
-        } finally {
-            sourceStream.close()
-        }
-    }
-
-    /**
-     * Copy a list of files from a given source directory to a given destination directory.
-     * @param srcDir The directory to copy files from.
-     * @param dstDir The directory to copy files to.
-     * @param files The files to copy.
-     */
-    protected def copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) {
-        for (file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file)
         }
     }
 

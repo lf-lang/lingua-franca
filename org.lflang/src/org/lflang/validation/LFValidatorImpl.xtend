@@ -1215,51 +1215,61 @@ class LFValidatorImpl extends AbstractLFValidator {
      */
     @Check(EXPENSIVE)
     def checkTargetProperties(KeyValuePairs targetProperties) {
-
-        if (targetProperties.pairs.exists(
+        
+        val fastTargetProperties = targetProperties.pairs.filter(
             pair |
                 // Check to see if fast is defined
                 TargetProperty.forName(pair.name) == TargetProperty.FAST
-        )) {
+        )
+        
+        val fastTargetProperty = fastTargetProperties.findFirst[t | true];
+
+        if (fastTargetProperty !== null) {
+            // Check for federated
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has a federated reactor and if there is a physical connection
-                    // defined.
-                    reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
+                    // Check to see if the program has a federated reactor
+                    reactor.isFederated
             )) {
                 error(
-                    "The fast target property is incompatible with physical connections.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    "The fast target property is incompatible with federated programs.",
+                    fastTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
-
+            
+            // Check for physical actions
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has physical actions
-                    reactor.isFederated && reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
+                    // Check to see if the program has a physical action in a reactor
+                    reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
             )) {
                 error(
                     "The fast target property is incompatible with physical actions.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    fastTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
 
         }
-        if (targetProperties.pairs.exists(
+        
+        val clockSyncTargetProperties = targetProperties.pairs.filter(
             pair |
                 // Check to see if clock-sync is defined
                 TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
-        )) {
-
+        )
+        
+        val clockSyncTargetProperty = clockSyncTargetProperties.findFirst[t | true];
+        if (clockSyncTargetProperty !== null) {
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has a federated reactor and if there is a physical connection
-                    // defined.
+                    // Check to see if the program has a federated reactor defined.
                     reactor.isFederated
             ) == false) {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    clockSyncTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
         }

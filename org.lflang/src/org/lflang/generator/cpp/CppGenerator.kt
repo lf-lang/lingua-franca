@@ -83,9 +83,9 @@ class CppGenerator(
 
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
-        copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
+        fileConfig.copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
+        fileConfig.copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
+        fileConfig.copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
@@ -110,9 +110,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r)
+            val generator = CppPreambleGenerator(r.getEResource(), cppFileConfig, scopeProvider)
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
             cppSources.add(sourceFile)
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
