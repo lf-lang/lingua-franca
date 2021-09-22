@@ -1,13 +1,18 @@
 # find_package(Mosquitto REQUIRED)x
-list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
+list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/")
 list(APPEND CMAKE_PREFIX_PATH "/usr/local/")
 
-set(PAHO_WITH_SSL true)
+find_package(OpenSSL)
+if(${OpenSSL_FOUND})
+    set(PAHO_WITH_SSL true)
+ELSE (${OpenSSL_FOUND})
+    set(PAHO_WITH_SSL false)
+    MESSAGE(ERROR " Could not locate OpenSSL. Will skip using it.")
+ENDIF (${OpenSSL_FOUND})
 # Taken from: https://github.com/eclipse/paho.mqtt.cpp/tree/master/cmake
 # find the Paho MQTT C library
 if(PAHO_WITH_SSL)
     set(_PAHO_MQTT_C_LIB_NAME paho-mqtt3cs)
-    find_package(OpenSSL REQUIRED)
 else()
     set(_PAHO_MQTT_C_LIB_NAME paho-mqtt3c)
 endif()
