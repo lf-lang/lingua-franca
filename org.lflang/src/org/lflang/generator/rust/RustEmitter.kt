@@ -240,7 +240,9 @@ ${"         |    "..declarations}
     }
 
     private fun ReactorInfo.declareReactions(): String {
-        val pattern = reactions.joinToString(prefix = "let [", separator = ",\n", postfix = "]") { it.invokerId }
+        val reactionIds = reactions.map { it.invokerId } + timers.map { it.rescheduleReactionId }
+
+        val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
 
         return "$pattern = _assembler.new_reactions::<{Self::MAX_REACTION_ID.index()}>();"
     }
@@ -275,13 +277,17 @@ ${"         |    "..declarations}
     private fun ReactorInfo.timerReactionId(timer: TimerData) =
         reactions.size + timers.indexOf(timer).also { assert(it != -1) }
 
-    private fun graphDependencyDeclarations(reactor: ReactorInfo): String =
-        reactor.reactions.flatMap {
+    private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
+        val stmts = reactor.reactions.flatMap {
             it.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${it.invokerId});" } +
-            it.effects.map { trigger -> "_assembler.declare_effects(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" } +
-            it.effects.map { trigger -> "_assembler.declare_uses(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" }
-        }.joinToString("\n")
+                    it.effects.map { trigger -> "_assembler.declare_effects(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" } +
+                    it.effects.map { trigger -> "_assembler.declare_uses(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" }
+        } + reactor.timers.map { "_assembler.declare_triggers(_self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId});" }
+        return stmts.joinToString("\n")
+    }
 
+    private val TimerData.rescheduleReactionId: String
+        get() = "_timer_schedule_$lfName"
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor
