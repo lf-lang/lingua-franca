@@ -1,0 +1,15 @@
+/**
+ * A variant of HelloWorld.lf that tests the 
+ * CCpp target in conjunction with the legacy build system (
+ * CMake disabled). This test should not pass if it does not 
+ * compile.
+ */
+target CCpp {
+    tracing: true,
+    logging: DEBUG,
+    cmake: false
+};
+import HelloWorld from "HelloWorldCCPP.lf";
+main reactor {
+    a = new HelloWorld();
+}

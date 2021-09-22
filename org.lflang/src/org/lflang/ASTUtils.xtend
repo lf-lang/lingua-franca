@@ -164,6 +164,16 @@ class ASTUtils {
     }
     
     /**
+     * Change the target name to 'newTargetName'.
+     * For example, change C to CCpp.
+     */
+    static def boolean changeTargetName(Resource resource, String newTargetName) {
+        val r = resource.targetDecl
+        r.name = newTargetName
+        return true
+    }
+    
+    /**
      * Return true if any port on the left or right of the connection involves
      * a bank of reactors or a multiport.
      * @param connection The connection.
@@ -262,7 +272,7 @@ class ASTUtils {
                 // the width.
                 for (port : connection.rightPorts) {
                     val term = factory.createWidthTerm()
-                    term.port = EcoreUtil.copy(port) as VarRef
+                    term.port = EcoreUtil.copy(port)
                     widthSpec.terms.add(term)
                 }   
             } else {

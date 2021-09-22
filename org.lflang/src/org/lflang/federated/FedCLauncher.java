@@ -25,10 +25,12 @@
 
 package org.lflang.federated;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.generator.FederateInstance;
 import org.lflang.generator.c.CCompiler;
 
 /**
@@ -58,16 +60,34 @@ public class FedCLauncher extends FedLauncher {
      * Return the compile command for a federate.
      * 
      * @param federate The federate to compile.
+     * @throws IOException 
      */
     @Override
     protected
     String compileCommandForFederate(FederateInstance federate) {
-        CCompiler cCompiler = new CCompiler(targetConfig, fileConfig, errorReporter);
-        return String.join(" ", 
+        FedFileConfig fedFileConfig = null;
+        TargetConfig localTargetConfig = targetConfig;
+        try {
+            fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+        } catch (IOException e) {
+            errorReporter.reportError("Failed to create file config for federate "+federate.name);
+            return "";
+        }
+        
+        String commandToReturn = "";
+        // FIXME: Hack to add platform support only for linux systems. 
+        // We need to fix the CMake build command for remote federates.
+        String linuxPlatformSupport = "core" + File.separator + "platform" + File.separator + "lf_linux_support.c";
+        if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
+            localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
+        }
+        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter);
+        commandToReturn = String.join(" ", 
                 cCompiler.compileCCommand(
-                    fileConfig.name+"_"+federate.name, 
-                    false
-                ).toString());
+                        fileConfig.name+"_"+federate.name, 
+                        false
+                    ).toString());
+        return commandToReturn;
     }
     
     /**

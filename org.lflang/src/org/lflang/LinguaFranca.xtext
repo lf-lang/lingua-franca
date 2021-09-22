@@ -230,14 +230,22 @@ Connection:
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
-    (delay=Delay | ';'?);
+    (delay=Delay)?
+    (serializer=Serializer)?
+    ';'?
+    ;
 
 // After clause with a delay that can either be specified as a parameter or as
 // a literal value. If no units are given (which implies that the time interval
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
 Delay:
-    'after' (parameter=[Parameter] ';'? | (interval=INT ((unit=TimeUnit ';'?) | ';')))
+    'after' (parameter=[Parameter] | (interval=INT ((unit=TimeUnit))))
+;
+
+// Chooses the serializer to use for the connection
+Serializer:
+    'serializer' type=STRING
 ;
 
 /////////// For target parameters
