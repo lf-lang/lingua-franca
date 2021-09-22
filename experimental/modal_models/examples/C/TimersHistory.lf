@@ -25,7 +25,7 @@ main reactor TimersHistory {
             printf("T1\n");
         =}
     	
-		reaction(next) -> Two history {=
+		reaction(next) -> Two continue {=
             printf("Transitioning to mode Two (history)\n");
             SET_MODE(Two);
 		=}
@@ -37,7 +37,7 @@ main reactor TimersHistory {
             printf("T2\n");
         =}
     	
-		reaction(next) -> One history {=
+		reaction(next) -> One continue {=
             printf("Transitioning to mode Three (history)\n");
             SET_MODE(One);
 		=}

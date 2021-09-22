@@ -47,7 +47,7 @@ main reactor Actions {
             printf("Executed Action2\n");
 		=}
 		
-		reaction(next) -> One history {=
+		reaction(next) -> One continue {=
             printf("Transitioning to mode One (continue)\n");
             SET_MODE(One);
 		=}
