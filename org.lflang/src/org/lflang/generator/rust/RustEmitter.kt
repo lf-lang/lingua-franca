@@ -28,7 +28,6 @@ import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
-import org.lflang.generator.rust.ReactorComponentEmitter.reactionInvokerLocalDecl
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
@@ -243,7 +242,7 @@ ${"         |    "..declarations}
     private fun ReactorInfo.declareReactions(): String {
         val pattern = reactions.joinToString(prefix = "let [", separator = ",\n", postfix = "]") { it.invokerId }
 
-        return "$pattern = _assembler.declare_reactions::<{Self::MAX_REACTION_ID}>();"
+        return "$pattern = _assembler.new_reactions::<{Self::MAX_REACTION_ID.index()}>();"
     }
 
     private fun ReactorComponentEmitter.workerFunctionCalls(reactor: ReactorInfo): String {
@@ -507,14 +506,6 @@ private object ReactorComponentEmitter {
     fun ReactorComponent.toStructField(): TargetCode {
         val fieldVisibility = if (this is PortData) "pub " else ""
         return "$fieldVisibility$rustFieldName: ${toType()}"
-    }
-
-    fun ReactionInfo.reactionInvokerLocalDecl() =
-        "let $invokerId = ${reactionInvokerInitializer()}"
-
-    fun ReactionInfo.reactionInvokerInitializer(): String {
-        val label = debugLabel?.withDQuotes().toRustOption()
-        return "_assembler.new_reaction($label);"
     }
 
     fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
