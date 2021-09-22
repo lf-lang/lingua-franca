@@ -32,16 +32,16 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/bndbuffer"
+      - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-    lf_file: "bndbuffer/ProdCons.lf"
-    binary: "ProdCons"
-    gen_args:
-      producers: ["-D", "numProducers=<value>"]
-      consumers: ["-D", "numConsumers=<value>"]
+    lf_file: "concurrency/BoundedBuffer.lf"
+    binary: "BoundedBuffer"
+    gen_args: null
     run_args:
       buffer_size: ["--bufferSize", "<value>"]
       items_per_producer: ["--numItemsPerProducer", "<value>"]
       produce_cost: ["--prodCost", "<value>"]
       consume_cost: ["--consCost", "<value>"]
+      producers: ["--numProducers", "<value>"]
+      consumers: ["--numConsumers", "<value>"]

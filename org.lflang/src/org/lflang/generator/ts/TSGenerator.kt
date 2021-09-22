@@ -82,24 +82,17 @@ class TSGenerator(
     }
 
     // Wrappers to expose GeneratorBase methods.
-    fun prw(builder: StringBuilder, text: Any) = pr(builder, text)
-    fun indentw(builder: StringBuilder) = indent(builder)
-    fun unindentw(builder: StringBuilder) = unindent(builder)
-
     fun federationRTIPropertiesW() = federationRTIProperties
 
     fun getTargetValueW(v: Value): String = getTargetValue(v)
     fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = getTargetType(state)
-    fun getTargetTypeW(a: Action): String = getTargetType(a)
-    fun getTargetTypeW(p: Port): String = getTargetType(p)
     fun getTargetTypeW(t: Type): String = getTargetType(t)
 
     fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state)
     fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param)
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
         getInitializerList(param, i)
-    fun generateVarRefW(reference: VarRef): String =generateVarRef(reference)
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -163,20 +156,19 @@ class TSGenerator(
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile,
+            val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
-            val parameterGenerator = TSParameterGenerator(this, fileConfig, targetConfig, reactors)
+            val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
             val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
             tsCode.append(parameterCode)
 
             val reactorGenerator = TSReactorGenerator(this, errorReporter)
             for (reactor in reactors) {
-                reactorGenerator.generateReactor(reactor, federate)
+                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
             }
-            reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters)
-            tsCode.append(reactorGenerator.getCode())
+            tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
         }

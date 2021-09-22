@@ -19,6 +19,7 @@ def main(cfg):
     benchmark_name = benchmark["name"]
     target_name = target["name"]
     continue_on_error = cfg["continue_on_error"]
+    test_mode = cfg["test_mode"]
 
     # initialize the thread number if not specified
     if cfg["threads"] is None:
@@ -45,22 +46,23 @@ def main(cfg):
         return res
 
     # register the resolver for 'args:'
-
-    # HACK: When using multirun, we need to update the resolver for the new
-    # 'cfg.  However, OmegaConf throws an exception when the resolver was
-    # already registerd in another run.  Since OmegaConf does not seem to offer
-    # a way for deregistering a resolver we use this hack.
-    try:
-        omegaconf.basecontainer.BaseContainer._resolvers.pop("args")
-    except KeyError:
-        pass
-
-    omegaconf.OmegaConf.register_resolver("args", resolve_args)
+    omegaconf.OmegaConf.register_new_resolver("args", resolve_args, replace=True)
 
     log.info(f"Running {benchmark_name} using the {target_name} target.")
 
+
+
     # perform some sanity checks
-    if not check_benchmark_target_config(benchmark, target_name):
+    if "validation_alias" in target:
+        target_validation_name = target["validation_alias"]
+    else:
+        target_validation_name = target_name
+
+    if target_name not in benchmark["targets"]:
+        log.warning(f"target {target_name} is not supported by the benchmark {benchmark_name}")
+        return
+
+    if not check_benchmark_target_config(benchmark, target_validation_name):
         if continue_on_error:
             return
         else:
@@ -69,22 +71,45 @@ def main(cfg):
     # prepare the benchmark
     for step in ["prepare", "copy", "gen", "compile"]:
         if target[step] is not None:
-            execute_command(target[step], continue_on_error)
+            _, code = execute_command(target[step])
+            check_return_code(code, continue_on_error)
 
     # run the benchmark
     if target["run"] is not None:
-        output = execute_command(target["run"], continue_on_error)
-        times = hydra.utils.call(target["parser"], output)
-        write_results(times, cfg)
+        if test_mode:
+            # run the command with a timeout of 1 second. We only want to test
+            # if the command executes correctly, not if the full benchmark runs
+            # correctly as this would take too long
+            cmd = omegaconf.OmegaConf.to_object(target["run"])
+            _, code = execute_command(["timeout", "1"] + cmd)
+            # timeout returns 124 if the command executed correctly but the
+            # timeout was exceeded
+            if code != 0 and code != 124:
+                raise RuntimeError(
+                    f"Command returned with non-zero exit code ({code})"
+                )
+        else:
+            output, code = execute_command(target["run"])
+            check_return_code(code, continue_on_error)
+            times = hydra.utils.call(target["parser"], output)
+            write_results(times, cfg)
     else:
         raise ValueError(f"No run command provided for target {target_name}")
 
 
+def check_return_code(code, continue_on_error):
+    if code != 0:
+        if continue_on_error:
+            log.error(
+                f"Command returned with non-zero exit code ({code})"
+            )
+        else:
+            raise RuntimeError(
+                f"Command returned with non-zero exit code ({code})"
+            )
+
 def check_benchmark_target_config(benchmark, target_name):
     benchmark_name = benchmark["name"]
-    if target_name not in benchmark["targets"]:
-        log.error(f"target {target_name} is not supported by the benchmark {benchmark_name}")
-        return False
     # keep a list of all benchmark parameters
     bench_params = list(benchmark["params"].keys())
 
@@ -106,7 +131,7 @@ def check_benchmark_target_config(benchmark, target_name):
     return True
 
 
-def execute_command(command, continue_on_error):
+def execute_command(command):
     # the command can be a list of lists due to the way we use an omegaconf
     # resolver to determine the arguments. We need to flatten the command list
     # first. We also need to touch each element individually to make sure that
@@ -136,17 +161,8 @@ def execute_command(command, continue_on_error):
                 cmd_log.info(nextline.rstrip())
 
         code = process.returncode
-        if code != 0:
-            if continue_on_error:
-                log.error(
-                    f"Command returned with non-zero exit code ({code})"
-                )
-            else:
-                raise RuntimeError(
-                    f"Command returned with non-zero exit code ({code})"
-                )
 
-    return output
+    return output, code
 
 
 def write_results(times, cfg):

@@ -149,9 +149,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-trigger_handle_t schedule(void* action, interval_t offset) {
-    return _lf_schedule_token(action, offset, NULL);
-}
+trigger_handle_t schedule(void* action, interval_t offset);
 
 /**
  * Schedule the specified action with an integer value at a later logical
@@ -164,10 +162,7 @@ trigger_handle_t schedule(void* action, interval_t offset) {
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-trigger_handle_t schedule_int(void* action, interval_t extra_delay, int value)
-{
-    return _lf_schedule_int(action, extra_delay, value);
-}
+trigger_handle_t schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -219,9 +214,7 @@ trigger_handle_t schedule_int(void* action, interval_t extra_delay, int value)
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-trigger_handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
-    return _lf_schedule_token(action, extra_delay, token);
-}
+trigger_handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
 
 /**
  * Schedule an action to occur with the specified value and time offset with a
@@ -239,18 +232,7 @@ trigger_handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-trigger_handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
-    if (length < 0) {
-        error_print(
-            "schedule_copy():"
-            " Ignoring request to copy a value with a negative length (%d).",
-            length
-        );
-        return -1;
-    }
-    return _lf_schedule_copy(action, offset, value, (size_t)length);
-}
-
+trigger_handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -268,16 +250,6 @@ trigger_handle_t schedule_copy(void* action, interval_t offset, void* value, int
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-trigger_handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {    
-    if (length < 0) {
-        error_print(
-            "schedule_value():"
-            " Ignoring request to schedule an action with a value that has a negative length (%d).",
-            length
-        );
-        return -1;
-    }
-    return _lf_schedule_value(action, extra_delay, value, (size_t)length);
-}
+trigger_handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
 
 #endif // CTARGET_H

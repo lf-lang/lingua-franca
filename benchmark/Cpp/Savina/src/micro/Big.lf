@@ -1,0 +1,163 @@
+/**
+ * Micro-benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * A benchmark that implements a many-to-many message
+ * passing scenario. Several processes are spawned, each of which
+ * sends a ping message to the others, and responds with a pong
+ * message to any ping message it receives. The benchmark is pa-
+ * rameterized by the number of processes.
+ *
+ * @author Hannes Klein
+ * @author Felix Wittwer
+ */
+
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "../IncludeHeaders.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+public preamble {=
+    enum MsgType {
+      PingMsg,
+      PongMsg,
+    };
+=}
+
+reactor SinkReactor(numWorkers:size_t(10)) {
+    // number of exit messages received
+    state numMessages:int(0);
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    input[numWorkers] inBig:void;
+    // only one output needed to send start msg to all reactors
+    output outBig:void;
+    
+    reaction(inStart) -> outBig {=
+        // reset state
+        numMessages = 0;
+        
+        outBig.set();
+    =}
+    
+    reaction(inBig) -> outFinished {=
+        // collect all exit messages
+        for(int i = 0; i < inBig.size(); i++) {
+            if(inBig[i].is_present()) {
+                numMessages += 1;
+                if(numMessages == numWorkers) {
+                    outFinished.set();
+                    return;
+                }
+            }
+        }
+    =}
+}
+
+reactor BigReactor(bank_index:int(0), numMessages:int(20000), numWorkers:size_t(10)) {
+    
+    public preamble {=
+        #include "PseudoRandom.hh"
+    =}
+    
+    state numPings:int(0);
+    state random:PseudoRandom;
+    state pongsToSend:{=std::vector<int>=};
+    state receivedPong:bool;
+    state sendNextPingTo:int(-1);
+    
+    input inSink:void;
+    output outSink:void;
+    
+    logical action send:void; //send both pings and pongs
+    
+    input[numWorkers] inBig:{=MsgType=};
+    output[numWorkers] outBig:{=MsgType=};
+    
+    reaction(send) -> outSink, outBig, send {=
+        //send ping
+        if(numPings < numMessages && receivedPong) {
+            if(sendNextPingTo == -1) {
+                sendNextPingTo = random.nextInt(numWorkers);
+            }
+            // We can only send a new ping message to reactor sendNextPingTo if
+            // we did not already send a pong message to that exact same reactor. 
+            if(find(pongsToSend.begin(), pongsToSend.end(), sendNextPingTo) ==  pongsToSend.end()) {
+                // Send ping now.
+                outBig[sendNextPingTo].set(PingMsg);
+                sendNextPingTo = -1;
+                receivedPong = false;
+                numPings += 1;
+                if(numPings == numMessages) {
+                    //send exit msg one time
+                    outSink.set();
+                }
+            } else {
+                // Send ping later
+                send.schedule();
+            }
+        }
+        
+        // Send pongs.
+        for(int i: pongsToSend) {
+            outBig[i].set(PongMsg);
+        }
+        pongsToSend.clear();
+    =}
+    
+    reaction(inBig) -> send {=
+        // list incoming pings
+        for(int i = 0; i < inBig.size(); i++) {
+            if(inBig[i].is_present()) {
+                if(*(inBig[i].get()) == PingMsg) {
+                    pongsToSend.push_back(i);
+                } else {
+                    // message type == PongMsg
+                    receivedPong = true;
+                }
+            }
+        }
+        
+        send.schedule();
+    =}
+    
+    reaction(inSink) -> send {=
+        // reset local state
+        numPings = 0;
+        random = PseudoRandom(bank_index);
+        pongsToSend.clear();
+        pongsToSend.reserve(numWorkers);
+        receivedPong = true;
+        sendNextPingTo = -1;
+        
+        // start execution
+        send.schedule();
+    =}
+}
+
+main reactor (numIterations:int(12), numPingsPerReactor:int(20000), numReactors:size_t(120)) {
+    sink = new SinkReactor(numWorkers=numReactors);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.start -> sink.inStart;
+    sink.outFinished -> runner.finished;
+    
+    reaction(startup) {=
+        printBenchmarkInfo("BigReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numPingsPerReactor", numPingsPerReactor, "numReactors", numReactors);
+        printSystemInfo();
+    =}
+    
+    bigs = new[numReactors] BigReactor(numMessages=numPingsPerReactor, numWorkers=numReactors);
+    
+    // connect sink
+    (sink.outBig)+ -> bigs.inSink;
+    bigs.outSink -> sink.inBig;
+    
+    bigs.outBig -> interleaved(bigs.inBig);
+}
