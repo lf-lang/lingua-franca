@@ -38,13 +38,16 @@
  ]]] */
  // [[[end]]]
 
-target C{
+target C {
     /* [[[cog
-    cog.outl(f'threads: {threads}')
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
     ]]] */
-    threads: 24 
-    // [[[end]]]
-};
+    threads: 0,
+    /// [[[end]]]
+}
 
 reactor ProducerReactor(countTo:int(1000000)) {
 

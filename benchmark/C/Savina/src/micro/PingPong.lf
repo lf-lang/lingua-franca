@@ -23,15 +23,17 @@
  * @author Edward A. Lee
  */
 target C {
-    fast: true,
     /* [[[cog
-    cog.outl(f'threads: {threads}')
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
     ]]] */
-    threads: 24 
-    // [[[end]]]
+    threads: 0,
+    /// [[[end]]]
+    fast: true
 };
-
-reactor Ping(count:int(1000000)) {
+reactor Ping(count:int(10000000)) {
     input receive:int;
     output send:int;
     state pingsLeft:int(count);
@@ -47,7 +49,7 @@ reactor Ping(count:int(1000000)) {
         }
     =}
 }
-reactor Pong(expected:int(1000000)) {
+reactor Pong(expected:int(10000000)) {
     input receive:int;
     output send:int;
     state count:int(0);

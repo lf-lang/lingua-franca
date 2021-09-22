@@ -43,8 +43,6 @@ public class LFTest implements Comparable<LFTest> {
          * Return a thread responsible for recording the standard output stream
          * of the given process.
          * A separate thread is used so that the activity can preempted.
-         * @param stream The stream to record.
-         * @return A thread that will record the given stream.
          */
         public Thread recordStdOut(Process process) {
             return recordStream(std, process.getInputStream());
@@ -54,8 +52,6 @@ public class LFTest implements Comparable<LFTest> {
          * Return a thread responsible for recording the error stream of the
          * given process.
          * A separate thread is used so that the activity can preempted.
-         * @param stream The stream to record.
-         * @return A thread that will record the given stream.
          */
         public Thread recordStdErr(Process process) {
             return recordStream(err, process.getErrorStream());
@@ -65,7 +61,6 @@ public class LFTest implements Comparable<LFTest> {
          * Return a thread responsible for recording the given stream.
          * @param builder The builder to append to.
          * @param inputStream The stream to read from.
-         * @return
          */
         private Thread recordStream(StringBuilder builder, InputStream inputStream) {
             Thread t = new Thread(() -> {

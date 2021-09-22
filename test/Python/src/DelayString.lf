@@ -24,7 +24,7 @@ reactor Test {
             sys.stderr.write("ERROR: Expected elapsed time to be 100000000. It was {:d}.\n".format(elapsed))
             exit(1)
         if _in.value != "Hello":
-            sys.stderr.write('ERROR: Expected input value to be "Hello". It was "{:s}".\n'.format(_in.value))
+            sys.stderr.write("ERROR: Expected input value to be 'Hello'. It was '{:s}'.\n".format(_in.value))
             exit(2)
     =}
 }
