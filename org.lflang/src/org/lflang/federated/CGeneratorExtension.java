@@ -29,7 +29,6 @@ package org.lflang.federated;
 import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.FederateInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;

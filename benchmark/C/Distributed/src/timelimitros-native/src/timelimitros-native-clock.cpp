@@ -15,7 +15,7 @@ class TimeLimitClock : public rclcpp::Node {
         TimeLimitClock()
         : Node("TimeLimit_Clock") {
             clock_ = this->create_publisher<std_msgs::msg::Int32>("TimeLimit_y", QUEUE_DEPTH);
-            timer_ = this->create_wall_timer(1us, std::bind(&TimeLimitClock::timer_callback, this));
+            timer_ = this->create_wall_timer(15us, std::bind(&TimeLimitClock::timer_callback, this));
             count_ = 0;
         }
     

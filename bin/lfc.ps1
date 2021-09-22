@@ -12,7 +12,7 @@ $jarpath="$lfbase\build\libs\org.lflang.lfc-0.1.0-SNAPSHOT-all.jar"
 if (-not (Test-Path $jarpath -PathType leaf)) {
     $old_pwd = $pwd
 	cd $base
-    ./gradlew generateStandaloneCompiler
+    ./gradlew buildLfc
 	cd $old_pwd
 }
 
