@@ -64,7 +64,7 @@ target C {
     threads: 1,
     // Need to compile net_util.c also because this is not federated so it will not be
     // included automatically.
-    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/core/net_util.c",
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/core/federated/net_util.c",
     timeout: 10 secs
 };
   
