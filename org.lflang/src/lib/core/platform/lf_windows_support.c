@@ -66,12 +66,12 @@ double _lf_frequency_to_ns = 1.0;
  */
 int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
     uintptr_t handle = _beginthread(lf_thread, 0, arguments);
-	*thread = (HANDLE)handle;
-	if(thread == (HANDLE)-1){
-		return 1;
-	}else{
-		return 0;
-	}
+    *thread = (HANDLE)handle;
+    if(thread == (HANDLE)-1){
+        return 1;
+    }else{
+        return 0;
+    }
 }
 
 /**
@@ -82,12 +82,12 @@ int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* ar
  * @return 0 on success, EINVAL otherwise.
  */
 int lf_thread_join(_lf_thread_t thread, void** thread_return) {    
-	DWORD retvalue = WaitForSingleObject(thread, INFINITE);
-	if(retvalue == WAIT_OBJECT_0){
-		return 0;
-	}else{
-		return EINVAL;
-	}
+    DWORD retvalue = WaitForSingleObject(thread, INFINITE);
+    if(retvalue == WAIT_OBJECT_0){
+        return 0;
+    }else{
+        return EINVAL;
+    }
 }
 
 /**
@@ -97,12 +97,12 @@ int lf_thread_join(_lf_thread_t thread, void** thread_return) {
  */
 int lf_mutex_init(_lf_critical_section_t* critical_section) {
     // Set up a recursive mutex
-	InitializeCriticalSection((CRITICAL_SECTION*)critical_section);
-	if(critical_section != NULL){
-		return 0;
-	}else{
-		return 1;
-	}
+    InitializeCriticalSection((CRITICAL_SECTION*)critical_section);
+    if(critical_section != NULL){
+        return 0;
+    }else{
+        return 1;
+    }
 }
 
 /** 
@@ -119,7 +119,7 @@ int lf_mutex_init(_lf_critical_section_t* critical_section) {
 int lf_mutex_lock(_lf_critical_section_t* critical_section) {
     // The following Windows API does not return a value. It can
     // raise a EXCEPTION_POSSIBLE_DEADLOCK. See synchapi.h.
-	EnterCriticalSection((CRITICAL_SECTION*)critical_section);
+    EnterCriticalSection((CRITICAL_SECTION*)critical_section);
     return 0;
 }
 
@@ -297,21 +297,25 @@ int lf_clock_gettime(instant_t* t) {
  */
 int lf_nanosleep(instant_t requested_time) {
     /* Declarations */
-	HANDLE timer;	/* Timer handle */
-	LARGE_INTEGER li;	/* Time defintion */
-	/* Create timer */
-	if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
-		return FALSE;
-	/* Set timer properties */
-	li.QuadPart = -1 * (requested_time / 100.0);
-	if(!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)){
-		CloseHandle(timer);
-		return FALSE;
-	}
-	/* Start & wait for timer */
-	WaitForSingleObject(timer, INFINITE);
-	/* Clean resources */
-	CloseHandle(timer);
-	/* Slept without problems */
-	return TRUE;
+    HANDLE timer;	/* Timer handle */
+    LARGE_INTEGER li;	/* Time defintion */
+    /* Create timer */
+    if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+        return FALSE;
+    /**
+    * Set timer properties.
+    * A negative number indicates relative time to wait.
+    * The requested relative time must be in number of 100 nanoseconds.
+    */
+    li.QuadPart = -1 * (requested_time / 100.0);
+    if(!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)){
+        CloseHandle(timer);
+        return FALSE;
+    }
+    /* Start & wait for timer */
+    WaitForSingleObject(timer, INFINITE);
+    /* Clean resources */
+    CloseHandle(timer);
+    /* Slept without problems */
+    return TRUE;
 }
