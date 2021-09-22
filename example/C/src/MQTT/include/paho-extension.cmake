@@ -6,10 +6,10 @@ set(PAHO_WITH_SSL true)
 # Taken from: https://github.com/eclipse/paho.mqtt.cpp/tree/master/cmake
 # find the Paho MQTT C library
 if(PAHO_WITH_SSL)
-    set(_PAHO_MQTT_C_LIB_NAME paho-mqtt3as)
+    set(_PAHO_MQTT_C_LIB_NAME paho-mqtt3cs)
     find_package(OpenSSL REQUIRED)
 else()
-    set(_PAHO_MQTT_C_LIB_NAME paho-mqtt3a)
+    set(_PAHO_MQTT_C_LIB_NAME paho-mqtt3c)
 endif()
 
 # add suffix when using static Paho MQTT C library variant on Windows
