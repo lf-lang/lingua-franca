@@ -62,7 +62,7 @@ object PortEmitter {
 
         // bind each pair of lhs and rhs ports individually
         return (iteratedLhsPorts zip rhsPorts).joinToString("\n") {
-            "bind_ports(&mut ${it.first.toCode()}, &mut ${it.second.toCode()});"
+            "_assembler.bind_ports(&mut ${it.first.toCode()}, &mut ${it.second.toCode()});"
         }
     }
 
