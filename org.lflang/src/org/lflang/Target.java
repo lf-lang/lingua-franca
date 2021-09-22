@@ -371,7 +371,6 @@ public enum Target {
      */
     public final static Target[] ALL = Target.values();
 
-
     /**
      * Private constructor for targets.
      *
