@@ -1,0 +1,347 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark is very similar to the concurrent Dictionary benchmark.
+ * It only uses a sorted linked list instead of a dictionary.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "../IncludeHeaders.cmake",
+    logging: "warn"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+public preamble {=
+    enum class AccessType {
+      Write,
+      Size,
+      Contains
+    };
+    
+    struct Message {
+      AccessType type;
+      int value;
+    };
+=}
+
+reactor Manager(numWorkers: size_t(20)) {
+    
+    state numWorkersTerminated: size_t(0);
+    
+    input start: void;
+    output finished: void;
+    
+    input[numWorkers] workersFinished: void;
+
+    logical action finish: void;
+    
+    reaction(finish) -> finished {=
+        finished.set();
+    =}
+    
+    reaction(workersFinished) -> finish {=
+        for(size_t i{0}; i < numWorkers; ++i) {
+            if(workersFinished[i].is_present()) {
+                numWorkersTerminated += 1;
+                
+                if(numWorkersTerminated == numWorkers) {
+                    finish.schedule();
+                }
+            }
+        }
+    =}
+    
+    reaction(start) {=
+        // reset local state
+        numWorkersTerminated = 0;
+    =}
+}
+
+reactor Worker(bank_index: size_t{0}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage: int{1}) {
+    
+    public preamble {=
+        #include "PseudoRandom.hh"
+    =}
+    
+    state messageCount: size_t{0};
+    state random: PseudoRandom;
+    
+    input doWork: void;
+    output finished: void;
+    
+    output request: Message;
+    input response: int;
+    
+    reaction(doWork, response) -> request, finished {=
+        if (doWork.is_present()) {
+            // reset local state
+            messageCount = 0;
+            random = PseudoRandom(bank_index + numMessagesPerWorker + writePercentage + sizePercentage);
+        }
+        
+        if(messageCount < numMessagesPerWorker) {
+            messageCount++;
+            int anInt = random.nextInt(100);
+            
+            if(anInt < sizePercentage) {
+                request.set(Message{AccessType::Size, -1});
+            } else if(anInt < (sizePercentage + writePercentage)) {
+                request.set(Message{AccessType::Write, random.nextInt()});
+            } else {
+                request.set(Message{AccessType::Contains, random.nextInt()});
+            }
+        } else {
+            // signal that work is complete
+            finished.set();
+        }
+    =}
+}
+
+reactor SortedListImpl(numWorkers: size_t{20}) {
+    
+    public preamble {=
+        #include "reactor-cpp/logging.hh"
+        #include <bitset>
+    =}
+    
+    state dataList: SortedLinkedList<int>;
+    state responsesToSend: std::vector<int>(numWorkers, -1);
+    
+    input printResult: void;
+    input[numWorkers] requests: Message;
+    output[numWorkers] responses: int;
+    
+    logical action sendResponses: void;
+    
+    reaction(printResult) {=
+        // check result
+        std::cout << "List Size = " << dataList.size() << '\n';
+        
+        // reset local state
+        dataList = SortedLinkedList<int>();
+    =}
+    
+    reaction(sendResponses) -> responses {=
+        for (size_t i{0}; i < numWorkers; i++) {
+            responses[i].set(responsesToSend[i]);
+            reactor::log::Info() << "Reply to worker " << i << " with " << responsesToSend[i]; 
+        }
+    =}
+    
+    reaction(requests) -> sendResponses {=
+        sendResponses.schedule();
+        
+        for(size_t i{0}; i < numWorkers; i++) {
+            auto& msg = requests[i].get();
+            if (msg->type == AccessType::Contains) {
+                int result = dataList.contains(msg->value) ? 1 : 0;
+                responsesToSend[i] = result;
+                reactor::log::Info() << "Worker " << i << " checks if " << msg->value << " is contained in the list";
+            } else if (msg->type == AccessType::Write) {
+                dataList.add(msg->value);
+                responsesToSend[i] = msg->value;
+                reactor::log::Info() << "Worker " << i << " writes " << msg->value;
+            } else if (msg->type == AccessType::Size) {
+                responsesToSend[i] = dataList.size();
+                reactor::log::Info() << "Worker " << i << " reads the list size";
+            }
+        }
+    =}
+    
+    public preamble {=
+        /**
+         * Based on: http://www.cs.ucsb.edu/~franklin/20/assigns/prog2files/MySortedLinkedList.java
+         */
+        template <typename T>
+        class SortedLinkedList {
+        private:
+          /**
+           * stores a single item in the linked list
+           */
+          template <typename U>
+          class Node {
+          public:
+            U item;
+            Node<U>* next;
+        
+            Node(const U& i) {
+              item = i;
+              next = nullptr;
+            }
+          };
+        
+          // a reference to the first node in the list
+          Node<T>* head;
+          // a reference to the node to return when next() is called
+          Node<T>* iterator;
+        public:
+          /**
+           * constructor creates a linked list with no items in it
+           */
+          SortedLinkedList() {
+            head = nullptr;
+            iterator = nullptr;
+          }
+        
+          ~SortedLinkedList() {
+            std::vector<Node<T>*> elementsToDelete;
+        
+            Node<T>* n = head;
+            while (n != nullptr) {
+              elementsToDelete.push_back(n);
+              n = n->next;
+            }
+        
+            for(auto el: elementsToDelete) {
+              delete el;
+            }
+          }
+        
+          /**
+           * isEmpty inputs: none return value: returns true if there are no items in linked list
+           */
+           bool isEmpty() {
+             return (head == nullptr);
+           }
+        
+           /**
+            * add inputs: Comparable item return value: none adds an item into the list in sorted order
+            */
+           void add(const T& item) {
+             // make the new node to insert into list
+             Node<T>* newNode = new Node(item);
+             // first see if the list is empty
+             if (head == nullptr) {
+               // std::cout << "add " << item << " to front";
+               head = newNode;
+             } else if (item < head->item) {
+               // there is something in the list
+               // now check to see if it belongs in front
+               // System.out.println("add "+item +"before"+head.item);
+               newNode->next = head;
+               head = newNode;
+             } else {
+               // otherwise, step down the list.  n will stop
+               // at the node after the new node, and trailer will
+               // stop at the node before the new node
+               Node<T>* after = head->next;
+               Node<T>* before = head;
+               while (after != nullptr) {
+                 if (item < after->item) {
+                   break;
+                 }
+                 before = after;
+                 after = after->next;
+               }
+               // insert between before & after
+               newNode->next = before->next;
+               before->next = newNode;
+               // std::cout << "add " << item << "after" << before->item;
+             }
+           }
+        
+           /* contains
+            * inputs: Comparable item
+            * return value: true if equal item is in list, false otherwise
+            */
+           bool contains(const T& item) const {
+             Node<T>* n = head;
+             // for each node in the linked list
+             while(n != nullptr) {
+               // if it is equal, return true
+               // note that I used compareTo here, not equals
+               // because I am only guaranteed that the
+               // compareTo method is implemented, not equals
+               if(item == n->item) {
+                 return true;
+               }
+               n = n->next;
+             }
+             // if it is not found in list, return false
+             return false;
+           }
+        
+           template <typename U>
+           friend std::ostream& operator<<(std::ostream&, SortedLinkedList&);
+        
+           /**
+            * next inputs: none return value: one element from the linked list This method returns each element in the linked
+            * list in order. It is to be used in a loop to access every item in the list.
+            */
+           T* next() {
+             if (iterator != nullptr) {
+               Node<T>* n = iterator;
+               iterator = iterator->next;
+               return n->item;
+             } else {
+               return nullptr;
+             }
+           }
+        
+           /**
+            * reset inputs: none return value: none resets the iterator so that the next call to next() will return the first
+            * element in the list
+            */
+           void reset() {
+             iterator = head;
+           }
+        
+           /**
+            * size inputs: none return value: the number of elements in linked list
+            */
+           int size() {
+             int r = 0;
+             Node<T>* n = head;
+             // for each node in the linked list
+             while (n != nullptr) {
+               r++;
+               n = n->next;
+             }
+             return r;
+           }
+        };
+        
+        /**
+         * toString inputs: none return value: string representation of the linked list items Format must match assignment
+         */
+        template <typename T>
+        std::ostream& operator<<(std::ostream& strm, SortedLinkedList<T>& a) {
+          auto n = a.head;
+          while(n != nullptr) {
+            strm << n->item;
+            n = n->next;
+          }
+          return strm;
+        }
+    =}
+}
+
+
+main reactor (numIterations: size_t{12}, numMessagesPerWorker: size_t{8000}, writePercentage: int{10}, sizePercentage:int(1), numWorkers: size_t{20}) {
+
+    manager = new Manager(numWorkers=numWorkers);
+    workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
+    sortedList = new SortedListImpl(numWorkers=numWorkers);
+    
+    runner = new BenchmarkRunner(numIterations=numIterations);
+        
+    reaction(startup) {=
+        printBenchmarkInfo("SortedListBenchmark");
+        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker,
+                  "writePercentage", writePercentage, "sizePercentage", sizePercentage, "numWorkers", numWorkers);
+        printSystemInfo();
+    =}
+    
+    (runner.start)+ -> manager.start, workers.doWork;
+    manager.finished -> runner.finished;
+    manager.finished -> sortedList.printResult;
+   
+    workers.request -> sortedList.requests;
+    sortedList.responses -> workers.response;
+    workers.finished -> manager.workersFinished;    
+}

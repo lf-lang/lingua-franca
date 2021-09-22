@@ -22,14 +22,15 @@ targets:
       max_edge_weight: ["-w", "<value>"]
   lf-cpp:
     copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/apsp"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-    lf_file: "apsp/Apsp.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/Matrix.hh"
+    lf_file: "parallelism/Apsp.lf"
     binary: "Apsp"
-    gen_args:
-      num_workers: ["-D", "numNodes=<value>"]
-      block_size: ["-D", "blockSize=<value>"]
+    gen_args: null
     run_args:
+      num_workers: ["--numNodes", "<value>"]
+      block_size: ["--blockSize", "<value>"]
       max_edge_weight: ["--maxEdgeWeight", "<value>"]

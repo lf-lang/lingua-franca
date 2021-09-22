@@ -20,10 +20,10 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/chameneos"
-    lf_file: "chameneos/Chameneos.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/micro"
+    lf_file: "micro/Chameneos.lf"
     binary: "Chameneos"
-    gen_args:
-      chameneos: ["-D", "numChameneos=<value>"]
+    gen_args: null
     run_args:
       meetings: ["--numMeetings", "<value>"]
+      chameneos: ["--numChameneos", "<value>"]
