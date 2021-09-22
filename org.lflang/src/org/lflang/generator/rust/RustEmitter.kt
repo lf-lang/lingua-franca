@@ -278,12 +278,19 @@ ${"         |    "..declarations}
         reactions.size + timers.indexOf(timer).also { assert(it != -1) }
 
     private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
-        val stmts = reactor.reactions.flatMap {
-            it.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${it.invokerId});" } +
-                    it.effects.map { trigger -> "_assembler.declare_effects(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" } +
-                    it.effects.map { trigger -> "_assembler.declare_uses(${it.invokerId}, _self.${trigger.rustFieldName}.get_id());" }
-        } + reactor.timers.map { "_assembler.declare_triggers(_self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId});" }
-        return stmts.joinToString("\n")
+        val reactions = reactor.reactions.map { n ->
+            val deps =
+                n.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${n.invokerId});" } +
+                        n.effects.filterIsInstance<PortData>()
+                            .map { port -> "_assembler.effects_port(${n.invokerId}, &_self.${port.rustFieldName});" } +
+                        n.uses.map { trigger -> "_assembler.declare_uses(${n.invokerId}, _self.${trigger.rustFieldName}.get_id());" }
+
+            n.loc.lfTextComment() + "\n" + deps.joinLn()
+        }.joinLn()
+
+        val timers = reactor.timers.map { "_assembler.declare_triggers(_self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId});" }.joinLn()
+
+        return (reactions + "\n\n" + timers).trimEnd()
     }
 
     private val TimerData.rescheduleReactionId: String
