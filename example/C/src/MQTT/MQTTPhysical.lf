@@ -64,7 +64,8 @@ target C {
     threads: 1,
     cmake-include: [
         "include/paho-extension.cmake",
-        "include/mosquitto-extension.cmake"],
+        "include/mosquitto-extension.cmake",
+        "include/net_utils.cmake"],
     timeout: 10 secs
 };
   
