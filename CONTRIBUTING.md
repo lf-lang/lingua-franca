@@ -13,3 +13,22 @@ You can also build and run the Lingua Franca IDE without the Eclipse setup. To r
 * Develop new changes in a separate topic branch, in a fork if you're not part of the main LF organisation.
 * Every change needs to go through a PR and get an approving review before it is merged. Pushing to master is restricted.
 * All code review is conducted using the Github review system on PRs.
+
+### Coding conventions
+
+The Lingua Franca compiler builds on the Xtext framework and is written in Java, Xtend, and partly in Kotlin.
+
+The overarching guideline we follow is to use each language's most widely used idioms and conventions, which are fortunately very similar.
+
+A couple of more specific code hygiene guidelines are described in [code-style.md](code-style.md) (mostly for Java right now).
+
+#### Code formatting
+
+The following code formatters can be imported into Eclipse:
+* [Java](https://github.com/lf-lang/lingua-franca/blob/master/JavaFormatterEclipse.xml)
+* [Xtend](https://github.com/lf-lang/lingua-franca/blob/master/XtendFormatterEclipse.xml)
+
+For Intellij, formatter config files are checked in and don't need to be imported manually. Just make sure to use the project-specific formatter setting.
+
+
+
