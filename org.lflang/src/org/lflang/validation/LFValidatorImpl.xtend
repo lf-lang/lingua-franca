@@ -30,15 +30,18 @@ import com.google.inject.Inject
 
 import java.util.ArrayList
 import java.util.HashSet
+import java.util.HashMap
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import java.util.Map
 
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -143,6 +146,8 @@ class LFValidatorImpl extends AbstractLFValidator {
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
+
+    static val Map<URI, ValidationMessageAcceptor> acceptors = new HashMap<URI, ValidationMessageAcceptor>
 
     val List<String> targetPropertyErrors = newLinkedList
 
@@ -1320,6 +1325,21 @@ class LFValidatorImpl extends AbstractLFValidator {
                 error("interleaved can only be used in connections", Literals.VAR_REF__INTERLEAVED)
             }
         }
+    }
+
+    /**
+     * Registers this as the ValidationMessageAcceptor corresponding to the
+     * resource containing the given model.
+     */
+    @Check(FAST)
+    def cache(Model model) {
+        // FIXME: This is a workaround. It is inconsistent with the intentions
+        //  of the designers of the XText framework.
+        acceptors.put(model.eResource.getURI, getMessageAcceptor())
+    }
+
+    def static ValidationMessageAcceptor getMessageAcceptor(URI uri) {
+        acceptors.get(uri)
     }
 
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "

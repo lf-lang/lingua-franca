@@ -18,6 +18,7 @@ import org.lflang.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
+import org.lflang.validation.LFValidatorImpl;
 
 import com.google.inject.Inject;
 
@@ -156,7 +157,7 @@ public class LFGenerator extends AbstractGenerator {
             if (fileConfig.isEclipse()) {
                 errorReporter = new EclipseErrorReporter(fileConfig);
             } else {
-                errorReporter = new LanguageServerErrorReporter();
+                errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0), LFValidatorImpl.getMessageAcceptor(resource.getURI()));
             }
         } else {
             assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;
