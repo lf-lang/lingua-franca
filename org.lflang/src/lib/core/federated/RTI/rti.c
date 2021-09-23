@@ -693,6 +693,26 @@ bool send_TAG_if_transitively_safe(federate_t* fed) {
 }
 
 /**
+ * For all federates transitively downstream of the specified federate, determine
+ * whether they should be sent a TAG or PTAG and send it if so.
+ *
+ * This assumes the caller holds the mutex.
+ *
+ * @param fed The upstream federate.
+ * @param visited An array of booleans used to determine whether a federate has
+ *  been visited (initially all false).
+ */
+void send_TAG_if_transitively_safe_to_all_downstream(federate_t* fed, bool visited[]) {
+	visited[fed->id] = true;
+	for (int i = 0; i < fed->num_downstream; i++) {
+		federate_t* downstream = &_RTI.federates[fed->downstream[i]];
+		if (visited[downstream->id]) continue;
+		send_TAG_if_transitively_safe(downstream);
+		send_TAG_if_transitively_safe_to_all_downstream(downstream, visited);
+	}
+}
+
+/**
  * Handle a logical tag complete (LTC) message. @see
  * MSG_TYPE_LOGICAL_TAG_COMPLETE in rti.h.
  * 
@@ -723,26 +743,6 @@ void handle_logical_tag_complete(federate_t* fed) {
     }
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
-}
-
-/**
- * For all federates transitively downstream of the specified federate, determine
- * whether they should be sent a TAG or PTAG and send it if so.
- *
- * This assumes the caller holds the mutex.
- *
- * @param fed The upstream federate.
- * @param visited An array of booleans used to determine whether a federate has
- *  been visited (initially all false).
- */
-void send_TAG_if_transitively_safe_to_all_downstream(federate_t* fed, bool visited[]) {
-	visited[fed->id] = true;
-	for (int i = 0; i < fed->num_downstream; i++) {
-		federate_t* downstream = &_RTI.federates[fed->downstream[i]];
-		if (visited[downstream->id]) continue;
-		send_TAG_if_transitively_safe(downstream);
-		send_TAG_if_transitively_safe_to_all_downstream(downstream, visited);
-	}
 }
 
 /**
