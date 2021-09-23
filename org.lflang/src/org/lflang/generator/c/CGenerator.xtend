@@ -363,7 +363,9 @@ class CGenerator extends GeneratorBase {
      * generation.
      * @param resource The resource containing the source code.
      * @param fsa The file system access (used to write the result).
-     * @param context FIXME: Undocumented argument. No idea what this is.
+     * @param context The context in which the generator is
+     *     invoked, including whether it is cancelled and
+     *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -781,7 +783,7 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
+            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
                 if (targetConfig.useCmake) {
                     // Use CMake if requested.
                     cCompiler = new CCmakeCompiler(targetConfig, fileConfig, errorReporter);
