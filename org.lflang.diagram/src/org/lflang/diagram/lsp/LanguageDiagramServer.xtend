@@ -1,4 +1,5 @@
 package org.lflang.diagram.lsp
+import org.lflang.generator.LanguageServerErrorReporter
 
 import de.cau.cs.kieler.klighd.lsp.KGraphLanguageClient
 import de.cau.cs.kieler.klighd.lsp.interactive.layered.LayeredInteractiveLanguageServerExtension
@@ -47,6 +48,7 @@ class LFLsCreator extends AbstractLsCreator {
         super.onConnect()
         constraints.client = languageClient as KGraphLanguageClient
         rectPack.client = languageClient as KGraphLanguageClient
+        LanguageServerErrorReporter.setClient(languageClient)
     }
 }
 

@@ -157,7 +157,7 @@ public class LFGenerator extends AbstractGenerator {
             if (fileConfig.isEclipse()) {
                 errorReporter = new EclipseErrorReporter(fileConfig);
             } else {
-                errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0), LFValidatorImpl.getMessageAcceptor(resource.getURI()));
+                errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0));
             }
         } else {
             assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;

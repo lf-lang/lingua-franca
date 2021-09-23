@@ -11,6 +11,9 @@ dependencies {
     implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: '3.15.0'
     // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: '2.12.1'
+    // https://mvnrepository.com/artifact/org.eclipse.lsp4j/org.eclipse.lsp4j
+    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.10.0'
+
 }
 
 configurations {
