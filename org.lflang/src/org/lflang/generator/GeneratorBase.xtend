@@ -526,12 +526,20 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            this.targetConfig.filesNamesWithoutPath.add(
-                fileConfig.copyFileOrResource(
+            val relativeFileName = fileConfig.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
-                    targetDir)
-            );
+                    targetDir);
+            if (relativeFileName.isNullOrEmpty) {
+                errorReporter.reportError( 
+                    "Failed to find file " + filename + "specified in the" +
+                    " files target property."
+                )
+            } else {
+                this.targetConfig.filesNamesWithoutPath.add(
+                    relativeFileName
+                );
+            }
         }
     }
 
