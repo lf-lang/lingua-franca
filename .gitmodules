@@ -1,3 +1,9 @@
 [submodule "xtext/org.icyphy.linguafranca/src/lib/TS/reactor-ts"]
 	path = org.lflang/src/lib/TS/reactor-ts
 	url = https://github.com/icyphy/reactor-ts.git
+[submodule "org.lflang/src/lib/reactor-c"]
+	path = org.lflang/src/lib/reactor-c
+	url = https://github.com/lf-lang/reactor-c
+[submodule "org.lflang/src/lib/python-base"]
+	path = org.lflang/src/lib/python-base
+	url = https://github.com/lf-lang/python-base.git
