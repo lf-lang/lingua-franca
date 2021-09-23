@@ -46,8 +46,8 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetProperty.UnionType
@@ -816,11 +816,11 @@ class LinguaFrancaValidationTest {
      * Maps a type to a list of known good values.
      */
     val primitiveTypeToKnownGood = #{
-            PrimitiveType.BOOLEAN -> #["true", "\"true\"", "'true'", "false", "\"false\"", "'false'"],
+            PrimitiveType.BOOLEAN -> #["true", "\"true\"", "false", "\"false\""],
             PrimitiveType.INTEGER -> #["0", "1", "\"42\"", "\"-1\"", "-2"],
             PrimitiveType.NON_NEGATIVE_INTEGER -> #["0", "1", "42"],
             PrimitiveType.TIME_VALUE -> #["1 msec", "2 sec"],
-            PrimitiveType.STRING -> #["1", "\"foo\"", "bar", "'baz'"],
+            PrimitiveType.STRING -> #["1", "\"foo\"", "bar"],
             PrimitiveType.FILE -> #["valid.file", "something.json", "\"foobar.proto\""]
         }
     
@@ -828,11 +828,11 @@ class LinguaFrancaValidationTest {
      * Maps a type to a list of known bad values.
      */
     val primitiveTypeToKnownBad = #{
-            PrimitiveType.BOOLEAN -> #["1 sec", "foo", "\"foo\"", "\'bar\'", "[1]", "{baz: 42}"],
-            PrimitiveType.INTEGER -> #["foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"],
-            PrimitiveType.NON_NEGATIVE_INTEGER -> #["-42", "foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"],
-            PrimitiveType.TIME_VALUE -> #["foo", "\"bar\"", "'baz'", "\"3 sec\"", "'4 weeks'", "[1, 2]", "{foo: \"bar\"}"],
-            PrimitiveType.STRING -> #["1 msec", "[1, 2]", "{foo: \"bar\"}"]
+            PrimitiveType.BOOLEAN -> #["1 sec", "foo", "\"foo\"", "[1]", "{baz: 42}", "'c'"],
+            PrimitiveType.INTEGER -> #["foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"],
+            PrimitiveType.NON_NEGATIVE_INTEGER -> #["-42", "foo", "\"bar\"", "1 sec", "[1, 2]", "{foo: \"bar\"}", "'c'"],
+            PrimitiveType.TIME_VALUE -> #["foo", "\"bar\"", "\"3 sec\"", "\"4 weeks\"", "[1, 2]", "{foo: \"bar\"}", "'c'"],
+            PrimitiveType.STRING -> #["1 msec", "[1, 2]", "{foo: \"bar\"}", "'c'"]
         }
     
     /**
@@ -903,7 +903,7 @@ class LinguaFrancaValidationTest {
             // Return some obviously bad examples for the common
             // case where the options are from an ordinary Enum<?>.
             if (!type.options.exists[it instanceof TargetPropertyType]) {
-                return #["foo", "\"bar\"", "'baz'", "1", "-1",
+                return #["foo", "\"bar\"", "1", "-1",
                     "{x: 42}", "[1, 2, 3]"]
             }
         }

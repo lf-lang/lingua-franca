@@ -675,7 +675,7 @@ void __pop_events() {
     };
 
 #ifdef FEDERATED
-    // Insert network dependent reactions for network input ports into
+    // Insert network dependent reactions for network input and output ports into
     // the reaction queue
     enqueue_network_control_reactions(reaction_q);
 #endif // FEDERATED
@@ -1778,6 +1778,8 @@ int process_args(int argc, char* argv[]) {
             i++;
             info_print("Federation ID for executable %s: %s", argv[0], argv[i]);
             federation_id = argv[i++];
+        } else if (strcmp(argv[i], "--ros-args") == 0) {
+    	      // FIXME: Ignore ROS arguments for now
         } else {
             error_print("Unrecognized command-line argument: %s", argv[i]);
             usage(argc, argv);

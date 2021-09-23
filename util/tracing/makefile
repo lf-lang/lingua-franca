@@ -3,7 +3,7 @@
 # @author: Edward A. Lee
 
 CC=gcc
-CFLAGS=-I../../xtext/org.icyphy.linguafranca/src/lib/core/ -Wall
+CFLAGS=-I../../org.lflang/src/lib/core/ -Wall
 DEPS=
 LIBS=-lcurl
 

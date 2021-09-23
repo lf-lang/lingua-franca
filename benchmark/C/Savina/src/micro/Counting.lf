@@ -1,0 +1,157 @@
+/**
+ * Micro-benchmark from the Savina benchmark suite.
+ * Intended to measure message passing overhead by stress
+ * testing the mailbox of actors.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ *
+ * Lacking the mailbox in the reactor model this benchmarks
+ * measures message passing overhead and scheduling overhead
+ * because of the necessary scheduling after each message which
+ * is not necessary in the actor model.
+ *
+ *
+ * For comparison some informal results for 1,000,000 messages
+ *
+ * @author Hannes Klein
+ * @Abanob Bostouros
+ */
+
+ /* [[[cog
+ # This file is a code generator using the python module cog:
+ # See https://nedbatchelder.com/code/cog/
+ #
+ # All instructions for code  generation are in-lined in comments
+ # like this one. With that you can use this file as a normal source file
+ # but also to generate code.
+ #
+ # To change the generated code in-line within this file run:
+ # $ python -m cog -r this-file.lf
+ # To generate a new file from this file stripping the generator code in the process run:
+ # $ python -m cog -d -o output-file.lf this-file.lf
+ #
+ # Use the command line option -D to specify generator parameters, for example:
+ # $ python -m cog -r -D parameter=100 this-file.lf
+ #
+ # Generator parameters used in this file:
+ # -D countTo=1000000
+ #
+ ]]] */
+ // [[[end]]]
+
+target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+}
+
+reactor ProducerReactor(countTo:int(1000000)) {
+
+
+    state i:int(0); // current counter value
+
+    input inStartCounting:bool;
+
+	logical action outFinishedCounting;
+    output outResetCounter:bool;
+    output outIncrement:bool;
+    output outRetrieveResult:bool;
+    input inResult:int;
+    logical action count;
+
+    reaction(outFinishedCounting){=
+        request_stop();
+    =}
+
+
+    reaction(inStartCounting) -> count, outResetCounter {=
+        // reset counter
+        self->i = 0;
+        SET(outResetCounter, true);
+
+        schedule(count,0);
+    =}
+
+    reaction(count) -> outIncrement, outRetrieveResult, count {=
+
+        if(self->i < self->countTo) {
+            SET(outIncrement,true);
+            self->i += 1;
+            schedule(count,0);
+        } else {
+            SET(outRetrieveResult,true);
+        }
+    =}
+
+    reaction(inResult) -> outFinishedCounting {=
+        if(inResult->value != self->countTo) {
+            printf("ProducerReactor expected %d, found: %d",self->countTo, inResult->value);
+        } else {
+            printf("SUCCESS! received: %d ", inResult->value);
+        }
+        schedule(outFinishedCounting, 0);
+    =}
+}
+
+
+reactor CountingReactor (numIterations:int(12)){
+
+    input inFinishedCounting:bool;
+    input inReset:bool;
+    input inIncrement:bool;
+    input inRetrieveResult:bool;
+    output outSendResult:int;
+    output outStartCounting:bool;
+
+    state count:int(0);
+    state iteration:int(0);
+
+    reaction(inFinishedCounting) -> outStartCounting{=
+        if(self->numIterations <= self->iteration)
+        {
+          request_stop();
+        }
+        else{
+          self->iteration += 1;
+          printf("Iteration: %d",self->iteration);
+          SET(outStartCounting,true);
+        }
+    =}
+
+    reaction(inReset) {=
+        self->count = 0;
+    =}
+
+    reaction(inIncrement) {=
+        self->count++;
+    =}
+
+    reaction(inRetrieveResult) -> outSendResult {=
+        SET(outSendResult,self->count);
+    =}
+}
+
+/* [[[cog
+cog.outl(f"main reactor Counting(countTo:int({countTo}))")
+]]] */
+main reactor Counting(countTo:int(1000000))
+//[[[end]]]
+{ 
+    producer = new ProducerReactor(countTo = countTo);
+
+
+    reaction(startup) -> producer.inStartCounting {=
+        SET(producer.inStartCounting,true);
+    =}
+
+    counter = new CountingReactor();
+
+    producer.outIncrement -> counter.inIncrement;
+    producer.outResetCounter -> counter.inReset;
+    producer.outRetrieveResult -> counter.inRetrieveResult;
+    counter.outSendResult -> producer.inResult;
+}

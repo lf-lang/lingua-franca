@@ -155,6 +155,7 @@ class PortInstance extends TriggerInstance<Port> {
 
     /** Port that sends messages to this port, if there is one. */
     protected PortInstance dependsOnPort = null;
+    def PortInstance getDependsOnPort() { return this.dependsOnPort; }
         
     /** 
      * The index in a multiport array or -1 if this port is not in
@@ -166,7 +167,8 @@ class PortInstance extends TriggerInstance<Port> {
      * The enclosing MultiportInstance or null if this is not in a
      * multiport.
      */
-    protected MultiportInstance multiport = null    
+    protected MultiportInstance multiport = null
+    def MultiportInstance getMultiportInstance() { return this.multiport; }
 
     /////////////////////////////////////////////
     //// Private Fields

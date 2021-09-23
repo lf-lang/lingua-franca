@@ -10,7 +10,7 @@ main reactor {
         // control-z) is received.
         void* read_char(void* a) {
             while(1) {
-                char* c = malloc(sizeof(char));
+                char* c = (char*)malloc(sizeof(char));
                 *c = getchar();
                 schedule_value(a, 0, c, 1);
                 if (*c == EOF) break;
