@@ -104,7 +104,7 @@ public class CCompiler {
     
     /**
      * Return a command to compile the specified C file using a native compiler 
-     * (generally gcc unless overriden by the user).
+     * (generally gcc unless overridden by the user).
      * This produces a C specific compile command.
      * 
      * @param fileToCompile The C filename without the .c extension.
