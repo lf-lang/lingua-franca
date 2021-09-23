@@ -76,7 +76,6 @@ class SourceMapSegment(
             out.append(VLQ.toVLQ(sourceColumn - precedingSegment!!.sourceColumn))
         } else {
             out.append(VLQ.toVLQ(sourceFile))
-            println("DEBUG: sourceline=" + sourceLine)
             out.append(VLQ.toVLQ(sourceLine))
             out.append(VLQ.toVLQ(sourceColumn))
         }
