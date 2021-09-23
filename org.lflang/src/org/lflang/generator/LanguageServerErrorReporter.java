@@ -132,7 +132,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         // FIXME: Diagnostics should be collected, then sent all at once. That is why publishDiagnostics accepts a list.
         if (client != null)
             publishDiagnostics(List.of(new Diagnostic(
-                toRange(startPos, endPos), message, severity, "LSPErrorReporter"
+                toRange(startPos, endPos), message, severity, "Lingua Franca Language Server"
             )));
         if (severity == DiagnosticSeverity.Error) errorsOccurred = true;
         return "" + severity + ": " + message;
