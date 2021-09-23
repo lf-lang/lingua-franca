@@ -25,7 +25,6 @@
 
 package org.lflang.generator.c;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +44,10 @@ import org.lflang.util.LFCommand;
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
 class CCmakeCompiler extends CCompiler {
+    // FIXME: This does not override the compileCCommand
+    //  method because there is no single command that
+    //  compiles; however, it is not clear why
+    //  compileCCommand is public in the first place.
 
     /**
      * Create an instance of CCmakeCompiler.
@@ -71,61 +74,23 @@ class CCmakeCompiler extends CCompiler {
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
-
-        LFCommand configure = configureCmakeCommand();
-        if (configure == null) {
-            return false;
+        int configureReturnCode = configure();
+        int buildReturnCode = 0;
+        // Do not compile if the code generator is being
+        //  invoked from an IDE or text editor without the
+        //  user's explicit request.
+        if (configureReturnCode == 0) {
+            buildReturnCode = build();
         }
-
-        // Use the user-specified compiler if any
-        if (targetConfig.compiler != null) {
-            // cmakeEnv.remove("CXX");
-            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
-                // Interpret this as the user wanting their .c programs to be treated as
-                // C++ files. We can't just simply use g++ to compile C code. We use a 
-                // specific CMake flag to set the language of all .c files to C++.
-            } else {
-                configure.replaceEnvironmentVariable("CC", targetConfig.compiler);
-            }
-            // cmakeEnv.put("CXX", targetConfig.compiler);
-        }
-        
-        int cMakeReturnCode = configure.run();
-        
-        if (cMakeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
-            errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
-        }
-        
-        int makeReturnCode = 0;
-
-        if (cMakeReturnCode == 0) {            
-            LFCommand build = buildCmakeCommand();
-            
-            makeReturnCode = build.run();
-            
-            if (makeReturnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
-                errorReporter.reportError("CMake terminated with error code " + makeReturnCode);
-                errorReporter.reportError(build.getErrors().toString());
-            }
-
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (build.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-                errorReporter.reportError(build.getErrors().toString());
-            }
-            errorReporter.reportError("DEBUG: This is a test to make sure that it is possible to report errors.");
-        }
-        
-        return cMakeReturnCode == 0 && makeReturnCode == 0;
+        return configureReturnCode == 0 && buildReturnCode == 0;
     }
-    
     
     /**
      * Return a command to configure the specified C file
      * using CMake.
      * This produces a C-specific configure command.
      */
-    public LFCommand configureCmakeCommand() {
+    private LFCommand configureCmakeCommand() {
 
         if (!targetConfig.compileLibraries.isEmpty()) {
             errorReporter.reportError("The current CMake build system does not support -l libraries.\n"+
@@ -155,7 +120,6 @@ class CCmakeCompiler extends CCompiler {
         return command;
     }
     
-    
     /**
      * Return a command to build (compile and link) the
      * specified C file using CMake.
@@ -165,7 +129,7 @@ class CCmakeCompiler extends CCompiler {
      * happen in one command. Therefore, this is separated
      * into a configuration command and a build command.
      */
-    public LFCommand buildCmakeCommand() {
+    private LFCommand buildCmakeCommand() {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
@@ -181,6 +145,62 @@ class CCmakeCompiler extends CCompiler {
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
+    }
+
+    private int configure() {
+        LFCommand configure = configureCmakeCommand();
+        if (configure == null) {
+            return 1;
+        }
+
+        // Use the user-specified compiler if any
+        if (targetConfig.compiler != null) {
+            // cmakeEnv.remove("CXX");
+            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
+                // Interpret this as the user wanting their .c programs to be treated as
+                // C++ files. We can't just simply use g++ to compile C code. We use a
+                // specific CMake flag to set the language of all .c files to C++.
+            } else {
+                configure.replaceEnvironmentVariable("CC", targetConfig.compiler);
+            }
+            // cmakeEnv.put("CXX", targetConfig.compiler);
+        }
+
+        int returnCode = configure.run();
+
+        if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+            // FIXME: Why is the error code attributed to the compiler if it is actually received via CMake? Is it
+            //  possible that the source of the error code is not the compiler?
+            errorReporter.reportError(
+                targetConfig.compiler + " terminated with error code " + returnCode
+                    + ". Cmake output:\n" + configure.getOutput().toString()
+            );
+        }
+
+        return returnCode;
+    }
+
+    /**
+     * Compiles the generated target code.
+     * @return the return code from invoking CMake
+     */
+    private int build() {
+        LFCommand build = buildCmakeCommand();
+
+        int makeReturnCode = build.run();
+
+        if (makeReturnCode != 0) {
+            errorReporter.reportError(
+                "CMake terminated with error code " + makeReturnCode + ". Output:\n" + build.getOutput().toString()
+            );
+        }
+
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (build.getErrors().toString().length() > 0) {
+            errorReporter.reportError(build.getErrors().toString());
+        }
+        return makeReturnCode;
     }
     
 }
