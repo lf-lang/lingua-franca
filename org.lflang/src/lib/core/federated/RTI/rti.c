@@ -40,6 +40,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * but we control both ends, and hence, for commonly used
  * processors, this will be more efficient since it won't have
  * to swap bytes.
+ * 
+ * This implementation of the RTI should be considered a reference
+ * implementation. In the future it might be re-implemented in Java or Kotlin.
+ * Or we could bootstrap, and implement it using Lingua Franca.
  */
 
 #include <stdio.h>
@@ -406,7 +410,7 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
     buffer[0] = MSG_TYPE_TAG_ADVANCE_GRANT;
     encode_int64(tag.time, &(buffer[1]));
     encode_int32((int32_t)tag.microstep, &(buffer[1 + sizeof(int64_t)]));
-    // This function is called in send_tag_advance_if_appropriate(), which is a long
+    // This function is called in send_TAG_if_transitively_safe(), which is a long
     // function. During this call, the socket might close, causing the following write_to_socket
     // to fail. Consider a failure here a soft failure and update the federate's status.
     ssize_t bytes_written = write_to_socket(fed->socket, message_length, buffer);
@@ -514,7 +518,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
     buffer[0] = MSG_TYPE_PROVISIONAL_TAG_ADVANCE_GRANT;
     encode_int64(tag.time, &(buffer[1]));
     encode_int32((int32_t)tag.microstep, &(buffer[1 + sizeof(int64_t)]));
-    // This function is called in send_tag_advance_if_appropriate(), which is a long
+    // This function is called in send_TAG_if_transitively_safe(), which is a long
     // function. During this call, the socket might close, causing the following write_to_socket
     // to fail. Consider a failure here a soft failure and update the federate's status.
     ssize_t bytes_written = write_to_socket(fed->socket, message_length, buffer);
@@ -590,7 +594,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
  *
  * @return True if the TAG message is sent and false otherwise.
  */
-bool send_tag_advance_if_appropriate(federate_t* fed) {
+bool send_TAG_if_transitively_safe(federate_t* fed) {
 
 	// Find the earliest LTC of upstream federates.
     tag_t min_upstream_completed = FOREVER_TAG;
@@ -713,7 +717,9 @@ void handle_logical_tag_complete(federate_t* fed) {
     // Check downstream federates to see whether they should now be granted a TAG.
     for (int i = 0; i < fed->num_downstream; i++) {
         federate_t* downstream = &_RTI.federates[fed->downstream[i]];
-        send_tag_advance_if_appropriate(downstream); // FIXME: Should use transitive_send_TAG_if_appropriate().
+        send_TAG_if_transitively_safe(downstream);
+        bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
+        send_TAG_if_transitively_safe_to_all_downstream(downstream, visited);
     }
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
@@ -729,13 +735,13 @@ void handle_logical_tag_complete(federate_t* fed) {
  * @param visited An array of booleans used to determine whether a federate has
  *  been visited (initially all false).
  */
-void transitive_send_TAG_if_appropriate(federate_t* fed, bool visited[]) {
+void send_TAG_if_transitively_safe_to_all_downstream(federate_t* fed, bool visited[]) {
 	visited[fed->id] = true;
 	for (int i = 0; i < fed->num_downstream; i++) {
 		federate_t* downstream = &_RTI.federates[fed->downstream[i]];
 		if (visited[downstream->id]) continue;
-		send_tag_advance_if_appropriate(downstream);
-		transitive_send_TAG_if_appropriate(downstream, visited);
+		send_TAG_if_transitively_safe(downstream);
+		send_TAG_if_transitively_safe_to_all_downstream(downstream, visited);
 	}
 }
 
@@ -753,7 +759,11 @@ void handle_next_event_tag(federate_t* fed) {
 
     // Acquire a mutex lock to ensure that this state does not change while a
     // message is in transport or being used to determine a TAG.
-    pthread_mutex_lock(&_RTI.rti_mutex);
+    pthread_mutex_lock(&_RTI.rti_mutex); // FIXME: Instead of using a mutex,
+                                         // it might be more efficient to use a
+                                         // select() mechanism to read and process
+                                         // federates' buffers in an orderly fashion
+                                          
 
     fed->next_event = extract_tag(buffer);
 
@@ -765,14 +775,14 @@ void handle_next_event_tag(federate_t* fed) {
     // If the federate has no upstream federates, then it does not wait for
     // nor expect a reply. It just proceeds to advance time.
     if (fed->num_upstream > 0) {
-        send_tag_advance_if_appropriate(fed); // FIXME: Rename appropriate to 
+        send_TAG_if_transitively_safe(fed); // FIXME: Rename appropriate to 
                                               // allowed or safe instead of appropriate
     }
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
     bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-    transitive_send_TAG_if_appropriate(fed, visited);
+    send_TAG_if_transitively_safe_to_all_downstream(fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
@@ -810,7 +820,7 @@ void handle_time_advance_notice(federate_t* fed) {
         // This is a side-effect of the combination of distributed cycles and
         // physical actions in federates. FIXME: More explanation is needed.
         if (fed->num_upstream > 0) {
-            send_tag_advance_if_appropriate(fed);
+            send_TAG_if_transitively_safe(fed);
         }
     }
 
@@ -818,7 +828,7 @@ void handle_time_advance_notice(federate_t* fed) {
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
     bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-    transitive_send_TAG_if_appropriate(fed, visited);
+    send_TAG_if_transitively_safe_to_all_downstream(fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
@@ -1332,8 +1342,13 @@ void* clock_synchronization_thread(void* noargs) {
  * waits for the remote socket to be closed
  * before closing the socket itself.
  * 
- * FIXME: state assumptions (i.e., the other side is in charge of closing the
- * socket)
+ * Assumptions:
+ * - We assume that the other side (the federates)
+ *  are in charge of closing the socket (by calling
+ *  close() on the socket), and then wait for the RTI
+ *  to shutdown the socket.
+ * - We assume that calling shutdown() follows the same
+ *  shutdown procedure as stated in the TCP/IP specification.
  * 
  * @param my_fed The federate sending a MSG_TYPE_RESIGN message.
  **/
@@ -1363,7 +1378,7 @@ void handle_federate_resign(federate_t *my_fed) {
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
     bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-    transitive_send_TAG_if_appropriate(my_fed, visited);
+    send_TAG_if_transitively_safe_to_all_downstream(my_fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
@@ -1424,8 +1439,8 @@ void* federate_thread_TCP(void* fed) {
             case MSG_TYPE_STOP_REQUEST:
                 handle_stop_request_message(my_fed); // FIXME: Reviewed until here.
                                                      // Need to also look at
-                                                     // send_tag_advance_if_appropriate()
-                                                     // and transitive_send_TAG_if_appropriate()
+                                                     // send_TAG_if_transitively_safe()
+                                                     // and send_TAG_if_transitively_safe_to_all_downstream()
                 break;
             case MSG_TYPE_STOP_REQUEST_REPLY:
                 handle_stop_request_reply(my_fed);
