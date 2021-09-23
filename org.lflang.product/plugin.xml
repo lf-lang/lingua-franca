@@ -6,14 +6,47 @@
          id="lfrca"
          point="org.eclipse.core.runtime.products">
       <product
-            name="Lingua Franca"
+            name="Epoch IDE"
             application="org.eclipse.ui.ide.workbench">
+         <property
+               name="appName"
+               value="Epoch IDE">
+         </property>
+         <property
+               name="windowImages"
+               value="icons/lf-logo-16px.png,icons/lf-logo-32px.png,icons/lf-logo-48px.png,icons/lf-logo-64px.png,icons/lf-logo-128px.png,icons/lf-logo-256px.png">
+         </property>
+         <property
+               name="startupProgressRect"
+               value="0,315,500,15">
+         </property>
+         <property
+               name="startupForegroundColor"
+               value="FFFFFF">
+         </property>
+         <property
+               name="startupMessageRect"
+               value="10,300,480,15">
+         </property>
+         <property
+               name="aboutImage"
+               value="icons/lf-logo.png">
+         </property>
+         <property
+               name="aboutText"
+               value="Version: 0.1.0 Beta.&#x0A;&#x0A;Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.&#x0A;&#x0A;Visit our GitHub: https://repo.lf-lang.org/.&#x0A;&#x0A;This software is licensed under the BSD 2-Clause License.&#x0A;Copyright © Lingua Franca contributors 2019-2021. All rights reserved.">
+         </property>
+         <property
+               name="preferenceCustomization"
+               value="plugin_customization.ini">
+         </property>
       </product>
    </extension>
    <extension
          point="org.eclipse.ui.perspectives">
       <perspective
             class="org.lflang.product.LFPerspectiveFactory"
+            icon="icons/lf-logo-64px.png"
             id="org.lflang.product.perspective"
             name="Lingua Franca">
       </perspective>
@@ -40,5 +73,32 @@
          </enablement>
       </commonWizard>
    </extension>
-   
+   <extension
+         point="org.eclipse.ui.intro">
+      <intro
+            class="org.eclipse.ui.intro.config.CustomizableIntroPart"
+            icon="icons/lf-logo-16px.png"
+            id="org.lflang.product.intro">
+      </intro>
+      <introProductBinding
+            introId="org.lflang.product.intro"
+            productId="org.lflang.product.lfrca">
+      </introProductBinding>
+   </extension>
+   <extension
+         point="org.eclipse.ui.intro.config">
+      <config
+            content="intro/content.xml"
+            id="org.lflang.product.introConfigId"
+            introId="org.lflang.product.intro">
+         <presentation
+               home-page-id="root">
+            <implementation
+                  kind="html"
+                  os="win32,linux,macosx"
+                  style="intro/css/style.css">
+            </implementation>
+         </presentation>
+      </config>
+   </extension>
 </plugin>

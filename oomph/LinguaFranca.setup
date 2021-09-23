@@ -97,6 +97,14 @@
     </setupTask>
     <setupTask
         xsi:type="setup:CompoundTask"
+        name="org.eclipse.ui.ide">
+      <setupTask
+          xsi:type="setup:PreferenceTask"
+          key="/instance/org.eclipse.ui.ide/unassociatedEditorStrategy"
+          value="org.eclipse.epp.internal.mpc.ui.askMarketPlace"/>
+    </setupTask>
+    <setupTask
+        xsi:type="setup:CompoundTask"
         name="org.eclipse.xtend.core.Xtend">
       <setupTask
           xsi:type="setup:PreferenceTask"
@@ -135,7 +143,7 @@
   <setupTask
       xsi:type="setup:VariableTask"
       name="eclipse.target.platform"
-      defaultValue="2021-03"
+      value="2021-06"
       storageURI="scope://Workspace"/>
   <setupTask
       xsi:type="setup.p2:P2Task">
@@ -147,6 +155,8 @@
         name="org.eclipse.emf.mwe2.language.sdk.feature.group"/>
     <requirement
         name="org.eclipse.jdt.feature.group"/>
+    <requirement
+        name="org.eclipse.cdt.feature.group"/>
     <requirement
         name="org.eclipse.egit.feature.group"/>
     <requirement
@@ -160,6 +170,8 @@
     <requirement
         name="org.eclipse.epp.mpc.feature.group"/>
     <requirement
+        name="org.eclipse.tm.terminal.feature.feature.group"/>
+    <requirement
         name="org.eclipse.xtext.sdk.feature.group"
         versionRange="2.25.0"/>
     <repository
@@ -168,17 +180,17 @@
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
+      id="git.clone.lingua.franca.branch"
       name="git.clone.lingua.franca.branch"
-      value="master"
       defaultValue="master"
       storageURI="scope://Workspace"
-      label="">
-    <description></description>
+      label="Lingua Franca Branch (git clone)">
+    <description>The branch to check out at the initial clone of the repository.</description>
   </setupTask>
   <setupTask
       xsi:type="git:GitCloneTask"
       id="git.clone.lingua.franca"
-      remoteURI="icyphy/lingua-franca"
+      remoteURI="lf-lang/lingua-franca"
       checkoutBranch="${git.clone.lingua.franca.branch}"
       recursive="true">
     <annotation
@@ -273,7 +285,7 @@
     <setupTask
         xsi:type="setup:EclipseIniTask"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/lf-lang/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>
@@ -284,25 +296,6 @@
           name="${scope.project.label}"
           activeRepositoryList="DefaultRepositories"
           includeSources="false">
-        <annotation
-            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator">
-          <detail
-              key="preferredRepositories">
-            <value>http://download.eclipse.org/eclipse/updates/</value>
-          </detail>
-          <detail
-              key="includeAllPlatforms">
-            <value>false</value>
-          </detail>
-          <detail
-              key="includeSource">
-            <value>false</value>
-          </detail>
-          <detail
-              key="location">
-            <value>${git.clone.lingua.franca.location}/org.lflang.targetplatform/org.lflang.targetplatform.target</value>
-          </detail>
-        </annotation>
         <requirement
             name="org.eclipse.equinox.executable.feature.group"/>
         <requirement
@@ -317,6 +310,8 @@
             name="org.eclipse.wildwebdeveloper.feature.feature.group"/>
         <requirement
             name="org.python.pydev.feature.feature.group"/>
+        <requirement
+            name="org.eclipse.tm.terminal.feature.feature.group"/>
         <requirement
             name="com.google.inject"/>
         <requirement
@@ -373,11 +368,13 @@
           <repository
               url="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
           <repository
-              url="https://kieler.github.io/KLighD/v2.0.0/"/>
+              url="https://kieler.github.io/KLighD/v2.1.0/"/>
           <repository
               url="https://www.pydev.org/updates/"/>
           <repository
               url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
+          <repository
+              url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
         </repositoryList>
       </targlet>
     </setupTask>
@@ -395,7 +392,7 @@
     <setupTask
         xsi:type="setup:EclipseIniTask"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/lf-lang/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>

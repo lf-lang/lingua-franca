@@ -136,6 +136,9 @@ abstract class NamedInstance<T extends EObject> {
             // previously constructed.
             var prefix = getFullNameWithJoiner('_').toLowerCase
             
+            // Replace all non-alphanumeric (Latin) characters with underscore.
+            prefix = prefix.replaceAll("[^A-Za-z0-9]", "_")
+            
             // Truncate, if necessary.
             if (prefix.length > identifierLengthLimit) {
                 prefix = '__' 

@@ -1,0 +1,29 @@
+/**
+ * A variant of HelloWorld.lf that tests the 
+ * CCpp target in conjunction with the CMake build system. 
+ * This test should not pass if it does not compile.
+ */
+target CCpp {
+    tracing: true,
+    logging: DEBUG
+};
+reactor HelloWorld {
+    preamble {=
+        #include <iostream>
+    =}
+    state success:bool(false);
+    reaction(startup) {=
+        std::cout << "Hello World." << std::endl;
+        self->success = true;
+    =}
+    reaction(shutdown) {=
+        printf("Shutdown invoked.\n");
+        if (!self->success) {
+            fprintf(stderr, "ERROR: startup reaction not executed.\n");
+            exit(1);
+        }
+    =}
+}
+main reactor {
+    a = new HelloWorld();
+}

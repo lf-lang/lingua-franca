@@ -63,7 +63,7 @@
  */
 target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
-    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
+    flags: "-lpaho-mqtt3c",
     timeout: 10 secs,
     keepalive: true
 };

@@ -1,6 +1,6 @@
 /** 
  * Test the case for when two upstream federates
- * send messages to a downstream federte on two
+ * send messages to a downstream federate on two
  * different ports. One message should carry a 
  * microstep delay relative to the other
  * message.

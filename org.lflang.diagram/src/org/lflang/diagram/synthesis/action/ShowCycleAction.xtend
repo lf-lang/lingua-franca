@@ -2,11 +2,11 @@ package org.lflang.diagram.synthesis.action
 
 import de.cau.cs.kieler.klighd.IAction
 import de.cau.cs.kieler.klighd.kgraph.KNode
-import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
+import org.lflang.diagram.synthesis.util.CycleVisualization
 
 import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.lflang.diagram.synthesis.util.CycleVisualization
+import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 
 /**
  * Action that expands all reactor nodes that are included in a cycle.
@@ -41,7 +41,7 @@ class ShowCycleAction extends AbstractAction {
         }
         // expand
         for (node : cycleNodes) {
-            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, true)
+            node.setExpansionState(node.linkedInstance, vc.viewer, true)
         }
         
         return IAction.ActionResult.createResult(true);

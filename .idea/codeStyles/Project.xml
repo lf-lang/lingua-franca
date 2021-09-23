@@ -25,7 +25,6 @@
     <option name="SOFT_MARGINS" value="60" />
     <JavaCodeStyleSettings>
       <option name="ALIGN_MULTILINE_ANNOTATION_PARAMETERS" value="true" />
-      <option name="BLANK_LINES_AROUND_INITIALIZER" value="2" />
       <option name="INSERT_INNER_CLASS_IMPORTS" value="true" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
       <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
@@ -70,8 +69,6 @@
     <codeStyleSettings language="JAVA">
       <option name="RIGHT_MARGIN" value="120" />
       <option name="BLANK_LINES_BEFORE_PACKAGE" value="1" />
-      <option name="BLANK_LINES_AROUND_METHOD" value="2" />
-      <option name="BLANK_LINES_AROUND_METHOD_IN_INTERFACE" value="2" />
       <option name="BLANK_LINES_AFTER_CLASS_HEADER" value="1" />
       <option name="INDENT_CASE_FROM_SWITCH" value="false" />
       <option name="ALIGN_MULTILINE_CHAINED_METHODS" value="true" />
@@ -364,17 +361,8 @@
       </indentOptions>
     </codeStyleSettings>
     <codeStyleSettings language="kotlin">
+      <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
       <option name="RIGHT_MARGIN" value="130" />
-      <option name="CALL_PARAMETERS_WRAP" value="5" />
-      <option name="CALL_PARAMETERS_LPAREN_ON_NEXT_LINE" value="true" />
-      <option name="CALL_PARAMETERS_RPAREN_ON_NEXT_LINE" value="true" />
-      <option name="METHOD_PARAMETERS_WRAP" value="5" />
-      <option name="METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE" value="true" />
-      <option name="METHOD_PARAMETERS_RPAREN_ON_NEXT_LINE" value="true" />
-      <option name="EXTENDS_LIST_WRAP" value="1" />
-      <option name="METHOD_CALL_CHAIN_WRAP" value="1" />
-      <option name="ASSIGNMENT_WRAP" value="1" />
-      <option name="SOFT_MARGINS" value="100" />
     </codeStyleSettings>
   </code_scheme>
 </component>
