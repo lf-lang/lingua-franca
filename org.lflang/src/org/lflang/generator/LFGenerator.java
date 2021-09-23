@@ -86,8 +86,8 @@ public class LFGenerator extends AbstractGenerator {
     private GeneratorBase createGenerator(Target target, FileConfig fileConfig,
             ErrorReporter errorReporter) {
         switch (target) {
-        case C: return new CGenerator(fileConfig, errorReporter);
-        case CCPP: return new CCppGenerator(fileConfig, errorReporter);
+        case C: return new CGenerator(fileConfig, errorReporter, false);
+        case CCPP: return new CGenerator(fileConfig, errorReporter, true);
         case Python: return new PythonGenerator(fileConfig, errorReporter);
         case CPP:
         case TS:

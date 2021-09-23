@@ -59,7 +59,7 @@ public class Main {
      * The location of the class file of this class inside of the jar.
      */
     private static String MAIN_PATH_IN_JAR = String.join("/",
-                                                         new String[] {"!", "org", "lflang", "generator", "Main.class"});
+                                                         new String[] {"!", "org", "lflang", "lfc", "Main.class"});
 
 
     /**
@@ -240,8 +240,8 @@ public class Main {
             String jarUrl = mainClassUrl.replace("jar:", "").replace(MAIN_PATH_IN_JAR, "");
 
             main.jarPath = Paths.get(new URL(jarUrl).toURI());
-            main.srcPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "src")).normalize();
-            main.rootPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "..")).normalize();
+            main.srcPath = main.jarPath.getParent().getParent().getParent().resolve("src").normalize();
+            main.rootPath = main.jarPath.getParent().getParent().getParent().getParent().normalize();
         } catch (MalformedURLException | URISyntaxException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
@@ -347,7 +347,7 @@ public class Main {
         } else {
             cmdList.add("./gradlew");
         }
-        cmdList.add("generateStandaloneCompiler");
+        cmdList.add("buildLfc");
         if (!this.mustUpdate()) {
             cmdList.add("--offline");
         }
@@ -377,7 +377,7 @@ public class Main {
      * @return
      */
     private boolean rebuildAndFork() {
-        // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-0.1.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
+        // jar:file:<root>org.lflang.lfc/build/libs/org.lflang.lfc-<semver>-SNAPSHOT-all.jar!/org/lflang/lfc/Main.class
         if (needsUpdate()) {
             // Only rebuild if the jar is out-of-date.
             reporter.printInfo("Jar file is missing or out-of-date; running Gradle.");
