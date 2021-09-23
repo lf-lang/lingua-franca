@@ -6,8 +6,8 @@ cd $GITHUB_WORKSPACE
 
 outname="lfc_nightly_$(date '+%Y%m%d-%H%M%S')"
 
-# build lfc compiler
-./gradlew generateStandaloneCompiler
+# build lf compiler
+./gradlew buildLfc
 
 # assemble the files in a separate directory
 mkdir -p $outname/bin

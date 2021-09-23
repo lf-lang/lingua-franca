@@ -42,6 +42,7 @@ import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
+import org.lflang.federated.FederateInstance
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
@@ -57,6 +58,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SupportedSerializers
 
 /** Generator for TypeScript target.
  *
@@ -201,7 +203,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     
         for (file : TypeScriptGenerator.RUNTIME_FILES) {
-            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file,
+            fileConfig.copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file,
                 fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
         }
 
@@ -579,7 +581,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if (reactor.isFederated()) {
             generatedReactions = new LinkedList<Reaction>()
             for (reaction : reactor.reactions) {
-                if (federate.containsReaction(reactor, reaction)) {
+                if (federate.containsReaction(reaction)) {
                     generatedReactions.add(reaction)
                 }
             }
@@ -943,6 +945,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serializer The serializer used on the connection.
      */
     override generateNetworkReceiverBody(
         Action action,
@@ -954,7 +957,8 @@ class TypeScriptGenerator extends GeneratorBase {
         int receivingBankIndex,
         int receivingChannelIndex,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        SupportedSerializers serializer
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
@@ -980,6 +984,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
+     * @param serializer The serializer used on the connection.
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     override String generateNetworkSenderBody(
@@ -992,7 +997,8 @@ class TypeScriptGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay
+        Delay delay,
+        SupportedSerializers serializer
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
@@ -1292,7 +1298,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 Files.copy(src.toPath, dst.toPath, StandardCopyOption.REPLACE_EXISTING);
             } else {
                 println("No '" + fName + "' exists in " + fileConfig.srcPath + ". Using default configuration.")
-                copyFileFromClassPath(alt, dst.absolutePath)
+                fileConfig.copyFileFromClassPath(alt, dst.absolutePath)
             }
         ]
     }
