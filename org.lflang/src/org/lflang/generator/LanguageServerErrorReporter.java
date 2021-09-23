@@ -1,36 +1,30 @@
 package org.lflang.generator;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticSeverity;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.eclipse.lsp4j.services.LanguageClient;
 
 import org.lflang.ErrorReporter;
 
 public class LanguageServerErrorReporter implements ErrorReporter {
 
     /**
-     * Represents a diagnostic severity level.
+     * The language client to which errors should be
+     * reported, if such a client is available.
+     * FIXME: This is a de facto global, and it is a hack.
      */
-    public enum Severity {
-        ERROR, WARNING, INFO
-    }
-
-    /**
-     * Functional interface describing a diagnostic
-     * reporting channel such as
-     * ValidationMessageAcceptor::acceptError.
-     */
-    private interface Channel {
-        void apply(String message, EObject object, int offset, int length, String code, String...issueData);
-    }
+    private static LanguageClient client;
 
     /** The document for which this is a diagnostic acceptor. */
     private final EObject parseRoot;
-    /** The object for which this is a wrapper. */
-    private final ValidationMessageAcceptor acceptor;
     /** Whether errors occurred since the last reset. */
     boolean errorsOccurred = false;
 
@@ -42,24 +36,21 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      * <code>parseRoot</code>.
      * @param parseRoot the root of the AST of the document
      *                  for which this is an error reporter
-     * @param acceptor the object for which this is a
-     *                 wrapper
      */
-    public LanguageServerErrorReporter(EObject parseRoot, ValidationMessageAcceptor acceptor) {
+    public LanguageServerErrorReporter(EObject parseRoot) {
         this.parseRoot = parseRoot;
-        this.acceptor = acceptor;
     }
 
     /* -----------------------  PUBLIC METHODS  ------------------------- */
 
     @Override
     public String reportError(String message) {
-        return acceptDiagnostic(Severity.ERROR, message);
+        return acceptDiagnostic(DiagnosticSeverity.Error, message);
     }
 
     @Override
     public String reportWarning(String message) {
-        return acceptDiagnostic(Severity.WARNING, message);
+        return acceptDiagnostic(DiagnosticSeverity.Warning, message);
     }
 
     @Override
@@ -73,13 +64,13 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     @Override
-    public String reportError(Path file, Integer line, String message) { // FIXME
-        return acceptDiagnostic(Severity.ERROR, message, line != null ? line : 0);
+    public String reportError(Path file, Integer line, String message) {
+        return acceptDiagnostic(DiagnosticSeverity.Error, message, line != null ? line : 0);
     }
 
     @Override
-    public String reportWarning(Path file, Integer line, String message) { // FIXME
-        return acceptDiagnostic(Severity.WARNING, message, line != null ? line : 0);
+    public String reportWarning(Path file, Integer line, String message) {
+        return acceptDiagnostic(DiagnosticSeverity.Warning, message, line != null ? line : 0);
     }
 
     @Override
@@ -92,26 +83,11 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         errorsOccurred = false;
     }
 
-    /**
-     * Reports a message of severity <code>severity</code>.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @param startPos the position of the first character
-     *                 of the range of interest
-     * @param endPos the position immediately AFTER the
-     *               final character of the range of
-     *               interest
-     * @return a string that describes the diagnostic
-     */
-    public String acceptDiagnostic(Severity severity, String message, Position startPos, Position endPos) {
-        if (severity == Severity.ERROR) errorsOccurred = true;
-        int offset = startPos.getOffset(getText());
-        // FIXME: This is a constant factor (typically ~2x) slower than it really needs to be, since the endPos
-        //  is likely to be close to the startPos.
-        int length = endPos.getOffset(getText()) - offset;
-        getChannel(severity).apply(message, parseRoot, offset, length, null);
-        return "" + severity + ": " + message;
+    public static void setClient(LanguageClient client) {
+        LanguageServerErrorReporter.client = client;
     }
+
+    /* -----------------------  PRIVATE METHODS  ------------------------ */
 
     /**
      * Reports a message of severity <code>severity</code>.
@@ -119,7 +95,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      * @param message the message to send to the IDE
      * @return a string that describes the diagnostic
      */
-    public String acceptDiagnostic(Severity severity, String message) {
+    private String acceptDiagnostic(DiagnosticSeverity severity, String message) {
         return acceptDiagnostic(severity, message, 0);
     }
 
@@ -131,7 +107,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      *             with the message
      * @return a string that describes the diagnostic
      */
-    public String acceptDiagnostic(Severity severity, String message, int line) {
+    private String acceptDiagnostic(DiagnosticSeverity severity, String message, int line) {
         Optional<String> firstLine = getLine(line);
         return acceptDiagnostic(
             severity,
@@ -142,65 +118,24 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Reports an error regarding an LF document.
-     * @param message the error message to be sent to the
-     *                IDE
+     * Reports a message of severity <code>severity</code>.
+     * @param severity the severity of the message
+     * @param message the message to send to the IDE
      * @param startPos the position of the first character
      *                 of the range of interest
      * @param endPos the position immediately AFTER the
      *               final character of the range of
      *               interest
+     * @return a string that describes the diagnostic
      */
-    public String error(String message, Position startPos, Position endPos) {
-        return acceptDiagnostic(Severity.ERROR, message, startPos, endPos);
-    }
-
-    /**
-     * Reports a warning regarding an LF document.
-     * @param message the warning message to be sent to the
-     *                IDE
-     * @param startPos the position of the first character
-     *                 of the range of interest
-     * @param endPos the position immediately AFTER the
-     *               final character of the range of
-     *               interest
-     */
-    public String warning(String message, Position startPos, Position endPos) {
-        return acceptDiagnostic(Severity.WARNING, message, startPos, endPos);
-    }
-
-    /**
-     * Reports an info message regarding an LF document.
-     * @param message the info message to be sent to the
-     *                IDE
-     * @param startPos the position of the first character
-     *                 of the range of interest
-     * @param endPos the position immediately AFTER the
-     *               final character of the range of
-     *               interest
-     */
-    public String info(String message, Position startPos, Position endPos) {
-        return acceptDiagnostic(Severity.INFO, message, startPos, endPos);
-    }
-
-    /* -----------------------  PRIVATE METHODS  ------------------------ */
-
-    /**
-     * Returns the appropriate diagnostic reporting channel
-     * for the given severity.
-     * @param severity the severity of a diagnostic
-     * @return the corresponding diagnostic reporting
-     * channel
-     */
-    private Channel getChannel(Severity severity) {
-        switch (severity) {
-        case ERROR:
-            return acceptor::acceptError;
-        case WARNING:
-            return acceptor::acceptWarning;
-        default:
-            return acceptor::acceptInfo;
-        }
+    private String acceptDiagnostic(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+        // FIXME: Diagnostics should be collected, then sent all at once. That is why publishDiagnostics accepts a list.
+        if (client != null)
+            publishDiagnostics(List.of(new Diagnostic(
+                toRange(startPos, endPos), message, severity, "LSPErrorReporter"
+            )));
+        if (severity == DiagnosticSeverity.Error) errorsOccurred = true;
+        return "" + severity + ": " + message;
     }
 
     /**
@@ -221,5 +156,19 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      */
     private Optional<String> getLine(int line) {
         return getText().lines().skip(line).findFirst();
+    }
+
+    private void publishDiagnostics(List<Diagnostic> diagnostics) {
+        PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
+        publishDiagnosticsParams.setUri(parseRoot.eResource().getURI().toString());
+        publishDiagnosticsParams.setDiagnostics(diagnostics);
+        client.publishDiagnostics(publishDiagnosticsParams);
+    }
+
+    private Range toRange(Position p0, Position p1) {
+        return new Range(
+            new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
+            new org.eclipse.lsp4j.Position(p1.getZeroBasedLine(), p1.getZeroBasedColumn())
+        );
     }
 }
