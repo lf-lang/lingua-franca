@@ -155,4 +155,8 @@ public class ValidatorErrorReporter implements ErrorReporter {
         return errorsOccurred;
     }
 
+    @Override
+    public void reset() {
+        errorsOccurred = false;
+    }
 }
