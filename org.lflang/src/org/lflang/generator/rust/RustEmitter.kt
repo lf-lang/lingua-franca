@@ -119,7 +119,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    fn user_assemble(_assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
                 |        let $ctorParamsDeconstructor = _params.clone();
                 |        Self {
-                |            _id: _assembler.fix_cur_id(),
+                |            _id: _assembler.get_id(),
                 |            _params,
                 |            _startup_reactions: Default::default(),
                 |            _shutdown_reactions: Default::default(),
@@ -138,14 +138,17 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    type Params = $paramStructName;
                 |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const(${reactions.size + timers.size /*timers have a reschedule reaction*/});
                 |
-                |    fn assemble(args: Self::Params, _assembler: &mut AssemblyCtx) -> Self {
+                |    fn assemble(args: Self::Params, _assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
+                |
+                |        let self_id = _assembler.fix_cur_id();
+                |        // declared before sub-components, so their local id is between zero and MAX_REACTION_ID
+${"             |        "..declareReactions()}
                 |
                 |        // assemble self
                 |        let mut _self: Self = Self::user_assemble(_assembler, args);
                 |
-${"             |        "..declareReactions()}
                 |
                 |        {
                 |            _self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
@@ -157,7 +160,7 @@ ${"             |            "..declareChildConnections()}
                 |        }
 ${"             |        "..nestedInstances.joinToString("\n") { "_assembler.register_reactor(${it.lfName});" }}
                 |
-                |       _self
+                |       Ok(_self)
                 |    }
                 |}
                 |
@@ -211,7 +214,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         val declarations = nestedInstances.joinToString("\n") {
             """
                 ${it.loc.lfTextComment()}
-                let ${it.lfName}: super::${it.names.wrapperName} = _assembler.assemble_sub(${it.paramStruct()});
+                let ${it.lfName}: super::${it.names.wrapperName} = _assembler.assemble_sub(${it.paramStruct()})?;
             """.trimIndent()
         }
 
@@ -280,15 +283,15 @@ ${"         |    "..declarations}
     private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
         val reactions = reactor.reactions.map { n ->
             val deps =
-                n.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${n.invokerId});" } +
+                n.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" } +
                         n.effects.filterIsInstance<PortData>()
-                            .map { port -> "_assembler.effects_port(${n.invokerId}, &_self.${port.rustFieldName});" } +
-                        n.uses.map { trigger -> "_assembler.declare_uses(${n.invokerId}, _self.${trigger.rustFieldName}.get_id());" }
+                            .map { port -> "_assembler.effects_port(${n.invokerId}, &_self.${port.rustFieldName})?;" } +
+                        n.uses.map { trigger -> "_assembler.declare_uses(${n.invokerId}, _self.${trigger.rustFieldName}.get_id())?;" }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
         }.joinLn()
 
-        val timers = reactor.timers.map { "_assembler.declare_triggers(_self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId});" }.joinLn()
+        val timers = reactor.timers.map { "_assembler.declare_triggers(_self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;" }.joinLn()
 
         return (reactions + "\n\n" + timers).trimEnd()
     }
