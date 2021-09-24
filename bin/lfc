@@ -34,7 +34,11 @@ popd () {
 rebuild=false
 args=()
 for var in "$@"; do
-    if [[ $var =~ "-r" ]]; then
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    if [[ $var = "-r" ]]; then
         rebuild=true
     else
         args+=("$var")
