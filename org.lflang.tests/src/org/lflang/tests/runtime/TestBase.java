@@ -348,6 +348,13 @@ public abstract class TestBase {
             }
 
             restoreOutputs();
+
+            // check if any errors occurred during code generation
+            if (DefaultErrorReporter.DEFAULT.getErrorsOccurred()) {
+                test.result = Result.CODE_GEN_FAIL;
+                return false;
+            }
+
             return true;
         }
         return false;
