@@ -142,13 +142,12 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
-                |        let self_id = _assembler.fix_cur_id();
-                |        // declared before sub-components, so their local id is between zero and MAX_REACTION_ID
-${"             |        "..declareReactions()}
+                |        _assembler.fix_cur_id();
                 |
                 |        // assemble self
                 |        let mut _self: Self = Self::user_assemble(_assembler, args);
                 |
+${"             |        "..declareReactions()}
                 |
                 |        {
                 |            _self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
