@@ -572,7 +572,7 @@ tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
  *
  * This does not acquire the mutex lock. It assumes the lock is already held.
  */
-void __next() {
+void _lf_next() {
     // Previous logical time is complete.
     tag_t next_tag = get_next_event_tag();
 
@@ -623,7 +623,7 @@ void __next() {
     // arrives from an upstream federate or a local physical action triggers).
     LOG_PRINT("Waiting until elapsed time %lld.", (next_tag.time - start_time));
     while (!wait_until(next_tag.time, &event_q_changed)) {
-        DEBUG_PRINT("__next(): Wait until time interrupted.");
+        DEBUG_PRINT("_lf_next(): Wait until time interrupted.");
         // Sleep was interrupted.  Check for a new next_event.
         // The interruption could also have been due to a call to request_stop().
         next_tag = get_next_event_tag();
@@ -1031,7 +1031,7 @@ void* worker(void* arg) {
                     // and check against the stop tag to see whether this is the last step.
                     if (_lf_logical_tag_completed) {
                         logical_tag_complete(current_tag);
-                        // If we are at the stop tag, do not call __next()
+                        // If we are at the stop tag, do not call _lf_next()
                         // to prevent advancing the logical time.
                         if (compare_tags(current_tag, stop_tag) >= 0) {
                             // Break out of the while loop and notify other
@@ -1047,14 +1047,14 @@ void* worker(void* arg) {
                     _lf_logical_tag_completed = true;
 
                     // Advance time.
-                    // __next() may block waiting for real time to pass or events to appear.
+                    // _lf_next() may block waiting for real time to pass or events to appear.
                     // to appear on the event queue. Note that we already
                     // hold the mutex lock.
                     tracepoint_worker_advancing_time_starts(worker_number);
-                    __next();
+                    _lf_next();
                     tracepoint_worker_advancing_time_ends(worker_number);
                     _lf_advancing_time = false;
-                    DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
+                    DEBUG_PRINT("Worker %d: Done waiting for _lf_next().", worker_number);
 
                 } else if (compare_tags(current_tag, stop_tag) >= 0) {
                 	// At the stop tag so we can exit this thread.
@@ -1251,18 +1251,18 @@ void print_snapshot() {
 }
 
 // Array of thread IDs (to be dynamically allocated).
-lf_thread_t* __thread_ids;
+lf_thread_t* _lf_thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
     LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
-    __thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
+    _lf_thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
     number_of_idle_threads = (int)_lf_number_of_threads; // Sign is checked when 
                                                          // reading the argument
                                                          // from the command
                                                          // line.
     for (unsigned int i = 0; i < _lf_number_of_threads; i++) {
-        lf_thread_create(&__thread_ids[i], worker, NULL);
+        lf_thread_create(&_lf_thread_ids[i], worker, NULL);
     }
 }
 
@@ -1341,7 +1341,7 @@ int lf_reactor_c_main(int argc, char* argv[]) {
         DEBUG_PRINT("Number of threads: %d.", _lf_number_of_threads);
         int ret = 0;
         for (int i = 0; i < _lf_number_of_threads; i++) {
-        	int failure = lf_thread_join(__thread_ids[i], &worker_thread_exit_status);
+        	int failure = lf_thread_join(_lf_thread_ids[i], &worker_thread_exit_status);
         	if (failure) {
         		error_print("Failed to join thread listening for incoming messages: %s", strerror(failure));
         	}
@@ -1355,7 +1355,7 @@ int lf_reactor_c_main(int argc, char* argv[]) {
             LOG_PRINT("---- All worker threads exited successfully.");
         }
         
-        free(__thread_ids);
+        free(_lf_thread_ids);
         return ret;
     } else {
         return -1;

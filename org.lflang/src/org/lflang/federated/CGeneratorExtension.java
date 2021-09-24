@@ -158,13 +158,13 @@ public class CGeneratorExtension {
                 });
             })) {
                 // Initialize the triggers_for_network_input_control_reactions for the input
-                builder.append("// Add trigger " + nameOfSelfStruct + "->" + "_lf__"
+                builder.append("// Add trigger " + nameOfSelfStruct + "->_lf__"
                         + trigger.getName()
                         + " to the global list of network input ports.\n"
                         + "_fed.triggers_for_network_input_control_reactions["
                         + federate.networkInputControlReactionsTriggers
                         .indexOf(trigger)
-                        + "]= &" + nameOfSelfStruct + "" + "->" + "_lf__"
+                        + "]= &" + nameOfSelfStruct + "" + "->_lf__"
                         + trigger.getName() + ";\n");
             }
         }

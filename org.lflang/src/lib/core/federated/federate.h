@@ -175,7 +175,7 @@ typedef struct federate_instance_t {
 	 * A record of the most recently sent LTC (logical tag complete) message.
 	 * In some situations, federates can send logical_tag_complete for
 	 * the same tag twice or more in-a-row to the RTI. For example, when
-	 * __next() returns without advancing tag. To prevent overwhelming
+	 * _lf_next() returns without advancing tag. To prevent overwhelming
 	 * the RTI with extra messages, record the last sent logical tag
 	 * complete message and check against it in
 	 * _lf_logical_tag_complete().
