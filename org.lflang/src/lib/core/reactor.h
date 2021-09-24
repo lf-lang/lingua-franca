@@ -156,7 +156,7 @@ do { \
 #define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
-    lf_token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    lf_token_t* token = _lf_set_new_array_impl(out->token, 1, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
 } while(0)
@@ -164,7 +164,7 @@ do { \
 #define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
-    lf_token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    lf_token_t* token = _lf_set_new_array_impl(out->token, 1, out->num_destinations); \
     out->value = static_cast<decltype(out->value)>(token->value); \
     out->token = token; \
 } while(0)
@@ -187,7 +187,7 @@ do { \
 #define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    lf_token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
+    lf_token_t* token = _lf_set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
     out->length = len; \
@@ -196,7 +196,7 @@ do { \
 #define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    lf_token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
+    lf_token_t* token = _lf_set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = static_cast<decltype(out->value)>(token->value); \
     out->token = token; \
     out->length = len; \
@@ -335,7 +335,7 @@ typedef enum {absent = false, present = true, unknown} port_status_t;
  * The flag OK_TO_FREE is used to indicate whether
  * the void* in toke_t should be freed or not.
  */ 
-#ifdef __GARBAGE_COLLECTED
+#ifdef _LF_GARBAGE_COLLECTED
 #define OK_TO_FREE token_only
 #else
 #define OK_TO_FREE token_and_value
@@ -603,7 +603,7 @@ void _lf_pop_events();
 
 /** 
  * Internal version of the schedule() function, used by generated 
- * __start_timers() function. 
+ * _lf_start_timers() function. 
  * @param trigger The action or timer to be triggered.
  * @param delay Offset of the event release.
  * @param token The token payload.

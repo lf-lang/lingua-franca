@@ -112,7 +112,7 @@ import org.lflang.TargetConfig
  * * A destructor function for each reactor class. This frees all dynamically
  *   allocated memory associated with an instance of the class.
  * 
- * After these, the main generated function is `__initialize_trigger_objects()`.
+ * After these, the main generated function is `_lf_initialize_trigger_objects()`.
  * This function creates the instances of reactors (using their constructors)
  * and makes connections between them.
  * 
@@ -124,23 +124,23 @@ import org.lflang.TargetConfig
  * 
  * * parameter: the field name and type match the parameter.
  * * state: the field name and type match the state.
- * * action: the field name prepends the action name with "«lf_reserved_prefix»".
+ * * action: the field name prepends the action name with "_lf_".
  *   A second field for the action is also created to house the trigger_t object.
- *   That second field prepends the action name with "«lf_reserved_prefix»_".
- * * output: the field name prepends the output name with "«lf_reserved_prefix»".
- * * input:  the field name prepends the output name with "«lf_reserved_prefix»".
+ *   That second field prepends the action name with "_lf__".
+ * * output: the field name prepends the output name with "_lf_".
+ * * input:  the field name prepends the output name with "_lf_".
  *   A second field for the input is also created to house the trigger_t object.
- *   That second field prepends the input name with "«lf_reserved_prefix»_".
+ *   That second field prepends the input name with "_lf__".
  *
  * If, in addition, the reactor contains other reactors and reacts to their outputs,
  * then there will be a struct within the self struct for each such contained reactor.
- * The name of that self struct will be the name of the contained reactor prepended with "«lf_reserved_prefix»".
+ * The name of that self struct will be the name of the contained reactor prepended with "_lf_".
  * That inside struct will contain pointers the outputs of the contained reactors
  * that are read together with pointers to booleans indicating whether those outputs are present.
  * 
  * If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
  * trigger_t object (see reactor.h) for the shutdown event and an action struct named
- * «lf_reserved_prefix»shutdown on the self struct.
+ * _lf_shutdown on the self struct.
  * 
  * ## Reaction Functions
  * 
@@ -188,7 +188,7 @@ import org.lflang.TargetConfig
  * The self struct also contains various fields that the user is not intended to
  * use. The names of these fields begin with at least two underscores. They are:
  * 
- * * Outputs: For each output named `out`, there will be a field `«lf_reserved_prefix»out` that is
+ * * Outputs: For each output named `out`, there will be a field `_lf_out` that is
  *   a struct containing a value field whose type matches that of the output.
  *   The output value is stored here. That struct also has a field `is_present`
  *   that is a boolean indicating whether the output has been set.
@@ -198,51 +198,51 @@ import org.lflang.TargetConfig
  *   set when connections are made or changed. It is used to initialize
  *   reference counts for dynamically allocated message payloads.
  * 
- * * Inputs: For each input named `in` of type T, there is a field named `«lf_reserved_prefix»in`
+ * * Inputs: For each input named `in` of type T, there is a field named `_lf_in`
  *   that is a pointer struct with a value field of type T. The struct pointed
  *   to also has an `is_present` field of type bool that indicates whether the
  *   input is present.
  * 
  * * Outputs of contained reactors: If a reactor reacts to outputs of a
  *   contained reactor `r`, then the self struct will contain a nested struct
- *   named `«lf_reserved_prefix»r` that has fields pointing to those outputs. For example,
- *   if `r` has an output `out` of type T, then there will be field in `«lf_reserved_prefix»r`
+ *   named `_lf_r` that has fields pointing to those outputs. For example,
+ *   if `r` has an output `out` of type T, then there will be field in `_lf_r`
  *   named `out` that points to a struct containing a value field
  *   of type T and a field named `is_present` of type bool.
  * 
  * * Inputs of contained reactors: If a reactor sends to inputs of a
  *   contained reactor `r`, then the self struct will contain a nested struct
- *   named `«lf_reserved_prefix»r` that has fields for storing the values provided to those
+ *   named `_lf_r` that has fields for storing the values provided to those
  *   inputs. For example, if R has an input `in` of type T, then there will
- *   be field in «lf_reserved_prefix»R named `in` that is a struct with a value field
+ *   be field in _lf_R named `in` that is a struct with a value field
  *   of type T and a field named `is_present` of type bool.
  * 
  * * Actions: If the reactor has an action a (logical or physical), then there
- *   will be a field in the self struct named `«lf_reserved_prefix»a` and another named `«lf_reserved_prefix»_a`.
+ *   will be a field in the self struct named `_lf_a` and another named `_lf__a`.
  *   The type of the first is specific to the action and contains a `value`
  *   field with the type and value of the action (if it has a value). That
  *   struct also has a `has_value` field, an `is_present` field, and a
  *   `token` field (which is NULL if the action carries no value).
- *   The `«lf_reserved_prefix»_a` field is of type trigger_t.
+ *   The `_lf__a` field is of type trigger_t.
  *   That struct contains various things, including an array of reactions
  *   sensitive to this trigger and a lf_token_t struct containing the value of
  *   the action, if it has a value.  See reactor.h in the C library for
  *   details.
  * 
  * * Reactions: Each reaction will have several fields in the self struct.
- *   Each of these has a name that begins with `«lf_reserved_prefix»_reaction_i`, where i is
+ *   Each of these has a name that begins with `_lf__reaction_i`, where i is
  *   the number of the reaction, starting with 0. The fields are:
- *   * «lf_reserved_prefix»_reaction_i: The struct that is put onto the reaction queue to
+ *   * _lf__reaction_i: The struct that is put onto the reaction queue to
  *     execute the reaction (see reactor.h in the C library).
  * 
  *  * Timers: For each timer t, there is are two fields in the self struct:
- *    * «lf_reserved_prefix»_t: The trigger_t struct for this timer (see reactor.h).
- *    * «lf_reserved_prefix»_t_reactions: An array of reactions (pointers to the
+ *    * _lf__t: The trigger_t struct for this timer (see reactor.h).
+ *    * _lf__t_reactions: An array of reactions (pointers to the
  *      reaction_t structs on this self struct) sensitive to this timer.
  *
  * * Triggers: For each Timer, Action, Input, and Output of a contained
  *   reactor that triggers reactions, there will be a trigger_t struct
- *   on the self struct with name `«lf_reserved_prefix»_t`, where t is the name of the trigger.
+ *   on the self struct with name `_lf__t`, where t is the name of the trigger.
  * 
  * ## Destructor
  * 
@@ -256,8 +256,8 @@ import org.lflang.TargetConfig
  * Establishing connections between reactors involves two steps.
  * First, each destination (e.g. an input port) must have pointers to
  * the source (the output port). As explained above, for an input named
- * `in`, the field `«lf_reserved_prefix»in->value` is a pointer to the output data being read.
- * In addition, `«lf_reserved_prefix»in->is_present` is a pointer to the corresponding
+ * `in`, the field `_lf_in->value` is a pointer to the output data being read.
+ * In addition, `_lf_in->is_present` is a pointer to the corresponding
  * `out->is_present` field of the output reactor's self struct.
  *  
  * In addition, the `reaction_i` struct on the self struct has a `triggers`
@@ -279,24 +279,24 @@ import org.lflang.TargetConfig
  * These tables may have to be resized and adjusted when mutations occur.
  * 
  * * _lf_is_present_fields: An array of pointers to booleans indicating whether an
- *   event is present. The «lf_reserved_prefix»start_time_step() function in reactor_common.c uses
+ *   event is present. The _lf_start_time_step() function in reactor_common.c uses
  *   this to mark every event absent at the start of a time step. The size of this
  *   table is contained in the variable _lf_is_present_fields_size.
  * 
  * * _lf_tokens_with_ref_count: An array of pointers to structs that point to lf_token_t
  *   objects, which carry non-primitive data types between reactors. This is used
- *   by the «lf_reserved_prefix»start_time_step() function to decrement reference counts, if necessary,
+ *   by the _lf_start_time_step() function to decrement reference counts, if necessary,
  *   at the conclusion of a time step. Then the reference count reaches zero, the
  *   memory allocated for the lf_token_t object will be freed.  The size of this
- *   array is stored in the «lf_reserved_prefix»tokens_with_ref_count_size variable.
+ *   array is stored in the _lf_tokens_with_ref_count_size variable.
  * 
  * * _lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown
- *   reactions. The length of this table is in the «lf_reserved_prefix»shutdown_triggers_size
+ *   reactions. The length of this table is in the _lf_shutdown_triggers_size
  *   variable.
  * 
  * * _lf_timer_triggers: An array of pointers to trigger_t structs for timers that
  *   need to be started when the program runs. The length of this table is in the
- *   «lf_reserved_prefix»timer_triggers_size variable.
+ *   _lf_timer_triggers_size variable.
  * 
  * * _lf_action_table: For a federated execution, each federate will have this table
  *   that maps port IDs to the corresponding trigger_t struct.
@@ -316,7 +316,7 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to initialize the trigger objects for all reactor instances.
     protected var initializeTriggerObjects = new StringBuilder()
 
-    // Place to collect code to go at the end of the «lf_reserved_prefix»initialize_trigger_objects() function.
+    // Place to collect code to go at the end of the _lf_initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
     /**
@@ -332,12 +332,12 @@ class CGenerator extends GeneratorBase {
     var startTimeStep = new StringBuilder()
     
     /** Count of the number of is_present fields of the self struct that
-     *  need to be reinitialized in __start_time_step().
+     *  need to be reinitialized in _lf_start_time_step().
      */
     public var startTimeStepIsPresentCount = 0
     
     /** Count of the number of token pointers that need to have their
-     *  reference count decremented in __start_time_step().
+     *  reference count decremented in _lf_start_time_step().
      */
     var startTimeStepTokens = 0
 
@@ -587,17 +587,17 @@ class CGenerator extends GeneratorBase {
                 // so start with that.
                 if (runCommand.length > 0) {
                     pr('''
-                        char* «lf_reserved_prefix»default_argv[] = { "«runCommand.join('", "')»" };
+                        char* _lf_default_argv[] = { "«runCommand.join('", "')»" };
                     ''');
                 }
                 pr('''
-                    void «lf_reserved_prefix»set_default_command_line_options() {
+                    void _lf_set_default_command_line_options() {
                 ''')
                 indent()
                 if (runCommand.length > 0) {
                     pr('default_argc = ' + runCommand.length + ';')
                     pr('''
-                        default_argv = «lf_reserved_prefix»default_argv;
+                        default_argv = _lf_default_argv;
                     ''')
                 }
                 unindent()
@@ -606,59 +606,59 @@ class CGenerator extends GeneratorBase {
                 // If there are timers, create a table of timers to be initialized.
                 if (timerCount > 0) {
                     pr('''
-                        // Array of pointers to timer triggers to be scheduled in «lf_reserved_prefix»initialize_timers().
-                        trigger_t* «lf_reserved_prefix»timer_triggers[«timerCount»];
+                        // Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().
+                        trigger_t* _lf_timer_triggers[«timerCount»];
                     ''')
                 } else {
                     pr('''
-                        // Array of pointers to timer triggers to be scheduled in «lf_reserved_prefix»initialize_timers().
-                        trigger_t** «lf_reserved_prefix»timer_triggers = NULL;
+                        // Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().
+                        trigger_t** _lf_timer_triggers = NULL;
                     ''')
                 }
                 pr('''
-                    int «lf_reserved_prefix»timer_triggers_size = «timerCount»;
+                    int _lf_timer_triggers_size = «timerCount»;
                 ''')
                 
                 // If there are startup reactions, store them in an array.
                 if (startupReactionCount > 0) {
                     pr('''
-                        // Array of pointers to timer triggers to be scheduled in «lf_reserved_prefix»trigger_startup_reactions().
-                        reaction_t* «lf_reserved_prefix»startup_reactions[«startupReactionCount»];
+                        // Array of pointers to timer triggers to be scheduled in _lf_trigger_startup_reactions().
+                        reaction_t* _lf_startup_reactions[«startupReactionCount»];
                     ''')
                 } else {
                     pr('''
-                        // Array of pointers to reactions to be scheduled in «lf_reserved_prefix»trigger_startup_reactions().
-                        reaction_t** «lf_reserved_prefix»startup_reactions = NULL;
+                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
+                        reaction_t** _lf_startup_reactions = NULL;
                     ''')
                 }
                 pr('''
-                    int «lf_reserved_prefix»startup_reactions_size = «startupReactionCount»;
+                    int _lf_startup_reactions_size = «startupReactionCount»;
                 ''')
                 
                 // If there are shutdown reactions, create a table of triggers.
                 if (shutdownReactionCount > 0) {
                     pr('''
                         // Array of pointers to shutdown triggers.
-                        reaction_t* «lf_reserved_prefix»shutdown_reactions[«shutdownReactionCount»];
+                        reaction_t* _lf_shutdown_reactions[«shutdownReactionCount»];
                     ''')
                 } else {
                     pr('''
                         // Empty array of pointers to shutdown triggers.
-                        reaction_t** «lf_reserved_prefix»shutdown_reactions = NULL;
+                        reaction_t** _lf_shutdown_reactions = NULL;
                     ''')
                 }
                 pr('''
-                    int «lf_reserved_prefix»shutdown_reactions_size = «shutdownReactionCount»;
+                    int _lf_shutdown_reactions_size = «shutdownReactionCount»;
                 ''')
                 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
                 // port. This will only be used if there are federates.
                 if (federate.networkMessageActions.size > 0) {
-                    pr('''trigger_t* «lf_reserved_prefix»action_table[«federate.networkMessageActions.size»];''')
+                    pr('''trigger_t* _lf_action_table[«federate.networkMessageActions.size»];''')
                 }
                 pr('''
-                    trigger_t* «lf_reserved_prefix»action_for_port(int port_id) {
+                    trigger_t* _lf_action_for_port(int port_id) {
                 ''')
                 indent()
                 if (federate.networkMessageActions.size > 0) {
@@ -676,12 +676,12 @@ class CGenerator extends GeneratorBase {
                     var actionTableCount = 0
                     for (trigger : triggers) {
                         pr(initializeTriggerObjects, '''
-                            «lf_reserved_prefix»action_table[«actionTableCount++»] = &«trigger»;
+                            _lf_action_table[«actionTableCount++»] = &«trigger»;
                         ''')
                     }
                     pr('''
                         if (port_id < «federate.networkMessageActions.size») {
-                            return «lf_reserved_prefix»action_table[port_id];
+                            return _lf_action_table[port_id];
                         } else {
                             return NULL;
                         }
@@ -694,7 +694,7 @@ class CGenerator extends GeneratorBase {
                 
                 // Generate function to initialize the trigger objects for all reactors.
                 pr('''
-                    void «lf_reserved_prefix»initialize_trigger_objects() {
+                    void _lf_initialize_trigger_objects() {
                 ''')
                 indent()
                 
@@ -724,8 +724,8 @@ class CGenerator extends GeneratorBase {
                 if (startTimeStepTokens > 0) {
                     // Allocate the initial (before mutations) array of pointers to tokens.
                     pr('''
-                        «lf_reserved_prefix»tokens_with_ref_count_size = «startTimeStepTokens»;
-                        «lf_reserved_prefix»tokens_with_ref_count = (token_present_t*)malloc(«startTimeStepTokens» * sizeof(token_present_t));
+                        _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
+                        _lf_tokens_with_ref_count = (token_present_t*)malloc(«startTimeStepTokens» * sizeof(token_present_t));
                     ''')
                 }
                 // Create the table to initialize is_present fields to false between time steps.
@@ -733,8 +733,8 @@ class CGenerator extends GeneratorBase {
                     // Allocate the initial (before mutations) array of pointers to _is_present fields.
                     pr('''
                         // Create the array that will contain pointers to is_present fields to reset on each step.
-                        «lf_reserved_prefix»is_present_fields_size = «startTimeStepIsPresentCount»;
-                        «lf_reserved_prefix»is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+                        _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
+                        _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
                     ''')
                 }
                 
@@ -751,7 +751,7 @@ class CGenerator extends GeneratorBase {
                 
                 // Put the code here to set up the tables that drive resetting is_present and
                 // decrementing reference counts between time steps. This code has to appear
-                // in __initialize_trigger_objects() after the code that makes connections
+                // in _lf_initialize_trigger_objects() after the code that makes connections
                 // between inputs and outputs.
                 pr(startTimeStep.toString)
                 
@@ -763,15 +763,15 @@ class CGenerator extends GeneratorBase {
 
                 // Generate function to trigger startup reactions for all reactors.
                 pr('''
-                    void «lf_reserved_prefix»trigger_startup_reactions() {
+                    void _lf_trigger_startup_reactions() {
                 ''')
                 indent()
                 pr(startTimers.toString) // FIXME: these are actually startup actions, not timers.
                 if (startupReactionCount > 0) {
                     pr('''
-                       for (int i = 0; i < «lf_reserved_prefix»startup_reactions_size; i++) {
-                           if («lf_reserved_prefix»startup_reactions[i] != NULL) {
-                               _lf_enqueue_reaction(«lf_reserved_prefix»startup_reactions[i]);
+                       for (int i = 0; i < _lf_startup_reactions_size; i++) {
+                           if (_lf_startup_reactions[i] != NULL) {
+                               _lf_enqueue_reaction(_lf_startup_reactions[i]);
                            }
                        }
                     ''')
@@ -781,14 +781,14 @@ class CGenerator extends GeneratorBase {
 
                 // Generate function to schedule timers for all reactors.
                 pr('''
-                    void «lf_reserved_prefix»initialize_timers() {
+                    void _lf_initialize_timers() {
                 ''')
                 indent()
                 if (timerCount > 0) {
                     pr('''
-                       for (int i = 0; i < «lf_reserved_prefix»timer_triggers_size; i++) {
-                           if («lf_reserved_prefix»timer_triggers[i] != NULL) {
-                               _lf_initialize_timer(«lf_reserved_prefix»timer_triggers[i]);
+                       for (int i = 0; i < _lf_timer_triggers_size; i++) {
+                           if (_lf_timer_triggers[i] != NULL) {
+                               _lf_initialize_timer(_lf_timer_triggers[i]);
                            }
                        }
                     ''')
@@ -816,14 +816,14 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
                 pr('''
-                    bool «lf_reserved_prefix»trigger_shutdown_reactions() {                          
-                        for (int i = 0; i < «lf_reserved_prefix»shutdown_reactions_size; i++) {
-                            if («lf_reserved_prefix»shutdown_reactions[i] != NULL) {
-                                _lf_enqueue_reaction(«lf_reserved_prefix»shutdown_reactions[i]);
+                    bool _lf_trigger_shutdown_reactions() {                          
+                        for (int i = 0; i < _lf_shutdown_reactions_size; i++) {
+                            if (_lf_shutdown_reactions[i] != NULL) {
+                                _lf_enqueue_reaction(_lf_shutdown_reactions[i]);
                             }
                         }
                         // Return true if there are shutdown reactions.
-                        return («lf_reserved_prefix»shutdown_reactions_size > 0);
+                        return (_lf_shutdown_reactions_size > 0);
                     }
                 ''')
                 
@@ -1580,8 +1580,8 @@ class CGenerator extends GeneratorBase {
         for (reaction : reactor.reactions) {
             if (federate === null || federate.containsReaction(reaction)) {
                 pr(destructorCode, '''
-                    for(int i = 0; i < self->«lf_reserved_prefix»_reaction_«reactionCount».num_outputs; i++) {
-                        free(self->«lf_reserved_prefix»_reaction_«reactionCount».triggers[i]);
+                    for(int i = 0; i < self->_lf__reaction_«reactionCount».num_outputs; i++) {
+                        free(self->_lf__reaction_«reactionCount».triggers[i]);
                     }
                 ''')
             }
@@ -1718,10 +1718,10 @@ class CGenerator extends GeneratorBase {
         val matcher = arrayPatternFixed.matcher(portType)
         if (matcher.find()) {
             // for int[10], the first match is int, the second [10].
-            // The following results in: int* __foo[10];
+            // The following results in: int* _lf_foo[10];
             // if the port is an input and not a multiport.
             // An output multiport will result in, for example
-            // int __out[4][10];
+            // int _lf_out[4][10];
             return '''«matcher.group(1)» value«matcher.group(2)»;''';
         } else {
             return '''«portType» value;'''
@@ -1801,11 +1801,11 @@ class CGenerator extends GeneratorBase {
         for (action : reactor.allActions) {
             if (federate === null || federate.containsAction(action)) {
                 pr(action, body, '''
-                    «variableStructType(action, decl)» «lf_reserved_prefix»«action.name»;
+                    «variableStructType(action, decl)» _lf_«action.name»;
                 ''')
                 // Initialize the trigger pointer in the action.
                 pr(action, constructorCode, '''
-                    self->«lf_reserved_prefix»«action.name».trigger = &self->«lf_reserved_prefix»_«action.name»;
+                    self->_lf_«action.name».trigger = &self->_lf__«action.name»;
                 ''')
             }
         }
@@ -1820,28 +1820,28 @@ class CGenerator extends GeneratorBase {
                 if (input.isMultiport) {
                     pr(input, body, '''
                         // Multiport input array will be malloc'd later.
-                        «variableStructType(input, decl)»** «lf_reserved_prefix»«input.name»;
-                        int «lf_reserved_prefix»«input.name»__width;
+                        «variableStructType(input, decl)»** _lf_«input.name»;
+                        int _lf_«input.name»__width;
                         // Default input (in case it does not get connected)
-                        «variableStructType(input, decl)» «lf_reserved_prefix»default__«input.name»;
+                        «variableStructType(input, decl)» _lf_default__«input.name»;
                     ''')
                     // Add to the destructor code to free the malloc'd memory.
                     pr(input, destructorCode, '''
-                        free(self->«lf_reserved_prefix»«input.name»);
+                        free(self->_lf_«input.name»);
                     ''')
                 } else {
                     // input is not a multiport.
                     pr(input, body, '''
-                        «variableStructType(input, decl)»* «lf_reserved_prefix»«input.name»;
+                        «variableStructType(input, decl)»* _lf_«input.name»;
                         // width of -2 indicates that it is not a multiport.
-                        int «lf_reserved_prefix»«input.name»__width;
+                        int _lf_«input.name»__width;
                         // Default input (in case it does not get connected)
-                        «variableStructType(input, decl)» «lf_reserved_prefix»default__«input.name»;
+                        «variableStructType(input, decl)» _lf_default__«input.name»;
                     ''')
     
                     pr(input, constructorCode, '''
                         // Set input by default to an always absent default input.
-                        self->«lf_reserved_prefix»«input.name» = &self->«lf_reserved_prefix»default__«input.name»;
+                        self->_lf_«input.name» = &self->_lf_default__«input.name»;
                     ''')
                 }
             }
@@ -1855,17 +1855,17 @@ class CGenerator extends GeneratorBase {
                 if (output.isMultiport) {
                     pr(output, body, '''
                         // Array of output ports.
-                        «variableStructType(output, decl)»* «lf_reserved_prefix»«output.name»;
-                        int «lf_reserved_prefix»«output.name»__width;
+                        «variableStructType(output, decl)»* _lf_«output.name»;
+                        int _lf_«output.name»__width;
                     ''')
                     // Add to the destructor code to free the malloc'd memory.
                     pr(output, destructorCode, '''
-                        free(self->«lf_reserved_prefix»«output.name»);
+                        free(self->_lf_«output.name»);
                     ''')
                 } else {
                     pr(output, body, '''
-                        «variableStructType(output, decl)» «lf_reserved_prefix»«output.name»;
-                        int «lf_reserved_prefix»«output.name»__width;
+                        «variableStructType(output, decl)» _lf_«output.name»;
+                        int _lf_«output.name»__width;
                     ''')
                 }
             }
@@ -1944,7 +1944,7 @@ class CGenerator extends GeneratorBase {
             pr(constructorCode, '''
                 // Set the _width variable for all cases. This will be -2
                 // if the reactor is not a bank of reactors.
-                self->«lf_reserved_prefix»«containedReactor.name»_width = «width»;
+                self->_lf_«containedReactor.name»_width = «width»;
             ''')
 
             // Generate one struct for each contained reactor that interacts.
@@ -1992,13 +1992,13 @@ class CGenerator extends GeneratorBase {
                     if (containedReactor.widthSpec !== null) {
                         reactorIndex = '[reactorIndex]'
                         pr(constructorCode, '''
-                            for (int reactorIndex = 0; reactorIndex < self->«lf_reserved_prefix»«containedReactor.name»_width; reactorIndex++) {
+                            for (int reactorIndex = 0; reactorIndex < self->_lf_«containedReactor.name»_width; reactorIndex++) {
                         ''')
                         indent(constructorCode)
                     }
                     if (isFederatedAndDecentralized) {
                         pr(port, constructorCode, '''
-                            self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                            self->_lf_«containedReactor.name»«reactorIndex».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
                         ''')
                     }
                     val triggered = contained.reactionsTriggered(containedReactor, port)
@@ -2009,33 +2009,33 @@ class CGenerator extends GeneratorBase {
                         var triggeredCount = 0
                         for (index : triggered) {
                             pr(port, constructorCode, '''
-                                self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_reactions[«triggeredCount++»] = &self->«lf_reserved_prefix»_reaction_«index»;
+                                self->_lf_«containedReactor.name»«reactorIndex».«port.name»_reactions[«triggeredCount++»] = &self->_lf__reaction_«index»;
                             ''')
                         }
                         pr(port, constructorCode, '''
-                            self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_trigger.reactions = self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_reactions;
+                            self->_lf_«containedReactor.name»«reactorIndex».«port.name»_trigger.reactions = self->_lf_«containedReactor.name»«reactorIndex».«port.name»_reactions;
                         ''')
                     } else {
                         // Since the self struct is created using calloc, there is no need to set
-                        // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.reactions = NULL
+                        // self->_lf_«containedReactor.name».«port.name»_trigger.reactions = NULL
                     }
                     // Since the self struct is created using calloc, there is no need to set
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.token = NULL;
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.is_present = false;
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.is_timer = false;
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.is_physical = false;
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.drop = false;
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.element_size = 0;
-                    // self->«lf_reserved_prefix»«containedReactor.name».«port.name»_trigger.intended_tag = (0, 0);
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.token = NULL;
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.is_present = false;
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.is_timer = false;
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.is_physical = false;
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.drop = false;
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.element_size = 0;
+                    // self->_lf_«containedReactor.name».«port.name»_trigger.intended_tag = (0, 0);
                     pr(port, constructorCode, '''
-                        self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_trigger.last = NULL;
-                        self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_trigger.number_of_reactions = «triggered.size»;
+                        self->_lf_«containedReactor.name»«reactorIndex».«port.name»_trigger.last = NULL;
+                        self->_lf_«containedReactor.name»«reactorIndex».«port.name»_trigger.number_of_reactions = «triggered.size»;
                     ''')
                     
                     if (isFederated) {
                         // Set the physical_time_of_arrival
                         pr(port, constructorCode, '''
-                            self->«lf_reserved_prefix»«containedReactor.name»«reactorIndex».«port.name»_trigger.physical_time_of_arrival = NEVER;
+                            self->_lf_«containedReactor.name»«reactorIndex».«port.name»_trigger.physical_time_of_arrival = NEVER;
                         ''')
                     }
                     if (containedReactor.widthSpec !== null) {
@@ -2047,16 +2047,16 @@ class CGenerator extends GeneratorBase {
                     // Add to the destructor code to free the malloc'd memory.
                     if (containedReactor.widthSpec !== null) {
                         pr(port, destructorCode, '''
-                            for (int j = 0; j < self->«lf_reserved_prefix»«containedReactor.name»_width; j++) {
-                                for (int i = 0; i < self->«lf_reserved_prefix»«containedReactor.name»[j].«port.name»__width; i++) {
-                                    free(self->«lf_reserved_prefix»«containedReactor.name»[j].«port.name»[i]);
+                            for (int j = 0; j < self->_lf_«containedReactor.name»_width; j++) {
+                                for (int i = 0; i < self->_lf_«containedReactor.name»[j].«port.name»__width; i++) {
+                                    free(self->_lf_«containedReactor.name»[j].«port.name»[i]);
                                 }
                             }
                         ''')
                     } else {
                         pr(port, destructorCode, '''
-                            for (int i = 0; i < self->«lf_reserved_prefix»«containedReactor.name».«port.name»__width; i++) {
-                                free(self->«lf_reserved_prefix»«containedReactor.name».«port.name»[i]);
+                            for (int i = 0; i < self->_lf_«containedReactor.name».«port.name»__width; i++) {
+                                free(self->_lf_«containedReactor.name».«port.name»[i]);
                             }
                         ''')
                     }
@@ -2064,8 +2064,8 @@ class CGenerator extends GeneratorBase {
             }
             unindent(body)
             pr(body, '''
-                } «lf_reserved_prefix»«containedReactor.name»«array»;
-                int «lf_reserved_prefix»«containedReactor.name»_width;
+                } _lf_«containedReactor.name»«array»;
+                int _lf_«containedReactor.name»_width;
             ''');
             
         }
@@ -2143,7 +2143,7 @@ class CGenerator extends GeneratorBase {
         for (reaction : reactor.allReactions) {
             if (federate === null || federate.containsReaction(reaction)) {
                 // Create the reaction_t struct.
-                pr(reaction, body, '''reaction_t «lf_reserved_prefix»_reaction_«reactionCount»;''')
+                pr(reaction, body, '''reaction_t _lf__reaction_«reactionCount»;''')
                 
                 // Create the map of triggers to reactions.
                 for (trigger : reaction.triggers) {
@@ -2175,14 +2175,14 @@ class CGenerator extends GeneratorBase {
                 }
 
                 pr(destructorCode, '''
-                    if (self->«lf_reserved_prefix»_reaction_«reactionCount».output_produced != NULL) {
-                        free(self->«lf_reserved_prefix»_reaction_«reactionCount».output_produced);
+                    if (self->_lf__reaction_«reactionCount».output_produced != NULL) {
+                        free(self->_lf__reaction_«reactionCount».output_produced);
                     }
-                    if (self->«lf_reserved_prefix»_reaction_«reactionCount».triggers != NULL) {
-                        free(self->«lf_reserved_prefix»_reaction_«reactionCount».triggers);
+                    if (self->_lf__reaction_«reactionCount».triggers != NULL) {
+                        free(self->_lf__reaction_«reactionCount».triggers);
                     }
-                    if (self->«lf_reserved_prefix»_reaction_«reactionCount».triggered_sizes != NULL) {
-                        free(self->«lf_reserved_prefix»_reaction_«reactionCount».triggered_sizes);
+                    if (self->_lf__reaction_«reactionCount».triggered_sizes != NULL) {
+                        free(self->_lf__reaction_«reactionCount».triggered_sizes);
                     }
                 ''')
 
@@ -2203,19 +2203,19 @@ class CGenerator extends GeneratorBase {
 
                 // Set the defaults of the reaction_t struct in the constructor.
                 // Since the self struct is allocated using calloc, there is no need to set:
-                // self->«lf_reserved_prefix»_reaction_«reactionCount».index = 0;
-                // self->«lf_reserved_prefix»_reaction_«reactionCount».chain_id = 0;
-                // self->«lf_reserved_prefix»_reaction_«reactionCount».pos = 0;
-                // self->«lf_reserved_prefix»_reaction_«reactionCount».running = false;
-                // self->«lf_reserved_prefix»_reaction_«reactionCount».deadline = 0LL;
-                // self->«lf_reserved_prefix»_reaction_«reactionCount».is_STP_violated = false;
+                // self->_lf__reaction_«reactionCount».index = 0;
+                // self->_lf__reaction_«reactionCount».chain_id = 0;
+                // self->_lf__reaction_«reactionCount».pos = 0;
+                // self->_lf__reaction_«reactionCount».running = false;
+                // self->_lf__reaction_«reactionCount».deadline = 0LL;
+                // self->_lf__reaction_«reactionCount».is_STP_violated = false;
                 pr(reaction, constructorCode, '''
-                    self->«lf_reserved_prefix»_reaction_«reactionCount».number = «reactionCount»;
-                    self->«lf_reserved_prefix»_reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
-                    self->«lf_reserved_prefix»_reaction_«reactionCount».self = self;
-                    self->«lf_reserved_prefix»_reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
-                    self->«lf_reserved_prefix»_reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
-                    self->«lf_reserved_prefix»_reaction_«reactionCount».name = "?";
+                    self->_lf__reaction_«reactionCount».number = «reactionCount»;
+                    self->_lf__reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
+                    self->_lf__reaction_«reactionCount».self = self;
+                    self->_lf__reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
+                    self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
+                    self->_lf__reaction_«reactionCount».name = "?";
                 ''')
 
             }
@@ -2229,15 +2229,15 @@ class CGenerator extends GeneratorBase {
         for (timer : reactor.allTimers) {
             createTriggerT(body, timer, triggerMap, constructorCode, destructorCode)
             // Since the self struct is allocated using calloc, there is no need to set:
-            // self->«lf_reserved_prefix»_«timer.name».is_physical = false;
-            // self->«lf_reserved_prefix»_«timer.name».drop = false;
-            // self->«lf_reserved_prefix»_«timer.name».element_size = 0;
+            // self->_lf__«timer.name».is_physical = false;
+            // self->_lf__«timer.name».drop = false;
+            // self->_lf__«timer.name».element_size = 0;
             pr(constructorCode, '''
-                self->«lf_reserved_prefix»_«timer.name».is_timer = true;
+                self->_lf__«timer.name».is_timer = true;
             ''')
             if (isFederatedAndDecentralized) {
                 pr(constructorCode, '''
-                    self->«lf_reserved_prefix»_«timer.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                    self->_lf__«timer.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
                 ''')
             }
         }
@@ -2245,49 +2245,49 @@ class CGenerator extends GeneratorBase {
         // Handle startup triggers.
         if (startupReactions.size > 0) {
             pr(body, '''
-                trigger_t «lf_reserved_prefix»_startup;
-                reaction_t* «lf_reserved_prefix»_startup_reactions[«startupReactions.size»];
+                trigger_t _lf__startup;
+                reaction_t* _lf__startup_reactions[«startupReactions.size»];
             ''')
             if (isFederatedAndDecentralized) {
                 pr(constructorCode, '''
-                    self->«lf_reserved_prefix»_startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                    self->_lf__startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
                 ''')
             }
             var i = 0
             for (reactionIndex : startupReactions) {
                 pr(constructorCode, '''
-                    self->«lf_reserved_prefix»_startup_reactions[«i++»] = &self->«lf_reserved_prefix»_reaction_«reactionIndex»;
+                    self->_lf__startup_reactions[«i++»] = &self->_lf__reaction_«reactionIndex»;
                 ''')
             }
             pr(constructorCode, '''
-                self->«lf_reserved_prefix»_startup.last = NULL;
-                self->«lf_reserved_prefix»_startup.reactions = &self->«lf_reserved_prefix»_startup_reactions[0];
-                self->«lf_reserved_prefix»_startup.number_of_reactions = «startupReactions.size»;
-                self->«lf_reserved_prefix»_startup.is_timer = false;
+                self->_lf__startup.last = NULL;
+                self->_lf__startup.reactions = &self->_lf__startup_reactions[0];
+                self->_lf__startup.number_of_reactions = «startupReactions.size»;
+                self->_lf__startup.is_timer = false;
             ''')
         }
         // Handle shutdown triggers.
         if (shutdownReactions.size > 0) {
             pr(body, '''
-                trigger_t «lf_reserved_prefix»_shutdown;
-                reaction_t* «lf_reserved_prefix»_shutdown_reactions[«shutdownReactions.size»];
+                trigger_t _lf__shutdown;
+                reaction_t* _lf__shutdown_reactions[«shutdownReactions.size»];
             ''')
             if (isFederatedAndDecentralized) {
                 pr(constructorCode, '''
-                    self->«lf_reserved_prefix»_shutdown.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                    self->_lf__shutdown.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
                 ''')
             }
             var i = 0
             for (reactionIndex : shutdownReactions) {
                 pr(constructorCode, '''
-                    self->«lf_reserved_prefix»_shutdown_reactions[«i++»] = &self->«lf_reserved_prefix»_reaction_«reactionIndex»;
+                    self->_lf__shutdown_reactions[«i++»] = &self->_lf__reaction_«reactionIndex»;
                 ''')
             }
             pr(constructorCode, '''
-                self->«lf_reserved_prefix»_shutdown.last = NULL;
-                self->«lf_reserved_prefix»_shutdown.reactions = &self->«lf_reserved_prefix»_shutdown_reactions[0];
-                self->«lf_reserved_prefix»_shutdown.number_of_reactions = «shutdownReactions.size»;
-                self->«lf_reserved_prefix»_shutdown.is_timer = false;
+                self->_lf__shutdown.last = NULL;
+                self->_lf__shutdown.reactions = &self->_lf__shutdown_reactions[0];
+                self->_lf__shutdown.number_of_reactions = «shutdownReactions.size»;
+                self->_lf__shutdown.is_timer = false;
             ''')
         }
 
@@ -2307,13 +2307,13 @@ class CGenerator extends GeneratorBase {
                 }
     
                 // Since the self struct is allocated using calloc, there is no need to set:
-                // self->«lf_reserved_prefix»_«action.name».is_timer = false;
+                // self->_lf__«action.name».is_timer = false;
                 pr(constructorCode, '''
-                    self->«lf_reserved_prefix»_«action.name».is_physical = «isPhysical»;
+                    self->_lf__«action.name».is_physical = «isPhysical»;
                     «IF !action.policy.isNullOrEmpty»
-                    self->«lf_reserved_prefix»_«action.name».policy = «action.policy»;
+                    self->_lf__«action.name».policy = «action.policy»;
                     «ENDIF»
-                    self->«lf_reserved_prefix»_«action.name».element_size = «elementSize»;
+                    self->_lf__«action.name».element_size = «elementSize»;
                 ''')
             }
         }
@@ -2346,54 +2346,54 @@ class CGenerator extends GeneratorBase {
     ) {
         // variable is a port, a timer, or an action.
         pr(variable, body, '''
-            trigger_t «lf_reserved_prefix»_«variable.name»;
+            trigger_t _lf__«variable.name»;
         ''')
         pr(variable, constructorCode, '''
-            self->«lf_reserved_prefix»_«variable.name».last = NULL;
+            self->_lf__«variable.name».last = NULL;
         ''')
         if (isFederatedAndDecentralized) {
             pr(variable, constructorCode, '''
-                self->«lf_reserved_prefix»_«variable.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                self->_lf__«variable.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
             ''')
         }
         // Generate the reactions triggered table.
         val reactionsTriggered = triggerMap.get(variable)
         if (reactionsTriggered !== null) {
-            pr(variable, body, '''reaction_t* «lf_reserved_prefix»_«variable.name»_reactions[«reactionsTriggered.size»];''')
+            pr(variable, body, '''reaction_t* _lf__«variable.name»_reactions[«reactionsTriggered.size»];''')
             var count = 0
             for (reactionTriggered : reactionsTriggered) {
                 prSourceLineNumber(constructorCode, variable)
                 pr(variable, constructorCode, '''
-                    self->«lf_reserved_prefix»_«variable.name»_reactions[«count»] = &self->«lf_reserved_prefix»_reaction_«reactionTriggered»;
+                    self->_lf__«variable.name»_reactions[«count»] = &self->_lf__reaction_«reactionTriggered»;
                 ''')
                 count++
             }
             // Set up the trigger_t struct's pointer to the reactions.
             pr(variable, constructorCode, '''
-                self->«lf_reserved_prefix»_«variable.name».reactions = &self->«lf_reserved_prefix»_«variable.name»_reactions[0];
-                self->«lf_reserved_prefix»_«variable.name».number_of_reactions = «count»;
+                self->_lf__«variable.name».reactions = &self->_lf__«variable.name»_reactions[0];
+                self->_lf__«variable.name».number_of_reactions = «count»;
             ''')
             
             if (isFederated) {
                 // Set the physical_time_of_arrival
                 pr(variable, constructorCode, '''
-                    self->«lf_reserved_prefix»_«variable.name».physical_time_of_arrival = NEVER;
+                    self->_lf__«variable.name».physical_time_of_arrival = NEVER;
                 ''')
             }
         }
         if (variable instanceof Input) {
             val rootType = variable.targetType.rootType
             // Since the self struct is allocated using calloc, there is no need to set:
-            // self->«lf_reserved_prefix»_«input.name».is_timer = false;
-            // self->«lf_reserved_prefix»_«input.name».offset = 0LL;
-            // self->«lf_reserved_prefix»_«input.name».period = 0LL;
-            // self->«lf_reserved_prefix»_«input.name».is_physical = false;
-            // self->«lf_reserved_prefix»_«input.name».drop = false;
+            // self->_lf__«input.name».is_timer = false;
+            // self->_lf__«input.name».offset = 0LL;
+            // self->_lf__«input.name».period = 0LL;
+            // self->_lf__«input.name».is_physical = false;
+            // self->_lf__«input.name».drop = false;
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
             val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
             pr(constructorCode, '''
-                self->«lf_reserved_prefix»_«variable.name».element_size = «size»;
+                self->_lf__«variable.name».element_size = «size»;
             ''')
         
             if (isFederated) {
@@ -2502,7 +2502,7 @@ class CGenerator extends GeneratorBase {
             pr(intendedTagInheritenceCode, '''
                 #pragma GCC diagnostic push
                 #pragma GCC diagnostic ignored "-Wunused-variable"
-                if (self->«lf_reserved_prefix»_reaction_«reactionIndex».is_STP_violated == true) {
+                if (self->_lf__reaction_«reactionIndex».is_STP_violated == true) {
             ''')
             indent(intendedTagInheritenceCode);            
             pr(intendedTagInheritenceCode, '''            
@@ -2605,8 +2605,8 @@ class CGenerator extends GeneratorBase {
                         if (effect.container.widthSpec !== null) {
                             // Contained reactor is a bank.
                             pr(intendedTagInheritenceCode, '''
-                                for (int bankIndex = 0; bankIndex < self->__«effect.container.name»_width; bankIndex++) {
-                                    «effect.container.name»[bankIndex].«effect.variable.name» = &(self->__«effect.container.name»[bankIndex].«effect.variable.name»);
+                                for (int bankIndex = 0; bankIndex < self->_lf_«effect.container.name»_width; bankIndex++) {
+                                    «effect.container.name»[bankIndex].«effect.variable.name» = &(self->_lf_«effect.container.name»[bankIndex].«effect.variable.name»);
                                 }
                             ''')
                         } else {
@@ -2750,7 +2750,7 @@ class CGenerator extends GeneratorBase {
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.variable)) {
                         pr(reactionInitialization, '''
-                            «variableStructType(effect.variable, decl)»* «effect.variable.name» = &self->«lf_reserved_prefix»«effect.variable.name»;
+                            «variableStructType(effect.variable, decl)»* «effect.variable.name» = &self->_lf_«effect.variable.name»;
                         ''')
                     }
                 } else {
@@ -2783,7 +2783,7 @@ class CGenerator extends GeneratorBase {
             var array = "";
             if (containedReactor.widthSpec !== null) {
                 pr('''
-                    int «containedReactor.name»_width = self->«lf_reserved_prefix»«containedReactor.name»_width;
+                    int «containedReactor.name»_width = self->_lf_«containedReactor.name»_width;
                 ''')
                 array = '''[«containedReactor.name»_width]''';
             }
@@ -2928,21 +2928,21 @@ class CGenerator extends GeneratorBase {
                         )
                 ) {
                     val upstreamReaction =
-                        '''«selfStructName(dominatingReaction.parent)»->«lf_reserved_prefix»_reaction_«dominatingReaction.reactionIndex»'''
+                        '''«selfStructName(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.reactionIndex»'''
                     pr(initializeTriggerObjectsEnd, '''
                         // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
-                        «selfStruct»->«lf_reserved_prefix»_reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
+                        «selfStruct»->_lf__reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
                     ''')
                 } else {
                     pr(initializeTriggerObjectsEnd, '''
                         // Reaction «reactionCount» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
-                        «selfStruct»->«lf_reserved_prefix»_reaction_«reactionCount».last_enabling_reaction = NULL;
+                        «selfStruct»->_lf__reaction_«reactionCount».last_enabling_reaction = NULL;
                     ''')
                 }
                 if (targetConfig.logLevel >= LogLevel.LOG) {
                     pr(initializeTriggerObjectsEnd, '''
                         // Reaction «reactionCount» of «reactorInstance.getFullName»'s name.
-                        «selfStruct»->«lf_reserved_prefix»_reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
+                        «selfStruct»->_lf__reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
                     ''')
                 }
                                 
@@ -2998,7 +2998,7 @@ class CGenerator extends GeneratorBase {
                             pr(initializeTriggerObjectsEnd, '''
                                 // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
                                 // downstream reactions through port «port.getFullName».
-                                «selfStruct»->«lf_reserved_prefix»_reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
+                                «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
                             ''')
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
@@ -3014,7 +3014,7 @@ class CGenerator extends GeneratorBase {
                                     // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
                                     // array of trigger pointers for downstream reactions through port «port.getFullName»
                                     trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
-                                    «selfStruct»->«lf_reserved_prefix»_reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
+                                    «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
                                 ''')
 
                                 // Next, initialize the newly created array.
@@ -3109,21 +3109,21 @@ class CGenerator extends GeneratorBase {
                         if (input instanceof MultiportInstance) {
                             pr(startTimeStep, '''
                                 for (int i = 0; i < «input.width»; i++) {
-                                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens» + i].token
-                                            = &«nameOfSelfStruct»->«lf_reserved_prefix»«input.name»[i]->token;
-                                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens» + i].status
-                                            = (port_status_t*)&«nameOfSelfStruct»->«lf_reserved_prefix»«input.name»[i]->is_present;
-                                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                    _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                            = &«nameOfSelfStruct»->_lf_«input.name»[i]->token;
+                                    _lf_tokens_with_ref_count[«startTimeStepTokens» + i].status
+                                            = (port_status_t*)&«nameOfSelfStruct»->_lf_«input.name»[i]->is_present;
+                                    _lf_tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                 }
                             ''')
                             startTimeStepTokens += input.width
                         } else {
                             pr(startTimeStep, '''
-                                «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].token
-                                        = &«nameOfSelfStruct»->«lf_reserved_prefix»«input.name»->token;
-                                «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].status
-                                        = (port_status_t*)&«nameOfSelfStruct»->«lf_reserved_prefix»«input.name»->is_present;
-                                «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                                _lf_tokens_with_ref_count[«startTimeStepTokens»].token
+                                        = &«nameOfSelfStruct»->_lf_«input.name»->token;
+                                _lf_tokens_with_ref_count[«startTimeStepTokens»].status
+                                        = (port_status_t*)&«nameOfSelfStruct»->_lf_«input.name»->is_present;
+                                _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
                             startTimeStepTokens++
                         }
@@ -3157,15 +3157,15 @@ class CGenerator extends GeneratorBase {
                             }
                             pr(startTimeStep, '''
                                 // Add port «sourcePort.getFullName» to array of is_present fields.
-                                «lf_reserved_prefix»is_present_fields[«startTimeStepIsPresentCount»] 
-                                        = &«containerSelfStructName»->«lf_reserved_prefix»«sourcePort.parent.name».«sourcePort.name»«multiportIndex»is_present;
+                                _lf_is_present_fields[«startTimeStepIsPresentCount»] 
+                                        = &«containerSelfStructName»->_lf_«sourcePort.parent.name».«sourcePort.name»«multiportIndex»is_present;
                             ''')
                             if (isFederatedAndDecentralized) {
                                 // Intended_tag is only applicable to ports in federated execution.
                                 pr(startTimeStep, '''
                                     // Add port «sourcePort.getFullName» to array of is_present fields.
-                                    «lf_reserved_prefix»intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                            = &«containerSelfStructName»->«lf_reserved_prefix»«sourcePort.parent.name».«sourcePort.name»«multiportIndex»intended_tag;
+                                    _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                            = &«containerSelfStructName»->_lf_«sourcePort.parent.name».«sourcePort.name»«multiportIndex»intended_tag;
                                 ''')
                             }
                             startTimeStepIsPresentCount++
@@ -3182,21 +3182,21 @@ class CGenerator extends GeneratorBase {
                             if (port instanceof MultiportInstance) {
                                 pr(startTimeStep, '''
                                     for (int i = 0; i < «port.width»; i++) {
-                                        «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens» + i].token
-                                                = &«containerSelfStructName»->«lf_reserved_prefix»«port.parent.name».«port.name»[i]->token;
-                                        «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens» + i].status
-                                                = (port_status_t*)&«containerSelfStructName»->«lf_reserved_prefix»«port.parent.name».«port.name»[i]->is_present;
-                                        «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                        _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                                = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->token;
+                                        _lf_tokens_with_ref_count[«startTimeStepTokens» + i].status
+                                                = (port_status_t*)&«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->is_present;
+                                        _lf_tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                     }
                                 ''')
                                 startTimeStepTokens += port.width
                             } else {
                                 pr(startTimeStep, '''
-                                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].token
-                                            = &«containerSelfStructName»->«lf_reserved_prefix»«port.parent.name».«port.name»->token;
-                                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].status
-                                            = (port_status_t*)&«containerSelfStructName»->«lf_reserved_prefix»«port.parent.name».«port.name»->is_present;
-                                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                                    _lf_tokens_with_ref_count[«startTimeStepTokens»].token
+                                            = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»->token;
+                                    _lf_tokens_with_ref_count[«startTimeStepTokens»].status
+                                            = (port_status_t*)&«containerSelfStructName»->_lf_«port.parent.name».«port.name»->is_present;
+                                    _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                                 ''')
                                 startTimeStepTokens++
                             }
@@ -3215,13 +3215,13 @@ class CGenerator extends GeneratorBase {
                         for (multiportInstance : output.instances) {
                             pr(startTimeStep, '''
                                 // Add port «output.getFullName» to array of is_present fields.
-                                «lf_reserved_prefix»is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«output.name»[«j»]''', "is_present")»;
+                                _lf_is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»[«j»]''', "is_present")»;
                             ''')
                             if (isFederatedAndDecentralized) {
                                 // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                                 pr(startTimeStep, '''
                                     // Add port «output.getFullName» to array of intended_tag fields.
-                                    «lf_reserved_prefix»intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«output.name»[«j»]''', "intended_tag")»;
+                                    _lf_intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»[«j»]''', "intended_tag")»;
                                 ''')
                             }
                             startTimeStepIsPresentCount++
@@ -3230,13 +3230,13 @@ class CGenerator extends GeneratorBase {
                     } else {
                         pr(startTimeStep, '''
                             // Add port «output.getFullName» to array of is_present fields.
-                            «lf_reserved_prefix»is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«output.name»''', "is_present")»;
+                            _lf_is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»''', "is_present")»;
                         ''')
                         if (isFederatedAndDecentralized) {                            
                             // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                             pr(startTimeStep, '''
                                 // Add port «output.getFullName» to array of Intended_tag fields.
-                                «lf_reserved_prefix»intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«output.name»''', "intended_tag")»;
+                                _lf_intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»''', "intended_tag")»;
                             ''')                            
                         }
                         startTimeStepIsPresentCount++
@@ -3248,15 +3248,15 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsAction(action.definition)) {
                 pr(startTimeStep, '''
                     // Add action «action.getFullName» to array of is_present fields.
-                    «lf_reserved_prefix»is_present_fields[«startTimeStepIsPresentCount»] 
-                            = &«containerSelfStructName»->«lf_reserved_prefix»«action.name».is_present;
+                    _lf_is_present_fields[«startTimeStepIsPresentCount»] 
+                            = &«containerSelfStructName»->_lf_«action.name».is_present;
                 ''')
                 if (isFederatedAndDecentralized) {
                     // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
                     pr(startTimeStep, '''
                         // Add action «action.getFullName» to array of intended_tag fields.
-                        «lf_reserved_prefix»intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                = &«containerSelfStructName»->«lf_reserved_prefix»«action.name».intended_tag;
+                        _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                = &«containerSelfStructName»->_lf_«action.name».intended_tag;
                     ''')
                 }
                 startTimeStepIsPresentCount++
@@ -3290,7 +3290,7 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
-                    «lf_reserved_prefix»timer_triggers[«timerCount»] = &«triggerStructName»;
+                    _lf_timer_triggers[«timerCount»] = &«triggerStructName»;
                 ''')
                 timerCount++
             } else if (trigger instanceof Action && !triggerInstance.isShutdown) {
@@ -3393,7 +3393,7 @@ class CGenerator extends GeneratorBase {
         }
                 
         if (port.isInput) {
-            return '''«destStruct»->«lf_reserved_prefix»«port.name»«destinationIndexSpec»'''
+            return '''«destStruct»->_lf_«port.name»«destinationIndexSpec»'''
         } else {
             throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
@@ -3425,7 +3425,7 @@ class CGenerator extends GeneratorBase {
         }
                 
         if (port.isOutput) {
-            return '''«destStruct»->«lf_reserved_prefix»«port.parent.name».«port.name»«destinationIndexSpec»'''
+            return '''«destStruct»->_lf_«port.parent.name».«port.name»«destinationIndexSpec»'''
         } else {
             return '// Nothing to do. Port is an input.'
         }
@@ -3475,10 +3475,10 @@ class CGenerator extends GeneratorBase {
                 
         if (eventualSource.isOutput) {
             val sourceStruct = selfStructName(eventualSource.parent)
-            return '''«indirection»«sourceStruct»->«lf_reserved_prefix»«eventualSource.name»«sourceIndexSpec»'''
+            return '''«indirection»«sourceStruct»->_lf_«eventualSource.name»«sourceIndexSpec»'''
         } else {
             val sourceStruct = selfStructName(eventualSource.parent.parent)
-            return '''«indirection»«sourceStruct»->«lf_reserved_prefix»«eventualSource.parent.name».«eventualSource.name»«sourceIndexSpec»'''
+            return '''«indirection»«sourceStruct»->_lf_«eventualSource.parent.name».«eventualSource.name»«sourceIndexSpec»'''
         }
     }
 
@@ -3536,7 +3536,7 @@ class CGenerator extends GeneratorBase {
      */
     static def triggerStructName(TriggerInstance<? extends Variable> instance) {
         return selfStructName(instance.parent) 
-                + '''->«lf_reserved_prefix»_'''
+                + '''->_lf__'''
                 + instance.name
     }
     
@@ -3548,7 +3548,7 @@ class CGenerator extends GeneratorBase {
      *   of the container of the reaction.
      */
     static def triggerStructName(PortInstance port, ReactorInstance reactor) {
-        return '''«selfStructName(reactor)»->«lf_reserved_prefix»«port.parent.name».«port.name»_trigger'''
+        return '''«selfStructName(reactor)»->_lf_«port.parent.name».«port.name»_trigger'''
     }
     
     /**
@@ -3618,13 +3618,13 @@ class CGenerator extends GeneratorBase {
             for (action : instance.actions) {
                 if (federate === null || federate.containsAction(action.definition)) {
                     pr(builder, '''
-                        _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->«lf_reserved_prefix»_«action.name»), trace_trigger, "«description».«action.name»");
+                        _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
                     ''')
                 }
             }
             for (timer : instance.timers) {
                 pr(builder, '''
-                    _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->«lf_reserved_prefix»_«timer.name»), trace_trigger, "«description».«timer.name»");
+                    _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
                 ''')
             }
         }
@@ -3704,7 +3704,7 @@ class CGenerator extends GeneratorBase {
                 } else {
                     pr(initializeTriggerObjects, '''
                         // width of -2 indicates that it is not a multiport.
-                        «nameOfSelfStruct»->«lf_reserved_prefix»«output.name»__width = -2;
+                        «nameOfSelfStruct»->_lf_«output.name»__width = -2;
                     ''')
                 }            
             }
@@ -3736,26 +3736,26 @@ class CGenerator extends GeneratorBase {
                                 trigger.parent.definition.reactorClass)
 
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«trigger.name»__width = «width»;
+                                «nameOfSelfStruct»->_lf_«containerName».«trigger.name»__width = «width»;
                                 // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                        * «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«trigger.name»__width);
+                                «nameOfSelfStruct»->_lf_«containerName».«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                        * «nameOfSelfStruct»->_lf_«containerName».«trigger.name»__width);
                             ''')
                         }
                     }
                     if (trigger.isStartup) {
                         pr(initializeTriggerObjects, '''
-                            «lf_reserved_prefix»startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reactionCount»;
+                            _lf_startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reactionCount»;
                         ''')
                     } else if (trigger.isShutdown) {
                         pr(initializeTriggerObjects, '''
-                            «lf_reserved_prefix»shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reactionCount»;
+                            _lf_shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reactionCount»;
                         ''')
 
                         if (targetConfig.tracing !== null) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
-                                _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->«lf_reserved_prefix»_shutdown),
+                                _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__shutdown),
                                         trace_trigger, "«description».shutdown");
                             ''')
                         }
@@ -3775,18 +3775,18 @@ class CGenerator extends GeneratorBase {
                 // If the port is a multiport, create an array.
                 if (input.isMultiport) {
                     pr(initializeTriggerObjects, '''
-                        «nameOfSelfStruct»->«lf_reserved_prefix»«input.name»__width = «multiportWidthSpecInC(input, null, instance)»;
+                        «nameOfSelfStruct»->_lf_«input.name»__width = «multiportWidthSpecInC(input, null, instance)»;
                         // Allocate memory for multiport inputs.
-                        «nameOfSelfStruct»->«lf_reserved_prefix»«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->«lf_reserved_prefix»«input.name»__width); 
+                        «nameOfSelfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->_lf_«input.name»__width); 
                         // Set inputs by default to an always absent default input.
-                        for (int i = 0; i < «nameOfSelfStruct»->«lf_reserved_prefix»«input.name»__width; i++) {
-                            «nameOfSelfStruct»->«lf_reserved_prefix»«input.name»[i] = &«nameOfSelfStruct»->«lf_reserved_prefix»default__«input.name»;
+                        for (int i = 0; i < «nameOfSelfStruct»->_lf_«input.name»__width; i++) {
+                            «nameOfSelfStruct»->_lf_«input.name»[i] = &«nameOfSelfStruct»->_lf_default__«input.name»;
                         }
                     ''')
                 } else {
                     pr(initializeTriggerObjects, '''
                         // width of -2 indicates that it is not a multiport.
-                        «nameOfSelfStruct»->«lf_reserved_prefix»«input.name»__width = -2;
+                        «nameOfSelfStruct»->_lf_«input.name»__width = -2;
                     ''')
                 }
             }           
@@ -3817,14 +3817,14 @@ class CGenerator extends GeneratorBase {
                     for (multiportInstance : output.instances) {
                         var numDestinations = multiportInstance.numDestinationReactors
                         pr(initializeTriggerObjectsEnd, '''
-                            «nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
+                            «nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
                         ''')
                         j++
                     }
                 } else {
                     var numDestinations = output.numDestinationReactors
                     pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«output.name»''', "num_destinations")» = «numDestinations»;
+                        «nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»''', "num_destinations")» = «numDestinations»;
                     ''')
                 }
             }
@@ -3852,7 +3852,7 @@ class CGenerator extends GeneratorBase {
                             portIndex = '[' + port.multiportIndex + ']->'
                         }
                         pr(initializeTriggerObjectsEnd, '''
-                            «nameOfSelfStruct»->«lf_reserved_prefix»«port.parent.name».«port.name»«portIndex»num_destinations = «numDestinations»;
+                            «nameOfSelfStruct»->_lf_«port.parent.name».«port.name»«portIndex»num_destinations = «numDestinations»;
                         ''')
                     }
                 }
@@ -3888,19 +3888,19 @@ class CGenerator extends GeneratorBase {
                 // always has a reference token.
                 pr(initializeTriggerObjects,
                     '''
-                    «nameOfSelfStruct»->«lf_reserved_prefix»_«action.name».token = «lf_reserved_prefix»create_token(«payloadSize»);
-                    «nameOfSelfStruct»->«lf_reserved_prefix»_«action.name».status = absent;
+                    «nameOfSelfStruct»->_lf__«action.name».token = _lf_create_token(«payloadSize»);
+                    «nameOfSelfStruct»->_lf__«action.name».status = absent;
                     '''
                 )
                 // At the start of each time step, we need to initialize the is_present field
                 // of each action's trigger object to false and free a previously
                 // allocated token if appropriate. This code sets up the table that does that.
                 pr(initializeTriggerObjects, '''
-                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].token
-                            = &«nameOfSelfStruct»->«lf_reserved_prefix»_«action.name».token;
-                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].status
-                            = &«nameOfSelfStruct»->«lf_reserved_prefix»_«action.name».status;
-                    «lf_reserved_prefix»tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
+                    _lf_tokens_with_ref_count[«startTimeStepTokens»].token
+                            = &«nameOfSelfStruct»->_lf__«action.name».token;
+                    _lf_tokens_with_ref_count[«startTimeStepTokens»].status
+                            = &«nameOfSelfStruct»->_lf__«action.name».status;
+                    _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')
                 startTimeStepTokens++
             }
@@ -3913,7 +3913,7 @@ class CGenerator extends GeneratorBase {
             )) {
                 if (reaction.declaredDeadline !== null) {
                     var deadline = reaction.declaredDeadline.maxDelay
-                    val reactionStructName = '''«selfStructName(reaction.parent)»->«lf_reserved_prefix»_reaction_«reactionCount»'''
+                    val reactionStructName = '''«selfStructName(reaction.parent)»->_lf__reaction_«reactionCount»'''
                     pr(initializeTriggerObjects, '''
                         «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
                     ''')
@@ -4038,16 +4038,16 @@ class CGenerator extends GeneratorBase {
                         )
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«effect.name»__width = «effect.getMultiportInstance().width»;
+                                «nameOfSelfStruct»->_lf_«effect.name»__width = «effect.getMultiportInstance().width»;
                                 // Allocate memory to store output of reaction.
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
-                                    * «nameOfSelfStruct»->«lf_reserved_prefix»«effect.name»__width); 
+                                «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
+                                    * «nameOfSelfStruct»->_lf_«effect.name»__width); 
                             ''')
                         }
                         pr(initialization, '''
                             for (int i = 0; i < «effect.getMultiportInstance().width»; i++) {
-                                «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
-                                        = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«effect.name»[i]''', "is_present")»;
+                                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
+                                        = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.name»[i]''', "is_present")»;
                             }
                         ''')
                     } else {
@@ -4057,19 +4057,19 @@ class CGenerator extends GeneratorBase {
                             effect.parent.definition.reactorClass)
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name»__width = «effect.getMultiportInstance().width»;
+                                «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width = «effect.getMultiportInstance().width»;
                                 // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                    * «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name»__width);
-                                for (int i = 0; i < «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name»__width; i++) {
-                                    «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                                «nameOfSelfStruct»->_lf_«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                    * «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width);
+                                for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width; i++) {
+                                    «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
                                 }
                             ''')
                         }
                         pr(initialization, '''
-                            for (int i = 0; i < «nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name»__width; i++) {
-                                «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
-                                        = &«nameOfSelfStruct»->«lf_reserved_prefix»«containerName».«effect.name»[i]->is_present;
+                            for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width; i++) {
+                                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
+                                        = &«nameOfSelfStruct»->_lf_«containerName».«effect.name»[i]->is_present;
                             }
                         ''')
                     }
@@ -4079,14 +4079,14 @@ class CGenerator extends GeneratorBase {
                     if (effect.parent === reaction.parent) {
                         // The port belongs to the same reactor as the reaction.
                         pr(initialization, '''
-                            «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».output_produced[«outputCount»]
-                                    = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«effect.name»''', "is_present")»;
+                            «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount»]
+                                    = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.name»''', "is_present")»;
                         ''')
                     } else {
                         // The port belongs to a contained reactor.
                         pr(initialization, '''
-                            «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».output_produced[«outputCount»]
-                                    = &«nameOfSelfStruct»->«getStackPortMember('''«lf_reserved_prefix»«effect.parent.name».«effect.name»''', "is_present")»;
+                            «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount»]
+                                    = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.parent.name».«effect.name»''', "is_present")»;
                         ''')
                     }
                     outputCount++
@@ -4095,15 +4095,15 @@ class CGenerator extends GeneratorBase {
         }
         pr(initializeTriggerObjectsEnd, '''
             // Total number of outputs produced by the reaction.
-            «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».num_outputs = «outputCount»;
+            «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs = «outputCount»;
             // Allocate arrays for triggering downstream reactions.
-            if («nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».num_outputs > 0) {
-                «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».output_produced 
-                        = (bool**)malloc(sizeof(bool*) * «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».num_outputs);
-                «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».triggers 
-                        = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».num_outputs);
-                «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».triggered_sizes 
-                        = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->«lf_reserved_prefix»_reaction_«reaction.reactionIndex».num_outputs);
+            if («nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs > 0) {
+                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced 
+                        = (bool**)malloc(sizeof(bool*) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
+                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».triggers 
+                        = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
+                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».triggered_sizes 
+                        = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
             }
         ''')
         pr(initializeTriggerObjectsEnd, '''
@@ -4224,9 +4224,9 @@ class CGenerator extends GeneratorBase {
     def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
         val reactor = instance.definition.reactorClass
         pr(builder, '''
-            «nameOfSelfStruct»->«lf_reserved_prefix»«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
+            «nameOfSelfStruct»->_lf_«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
             // Allocate memory for multiport output.
-            «nameOfSelfStruct»->«lf_reserved_prefix»«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->«lf_reserved_prefix»«output.name»__width); 
+            «nameOfSelfStruct»->_lf_«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->_lf_«output.name»__width); 
         ''')
     }
     
@@ -4317,7 +4317,7 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsReaction(
                 reactionInstance.definition
             )) {
-                val reactionStructName = '''«selfStructName(reactionInstance.parent)»->«lf_reserved_prefix»_reaction_«reactionCount»'''
+                val reactionStructName = '''«selfStructName(reactionInstance.parent)»->_lf__reaction_«reactionCount»'''
                 val reactionIndex = "0x" + (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).or(
                     new BigInteger(reactionInstance.level.toString)).toString(16) + "LL"
                 pr('''
@@ -4381,10 +4381,10 @@ class CGenerator extends GeneratorBase {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->«lf_reserved_prefix»«outputName».value = («action.inferredType.targetType»)self->«lf_reserved_prefix»_«action.name».token->value;
-            self->«lf_reserved_prefix»«outputName».token = (lf_token_t*)self->«lf_reserved_prefix»_«action.name».token;
-            ((lf_token_t*)self->«lf_reserved_prefix»_«action.name».token)->ref_count++;
-            self->«getStackPortMember('''«lf_reserved_prefix»«outputName»''', "is_present")» = true;
+            self->_lf_«outputName».value = («action.inferredType.targetType»)self->_lf__«action.name».token->value;
+            self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
+            ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
+            self->«getStackPortMember('''_lf_«outputName»''', "is_present")» = true;
             '''
         } else {
             '''
@@ -4440,7 +4440,7 @@ class CGenerator extends GeneratorBase {
       
         // Transfer the physical time of arrival from the action to the port
         result.append('''
-            «receiveRef»->physical_time_of_arrival = self->«lf_reserved_prefix»_«action.name».physical_time_of_arrival;
+            «receiveRef»->physical_time_of_arrival = self->_lf__«action.name».physical_time_of_arrival;
         ''')
         
         
@@ -4478,7 +4478,7 @@ class CGenerator extends GeneratorBase {
                 value = FedROS2CPPSerialization.deserializedVarName;
                 result.append(
                     ROSDeserializer.generateNetworkDeserializerCode(
-                        '''self->___«action.name»''',
+                        '''self->_lf__«action.name»''',
                         portTypeStr
                     )
                 );
@@ -5270,12 +5270,12 @@ class CGenerator extends GeneratorBase {
         // If the action has a type, create variables for accessing the value.
         val type = action.inferredType
         // Pointer to the lf_token_t sent as the payload in the trigger.
-        val tokenPointer = '''(self->«lf_reserved_prefix»_«action.name».token)'''
+        val tokenPointer = '''(self->_lf__«action.name».token)'''
         pr(action, builder, '''
             // Expose the action struct as a local variable whose name matches the action name.
-            «structType»* «action.name» = &self->«lf_reserved_prefix»«action.name»;
+            «structType»* «action.name» = &self->_lf_«action.name»;
             // Set the fields of the action struct to match the current trigger.
-            «action.name»->is_present = (bool)self->«lf_reserved_prefix»_«action.name».status;
+            «action.name»->is_present = (bool)self->_lf__«action.name».status;
             «action.name»->has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
             «action.name»->token = «tokenPointer»;
         ''')
@@ -5321,20 +5321,20 @@ class CGenerator extends GeneratorBase {
         if (!input.isMutable && !inputType.isTokenType && !input.isMultiport) {
             // Non-mutable, non-multiport, primitive type.
             pr(builder, '''
-                «structType»* «input.name» = self->«lf_reserved_prefix»«input.name»;
+                «structType»* «input.name» = self->_lf_«input.name»;
             ''')
         } else if (input.isMutable && !inputType.isTokenType && !input.isMultiport) {
             // Mutable, non-multiport, primitive type.
             pr(builder, '''
                 // Mutable input, so copy the input into a temporary variable.
                 // The input value on the struct is a copy.
-                «structType» «lf_reserved_prefix»tmp_«input.name» = *(self->«lf_reserved_prefix»«input.name»);
-                «structType»* «input.name» = &«lf_reserved_prefix»tmp_«input.name»;
+                «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
+                «structType»* «input.name» = &_lf_tmp_«input.name»;
             ''')
         } else if (!input.isMutable && inputType.isTokenType && !input.isMultiport) {
             // Non-mutable, non-multiport, token type.
             pr(builder, '''
-                «structType»* «input.name» = self->«lf_reserved_prefix»«input.name»;
+                «structType»* «input.name» = self->_lf_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
                     «input.name»->value = («inputType.targetType»)«input.name»->token->value;
@@ -5346,8 +5346,8 @@ class CGenerator extends GeneratorBase {
             // Mutable, non-multiport, token type.
             pr(builder, '''
                 // Mutable input, so copy the input struct into a temporary variable.
-                «structType» «lf_reserved_prefix»tmp_«input.name» = *(self->«lf_reserved_prefix»«input.name»);
-                «structType»* «input.name» = &«lf_reserved_prefix»tmp_«input.name»;
+                «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
+                «structType»* «input.name» = &_lf_tmp_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
                     lf_token_t* _lf_input_token = «input.name»->token;
@@ -5368,18 +5368,18 @@ class CGenerator extends GeneratorBase {
         } else if (!input.isMutable && input.isMultiport) {
             // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
-                «structType»** «input.name» = self->«lf_reserved_prefix»«input.name»;
+                «structType»** «input.name» = self->_lf_«input.name»;
             ''')
         } else if (inputType.isTokenType) {
             // Mutable, multiport, token type
             pr(builder, '''
                 // Mutable multiport input, so copy the input structs
                 // into an array of temporary variables on the stack.
-                «structType» «lf_reserved_prefix»tmp_«input.name»[«input.multiportWidthExpression»];
+                «structType» _lf_tmp_«input.name»[«input.multiportWidthExpression»];
                 «structType»* «input.name»[«input.multiportWidthExpression»];
                 for (int i = 0; i < «input.multiportWidthExpression»; i++) {
-                    «input.name»[i] = &«lf_reserved_prefix»tmp_«input.name»[i];
-                    «lf_reserved_prefix»tmp_«input.name»[i] = *(self->«lf_reserved_prefix»«input.name»[i]);
+                    «input.name»[i] = &_lf_tmp_«input.name»[i];
+                    _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
                     // If necessary, copy the tokens.
                     if («input.name»[i]->is_present) {
                         «input.name»[i]->length = «input.name»[i]->token->length;
@@ -5404,12 +5404,12 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 // Mutable multiport input, so copy the input structs
                 // into an array of temporary variables on the stack.
-                «structType» «lf_reserved_prefix»tmp_«input.name»[«input.multiportWidthExpression»];
+                «structType» _lf_tmp_«input.name»[«input.multiportWidthExpression»];
                 «structType»* «input.name»[«input.multiportWidthExpression»];
                 for (int i = 0; i < «input.multiportWidthExpression»; i++) {
-                    «input.name»[i]  = &«lf_reserved_prefix»tmp_«input.name»[i];
+                    «input.name»[i]  = &_lf_tmp_«input.name»[i];
                     // Copy the struct, which includes the value.
-                    «lf_reserved_prefix»tmp_«input.name»[i] = *(self->«lf_reserved_prefix»«input.name»[i]);
+                    _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
                 }
             ''')
         }
@@ -5417,7 +5417,7 @@ class CGenerator extends GeneratorBase {
         // for a variable-width multiport, which is not currently supported.
         // It will be -2 if it is not multiport.
         pr(builder, '''
-            int «input.name»_width = self->«lf_reserved_prefix»«input.name»__width;
+            int «input.name»_width = self->_lf_«input.name»__width;
         ''')
     }
     
@@ -5474,24 +5474,24 @@ class CGenerator extends GeneratorBase {
                 // Output is in a bank.
                 pr(builder, '''
                     for (int i = 0; i < «port.container.name»_width; i++) {
-                        «reactorName»[i].«output.name» = self->«lf_reserved_prefix»«reactorName»[i].«output.name»;
+                        «reactorName»[i].«output.name» = self->_lf_«reactorName»[i].«output.name»;
                     }
                 ''')
                 if (output.isMultiport) {
                     pr(builder, '''
                         for (int i = 0; i < «port.container.name»_width; i++) {
-                            «reactorName»[i].«output.name»_width = self->«lf_reserved_prefix»«reactorName»[i].«output.name»__width;
+                            «reactorName»[i].«output.name»_width = self->_lf_«reactorName»[i].«output.name»__width;
                         }
                     ''')                    
                 }
             } else {
                  // Output is not in a bank.
                 pr(builder, '''
-                    «reactorName».«output.name» = self->«lf_reserved_prefix»«reactorName».«output.name»;
+                    «reactorName».«output.name» = self->_lf_«reactorName».«output.name»;
                 ''')                    
                 if (output.isMultiport) {
                     pr(builder, '''
-                        «reactorName».«output.name»_width = self->«lf_reserved_prefix»«reactorName».«output.name»__width;
+                        «reactorName».«output.name»_width = self->_lf_«reactorName».«output.name»__width;
                     ''')                    
                 }
             }
@@ -5529,18 +5529,18 @@ class CGenerator extends GeneratorBase {
             if (!output.isMultiport) {
                 // Output port is not a multiport.
                 pr(builder, '''
-                    «outputStructType»* «output.name» = &self->«lf_reserved_prefix»«output.name»;
+                    «outputStructType»* «output.name» = &self->_lf_«output.name»;
                 ''')
             } else {
                 // Output port is a multiport.
                 // Set the _width variable.
                 pr(builder, '''
-                    int «output.name»_width = self->«lf_reserved_prefix»«output.name»__width;
+                    int «output.name»_width = self->_lf_«output.name»__width;
                 ''')
                 pr(builder, '''
                     «outputStructType»* «output.name»[«output.name»_width];
                     for(int i=0; i < «output.name»_width; i++) {
-                         «output.name»[i] = &(self->«lf_reserved_prefix»«output.name»[i]);
+                         «output.name»[i] = &(self->_lf_«output.name»[i]);
                     }
                 ''')
             }
@@ -5581,14 +5581,14 @@ class CGenerator extends GeneratorBase {
             if (definition.widthSpec !== null) {
                 // Contained reactor is a bank.
                 pr(builder, '''
-                    for (int bankIndex = 0; bankIndex < self->«lf_reserved_prefix»«definition.name»_width; bankIndex++) {
-                        «definition.name»[bankIndex].«input.name» = &(self->«lf_reserved_prefix»«definition.name»[bankIndex].«input.name»);
+                    for (int bankIndex = 0; bankIndex < self->_lf_«definition.name»_width; bankIndex++) {
+                        «definition.name»[bankIndex].«input.name» = &(self->_lf_«definition.name»[bankIndex].«input.name»);
                     }
                 ''')
             } else {
                 // Contained reactor is not a bank.
                 pr(builder, '''
-                    «definition.name».«input.name» = &(self->«lf_reserved_prefix»«definition.name».«input.name»);
+                    «definition.name».«input.name» = &(self->_lf_«definition.name».«input.name»);
                 ''')
             }
         } else {
@@ -5601,15 +5601,15 @@ class CGenerator extends GeneratorBase {
             // pointer for each element of the bank.
             if (definition.widthSpec !== null) {
                 pr(builder, '''
-                    for (int _i = 0; _i < self->«lf_reserved_prefix»«definition.name»_width; _i++) {
-                        «definition.name»[_i].«input.name» = self->«lf_reserved_prefix»«definition.name»[_i].«input.name»;
-                        «definition.name»[_i].«input.name»_width = self->«lf_reserved_prefix»«definition.name»[_i].«input.name»__width;
+                    for (int _i = 0; _i < self->_lf_«definition.name»_width; _i++) {
+                        «definition.name»[_i].«input.name» = self->_lf_«definition.name»[_i].«input.name»;
+                        «definition.name»[_i].«input.name»_width = self->_lf_«definition.name»[_i].«input.name»__width;
                     }
                 ''')
             } else {
                 pr(builder, '''
-                    «definition.name».«input.name» = self->«lf_reserved_prefix»«definition.name».«input.name»;
-                    «definition.name».«input.name»_width = self->«lf_reserved_prefix»«definition.name».«input.name»__width;
+                    «definition.name».«input.name» = self->_lf_«definition.name».«input.name»;
+                    «definition.name».«input.name»_width = self->_lf_«definition.name».«input.name»__width;
                 ''')
             }
         }
@@ -5744,12 +5744,12 @@ class CGenerator extends GeneratorBase {
                         if (output instanceof MultiportInstance) {
                             pr('''
                                 for (int i = 0; i < «output.width»; i++) {
-                                    «nameOfSelfStruct»->«lf_reserved_prefix»«output.name»[i].token = «lf_reserved_prefix»create_token(«size»);
+                                    «nameOfSelfStruct»->_lf_«output.name»[i].token = _lf_create_token(«size»);
                                 }
                             ''')
                         } else {
                             pr('''
-                                «nameOfSelfStruct»->«lf_reserved_prefix»«output.name».token = «lf_reserved_prefix»create_token(«size»);
+                                «nameOfSelfStruct»->_lf_«output.name».token = _lf_create_token(«size»);
                             ''')
                         }
                     }

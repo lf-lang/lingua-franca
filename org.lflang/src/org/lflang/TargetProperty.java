@@ -34,7 +34,7 @@ public enum TargetProperty {
      * Directive to specify the target build type such as 'Release' or 'Debug'.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
             }),
