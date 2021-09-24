@@ -43,7 +43,6 @@ import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
@@ -106,8 +105,8 @@ class LFValidator extends BaseLFValidator {
 
     public var info = new ModelInfo()
 
-    @Inject
-    ErrorReporter errorReporter
+    val ValidatorErrorReporter errorReporter = new ValidatorErrorReporter(getMessageAcceptor(),
+        new ValidatorStateAccess())
 
     @Inject(optional = true)
     ValidationMessageAcceptor messageAcceptor

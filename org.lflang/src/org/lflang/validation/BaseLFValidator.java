@@ -43,7 +43,7 @@ public class BaseLFValidator extends AbstractLFValidator {
      * 
      * @author Christian Menard <christian.menard@tu-dresden.de>
      */
-    class ValidatorStateAccess {
+    protected class ValidatorStateAccess {
         public EObject getCurrentObject() {
             return BaseLFValidator.this.getCurrentObject();
         }
