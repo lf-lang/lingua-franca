@@ -220,7 +220,7 @@ pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* next_q;      // For temporarily storing the next event lined 
                        // up in superdense time.
 
-trigger_handle_t __handle = 1;
+trigger_handle_t _lf_handle = 1;
 
 // ********** Priority Queue Support Start
 
@@ -1253,9 +1253,9 @@ trigger_handle_t _lf_schedule(trigger_t* trigger, interval_t extra_delay, lf_tok
     // NOTE: Rather than wrapping around to get a negative number,
     // we reset the handle on the assumption that much earlier
     // handles are irrelevant.
-    int return_value = __handle++;
-    if (__handle < 0) {
-        __handle = 1;
+    int return_value = _lf_handle++;
+    if (_lf_handle < 0) {
+        _lf_handle = 1;
     }
     return return_value;
 }
@@ -1425,7 +1425,7 @@ trigger_handle_t _lf_schedule_int(void* action, interval_t extra_delay, int valu
  * @return A pointer to the new or reused token or null if the template token
  *  is incompatible with this usage.
  */
-lf_token_t* __set_new_array_impl(lf_token_t* token, size_t length, int num_destinations) {
+lf_token_t* _lf_set_new_array_impl(lf_token_t* token, size_t length, int num_destinations) {
     // If the template token cannot carry a payload, then it is incompatible.
     if (token->element_size == 0) {
         error_print("set_new_array: specified token cannot carry an array. It has zero element_size.");
@@ -1434,7 +1434,7 @@ lf_token_t* __set_new_array_impl(lf_token_t* token, size_t length, int num_desti
     // First, initialize the token, reusing the one given if possible.
     lf_token_t* new_token = _lf_initialize_token(token, length);
     new_token->ref_count = num_destinations;
-    DEBUG_PRINT("__set_new_array_impl: Allocated memory for payload %p.", new_token->value);
+    DEBUG_PRINT("_lf_set_new_array_impl: Allocated memory for payload %p.", new_token->value);
     return new_token;
 }
 

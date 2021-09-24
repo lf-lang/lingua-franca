@@ -95,6 +95,12 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_CXX_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
+        // Follow the 
+        cMakeCode.append("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
+        cMakeCode.append("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
+        cMakeCode.append("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)\n");
+        cMakeCode.append("endif()\n");
+        
         cMakeCode.append("set(CoreLib core)\n");
         cMakeCode.append("\n");
         
