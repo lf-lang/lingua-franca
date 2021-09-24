@@ -693,7 +693,7 @@ bool send_TAG_if_transitively_safe(federate_t* fed) {
 }
 
 /**
- * For all federates transitively downstream of the specified federate, determine
+ * For all federates downstream of the specified federate, determine
  * whether they should be sent a TAG or PTAG and send it if so.
  *
  * This assumes the caller holds the mutex.
