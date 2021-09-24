@@ -28,8 +28,24 @@ popd () {
     command popd "$@" > /dev/null
 }
 
-# Build first if no jar exists.
-if [[ ! -f "$jarpath" ]]; then
+rebuild=false
+args=()
+# Strip rebuild flag from args
+for var in "$@"; do
+    if [[ $var =~ "-r" ]]; then
+        rebuild=true
+    else
+         args+=("$var")
+    fi
+done
+
+# Build if no jar exists or rebuild is requested.
+if [[ ! -f "$jarpath" || "$rebuild" = true ]]; then
+    # Throw error if no sources are available
+    if [[ ! -d $lfbase ]]; then
+        echo "Unable to (re)build from source. Exiting."
+        exit 1
+    fi
     pushd "$base"
     ./gradlew buildLfc
     popd
@@ -57,5 +73,5 @@ if [[ "$_java" ]]; then
     fi
 fi
 
-"${_java}" -jar "${jarpath}" "$@";
+"${_java}" -jar "${jarpath}" "${args[@]}";
 exit $?
