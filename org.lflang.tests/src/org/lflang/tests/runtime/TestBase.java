@@ -267,6 +267,9 @@ public abstract class TestBase {
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
         context.setReporter(DefaultErrorReporter.DEFAULT);
+
+        // make sure that there are no remaining errors from a previous run in the reporter
+        DefaultErrorReporter.DEFAULT.reset();
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
