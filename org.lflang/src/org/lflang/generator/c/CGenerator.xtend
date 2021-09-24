@@ -934,12 +934,21 @@ class CGenerator extends GeneratorBase {
         
         val targetDir = this.fileConfig.getSrcGenPath
         for (filename : targetConfig.cmakeIncludes) {
-            this.targetConfig.cmakeIncludesWithoutPath.add(
+            val relativeCMakeIncludeFileName = 
                 fileConfig.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
-                    targetDir)
-            );
+                    targetDir);
+            // Check if the file exists
+            if (relativeCMakeIncludeFileName.isNullOrEmpty) {
+                errorReporter.reportError( 
+                    "Failed to find cmake-include file " + filename
+                )
+            } else {
+                this.targetConfig.cmakeIncludesWithoutPath.add(
+                    relativeCMakeIncludeFileName
+                );
+            }
         }
     }
     

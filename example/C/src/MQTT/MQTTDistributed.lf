@@ -63,9 +63,12 @@
  */
 target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
-    flags: "-lpaho-mqtt3c",
+    cmake-include: [
+        "include/paho-extension.cmake", 
+        "include/mosquitto-extension.cmake"],
     timeout: 10 secs,
-    keepalive: true
+    keepalive: true,
+    cmake: true
 };
 
 import MQTTPublisher from "MQTTPublisher.lf";
