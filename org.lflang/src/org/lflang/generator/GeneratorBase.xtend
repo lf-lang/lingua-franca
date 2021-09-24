@@ -526,12 +526,20 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            this.targetConfig.filesNamesWithoutPath.add(
-                fileConfig.copyFileOrResource(
+            val relativeFileName = fileConfig.copyFileOrResource(
                     filename,
                     fileConfig.srcFile.parent,
-                    targetDir)
-            );
+                    targetDir);
+            if (relativeFileName.isNullOrEmpty) {
+                errorReporter.reportError( 
+                    "Failed to find file " + filename + "specified in the" +
+                    " files target property."
+                )
+            } else {
+                this.targetConfig.filesNamesWithoutPath.add(
+                    relativeFileName
+                );
+            }
         }
     }
 
@@ -1124,7 +1132,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // In case errors occur within an imported file, record the original path.
         val originalPath = path;
         
-        var severity = IMarker.SEVERITY_WARNING
+        var severity = IMarker.SEVERITY_ERROR
         for (line : lines) {
             val parsed = parseCommandOutput(line)
             if (parsed !== null) {
@@ -1141,8 +1149,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
-                        errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
-                    }
+                        if (severity == IMarker.SEVERITY_ERROR) {
+                            errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                        } else {
+                            errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                        }
+                     }
                 }
                 if (parsed.isError) {
                     severity = IMarker.SEVERITY_ERROR
