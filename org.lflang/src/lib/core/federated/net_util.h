@@ -38,6 +38,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NET_UTIL_H
 #define NET_UTIL_H
 
+#include <sys/socket.h>
+#include <sys/types.h>
 #include "../platform.h"  // defines lf_mutex_t
 #include "../tag.h"       // Defines tag_t
 

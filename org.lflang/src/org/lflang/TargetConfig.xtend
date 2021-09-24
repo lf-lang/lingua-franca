@@ -58,11 +58,6 @@ class TargetConfig {
      * Parameter passed to cmake. The default is 'Release'.
      */
     public BuildType cmakeBuildType = BuildType.RELEASE
-
-    /**
-     * An optional additional .cmake file to include.
-     */
-    public String cmakeInclude = ""
     
     /**
      * Enable or disable the use of CMake to build.
@@ -70,6 +65,18 @@ class TargetConfig {
      * The default is enabled.
      */
     public boolean useCmake = true;
+
+    /**
+     * Optional additional extensions to include in the generated CMakeLists.txt.
+     */
+    public List<String> cmakeIncludes = newArrayList
+    
+    /**
+     * List of cmake-includes from the cmake-include target property with no path info.
+     * Useful for copying them to remote machines. This is needed because
+     * target cmake-includes can be resources with resource paths.
+     */
+    public List<String> cmakeIncludesWithoutPath = newArrayList;
 
     /**
      * The compiler to invoke, unless a build command has been specified.
@@ -183,7 +190,7 @@ class TargetConfig {
      * The default is null.
      */
     public TracingOptions tracing = null
-    
+
 }
 
 /**
