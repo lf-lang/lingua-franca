@@ -493,8 +493,8 @@ private object ReactorComponentEmitter {
 
     fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData ->
-            if (isLogical) "$rsRuntime::LogicalAction::<${type ?: "()"}>"
-            else "$rsRuntime::PhysicalAction::<${type ?: "()"}>"
+            if (isLogical) "$rsRuntime::LogicalAction<${type ?: "()"}>"
+            else "$rsRuntime::PhysicalAction<${type ?: "()"}>"
         is PortData   -> "$rsRuntime::Port<$dataType>"
         is TimerData  -> "$rsRuntime::Timer"
     }
