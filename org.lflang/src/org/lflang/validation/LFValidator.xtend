@@ -100,7 +100,7 @@ import org.lflang.federated.SupportedSerializers
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
  *
  */
-class LFValidator extends AbstractLFValidator {
+class LFValidator extends BaseLFValidator {
 
     var Target target
 
