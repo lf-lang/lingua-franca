@@ -53,7 +53,7 @@
           </execution>
         </executions>
         <configuration>
-          <executable>python</executable>
+          <executable>python3</executable>
           <workingDirectory>${project.build.directory}</workingDirectory>
           <arguments>
             <argument>${python.script}</argument>
