@@ -18,6 +18,7 @@ jarpath="${lfbase}build/libs/org.lflang.lfc-0.1.0-SNAPSHOT-all.jar"
 # Report fatal error.
 function fatal_error() {
     1>&2 echo -e "\e[1mlfc: \e[31mfatal error: \e[0m$1"
+    exit 1
 }
 
 pushd () {
@@ -28,14 +29,15 @@ popd () {
     command popd "$@" > /dev/null
 }
 
+# 1. Determine whether to rebuild; and
+# 2. Strip rebuild flag from args.
 rebuild=false
 args=()
-# Strip rebuild flag from args
 for var in "$@"; do
     if [[ $var =~ "-r" ]]; then
         rebuild=true
     else
-         args+=("$var")
+        args+=("$var")
     fi
 done
 
@@ -43,8 +45,7 @@ done
 if [[ ! -f "$jarpath" || "$rebuild" = true ]]; then
     # Throw error if no sources are available
     if [[ ! -d $lfbase ]]; then
-        echo "Unable to (re)build from source. Exiting."
-        exit 1
+        fatal_error "Unable to (re)build from source. Exiting."
     fi
     pushd "$base"
     ./gradlew buildLfc
@@ -59,7 +60,6 @@ elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
     _java="$JAVA_HOME/bin/java"
 else
     fatal_error "JRE not found."
-    error_exit
 fi
 
 if [[ "$_java" ]]; then
@@ -68,8 +68,7 @@ if [[ "$_java" ]]; then
     #echo version "$semantic_version"
     #echo version "$java_version"
     if [ $java_version -lt 011000 ]; then
-        fatal_error "JRE $semantic_version found but 1.11 or greater is required."     
-        error_exit
+        fatal_error "JRE $semantic_version found but 1.11 or greater is required."
     fi
 fi
 
