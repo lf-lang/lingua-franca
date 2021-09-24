@@ -79,4 +79,11 @@ public interface ErrorReporter {
      * @return true if errors where reported
      */
     boolean getErrorsOccurred();
+
+
+    /**
+     * Reset the error reporter.
+     * After this, getErrorsOccurred() returns false.
+     */
+    void reset();
 }

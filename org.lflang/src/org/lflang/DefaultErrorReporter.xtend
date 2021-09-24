@@ -67,4 +67,10 @@ class DefaultErrorReporter implements ErrorReporter {
      * @return true if errors where reported
      */
     override getErrorsOccurred() { return errorsOccurred }
+    
+    /**
+     * Reset the error reporter.
+     * After this, getErrorsOccurred() returns false.
+     */
+    override reset() { errorsOccurred = false }
 }

@@ -124,6 +124,10 @@ class IssueCollector {
     val errors: List<LfIssue> get() = map[Severity.ERROR].orEmpty().sorted()
     /** Sorted list of all issues.*/
     val allIssues: List<LfIssue> get() = map.values.flatten().sorted()
+
+    fun reset() {
+        map.clear()
+    }
 }
 
 
