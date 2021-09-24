@@ -45,6 +45,7 @@ import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
+import org.lflang.Mode
 import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
