@@ -1,0 +1,80 @@
+/**
+ * Distributed LF program where a MessageGenerator creates a string
+ * message that is sent via the RTI (runtime infrastructure) to a
+ * receiver that prints the message.
+ * 
+ * The code generator generates two TypeScript files:
+ * 
+ * * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_source.ts:
+ *   The program that produces the sequence of messages.
+ * 
+ * * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_print.ts:
+ *   The program that prints the sequence of messages received from source.
+ * 
+ * @author Edward A. Lee
+ * @author Hokeun Kim
+ */
+target TypeScript {
+    timeout: 10 secs
+};
+
+/**
+ * Reactor that generates a sequence of messages, one per second.
+ * The message will be a string consisting of a root string followed
+ * by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root:string("")) {
+    // Output type char* instead of string is used for dynamically
+    // allocated character arrays (as opposed to static constant strings).
+    output message:string;
+    state count:number(1);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
+    reaction(t) -> message {=
+        message = root + " " + count++;
+        console.log(`At time (elapsed) logical tag ${util.getElapsedLogicalTime()}, source sends message: ${message}`);
+        /*
+        // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+        // Add one for the null terminator.
+        int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
+        // Dynamically allocate memory for the output.
+        SET_NEW_ARRAY(message, length);
+        // Populate the output string and increment the count.
+        snprintf(message->value, length, "%s %d", self->root, self->count++);
+
+        tag_t tag = get_current_tag();
+        info_print("At (elapsed) logical tag (%lld, %u), source sends message: %s",
+            tag.time - start_time, tag.microstep,
+            message->value
+        );
+        */
+    =}
+}
+
+/**
+ * Reactor that prints the current tag and an incoming string.
+ *
+ * @input message The message.
+ */
+reactor PrintMessage {
+    input message:string;
+    reaction(message) {=
+        console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
+        /*
+        tag_t tag = get_current_tag();
+        info_print("At (elapsed) logical tag (%lld, %u), print receives: %s",
+            tag.time - start_time, tag.microstep,
+            message->value
+        );
+        */
+    =}
+}
+
+federated reactor HelloWorld {
+    source = new MessageGenerator(root = "Hello World");
+    print = new PrintMessage();
+    source.message -> print.message;
+}
