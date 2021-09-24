@@ -13,7 +13,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] port value is cleaned up at the end of a tag
     - [ ] connections
       - [ ] `PortConnectionInSelfInChild.lf`: input of self to input of child
-      - [ ] `PortConnectionInSelfOutSelf.lf`: input of self to output of self
+      - [x] `PortConnectionInSelfOutSelf.lf`: input of self to output of self
       - [ ] `PortConnectionOutChildOutSelf.lf`: output of child to output of self
       - [x] `CompositionWithPorts.lf`: output of child to input of child
     - [ ] mutable inputs

@@ -1,23 +1,30 @@
 // Tests a port connection between (input of self -> input of child)
 target Rust;
 
-reactor Source {
-    output out: i32;
-    reaction(startup) -> out {=
-      ctx.set(out, 76600);
-      println!("out := 76600")
-    =}
-}
-reactor Parent {
-    output out: i32;
-    child = new Source();
-    child.out -> out;
+reactor Child {
+    input inp: i32;
+    state done: bool(false);
 
-    reaction(out) {=
+    reaction(inp) {=
         assert_matches!(ctx.get(inp), Some(76600));
+        self.done = true;
+    =}
+
+    reaction(shutdown) {=
+        assert!(self.done);
         println!("Success")
     =}
 }
+reactor Parent {
+    input inp: i32;
+    child = new Child();
+    inp -> child.inp;
+}
 main reactor {
     parent = new Parent();
+
+    reaction(startup) -> parent.inp {=
+      ctx.set(parent__inp, 76600);
+      println!("out := 76600")
+    =}
 }
