@@ -349,6 +349,13 @@ class TSReactionGenerator(
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
+                // TODO(hokeun): Find a better way to gracefully handle this skipping.
+                // Do not add reactions created by generateNetworkOutputControlReactionBody
+                // or generateNetworkInputControlReactionBody.
+                if (reaction.code.toText().contains("generateNetworkOutputControlReactionBody")
+                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
+                    continue;
+                }
                 if (federate.containsReaction(reactor, reaction)) {
                     generatedReactions.add(reaction)
                 }
