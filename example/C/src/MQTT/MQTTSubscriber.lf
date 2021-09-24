@@ -65,7 +65,7 @@ reactor MQTTSubscriber (
 ) {
     preamble {=
         #include "MQTTClient.h"
-        #include "core/net_util.h"
+        #include "core/federated/net_util.h"
         #include <pthread.h>
         
         #define QOS         2
