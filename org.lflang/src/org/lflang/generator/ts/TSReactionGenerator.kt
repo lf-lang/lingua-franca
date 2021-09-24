@@ -1,7 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
-import org.lflang.generator.FederateInstance
+import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -356,7 +356,7 @@ class TSReactionGenerator(
                     || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
                     continue;
                 }
-                if (federate.containsReaction(reactor, reaction)) {
+                if (federate.containsReaction(reaction)) {
                     generatedReactions.add(reaction)
                 }
             }

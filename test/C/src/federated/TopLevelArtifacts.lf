@@ -1,0 +1,51 @@
+/**
+ * Test whether top-level reactions, actions, and ports are handled appropriately.
+ * 
+ * Currently, these artifacts are replicated on all federates.
+ * 
+ * @note This just tests for the correctness of the code generation. These top-level
+ * artifacts might be disallowed in the future.
+ */
+ 
+ target C {
+    timeout: 1 msec
+};
+ 
+ import Count from "../lib/Count.lf";
+ import TestCount from "../lib/TestCount.lf";
+ 
+ federated reactor {
+    input in:int;
+    output out:int;
+    state successes:int(0);
+    reaction (startup) {=
+        self->successes++;
+    =}
+    timer t(0, 1 sec);
+    reaction (t) -> act {=
+        self->successes++;
+        schedule(act, 0);
+    =}
+    logical action act(0);
+    reaction (act) in -> out {=
+        self->successes++;
+        if (in->is_present) {
+            error_print_and_exit("Input is present in the top-level reactor!");
+        }
+        SET(out, 1);
+        if (out->value != 1) {
+            error_print_and_exit("Ouput has unexpected value %d!", out->value);
+        }
+    =}
+    
+    c = new Count();
+    tc = new TestCount();
+    c.out -> tc.in;
+    
+    reaction (shutdown) {=
+        if (self->successes != 3) {
+            error_print_and_exit("Failed to properly execute top-level reactions");
+        }
+        info_print("SUCCESS!");
+    =}
+}
