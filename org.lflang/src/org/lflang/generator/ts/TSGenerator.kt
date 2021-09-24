@@ -31,13 +31,14 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
-import org.lflang.generator.FederateInstance
+import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
+import org.lflang.federated.SupportedSerializers
 
 /**
  * Generator for TypeScript target.
@@ -116,7 +117,7 @@ class TSGenerator(
 
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/lib/TS/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
@@ -133,13 +134,13 @@ class TSGenerator(
             if (fsa.isFile(configFileInSrc)) {
                 // TODO(hokeun): Check if this logic is still necessary.
                 println("Copying '" + configFile + "' from " + fileConfig.srcPath)
-                copyFileFromClassPath(configFileInSrc, configFileDest)
+                fileConfig.copyFileFromClassPath(configFileInSrc, configFileDest)
             } else {
                 println(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
             }
         }
 
@@ -365,6 +366,7 @@ class TSGenerator(
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serializer The serializer used on the connection.
      */
     override fun generateNetworkReceiverBody(
         action: Action,
@@ -376,7 +378,8 @@ class TSGenerator(
         receivingBankIndex: Int,
         receivingChannelIndex: Int,
         type: InferredType,
-        isPhysical: Boolean
+        isPhysical: Boolean,
+        serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
         |// FIXME: For now assume the data is a Buffer, but this is not checked.
@@ -413,7 +416,8 @@ class TSGenerator(
         receivingFed: FederateInstance,
         type: InferredType,
         isPhysical: Boolean,
-        delay: Delay?
+        delay: Delay?,
+        serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
         |// FIXME: For now assume the data is a Buffer, but this is not checked.

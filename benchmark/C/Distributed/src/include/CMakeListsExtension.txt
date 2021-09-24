@@ -1,0 +1,5 @@
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -O2")
+
+find_package(std_msgs REQUIRED)
+
+ament_target_dependencies( ${LF_MAIN_TARGET} std_msgs)

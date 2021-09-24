@@ -31,7 +31,7 @@ popd () {
 # Build first if no jar exists.
 if [[ ! -f "$jarpath" ]]; then
     pushd "$base"
-    ./gradlew generateStandaloneCompiler
+    ./gradlew buildLfc
     popd
 fi
 

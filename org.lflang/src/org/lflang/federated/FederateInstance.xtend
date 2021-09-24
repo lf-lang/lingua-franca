@@ -24,12 +24,13 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.federated
 
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
+import org.lflang.ErrorReporter
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -37,15 +38,19 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Output
+import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
+import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.lf.Port
-import org.lflang.lf.Variable
-import org.lflang.ErrorReporter
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.PortInstance
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -71,7 +76,7 @@ class FederateInstance {
      * FIXME: Do we really need to pass the complete generator here? It is only used 
      *  to determine the number of federates.
      */
-    protected new(
+    new(
         Instantiation instantiation, 
         int id, 
         int bankIndex, 
@@ -192,6 +197,11 @@ class FederateInstance {
      * to stop blocking.
      */
     public var Variable networkOutputControlReactionsTrigger = null;
+    
+    /**
+     * Indicates whether the federate is remote or local
+     */
+    public var boolean isRemote = false;
 
     /////////////////////////////////////////////
     //// Public Methods
@@ -231,20 +241,107 @@ class FederateInstance {
         }
         return false;
     }
+    
+    
+    /**
+     * Return true if the specified reactor is not the top-level federated reactor,
+     * or if it is and the action should be included in the code generated
+     * for the federate. This means that either the action is used as a trigger,
+     * a source, or an effect in a top-level reaction that belongs to this federate.
+     * 
+     * @param action The action
+     * @return True if this federate contains the action in the specified reactor
+     */
+    def containsAction(Action action) {
+        val reactor  = action.eContainer as Reactor
+        if (!reactor.federated || isSingleton) return true
+        
+        // If the action is used as a trigger, a source, or an effect for a top-level reaction
+        // that belongs to this federate, then generate it.
+        for (react : reactor.allReactions) {
+            if (containsReaction(react)) {
+                // Look in triggers
+                for (TriggerRef trigger : react.triggers ?: emptyList) {
+                    if (trigger instanceof VarRef) {
+                        if (trigger.variable == (action as Variable)) {
+                            return true;
+                        }
+                    }
+                }
+                // Look in sources
+                for (VarRef source : react.sources ?: emptyList) {
+                    if (source.variable == (action as Variable)) {
+                        return true;
+                    }
+                }
+                // Look in effects
+                for (effect : react.effects ?: emptyList) {
+                    if (effect.variable == (action as Variable)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;        
+    }
+    
+    /**
+     * Return true if the specified reactor is not the top-level federated reactor,
+     * or if it is and the port should be included in the code generated
+     * for the federate. This means that the port has been used as a trigger, 
+     * a source, or an effect in a top-level reaction that belongs to this federate.
+     * 
+     * @param port The Port
+     * @return True if this federate contains the action in the specified reactor
+     */
+    def containsPort(Port port) {
+        val reactor  = port.eContainer as Reactor
+        if (!reactor.federated || isSingleton) return true
+        
+        // If the port is used as a trigger, a source, or an effect for a top-level reaction
+        // that belongs to this federate, then generate it.
+        for (react : reactor.allReactions) {
+            if (containsReaction(react)) {
+                // Look in triggers
+                for (TriggerRef trigger : react.triggers ?: emptyList) {
+                    if (trigger instanceof VarRef) {
+                        if (trigger.variable == (port as Variable)) {
+                            return true;
+                        }
+                    }
+                }
+                // Look in sources
+                for (VarRef source : react.sources ?: emptyList) {
+                    if (source.variable == (port as Variable)) {
+                        return true;
+                    }
+                }
+                // Look in effects
+                for (effect : react.effects ?: emptyList) {
+                    if (effect.variable == (port as Variable)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
         
     /** 
-     * Return true if the specified reactor is not the main reactor,
-     * or if it is and the reaction should be included in the code generated for the
+     * Return true if the specified reaction is not defined in the top-level reactor,
+     * or if the top-level reactor is not federated,
+     * or if it is and the reaction should be included in the code generated for this
      * federate. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reactor
      * is in the federate. Otherwise, return false.
      * This will also return false if the reaction is not a reaction of the specified reactor,
      *
      * @param reaction The reaction.
-     * @param federate The federate instance or null if there
-     *  is no federation.
      */
-    def containsReaction(Reactor reactor, Reaction reaction) {
+    def containsReaction(Reaction reaction) {
+        val reactor  = reaction.eContainer as Reactor
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
         
