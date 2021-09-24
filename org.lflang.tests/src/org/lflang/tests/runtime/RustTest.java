@@ -50,8 +50,14 @@ public class RustTest extends TestBase {
 
     @Override
     protected void addExtraLfcArgs(Properties args) {
-        args.setProperty("external-runtime-path",
-                         "../org.lflang/src/lib/Rust/reactor-rust");
+        // Set this environment variable if you develop the crate locally,
+        // it's more convenient. You'll have to delete test/Rust/src-gen/*
+        // to make a change (and checkout the Cargo.toml back).
+        String path = System.getenv("LOCAL_RUST_REACTOR_RT");
+        if (path == null) {
+            path = "../org.lflang/src/lib/Rust/reactor-rust";
+        }
+        args.setProperty("external-runtime-path", path);
     }
 
 
