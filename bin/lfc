@@ -44,7 +44,7 @@ done
 # Build if no jar exists or rebuild is requested.
 if [[ ! -f "$jarpath" || "$rebuild" = true ]]; then
     # Throw error if no sources are available
-    if [[ ! -d $lfbase ]]; then
+    if [[ -z $lfbase || ! -d $lfbase ]]; then
         fatal_error "Unable to (re)build from source. Exiting."
     fi
     pushd "$base"
