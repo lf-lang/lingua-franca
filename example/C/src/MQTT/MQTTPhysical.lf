@@ -66,6 +66,7 @@ target C {
         "include/paho-extension.cmake",
         "include/mosquitto-extension.cmake",
         "include/net_utils.cmake"],
+    files: ["/lib/C/util/net_util.c", "/lib/C/util/net_util.h"]
     timeout: 10 secs
 };
   
