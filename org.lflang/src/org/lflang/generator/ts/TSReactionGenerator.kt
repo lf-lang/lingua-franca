@@ -212,7 +212,13 @@ class TSReactionGenerator(
             if (!effectSet.contains(trigOrSourcePair)) {
                 var reactSignatureElementType = "";
 
-                if (trigOrSource.variable is Timer) {
+                if (trigOrSource.variable.name == "networkMessage") {
+                    // Special handling for the networkMessage action created by
+                    // FedASTUtils.makeCommunication(), by assigning TypeScript
+                    // Buffer type for the action. Action<Buffer> is used as
+                    // FederatePortAction in federation.ts.
+                    reactSignatureElementType = "Buffer"
+                } else if (trigOrSource.variable is Timer) {
                     reactSignatureElementType = "__Tag"
                 } else if (trigOrSource.variable is Action) {
                     reactSignatureElementType = getActionType(trigOrSource.variable as Action)
