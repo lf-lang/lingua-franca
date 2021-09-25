@@ -11,10 +11,10 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] values
     - [ ] missing values at some tags
     - [x] port value is cleaned up at the end of a tag
-    - [ ] connections
-      - [ ] `PortConnectionInSelfInChild.lf`: input of self to input of child
+    - [x] connections
+      - [x] `PortConnectionInSelfInChild.lf`: input of self to input of child
       - [x] `PortConnectionInSelfOutSelf.lf`: input of self to output of self
-      - [ ] `PortConnectionOutChildOutSelf.lf`: output of child to output of self
+      - [x] `PortConnectionOutChildOutSelf.lf`: output of child to output of self
       - [x] `CompositionWithPorts.lf`: output of child to input of child
     - [ ] mutable inputs
 - [ ] reaction dependency handling
@@ -32,7 +32,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
       - [x] on a logical action
     - [ ] reaction priority is respected
       - [x] locally
-      - [ ] between different child reactors fixme
+      - [x] between different child reactors
 - [ ] imports
 - [x] preambles
   - [x] `Preamble.lf`: preamble within reactor
