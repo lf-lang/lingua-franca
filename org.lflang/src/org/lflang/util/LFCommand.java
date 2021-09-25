@@ -28,13 +28,14 @@ package org.lflang.util;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -79,15 +80,20 @@ public class LFCommand {
 
 
     /**
-     * A runnable that collects the output from a running process, prints it and stores it in the output stream
+     * A Runnable that collects the output from <code>
+     * InputStream</code>, prints it to <code>print</code>,
+     * and stores it in <code>store</code>.
      */
-    private class OutputCollector implements Runnable {
+    private static class OutputCollector implements Runnable {
 
-        private final Process process;
+        private final InputStream in;
+        private final ByteArrayOutputStream store;
+        private final PrintStream print;
 
-
-        OutputCollector(Process process) {
-            this.process = process;
+        OutputCollector(InputStream in, ByteArrayOutputStream store, PrintStream print) {
+            this.in = in;
+            this.store = store;
+            this.print = print;
         }
 
 
@@ -97,42 +103,10 @@ public class LFCommand {
             int len;
             do {
                 try {
-                    len = process.getInputStream().read(buffer);
+                    len = in.read(buffer);
                     if (len > 0) {
-                        output.write(buffer, 0, len);
-                        System.out.write(buffer, 0, len);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
-                }
-            } while (len != -1);
-        }
-    }
-
-    /**
-     * A runnable that collects the error output from a running process, prints it and stores it in the output stream
-     */
-    private class ErrorCollector implements Runnable {
-
-        private final Process process;
-
-
-        ErrorCollector(Process process) {
-            this.process = process;
-        }
-
-
-        @Override
-        public void run() {
-            byte[] buffer = new byte[64];
-            int len;
-            do {
-                try {
-                    len = process.getErrorStream().read(buffer);
-                    if (len > 0) {
-                        errors.write(buffer, 0, len);
-                        System.err.write(buffer, 0, len);
+                        store.write(buffer, 0, len);
+                        print.write(buffer, 0, len);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -171,8 +145,8 @@ public class LFCommand {
             return -1;
         }
 
-        final Thread collectOutputThread = new Thread(new OutputCollector(process));
-        final Thread collectErrorsThread = new Thread(new ErrorCollector(process));
+        final Thread collectOutputThread = new Thread(new OutputCollector(process.getInputStream(), output, System.out));
+        final Thread collectErrorsThread = new Thread(new OutputCollector(process.getErrorStream(), errors, System.err));
 
         collectOutputThread.start();
         collectErrorsThread.start();
