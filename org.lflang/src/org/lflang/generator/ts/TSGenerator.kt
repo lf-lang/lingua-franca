@@ -405,6 +405,7 @@ class TSGenerator(
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param serializer The serializer used on the connection.
      */
     override fun generateNetworkSenderBody(
         sendingPort: VarRef,
@@ -421,7 +422,7 @@ class TSGenerator(
     ): String {
         return with(PrependOperator) {"""
         |// FIXME: For now assume the data is a Buffer, but this is not checked.
-        |// Replace with ProtoBufs or MessagePack.
+        |// Use SupportedSerializers for determining the serialization later.
         |if (${sendingPort.container.name}.${sendingPort.variable.name} !== undefined) {
         |    let buf = Buffer.from(${sendingPort.container.name}.${sendingPort.variable.name})
         |    this.util.sendRTITimedMessage(buf, ${receivingFed.id}, ${receivingPortID});
