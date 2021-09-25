@@ -1255,7 +1255,7 @@ lf_thread_t* _lf_thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
-    LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
+    LOG_PRINT("Starting %u worker threads.", _lf_number_of_threads);
     _lf_thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
     number_of_idle_threads = (int)_lf_number_of_threads; // Sign is checked when 
                                                          // reading the argument
