@@ -30,7 +30,6 @@ import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.util.*
-import kotlin.collections.LinkedHashSet
 
 private typealias Ident = String
 
@@ -90,6 +89,14 @@ data class ReactorInfo(
     /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
     val timers: List<TimerData> = otherComponents.filterIsInstance<TimerData>()
+
+    /**
+     * Port references that are used by reactions of this reactor,
+     * those are synthesized as fields of the current reactor.
+     */
+    val portReferences: Set<ChildPortReference> =
+        reactions.flatMap { it.allDependencies.values }.flatten().filterIsInstance<ChildPortReference>().toSet()
+
 }
 
 class ReactorNames(
@@ -219,12 +226,26 @@ TODO do we really need the following classes?
 
 
 sealed class ReactorComponent {
+    /** Simple name of the component in LF. */
     abstract val lfName: Ident
-    val rustFieldName: Ident get() =  when (this) {
-        is TimerData -> "timer_$lfName"
-        is PortData -> "port_$lfName"
-        is ActionData -> "action_$lfName"
-    }
+
+    /**
+     * Simple name by which the component can be referred to
+     * within target code blocks (usually [lfName]).
+     */
+    val rustRefName: Ident
+        get() =
+            if (this is ChildPortReference) "${childName}__$lfName"
+            else lfName
+
+    /** Simple name of the field in Rust. */
+    val rustFieldName: Ident
+        get() = when (this) {
+            is TimerData          -> "timer_$lfName"
+            is PortData           -> "port_$lfName" // sync with ChildPortReference.rustFieldOnChildName
+            is ChildPortReference -> "port_${childName}__$lfName"
+            is ActionData         -> "action_$lfName"
+        }
 
     companion object {
 
@@ -240,7 +261,7 @@ sealed class ReactorComponent {
             is Action -> ActionData(
                 lfName = v.name,
                 isLogical = v.isLogical,
-                type = RustTypes.getTargetType(v.type),
+                dataType = RustTypes.getTargetType(v.type),
                 minDelay = v.minDelay?.time?.let(RustTypes::getTargetTimeExpr)
             )
             is Timer  -> TimerData(
@@ -266,16 +287,23 @@ sealed class ReactorComponent {
     }
 }
 
+interface DataTypeOwner {
+    /**
+     * Rust data type of this component,
+     * e.g. value type for actions and ports.
+     */
+    val dataType: TargetCode
+}
+
 /**
  * @property dataType A piece of target code
  */
 data class PortData(
     override val lfName: Ident,
     val isInput: Boolean,
-    /** Rust data type of the code. */
-    val dataType: TargetCode,
+    override val dataType: TargetCode,
     val isMultiport: Boolean = false
-) : ReactorComponent() {
+) : ReactorComponent(), DataTypeOwner {
     companion object {
         fun from(port: Port) =
             PortData(
@@ -286,10 +314,25 @@ data class PortData(
     }
 }
 
+/**
+ * A reference to a port of a child reactor.
+ * This is mostly relevant to [ReactionInfo.allDependencies]
+ * and such.
+ */
+data class ChildPortReference(
+    /** Name of the child instance. */
+    val childName: Ident,
+    override val lfName: Ident,
+    val isInput: Boolean,
+    override val dataType: TargetCode
+) : ReactorComponent(), DataTypeOwner {
+    val rustFieldOnChildName: String get() = "port_$lfName"
+}
+
 data class ActionData(
     override val lfName: Ident,
     // if null, defaults to unit
-    val type: TargetCode?,
+    val dataType: TargetCode?,
     val isLogical: Boolean,
     val minDelay: TargetCode?,
 ) : ReactorComponent()
@@ -359,11 +402,20 @@ object RustModelBuilder {
                 components[irObj.lfName] = irObj
             }
 
-
             val reactions = reactor.reactions.map { n: Reaction ->
-                fun makeDeps(depKind: Reaction.() -> List<VarRef>) =
-                    n.depKind().mapTo(LinkedHashSet()) {
-                        components[it.variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                fun makeDeps(depKind: Reaction.() -> List<VarRef>): Set<ReactorComponent> =
+                    n.depKind().mapTo(mutableSetOf()) {
+                        val variable = it.variable
+                        if (it.container is Instantiation && variable is Port) {
+                            ChildPortReference(
+                                childName = it.container.name,
+                                lfName = variable.name,
+                                isInput = variable is Input,
+                                dataType = RustTypes.getTargetType(variable.type)
+                            )
+                        } else {
+                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                        }
                     }
 
                 ReactionInfo(

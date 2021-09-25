@@ -111,7 +111,7 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName}: ${it.ty
                 |    _params: $paramStructName,
                 |    _startup_reactions: $rsRuntime::ReactionSet,
                 |    _shutdown_reactions: $rsRuntime::ReactionSet,
-${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
+${"             |    "..(otherComponents + portReferences).joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |impl $wrapperName {
@@ -126,7 +126,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |            _impl: $structName {
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
-${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
+${"             |            "..(otherComponents + portReferences).joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |}
@@ -231,13 +231,11 @@ ${"         |    "..declarations}
 
 
     private fun ReactorInfo.declareChildConnections(): String {
-//        val declarations = nestedInstances.joinToString("\n") {
-//            "let mut ${it.lfName} = ${it.lfName}.lock().unwrap();"
-//        }
-
         return connections.joinToString("\n", "// Declare connections\n") {
             it.locationInfo().lfTextComment() + "\n" +
                     PortEmitter.declareConnection(it)
+        } + portReferences.joinToString("// Declare port references") {
+            PortEmitter.declarePortRef(it)
         }
     }
 
@@ -262,7 +260,7 @@ ${"         |    "..declarations}
             }
         }.toList().let {
             if (it.isEmpty()) ""
-            else it.joinWithCommas(",")
+            else it.joinWithCommas(prefix = ", ")
         }
 
         return reactor.reactions.joinWithCommasLn(trailing = true) { n: ReactionInfo ->
@@ -459,11 +457,11 @@ private object ReactorComponentEmitter {
      * dependency within the reaction.
      */
     fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
-        is PortData   ->
+        is PortData, is ChildPortReference ->
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
-        is ActionData -> "&mut self.$rustFieldName"
-        is TimerData  -> null
+        is ActionData                      -> "&mut self.$rustFieldName"
+        is TimerData                       -> null
     }
 
     fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
@@ -488,33 +486,38 @@ private object ReactorComponentEmitter {
         depKind == DepKind.Triggers && this !is PortData
 
     fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
-        if (this is PortData) {
+        if (this is PortData || this is ChildPortReference) {
+            val dataType = (this as DataTypeOwner).dataType
+
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>"
             else "$rsRuntime::ReadablePort<$dataType>"
         } else "&mut ${toType()}"
 
     fun ReactorComponent.toType(): TargetCode = when (this) {
-        is ActionData ->
-            if (isLogical) "$rsRuntime::LogicalAction<${type ?: "()"}>"
-            else "$rsRuntime::PhysicalAction<${type ?: "()"}>"
-        is PortData   -> "$rsRuntime::Port<$dataType>"
-        is TimerData  -> "$rsRuntime::Timer"
+        is ActionData         ->
+            if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
+            else "$rsRuntime::PhysicalAction<${dataType ?: "()"}>"
+        is PortData           -> "$rsRuntime::Port<$dataType>"
+        is ChildPortReference -> "$rsRuntime::Port<$dataType>"
+        is TimerData          -> "$rsRuntime::Timer"
     }
 
     fun ReactorComponent.initialExpression(): TargetCode = when (this) {
-        is ActionData -> {
+        is ActionData         -> {
             val delay = minDelay.toRustOption()
             val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
             "_assembler.$ctorName(\"$lfName\", $delay)"
         }
-        is TimerData  -> "_assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData   -> "_assembler.new_port(\"$lfName\")"
+        is TimerData          -> "_assembler.new_timer(\"$lfName\", $offset, $period)"
+        is PortData           -> "_assembler.new_port(\"$lfName\")"
+        is ChildPortReference -> "_assembler.new_port(\"$childName.$lfName\")"
     }
 
     fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
-        is ActionData -> "ctx.cleanup_action(&mut self.$rustFieldName);"
-        is PortData   -> "ctx.cleanup_port(&mut self.$rustFieldName);"
-        is TimerData  -> null
+        is ActionData         -> "ctx.cleanup_action(&mut self.$rustFieldName);"
+        is PortData,
+        is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
+        is TimerData          -> null
     }
 
 
@@ -534,7 +537,7 @@ private object ReactorComponentEmitter {
                     // don't have to
                     val mut = if (comp.isInjectedAsMut(kind)) "#[allow(unused_mut)] mut " else ""
 
-                    val param = "$mut${comp.lfName}: ${comp.toBorrowedType(kind)}"
+                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
 
                     if (comp.mayBeUnusedInReaction(kind)) {
                         yield("#[allow(unused)] $param")
