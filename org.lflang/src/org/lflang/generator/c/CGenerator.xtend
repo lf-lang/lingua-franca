@@ -693,91 +693,10 @@ class CGenerator extends GeneratorBase {
                 pr('}\n')
                 
                 // Generate function to initialize the trigger objects for all reactors.
-                pr('''
-                    void _lf_initialize_trigger_objects() {
-                ''')
-                indent()
-                
-                // Initialize the LF clock.
-                pr('''
-                    // Initialize the _lf_clock
-                    lf_initialize_clock();
-                ''')
-                
-                // Initialize tracing if it is enabled
-                if (targetConfig.tracing !== null) {
-                    var traceFileName = topLevelName;
-                    if (targetConfig.tracing.traceFileName !== null) {
-                        traceFileName = targetConfig.tracing.traceFileName;
-                        // Since all federates would have the same name, we need to append the federate name.
-                        if (isFederated) {
-                            traceFileName += "_" + federate.name;
-                        }
-                    }
-                    pr('''
-                        // Initialize tracing
-                        start_trace("«traceFileName».lft");
-                    ''') // .lft is for Lingua Franca trace
-                }
-                
-                // Create the table used to decrement reference counts between time steps.
-                if (startTimeStepTokens > 0) {
-                    // Allocate the initial (before mutations) array of pointers to tokens.
-                    pr('''
-                        _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
-                        _lf_tokens_with_ref_count = (token_present_t*)malloc(«startTimeStepTokens» * sizeof(token_present_t));
-                    ''')
-                }
-                // Create the table to initialize is_present fields to false between time steps.
-                if (startTimeStepIsPresentCount > 0) {
-                    // Allocate the initial (before mutations) array of pointers to _is_present fields.
-                    pr('''
-                        // Create the array that will contain pointers to is_present fields to reset on each step.
-                        _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
-                        _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
-                    ''')
-                }
-                
-                // Allocate the memory for triggers used in federated execution
-                pr(CGeneratorExtension.allocateTriggersForFederate(federate, this));
-                // Assign appropriate pointers to the triggers
-                pr(initializeTriggerObjectsEnd,
-                    CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this));
-                
-                pr(initializeTriggerObjects.toString)
-                pr('// Populate arrays of trigger pointers.')
-                pr(initializeTriggerObjectsEnd.toString)
-                doDeferredInitialize(federate)
-                
-                // Put the code here to set up the tables that drive resetting is_present and
-                // decrementing reference counts between time steps. This code has to appear
-                // in _lf_initialize_trigger_objects() after the code that makes connections
-                // between inputs and outputs.
-                pr(startTimeStep.toString)
-                
-                setReactionPriorities(main, federate)
-                
-                initializeFederate(federate)
-                unindent()
-                pr('}\n')
+                generateInitializeTriggerObjects(federate);
 
                 // Generate function to trigger startup reactions for all reactors.
-                pr('''
-                    void _lf_trigger_startup_reactions() {
-                ''')
-                indent()
-                pr(startTimers.toString) // FIXME: these are actually startup actions, not timers.
-                if (startupReactionCount > 0) {
-                    pr('''
-                       for (int i = 0; i < _lf_startup_reactions_size; i++) {
-                           if (_lf_startup_reactions[i] != NULL) {
-                               _lf_enqueue_reaction(_lf_startup_reactions[i]);
-                           }
-                       }
-                    ''')
-                }
-                unindent()
-                pr("}")
+                generateTriggerStartupReactions();
 
                 // Generate function to schedule timers for all reactors.
                 pr('''
@@ -913,6 +832,112 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Generate the _lf_trigger_startup_reactions function.
+     */
+    def generateTriggerStartupReactions() {
+
+        pr('''
+            void _lf_trigger_startup_reactions() {
+        ''')
+        indent()
+        pr(startTimers.toString) // FIXME: these are actually startup actions, not timers.
+        if (startupReactionCount > 0) {
+            pr('''
+                for (int i = 0; i < _lf_startup_reactions_size; i++) {
+                    if (_lf_startup_reactions[i] != NULL) {
+                        _lf_enqueue_reaction(_lf_startup_reactions[i]);
+                    }
+                }
+            ''')
+        }
+        unindent()
+        pr("}")
+    }
+    
+    /**
+     * Generate the _lf_initialize_trigger_objects function for 'federate'.
+     */
+    def generateInitializeTriggerObjects(FederateInstance federate) {
+        pr('''
+            void _lf_initialize_trigger_objects() {
+        ''')
+        indent()
+
+        if (targetConfig.threads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr('''
+                if (_lf_number_of_threads == 0u) {
+                   _lf_number_of_threads = «targetConfig.threads»;
+                }
+            ''')
+        }
+
+        // Initialize the LF clock.
+        pr('''
+            // Initialize the _lf_clock
+            lf_initialize_clock();
+        ''')
+
+        // Initialize tracing if it is enabled
+        if (targetConfig.tracing !== null) {
+            var traceFileName = topLevelName;
+            if (targetConfig.tracing.traceFileName !== null) {
+                traceFileName = targetConfig.tracing.traceFileName;
+                // Since all federates would have the same name, we need to append the federate name.
+                if (isFederated) {
+                    traceFileName += "_" + federate.name;
+                }
+            }
+            pr('''
+                // Initialize tracing
+                start_trace("«traceFileName».lft");
+            ''') // .lft is for Lingua Franca trace
+        }
+
+        // Create the table used to decrement reference counts between time steps.
+        if (startTimeStepTokens > 0) {
+            // Allocate the initial (before mutations) array of pointers to tokens.
+            pr('''
+                _lf_tokens_with_ref_count_size = «startTimeStepTokens»;
+                _lf_tokens_with_ref_count = (token_present_t*)malloc(«startTimeStepTokens» * sizeof(token_present_t));
+            ''')
+        }
+        // Create the table to initialize is_present fields to false between time steps.
+        if (startTimeStepIsPresentCount > 0) {
+            // Allocate the initial (before mutations) array of pointers to _is_present fields.
+            pr('''
+                // Create the array that will contain pointers to is_present fields to reset on each step.
+                _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
+                _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+            ''')
+        }
+
+        // Allocate the memory for triggers used in federated execution
+        pr(CGeneratorExtension.allocateTriggersForFederate(federate, this));
+        // Assign appropriate pointers to the triggers
+        pr(initializeTriggerObjectsEnd,
+            CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this));
+
+        pr(initializeTriggerObjects.toString)
+        pr('// Populate arrays of trigger pointers.')
+        pr(initializeTriggerObjectsEnd.toString)
+        doDeferredInitialize(federate)
+
+        // Put the code here to set up the tables that drive resetting is_present and
+        // decrementing reference counts between time steps. This code has to appear
+        // in _lf_initialize_trigger_objects() after the code that makes connections
+        // between inputs and outputs.
+        pr(startTimeStep.toString)
+
+        setReactionPriorities(main, federate)
+
+        initializeFederate(federate)
+        unindent()
+        pr('}\n')
     }
     
     
@@ -4792,16 +4817,6 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
         }
-        
-        includeTargetLanguageHeaders()
-
-        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
-        
-        pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
-        
-        if (targetConfig.coordinationOptions.advance_message_interval !== null) {
-            pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
-        }
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
@@ -4814,6 +4829,16 @@ class CGenerator extends GeneratorBase {
                     targetConfig.threads = federate.networkMessageActions.size + 1;
                 }            
             }
+        }
+        
+        includeTargetLanguageHeaders()
+
+        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
+        
+        pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
+        
+        if (targetConfig.coordinationOptions.advance_message_interval !== null) {
+            pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
         }
         
         includeTargetLanguageSourceFiles()
@@ -4890,13 +4915,6 @@ class CGenerator extends GeneratorBase {
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
         if (targetConfig.threads > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            pr(startTimers, '''
-                if (_lf_number_of_threads == 0) {
-                   _lf_number_of_threads = «targetConfig.threads»;
-                }
-            ''')
             pr("#include \"core/reactor_threaded.c\"")
         } else {
             pr("#include \"core/reactor.c\"")
