@@ -34,6 +34,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.eclipse.xtext.util.CancelIndicator;
 
 /**
  * An abstraction for an external command
@@ -140,7 +146,7 @@ public class LFCommand {
     /**
      * Execute the command while forwarding output and error streams.
      * <p>
-     * Executing a process directly with `processBuiler.start()` could
+     * Executing a process directly with `processBuilder.start()` could
      * lead to a deadlock as the subprocess blocks when output or error
      * buffers are full. This method ensures that output and error messages
      * are continuously read and forwards them to the system output and
@@ -150,7 +156,7 @@ public class LFCommand {
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
      */
-    public int run() {
+    public int run(CancelIndicator cancelIndicator) {
         assert !didRun;
         didRun = true;
 
@@ -171,8 +177,21 @@ public class LFCommand {
         collectOutputThread.start();
         collectErrorsThread.start();
 
+        ScheduledExecutorService canceler = null;
+        if (cancelIndicator != null) {
+            canceler = Executors.newSingleThreadScheduledExecutor();
+            canceler.scheduleAtFixedRate(() -> {
+                if (cancelIndicator.isCanceled()) {
+                    collectOutputThread.interrupt();
+                    collectErrorsThread.interrupt();
+                    process.destroy();
+                }
+            }, 0, 20, TimeUnit.MILLISECONDS); // FIXME: magic number
+        }
+
         try {
             final int returnCode = process.waitFor();
+            if (canceler != null) canceler.shutdown();
             collectOutputThread.join();
             collectErrorsThread.join();
             return returnCode;
@@ -180,6 +199,11 @@ public class LFCommand {
             e.printStackTrace();
             return -2;
         }
+    }
+
+
+    public int run() {
+        return run(null);
     }
 
 
@@ -251,7 +275,7 @@ public class LFCommand {
      * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
      * <p>
      * But asking users to do that is not ideal. Hence, we try a more hack-y approach of just trying to execute using a
-     * bash shell. Also note that while ProcessBuilder can configured to use custom environment variables, these
+     * bash shell. Also note that while ProcessBuilder can be configured to use custom environment variables, these
      * variables do not affect the command that is to be executed but merely the environment in which the command
      * executes.
      *
