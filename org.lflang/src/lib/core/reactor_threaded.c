@@ -741,6 +741,7 @@ bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
         reaction_t* running = (reaction_t*) executing_q->d[i];
         if (LEVEL(running->index) < LEVEL(reaction->index)
                 && OVERLAPPING(reaction->chain_id, running->chain_id)) {
+            DEBUG_PRINT("Reaction %s is blocked by reaction %s.", reaction->name, running->name);
             return true;
         }
     }
