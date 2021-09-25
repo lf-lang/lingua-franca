@@ -66,6 +66,15 @@ object PortEmitter {
         }
     }
 
+    fun declarePortRef(ref: ChildPortReference): String =
+        with(ref) {
+            val self = "&mut _self.$rustFieldName"
+            val child = "&mut $childName.$rustFieldOnChildName"
+
+            if (isInput) "_assembler.bind_ports($self, $child);"
+            else "_assembler.bind_ports($child, $self);"
+        }
+
     /** Get a list of PortReferences for the given list of variables
      *
      * This checks whether the variable refers to a multiport and generated an instance of
