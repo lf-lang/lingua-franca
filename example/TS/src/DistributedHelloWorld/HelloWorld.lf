@@ -1,15 +1,29 @@
 /**
- * Distributed LF program where a MessageGenerator creates a string
- * message that is sent via the RTI (runtime infrastructure) to a
+ * Distributed LF program (in TypeScript) where a MessageGenerator creates
+ * a string message that is sent via the RTI (runtime infrastructure) to a
  * receiver that prints the message.
  * 
  * The code generator generates two TypeScript files:
  * 
- * * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_source.ts:
- *   The program that produces the sequence of messages.
- * 
- * * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_print.ts:
- *   The program that prints the sequence of messages received from source.
+ *  * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_source.ts:
+ *    The program that produces the sequence of messages.
+ *  * src-gen/DistrubtedHelloWorld/HelloWorld/src/DistrubtedHelloWorld_print.ts:
+ *    The program that prints the sequence of messages received from source.
+ *
+ * The code generator also creates compiled JavaScript files out of TypeScript
+ * files above, respectively.
+ *
+ *  * src-gen/DistributedHelloWorld/HelloWorld/dist/HelloWorld_source.js
+ *  * src-gen/DistributedHelloWorld/HelloWorld/dist/HelloWorld_print.js
+ *
+ * To run this example, first you need to start the standalone RTI program in
+ * org.lflang/src/lib/core/federated/RTI using `build/RTI -n 2`.
+ *
+ * After starting the RTI, you need to run both compiled JavaScript files using
+ * node as shown below (inside src-gen/DistributedHelloWorld/HelloWorld/).
+ *
+ *  * node dist/HelloWorld_source.js
+ *  * node dist/HelloWorld_print.js
  * 
  * @author Edward A. Lee
  * @author Hokeun Kim
@@ -36,21 +50,6 @@ reactor MessageGenerator(root:string("")) {
     reaction(t) -> message {=
         message = root + " " + count++;
         console.log(`At time (elapsed) logical tag ${util.getElapsedLogicalTime()}, source sends message: ${message}`);
-        /*
-        // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
-        // Add one for the null terminator.
-        int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
-        // Dynamically allocate memory for the output.
-        SET_NEW_ARRAY(message, length);
-        // Populate the output string and increment the count.
-        snprintf(message->value, length, "%s %d", self->root, self->count++);
-
-        tag_t tag = get_current_tag();
-        info_print("At (elapsed) logical tag (%lld, %u), source sends message: %s",
-            tag.time - start_time, tag.microstep,
-            message->value
-        );
-        */
     =}
 }
 
@@ -63,13 +62,6 @@ reactor PrintMessage {
     input message:string;
     reaction(message) {=
         console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
-        /*
-        tag_t tag = get_current_tag();
-        info_print("At (elapsed) logical tag (%lld, %u), print receives: %s",
-            tag.time - start_time, tag.microstep,
-            message->value
-        );
-        */
     =}
 }
 
