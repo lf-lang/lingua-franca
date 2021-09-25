@@ -106,6 +106,10 @@ class TSConstructorGenerator (
         return connectionInstantiations.joinToString("\n")
     }
 
+    // Generate code for registering Fed IDs that are connected to
+    // this federate via ports in the TypeScript's FederatedApp.
+    // These Fed IDs are used to let the RTI know about the connections
+    // between federates during the initialization with the RTI.
     fun generateFederateConfigurations(): String {
         val federateConfigurations = LinkedList<String>()
         if (reactor.isFederated) {
