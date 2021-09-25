@@ -51,7 +51,7 @@ bool fast = false;
  * By default, execution is not threaded and this variable will have value 0,
  * meaning that the execution is not threaded.
  */
-unsigned int _lf_number_of_threads;
+unsigned int _lf_number_of_threads = 0u;
 
 /** 
  * The logical time to elapse during execution, or -1 if no timeout time has
