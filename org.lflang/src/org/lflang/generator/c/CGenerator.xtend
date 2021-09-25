@@ -871,7 +871,7 @@ class CGenerator extends GeneratorBase {
             // but only if it has not been overridden on the command line.
             pr('''
                 if (_lf_number_of_threads == 0u) {
-                   _lf_number_of_threads = «targetConfig.threads»;
+                   _lf_number_of_threads = «targetConfig.threads»u;
                 }
             ''')
         }
