@@ -64,6 +64,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
 import org.lflang.lf.LfPackage.Literals
+import org.lflang.lf.ListLiteral
 import org.lflang.lf.Model
 import org.lflang.lf.NamedHost
 import org.lflang.lf.Output
@@ -368,6 +369,13 @@ class LFValidatorImpl extends AbstractLFValidator {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                 }
             }
+        }
+    }
+
+    @Check(FAST)
+    def checkListLiteral(ListLiteral list) {
+        if (!target.supportsLfListLiterals()) {
+            error("Target " + target + " does not support LF list literals", Literals.LIST_LITERAL__ITEMS)
         }
     }
 

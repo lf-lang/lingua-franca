@@ -323,7 +323,7 @@ Expr :
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
 Value:
-    (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
+    (parameter=[Parameter] | time=Time | literal=Literal | list=ListLiteral | code=Code);
 
 
 Time:
@@ -383,6 +383,11 @@ Generic:
 
 SignedInt:
     INT | NEGINT
+;
+
+// list literals support even empty lists, and a trailing comma.
+ListLiteral:
+    '[' ( items+=Value (',' items+=Value)* )? ','? ']'
 ;
 
 Literal:

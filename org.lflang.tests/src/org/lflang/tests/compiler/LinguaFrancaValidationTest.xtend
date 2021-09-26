@@ -611,7 +611,29 @@ class LinguaFrancaValidationTest {
             }
         }
     }
-    
+
+    @Test
+    def void forbidListLiterals() {
+        parseWithoutError('''
+            target C;
+            reactor Contained {
+                state x: int[]([1, 2]);
+            }
+        ''').assertError(LfPackage::eINSTANCE.listLiteral,
+            null, 'Target C does not support LF list literals')
+    }
+
+
+    @Test
+    def void allowListLiteralsInPython() {
+        parseWithoutError('''
+            target Python;
+            reactor Contained {
+                state x([1, 2]);
+            }
+        ''').assertNoErrors()
+    }
+
     
     /**
      * Tests for state and parameter declarations, including native lists.

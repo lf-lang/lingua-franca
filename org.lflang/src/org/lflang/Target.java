@@ -397,6 +397,14 @@ public enum Target {
         this(description, requiresTypes, "N/A", "N/A", keywords);
     }
 
+    /**
+     * Returns true if the target supports list literals in LF syntax.
+     * If not, list literals produce validator errors.
+     */
+    public boolean supportsLfListLiterals() {
+        return this == Python;
+    }
+
 
     /**
      * Return the target that matches the given string.
