@@ -1,5 +1,9 @@
-target unknown;
-
-main reactor Foo {
-
-}
+lfc: error: Reactor must be named.
+--> test/resources/org/lflang/lfc/tests/multilineWarning.lf:3:1
+  |
+2 |
+  | >>>>>>>>>>>>>>
+3 | reactor {
+4 |
+5 | }
+  | <<<<<<<<<<<<<< Reactor must be named.

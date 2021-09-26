@@ -1,5 +1,5 @@
-target unknown;
+target Cpp;
 
-main reactor Foo {
+reactor {
 
 }
