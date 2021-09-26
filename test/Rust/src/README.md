@@ -71,7 +71,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - note: must be `Clone`
 - [ ] array types
   - [x] support fixed-sized arrays
-  - [x] support `Vec`
+  - [x] `TypeVarLengthList.lf`: support variable length lists (`Vec`)
   - [x] support array initializer syntax
   - [ ] support array assignment syntax (fixme: doesn't exist in LF)
 - [ ] deadlines
