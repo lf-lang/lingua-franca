@@ -213,7 +213,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         val declarations = nestedInstances.joinToString("\n") {
             """
                 ${it.loc.lfTextComment()}
-                let ${it.lfName}: super::${it.names.wrapperName} = _assembler.assemble_sub(${it.paramStruct()})?;
+                let ${it.lfName}: super::${it.names.wrapperName} = _assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
             """.trimIndent()
         }
 
