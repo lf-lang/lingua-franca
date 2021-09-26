@@ -32,7 +32,7 @@ reactor Sink {
     =}
 }
 
-main reactor NonTriggerDependency {
+main reactor {
     source = new Source();
     sink = new Sink();
 
