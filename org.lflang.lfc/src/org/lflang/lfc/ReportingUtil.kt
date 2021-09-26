@@ -151,11 +151,11 @@ class ReportingBackend constructor(
      * messages when printing a code snippet from the file
      * in which the error originated.
      */
-    private val numLinesAround: Int,
+    private val numLinesAround: Int = 2,
 ) {
     /** Secondary constructor with default arguments and marked with @Inject */
     @Inject
-    constructor(io: Io) : this(io, AnsiColors(true), 2)
+    constructor(io: Io) : this(io, AnsiColors(true))
 
     /** *Absolute* path to lines. */
     private val fileCache = mutableMapOf<Path, List<String>?>()
@@ -309,9 +309,11 @@ class ReportingBackend constructor(
             val tabOffset = makeOffset(0, issue.column!!) // offset up to marker
             val tabSpanOffset = makeOffset(issue.column - 1, issue.length!!) // offset within marker
 
-            val realLen = min(line.length, issue.column + issue.length)
+            // make sure the length fits the line
+            val clippedUp = min(line.length, issue.column + issue.length + tabSpanOffset)
+            val clippedDown = max(0, clippedUp - issue.column)
 
-            val caretLine = with(issue) { buildCaretLine(message.trim(), column!! + tabOffset, realLen + tabSpanOffset) }
+            val caretLine = with(issue) { buildCaretLine(message.trim(), column!! + tabOffset, clippedDown) }
             // gutter has its own ANSI stuff so only caretLine gets severityColors
             return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
         }

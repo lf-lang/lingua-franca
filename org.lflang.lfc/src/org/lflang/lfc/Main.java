@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2021, TU Dresden.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /**
  * Stand-alone version of the Lingua Franca compiler (lfc).
  */
@@ -35,11 +59,11 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.StandaloneContext;
 
@@ -59,9 +83,9 @@ public class Main {
      * The location of the class file of this class inside of the jar.
      */
     private static String MAIN_PATH_IN_JAR = String.join("/",
-                                                         new String[] {"!", "org", "lflang", "lfc", "Main.class"});
+                                                         new String[] {"!", "org", "lflang", "org/lflang/lfc", "Main.class"});
 
-    
+
     /**
      * Object for interpreting command line arguments.
      */
@@ -87,13 +111,13 @@ public class Main {
      */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
-    
+
     /**
      * Injected resource validator.
      */
     @Inject
     private IResourceValidator validator;
-    
+
     /**
      * Injected code generator.
      */
@@ -140,20 +164,20 @@ public class Main {
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
         EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true);
-        
+
         /**
          * The corresponding Apache CLI Option object.
          */
         public final Option option;
-        
+
         /**
          * Whether or not to pass this option to the code generator.
          */
         public final boolean passOn;
-        
+
         /**
          * Construct a new CLIOption.
-         * 
+         *
          * @param opt         The short option name. E.g.: "f" denotes a flag
          *                    "-f".
          * @param longOpt     The long option name. E.g.: "foo" denotes a flag
@@ -171,10 +195,10 @@ public class Main {
             option.setRequired(isReq);
             this.passOn = passOn;
         }
-    
+
         /**
          * Create an Apache Commons CLI Options object and add all the options.
-         * 
+         *
          * @return Options object that includes all the options in this enum.
          */
         public static Options getOptions() {
@@ -182,11 +206,11 @@ public class Main {
             Arrays.asList(CLIOption.values()).forEach(o -> opts.addOption(o.option));
             return opts;
         }
-        
+
         /**
          * Return a list of options that are to be passed on to the code
          * generator.
-         * 
+         *
          * @return List of options that must be passed on to the code gen stage.
          */
         public static List<Option> getPassedOptions() {
@@ -194,7 +218,7 @@ public class Main {
                          .filter(opt -> opt.passOn).map(opt -> opt.option)
                          .collect(Collectors.toList());
         }
-        
+
     }
 
     /**
@@ -204,7 +228,7 @@ public class Main {
     private boolean mustUpdate() {
         return cmd.hasOption(CLIOption.UPDATE.option.getOpt());
     }
-    
+
     /**
      * Indicate whether or not a rebuild must occur.
      * @return whether or not the rebuild or update flag is present.
@@ -212,7 +236,7 @@ public class Main {
     private boolean mustRebuild() {
         return mustUpdate() || cmd.hasOption(CLIOption.REBUILD.option.getOpt());
     }
-    
+
     /**
      * Main function of the stand-alone compiler.
      * @param args CLI arguments
@@ -248,17 +272,17 @@ public class Main {
 
         try {
             main.cmd = parser.parse(options, args, true);
-            
+
             if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
-                formatter.printHelp("lfc", options);
+                formatter.printHelp("org/lflang/lfc", options);
                 System.exit(0);
             }
-            
+
             // If the rebuild flag is not used, or if it is used but the jar
             // is not out of date, continue with the normal flow of execution.
             if (!main.mustRebuild() || (main.mustRebuild() && !main.rebuildAndFork())) {
                 List<String> files = main.cmd.getArgList();
-                
+
                 if (files.size() < 1) {
                     reporter.printFatalErrorAndExit("No input files.");
                 }
@@ -271,15 +295,15 @@ public class Main {
             }
         } catch (ParseException e) {
             reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
-            formatter.printHelp("lfc", options);
+            formatter.printHelp("org/lflang/lfc", options);
             System.exit(1);
         }
     }
-    
+
     /**
      * Fork off a new process (that is an execution of a freshly rebuilt jar)
      * and wait for it to return.
-     * 
+     *
      * @param cmd The CommandLine object that has stored in it the CLI 
      * arguments of the parent process, to be passed on to the child process.
      */
@@ -310,18 +334,18 @@ public class Main {
         } catch (InterruptedException e) {
             reporter.printError("Child process was interupted. Exiting.");
         }
-        
+
     }
-    
+
     private boolean modifiedFilesExist(Path start, long mod) throws IOException {
         return ((Files.find(start, Integer.MAX_VALUE,
                 (path, attr) -> (attr.lastModifiedTime()
                         .compareTo(FileTime.fromMillis(mod)) > 0))).count() > 0);
     }
-    
+
     /**
      * Indicate whether or not there is any work to do.
-     * 
+     *
      * @return True if a rebuild is necessary, false otherwise.
      */
     private boolean needsUpdate() {
@@ -336,7 +360,7 @@ public class Main {
         }
         return outOfDate;
     }
-    
+
     /**
      * Rebuild and return. If the rebuilding failed, exit.
      */
@@ -353,12 +377,12 @@ public class Main {
         }
         ProcessBuilder build = new ProcessBuilder(cmdList);
         build.directory(rootPath.toFile());
-    
+
         try {
             Process p = build.start();
             // Read the output from the build.
             String result = new String(p.getInputStream().readAllBytes());
-            
+
             p.waitFor();
             if (p.exitValue() == 0) {
                 reporter.printInfo("Rebuild successful; forking off updated version of lfc.");
@@ -369,7 +393,7 @@ public class Main {
             reporter.printFatalErrorAndExit("Rebuild failed. Reason: " + e.getMessage());
         }
     }
-    
+
     /**
      * Rebuild and fork if an update is needed. If the rebuild was successful,
      * return true. If no update was needed, return false. If the rebuild was
@@ -389,7 +413,7 @@ public class Main {
         }
         return true;
     }
-  
+
     /**
      * Store arguments as properties, to be passed on to the generator.
      */
@@ -465,7 +489,7 @@ public class Main {
             this.fileAccess.setOutputPath(resolved);
 
             final Resource resource = getValidatedResource(path);
-            
+
             exitIfCollectedErrors();
 
             StandaloneContext context = new StandaloneContext();
@@ -490,34 +514,39 @@ public class Main {
     private void exitIfCollectedErrors() {
         if (issueCollector.getErrorsOccurred()) {
             // if there are errors, don't print warnings.
-            List<LfIssue> errors = issueCollector.getErrors();
-            errors.forEach(reporter::printIssue);
+            List<LfIssue> errors = printErrorsIfAny();
             String cause = errors.size() == 1 ? "previous error"
                                               : errors.size() + " previous errors";
             reporter.printFatalErrorAndExit("Aborting due to " + cause);
         }
     }
-    
+
+    // visible in tests
+    public List<LfIssue> printErrorsIfAny() {
+        List<LfIssue> errors = issueCollector.getErrors();
+        errors.forEach(reporter::printIssue);
+        return errors;
+    }
+
     /**
      * Given a path, obtain a resource and validate it. If issues arise during validation,
      * these are recorded using the issue collector.
-     * 
+     *
      * @param path Path to the resource to validate.
      * @return A validated resource
      */
-    private Resource getValidatedResource(Path path) {
-        final ResourceSet set = this.resourceSetProvider.get();
-        final Resource resource =
-            set.getResource(URI.createFileURI(path.toString()), true);
+    // visible in tests
+    public Resource getValidatedResource(Path path) {
+        final Resource resource = getResource(path);
 
-        if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+        if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
             if (!ASTUtils.makeFederated(resource)) {
                 reporter.printError("Unable to change main reactor to federated reactor.");
             }
         }
 
         List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
-        
+
         for (Issue issue : issues) {
             URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
             try {
@@ -530,5 +559,10 @@ public class Main {
             }
         }
         return resource;
+    }
+
+    public Resource getResource(Path path) {
+        final ResourceSet set = this.resourceSetProvider.get();
+        return set.getResource(URI.createFileURI(path.toString()), true);
     }
 }
