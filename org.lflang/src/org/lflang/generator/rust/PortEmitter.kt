@@ -62,17 +62,17 @@ object PortEmitter {
 
         // bind each pair of lhs and rhs ports individually
         return (iteratedLhsPorts zip rhsPorts).joinToString("\n") {
-            "_assembler.bind_ports(&mut ${it.first.toCode()}, &mut ${it.second.toCode()})?;"
+            "__assembler.bind_ports(&mut ${it.first.toCode()}, &mut ${it.second.toCode()})?;"
         }
     }
 
     fun declarePortRef(ref: ChildPortReference): String =
         with(ref) {
-            val self = "&mut _self.$rustFieldName"
+            val self = "&mut __self.$rustFieldName"
             val child = "&mut ${childName.escapeRustIdent()}.$rustFieldOnChildName"
 
-            if (isInput) "_assembler.bind_ports($self, $child)?;"
-            else "_assembler.bind_ports($child, $self)?;"
+            if (isInput) "__assembler.bind_ports($self, $child)?;"
+            else "__assembler.bind_ports($child, $self)?;"
         }
 
     /** Get a list of PortReferences for the given list of variables
@@ -117,7 +117,7 @@ object PortEmitter {
             val containerRef = if (container.isBank) "${container.name.escapeRustIdent()}[$containerIndex]" else container.name.escapeRustIdent()
             "$containerRef.$portRef"
         } else {
-            "_self.$portRef"
+            "__self.$portRef"
         }
     }
 
