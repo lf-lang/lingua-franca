@@ -47,12 +47,12 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGene
     }
 
     inline fun emit(p: Path, f: Emitter.() -> Unit) {
-        // todo remove println
-        System.err.println("Generating file ${srcGenPath.relativize(p)}...")
-        val milliTime = measureTimeMillis {
+        //System.err.println("Generating file ${srcGenPath.relativize(p)}...")
+        //val milliTime =
+        measureTimeMillis {
             Emitter(p).use { it.f() }
         }
-        System.err.println("Done in $milliTime ms.")
+        //System.err.println("Done in $milliTime ms.")
     }
 
     inline fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit): Unit = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
