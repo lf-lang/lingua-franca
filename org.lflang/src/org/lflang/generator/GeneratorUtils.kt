@@ -29,10 +29,7 @@ fun getInferredType(type: Type?, init: List<Value>?): InferredType =
 
 fun TargetTypes.getTargetInitializer(init: List<Value>, type: Type? = null, initWithBraces: Boolean = false): TargetCode {
     val inferredType = getInferredType(type, init)
-    if (init.size == 1
-        && !inferredType.isVariableSizeList
-        && !inferredType.isFixedSizeList
-    ) {
+    if (init.size == 1) {
         return getTargetExpr(init[0], inferredType)
     }
     val targetValues = init.map { getTargetExpr(it, inferredType) }

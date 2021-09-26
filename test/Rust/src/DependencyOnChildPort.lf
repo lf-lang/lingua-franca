@@ -20,6 +20,8 @@ main reactor {
     timer clock(0, 10 msec);
     state last: u32(1);
 
+    state vec: u32[]({= Vec::new() =});
+
     // write dep on child input
     reaction(clock) -> double.inp {=
         ctx.set(double__inp, self.last);
