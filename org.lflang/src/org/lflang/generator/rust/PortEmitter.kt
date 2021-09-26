@@ -69,7 +69,7 @@ object PortEmitter {
     fun declarePortRef(ref: ChildPortReference): String =
         with(ref) {
             val self = "&mut _self.$rustFieldName"
-            val child = "&mut $childName.$rustFieldOnChildName"
+            val child = "&mut ${childName.escapeRustIdent()}.$rustFieldOnChildName"
 
             if (isInput) "_assembler.bind_ports($self, $child);"
             else "_assembler.bind_ports($child, $self);"
@@ -114,7 +114,7 @@ object PortEmitter {
         val port = PortData.from(port)
         val portRef = if (port.isMultiport) "${port.rustFieldName}[$portIndex]" else port.rustFieldName
         return if (container != null) {
-            val containerRef = if (container.isBank) "${container.name}[$containerIndex]" else container.name
+            val containerRef = if (container.isBank) "${container.name.escapeRustIdent()}[$containerIndex]" else container.name.escapeRustIdent()
             "$containerRef.$portRef"
         } else {
             "_self.$portRef"
