@@ -29,7 +29,6 @@ package org.lflang.generator
 import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
@@ -47,12 +46,10 @@ import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Output
-import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
-import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
@@ -181,99 +178,35 @@ class PythonGenerator extends CGenerator {
      * @param v A value
      * @return A value string in the target language
      */
-    private def getPythonTargetValue(Value v) {
-        var String returnValue = "";
-        switch(v.toText) {
-            case "false": returnValue = "False"
-            case "true": returnValue = "True"
-            default: returnValue = super.getTargetValue(v)
-        }
-        
+    protected def String getPythonTargetValue(Value v) {
         // Parameters in Python are always prepended with a 'self.'
         // predicate. Therefore, we need to append the returned value
         // if it is a parameter.
         if (v.parameter !== null) {
-            returnValue = "self." + returnValue;
-        }
-        
-        return returnValue;
-    }
-    
-    /**
-     * Create a list of state initializers in target code.
-     * 
-     * @param state The state variable to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def List<String> getPythonInitializerList(StateVar state) {
-        if (!state.isInitialized) {
-            return null
+            return "self." + super.getTargetValue(v);
+        } else if (v.list !== null) {
+            return "[" + v.list.items.join(', ', [it.pythonTargetValue]) + "]"
         }
 
-        var list = new LinkedList<String>();
-
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(i.parameter.targetReference)
-            } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
-            } else {
-                list.add(i.pythonTargetValue)
-            }
+        switch(v.toText) {
+            case "false": return "False"
+            case "true": return "True"
+            default: return super.getTargetValue(v)
         }
-        return list
     }
-    
-     /**
-     * Create a Python tuple for parameter initialization in target code.
-     * 
-     * @param p The parameter instance to create initializers for
-     * @return Initialization code
-     */
-     protected def String getPythonInitializer(StateVar state) throws Exception {        
-            if (state.init.size > 1) {
-                // state variables are initialized as mutable lists
-                return state.init.join('[', ', ', ']', [it.pythonTargetValue])
-            } else if (state.isInitialized) {
-                return state.init.get(0).getPythonTargetValue
-            } else {
-                return "None"
-            }
-        
+
+    /** Returns the python initializer corresponding to the given LF init list. */
+    def String getPythonInitializer(List<Value> init) {
+          if (init === null) {
+              return "None"
+          } if (init.size > 1) {
+              // corresponds to a tuple
+              return init.join('(', ', ', ')', [it.pythonTargetValue])
+          } else {
+              return init.get(0).getPythonTargetValue
+          }
     }
-    
-     /**
-     * Create a Python list for parameter initialization in target code.
-     * 
-     * @param p The parameter instance to create initializers for
-     * @return Initialization code
-     */
-     protected def String getPythonInitializer(ParameterInstance p) {        
-            if (p.init.size > 1) {
-                // parameters are initialized as immutable tuples
-                return p.init.join('(', ', ', ')', [it.pythonTargetValue])
-            } else {
-                return p.init.get(0).getPythonTargetValue
-            }
-        
-    }
-    
-    /**
-     * Create a Python list for parameter initialization in target code.
-     * 
-     * @param p The parameter to create initializers for
-     * @return Initialization code
-     */
-     protected def String getPythonInitializer(Parameter p) {        
-            if (p.init.size > 1) {
-                // parameters are initialized as immutable tuples
-                return p.init.join('(', ', ', ')', [it.pythonTargetValue])
-            } else {
-                return p.init.get(0).pythonTargetValue
-            }
-        
-    }
-    
+
     /**
      * Generate parameters and their respective initialization code for a reaction function
      * The initialization code is put at the beginning of the reaction before user code
@@ -387,20 +320,6 @@ class PythonGenerator extends CGenerator {
         }
 
     }
-    
-    /**
-     * Handle initialization for state variable
-     * @param state a state variable
-     */
-    def String getTargetInitializer(StateVar state) {
-        if(!state.isInitialized)
-        {
-            return '''None'''
-        }
-        
-        '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
-    }
-    
     
     /**
      * Wrapper function for the more elaborate generatePythonReactorClass that keeps track
@@ -521,11 +440,11 @@ class PythonGenerator extends CGenerator {
             if (!param.inferredType.targetType.equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    append('''        self._«param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                    append('''        self._«param.name»:«param.inferredType.pythonType» = «param.init.pythonInitializer»
                     ''')
             } else {
                 // If type is not given, just pass along the initialization
-                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
+                temporary_code.append('''        self._«param.name» = «param.init.pythonInitializer»
                 ''')
         
             }
@@ -546,11 +465,11 @@ class PythonGenerator extends CGenerator {
             if (!stateVar.inferredType.targetType.equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.init.pythonInitializer»
                     ''')
             } else if (stateVar.isInitialized) {
                 // If type is not given, pass along the initialization directly if it is present
-                temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
+                temporary_code.append('''        self.«stateVar.name» = «stateVar.init.pythonInitializer»
                 ''')
             } else {
                 // If neither the type nor the initialization is given, use None
@@ -664,14 +583,14 @@ class PythonGenerator extends CGenerator {
                     «instance.uniqueID»_lf = \
                         [«FOR member : instance.bankMembers SEPARATOR ", \\\n"»\
                             _«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/»,\
-                                «FOR param : member.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
+                                «FOR param : member.parameters SEPARATOR ", "»_«param.name»=«param.init.pythonInitializer»«ENDFOR»)«ENDFOR»]
                     ''')
                 return
             } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
                 pythonClassesInstantiation.append('''
                     «instance.uniqueID»_lf = \
                         [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», \
-                            «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
+                            «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.init.pythonInitializer»«ENDFOR»)]
                 ''')
             }
 
