@@ -48,6 +48,8 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
             severity,
             diagnostic.getLine(),
             diagnostic.getColumn(),
+            diagnostic.getLineEnd(),
+            diagnostic.getColumnEnd(),
             diagnostic.getLength(),
             getPath(object)
         );

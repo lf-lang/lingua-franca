@@ -521,11 +521,12 @@ public class Main {
         for (Issue issue : issues) {
             URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
             try {
-                issueCollector.accept(new LfIssue(issue.getMessage(),
-                    issue.getSeverity(), issue.getLineNumber(),
-                    issue.getColumn(), issue.getLength(), FileConfig.toPath(uri)));
+                issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
+                                                  issue.getLineNumber(), issue.getColumn(),
+                                                  issue.getLineNumberEnd(), issue.getColumnEnd(),
+                                                  issue.getLength(), FileConfig.toPath(uri)));
             } catch (IOException e) {
-                reporter.printError("Unable to convert '" + uri + "' to path.");
+                reporter.printError("Unable to convert '" + uri + "' to path." + e);
             }
         }
         return resource;

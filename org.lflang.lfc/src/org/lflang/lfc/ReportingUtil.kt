@@ -83,6 +83,8 @@ data class LfIssue(
     val severity: Severity,
     val line: Int?,
     val column: Int?,
+    val endLine: Int?,
+    val endColumn: Int?,
     val length: Int?,
     val file: Path?
 ) : Comparable<LfIssue> {
