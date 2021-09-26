@@ -10,7 +10,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [ ] ports
     - [x] values
     - [ ] missing values at some tags
-    - [x] port value is cleaned up at the end of a tag
+    - [x] `PortValueCleanup.lf`: port value is cleaned up at the end of a tag
     - [x] connections
       - [x] `PortConnectionInSelfInChild.lf`: input of self to input of child
       - [x] `PortConnectionInSelfOutSelf.lf`: input of self to output of self

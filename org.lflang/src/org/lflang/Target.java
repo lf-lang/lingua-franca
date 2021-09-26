@@ -21,8 +21,12 @@
 package org.lflang;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.lflang.lf.TargetDecl;
 
@@ -382,7 +386,7 @@ public enum Target {
     /**
      * Reserved words in the target language.
      */
-    public final List<String> keywords;
+    public final Set<String> keywords;
 
     /**
      * Return an array of all known targets.
@@ -392,17 +396,17 @@ public enum Target {
     /**
      * Private constructor for targets.
      *
-     * @param description String representation of this target.
-     * @param requiresTypes Types Whether this target requires type annotations or not.
-     * @param packageName Name of package containing Kotlin classes for the target language.
+     * @param description     String representation of this target.
+     * @param requiresTypes   Types Whether this target requires type annotations or not.
+     * @param packageName     Name of package containing Kotlin classes for the target language.
      * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
-     * @param keywords List of reserved strings in the target language.
+     * @param keywords        List of reserved strings in the target language.
      */
     Target(String description, boolean requiresTypes, String packageName,
-           String classNamePrefix, List<String> keywords) {
+           String classNamePrefix, Collection<String> keywords) {
         this.description = description;
         this.requiresTypes = requiresTypes;
-        this.keywords = keywords;
+        this.keywords = Collections.unmodifiableSet(new LinkedHashSet<>(keywords));
         this.packageName = packageName;
         this.classNamePrefix = classNamePrefix;
     }
@@ -411,7 +415,7 @@ public enum Target {
     /**
      * Private constructor for targets without pakcageName and classNamePrefix.
      */
-    Target(String description, boolean requiresTypes, List<String> keywords) {
+    Target(String description, boolean requiresTypes, Collection<String> keywords) {
         this(description, requiresTypes, "N/A", "N/A", keywords);
     }
 
@@ -432,6 +436,14 @@ public enum Target {
     @Override
     public String toString() {
         return description;
+    }
+
+    /**
+     * Returns whether this target supports using language keywords as identifiers.
+     * For instance in Rust, keywords may be escaped using the syntax {@code r#keyword}.
+     */
+    public boolean supportsKeywordsAsIdents() {
+        return this == Rust;
     }
 
     /**

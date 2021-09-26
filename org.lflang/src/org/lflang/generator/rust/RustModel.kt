@@ -26,6 +26,7 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
+import org.lflang.Target
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -104,13 +105,16 @@ class ReactorNames(
     private val lfName: Ident
 ) {
 
-    /** Name of the rust module (also of its containing file). */
-    val modName: Ident = lfName.camelToSnakeCase()
+    /** Name of the rust module, unescaped.. */
+    val modFileName: Ident = lfName.camelToSnakeCase()
+    /** Name of the rust module as it can be referenced in rust code. */
+    val modName: Ident = modFileName.escapeRustIdent()
 
-    /** Name of the "user struct", which contains state
+    /**
+     * Name of the "user struct", which contains state
      * variables as fields, and which the user manipulates in reactions.
      */
-    val structName: Ident get() = lfName
+    val structName: Ident = lfName.capitalize().escapeRustIdent()
 
     // Names of other implementation-detailistic structs.
 
@@ -124,6 +128,8 @@ data class NestedReactorInstance(
     val args: Map<String, TargetCode>,
     val loc: LocationInfo
 ) {
+    val rustLocalName = lfName.escapeRustIdent()
+
     val names = ReactorNames(reactorLfName)
 }
 
@@ -236,15 +242,15 @@ sealed class ReactorComponent {
     val rustRefName: Ident
         get() =
             if (this is ChildPortReference) "${childName}__$lfName"
-            else lfName
+            else lfName.escapeRustIdent()
 
     /** Simple name of the field in Rust. */
     val rustFieldName: Ident
         get() = when (this) {
-            is TimerData          -> "timer_$lfName"
-            is PortData           -> "port_$lfName" // sync with ChildPortReference.rustFieldOnChildName
-            is ChildPortReference -> "port_${childName}__$lfName"
-            is ActionData         -> "action_$lfName"
+            is TimerData          -> "__$lfName"
+            is PortData           -> "__$lfName" // sync with ChildPortReference.rustFieldOnChildName
+            is ChildPortReference -> "__${childName}__$lfName"
+            is ActionData         -> "__$lfName"
         }
 
     companion object {
@@ -326,7 +332,7 @@ data class ChildPortReference(
     val isInput: Boolean,
     override val dataType: TargetCode
 ) : ReactorComponent(), DataTypeOwner {
-    val rustFieldOnChildName: String get() = "port_$lfName"
+    val rustFieldOnChildName: String get() = "__$lfName"
 }
 
 data class ActionData(
@@ -485,3 +491,7 @@ object RustModelBuilder {
         )
     }
 }
+
+
+fun String.escapeRustIdent() =
+    if (this in Target.Rust.keywords) "r#$this" else this

@@ -59,7 +59,7 @@ object RustEmitter {
         if (!gen.properties.singleFile) {
             fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
-                fileConfig.emit("src/reactors/${reactor.names.modName}.rs") {
+                fileConfig.emit("src/reactors/${reactor.names.modFileName}.rs") {
                     makeReactorModule(this, reactor)
                 }
             }
@@ -157,7 +157,7 @@ ${"             |            "..graphDependencyDeclarations(reactor)}
                 |
 ${"             |            "..declareChildConnections()}
                 |        }
-${"             |        "..nestedInstances.joinToString("\n") { "_assembler.register_reactor(${it.lfName});" }}
+${"             |        "..nestedInstances.joinToString("\n") { "_assembler.register_reactor(${it.rustLocalName});" }}
                 |
                 |       Ok(_self)
                 |    }
@@ -203,17 +203,17 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
             args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
-                if (it.key == it.value) it.key
-                else it.key + ": " + it.value
+                if (it.key == it.value) it.key.escapeRustIdent()
+                else it.key.escapeRustIdent() + ": " + it.value.escapeRustIdent()
             }
 
-        val asTuple = nestedInstances.joinWithCommas("(", ")") { it.lfName }
-        val asMutTuple = nestedInstances.joinWithCommas("(", ")") { "mut ${it.lfName}" }
+        val asTuple = nestedInstances.joinWithCommas("(", ")") { it.rustLocalName }
+        val asMutTuple = nestedInstances.joinWithCommas("(", ")") { "mut ${it.rustLocalName}" }
 
         val declarations = nestedInstances.joinToString("\n") {
             """
                 ${it.loc.lfTextComment()}
-                let ${it.lfName}: super::${it.names.wrapperName} = _assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
+                let ${it.rustLocalName}: super::${it.names.wrapperName} = _assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
             """.trimIndent()
         }
 
@@ -443,7 +443,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
         get() {
-            val fields = ctorParams.joinWithCommas { it.lfName }
+            val fields = ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }
             return "${names.paramStructName} { $fields }"
         }
 }

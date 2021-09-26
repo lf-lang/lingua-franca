@@ -210,7 +210,8 @@ class LFValidatorImpl extends AbstractLFValidator {
             error(UNDERSCORE_MESSAGE + name, feature)
         }
 
-        if (this.target.keywords.contains(name)) {
+        if (!this.target.supportsKeywordsAsIdents()
+            && this.target.keywords.contains(name)) {
             error(RESERVED_MESSAGE + name, feature)
         }
 
