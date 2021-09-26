@@ -61,13 +61,13 @@ object RustEmitter {
             fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
                 fileConfig.emit("src/reactors/${reactor.names.modFileName}.rs") {
-                    makeReactorModule(this, reactor, gen)
+                    makeReactorModule(this, reactor)
                 }
             }
         }
     }
 
-    private fun makeReactorModule(out: Emitter, reactor: ReactorInfo, gen: GenerationInfo) {
+    private fun makeReactorModule(out: Emitter, reactor: ReactorInfo) {
         out += with(reactor) {
             val typeParams = typeParamList.map { it.targetCode }.angle()
             val typeArgs = typeParamList.map { it.lfName.escapeRustIdent() }.angle()
@@ -120,10 +120,10 @@ ${"             |    "..(otherComponents + portReferences).joinWithCommasLn { it
                 |
                 |impl$typeParams $wrapperName$typeArgs {
                 |    #[inline]
-                |    fn user_assemble(_assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
+                |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
                 |        let $ctorParamsDeconstructor = _params.clone();
                 |        Self {
-                |            _id: _assembler.get_id(),
+                |            _id: __assembler.get_id(),
                 |            _params,
                 |            _startup_reactions: Default::default(),
                 |            _shutdown_reactions: Default::default(),
@@ -143,28 +143,28 @@ ${"             |            "..(otherComponents + portReferences).joinWithComma
                 |    type Params = $paramStructName;
                 |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const($maxReactionIdUsize);
                 |
-                |    fn assemble(args: Self::Params, _assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
+                |    fn assemble(args: Self::Params, __assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
-                |        _assembler.fix_cur_id();
+                |        __assembler.fix_cur_id();
                 |
                 |        // assemble self
-                |        let mut _self: Self = Self::user_assemble(_assembler, args);
+                |        let mut __self: Self = Self::user_assemble(__assembler, args);
                 |
 ${"             |        "..declareReactions()}
                 |
                 |        {
-                |            _self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
-                |            _self._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
+                |            __self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
+                |            __self._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
                 |
 ${"             |            "..graphDependencyDeclarations(reactor)}
                 |
 ${"             |            "..declareChildConnections()}
                 |        }
-${"             |        "..nestedInstances.joinToString("\n") { "_assembler.register_reactor(${it.rustLocalName});" }}
+${"             |        "..nestedInstances.joinToString("\n") { "__assembler.register_reactor(${it.rustLocalName});" }}
                 |
-                |       Ok(_self)
+                |       Ok(__self)
                 |    }
                 |}
                 |
@@ -220,7 +220,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         val declarations = nestedInstances.joinToString("\n") {
             """
                 ${it.loc.lfTextComment()}
-                let ${it.rustLocalName}: super::${it.names.wrapperName}${it.typeArgs.angle()} = _assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
+                let ${it.rustLocalName}: super::${it.names.wrapperName}${it.typeArgs.angle()} = __assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
             """.trimIndent()
         }
 
@@ -251,7 +251,7 @@ ${"         |    "..declarations}
 
         val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
 
-        return "$pattern = _assembler.new_reactions::<{$maxReactionIdUsize}>();"
+        return "$pattern = __assembler.new_reactions::<{$maxReactionIdUsize}>();"
     }
 
     private fun workerFunctionCalls(reactor: ReactorInfo): String {
@@ -287,15 +287,15 @@ ${"         |    "..declarations}
     private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
         val reactions = reactor.reactions.map { n ->
             val deps =
-                n.triggers.map { trigger -> "_assembler.declare_triggers(_self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" } +
+                n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" } +
                         n.effects.filterIsInstance<PortData>()
-                            .map { port -> "_assembler.effects_port(${n.invokerId}, &_self.${port.rustFieldName})?;" } +
-                        n.uses.map { trigger -> "_assembler.declare_uses(${n.invokerId}, _self.${trigger.rustFieldName}.get_id())?;" }
+                            .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" } +
+                        n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
         }.joinLn()
 
-        val timers = reactor.timers.map { "_assembler.declare_triggers(_self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;" }.joinLn()
+        val timers = reactor.timers.map { "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;" }.joinLn()
 
         return (reactions + "\n\n" + timers).trimEnd()
     }
@@ -383,7 +383,7 @@ ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName + ":"
                     """.trimMargin()
 
                 this.writeInBlock("mod ${reactor.names.modName} {") {
-                    makeReactorModule(this, reactor, gen)
+                    makeReactorModule(this, reactor)
                 }
                 this.skipLines(2)
             }
@@ -512,11 +512,11 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         is ActionData         -> {
             val delay = minDelay.toRustOption()
             val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
-            "_assembler.$ctorName(\"$lfName\", $delay)"
+            "__assembler.$ctorName(\"$lfName\", $delay)"
         }
-        is TimerData          -> "_assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData           -> "_assembler.new_port(\"$lfName\")"
-        is ChildPortReference -> "_assembler.new_port(\"$childName.$lfName\")"
+        is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
+        is PortData           -> "__assembler.new_port(\"$lfName\")"
+        is ChildPortReference -> "__assembler.new_port(\"$childName.$lfName\")"
     }
 
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
