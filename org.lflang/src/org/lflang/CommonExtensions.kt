@@ -106,3 +106,6 @@ fun String.joinLines(): String = replace(nlPattern, " ")
  */
 fun unreachable(message: String? = null): Nothing =
     throw AssertionError("Unreachable branch" + message?.let { ": $it" }.orEmpty())
+
+/** Returns true if this string is an alphanumeric identifier. */
+val String.isIdentifier get() = matches(Regex("[a-zA-Z][a-zA-Z0-9_]*"))

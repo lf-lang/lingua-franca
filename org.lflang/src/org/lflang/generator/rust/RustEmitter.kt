@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.Target
 import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.TargetCode
@@ -68,6 +69,9 @@ object RustEmitter {
 
     private fun makeReactorModule(out: Emitter, reactor: ReactorInfo) {
         out += with(reactor) {
+            val typeParams = typeParamList.map { it.targetCode }.angle()
+            val typeArgs = typeParamList.map { it.rustName.escapeRustIdent() }.angle()
+
             with (reactor.names) {
             with(ReactorComponentEmitter) {
                 with(PrependOperator) {
@@ -84,12 +88,12 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
                 |/// Generated from ${loc.display()}
                 |///
                 |/${loc.lfTextComment()}
-                |pub struct $structName {
+                |pub struct $structName$typeParams {
 ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}
                 |
                 |#[warn(unused)]
-                |impl $structName {
+                |impl$typeParams $structName$typeArgs {
                 |
 ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(reactor) }}
                 |
@@ -105,16 +109,16 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName}: ${it.ty
                 |//------------------------//
                 |
                 |
-                |pub struct $wrapperName {
+                |pub struct $wrapperName$typeParams {
                 |    _id: $rsRuntime::ReactorId,
-                |    _impl: $structName,
+                |    _impl: $structName$typeArgs,
                 |    _params: $paramStructName,
                 |    _startup_reactions: $rsRuntime::ReactionSet,
                 |    _shutdown_reactions: $rsRuntime::ReactionSet,
 ${"             |    "..(otherComponents + portReferences).joinWithCommasLn { it.toStructField() }}
                 |}
                 |
-                |impl $wrapperName {
+                |impl$typeParams $wrapperName$typeArgs {
                 |    #[inline]
                 |    fn user_assemble(_assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
                 |        let $ctorParamsDeconstructor = _params.clone();
@@ -133,8 +137,8 @@ ${"             |            "..(otherComponents + portReferences).joinWithComma
                 |
                 |use $rsRuntime::*; // after this point there's no user-written code
                 |
-                |impl $rsRuntime::ReactorInitializer for $wrapperName {
-                |    type Wrapped = $structName;
+                |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
+                |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName;
                 |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const(${reactions.size + timers.size /*timers have a reschedule reaction*/});
                 |
@@ -164,7 +168,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "_assembler.reg
                 |}
                 |
                 |
-                |impl ReactorBehavior for $wrapperName {
+                |impl$typeParams ReactorBehavior for $wrapperName$typeArgs {
                 |
                 |    #[inline]
                 |    fn id(&self) -> ReactorId {
@@ -213,7 +217,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         val declarations = nestedInstances.joinToString("\n") {
             """
                 ${it.loc.lfTextComment()}
-                let ${it.rustLocalName}: super::${it.names.wrapperName} = _assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
+                let ${it.rustLocalName}: super::${it.names.wrapperName}${it.typeArgs.angle()} = _assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
             """.trimIndent()
         }
 
@@ -234,7 +238,7 @@ ${"         |    "..declarations}
         return connections.joinToString("\n", "// Declare connections\n") {
             it.locationInfo().lfTextComment() + "\n" +
                     PortEmitter.declareConnection(it)
-        } + portReferences.joinToString("// Declare port references") {
+        } + portReferences.joinToString("// Declare port references") { // fixme add \n and a test
             PortEmitter.declarePortRef(it)
         }
     }
@@ -610,3 +614,8 @@ private fun <T> Iterable<T>.joinWithCommasLn(
     trailing: Boolean = true,
     transform: (T) -> CharSequence = { it.toString() }
 ): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
+
+fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", ">")
+
+fun String.escapeRustIdent() =
+    if (this in Target.Rust.keywords) "r#$this" else this
