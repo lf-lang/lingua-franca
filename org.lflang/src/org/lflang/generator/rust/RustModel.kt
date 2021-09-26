@@ -198,7 +198,7 @@ data class ReactionInfo(
     /** Location metadata. */
     val loc: LocationInfo,
 
-    val debugLabel: String? = null
+    val debugLabel: String?
 ) {
 
     /** Dependencies that trigger the reaction. */
@@ -448,6 +448,7 @@ object RustModelBuilder {
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it.isStartup },
                     isShutdown = n.triggers.any { it.isShutdown },
+                    debugLabel = ASTUtils.label(n),
                     loc = n.locationInfo().let {
                         // remove code block
                         it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{= ... =}"))
