@@ -51,6 +51,21 @@ class LfIssueReportingTest {
         doTest(fileBaseName = "simpleWarning")
     }
 
+    @Test
+    fun testMultilineWarning() {
+        doTest(fileBaseName = "multilineWarning")
+    }
+
+    @Test
+    fun testMultilineWarningTooBig() {
+        doTest(fileBaseName = "multilineWarningTooBig")
+    }
+
+    @Test
+    fun testTabs() {
+        doTest(fileBaseName = "tabs")
+    }
+
     /**
      * Looks for a file named [fileBaseName].lf to validate,
      * and its sibling [fileBaseName].stderr, which is the
@@ -79,7 +94,7 @@ class LfIssueReportingTest {
 
         if (!Files.exists(expectedPath)) {
             Files.writeString(expectedPath, actualOutput)
-            throw AssertionFailedError("Expected file $expectedPath does not exit, created it")
+            throw AssertionFailedError("Expected file $expectedPath does not exist, created it")
         }
         val expected = Files.readString(expectedPath)
 

@@ -34,6 +34,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.system.exitProcess
@@ -242,11 +243,10 @@ class ReportingBackend constructor(
     }
 
     private fun getBuilder(issue: LfIssue, lines: List<String>, displayPath: String): MessageTextBuilder {
-        val zeroL = issue.line!! - 1
-        val firstL = max(0, zeroL - numLinesAround + 1)
-        val lastL = min(lines.size, zeroL + numLinesAround)
+        val firstL = max(0, issue.line!! - 1 - numLinesAround + 1)
+        val lastL = min(lines.size, issue.endLine!! - 1 + numLinesAround)
         val strings: List<String> = lines.subList(firstL, lastL)
-        return MessageTextBuilder(strings, firstL, zeroL - firstL, displayPath, issue)
+        return MessageTextBuilder(strings, firstL, issue.line - 1 - firstL, displayPath, issue)
     }
 
     /** Renders a single issue. */
@@ -267,11 +267,27 @@ class ReportingBackend constructor(
         fun build(): String {
             // the padding to apply to line numbers
             val pad = 2 + widthOfLargestLineNum()
-            val withLineNums: MutableList<String> =
+            val withLineNums: ArrayList<String> =
                 lines.indices.mapTo(ArrayList()) { numberedLine(it, pad) }
 
-            withLineNums.add(errorIdx + 1, makeErrorLine(pad))
-            withLineNums.add(errorIdx + 2, emptyGutter(pad)) // skip a line
+            if (issue.line!! == issue.endLine!!) {
+                // single line warning
+                withLineNums.add(errorIdx + 1, makeErrorLine(pad))
+                withLineNums.add(errorIdx + 2, emptyGutter(pad)) // skip a line
+            } else {
+                // multiline
+                val spanInLines = issue.endLine - issue.line
+
+                withLineNums.add(errorIdx, makeMultilineFence(pad, forward = true))
+                withLineNums.add(errorIdx + spanInLines + 2, makeMultilineFence(pad, forward = false, message = issue.message))
+
+                if (spanInLines >= 3) {
+                    // too big, remove some lines
+                    withLineNums.subList(errorIdx + 3, errorIdx + spanInLines ).clear()
+                    // replace with an ellipsis
+                    withLineNums.add(errorIdx + 3, emptyGutter(pad) + " ...")
+                }
+            }
 
             // skip a line at the beginning
             // add it at the end to not move other indices
@@ -294,8 +310,21 @@ class ReportingBackend constructor(
             return "$prefix $fileDisplayName:${issue.line}:${issue.column}"
         }
 
+        private fun makeMultilineFence(pad: Int, forward: Boolean, message: String? = null): String {
+            val char = if (forward) '>' else '<'
+            val caretLine = buildString {
+                append(' ')
+                repeatChar(char, 14)
+                if (message != null)
+                    append(' ').append(message)
+            }
+            // gutter has its own ANSI stuff so only caretLine gets severityColors
+            return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
+        }
+
         private fun makeErrorLine(pad: Int): String {
             val line = lines[errorIdx]
+
             // tabs are replaced with spaces to align messages properly
             fun makeOffset(startIdx: Int, length: Int): Int {
                 // note: this is needed because when the issue spans several lines,
@@ -328,11 +357,11 @@ class ReportingBackend constructor(
 
         private fun formatLineNum(str: String) = colors.cyanAndBold(str)
 
-        private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
-            fun StringBuilder.repeatChar(c: Char, n: Int) {
-                repeat(n) { append(c) }
-            }
+        fun StringBuilder.repeatChar(c: Char, n: Int) {
+            repeat(n) { append(c) }
+        }
 
+        private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
             return buildString {
                 repeatChar(' ', column)
                 repeatChar('^', max(rangeLen, 1))
