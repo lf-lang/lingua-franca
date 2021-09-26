@@ -1,36 +1,27 @@
 /* Test that reactions can depend on ports of input child. */
-target Rust {
-    timeout: 60 msec
-};
 
-reactor Scaler(factor: u32(2)) {
+target Rust;
+
+reactor Box {
     input inp: u32;
     output out: u32;
 
-    reaction(inp) -> out {=
-        if let Some(i) = ctx.get(inp) {
-            ctx.set(out, i * params.factor)
-        }
-    =}
+    inp -> out;
 }
 
 main reactor {
-    double = new Scaler(factor=2);
+    state done: bool(false);
 
-    timer clock(0, 10 msec);
-    state last: u32(1);
+    box0 = new Box();
+    box1 = new Box();
 
-    state vec: u32[]({= Vec::new() =});
+    box0.out -> box1.inp;
 
-    // write dep on child input
-    reaction(clock) -> double.inp {=
-        ctx.set(double__inp, self.last);
-    =}
+    reaction(startup) -> box0.inp {= ctx.set(box0__inp, 444); =}
+    reaction(box1.out) {= assert!(ctx.get_elapsed_logical_time().is_zero()); self.done = true; =}
 
-    // read dep on child output
-    reaction(double.out) {=
-        let scaled = ctx.get(double__out).unwrap();
-        println!("{}", scaled);
-        self.last = scaled;
+    reaction(shutdown) {=
+        assert!(self.done, "reaction was not executed");
+        println!("success");
     =}
 }
