@@ -26,7 +26,6 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
-import org.lflang.Target
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
@@ -70,6 +69,8 @@ data class ReactorInfo(
     /** List of preambles, will be outputted at the top of the file. */
     val preambles: List<TargetCode>,
 
+    val typeParamList: List<TypeParamInfo>,
+
     /**
      * List of reactor instances that are directly created by this reactor.
      * Each of them is a named item accessible from the assemble method (well,
@@ -100,6 +101,12 @@ data class ReactorInfo(
 
 }
 
+data class TypeParamInfo(val targetCode: TargetCode, val idx: Int) {
+    val rustName: String =
+        if (targetCode.trim().isIdentifier) targetCode.trim().escapeRustIdent()
+        else "T$idx"
+}
+
 class ReactorNames(
     /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
     private val lfName: Ident
@@ -107,6 +114,7 @@ class ReactorNames(
 
     /** Name of the rust module, unescaped.. */
     val modFileName: Ident = lfName.camelToSnakeCase()
+
     /** Name of the rust module as it can be referenced in rust code. */
     val modName: Ident = modFileName.escapeRustIdent()
 
@@ -126,7 +134,8 @@ data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
     val args: Map<String, TargetCode>,
-    val loc: LocationInfo
+    val loc: LocationInfo,
+    val typeArgs: List<TargetCode>
 ) {
     val rustLocalName = lfName.escapeRustIdent()
 
@@ -450,6 +459,9 @@ object RustModelBuilder {
                 reactions = reactions,
                 otherComponents = components.values.toList(),
                 isMain = reactor.isMain,
+                typeParamList = reactor.typeParms.mapIndexed { i, tp ->
+                    TypeParamInfo(targetCode = tp.toText(), idx = i)
+                },
                 preambles = reactor.preambles.map { it.code.toText() },
                 stateVars = reactor.stateVars.map {
                     StateVarInfo(
@@ -487,11 +499,9 @@ object RustModelBuilder {
             lfName = this.name,
             args = args,
             reactorLfName = this.reactorClass.name,
-            loc = this.locationInfo()
+            loc = this.locationInfo(),
+            typeArgs = typeParms.map { it.toText() }
         )
     }
 }
 
-
-fun String.escapeRustIdent() =
-    if (this in Target.Rust.keywords) "r#$this" else this
