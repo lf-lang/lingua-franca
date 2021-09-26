@@ -108,40 +108,13 @@ data class ReactorInfo(
         reactions.flatMap { it.allDependencies.values }.flatten().filterIsInstance<ChildPortReference>().toSet()
 
 
-    /**
-     * Returns the type of the port with the given name, when
-     * this reactor's type parameters are instantiated with
-     * the given type arguments. For instance, in the following:
-     *
-     *     reactor Generic<T> { input port: Vec<T>; }
-     *     reactor Container { gen = new Generic<String>(); }
-     *
-     * the type of `gen.port` is `Vec<String>`. If a reaction of
-     * `Container` depends on `gen.port`, it needs to be injected
-     * with the correct type. The correct call to this method
-     * would be `generic.typeOfPort("port", listOf("String"))`.
-     *
-     */
-    fun typeOfPort(portName: Ident, typeArgs: List<TargetCode>): TargetCode {
-        assert(typeArgs.size == typeParamList.size)
-        val port = otherComponents.filterIsInstance<PortData>().first { it.lfName == portName }
-
-        return if (typeArgs.isEmpty()) port.dataType
-        else port.dataType.replace(IDENT_REGEX) { match ->
-            typeParamList.indexOfFirst { it.lfName == match.value }
-                .takeIf { it >= 0 }
-                ?.let { typeArgs[it] }
-                ?: match.value
-        }
-    }
 }
 
 class TypeParamInfo(
     val targetCode: TargetCode,
     val lfName: Ident,
     val loc: LocationInfo
-) {
-}
+)
 
 class ReactorNames(
     /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
@@ -369,19 +342,9 @@ data class ChildPortReference(
     val childName: Ident,
     override val lfName: Ident,
     val isInput: Boolean,
-    /** ID of the containing reactor. */
-    val containerId: ReactorId,
-    val reactorTypeArgs: List<TargetCode>,
-    /** */
     val dataType: TargetCode
 ) : ReactorComponent() {
     val rustFieldOnChildName: String get() = "__$lfName"
-
-
-    fun dataType(gen: GenerationInfo): TargetCode {
-        val reactor = gen.getReactor(containerId)
-        return reactor.typeOfPort(lfName, reactorTypeArgs)
-    }
 }
 
 data class ActionData(
@@ -463,13 +426,12 @@ object RustModelBuilder {
                         val variable = it.variable
                         val container = it.container
                         if (container is Instantiation && variable is Port) {
+                            val formalType = RustTypes.getTargetType(variable.type)
                             ChildPortReference(
                                 childName = container.name,
-                                containerId = container.reactor.globalId,
                                 lfName = variable.name,
                                 isInput = variable is Input,
-                                reactorTypeArgs = container.typeParms.map { it.toText() },
-                                dataType = RustTypes.getTargetType(variable.type),
+                                dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
@@ -503,11 +465,8 @@ object RustModelBuilder {
                 reactions = reactions,
                 otherComponents = components.values.toList(),
                 isMain = reactor.isMain,
-                typeParamList = reactor.typeParms.mapIndexed { i, tp ->
-                    val targetCode = tp.toText()
-                    val ident = IDENT_REGEX.find(targetCode.trimStart())?.value
-                        ?: throw InvalidSourceException("No identifier in type param `$targetCode`", tp)
-                    TypeParamInfo(targetCode = tp.toText(), ident, tp.locationInfo())
+                typeParamList = reactor.typeParms.map {
+                    TypeParamInfo(targetCode = it.toText(), it.identifier, it.locationInfo())
                 },
                 preambles = reactor.preambles.map { it.code.toText() },
                 stateVars = reactor.stateVars.map {
@@ -576,3 +535,40 @@ class ReactorId(private val id: String) {
 val Reactor.globalId: ReactorId
     get() = ReactorId(this.eResource().toPath().toString() + "/" + this.name + "/" + "/" + this.isMain)
 
+/**
+ * Returns the type of the port with the given name, when
+ * this reactor's type parameters are instantiated with
+ * the given type arguments. For instance, in the following:
+ *
+ *     reactor Generic<T> { input port: Vec<T>; }
+ *     reactor Container { gen = new Generic<String>(); }
+ *
+ * the type of `gen.port` is `Vec<String>`. If a reaction of
+ * `Container` depends on `gen.port`, it needs to be injected
+ * with the correct type. The correct call to this method
+ * would be `generic.typeOfPort("port", listOf("String"))`.
+ *
+ */
+fun Reactor.instantiateType(formalType: TargetCode, typeArgs: List<TypeParm>): TargetCode {
+    val typeParams = typeParms
+    assert(typeArgs.size == typeParams.size)
+
+    return if (typeArgs.isEmpty()) formalType
+    else {
+        val typeArgsByName = typeParams.mapIndexed { i, tp -> Pair(tp.identifier, typeArgs[i].toText()) }.toMap()
+
+        formalType.replace(IDENT_REGEX) {
+            typeArgsByName[it.value] ?: it.value
+        }
+    }
+}
+
+/**
+ * Returns the identifier of this type param.
+ */
+private val TypeParm.identifier: String
+    get() {
+        val targetCode = toText()
+        return IDENT_REGEX.find(targetCode.trimStart())?.value
+            ?: throw InvalidSourceException("No identifier in type param `$targetCode`", this)
+    }

@@ -31,6 +31,7 @@ import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.joinLines
+import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
 import java.nio.file.Paths
 import java.time.LocalDateTime
@@ -87,6 +88,7 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
                 |///
                 |/${loc.lfTextComment()}
                 |pub struct $structName$typeParams {
+                |    __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}
                 |
@@ -126,6 +128,7 @@ ${"             |    "..(otherComponents + portReferences).joinWithCommasLn { it
                 |            _startup_reactions: Default::default(),
                 |            _shutdown_reactions: Default::default(),
                 |            _impl: $structName {
+                |                __phantom: std::marker::PhantomData,   
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
 ${"             |            "..(otherComponents + portReferences).joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
@@ -138,7 +141,7 @@ ${"             |            "..(otherComponents + portReferences).joinWithComma
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName;
-                |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const(${reactions.size + timers.size /*timers have a reschedule reaction*/});
+                |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const($maxReactionIdUsize);
                 |
                 |    fn assemble(args: Self::Params, _assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
                 |        // children reactors   
@@ -201,6 +204,9 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         }
     }
 
+    /** timers have a reschedule reaction*/
+    private val ReactorInfo.maxReactionIdUsize get() = reactions.size + timers.size
+
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
             args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
@@ -245,7 +251,7 @@ ${"         |    "..declarations}
 
         val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
 
-        return "$pattern = _assembler.new_reactions::<{Self::MAX_REACTION_ID.index()}>();"
+        return "$pattern = _assembler.new_reactions::<{$maxReactionIdUsize}>();"
     }
 
     private fun workerFunctionCalls(reactor: ReactorInfo): String {
@@ -482,10 +488,10 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     private fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
         depKind == DepKind.Triggers && this !is PortData
 
-    private fun ReactorComponent.toBorrowedType(kind: DepKind, gen: GenerationInfo): TargetCode =
+    private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
         when (this) {
             is PortData           -> portRefWrapper(kind, dataType)
-            is ChildPortReference -> portRefWrapper(kind, this.dataType(gen))
+            is ChildPortReference -> portRefWrapper(kind, dataType)
             else                  -> "&mut ${toType()}"
         }
 
@@ -526,7 +532,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         return "$fieldVisibility$rustFieldName: ${toType()}"
     }
 
-    private fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo, gen: GenerationInfo): String {
+    private fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
             for ((kind, comps) in allDependencies) {
                 for (comp in comps) {
@@ -537,7 +543,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
                     // don't have to
                     val mut = if (comp.isInjectedAsMut(kind)) "#[allow(unused_mut)] mut " else ""
 
-                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind, gen)}"
+                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
 
                     if (comp.mayBeUnusedInReaction(kind)) {
                         yield("#[allow(unused)] $param")

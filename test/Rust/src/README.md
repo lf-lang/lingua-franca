@@ -7,7 +7,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [x] reactor composition
   - [x] `CompositionInitializationOrder.lf`: startup reactions are called bottom-up
   - [x] `CompositionWithPorts.lf`: port bindings work
-  - [ ] `GenericReactor.lf`: generic reactors may compose, types are properly resolved
+  - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
 - [ ] ports
     - [x] values
     - [ ] missing values at some tags
