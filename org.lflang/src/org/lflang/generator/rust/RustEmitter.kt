@@ -30,7 +30,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
-import org.lflang.generator.rust.RustEmitter.rsRuntime
 import org.lflang.joinLines
 import org.lflang.withDQuotes
 import java.nio.file.Paths
@@ -61,19 +60,18 @@ object RustEmitter {
             fileConfig.emit("src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
                 fileConfig.emit("src/reactors/${reactor.names.modFileName}.rs") {
-                    makeReactorModule(this, reactor)
+                    makeReactorModule(this, reactor, gen)
                 }
             }
         }
     }
 
-    private fun makeReactorModule(out: Emitter, reactor: ReactorInfo) {
+    private fun makeReactorModule(out: Emitter, reactor: ReactorInfo, gen: GenerationInfo) {
         out += with(reactor) {
             val typeParams = typeParamList.map { it.targetCode }.angle()
-            val typeArgs = typeParamList.map { it.rustName.escapeRustIdent() }.angle()
+            val typeArgs = typeParamList.map { it.lfName.escapeRustIdent() }.angle()
 
-            with (reactor.names) {
-            with(ReactorComponentEmitter) {
+            with(reactor.names) {
                 with(PrependOperator) {
                     """
                 |${generatedByComment("//")}
@@ -200,7 +198,6 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         """.trimMargin()
                 }
             }
-            }
         }
     }
 
@@ -251,7 +248,7 @@ ${"         |    "..declarations}
         return "$pattern = _assembler.new_reactions::<{Self::MAX_REACTION_ID.index()}>();"
     }
 
-    private fun ReactorComponentEmitter.workerFunctionCalls(reactor: ReactorInfo): String {
+    private fun workerFunctionCalls(reactor: ReactorInfo): String {
 
         fun joinDependencies(reaction: ReactionInfo): String = sequence {
             for ((kind, deps) in reaction.allDependencies) {
@@ -380,7 +377,7 @@ ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName + ":"
                     """.trimMargin()
 
                 this.writeInBlock("mod ${reactor.names.modName} {") {
-                    makeReactorModule(this, reactor)
+                    makeReactorModule(this, reactor, gen)
                 }
                 this.skipLines(2)
             }
@@ -450,17 +447,13 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             val fields = ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }
             return "${names.paramStructName} { $fields }"
         }
-}
-
-
-private object ReactorComponentEmitter {
 
 
     /**
      * Returns null if there is no need to manipulate the
      * dependency within the reaction.
      */
-    fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
+    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
         is PortData, is ChildPortReference ->
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
@@ -468,7 +461,7 @@ private object ReactorComponentEmitter {
         is TimerData                       -> null
     }
 
-    fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
+    private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
         this is TimerData
                 // Item is both in inputs and outputs.
                 // We must not generate 2 parameters, instead we generate the
@@ -478,7 +471,7 @@ private object ReactorComponentEmitter {
                 // we skip the Trigger one and generate the Effects one.
                 || depKind != DepKind.Effects && this in n.effects
 
-    fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
+    private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
         depKind == DepKind.Effects && (this is PortData || this is ActionData)
 
     /**
@@ -486,18 +479,21 @@ private object ReactorComponentEmitter {
      * Eg. actions on which we have just a trigger dependency
      * are fine to ignore.
      */
-    fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
+    private fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
         depKind == DepKind.Triggers && this !is PortData
 
-    fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
-        if (this is PortData || this is ChildPortReference) {
-            val dataType = (this as DataTypeOwner).dataType
+    private fun ReactorComponent.toBorrowedType(kind: DepKind, gen: GenerationInfo): TargetCode =
+        when (this) {
+            is PortData           -> portRefWrapper(kind, dataType)
+            is ChildPortReference -> portRefWrapper(kind, this.dataType(gen))
+            else                  -> "&mut ${toType()}"
+        }
 
-            if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>"
-            else "$rsRuntime::ReadablePort<$dataType>"
-        } else "&mut ${toType()}"
+    private fun portRefWrapper(kind: DepKind, dataType: TargetCode) =
+        if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>"
+        else "$rsRuntime::ReadablePort<$dataType>"
 
-    fun ReactorComponent.toType(): TargetCode = when (this) {
+    private fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData         ->
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalAction<${dataType ?: "()"}>"
@@ -506,7 +502,7 @@ private object ReactorComponentEmitter {
         is TimerData          -> "$rsRuntime::Timer"
     }
 
-    fun ReactorComponent.initialExpression(): TargetCode = when (this) {
+    private fun ReactorComponent.initialExpression(): TargetCode = when (this) {
         is ActionData         -> {
             val delay = minDelay.toRustOption()
             val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
@@ -517,7 +513,7 @@ private object ReactorComponentEmitter {
         is ChildPortReference -> "_assembler.new_port(\"$childName.$lfName\")"
     }
 
-    fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
+    private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
         is ActionData         -> "ctx.cleanup_action(&mut self.$rustFieldName);"
         is PortData,
         is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
@@ -525,12 +521,12 @@ private object ReactorComponentEmitter {
     }
 
 
-    fun ReactorComponent.toStructField(): TargetCode {
+    private fun ReactorComponent.toStructField(): TargetCode {
         val fieldVisibility = if (this is PortData) "pub " else ""
         return "$fieldVisibility$rustFieldName: ${toType()}"
     }
 
-    fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
+    private fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo, gen: GenerationInfo): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
             for ((kind, comps) in allDependencies) {
                 for (comp in comps) {
@@ -541,7 +537,7 @@ private object ReactorComponentEmitter {
                     // don't have to
                     val mut = if (comp.isInjectedAsMut(kind)) "#[allow(unused_mut)] mut " else ""
 
-                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
+                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind, gen)}"
 
                     if (comp.mayBeUnusedInReaction(kind)) {
                         yield("#[allow(unused)] $param")

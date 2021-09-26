@@ -41,7 +41,13 @@ data class GenerationInfo(
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
     val properties: RustTargetProperties
-)
+) {
+
+    private val byId = reactors.associateBy { it.globalId }
+
+    fun getReactor(id: ReactorId): ReactorInfo =
+        byId[id] ?: throw IllegalArgumentException("No such recorded ID: $id, I know ${byId.keys}")
+}
 
 data class RustTargetProperties(
     val keepAlive: Boolean = false,
@@ -56,6 +62,8 @@ data class RustTargetProperties(
 data class ReactorInfo(
     /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
     val lfName: Ident,
+    /** Global ID. */
+    val globalId: ReactorId,
     /** Whether this is the main reactor. */
     val isMain: Boolean,
     /** A list of reactions, in order of their [ReactionInfo.idx]. */
@@ -85,9 +93,9 @@ data class ReactorInfo(
      * todo Connection doesn't have its own model class
      */
     val connections: List<Connection>,
-    val loc: LocationInfo
+    val loc: LocationInfo,
 
-) {
+    ) {
     /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
     val timers: List<TimerData> = otherComponents.filterIsInstance<TimerData>()
@@ -99,12 +107,40 @@ data class ReactorInfo(
     val portReferences: Set<ChildPortReference> =
         reactions.flatMap { it.allDependencies.values }.flatten().filterIsInstance<ChildPortReference>().toSet()
 
+
+    /**
+     * Returns the type of the port with the given name, when
+     * this reactor's type parameters are instantiated with
+     * the given type arguments. For instance, in the following:
+     *
+     *     reactor Generic<T> { input port: Vec<T>; }
+     *     reactor Container { gen = new Generic<String>(); }
+     *
+     * the type of `gen.port` is `Vec<String>`. If a reaction of
+     * `Container` depends on `gen.port`, it needs to be injected
+     * with the correct type. The correct call to this method
+     * would be `generic.typeOfPort("port", listOf("String"))`.
+     *
+     */
+    fun typeOfPort(portName: Ident, typeArgs: List<TargetCode>): TargetCode {
+        assert(typeArgs.size == typeParamList.size)
+        val port = otherComponents.filterIsInstance<PortData>().first { it.lfName == portName }
+
+        return if (typeArgs.isEmpty()) port.dataType
+        else port.dataType.replace(IDENT_REGEX) { match ->
+            typeParamList.indexOfFirst { it.lfName == match.value }
+                .takeIf { it >= 0 }
+                ?.let { typeArgs[it] }
+                ?: match.value
+        }
+    }
 }
 
-data class TypeParamInfo(val targetCode: TargetCode, val idx: Int) {
-    val rustName: String =
-        if (targetCode.trim().isIdentifier) targetCode.trim().escapeRustIdent()
-        else "T$idx"
+class TypeParamInfo(
+    val targetCode: TargetCode,
+    val lfName: Ident,
+    val loc: LocationInfo
+) {
 }
 
 class ReactorNames(
@@ -302,13 +338,6 @@ sealed class ReactorComponent {
     }
 }
 
-interface DataTypeOwner {
-    /**
-     * Rust data type of this component,
-     * e.g. value type for actions and ports.
-     */
-    val dataType: TargetCode
-}
 
 /**
  * @property dataType A piece of target code
@@ -316,9 +345,10 @@ interface DataTypeOwner {
 data class PortData(
     override val lfName: Ident,
     val isInput: Boolean,
-    override val dataType: TargetCode,
+    /** Rust data type of this component */
+    val dataType: TargetCode,
     val isMultiport: Boolean = false
-) : ReactorComponent(), DataTypeOwner {
+) : ReactorComponent() {
     companion object {
         fun from(port: Port) =
             PortData(
@@ -339,9 +369,19 @@ data class ChildPortReference(
     val childName: Ident,
     override val lfName: Ident,
     val isInput: Boolean,
-    override val dataType: TargetCode
-) : ReactorComponent(), DataTypeOwner {
+    /** ID of the containing reactor. */
+    val containerId: ReactorId,
+    val reactorTypeArgs: List<TargetCode>,
+    /** */
+    val dataType: TargetCode
+) : ReactorComponent() {
     val rustFieldOnChildName: String get() = "__$lfName"
+
+
+    fun dataType(gen: GenerationInfo): TargetCode {
+        val reactor = gen.getReactor(containerId)
+        return reactor.typeOfPort(lfName, reactorTypeArgs)
+    }
 }
 
 data class ActionData(
@@ -421,12 +461,15 @@ object RustModelBuilder {
                 fun makeDeps(depKind: Reaction.() -> List<VarRef>): Set<ReactorComponent> =
                     n.depKind().mapTo(mutableSetOf()) {
                         val variable = it.variable
-                        if (it.container is Instantiation && variable is Port) {
+                        val container = it.container
+                        if (container is Instantiation && variable is Port) {
                             ChildPortReference(
-                                childName = it.container.name,
+                                childName = container.name,
+                                containerId = container.reactor.globalId,
                                 lfName = variable.name,
                                 isInput = variable is Input,
-                                dataType = RustTypes.getTargetType(variable.type)
+                                reactorTypeArgs = container.typeParms.map { it.toText() },
+                                dataType = RustTypes.getTargetType(variable.type),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
@@ -456,11 +499,15 @@ object RustModelBuilder {
                     // remove body
                     it.copy(lfText = it.lfText.replace(BLOCK_R, "{ ... }"))
                 },
+                globalId = reactor.globalId,
                 reactions = reactions,
                 otherComponents = components.values.toList(),
                 isMain = reactor.isMain,
                 typeParamList = reactor.typeParms.mapIndexed { i, tp ->
-                    TypeParamInfo(targetCode = tp.toText(), idx = i)
+                    val targetCode = tp.toText()
+                    val ident = IDENT_REGEX.find(targetCode.trimStart())?.value
+                        ?: throw InvalidSourceException("No identifier in type param `$targetCode`", tp)
+                    TypeParamInfo(targetCode = tp.toText(), ident, tp.locationInfo())
                 },
                 preambles = reactor.preambles.map { it.code.toText() },
                 stateVars = reactor.stateVars.map {
@@ -504,4 +551,28 @@ object RustModelBuilder {
         )
     }
 }
+
+/**
+ * An identifier for a [Reactor]. Used to associate [Reactor]
+ * with model objects and vice versa.
+ */
+class ReactorId(private val id: String) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as ReactorId
+        return id == other.id
+    }
+
+    override fun hashCode(): Int = id.hashCode()
+    override fun toString(): String = id
+}
+
+/**
+ * Returns a string that is distinct from the globalId
+ * of any other reactor. Equal reactors yield the same
+ * globalID. This does not need to be stable across runs.
+ */
+val Reactor.globalId: ReactorId
+    get() = ReactorId(this.eResource().toPath().toString() + "/" + this.name + "/" + "/" + this.isMain)
 
