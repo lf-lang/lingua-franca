@@ -30,6 +30,8 @@ package org.lflang.lfc;
 
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EValidator;
+import org.eclipse.emf.ecore.impl.EValidatorRegistryImpl;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import org.lflang.ErrorReporter;
@@ -59,5 +61,13 @@ public class LFStandaloneModule implements Module {
         binder.bind(ErrorReporter.class).to(StandaloneErrorReporter.class);
         binder.bind(ReportingBackend.class).toInstance(helper);
         binder.bind(ValidationMessageAcceptor.class).to(StandaloneIssueAcceptor.class);
+        // This is required to force the ResourceValidator to
+        // use a new registry instance (which is reused by the injector as a singleton).
+        // Otherwise, it uses the static EValidator.Registry.INSTANCE which is bad
+        // as the first validator to be created would be persisted in that static instance.
+        // New injectors would reuse the existing instance, but
+        // its fields would have been injected by an older injector
+        // and be out of sync with the rest of the application.
+        binder.bind(EValidator.Registry.class).to(EValidatorRegistryImpl.class).asEagerSingleton();
     }
 }

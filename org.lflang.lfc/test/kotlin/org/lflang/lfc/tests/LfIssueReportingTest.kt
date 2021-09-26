@@ -91,6 +91,8 @@ class LfIssueReportingTest {
         val lfFile = Paths.get("test/resources/$packageName/$fileBaseName.lf")
         val expectedPath = Paths.get("test/resources/$packageName/$fileBaseName.stderr")
 
+        assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
+
         // this side-effects on the ReportingBackend
         main.getValidatedResource(lfFile)
         main.printErrorsIfAny()
