@@ -66,17 +66,22 @@ class LfIssueReportingTest {
         doTest(fileBaseName = "tabs")
     }
 
+    @Test
+    fun testColors() {
+        doTest(fileBaseName = "colors", useColors = true)
+    }
+
     /**
      * Looks for a file named [fileBaseName].lf to validate,
      * and its sibling [fileBaseName].stderr, which is the
      * expected output to stderr. Those files are in the test/resources directory
      */
-    private fun doTest(fileBaseName: String, loader: Class<*> = this::class.java) {
+    private fun doTest(fileBaseName: String, loader: Class<*> = this::class.java, useColors: Boolean = false) {
 
 
         val stderr = SpyPrintStream()
 
-        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(false), 2)
+        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(useColors), 2)
         val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend))
             .createInjectorAndDoEMFRegistration()
         val main = injector.getInstance(Main::class.java)
