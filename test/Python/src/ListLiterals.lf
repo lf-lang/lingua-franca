@@ -1,0 +1,16 @@
+// This example illustrates state variables and parameters on the wiki.
+// For this test, success is just compiling and running.
+target Python;
+
+main reactor {
+    state l12([1,2]);
+    state empty([]);
+    state empty2([,]);
+
+    reaction(startup) {=
+        assert self.empty == []
+        assert self.empty2 == []
+        assert self.l12 == [1, 2]
+        print("Success")
+    =}
+}
