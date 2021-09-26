@@ -1,0 +1,34 @@
+/* Test that reactions can depend on ports of input child. */
+target Rust {
+    timeout: 60 msec
+};
+
+reactor Scaler(factor: u32(2)) {
+    input inp: u32;
+    output out: u32;
+
+    reaction(inp) -> out {=
+        if let Some(i) = ctx.get(inp) {
+            ctx.set(out, i * params.factor)
+        }
+    =}
+}
+
+main reactor {
+    double = new Scaler(factor=2);
+
+    timer clock(0, 10 msec);
+    state last: u32(1);
+
+    // write dep on child input
+    reaction(clock) -> double.inp {=
+        ctx.set(double__inp, self.last);
+    =}
+
+    // read dep on child output
+    reaction(double.out) {=
+        let scaled = ctx.get(double__out).unwrap();
+        println!("{}", scaled);
+        self.last = scaled;
+    =}
+}
