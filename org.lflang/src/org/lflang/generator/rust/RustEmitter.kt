@@ -238,11 +238,11 @@ ${"         |    "..declarations}
 
 
     private fun ReactorInfo.declareChildConnections(): String {
-        return connections.joinToString("\n", "// Declare connections\n") {
+        return connections.joinToString("\n", prefix = "// Declare connections\n") {
             it.locationInfo().lfTextComment() + "\n" +
-                    PortEmitter.declareConnection(it) + "\n"
-        } + portReferences.joinToString("// Declare port references\n") {
-            PortEmitter.declarePortRef(it) + "\n"
+                    PortEmitter.declareConnection(it)
+        } + "\n" + portReferences.joinToString("\n", prefix = "// Declare port references\n") {
+            PortEmitter.declarePortRef(it)
         }
     }
 

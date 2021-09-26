@@ -71,8 +71,8 @@ object PortEmitter {
             val self = "&mut _self.$rustFieldName"
             val child = "&mut ${childName.escapeRustIdent()}.$rustFieldOnChildName"
 
-            if (isInput) "_assembler.bind_ports($self, $child);"
-            else "_assembler.bind_ports($child, $self);"
+            if (isInput) "_assembler.bind_ports($self, $child)?;"
+            else "_assembler.bind_ports($child, $self)?;"
         }
 
     /** Get a list of PortReferences for the given list of variables
