@@ -2,10 +2,19 @@
 // For this test, success is just compiling and running.
 target Python;
 
+
+reactor Sub(seq([1,2])) {
+
+}
+
 main reactor {
     state l12([1,2]);
     state empty([]);
     state empty2([,]);
+
+    sub  = new Sub(seq = [1, 2]);
+    sub2 = new Sub(seq = (1, 2));
+    sub3 = new Sub(seq = ([1, 2]));
 
     reaction(startup) {=
         assert self.empty == []

@@ -5,10 +5,11 @@
 main reactor(x(0), 
             y(0),       // Units are missing but not required
             z(1 msec),  // Type is missing but not required
-            p(1, 2, 3, 4),      // List of integers 
-            q(1 msec, 2 msec, 3 msec), // list of time values
-            r({=0=}),   // Zero-valued target code also is a valid time
-            g(1 msec, 2 msec)   // List of time values
+            p(1, 2, 3, 4),      // tuple of integers
+            pList([1, 2, 3, 4]),    // List of integers
+            q(1 msec, 2 msec, 3 msec), // tuple of time values
+            qList([1 msec, 2 msec, 3 msec]), // list of time values
+            r({=0=})   // Zero-valued target code also is a valid time
             ) {
     state s(y); // Reference to explicitly typed time parameter
     state t(z); // Reference to implicitly typed time parameter
@@ -18,12 +19,24 @@ main reactor(x(0),
     timer tock(1 sec);  // Implicit type time
     timer toe(z);       // Implicit type time
     state baz(p);       // Implicit type int[]
+    state bazList(pList);
     state period(z);    // Implicit type time
     state bar(1 msec, 2 msec, 3 msec);  // tuple of time values
-    state bar([1 msec, 2 msec, 3 msec]);  // list of time values
+    state barList([1 msec, 2 msec, 3 msec]);  // list of time values
     state notype(1, 2, 3, 4);   // tuple
-    state notype([1, 2, 3, 4]); // list
-    reaction(tick) {=
-        # Target code
+    state notypeList([1, 2, 3, 4]); // list
+
+    reaction(startup) {=
+        assert self.notype == (1,2,3,4)
+        assert self.p == (1,2,3,4)
+        assert self.pList == [1,2,3,4]
+        assert self.pList != (1,2,3,4)
+        assert self.notypeList != (1,2,3,4)
+        assert self.notypeList == [1,2,3,4]
+        assert self.baz == (1,2,3,4)
+        assert self.bazList == [1,2,3,4]
+
+        assert self.bar == (MSEC(1),MSEC(2),MSEC(3))
+        assert self.barList == [MSEC(1),MSEC(2),MSEC(3)]
     =}
 }
