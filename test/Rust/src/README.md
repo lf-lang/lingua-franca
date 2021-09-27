@@ -84,3 +84,5 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 ### Runtime
 
 - [ ] parallelize independent computation
+- [ ] keepalive option
+- [ ] timeout option
