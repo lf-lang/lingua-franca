@@ -102,7 +102,7 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(rea
                 |/// Parameters for the construction of a [$structName]
                 |#[derive(Clone)]
                 |pub struct ${names.paramStructName} {
-${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName}: ${it.type}" }}
+${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRustIdent()}: ${it.type}" }}
                 |}
                 |
                 |
@@ -334,7 +334,7 @@ ${"         |    "..declarations}
             |    };
             |    // todo main params are entirely defaulted for now.
             |    let main_args = _MainParams {
-${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName + ":" + (it.defaultValue ?: "Default::default()") }}
+${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
             |    };
             |
             |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
