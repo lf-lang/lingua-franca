@@ -34,6 +34,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
+import java.util.Collections.nCopies
 import kotlin.collections.ArrayList
 import kotlin.math.max
 import kotlin.math.min
@@ -166,7 +167,10 @@ class ReportingBackend constructor(
         if (path == null) null
         else fileCache.computeIfAbsent(path.toAbsolutePath()) {
             try {
-                Files.readAllLines(it, StandardCharsets.UTF_8)
+                Files.readAllLines(it, StandardCharsets.UTF_8) +
+                        // Add a bunch of fake empty lines at the end to avoid IndexOutOfBoundsException
+                        // with errors that hit EOF.
+                        nCopies(5, "")
             } catch (e: IOException) {
                 null
             }
@@ -243,10 +247,11 @@ class ReportingBackend constructor(
     }
 
     private fun getBuilder(issue: LfIssue, lines: List<String>, displayPath: String): MessageTextBuilder {
-        val firstL = max(0, issue.line!! - 1 - numLinesAround + 1)
-        val lastL = min(lines.size, issue.endLine!! - 1 + numLinesAround)
-        val strings: List<String> = lines.subList(firstL, lastL)
-        return MessageTextBuilder(strings, firstL, issue.line - 1 - firstL, displayPath, issue)
+        val firstL = (issue.line!! - numLinesAround).coerceIn(0..lines.size)
+        val lastL = (issue.endLine!! - 1 + numLinesAround).coerceIn(0..lines.size)
+        val lineRange: List<String> = lines.subList(firstL, lastL)
+        val errorIdxInLineRange = issue.line - 1 - firstL
+        return MessageTextBuilder(lineRange, firstL, errorIdxInLineRange, displayPath, issue)
     }
 
     /** Renders a single issue. */
@@ -261,7 +266,7 @@ class ReportingBackend constructor(
     ) {
 
         init {
-            assert(0 <= errorIdx && errorIdx < lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
+            assert(errorIdx in 0..lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
         }
 
         fun build(): String {

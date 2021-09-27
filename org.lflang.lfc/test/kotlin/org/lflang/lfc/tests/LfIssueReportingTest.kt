@@ -81,6 +81,11 @@ class LfIssueReportingTest {
     }
 
     @Test
+    fun testIssue490() {
+        doTest(fileBaseName = "issue490")
+    }
+
+    @Test
     fun testTabs() {
         doTest(fileBaseName = "tabs")
     }
@@ -120,7 +125,7 @@ class LfIssueReportingTest {
 
         if (!Files.exists(expectedPath)) {
             Files.writeString(expectedPath, actualOutput)
-            throw AssertionFailedError("Expected file $expectedPath does not exist, created it")
+            throw AssertionFailedError("Expected file $expectedPath does not exist, created it. Don't forget to `git add` it.")
         }
         val expected = Files.readString(expectedPath)
 
