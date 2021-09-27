@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2021, TU Dresden.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 /**
  * Stand-alone version of the Lingua Franca compiler (lfc).
  */
@@ -59,11 +35,11 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
+import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.StandaloneContext;
 
@@ -83,7 +59,7 @@ public class Main {
      * The location of the class file of this class inside of the jar.
      */
     private static String MAIN_PATH_IN_JAR = String.join("/",
-                                                         new String[] {"!", "org", "lflang", "org/lflang/lfc", "Main.class"});
+                                                         new String[] {"!", "org", "lflang", "lfc", "Main.class"});
 
 
     /**
@@ -274,7 +250,7 @@ public class Main {
             main.cmd = parser.parse(options, args, true);
 
             if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
-                formatter.printHelp("org/lflang/lfc", options);
+                formatter.printHelp("lfc", options);
                 System.exit(0);
             }
 
@@ -295,7 +271,7 @@ public class Main {
             }
         } catch (ParseException e) {
             reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
-            formatter.printHelp("org/lflang/lfc", options);
+            formatter.printHelp("lfc", options);
             System.exit(1);
         }
     }
@@ -304,7 +280,7 @@ public class Main {
      * Fork off a new process (that is an execution of a freshly rebuilt jar)
      * and wait for it to return.
      *
-     * @param cmd The CommandLine object that has stored in it the CLI 
+     * @param cmd The CommandLine object that has stored in it the CLI
      * arguments of the parent process, to be passed on to the child process.
      */
     private void forkAndWait(CommandLine cmd) {
