@@ -312,14 +312,21 @@ class ReportingBackend constructor(
 
         private fun makeMultilineFence(pad: Int, forward: Boolean, message: String? = null): String {
             val char = if (forward) '>' else '<'
-            val caretLine = buildString {
+            val fenceWidth =
+                if (!forward && issue.endColumn != null) {
+                    (issue.endColumn - 1).coerceIn(1..FENCE_WIDTH)
+                } else {
+                    FENCE_WIDTH
+                }
+
+            val fence = buildString {
                 append(' ')
-                repeatChar(char, 14)
+                repeatChar(char, fenceWidth)
                 if (message != null)
                     append(' ').append(message)
             }
-            // gutter has its own ANSI stuff so only caretLine gets severityColors
-            return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
+            // gutter has its own ANSI stuff so only fence gets severityColors
+            return emptyGutter(pad) + colors.severityColors(fence, issue.severity)
         }
 
         private fun makeErrorLine(pad: Int): String {
@@ -372,6 +379,7 @@ class ReportingBackend constructor(
 
     companion object {
         const val TAB_REPLACEMENT = "    "
+        const val FENCE_WIDTH = 14
     }
 }
 
