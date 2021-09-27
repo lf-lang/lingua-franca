@@ -39,9 +39,9 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.StandaloneContext;
+import org.lflang.lfc.LFStandaloneModule;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
