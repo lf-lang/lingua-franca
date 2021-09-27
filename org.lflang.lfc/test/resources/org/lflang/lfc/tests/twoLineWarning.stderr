@@ -6,3 +6,4 @@ lfc: error: Reactor must be named.
 3 |  reactor {
 4 |      }
   | <<<<<< Reactor must be named.
+5 |
