@@ -43,7 +43,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * This implementation of the RTI should be considered a reference
  * implementation. In the future it might be re-implemented in Java or Kotlin.
- * Or we could bootstrap, and implement it using Lingua Franca.
+ * Or we could bootstrap and implement it using Lingua Franca.
  */
 
 #include <stdio.h>
@@ -775,8 +775,7 @@ void handle_next_event_tag(federate_t* fed) {
     // If the federate has no upstream federates, then it does not wait for
     // nor expect a reply. It just proceeds to advance time.
     if (fed->num_upstream > 0) {
-        send_advance_grant_if_safe(fed); // FIXME: Rename appropriate to 
-                                              // allowed or safe instead of appropriate
+        send_advance_grant_if_safe(fed);
     }
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
