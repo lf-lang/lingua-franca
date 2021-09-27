@@ -370,9 +370,9 @@
           <repository
               url="https://kieler.github.io/KLighD/v2.1.0/"/>
           <repository
-              url="https://www.pydev.org/updates/"/>
+              url="https://github.com/fabioz/Pydev/releases/download/pydev_9_0_1/"/>
           <repository
-              url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
+              url="https://download.eclipse.org/wildwebdeveloper/releases/0.13.0/"/>
         </repositoryList>
       </targlet>
     </setupTask>
