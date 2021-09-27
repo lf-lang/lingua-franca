@@ -3,7 +3,6 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
 import org.lflang.generator.getTargetExpr
-import org.lflang.generator.getTargetType
 import org.lflang.lf.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -116,7 +115,7 @@ val TriggerRef.name: String
         this is VarRef  -> this.name
         this.isShutdown -> LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
         this.isStartup  -> LfPackage.Literals.TRIGGER_REF__STARTUP.name
-        else            -> throw AssertionError()
+        else            -> unreachable()
     }
 
 /** Return a comment to be inserted at the top of generated files. */
@@ -129,20 +128,5 @@ fun fileComment(r: Resource) = """
      */
     """.trimIndent()
 
-/* *************************************************************************************************
- * FIXME The following extensions for handling types are actually defined in `GeneratorBase` and should be overridden by the
- *  derived CppGenerator Class. However, this causes a weird design because we would need to pass around a reference
- *  to CppGenerator to derive target types from AST nodes... Moreover, it would not be possible to use the convenient extension
- *  mechanism. The code below is a workaround, but a more general solution should be found.
- */
-
-val StateVar.targetType get():String = this.inferredType.targetType
-val Port.targetType get():String = this.inferredType.targetType
-val Action.targetType: String
-    get() {
-        val inferred = this.inferredType
-        return if (inferred.isUndefined) "void" else inferred.targetType
-    }
-
-val InferredType.targetType: String
+val InferredType.cppType: String
     get() = CppTypes.getTargetType(this)
