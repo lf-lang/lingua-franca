@@ -105,7 +105,9 @@ public class LFCommand {
                 e.printStackTrace();
                 break;
             }
-        } while (len > 0);
+        } while (len > 0);  // Do not necessarily continue
+        // to EOF (len == -1) because a blocking read
+        // operation is hard to interrupt.
     }
 
     /**
@@ -174,7 +176,11 @@ public class LFCommand {
         }
     }
 
-
+    /**
+     * Execute the command while forwarding output and error
+     * streams. Do not allow user cancellation.
+     * @return the process' return code
+     */
     public int run() {
         return run(null);
     }
