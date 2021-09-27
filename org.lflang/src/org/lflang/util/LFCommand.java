@@ -80,39 +80,49 @@ public class LFCommand {
 
 
     /**
-     * A Runnable that collects the output from <code>
-     * InputStream</code>, prints it to <code>print</code>,
-     * and stores it in <code>store</code>.
+     * Collects as much output as possible from <code>in
+     * </code> without blocking, prints it to <code>print
+     * </code>, and stores it in <code>store</code>.
      */
-    private static class OutputCollector implements Runnable {
-
-        private final InputStream in;
-        private final ByteArrayOutputStream store;
-        private final PrintStream print;
-
-        OutputCollector(InputStream in, ByteArrayOutputStream store, PrintStream print) {
-            this.in = in;
-            this.store = store;
-            this.print = print;
-        }
-
-
-        @Override
-        public void run() {
-            byte[] buffer = new byte[64];
-            int len;
-            do {
-                try {
-                    len = in.read(buffer);
-                    if (len > 0) {
-                        store.write(buffer, 0, len);
-                        print.write(buffer, 0, len);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
+    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print) {
+        byte[] buffer = new byte[64];
+        int len;
+        do {
+            try {
+                // This depends on in.available() being
+                //  greater than zero if data is available
+                //  (so that all data is collected)
+                //  and upper-bounded by maximum number of
+                //  bytes that can be read without blocking.
+                //  Only the latter of these two conditions
+                //  is guaranteed by the spec.
+                len = in.read(buffer, 0, Math.min(in.available(), buffer.length));
+                if (len > 0) {
+                    store.write(buffer, 0, len);
+                    print.write(buffer, 0, len);
                 }
-            } while (len != -1);
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
+            }
+        } while (len > 0);
+    }
+
+    /**
+     * Handles the user cancellation if one exists, and
+     * handles any output from <code>process</code>
+     * otherwise.
+     * @param process a <code>Process</code>
+     * @param cancelIndicator a flag indicating whether a
+     *                        cancellation of <code>process
+     *                        </code> is requested
+     */
+    private void poll(Process process, CancelIndicator cancelIndicator) {
+        if (cancelIndicator != null && cancelIndicator.isCanceled()) {
+            process.destroy();
+        } else {
+            collectOutput(process.getInputStream(), output, System.out);
+            collectOutput(process.getErrorStream(), errors, System.err);
         }
     }
 
@@ -145,29 +155,18 @@ public class LFCommand {
             return -1;
         }
 
-        final Thread collectOutputThread = new Thread(new OutputCollector(process.getInputStream(), output, System.out));
-        final Thread collectErrorsThread = new Thread(new OutputCollector(process.getErrorStream(), errors, System.err));
-
-        collectOutputThread.start();
-        collectErrorsThread.start();
-
-        ScheduledExecutorService canceler = null;
-        if (cancelIndicator != null) {
-            canceler = Executors.newSingleThreadScheduledExecutor();
-            canceler.scheduleAtFixedRate(() -> {
-                if (cancelIndicator.isCanceled()) {
-                    collectOutputThread.interrupt();
-                    collectErrorsThread.interrupt();
-                    process.destroy();
-                }
-            }, 0, 20, TimeUnit.MILLISECONDS); // FIXME: magic number
-        }
+        ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
+        poller.scheduleAtFixedRate(
+            () -> poll(process, cancelIndicator),
+            0, 200, TimeUnit.MILLISECONDS // FIXME: magic number
+        );
 
         try {
             final int returnCode = process.waitFor();
-            if (canceler != null) canceler.shutdown();
-            collectOutputThread.join();
-            collectErrorsThread.join();
+            poller.shutdown();
+            poller.awaitTermination(1000, TimeUnit.MILLISECONDS);
+            // Finish collecting any remaining data
+            poll(process, cancelIndicator);
             return returnCode;
         } catch (InterruptedException e) {
             e.printStackTrace();
