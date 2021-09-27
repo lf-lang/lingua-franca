@@ -8,5 +8,5 @@ lfc: error: Reactor must be named.
    | ...
 11 |     // included 2
 12 | }
-   | <<<<<<<<<<<<<< Reactor must be named.
+   | < Reactor must be named.
 13 | // trailing

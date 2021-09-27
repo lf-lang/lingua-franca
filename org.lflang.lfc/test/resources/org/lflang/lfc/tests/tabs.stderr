@@ -11,6 +11,6 @@ lfc: error: State must have a type.
   |
 4 |     state foo(1);
 5 |     state    bar(1);
-  |     ^^^^^^^^^^^^ State must have a type.
+  |     ^^^^^^^^^^^^^^^ State must have a type.
   |
 6 | }
