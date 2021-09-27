@@ -1,5 +1,5 @@
-[![Build Status](https://github.com/icyphy/lingua-franca/workflows/CI/badge.svg)](https://github.com/icyphy/lingua-franca/actions/)
-[![Nightly Build](https://github.com/icyphy/lingua-franca/actions/workflows/nightly-build.yml/badge.svg)](https://github.com/icyphy/lingua-franca/actions/workflows/nightly-build.yml)
+[![Build Status](https://github.com/lf-lang/lingua-franca/workflows/CI/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/)
+[![Nightly Build](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml)
 [![Codecov](https://codecov.io/gh/icyphy/lingua-franca/branch/master/graph/badge.svg?token=CDDG2CNYZY)](https://codecov.io/gh/icyphy/lingua-franca)
 [![Community Status](https://img.shields.io/badge/Community-online-blue)](https://community.lf-lang.org/)
 

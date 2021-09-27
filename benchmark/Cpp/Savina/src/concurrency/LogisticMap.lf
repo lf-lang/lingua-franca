@@ -1,0 +1,123 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor RateComputer(bank_index: size_t{0}, startRate: double{3.46}, rateIncrement: double{0.0025}) {
+    
+    state currentRate: double;
+    
+    input reset: void;
+    input compute: double;
+    output rate: double;
+    
+    reaction(reset) {=
+        currentRate = startRate + (bank_index * rateIncrement);
+    =}
+    
+    reaction(compute) -> rate {=
+        double term = *compute.get();
+        double result = currentRate * term * (1 - term);
+        rate.set(result);
+    =}
+}
+
+reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
+    
+    state curTerm: double;
+    
+    input reset: void;
+    input nextTerm: void;
+    input getTerm: void;
+    output term: double;
+    output computeRate: double;
+    input rate: double;
+
+    reaction (reset) {=
+        //reset local state
+        curTerm = bank_index * termIncrement;   
+    =}
+    
+    reaction(nextTerm) -> computeRate {=
+        computeRate.set(curTerm);
+    =}
+    
+    reaction(getTerm) -> term {=
+        term.set(curTerm);
+    =}
+    
+    reaction(rate) {=
+        curTerm = *rate.get();
+    =}
+}
+
+
+reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
+ 
+    state currentIteration: size_t{0};
+    
+    input start: void;
+    output finished: void;
+
+    output nextTerm: void;
+    output getTerm: void;
+    input[numSeries] term: double;
+    
+    logical action next: void;
+    
+    reaction(start, next) -> getTerm, nextTerm, next {=
+        if(currentIteration == numTerms) {
+            getTerm.set();
+            return;
+        }
+
+        nextTerm.set();
+        currentIteration++;
+        next.schedule();
+    =}
+    
+    reaction(term) -> finished {=
+        double terms_sum{0.0};
+        for (size_t i{0}; i < numSeries; ++i) {
+            terms_sum += *term[i].get();
+        }
+        reactor::log::Info() << "Terms sum: " << terms_sum;
+        finished.set();
+
+        // reset local state
+        currentIteration = 0;
+    =}
+}
+
+main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: double{3.46}, numSeries: size_t{10}) {
+    
+    manager = new Manager(numSeries=numSeries, numTerms=numTerms);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    reaction(startup) {=
+        printBenchmarkInfo("LogisticMapReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numTerms", numTerms, "startRate", startRate, "numSeries", numSeries);
+        printSystemInfo();
+    =}
+    
+    rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
+    seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
+    
+    (runner.start)+ -> manager.start, rateComputers.reset, seriesWorkers.reset;
+    manager.finished -> runner.finished;
+    
+    (manager.nextTerm)+ -> seriesWorkers.nextTerm;
+    (manager.getTerm)+ -> seriesWorkers.getTerm;
+    seriesWorkers.term -> manager.term;
+    
+    seriesWorkers.computeRate -> rateComputers.compute;
+    rateComputers.rate -> seriesWorkers.rate; 
+}

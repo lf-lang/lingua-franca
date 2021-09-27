@@ -17,11 +17,13 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/filterbank"
-    lf_file: "filterbank/FilterBank.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/Matrix.hh"
+    lf_file: "parallelism/FilterBank.lf"
     binary: "FilterBank"
-    gen_args:
-      channels: ["-D", "numChannels=<value>"]
+    gen_args: null
     run_args:
       columns: ["--numColumns", "<value>"]
       simulations: ["--numSimulations", "<value>"]
+      channels: ["--numChannels", "<value>"]

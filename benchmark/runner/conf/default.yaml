@@ -1,8 +1,10 @@
 iterations: 12
 threads: null
-savina_path: "${env:SAVINA_PATH}"
-lf_path: "${env:LF_PATH}"
+savina_path: "${oc.env:SAVINA_PATH}"
+lf_path: "${oc.env:LF_PATH}"
 continue_on_error: False
+test_mode: False
 defaults:
   - benchmark: ???
   - target: ???
+  - _self_

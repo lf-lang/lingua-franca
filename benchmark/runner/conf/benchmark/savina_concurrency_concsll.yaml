@@ -28,12 +28,12 @@ targets:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-      - "${lf_path}/benchmark/Cpp/Savina/src/concsll"
-    lf_file: "concsll/SortedList.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
+    lf_file: "concurrency/SortedList.lf"
     binary: "SortedList"
-    gen_args:
-      workers: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       messages_per_worker: ["--numMessagesPerWorker", "<value>"]
       write_percentage: ["--writePercentage", "<value>"]
       size_percentage: ["--sizePercentage", "<value>"]
+      workers: ["--numWorkers=", "<value>"]
