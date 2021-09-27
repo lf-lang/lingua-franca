@@ -31,11 +31,11 @@ main reactor {
         person.email = "eal@berkeley.edu"
 
         # Pack the message into buffer.
-        serialized = person.SerializeToString()
+        serialized_msg = person.SerializeToString()
         
         # Now unpack the message from buffer.
         unpacked = Person.Person()
-        unpacked.ParseFromString(serialized)
+        unpacked.ParseFromString(serialized_msg)
         
         # Extract and print the unpacked message.
         print("Name: ", unpacked.name)

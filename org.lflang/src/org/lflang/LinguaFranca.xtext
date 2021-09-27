@@ -230,14 +230,22 @@ Connection:
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
-    (delay=Delay | ';'?);
+    (delay=Delay)?
+    (serializer=Serializer)?
+    ';'?
+    ;
 
 // After clause with a delay that can either be specified as a parameter or as
 // a literal value. If no units are given (which implies that the time interval
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
 Delay:
-    'after' (parameter=[Parameter] ';'? | (interval=INT ((unit=TimeUnit ';'?) | ';')))
+    'after' (parameter=[Parameter] | (interval=INT ((unit=TimeUnit))))
+;
+
+// Chooses the serializer to use for the connection
+Serializer:
+    'serializer' type=STRING
 ;
 
 /////////// For target parameters
@@ -272,10 +280,10 @@ Trigger:
 
 Effect:
     Action | Output;
-
 VarRef:
-    variable=[Variable]
-    | container=[Instantiation] '.' variable=[Variable];
+    variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
+    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+;
 
 Assignment:
     (lhs=[Parameter] (
@@ -342,7 +350,8 @@ WidthSpec:
 WidthTerm:
     width=INT 
     | parameter=[Parameter] 
-    | 'widthof(' port=VarRef ')';
+    | 'widthof(' port=VarRef ')'
+    | code=Code;
 
 IPV4Host:
     (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
@@ -403,7 +412,10 @@ terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
 terminal LT_ANNOT: "'" ID?;
 
-terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"';
+terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
+                 | '"""' -> '"""'
+                 ;
+
 terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
 terminal ANY_OTHER: .;
@@ -497,6 +509,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
+    'interleaved' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

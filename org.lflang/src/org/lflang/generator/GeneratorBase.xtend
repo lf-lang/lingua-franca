@@ -28,10 +28,9 @@ package org.lflang.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
+import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -61,6 +60,8 @@ import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -125,6 +126,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The current target configuration.
      */
     protected var TargetConfig targetConfig = new TargetConfig()
+    def TargetConfig getTargetConfig() { return this.targetConfig;}
     
     /**
      * The current file configuration.
@@ -147,6 +149,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * reactor.
      */
     protected Instantiation mainDef
+    def getMainDef() { return mainDef; }
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
@@ -159,7 +162,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected var Set<Resource> resources = newLinkedHashSet
+    protected var Set<LFResource> resources = newLinkedHashSet
     
     /**
      * Graph that tracks dependencies between instantiations. 
@@ -189,6 +192,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Map from reactions to bank indices
      */
     protected var Map<Reaction,Integer> reactionBankIndices = null
+    
+    /**
+     * Keep a unique list of enabled serializers
+     */
+    public var HashSet<SupportedSerializers> enabledSerializers = new HashSet<SupportedSerializers>();
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -202,7 +210,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * A list of federate instances or a list with a single empty string
      * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
      */
-    protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
+    public var List<FederateInstance> federates = new LinkedList<FederateInstance>
 
     /**
      * A map from federate IDs to federate instances.
@@ -227,18 +235,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Contents of $LF_CLASSPATH, if it was set.
      */
     protected String classpathLF
-
-    /**
-     * The index available to user-generated reaction that delineates the index
-     * of the reactor in a bank of reactors. The value must be set to zero
-     * in generated code for reactors that are not in a bank
-     */
-    protected String targetBankIndex = "bank_index"
-
-    /**
-     * The type of the bank index, which must be an integer in the target language
-     */
-    protected String targetBankIndexType = "int"
 
     /**
      * The name of the top-level reactor.
@@ -287,7 +283,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * 
      */
-    def void setTargetConfig(IGeneratorContext context) {
+    protected def void setTargetConfig(IGeneratorContext context) {
         // If there are any physical actions, ensure the threaded engine is used.
         for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
             if (action.origin == ActionOrigin.PHYSICAL) {
@@ -298,7 +294,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
-            TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
+            TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList)
         }
 
         // Override target properties if specified as command line arguments.
@@ -388,7 +384,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         analyzeFederates()
         
         // Process target files. Copy each of them into the src-gen dir.
-        copyUserFiles()
+        // FIXME: Should we do this here? I think the Cpp target doesn't support
+        // the files property and this doesn't make sense for federates the way it is
+        // done here.
+        copyUserFiles(this.targetConfig, this.fileConfig);
 
         // Collect reactors and create an instantiation graph. These are needed to figure out which resources we need
         // to validate, which happens in setResources().
@@ -408,6 +407,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
+        
+        if (!enabledSerializers.isNullOrEmpty) {
+            // If serialization support is
+            // requested by the programmer 
+            // enable support for them.
+            enableSupportForSerialization();            
+        }
     }
 
     /**
@@ -444,7 +450,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def transformDelays() {
          for (r : this.resources) {
-             r.insertGeneratedDelays(this)
+             r.eResource.insertGeneratedDelays(this)
         }
     }
 
@@ -455,9 +461,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param context The context providing the cancel indicator used by the validator.
      */
     protected def setResources(IGeneratorContext context) {
+        val fsa = this.fileConfig.fsa;
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         if (mainDef !== null) {
             reactors.add(mainDef.reactorClass as Reactor);
+            this.resources.add(
+                new LFResource(
+                    mainDef.reactorClass.eResource,
+                    this.fileConfig,
+                    this.targetConfig));
         }
         // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
         // as tainted or fail to validate.
@@ -479,45 +491,54 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             }
                         }
                     }
+                    // Read the target property of the imported file
+                    val target = res.findTarget
+                    var targetConfig = new TargetConfig();
+                    if (target.config !== null) {
+                        TargetProperty.set(targetConfig, target.config.pairs ?: emptyList);
+                    }
+                    val fileConfig = new FileConfig(res, fsa, context);
+                    // Add it to the list of LFResources
+                    this.resources.add(
+                        new LFResource(
+                            res,
+                            fileConfig,
+                            targetConfig)
+                    );
+                    // FIXME: Should the GeneratorBase pull in `files` from imported
+                    // resources? If so, uncomment the following line.
+                    // copyUserFiles(targetConfig, fileConfig);
                 }
-                this.resources.add(res)
             }
         }
     }
 
     /**
      * Copy all files listed in the target property `files` into the
-     * specified directory.
+     * src-gen folder of the main .lf file.
+     * 
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected def copyUserFiles() {
+    protected def copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         // Make sure the target directory exists.
-        val targetDir = this.fileConfig.getSrcGenPath.toFile
-        targetDir.mkdirs
+        val targetDir = this.fileConfig.getSrcGenPath
+        Files.createDirectories(targetDir)
 
         for (filename : targetConfig.fileNames) {
-            val file = FileConfig.findFile(filename, this.fileConfig.srcFile.parent)
-            if (file !== null) {
-                val target = new File(targetDir, file.name)
-                if (target.exists) {
-                    target.delete
-                }
-                Files.copy(file.toPath, target.toPath)
-                targetConfig.filesNamesWithoutPath.add(file.name);
+            val relativeFileName = fileConfig.copyFileOrResource(
+                    filename,
+                    fileConfig.srcFile.parent,
+                    targetDir);
+            if (relativeFileName.isNullOrEmpty) {
+                errorReporter.reportError( 
+                    "Failed to find file " + filename + "specified in the" +
+                    " files target property."
+                )
             } else {
-                // Try to copy the file as a resource.
-                // If this is missing, it should have been previously reported as an error.
-                try {
-                    var filenameWithoutPath = filename
-                    val lastSeparator = filename.lastIndexOf(File.separator)
-                    if (lastSeparator > 0) {
-                        filenameWithoutPath = filename.substring(lastSeparator + 1) // FIXME: brittle. What if the file is in a subdirectory?
-                    }
-                    copyFileFromClassPath(filename, targetDir + File.separator + filenameWithoutPath)
-                    targetConfig.filesNamesWithoutPath.add(filenameWithoutPath);
-                } catch (IOException ex) {
-                    // Ignore. Previously reported as a warning.
-                    System.err.println('''WARNING: Failed to find file «filename».''')
-                }
+                this.targetConfig.filesNamesWithoutPath.add(
+                    relativeFileName
+                );
             }
         }
     }
@@ -685,37 +706,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    /** 
-     * Run the C compiler.
-     * 
-     * This is required here in order to allow any target to compile the RTI.
-     * 
-     * @param file The source file to compile without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     * 
-     * @return true if compilation succeeds, false otherwise. 
-     */
-    def runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        val compile = compileCCommand(file, doNotLinkIfNoMain)
-        if (compile === null) {
-            return false
-        }
-
-        val returnCode = compile.run()
-
-        if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
-            errorReporter.reportError('''«targetConfig.compiler» returns error code «returnCode»''')
-        }
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (compile.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
-            reportCommandErrors(compile.errors.toString())
-        }
-        return (returnCode == 0)
-    }
-
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
@@ -763,88 +753,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
     }
-    
-    /**
-     * Return a command to compile the specified C file.
-     * This produces a C specific compile command. Since this command is
-     * used across targets to build the RTI, it needs to be available in
-     * GeneratorBase.
-     * 
-     * @param fileToCompile The C filename without the .c extension.
-     * @param doNotLinkIfNoMain If true, the compile command will have a
-     *  `-c` flag when there is no main reactor. If false, the compile command
-     *  will never have a `-c` flag.
-     */
-    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val cFilename = getTargetFileName(fileToCompile);
-
-        var relativeSrcPath = fileConfig.outPath.relativize(
-            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
-        var relativeBinPath = fileConfig.outPath.relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
-
-        // NOTE: we assume that any C compiler takes Unix paths as arguments.
-        var relSrcPathString = FileConfig.toUnixString(relativeSrcPath)
-        var relBinPathString = FileConfig.toUnixString(relativeBinPath)
-        
-        // If there is no main reactor, then generate a .o file not an executable.
-        if (mainDef === null) {
-            relBinPathString += ".o";
-        }
-        
-        var compileArgs = newArrayList
-        compileArgs.add(relSrcPathString)
-        for (file: targetConfig.compileAdditionalSources) {
-            var relativePath = fileConfig.outPath.relativize(
-                fileConfig.getSrcGenPath.resolve(Paths.get(file)))
-            compileArgs.add(FileConfig.toUnixString(relativePath))
-        }
-        compileArgs.addAll(targetConfig.compileLibraries)
-
-        // Only set the output file name if it hasn't already been set
-        // using a target property or Args line flag.
-        if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relBinPathString)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-
-        if (targetConfig.threads !== 0 || targetConfig.tracing !== null) {
-            compileArgs.add("-pthread")
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add('''-DNUMBER_OF_WORKERS=«targetConfig.threads»''')
-        }
-        // Finally add the compiler flags in target parameters (if any)
-        if (!targetConfig.compilerFlags.isEmpty()) {
-            compileArgs.addAll(targetConfig.compilerFlags)
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (doNotLinkIfNoMain && main === null) {
-            compileArgs.add("-c") // FIXME: revisit
-            if (fileConfig.compilerMode === Mode.STANDALONE) {
-                errorReporter.reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        
-        val command = commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.outPath)
-        if (command === null) {
-            errorReporter.reportError(
-                "The C target requires GCC >= 7 to compile the generated code. " +
-                "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
-        }
-        return command
-    }
 
     // //////////////////////////////////////////
     // // Protected methods.
-    /** Produces the filename including the target-specific extension */
-    protected def getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
-    }
 
     /**
      * Clear the buffer of generated code.
@@ -884,6 +795,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serializer The serializer used on the connection.
      */
     def String generateNetworkReceiverBody(
         Action action,
@@ -895,9 +807,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingBankIndex,
         int receivingChannelIndex,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        SupportedSerializers serializer
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
 
     /**
@@ -914,6 +827,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param serializer The serializer used on the connection.
      */
     def String generateNetworkSenderBody(
         VarRef sendingPort,
@@ -925,9 +839,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay
+        Delay delay,
+        SupportedSerializers serializer
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
     
     /**
@@ -942,7 +857,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingPortID,
         TimeValue maxSTP
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")        
     }    
     
     /**
@@ -964,8 +879,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int sendingChannelIndex,
         Delay delay
     ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
-    }  
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")        
+    }
+    
+    /**
+     * Add necessary code to the source and necessary build support to
+     * enable the requested serializations in 'enabledSerializations'
+     */   
+    def void enableSupportForSerialization() {
+        throw new UnsupportedOperationException(
+            "Serialization is target-specific "+
+            " and is not implemented for the "+target.toString+" target."
+        );
+    }
     
     /**
      * Returns true if the program is federated and uses the decentralized
@@ -992,12 +918,23 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
+     * Parsed error message from a compiler is returned here.
+     */
+    static class ErrorFileAndLine {
+        public var filepath = null as String
+        public var line = "1"
+        public var character = "0"
+        public var message = ""
+        public var isError = true // false for a warning.
+    }
+
+    /**
      * Generate any preamble code that appears in the code generated
      * file before anything else.
      */
     protected def void generatePreamble() {
         prComment("Code generated by the Lingua Franca compiler from:")
-        prComment("file:/" +FileConfig.toUnixString(fileConfig.srcFile.toPath))
+        prComment("file:/" +FileConfig.toUnixString(fileConfig.srcFile))
         val models = new LinkedHashSet<Model>
 
         for (r : this.reactors ?: emptyList) {
@@ -1008,10 +945,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
         // Add the main reactor if it is defined
         if (this.mainDef !== null) {
-            models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
-        }
-        for (m : models) {
-            for (p : m.preambles) {
+            val mainModel = this.mainDef.reactorClass.toDefinition.eContainer as Model
+            models.add(mainModel)
+            for (p : mainModel.preambles) {
                 pr(p.code.toText)
             }
         }
@@ -1161,17 +1097,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Parsed error message from a compiler is returned here.
-     */
-    protected static class ErrorFileAndLine {
-        public var filepath = null as String
-        public var line = "1"
-        public var character = "0"
-        public var message = ""
-        public var isError = true // false for a warning.
-    }
-
-    /**
      * Given a line of text from the output of a compiler, return
      * an instance of ErrorFileAndLine if the line is recognized as
      * the first line of an error message. Otherwise, return null.
@@ -1198,12 +1123,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param stderr The output on standard error of executing a command.
      */
-    protected def reportCommandErrors(String stderr) {
+    def reportCommandErrors(String stderr) {
         // First, split the message into lines.
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var path = fileConfig.srcFile.toPath()
+        var path = fileConfig.srcFile
         // In case errors occur within an imported file, record the original path.
         val originalPath = path;
         
@@ -1224,8 +1149,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
-                        errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
-                    }
+                        if (severity == IMarker.SEVERITY_ERROR) {
+                            errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                        } else {
+                            errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                        }
+                     }
                 }
                 if (parsed.isError) {
                     severity = IMarker.SEVERITY_ERROR
@@ -1261,69 +1190,23 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
         if (message.length > 0) {
-            if (severity == IMarker.SEVERITY_ERROR)
+            if (severity == IMarker.SEVERITY_ERROR) {
                 errorReporter.reportError(path, lineNumber, message.toString())
-            else
+            } else {
                 errorReporter.reportWarning(path, lineNumber, message.toString())
+            }
 
             if (originalPath != path) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
-                errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                if (severity == IMarker.SEVERITY_ERROR) {
+                    errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
+                } else {
+                    errorReporter.reportWarning(originalPath, 0, "Warning in imported file: " + path)
+                }
             }
-        }
-    }
-
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path 
-     *  in the filesystem.
-     * 
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     * 
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     */
-    protected def copyFileFromClassPath(String source, String destination) {
-        val sourceStream = this.class.getResourceAsStream(source)
-
-        if (sourceStream === null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n" +
-                    "Also try to refresh and clean the project explorer if working from eclipse.")
-        }
-
-        // Copy the file.
-        try {
-            // Make sure the directory exists
-            val destFile = new File(destination);
-            destFile.getParentFile().mkdirs();
-
-            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            throw new IOException(
-                "A required target resource could not be copied: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.",
-                ex)
-        } finally {
-            sourceStream.close()
-        }
-    }
-
-    /**
-     * Copy a list of files from a given source directory to a given destination directory.
-     * @param srcDir The directory to copy files from.
-     * @param dstDir The directory to copy files to.
-     * @param files The files to copy.
-     */
-    protected def copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) {
-        for (file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file)
         }
     }
 
@@ -1645,6 +1528,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
                         /* FIXME: The at keyword should support a directory component.
                          * federateInstance.dir = instantiation.host.dir
                          */
+                        if (federateInstance.host !== null && 
+                            federateInstance.host != 'localhost' && 
+                            federateInstance.host != '0.0.0.0'
+                        ) {
+                            federateInstance.isRemote = true;
+                        }
                     }
                 }
                 if (federatesByInstantiation === null) {
@@ -1822,6 +1711,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
     abstract def String getTargetFixedSizeListType(String baseType, Integer size)
 
     abstract def String getTargetVariableSizeListType(String baseType);
+    
+    /**
+     * Get the buffer type used for network messages
+     */
+    def String getNetworkBufferType() ''''''
 
     /**
      * Return the Targets enum for the current target

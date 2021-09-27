@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.io.File
-import java.io.FileOutputStream
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -37,8 +36,12 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.federated.FederateInstance
+import org.lflang.federated.SupportedSerializers
+import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
@@ -55,7 +58,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.FileConfig
+import org.lflang.TargetConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -829,16 +832,6 @@ class PythonGenerator extends CGenerator {
         }
     }
     
-    /**
-     * Do nothing. The Python generator handles compiling differently.
-     */
-    override runCCompiler(String file, boolean doNotLinkIfNoMain) {
-        // Note that this function is deliberately left empty to prevent the CGenerator from
-        // compiling this code. The Python generator will create a setup.py and compile generated
-        // C code appropriately.
-        return true
-    }
-    
     /** 
      * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
@@ -908,16 +901,43 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
-        // Handle .proto files.
-        for (name : targetConfig.protoFiles) {
-            this.processProtoFile(name)
-            val dotIndex = name.lastIndexOf('.')
-            var rootFilename = name
-            if (dotIndex > 0) {
-                rootFilename = name.substring(0, dotIndex)
+        
+        // FIXME: Probably not the best place to do 
+        // this.
+        if (!targetConfig.protoFiles.isNullOrEmpty) {
+            // Enable support for proto serialization
+            enabledSerializers.add(SupportedSerializers.PROTO)
+        }
+    }
+    
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */  
+    override enableSupportForSerialization() {
+        for (serialization : enabledSerializers) {
+            switch (serialization) {
+                case NATIVE: {
+                    // No need to do anything at this point.
+                }
+                case PROTO: {
+                    // Handle .proto files.
+                    for (name : targetConfig.protoFiles) {
+                        this.processProtoFile(name)
+                        val dotIndex = name.lastIndexOf('.')
+                        var rootFilename = name
+                        if (dotIndex > 0) {
+                            rootFilename = name.substring(0, dotIndex)
+                        }
+                        pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»
+                        ''')
+                    }
+                }
+                case ROS2: {
+                    // FIXME: Not supported yet
+                }
+                
             }
-            pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»
-            ''')
         }
     }
     
@@ -1042,8 +1062,17 @@ class PythonGenerator extends CGenerator {
         if(isFederated) {
             targetConfig.threads = 1;
         }
-
+        
+        // Prevent the CGenerator from compiling the C code.
+        // The PythonGenerator will compiler it.
+        val compileStatus = targetConfig.noCompile;
+        targetConfig.noCompile = true;
+        targetConfig.useCmake = false; // Force disable the CMake because 
+                                       // it interferes with the Python target functionality
+        
         super.doGenerate(resource, fsa, context)
+        
+        targetConfig.noCompile = compileStatus
 
         if (errorsOccurred) return;
 
@@ -1059,17 +1088,16 @@ class PythonGenerator extends CGenerator {
                 // However, we need to create a setup.py for each federate and run
                 // "pip install ." individually to compile and install each module
                 // Here, we move the necessary C files into each federate's folder
-                if (!federate.isSingleton) {
+                if (isFederated) {
 //                    val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
 //                    val dstDir = directory + File.separator + "src-gen" + File.separator + filename
                     var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
                         "ctarget.h", "core")
                     
-                    copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
+                    fileConfig.copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
                     
                     // Do not compile the Python code here. They will be compiled on remote machines
-                }
-                else {
+                } else {
                     if (targetConfig.noCompile !== true) {
                         // If there are no federates, compile and install the generated code
                         pythonCompileCode
@@ -1090,14 +1118,19 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Copy Python specific target code to the src-gen directory
-     */        
-    override copyUserFiles() {
-        super.copyUserFiles()
+     * Also, copy all files listed in the target property `files` into the
+     * src-gen folder of the main .lf file.
+     * 
+     * @param targetConfig The targetConfig to read the `files` from.
+     * @param fileConfig The fileConfig used to make the copy and resolve paths.
+     */
+    override copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+        super.copyUserFiles(targetConfig, fileConfig);
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
         for (file : targetFiles) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/" + "lib" + "/" + "Python" + "/" + file,
                 fileConfig.getSrcGenPath.resolve(file).toString
             )
@@ -1107,196 +1140,10 @@ class PythonGenerator extends CGenerator {
         // This will also overwrite previous versions.
         var cTargetFiles = newArrayList("ctarget.h");
         for (file : cTargetFiles) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/" + "lib" + "/" + "C" + "/" + file,
                 fileConfig.getSrcGenPath.resolve(file).toString
             )
-        }
-    }
-    
-        
-    /** FIXME: This function is copied from the CGenerator to enable federated
-     *  execution. Ideally, the CGenerator.createLauncher() function should be refactored
-     *  into a more flexible format that allows for various target source code extensions.
-     * 
-     *  Create the launcher shell scripts. This will create one or two file
-     *  in the output path (bin directory). The first has name equal to
-     *  the filename of the source file without the ".lf" extension.
-     *  This will be a shell script that launches the
-     *  RTI and the federates.  If, in addition, either the RTI or any
-     *  federate is mapped to a particular machine (anything other than
-     *  the default "localhost" or "0.0.0.0"), then this will generate
-     *  a shell script in the bin directory with name filename_distribute.sh
-     *  that copies the relevant source files to the remote host and compiles
-     *  them so that they are ready to execute using the launcher.
-     * 
-     *  A precondition for this to work is that the user invoking this
-     *  code generator can log into the remote host without supplying
-     *  a password. Specifically, you have to have installed your
-     *  public key (typically found in ~/.ssh/id_rsa.pub) in
-     *  ~/.ssh/authorized_keys on the remote host. In addition, the
-     *  remote host must be running an ssh service.
-     *  On an Arch Linux system using systemd, for example, this means
-     *  running:
-     * 
-     *      sudo systemctl <start|enable> ssh.service
-     * 
-     *  Enable means to always start the service at startup, whereas
-     *  start means to just start it this once.
-     *  On MacOS, open System Preferences from the Apple menu and 
-     *  click on the "Sharing" preference panel. Select the checkbox
-     *  next to "Remote Login" to enable it.
-     * 
-     *  @param coreFiles The files from the core directory that must be
-     *   copied to the remote machines.
-     */
-    override createLauncher(ArrayList<String> coreFiles) {
-        // NOTE: It might be good to use screen when invoking the RTI
-        // or federates remotely so you can detach and the process keeps running.
-        // However, I was unable to get it working properly.
-        // What this means is that the shell that invokes the launcher
-        // needs to remain live for the duration of the federation.
-        // If that shell is killed, the federation will die.
-        // Hence, it is reasonable to launch the federation on a
-        // machine that participates in the federation, for example,
-        // on the machine that runs the RTI.  The command I tried
-        // to get screen to work looks like this:
-        // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
-        var outPath = fileConfig.getSrcGenPath
-
-        val shCode = new StringBuilder()
-        val distCode = new StringBuilder()
-        pr(shCode, '''
-            #!/bin/bash
-            # Launcher for federated «topLevelName».lf Lingua Franca program.
-            # Uncomment to specify to behave as close as possible to the POSIX standard.
-            # set -o posix
-            # Set a trap to kill all background jobs on error.
-            trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
-            # Launch the federates:
-        ''')
-        val distHeader = '''
-            #!/bin/bash
-            # Distributor for federated «topLevelName».lf Lingua Franca program.
-            # Uncomment to specify to behave as close as possible to the POSIX standard.
-            # set -o posix
-        '''
-        val host = federationRTIProperties.get('host')
-        var target = host
-
-        var path = federationRTIProperties.get('dir')
-        if(path === null) path = 'LinguaFrancaRemote'
-
-        var user = federationRTIProperties.get('user')
-        if (user !== null) {
-            target = user + '@' + host
-        }
-        for (federate : federates) {
-            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
-                if(distCode.length === 0) pr(distCode, distHeader)
-                pr(distCode, '''
-                    echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
-                    ssh «federate.host» mkdir -p «path»/log «path»/src-gen/«topLevelName»/core
-                    echo "Copying necessary files to host «federate.host»"
-                    scp -r  src-gen/«topLevelName» «federate.host»:«path»/src-gen/
-                    echo "Compiling on host «federate.host» using: pip install ."
-                    ssh «federate.host» 'cd «path»/src-gen/«topLevelName»; pip install .'
-                ''')
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name» on host «federate.host»"
-                    ssh «federate.host» '\
-                        cd «path»; python3 src-gen/«topLevelName»/«topLevelName»_«federate.name».py >& log/«topLevelName»_«federate.name».out; \
-                        echo "****** Output from federate «federate.name» on host «federate.host»:"; \
-                        cat log/«topLevelName»_«federate.name».out; \
-                        echo "****** End of output from federate «federate.name» on host «federate.host»"' &
-                ''')                
-            } else {
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name»."
-                    pushd «outPath» > /dev/
-                    echo "Compiling and installing the LinguaFranca«topLevelName» module"
-                    pip install .
-                    popd > /dev/null
-                    python3 «outPath»«File.separator»«topLevelName»_«federate.name».py &
-                ''')                
-            }
-        }
-        // Launch the RTI in the foreground.
-        if (host == 'localhost' || host == '0.0.0.0') {
-            pr(shCode, '''
-                echo "#### Launching the runtime infrastructure (RTI)."
-                «outPath»«File.separator»«topLevelName»_RTI
-            ''')
-        } else {
-            // Copy the source code onto the remote machine and compile it there.
-            if (distCode.length === 0) pr(distCode, distHeader)
-            // The mkdir -p flag below creates intermediate directories if needed.
-            pr(distCode, '''
-                cd «path»
-                echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» mkdir -p «path»/log «path»/src-gen/«topLevelName»/core
-                pushd src-gen/«topLevelName»/core > /dev/null
-                echo "Copying LF core files to host «target»"
-                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/«topLevelName»/core
-                popd > /dev/null
-                pushd src-gen/«topLevelName» > /dev/null
-                echo "Copying source files to host «target»"
-                scp «topLevelName»_RTI.c ctarget.h «target»:«path»/src-gen/«topLevelName»
-                popd > /dev/null
-                echo "Compiling on host «target» using: «targetConfig.compiler» -O2 «path»/src-gen/«topLevelName»/«topLevelName»_RTI.c -o «path»/bin/«topLevelName»_RTI -pthread"
-                ssh «target» '«targetConfig.compiler» -O2 «path»/src-gen/«topLevelName»/«topLevelName»_RTI.c -o «path»/bin/«topLevelName»_RTI -pthread'
-            ''')
-
-            // Launch the RTI on the remote machine using ssh and screen.
-            // The -t argument to ssh creates a virtual terminal, which is needed by screen.
-            // The -S gives the session a name.
-            // The -L option turns on logging. Unfortunately, the -Logfile giving the log file name
-            // is not standardized in screen. Logs go to screenlog.0 (or screenlog.n).
-            // FIXME: Remote errors are not reported back via ssh from screen.
-            // How to get them back to the local machine?
-            // Perhaps use -c and generate a screen command file to control the logfile name,
-            // but screen apparently doesn't write anything to the log file!
-            //
-            // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
-            // The sleep at the end prevents screen from exiting before outgoing messages from
-            // the federate have had time to go out to the RTI through the socket.
-            pr(shCode, '''
-                echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
-                ssh «target» 'cd «path»; \
-                    «outPath»/«topLevelName»_RTI >& log/«topLevelName»_RTI.out; \
-                    echo "------ output from «topLevelName»_RTI on host «target»:"; \
-                    cat log/«topLevelName»_RTI.out; \
-                    echo "------ end of output from «topLevelName»_RTI on host «target»"'
-            ''')
-        }
-
-        // Write the launcher file.
-        // Delete file previously produced, if any.
-        var file = new File(outPath + File.separator + topLevelName)
-        if (file.exists) {
-            file.delete
-        }
-                
-        var fOut = new FileOutputStream(file)
-        fOut.write(shCode.toString().getBytes())
-        fOut.close()
-        if (!file.setExecutable(true, false)) {
-            errorReporter.reportWarning("Unable to make launcher script executable.")
-        }
-        
-        // Write the distributor file.
-        // Delete the file even if it does not get generated.
-        file = new File(outPath + File.separator + topLevelName + '_distribute.sh')
-        if (file.exists) {
-            file.delete
-        }
-        if (distCode.length > 0) {
-            fOut = new FileOutputStream(file)
-            fOut.write(distCode.toString().getBytes())
-            fOut.close()
-            if (!file.setExecutable(true, false)) {
-                errorReporter.reportWarning("Unable to make distributor script executable.")
-            }
         }
     }
     
@@ -1565,12 +1412,6 @@ class PythonGenerator extends CGenerator {
      */
     override generateParametersForReactor(StringBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if (parameter.name.equals(targetBankIndex)) {
-                errorReporter.reportError('''«targetBankIndex» is reserved.''')
-            }
-
             prSourceLineNumber(builder, parameter)
             // Assume all parameters are integers
             pr(builder,'''int «parameter.name» ;''');

@@ -152,6 +152,7 @@ do { \
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
+#ifndef __cplusplus
 #define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
@@ -159,6 +160,15 @@ do { \
     out->value = token->value; \
     out->token = token; \
 } while(0)
+#else
+#define _LF_SET_NEW(out) \
+do { \
+    out->is_present = true; \
+    lf_token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    out->value = static_cast<decltype(out->value)>(token->value); \
+    out->token = token; \
+} while(0)
+#endif // __cplusplus
 
 /**
  * Version of set() for output types given as 'type[]'.
@@ -793,43 +803,6 @@ bool _lf_is_blocked_by_executing_reaction();
  * meaning that the execution is not threaded.
  */
 extern unsigned int _lf_number_of_threads;
-
-//  ******** Begin Windows Support ********  //
-// Windows is not POSIX, so we include here compatibility definitions.
-#if _WIN32 || WIN32
-#pragma warning(disable: 4204 4255 4459 4710)
-#ifdef  _M_X64
-typedef long long intptr_t;
-#else
-typedef int intptr_t;
-#endif
-typedef intptr_t INTPTR_T;
-typedef struct HINSTANCE__ *HINSTANCE;
-typedef HINSTANCE HMODULE;
-typedef INTPTR_T (__stdcall *FARPROC)();
-HMODULE __stdcall GetModuleHandleA(char const *lpModuleName);
-FARPROC __stdcall GetProcAddress(HMODULE hModule, char const *lpProcName);
-typedef long NTSTATUS;
-typedef union _LARGE_INTEGER *PLARGE_INTEGER;
-typedef NTSTATUS __stdcall NtDelayExecution_t(unsigned char Alertable,
-  PLARGE_INTEGER Interval);
-NtDelayExecution_t *NtDelayExecution;
-typedef NTSTATUS __stdcall NtQueryPerformanceCounter_t(
-  PLARGE_INTEGER PerformanceCounter, PLARGE_INTEGER PerformanceFrequency);
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter;
-typedef NTSTATUS __stdcall NtQuerySystemTime_t(PLARGE_INTEGER SystemTime); 
-NtQuerySystemTime_t *NtQuerySystemTime;
-#ifndef CLOCK_REALTIME
-#define CLOCK_REALTIME 0
-#endif
-#ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC 1
-#endif
-typedef int clockid_t;
-int clock_gettime(clockid_t clk_id, struct timespec *tp);
-int nanosleep(const struct timespec *req, struct timespec *rem);
-#endif
-//  ******** End Windows Support ********  //
 
 #include "trace.h"
 

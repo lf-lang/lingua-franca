@@ -5,7 +5,10 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source(check_override:int(0)) {
+reactor Source(
+    check_override:int(0),
+    bank_index:int(0)
+) {
     output out:int;
     reaction(startup) -> out {=
         SET(out, self->bank_index * self->check_override);

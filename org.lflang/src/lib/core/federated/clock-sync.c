@@ -169,8 +169,9 @@ ushort setup_clock_synchronization_with_rti() {
 
     port_to_return = ntohs(federate_UDP_addr.sin_port);
 
-    // Set the option for this socket to reuse the same address 
-    if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+    // Set the option for this socket to reuse the same address
+    int option_value = 1; 
+    if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_REUSEADDR, &option_value, sizeof(int)) < 0) {
         error_print("Failed to set SO_REUSEADDR option on the socket: %s.", strerror(errno));
     }
     // Set the timeout on the UDP socket so that read and write operations don't block for too long

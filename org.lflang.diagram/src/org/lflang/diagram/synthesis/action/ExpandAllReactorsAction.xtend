@@ -2,10 +2,10 @@ package org.lflang.diagram.synthesis.action
 
 import de.cau.cs.kieler.klighd.IAction
 import de.cau.cs.kieler.klighd.kgraph.KNode
-import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
 
 import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 
 /**
  * Action that collapses (hides details) of all reactor nodes.
@@ -19,7 +19,7 @@ class ExpandAllReactorsAction extends AbstractAction {
     override execute(ActionContext context) {
         val vc = context.viewContext
         for (node : vc.viewModel.eAllContentsOfType(KNode).filter[sourceIsReactor].toIterable) {
-            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, true)
+            node.setExpansionState(node.linkedInstance, vc.viewer, true)
         }
         return IAction.ActionResult.createResult(true);
     }
