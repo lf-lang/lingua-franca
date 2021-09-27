@@ -187,7 +187,7 @@ class TSGenerator(
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
-            val ret = pnpmInstall.run()
+            val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
@@ -206,7 +206,7 @@ class TSGenerator(
                 return
             }
 
-            if (npmInstall.run() != 0) {
+            if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
@@ -272,7 +272,7 @@ class TSGenerator(
             return
         }
 
-        if (tsc.run() == 0) {
+        if (tsc.run(context.cancelIndicator) == 0) {
             // Babel will compile TypeScript to JS even if there are type errors
             // so only run compilation if tsc found no problems.
             //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
@@ -285,7 +285,7 @@ class TSGenerator(
                 return
             }
 
-            if (babel.run() == 0) {
+            if (babel.run(context.cancelIndicator) == 0) {
                 println("SUCCESS (compiling generated TypeScript code)")
             } else {
                 errorReporter.reportError("Compiler failed.")
