@@ -173,24 +173,19 @@ class ASTUtils {
     }
     
     /**
-     * Return true if any port on the left or right of the connection involves
-     * a bank of reactors or a multiport.
+     * Return true if the connection involves multiple ports on the left or right side of the connection, or
+     * if the port on the left or right of the connection involves a bank of reactors or a multiport.
      * @param connection The connection.
      */
     private static def boolean isWide(Connection connection) {
-        for (leftPort : connection.leftPorts) {
-            if ((leftPort.variable as Port).widthSpec !== null
-                || leftPort.container?.widthSpec !== null
-            ) {
-                return true
-            }
+        if (connection.leftPorts.size > 1 || connection.rightPorts.size > 1) {
+            return true;
         }
-        for (rightPort : connection.rightPorts) {
-            if ((rightPort.variable as Port).widthSpec !== null
-                || rightPort.container?.widthSpec !== null
-            ) {
-                return true
-            }
+        val leftPort = connection.leftPorts.get(0);
+        val rightPort = connection.rightPorts.get(0);
+        if ((leftPort.variable as Port).widthSpec !== null || leftPort.container?.widthSpec !== null ||
+            (rightPort.variable as Port).widthSpec !== null || rightPort.container?.widthSpec !== null) {
+            return true
         }
         return false
     }
