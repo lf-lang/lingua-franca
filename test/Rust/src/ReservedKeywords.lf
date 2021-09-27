@@ -13,7 +13,7 @@ reactor box {
     =}
 }
 
-main reactor {
+main reactor ReservedKeywords(struct: u32(0)) {
     box = new box();
 
     timer t1(0);
