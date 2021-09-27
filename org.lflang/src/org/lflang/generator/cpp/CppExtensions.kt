@@ -62,7 +62,7 @@ fun TimeValue.toCode() = CppTypes.getTargetTimeExpression(time, unit)
  */
 fun Value.toTime(outerContext: Boolean = false): String =
     if (outerContext && this.parameter != null) "__lf_inner.${parameter.name}"
-    else CppTypes.getTargetTimeExpression(0, TimeUnit.NONE)
+    else CppTypes.getTargetExpr(this, InferredType.time())
 
 /**
  * Get textual representation of a value in C++ code
