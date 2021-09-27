@@ -1,10 +1,10 @@
 target Rust {
-    timeout: 2 sec,
+    timeout: 15 msec,
     // fast: true
 };
 main reactor TimerPeriodic {
     state i: i32(0);
-    timer t2(0, 70 usec);
+    timer t2(0, 3 msec);
 
     reaction(t2) {=
         println!("Tick {} after {} ms", self.i, ctx.get_elapsed_physical_time().as_millis());
@@ -12,7 +12,7 @@ main reactor TimerPeriodic {
     =}
 
     reaction(shutdown) {=
-        assert_eq!(self.i, 51);
+        assert_eq!(self.i, 6);
         println!("success");
     =}
 }
