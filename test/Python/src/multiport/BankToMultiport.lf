@@ -1,7 +1,9 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target Python;
 
-reactor Source {
+reactor Source(
+    bank_index(0)
+) {
     output out;
     
     reaction (startup) -> out {=

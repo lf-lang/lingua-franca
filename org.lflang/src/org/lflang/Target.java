@@ -22,6 +22,9 @@ package org.lflang;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+
+import org.lflang.lf.TargetDecl;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
@@ -83,7 +86,7 @@ public enum Target {
                 )
     ), 
     CCPP("CCpp", true, Target.C.keywords), 
-    CPP("Cpp", true, Arrays.asList(
+    CPP("Cpp", true, "cpp", "Cpp", Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
                 "alignof", // (since C++11)
@@ -184,7 +187,7 @@ public enum Target {
                 "xor_eq"
                 )
     ),
-    TS("TypeScript", false, Arrays.asList(
+    TS("TypeScript", false, "ts", "TS", Arrays.asList(
                 // List via: https://github.com/Microsoft/TypeScript/issues/2536 
                 // Reserved words
                 "break",
@@ -344,6 +347,16 @@ public enum Target {
     private final String description;
 
     /**
+     * Name of package containing Kotlin classes for the target language.
+     */
+    public final String packageName;
+
+    /**
+     * Prefix of names of Kotlin classes for the target language.
+     */
+    public final String classNamePrefix;
+
+    /**
      * Whether or not this target requires types.
      */
     public final boolean requiresTypes;
@@ -361,27 +374,29 @@ public enum Target {
     /**
      * Private constructor for targets.
      *
-     * @param name String representation of this target.
-     * @param requires Types Whether this target requires type annotations or not.
+     * @param description String representation of this target.
+     * @param requiresTypes Types Whether this target requires type annotations or not.
+     * @param packageName Name of package containing Kotlin classes for the target language.
+     * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
      * @param keywords List of reserved strings in the target language.
      */
-    Target(String description, boolean requiresTypes, List<String> keywords) {
+    Target(String description, boolean requiresTypes, String packageName,
+           String classNamePrefix, List<String> keywords) {
         this.description = description;
         this.requiresTypes = requiresTypes;
         this.keywords = keywords;
+        this.packageName = packageName;
+        this.classNamePrefix = classNamePrefix;
     }
 
+
     /**
-     * Check whether a given string corresponds with the name of a valid target.
-     * @param name The string for which to determine whether there is a match.
-     * @return true if a matching target was found, false otherwise.
+     * Private constructor for targets without pakcageName and classNamePrefix.
      */
-    public final static boolean hasForName(String name) {
-        if (Target.forName(name) != null) {
-            return true;
-        }
-        return false;
+    Target(String description, boolean requiresTypes, List<String> keywords) {
+        this(description, requiresTypes, "N/A", "N/A", keywords);
     }
+
 
     /**
      * Return the target that matches the given string.
@@ -389,8 +404,8 @@ public enum Target {
      * @param name The string to match against.
      * @return The matching target (or null if there is none).
      */
-    public static Target forName(String name) {
-        return Target.match(name, Target.values());
+    public static Optional<Target> forName(String name) {
+        return Optional.ofNullable(Target.match(name, Target.values()));
     }
 
     /**
@@ -418,6 +433,7 @@ public enum Target {
         return null;
     }
 
+
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
@@ -428,4 +444,19 @@ public enum Target {
     public static <T> T match(final String string, final T[] candidates) {
         return match(string, Arrays.asList(candidates));
     }
+
+
+    /**
+     * Return the target constant corresponding to given target
+     * declaration among. Return a non-null result, will throw
+     * if invalid.
+     *
+     * @throws RuntimeException If no {@link TargetDecl} is present or if it is invalid.
+     */
+    public static Target fromDecl(TargetDecl targetDecl) {
+        String name = targetDecl.getName();
+        return Target.forName(name)
+                     .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+    }
+
 }

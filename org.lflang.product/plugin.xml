@@ -6,11 +6,11 @@
          id="lfrca"
          point="org.eclipse.core.runtime.products">
       <product
-            name="Lingua Franca"
+            name="Epoch IDE"
             application="org.eclipse.ui.ide.workbench">
          <property
                name="appName"
-               value="Lingua Franca">
+               value="Epoch IDE">
          </property>
          <property
                name="windowImages"
@@ -29,16 +29,16 @@
                value="10,300,480,15">
          </property>
          <property
-               name="preferenceCustomization"
-               value="plugin_customization.ini">
-         </property>
-         <property
                name="aboutImage"
                value="icons/lf-logo.png">
          </property>
          <property
                name="aboutText"
-               value="Lingua Franca&#x0A;A coordination language for defining and composing reactors.&#x0A;&#x0A;For more information, visit us on GitHub: https://github.com/icyphy/lingua-franca">
+               value="Version: 0.1.0 Beta.&#x0A;&#x0A;Epoch is an IDE for Lingua Franca, a  polyglot coordination language for building concurrent and distributed software that delivers predictable and reproducible reactive behavior.&#x0A;&#x0A;Visit our GitHub: https://repo.lf-lang.org/.&#x0A;&#x0A;This software is licensed under the BSD 2-Clause License.&#x0A;Copyright © Lingua Franca contributors 2019-2021. All rights reserved.">
+         </property>
+         <property
+               name="preferenceCustomization"
+               value="plugin_customization.ini">
          </property>
       </product>
    </extension>

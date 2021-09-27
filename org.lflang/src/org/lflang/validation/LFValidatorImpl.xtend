@@ -26,11 +26,14 @@
  ***************/
 package org.lflang.validation
 
+import com.google.inject.Inject
+
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -38,7 +41,9 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.lflang.DefaultErrorReporter
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
+import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
@@ -67,6 +72,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.Serializer
 import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
@@ -81,6 +87,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.SupportedSerializers
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -98,6 +105,12 @@ class LFValidatorImpl extends AbstractLFValidator {
     var Target target
 
     public var info = new ModelInfo()
+
+    @Inject
+    ErrorReporter errorReporter
+
+    @Inject(optional = true)
+    ValidationMessageAcceptor messageAcceptor
 
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
@@ -139,6 +152,17 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
+    }
+
+    override ValidationMessageAcceptor getMessageAcceptor() {
+        return messageAcceptor === null ? this : messageAcceptor
+    }
+    
+    /**
+     * Returns true if target is C or a C-based target like CCpp.
+     */
+    def boolean isCBasedTarget() {
+        return (this.target == Target.C || this.target == Target.CCPP);
     }
 
     @Check
@@ -302,7 +326,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
-            if (this.target == Target.C &&
+            if (isCBasedTarget &&
                 this.info.overflowingAssignments.contains(assignment)) {
                 error(
                     "Time value used to specify a deadline exceeds the maximum of " +
@@ -323,19 +347,23 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (this.target != Target.C && this.target != Target.CPP && this.target != Target.Python) {
-            error("Multiports and banks are currently only supported by the C and Cpp targets.",
+        if (!isCBasedTarget && this.target != Target.CPP && this.target != Target.Python) {
+            error("Multiports and banks are currently not supported by the given target.",
                 Literals.WIDTH_SPEC__TERMS)
         } else {
             for (term : widthSpec.terms) {
                 if (term.parameter !== null) {
-                    if (this.target != Target.C && this.target != Target.Python && this.target != Target.CPP) {
+                    if (!isCBasedTarget && this.target != Target.Python && this.target != Target.CPP) {
                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else if (term.port !== null) {
                     // Widths given with `widthof()` are not supported (yet?).
                     // This feature is currently only used for after delays.
                     error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS)
+                } else if (term.code !== null) {
+                     if (this.target != Target.CPP) {
+                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS)
+                    }
                 } else if (term.width < 0) {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                 }
@@ -367,7 +395,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                         (it.definition === rp.variable && it.parent === rp.container)
                     ]) {
                         if (leftInCycle) {
-                            // Only report of _both_ referenced ports are in the cycle.
+                            // Only report of _both_ reference ports are in the cycle.
                             error('''Connection in reactor «reactorName» creates ''' +
                                     '''a cyclic dependency between «lp.toText» and ''' +
                                     '''«rp.toText».''', Literals.CONNECTION__DELAY
@@ -383,7 +411,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         // For the C target, since C has such a weak type system, check that
         // the types on both sides of every connection match. For other languages,
         // we leave type compatibility that language's compiler or interpreter.
-        if (this.target == Target.C) {
+        if (isCBasedTarget) {
             var type = null as Type
             for (port : connection.leftPorts) {
                 // If the variable is not a port, then there is some other
@@ -528,7 +556,7 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
-        if (this.target == Target.C &&
+        if (isCBasedTarget &&
             this.info.overflowingDeadlines.contains(deadline)) {
             error(
                 "Deadline exceeds the maximum of " +
@@ -538,7 +566,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     }
 @Check(FAST)
     def checkSTPOffset(STP stp) {
-        if (this.target == Target.C &&
+        if (isCBasedTarget &&
             this.info.overflowingDeadlines.contains(stp)) {
             error(
                 "STP offset exceeds the maximum of " +
@@ -628,7 +656,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (instantiation.widthSpec !== null
                 && instantiation.widthSpec.ofVariableLength
         ) {
-            if (this.target == Target.C) {
+            if (isCBasedTarget) {
                 warning("Variable-width banks are for internal use only.",
                     Literals.INSTANTIATION__WIDTH_SPEC
                 )
@@ -701,13 +729,13 @@ class LFValidatorImpl extends AbstractLFValidator {
         // we use the old information and update it during a normal
         // check (see below).
         if (!info.updated) {
-            info.update(model, DefaultErrorReporter.DEFAULT)
+            info.update(model, errorReporter)
         }
     }
 
     @Check(NORMAL)
     def updateModelInfo(Model model) {
-        info.update(model, DefaultErrorReporter.DEFAULT)
+        info.update(model, errorReporter)
     }
 
     @Check(FAST)
@@ -756,7 +784,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             }
         }
 
-        if (this.target == Target.C &&
+        if (isCBasedTarget &&
             this.info.overflowingParameters.contains(param)) {
             error(
                 "Time value used to specify a deadline exceeds the maximum of " +
@@ -1095,6 +1123,26 @@ class LFValidatorImpl extends AbstractLFValidator {
             )
         }
     }
+    
+    /**
+     * Check if the requested serialization is supported.
+     */
+    @Check(FAST)
+    def checkSerializer(Serializer serializer) {
+        var boolean isValidSerializer = false;
+        for (SupportedSerializers method : SupportedSerializers.values()) {
+          if (method.name().equalsIgnoreCase(serializer.type)){
+              isValidSerializer = true;
+          }          
+        }
+        
+        if (!isValidSerializer) {
+            error(
+                "Serializer can be " + SupportedSerializers.values.toList, 
+                Literals.SERIALIZER__TYPE
+            );
+        }
+    }
 
     @Check(FAST)
     def checkState(StateVar stateVar) {
@@ -1133,7 +1181,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
 
-        if (this.target == Target.C && stateVar.init.size > 1) {
+        if (isCBasedTarget && stateVar.init.size > 1) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
             if (stateVar.init.exists[it.parameter !== null]) {
@@ -1149,11 +1197,12 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkTargetDecl(TargetDecl target) {
-        if (!Target.hasForName(target.name)) {
-            warning("Unrecognized target: " + target.name,
+        val targetOpt = Target.forName(target.name);
+        if (targetOpt.isEmpty()) {
+            error("Unrecognized target: " + target.name,
                 Literals.TARGET_DECL__NAME)
         } else {
-            this.target = Target.forName(target.name);
+            this.target = targetOpt.get();
         }
     }
 
@@ -1166,51 +1215,61 @@ class LFValidatorImpl extends AbstractLFValidator {
      */
     @Check(EXPENSIVE)
     def checkTargetProperties(KeyValuePairs targetProperties) {
-
-        if (targetProperties.pairs.exists(
+        
+        val fastTargetProperties = targetProperties.pairs.filter(
             pair |
                 // Check to see if fast is defined
                 TargetProperty.forName(pair.name) == TargetProperty.FAST
-        )) {
+        )
+        
+        val fastTargetProperty = fastTargetProperties.findFirst[t | true];
+
+        if (fastTargetProperty !== null) {
+            // Check for federated
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has a federated reactor and if there is a physical connection
-                    // defined.
-                    reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
+                    // Check to see if the program has a federated reactor
+                    reactor.isFederated
             )) {
                 error(
-                    "The fast target property is incompatible with physical connections.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    "The fast target property is incompatible with federated programs.",
+                    fastTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
-
+            
+            // Check for physical actions
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has physical actions
-                    reactor.isFederated && reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
+                    // Check to see if the program has a physical action in a reactor
+                    reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
             )) {
                 error(
                     "The fast target property is incompatible with physical actions.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    fastTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
 
         }
-        if (targetProperties.pairs.exists(
+        
+        val clockSyncTargetProperties = targetProperties.pairs.filter(
             pair |
                 // Check to see if clock-sync is defined
                 TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
-        )) {
-
+        )
+        
+        val clockSyncTargetProperty = clockSyncTargetProperties.findFirst[t | true];
+        if (clockSyncTargetProperty !== null) {
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has a federated reactor and if there is a physical connection
-                    // defined.
+                    // Check to see if the program has a federated reactor defined.
                     reactor.isFederated
             ) == false) {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
+                    clockSyncTargetProperty,
+                    Literals.KEY_VALUE_PAIR__NAME
                 )
             }
         }
@@ -1281,6 +1340,23 @@ class LFValidatorImpl extends AbstractLFValidator {
                     "Types are not allowed in the Python target",
                     Literals.TYPE__ID
                 )
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkVarRef(VarRef varRef) {        
+        if (varRef.isInterleaved) {
+            if (this.target != Target.CPP && !isCBasedTarget && this.target != Target.Python) {
+                error("This target does not support interleaved port references", Literals.VAR_REF__INTERLEAVED)
+            }
+            if (varRef.container === null || varRef.container.widthSpec === null || 
+                (varRef.variable as Port).widthSpec === null
+            ) {
+                error("interleaved can only be used for multiports contained within banks", Literals.VAR_REF__INTERLEAVED)
+            }
+            if (!(varRef.eContainer instanceof Connection)) {
+                error("interleaved can only be used in connections", Literals.VAR_REF__INTERLEAVED)
             }
         }
     }

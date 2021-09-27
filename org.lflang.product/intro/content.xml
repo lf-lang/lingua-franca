@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <introContent>
-    <page id="root" style="css/style.css" style-id="page">
-        <text>Welcome to the Lingua Franca Eclipse IDE!</text>
+    <page id="root" url="https://welcome.lf-lang.org"/>
+    <!-- <page id="root" style="css/style.css" style-id="page">
+        <text>Welcome to Epoch IDE!</text>
         <link label="Wiki" url="https://github.com/icyphy/lingua-franca/wiki" id="orglflangui-introLink" style-id="content-link">
         </link>
-    </page>
+    </page> -->
 </introContent>

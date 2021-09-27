@@ -31,15 +31,14 @@
  */
 target C {
     coordination: centralized,
-    build: ["./compile.sh RhythmDistributed_player1",
-    		"./compile.sh RhythmDistributed_player2"],
-    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
-            "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
-            "/lib/C/util/audio_loop_linux.c",
-            "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
-            "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
-            "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
+    files: [
+        "/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
+        "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
+        "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
+        "/lib/C/util/audio_loop_linux.c",
+        "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
+        "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
+        "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
  
 import RhythmSource from "Rhythm.lf"
