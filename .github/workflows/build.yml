@@ -212,7 +212,28 @@ jobs:
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-  
+
+  rust-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [nightly]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          components: clippy
+      - uses: actions/checkout@v2
+      - name: Run Rust tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+
   benchmark-tests:
     runs-on: ubuntu-latest
     steps:
