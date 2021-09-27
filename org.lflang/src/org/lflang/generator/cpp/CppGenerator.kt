@@ -237,7 +237,7 @@ object CppTypes : TargetTypes {
     override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
     override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
-    override fun getTargetUndefinedType() = "/*undefined type*/"
+    override fun getTargetUndefinedType() = "void"
 
     override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): String =
         if (magnitude == 0L) "reactor::Duration::zero()"
