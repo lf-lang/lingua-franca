@@ -334,9 +334,6 @@ class ReportingBackend constructor(
 
             // tabs are replaced with spaces to align messages properly
             fun makeOffset(startIdx: Int, length: Int): Int {
-                // note: this is needed because when the issue spans several lines,
-                // startIdx+length may be greater than the line length.
-                // todo implement real way to format multiline issues
                 val endIndex = min(line.length, startIdx + length)
                 val numTabs = line.substring(startIdx, endIndex).count { it == '\t' }
                 return numTabs * (TAB_REPLACEMENT.length - 1)
@@ -345,11 +342,9 @@ class ReportingBackend constructor(
             val tabOffset = makeOffset(0, issue.column!!) // offset up to marker
             val tabSpanOffset = makeOffset(issue.column - 1, issue.length!!) // offset within marker
 
-            // make sure the length fits the line
-            val clippedUp = min(line.length, issue.column + issue.length + tabSpanOffset)
-            val clippedDown = max(0, clippedUp - issue.column)
-
-            val caretLine = with(issue) { buildCaretLine(message.trim(), column!! + tabOffset, clippedDown) }
+            val caretLine = with(issue) {
+                buildCaretLine(message.trim(), column!! + tabOffset, length!! + tabSpanOffset)
+            }
             // gutter has its own ANSI stuff so only caretLine gets severityColors
             return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
         }
