@@ -18,7 +18,7 @@
       <unit id="org.aopalliance" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm.terminal.feature.feature.group" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/releases/2021-06"/>
+      <repository location="http://download.eclipse.org/releases/2021-09"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.xtext.runtime.feature.group" version="0.0.0"/>
@@ -29,7 +29,7 @@
       <unit id="com.google.inject" version="0.0.0"/>
       <unit id="jakarta.activation" version="0.0.0"/>
       <unit id="javax.activation" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20210602031627/repository/"/>
+      <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20210825222808/repository/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.jetbrains.kotlin.feature.feature.group" version="0.0.0"/>
