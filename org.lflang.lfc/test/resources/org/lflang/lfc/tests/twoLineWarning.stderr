@@ -1,0 +1,8 @@
+lfc: error: Reactor must be named.
+--> test/resources/org/lflang/lfc/tests/twoLineWarning.lf:3:2
+  |
+2 |
+  | >>>>>>>>>>>>>>
+3 |  reactor {
+4 |      }
+  | <<<<<< Reactor must be named.
