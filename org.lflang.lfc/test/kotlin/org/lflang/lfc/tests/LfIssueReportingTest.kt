@@ -71,6 +71,11 @@ class LfIssueReportingTest {
     }
 
     @Test
+    fun testTwoLineWarning() {
+        doTest(fileBaseName = "twoLineWarning")
+    }
+
+    @Test
     fun testMultilineWarningTooBig() {
         doTest(fileBaseName = "multilineWarningTooBig")
     }
