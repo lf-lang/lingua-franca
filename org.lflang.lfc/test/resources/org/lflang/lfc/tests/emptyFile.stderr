@@ -1,0 +1,8 @@
+lfc: error: mismatched input '<EOF>' expecting 'target'
+--> test/resources/org/lflang/lfc/tests/emptyFile.lf:1:1
+  |
+1 | 
+  | ^ mismatched input '<EOF>' expecting 'target'
+  |
+2 | 
+

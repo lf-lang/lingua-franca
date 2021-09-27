@@ -91,6 +91,11 @@ class LfIssueReportingTest {
     }
 
     @Test
+    fun testEmptyFile() {
+        doTest(fileBaseName = "emptyFile")
+    }
+
+    @Test
     fun testColors() {
         doTest(fileBaseName = "colors", useColors = true)
     }
