@@ -43,7 +43,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         return -1; \
     } while(0)
 
-// Mutex used to provent collisions between threads writing to the file.
+// Mutex used to prevent collisions between threads writing to the file.
 lf_mutex_t _lf_trace_mutex;
 // Condition variable used to indicate when flushing a buffer is finished.
 lf_cond_t _lf_flush_finished;
