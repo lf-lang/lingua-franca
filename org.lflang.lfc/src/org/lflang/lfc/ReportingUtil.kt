@@ -212,7 +212,7 @@ class ReportingBackend constructor(
 
         val header = severity.name.toLowerCase(Locale.ROOT)
 
-        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + "\n"
+        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + System.lineSeparator()
         val snippet: String? = filePath?.let { formatIssue(issue, filePath) }
 
         if (snippet == null) {
@@ -294,7 +294,7 @@ class ReportingBackend constructor(
             withLineNums.add(0, emptyGutter(pad))
             withLineNums.add(0, makeHeaderLine(pad))
 
-            return withLineNums.joinToString("\n")
+            return withLineNums.joinToString(System.lineSeparator())
         }
 
         private fun widthOfLargestLineNum() = (lines.size + first).toString().length
