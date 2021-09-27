@@ -65,18 +65,6 @@ jobs:
       - name: Run standalone LFC tests
         run: |
           ./gradlew :org.lflang.lfc:test
-      - name: Report to CodeCov
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: $GITHUB_WORKSPACE/org.lflang.lfc/build/reports/xml/jacoco
-          # gcov_prefix:
-          # optional flags: unittests
-          # optional name: codecov-umbrella
-          # optional fail_ci_if_error: true
-          # optional (default = false)
-          verbose: true # optional (default = false)
-        if: runner.os == 'Linux'
 
   c-tests:
     strategy:
