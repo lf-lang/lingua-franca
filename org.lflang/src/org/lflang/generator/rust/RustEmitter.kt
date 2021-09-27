@@ -253,7 +253,7 @@ ${"         |    "..declarations}
         val debugLabels = reactions.map { it.debugLabel.toRustOption() } + timers.map { "Some(\"reschedule_${it.lfName}\")" }
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
-        return "$pattern = __assembler.new_reactions::<{$maxReactionIdUsize}>($debugLabelArray);"
+        return "$pattern = __assembler.new_reactions($debugLabelArray);"
     }
 
     private fun workerFunctionCalls(reactor: ReactorInfo): String {
