@@ -3,23 +3,17 @@
 #==========================================================
 # Description: 	    Run the lfc compiler.
 # Authors:          Marten Lohstroh
+#                   Christian Menard
 # Usage:            Usage: lfc [options] files...
 #==========================================================
 
 set -euo pipefail
-base=""
-if [ ! "$0" = "${0##*/*}" ]; then  # Do we have a parent directory?
-	base="${0%/*}/"
-fi
-base="${base}../"
-lfbase="${base}org.lflang.lfc/"
-jarpath="${lfbase}build/libs/org.lflang.lfc-0.1.0-SNAPSHOT-all.jar"
+# Absolute path to the directory containing this script, even in presence of links
+bindir=`dirname "$(readlink -f "$0")"`
+# the base directory
+base=`dirname ${bindir}`
 
-# Report fatal error.
-function fatal_error() {
-    1>&2 echo -e "\e[1mlfc: \e[31mfatal error: \e[0m$1"
-    exit 1
-}
+echo $base
 
 pushd () {
     command pushd "$@" > /dev/null
@@ -29,33 +23,73 @@ popd () {
     command popd "$@" > /dev/null
 }
 
-# 1. Determine whether to rebuild; and
-# 2. Strip rebuild flag from args.
-rebuild=false
-args=()
-for var in "$@"; do
-    # remove leading whitespace characters
-    var="${var#"${var%%[![:space:]]*}"}"
-    # remove trailing whitespace characters
-    var="${var%"${var##*[![:space:]]}"}"
-    if [[ $var = "-r" ]]; then
-        rebuild=true
-    else
-        args+=("$var")
-    fi
-done
+# Report fatal error.
+function fatal_error() {
+    1>&2 echo -e "\e[1mlfc: \e[31mfatal error: \e[0m$1"
+    exit 1
+}
 
-# Build if no jar exists or rebuild is requested.
-if [[ ! -f "$jarpath" || "$rebuild" = true ]]; then
-    # Throw error if no sources are available
-    if [[ -z $lfbase || ! -d $lfbase ]]; then
-        fatal_error "Unable to (re)build from source. Exiting."
-    fi
-    pushd "$base"
-    ./gradlew buildLfc
-    popd
+# check if the sources are available
+if [ -d "${base}/org.lflang.lfc" ]; then
+    src_available=true
+    jarpath_pattern="${base}/org.lflang.lfc/build/libs/org.lflang.lfc-*-SNAPSHOT-all.jar"
+else
+    # this is likely a binary distribution
+    src_available=false
+    jarpath_pattern="${base}/lib/org.lflang.lfc-*-SNAPSHOT-all.jar"
 fi
 
+#echo "Looking for ${jarpath_pattern}"
+
+function find_jarpath() {
+    # Is there a file that matches our pattern?
+    if ls ${jarpath_pattern} 1> /dev/null 2>&1; then
+        # Yes. Determine the precise path of the jar. Take the newest version if
+        # there are multiple jars.
+        jar_found=true
+        jarpath="$(ls  ${jarpath_pattern} | sort -V | tail -n1)"
+    else
+        # No.
+        jar_found=false
+    fi
+}
+
+find_jarpath
+
+# enable the rebuild feature only if the sources are available
+if [[ "${src_available}" == "true" ]]; then
+    # 1. Determine whether to rebuild; and
+    # 2. Strip rebuild flag from args.
+    rebuild=false
+    args=()
+    for var in "$@"; do
+        # remove leading whitespace characters
+        var="${var#"${var%%[![:space:]]*}"}"
+        # remove trailing whitespace characters
+        var="${var%"${var##*[![:space:]]}"}"
+        if [[ $var = "-r" ]]; then
+            rebuild=true
+        else
+            args+=("$var")
+        fi
+    done
+
+    # Build if no jar exists or rebuild is requested.
+    if [[ "${jar_found}" == "false" ]] ||  [[ "${rebuild}" == "true" ]]; then
+        pushd "$base"
+        ./gradlew buildLfc
+        popd
+        jarpath="$(ls  ${jarpath_pattern} | sort -V | tail -n1)"
+        find_jarpath
+    fi
+fi
+
+# check if a jar was found
+if [[ "${jar_found}" == "false" ]]; then
+    fatal_error "Cannot find lfc jar"
+fi
+
+# Lookup the JRE
 if [[ $(type -p java) != "" ]]; then
     #echo found java executable in PATH
     _java=java
@@ -76,5 +110,6 @@ if [[ "$_java" ]]; then
     fi
 fi
 
+# run the command
 "${_java}" -jar "${jarpath}" "${args[@]}";
 exit $?
