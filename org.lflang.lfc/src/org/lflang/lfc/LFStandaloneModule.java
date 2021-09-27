@@ -64,7 +64,7 @@ public class LFStandaloneModule implements Module {
         // This is required to force the ResourceValidator to
         // use a new registry instance (which is reused by the injector as a singleton).
         // Otherwise, it uses the static EValidator.Registry.INSTANCE which is bad
-        // as the first validator to be created would be persisted in that static instance.
+        // as the first validator to be created would persist in that static instance.
         // New injectors would reuse the existing instance, but
         // its fields would have been injected by an older injector
         // and be out of sync with the rest of the application.
