@@ -410,7 +410,7 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
     buffer[0] = MSG_TYPE_TAG_ADVANCE_GRANT;
     encode_int64(tag.time, &(buffer[1]));
     encode_int32((int32_t)tag.microstep, &(buffer[1 + sizeof(int64_t)]));
-    // This function is called in send_TAG_if_transitively_safe(), which is a long
+    // This function is called in send_advance_grant_if_safe(), which is a long
     // function. During this call, the socket might close, causing the following write_to_socket
     // to fail. Consider a failure here a soft failure and update the federate's status.
     ssize_t bytes_written = write_to_socket(fed->socket, message_length, buffer);
@@ -518,7 +518,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
     buffer[0] = MSG_TYPE_PROVISIONAL_TAG_ADVANCE_GRANT;
     encode_int64(tag.time, &(buffer[1]));
     encode_int32((int32_t)tag.microstep, &(buffer[1 + sizeof(int64_t)]));
-    // This function is called in send_TAG_if_transitively_safe(), which is a long
+    // This function is called in send_advance_grant_if_safe(), which is a long
     // function. During this call, the socket might close, causing the following write_to_socket
     // to fail. Consider a failure here a soft failure and update the federate's status.
     ssize_t bytes_written = write_to_socket(fed->socket, message_length, buffer);
@@ -594,7 +594,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
  *
  * @return True if the TAG message is sent and false otherwise.
  */
-bool send_TAG_if_transitively_safe(federate_t* fed) {
+bool send_advance_grant_if_safe(federate_t* fed) {
 
 	// Find the earliest LTC of upstream federates.
     tag_t min_upstream_completed = FOREVER_TAG;
@@ -702,13 +702,13 @@ bool send_TAG_if_transitively_safe(federate_t* fed) {
  * @param visited An array of booleans used to determine whether a federate has
  *  been visited (initially all false).
  */
-void send_TAG_if_transitively_safe_to_all_downstream(federate_t* fed, bool visited[]) {
+void send_downstream_advance_grants_if_safe(federate_t* fed, bool visited[]) {
 	visited[fed->id] = true;
 	for (int i = 0; i < fed->num_downstream; i++) {
 		federate_t* downstream = &_RTI.federates[fed->downstream[i]];
 		if (visited[downstream->id]) continue;
-		send_TAG_if_transitively_safe(downstream);
-		send_TAG_if_transitively_safe_to_all_downstream(downstream, visited);
+		send_advance_grant_if_safe(downstream);
+		send_downstream_advance_grants_if_safe(downstream, visited);
 	}
 }
 
@@ -737,9 +737,9 @@ void handle_logical_tag_complete(federate_t* fed) {
     // Check downstream federates to see whether they should now be granted a TAG.
     for (int i = 0; i < fed->num_downstream; i++) {
         federate_t* downstream = &_RTI.federates[fed->downstream[i]];
-        send_TAG_if_transitively_safe(downstream);
+        send_advance_grant_if_safe(downstream);
         bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-        send_TAG_if_transitively_safe_to_all_downstream(downstream, visited);
+        send_downstream_advance_grants_if_safe(downstream, visited);
     }
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
@@ -775,14 +775,14 @@ void handle_next_event_tag(federate_t* fed) {
     // If the federate has no upstream federates, then it does not wait for
     // nor expect a reply. It just proceeds to advance time.
     if (fed->num_upstream > 0) {
-        send_TAG_if_transitively_safe(fed); // FIXME: Rename appropriate to 
+        send_advance_grant_if_safe(fed); // FIXME: Rename appropriate to 
                                               // allowed or safe instead of appropriate
     }
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
     bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-    send_TAG_if_transitively_safe_to_all_downstream(fed, visited);
+    send_downstream_advance_grants_if_safe(fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
@@ -820,7 +820,7 @@ void handle_time_advance_notice(federate_t* fed) {
         // This is a side-effect of the combination of distributed cycles and
         // physical actions in federates. FIXME: More explanation is needed.
         if (fed->num_upstream > 0) {
-            send_TAG_if_transitively_safe(fed);
+            send_advance_grant_if_safe(fed);
         }
     }
 
@@ -828,7 +828,7 @@ void handle_time_advance_notice(federate_t* fed) {
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
     bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-    send_TAG_if_transitively_safe_to_all_downstream(fed, visited);
+    send_downstream_advance_grants_if_safe(fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
@@ -1378,7 +1378,7 @@ void handle_federate_resign(federate_t *my_fed) {
     // To handle cycles, need to create a boolean array to keep
     // track of which upstream federates have been visited.
     bool* visited = (bool*)calloc(_RTI.number_of_federates, sizeof(bool)); // Initializes to 0.
-    send_TAG_if_transitively_safe_to_all_downstream(my_fed, visited);
+    send_downstream_advance_grants_if_safe(my_fed, visited);
 
     pthread_mutex_unlock(&_RTI.rti_mutex);
 }
@@ -1439,8 +1439,8 @@ void* federate_thread_TCP(void* fed) {
             case MSG_TYPE_STOP_REQUEST:
                 handle_stop_request_message(my_fed); // FIXME: Reviewed until here.
                                                      // Need to also look at
-                                                     // send_TAG_if_transitively_safe()
-                                                     // and send_TAG_if_transitively_safe_to_all_downstream()
+                                                     // send_advance_grant_if_safe()
+                                                     // and send_downstream_advance_grants_if_safe()
                 break;
             case MSG_TYPE_STOP_REQUEST_REPLY:
                 handle_stop_request_reply(my_fed);
