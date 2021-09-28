@@ -13,8 +13,6 @@ bindir=`dirname "$(readlink -f "$0")"`
 # the base directory
 base=`dirname ${bindir}`
 
-echo $base
-
 pushd () {
     command pushd "$@" > /dev/null
 }
