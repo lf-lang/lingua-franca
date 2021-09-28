@@ -10,8 +10,8 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
 - [ ] ports
     - [x] values
-    - [ ] missing values at some tags
     - [x] `PortValueCleanup.lf`: port value is cleaned up at the end of a tag
+    - [x] `PortRefCleanup.lf`: port value is cleaned up at the end of a tag, when the upstream is a port reference
     - [x] connections...
       - [x] `PortConnectionInSelfInChild.lf`: input of self to input of child
       - [x] `PortConnectionInSelfOutSelf.lf`: input of self to output of self
