@@ -857,7 +857,7 @@ class CGenerator extends GeneratorBase {
                             cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
                                 errorReporter, CppMode);
                         }
-                        if (!cCompiler.runCCompiler(execName, main === null, generator)) {
+                        if (!cCompiler.runCCompiler(execName, main === null, generator, context.cancelIndicator)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
                         }
