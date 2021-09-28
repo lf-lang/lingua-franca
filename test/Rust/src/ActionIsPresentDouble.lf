@@ -12,8 +12,8 @@ main reactor ActionIsPresentDouble {
     =}
 
     reaction(act1, act0) {=
-        assert!(ctx.is_action_present(act0));
-        assert!(ctx.is_action_present(act1));
+        assert!(ctx.is_present(act0));
+        assert!(ctx.is_present(act1));
         println!("success")
     =}
 
