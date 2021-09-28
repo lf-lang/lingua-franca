@@ -150,6 +150,13 @@ public class LFCommand {
      * are continuously read and forwards them to the system output and
      * error streams as well as to the output and error streams hold in
      * this class.
+     * </p>
+     * <p>
+     * If the current operation is cancelled (as indicated
+     * by <code>cancelIndicator</code>), the subprocess
+     * is destroyed. Output and error streams until that
+     * point are still collected.
+     * </p>
      *
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
