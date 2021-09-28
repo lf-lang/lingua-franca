@@ -49,6 +49,9 @@ import org.eclipse.xtext.util.CancelIndicator;
  */
 public class LFCommand {
 
+    private static final int PERIOD = 200;
+    private static final int READ_TIMEOUT = 1000;
+
     protected ProcessBuilder processBuilder;
     protected boolean didRun = false;
     protected ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -160,13 +163,13 @@ public class LFCommand {
         ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
         poller.scheduleAtFixedRate(
             () -> poll(process, cancelIndicator),
-            0, 200, TimeUnit.MILLISECONDS // FIXME: magic number
+            0, PERIOD, TimeUnit.MILLISECONDS
         );
 
         try {
             final int returnCode = process.waitFor();
             poller.shutdown();
-            poller.awaitTermination(1000, TimeUnit.MILLISECONDS);
+            poller.awaitTermination(READ_TIMEOUT, TimeUnit.MILLISECONDS);
             // Finish collecting any remaining data
             poll(process, cancelIndicator);
             return returnCode;
