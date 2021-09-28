@@ -290,40 +290,41 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // Update the configuration according to the set target properties.
             TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList)
         }
-
-        // Override target properties if specified as command line arguments.
-        if (context instanceof StandaloneContext) {
-        
-            // If there are any physical actions, ensure the threaded engine is used and that
-            // keepalive is set to true, unless the user has explicitly set it to false.
-            for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
-                if (action.origin == ActionOrigin.PHYSICAL) {
-                    // If the unthreaded runtime is requested, use the threaded runtime instead
-                    // because it is the only one currently capable of handling asynchronous events.
-                    if (targetConfig.threads < 1) {
-                        targetConfig.threads = 1
-                        errorReporter.reportWarning(
-                            target, 
-                            '''Using the threaded C runtime to allow for asynchronous handling of«
-                            » physical action «action.name».'''
-                        );
-                    }
-                    // Check if the user has explicitly set keepalive to false or true
-                    if (!context.args.containsKey(TargetProperty.KEEPALIVE.description) && 
-                        targetConfig.keepalive == false
-                    ) {
-                        // If not, set it to true
-                        targetConfig.keepalive = true
-                        errorReporter.reportWarning(
-                            target, 
-                            '''Setting «TargetProperty.KEEPALIVE.description» to true because of «action.name».«
-                            » This can be overridden by setting the «TargetProperty.KEEPALIVE.description»«
-                            » target property manually.'''
-                        );
-                    }
+        // If there are any physical actions, ensure the threaded engine is used and that
+        // keepalive is set to true, unless the user has explicitly set it to false.
+        for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                // If the unthreaded runtime is requested, use the threaded runtime instead
+                // because it is the only one currently capable of handling asynchronous events.
+                if (targetConfig.threads < 1) {
+                    targetConfig.threads = 1
+                    errorReporter.reportWarning(
+                        target, 
+                        '''Using the threaded C runtime to allow for asynchronous handling of«
+                        » physical action «action.name».'''
+                    );
+                }
+                // Check if the user has explicitly set keepalive to false or true
+                if (target.config.pairs.filter[
+                    pair | 
+                    TargetProperty.forName(pair.name) == TargetProperty.KEEPALIVE
+                ].nullOrEmpty && 
+                    targetConfig.keepalive == false
+                ) {
+                    // If not, set it to true
+                    targetConfig.keepalive = true
+                    errorReporter.reportWarning(
+                        target, 
+                        '''Setting «TargetProperty.KEEPALIVE.description» to true because of «action.name».«
+                        » This can be overridden by setting the «TargetProperty.KEEPALIVE.description»«
+                        » target property manually.'''
+                    );
                 }
             }
-            
+        }
+       
+       // Override target properties if specified as command line arguments.
+       if (context instanceof StandaloneContext) {
             if (context.args.containsKey("no-compile")) {
                 targetConfig.noCompile = true
             }
@@ -344,6 +345,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
             if (context.args.containsKey("external-runtime-path")) {
                 targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
+            }
+            if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
+                targetConfig.keepalive = Boolean.parseBoolean(
+                    context.args.getProperty(TargetProperty.KEEPALIVE.description));
             }
         }
     }
