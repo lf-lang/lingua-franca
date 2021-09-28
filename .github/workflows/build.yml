@@ -37,7 +37,7 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v1 
+        uses: codecov/codecov-action@v2.1.0 
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos 
           files: $GITHUB_WORKSPACE/org.lflang.tests/build/reports/xml/jacoco
