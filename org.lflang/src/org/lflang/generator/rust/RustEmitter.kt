@@ -70,7 +70,7 @@ object RustEmitter {
     private fun makeReactorModule(out: Emitter, reactor: ReactorInfo) {
         out += with(reactor) {
             val typeParams = typeParamList.map { it.targetCode }.angle()
-            val typeArgs = typeParamList.map { it.lfName.escapeRustIdent() }.angle()
+            val typeArgs = typeParamList.map { it.lfName }.angle()
 
             with(reactor.names) {
                 with(PrependOperator) {
@@ -211,7 +211,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         fun NestedReactorInstance.paramStruct(): String =
             args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
                 if (it.key == it.value) it.key.escapeRustIdent()
-                else it.key.escapeRustIdent() + ": " + it.value.escapeRustIdent()
+                else it.key.escapeRustIdent() + ": " + it.value // do not escape value
             }
 
         val asTuple = nestedInstances.joinWithCommas("(", ")") { it.rustLocalName }
@@ -621,5 +621,10 @@ private fun <T> Iterable<T>.joinWithCommasLn(
 
 fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", ">")
 
-fun String.escapeRustIdent() =
-    if (this in Target.Rust.keywords) "r#$this" else this
+/**
+ * If this is a rust keyword, escape it for it to be interpreted
+ * as an identifier, except if this keyword is a valid rust expression.
+ */
+fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
+
+

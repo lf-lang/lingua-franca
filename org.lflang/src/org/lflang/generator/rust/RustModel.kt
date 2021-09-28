@@ -146,9 +146,28 @@ data class NestedReactorInstance(
     val loc: LocationInfo,
     val typeArgs: List<TargetCode>
 ) {
+    /** Sync with [ChildPortReference.rustChildName]. */
     val rustLocalName = lfName.escapeRustIdent()
 
     val names = ReactorNames(reactorLfName)
+}
+
+/**
+ * A reference to a port of a child reactor.
+ * This is mostly relevant to [ReactionInfo.allDependencies]
+ * and such.
+ */
+data class ChildPortReference(
+    /** Name of the child instance. */
+    val childName: Ident,
+    override val lfName: Ident,
+    val isInput: Boolean,
+    val dataType: TargetCode
+) : ReactorComponent() {
+    val rustFieldOnChildName: String = "__$lfName"
+
+    /** Sync with [NestedReactorInstance.rustLocalName]. */
+    val rustChildName: TargetCode = childName.escapeRustIdent()
 }
 
 /**
@@ -330,21 +349,6 @@ data class PortData(
                 dataType = RustTypes.getTargetType(port.type)
             )
     }
-}
-
-/**
- * A reference to a port of a child reactor.
- * This is mostly relevant to [ReactionInfo.allDependencies]
- * and such.
- */
-data class ChildPortReference(
-    /** Name of the child instance. */
-    val childName: Ident,
-    override val lfName: Ident,
-    val isInput: Boolean,
-    val dataType: TargetCode
-) : ReactorComponent() {
-    val rustFieldOnChildName: String get() = "__$lfName"
 }
 
 data class ActionData(

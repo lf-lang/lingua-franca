@@ -7,7 +7,6 @@ import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Type
 import org.lflang.lf.Value
-import java.lang.IllegalStateException
 
 
 /** A transparent type alias to document when a string contains target code. */
@@ -46,10 +45,10 @@ fun TargetTypes.getTargetExpr(value: Value, inferred: InferredType? = null): Tar
         if (this.isZero && inferred?.isTime == true)
             getTargetTimeExpression(0, TimeUnit.NONE)
         else
-            parameter?.name
+            parameter?.name?.let(this@getTargetExpr::escapeIdentifier) // only escaped if using LF syntax
                 ?: time?.let(this@getTargetExpr::getTargetTimeExpr)
-                ?: literal
-                ?: code?.toText()
+                ?: literal // here we don't escape
+                ?: code?.toText() // nore here
                 ?: throw IllegalStateException("Invalid value $value")
     }
 

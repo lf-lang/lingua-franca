@@ -346,21 +346,10 @@ public enum Target {
     ),
     Rust("Rust", true,
          "rust", "Rust",
-         Arrays.asList(
-        // https://doc.rust-lang.org/reference/keywords.html
-        "as", "break", "const", "continue", "crate", "else",
-        "enum", "extern", "false", "fn", "for", "if", "impl",
-        "in", "let", "loop", "match", "mod", "move", "mut",
-        "pub", "ref", "return", "self", "Self", "static",
-        "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while",
-        // reserved kws
-        "abstract", "async", "await", "dyn", "become", "box",
-        "do", "final", "macro", "override", "priv", "typeof",
-        "unsized", "virtual", "yield", "try",
-        // "weak" keywords, disallow them anyway
-        "union", "dyn"
-    )
+         // In our Rust implementation, the only reserved keywords
+         // are those that are a valid expression. Others may be escaped
+         // with the syntax r#keyword.
+         Arrays.asList("self", "true", "false")
     );
 
     /**
@@ -439,11 +428,14 @@ public enum Target {
     }
 
     /**
-     * Returns whether this target supports using language keywords as identifiers.
-     * For instance in Rust, keywords may be escaped using the syntax {@code r#keyword}.
+     * Returns whether the given identifier is invalid as the
+     * name of an LF construct. This usually means that the identifier
+     * is a keyword in the target language. In Rust, many
+     * keywords may be escaped with the syntax {@code r#keyword},
+     * and they are considered valid identifiers.
      */
-    public boolean supportsKeywordsAsIdents() {
-        return this == Rust;
+    public boolean isReservedIdent(String ident) {
+        return this.keywords.contains(ident);
     }
 
     /**

@@ -30,7 +30,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
-import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -129,50 +128,5 @@ class RustGenerator(
         TODO("Not yet implemented")
     }
 
-}
-
-object RustTypes : TargetTypes {
-
-    override fun supportsGenerics(): Boolean = true
-
-    override fun getTargetTimeType(): String = "Duration"
-
-    override fun getTargetTagType(): String = "LogicalInstant"
-
-    override fun getTargetUndefinedType(): String = "()"
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int): String =
-        "[ $baseType ; $size ]"
-
-    override fun getTargetVariableSizeListType(baseType: String): String =
-        "Vec<$baseType>"
-
-    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): TargetCode = when (unit) {
-        TimeUnit.NSEC,
-        TimeUnit.NSECS                    -> "Duration::from_nanos($magnitude)"
-        TimeUnit.USEC,
-        TimeUnit.USECS                    -> "Duration::from_micros($magnitude)"
-        TimeUnit.MSEC,
-        TimeUnit.MSECS                    -> "Duration::from_millis($magnitude)"
-        TimeUnit.MIN,
-        TimeUnit.MINS,
-        TimeUnit.MINUTE,
-        TimeUnit.MINUTES                  -> "Duration::from_secs(${magnitude * 60})"
-        TimeUnit.HOUR, TimeUnit.HOURS     -> "Duration::from_secs(${magnitude * 3600})"
-        TimeUnit.DAY, TimeUnit.DAYS       -> "Duration::from_secs(${magnitude * 3600 * 24})"
-        TimeUnit.WEEK, TimeUnit.WEEKS     -> "Duration::from_secs(${magnitude * 3600 * 24 * 7})"
-        TimeUnit.NONE, // default is the second
-        TimeUnit.SEC, TimeUnit.SECS,
-        TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($magnitude)"
-    }
-
-    override fun getFixedSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
-        contents.joinToString(", ", "[", "]")
-
-    override fun getVariableSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
-        contents.joinToString(", ", "vec![", "]")
-
-    override fun getMissingExpr(): String =
-        "Default::default()"
 }
 
