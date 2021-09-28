@@ -70,8 +70,8 @@ data class ReactorInfo(
     val reactions: List<ReactionInfo>,
     /** List of state variables. */
     val stateVars: List<StateVarInfo>,
-    /** Other reactor components, like actions & timers. */
-    val otherComponents: List<ReactorComponent>,
+    /** Other reactor components, like actions, timers, port references, ports. */
+    val otherComponents: Set<ReactorComponent>,
     /** List of ctor parameters. */
     val ctorParams: List<CtorParamInfo>,
     /** List of preambles, will be outputted at the top of the file. */
@@ -98,16 +98,19 @@ data class ReactorInfo(
     ) {
     /** Identifiers for the different Rust constructs that this reactor class generates. */
     val names = ReactorNames(lfName)
+
+    /**
+     * All timers. This is a subset of [otherComponents].
+     */
     val timers: List<TimerData> = otherComponents.filterIsInstance<TimerData>()
 
     /**
      * Port references that are used by reactions of this reactor,
      * those are synthesized as fields of the current reactor.
+     *
+     * This is a subset of [otherComponents].
      */
-    val portReferences: Set<ChildPortReference> =
-        reactions.flatMap { it.allDependencies.values }.flatten().filterIsInstance<ChildPortReference>().toSet()
-
-
+    val portReferences: Set<ChildPortReference> = otherComponents.filterIsInstance<ChildPortReference>().toSet()
 }
 
 class TypeParamInfo(
@@ -118,7 +121,7 @@ class TypeParamInfo(
 
 class ReactorNames(
     /** Name of the reactor in LF. By LF conventions, this is a PascalCase identifier. */
-    private val lfName: Ident
+    lfName: Ident
 ) {
 
     /** Name of the rust module, unescaped.. */
@@ -460,6 +463,10 @@ object RustModelBuilder {
                 )
             }
 
+            val portReferences =
+                reactions.flatMap { it.allDependencies.values }.flatten()
+                    .filterIsInstance<ChildPortReference>().toSet()
+
             ReactorInfo(
                 lfName = reactor.name,
                 loc = reactor.locationInfo().let {
@@ -468,7 +475,7 @@ object RustModelBuilder {
                 },
                 globalId = reactor.globalId,
                 reactions = reactions,
-                otherComponents = components.values.toList(),
+                otherComponents = components.values.toSet() + portReferences,
                 isMain = reactor.isMain,
                 typeParamList = reactor.typeParms.map {
                     TypeParamInfo(targetCode = it.toText(), it.identifier, it.locationInfo())

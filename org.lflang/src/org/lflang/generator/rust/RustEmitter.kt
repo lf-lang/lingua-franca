@@ -115,7 +115,7 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRus
                 |    _params: $paramStructName,
                 |    _startup_reactions: $rsRuntime::ReactionSet,
                 |    _shutdown_reactions: $rsRuntime::ReactionSet,
-${"             |    "..(otherComponents + portReferences).joinWithCommasLn { it.toStructField() }}
+${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |impl$typeParams $wrapperName$typeArgs {
@@ -131,7 +131,7 @@ ${"             |    "..(otherComponents + portReferences).joinWithCommasLn { it
                 |                __phantom: std::marker::PhantomData,   
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
-${"             |            "..(otherComponents + portReferences).joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
+${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
                 |        }
                 |    }
                 |}
