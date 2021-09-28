@@ -305,11 +305,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     );
                 }
                 // Check if the user has explicitly set keepalive to false or true
-                if (target.config.pairs.filter[
-                    pair | 
-                    TargetProperty.forName(pair.name) == TargetProperty.KEEPALIVE
-                ].nullOrEmpty && 
-                    targetConfig.keepalive == false
+                if (target.config?.pairs?.filter[
+                        pair | 
+                        TargetProperty.forName(pair.name) == TargetProperty.KEEPALIVE
+                    ].nullOrEmpty  // Check if no 'keepalive' exists in the target properties
+                    && targetConfig.keepalive == false
                 ) {
                     // If not, set it to true
                     targetConfig.keepalive = true
