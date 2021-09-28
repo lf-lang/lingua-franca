@@ -27,6 +27,7 @@ package org.lflang.generator.cpp
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
+import org.lflang.isMultiportConnection
 import org.lflang.lf.*
 
 /**
@@ -130,27 +131,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         ${" |"..if (reaction.deadline != null) setDeadline(reaction) else ""}
         """.trimMargin()
     }
-
-    private val Connection.isMultiportConnection: Boolean
-        get() {
-            // if there are multiple ports listed on the left or right side, this is a multiport connection
-            if (leftPorts.size > 1 || rightPorts.size > 1)
-                return true
-
-            // if the ports on either side are multiports, this is a multiport connection
-            val leftPort = leftPorts[0].variable as Port
-            val rightPort = rightPorts[0].variable as Port
-            if (leftPort.isMultiport || rightPort.isMultiport)
-                return true
-
-            // if the containers on either side are banks, this is a multiport connection
-            val leftContainer = leftPorts[0].container
-            val rightContainer = rightPorts[0].container
-            if (leftContainer?.isBank == true || rightContainer?.isBank == true)
-                return true
-
-            return false
-        }
 
     private fun declareConnection(c: Connection, idx: Int): String {
         return if (c.isMultiportConnection) {
