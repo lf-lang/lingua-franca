@@ -48,6 +48,14 @@ public interface TargetTypes {
      */
     String getTargetUndefinedType();
 
+    /**
+     * Returns a version of the given LF identifier that is
+     * escaped properly for insertion into a piece of target
+     * code.
+     */
+    default String escapeIdentifier(String ident) {
+        return ident;
+    }
 
     /**
      * Returns an expression in the target language that corresponds
