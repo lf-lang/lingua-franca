@@ -216,7 +216,7 @@ class ASTUtils {
         output.variable = delayClass.outputs.get(0)
         upstream.leftPorts.addAll(connection.leftPorts)
         upstream.rightPorts.add(input)
-        upstream.isIterated = connection.isIterated
+        upstream.iterated = connection.iterated
         downstream.leftPorts.add(output)
         downstream.rightPorts.addAll(connection.rightPorts)
 
