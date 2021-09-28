@@ -9,7 +9,7 @@ reactor Source {
     =}
 }
 
-reactor Main {
+reactor Sink {
     timer t2(15 msec);
 
     input in: u32;
@@ -17,10 +17,10 @@ reactor Main {
     state done: bool(false);
 
     reaction(in, t2) {=
-        if self.reaction_num == 1 {
+        if self.reaction_num == 0 {
             assert!(matches!(ctx.get(r#in), Some(150)));
         } else {
-            assert_eq!(self.reaction_num, 2);
+            assert_eq!(self.reaction_num, 1);
             assert!(ctx.get(r#in).is_none(), "value should have been cleaned up");
             self.done = true;
         }
