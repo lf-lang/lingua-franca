@@ -2,12 +2,13 @@
 
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+
 on:
+  # Trigger this workflow on push events, but only on master.
   push:
-    branches-ignore:
-      - 'nightly'
+    branches:
+      - master
+  # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
   pull_request:
     branches-ignore:
       - 'nightly'
