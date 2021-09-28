@@ -24,7 +24,13 @@ class TSActionGenerator (
      * @return The TS type.
      */
     private fun getActionType(action: Action): String {
-        if (action.type != null) {
+        // Special handling for the networkMessage action created by
+        // FedASTUtils.makeCommunication(), by assigning TypeScript
+        // Buffer type for the action. Action<Buffer> is used as
+        // FederatePortAction in federation.ts.
+        if (action.name == "networkMessage") {
+            return "Buffer"
+        } else if (action.type != null) {
             return action.type.getTargetType()
         } else {
             return "Present"
