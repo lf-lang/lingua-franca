@@ -256,9 +256,8 @@ KeyValuePairs:
 KeyValuePair:
     name=Kebab ':' value=Element;
 
-Array:
-      '[' ( elements+=Element (',' (elements+=Element))* )? ','? ']'
-    | '[]'; // remember this is tokenized as a single token in LF
+Array: // todo allow empty array in grammar, replace with validator error
+    '[' elements+=Element (',' (elements+=Element))* ','? ']';
     
 Element:
     keyvalue=KeyValuePairs 
