@@ -35,6 +35,11 @@ import org.lflang.lf.TimeUnit
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class TargetConfig {
+    
+    /**
+     * Keep track of every target property that is explicitly set by the user.
+     */
+    public List<TargetProperty> setByUser = newLinkedList;
 
     /**
      * A list of custom build commands that replace the default build process of
