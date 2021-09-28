@@ -167,11 +167,11 @@ class CppGenerator(
         }
 
         // run cmake
-        val cmakeReturnCode = cmakeCommand.run(context.getCancelIndicator())
+        val cmakeReturnCode = cmakeCommand.run(context.cancelIndicator)
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeReturnCode = makeCommand.run(context.getCancelIndicator())
+            val makeReturnCode = makeCommand.run(context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
