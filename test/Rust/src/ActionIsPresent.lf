@@ -7,8 +7,8 @@ main reactor ActionIsPresent {
     state tried: bool(false);
 
     reaction(startup, a) -> a {=
-        if !ctx.is_action_present(a) {
-            assert!(!self.tried, "Already tried, is_action_present does not work properly.");
+        if !ctx.is_present(a) {
+            assert!(!self.tried, "Already tried, is_present does not work properly.");
             self.tried = true;
             // was triggered by startup
             println!("Startup reaction @ {}", ctx.display_tag(ctx.get_logical_time()));

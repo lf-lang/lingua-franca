@@ -28,13 +28,13 @@ main reactor ActionValuesCleanup {
     =}
 
     reaction(act) {=
-        println!("{:?}", ctx.get_action(act));
+        println!("{:?}", ctx.get(act));
         if self.count == 0 {
             self.count = 1;
-            assert!(ctx.get_action(act).is_some());
+            assert!(ctx.get(act).is_some());
             ctx.schedule(act, Asap);
         } else if self.count == 1 {
-            assert!(ctx.get_action(act).is_none());
+            assert!(ctx.get(act).is_none());
             assert!(unsafe { DROPPED.load(Ordering::SeqCst) });
         }
     =}

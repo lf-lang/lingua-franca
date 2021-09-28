@@ -16,14 +16,14 @@ main reactor ActionValues {
     reaction(act) {=
         let elapsed_logical = ctx.get_elapsed_logical_time();
 
-        println!("At {}, received {:?}", ctx.display_tag(ctx.get_logical_time()), ctx.get_action(act));
+        println!("At {}, received {:?}", ctx.display_tag(ctx.get_logical_time()), ctx.get(act));
 
         if elapsed_logical == Duration::from_millis(100) {
-            assert_eq!(Some(100), ctx.get_action(act));
+            assert_eq!(Some(100), ctx.get(act));
             self.r1done = true;
         } else {
             assert_eq!(elapsed_logical, Duration::from_millis(150));
-            assert_eq!(Some(-100), ctx.get_action(act));
+            assert_eq!(Some(-100), ctx.get(act));
             self.r2done = true;
         }
     =}

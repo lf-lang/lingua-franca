@@ -46,13 +46,14 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] `ActionScheduleMicrostep.lf`: an action scheduled with a zero delay is only triggered on the next microstep
     - [x] `ActionValues.lf`: scheduling an action with a value at multiple different tags preserves each value
     - [x] `ActionValuesCleanup.lf`: action value is cleaned up at the end of a tag
-    - [x] `ActionIsPresent.lf`: function `is_action_present` checks whether an action is present at the current tag
+    - [x] `ActionIsPresent.lf`: function `is_present` checks whether an action is present at the current tag
     - [x] `ActionIsPresentDouble.lf`: several actions may be present at the same tag
 - [ ] physical actions
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
   - [x] `TimerPeriodic.lf`: timer can be periodic
-  - [ ] timer is not accessible from within reactions, cannot be scheduled manually
+  - [ ] timer should be queryable with `ReactionCtx::is_present`
+  - [ ] timer cannot be scheduled manually
 - [x] `shutdown` trigger & `request_stop`
   - [x] `Stop.lf`: `request_stop` schedules a shutdown at T+(1 microstep)
   - [x] `StopCleanup.lf`: ports are cleaned up before the shutdown wave executes
