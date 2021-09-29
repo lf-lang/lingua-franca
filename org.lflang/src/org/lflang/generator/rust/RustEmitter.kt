@@ -446,7 +446,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
 
                 appendLine("path = \"$localPath\"")
             } else {
-                appendLine("git = \"ssh://git@github.com/lf-lang/reactor-rust.git\"")
+                appendLine("git = \"https://github.com/lf-lang/reactor-rust.git\"")
                 if (version == null && gitRevision != null)
                     appendLine("rev=\"$gitRevision\"")
             }
