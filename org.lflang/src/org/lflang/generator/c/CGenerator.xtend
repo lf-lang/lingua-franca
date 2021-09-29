@@ -4262,18 +4262,23 @@ class CGenerator extends GeneratorBase {
      * @param port The port.
      * @param contained If the port belongs to a contained reactor, then
      *  the contained reactor's instantiation. Otherwise, null.
-     * @param reactorInstance The reactor referring to this port.
+     * @param reactorInstance The reactor referring to this port. If null, "self" will be used
+     *  to reference the reactor.
      * @return The width expression for a multiport or an empty string if it is
      *  not a multiport.
      */
     protected def String multiportWidthSpecInC(Port port, Instantiation contained, ReactorInstance reactorInstance) {
         var result = new StringBuilder()
         var count = 0
-        // Caution: If port belongs to a contained reactor, the self struct needs to be that
-        // of the contained reactor instance, not this container.
-        var selfStruct = selfStructName(reactorInstance)
-        if (contained !== null) {
-            selfStruct = selfStructName(reactorInstance.getChildReactorInstance(contained))
+        var selfStruct = "self"
+        if (reactorInstance !== null) { 
+            if (contained !== null) {
+                // Caution: If port belongs to a contained reactor, the self struct needs to be that
+                // of the contained reactor instance, not this containe
+                selfStruct = selfStructName(reactorInstance.getChildReactorInstance(contained))
+            } else {
+                selfStruct =selfStructName(reactorInstance);
+            }
         }
         if (port.widthSpec !== null) {
             if (!port.widthSpec.ofVariableLength) {
@@ -5553,11 +5558,11 @@ class CGenerator extends GeneratorBase {
                 // Output port is a multiport.
                 // Set the _width variable.
                 pr(builder, '''
-                    const int «output.name»_width = «output.multiportWidthExpression»;
+                    int «output.name»_width = self->_lf_«output.name»__width;
                 ''')
                 pr(builder, '''
-                    «outputStructType»* «output.name»[«output.multiportWidthExpression»];
-                    for(int i=0; i < «output.multiportWidthExpression»; i++) {
+                    «outputStructType»* «output.name»[«output.name»_width];
+                    for(int i=0; i < «output.name»_width; i++) {
                          «output.name»[i] = &(self->_lf_«output.name»[i]);
                     }
                 ''')
