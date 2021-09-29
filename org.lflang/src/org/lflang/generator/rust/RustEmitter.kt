@@ -24,7 +24,6 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.Target
 import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.TargetCode
@@ -443,7 +442,9 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             if (version != null) append("version=\"$version\" ")
 
             if (localPath != null) {
-                append("path = \"${Paths.get(localPath).toAbsolutePath()}\"")
+                val localPath = Paths.get(localPath).toAbsolutePath().toString().escapeStringLiteral()
+
+                append("path = \"$localPath\"")
             } else {
                 append("git = \"ssh://git@github.com/lf-lang/reactor-rust.git\"")
             }
@@ -628,3 +629,12 @@ fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", "
 fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
 
 
+fun String.escapeStringLiteral() =
+    replace(Regex("[\\\\ \t]")) {
+        when (it.value) {
+            "\\" -> "\\\\"
+            "\t" -> "\\t"
+            "\"" -> "\\\""
+            else -> it.value
+        }
+    }
