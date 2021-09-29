@@ -20,16 +20,16 @@ reactor SendOnce {
  * 
  * @param offset The starting time.
  * @param period The period.
- * @param initial The first output.
+ * @param start The first output.
  * @param increment The increment between outputs
  */
 reactor SendCount(
     offset:time(0), 
     period:time(1 sec),
-    initial:int(0),
+    start:int(0),
     increment:int(1)
 ) {
-    state count:int(initial);
+    state count:int(start);
     output out:int;
     timer t(offset, period);
     reaction(t) -> out {=
@@ -80,7 +80,7 @@ reactor SendOnceAndReceive {
  * 
  * @param offset The time of the first output.
  * @param period The period of the outputs.
- * @param initial The initial output value.
+ * @param start The initial output value.
  * @param increment The increment between outputs.
  * 
  * @input in The input to report.
@@ -98,7 +98,7 @@ reactor SendPeriodicallyAndReceive extends SendCount, Receive {
  * 
  * @param offset The time of the first output.
  * @param period The period of the outputs.
- * @param initial The initial output value.
+ * @param start The initial output value.
  * @param increment The increment between outputs.
  * 
  * @input in The input to report.
@@ -118,7 +118,7 @@ reactor ReceiveAndSendPeriodically extends Receive, SendCount {
 reactor SendPeriodicallyAndReceiveMultiport (
     offset:time(0),
     period:time(1 sec),
-    initial:int(0),
+    start:int(0),
     increment:int(1),
     width:int(4)
 ) {
@@ -127,7 +127,7 @@ reactor SendPeriodicallyAndReceiveMultiport (
     
     timer t(offset, period);
     
-    state count:int(initial);
+    state count:int(start);
     
     reaction(t) -> out {=
         SET(out, self->count);
