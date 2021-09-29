@@ -101,6 +101,15 @@ public class CodeGenCoverage extends ThreadedBase {
             super.runWithFourThreads();
         }
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        for (var target : Target.values()) {
+            this.target = target;
+            super.runSerializationTests();
+        }
+    }
 
     @Test
     @Override
