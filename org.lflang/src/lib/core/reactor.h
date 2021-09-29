@@ -51,6 +51,7 @@
 #ifndef REACTOR_H
 #define REACTOR_H
 
+#include "platform.h"  // Platform-specific times and APIs
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +62,6 @@
 #include "pqueue.h"
 #include "util.h"
 #include "tag.h"       // Time-related functions.
-#include "platform.h"  // Platform-specific times and APIs
 
 // The following file is also included, but must be included
 // after its requirements are met, so the #include appears at
