@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "pythontarget.h"
 #include "core/util.h"
+#include "core/tag.h"
 
 //////////// set Function(s) /////////////
 /**
@@ -193,37 +194,35 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args) {
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_elapsed_logical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_elapsed_logical_time());
+    return PyLong_FromLongLong(get_elapsed_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_logical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_logical_time());
+    return PyLong_FromLongLong(get_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_physical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_physical_time());
+    return PyLong_FromLongLong(get_physical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
-instant_t get_elapsed_physical_time();
 static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_elapsed_physical_time());
+    return PyLong_FromLongLong(get_elapsed_physical_time());
 }
 
 /**
  * Return the start time in nanoseconds.
  */
-instant_t get_start_time();
 static PyObject* py_get_start_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_start_time());
+    return PyLong_FromLongLong(get_start_time());
 }
 
 /**
@@ -1004,7 +1003,7 @@ get_python_function(string module, string class, int instance_id, string func) {
 
         Py_SetPath(wcwd);
 
-    DEBUG_PRINT("Loading module %s in %s.", module, cwd);
+        DEBUG_PRINT("Loading module %s in %s.", module, cwd);
 
         pModule = PyImport_Import(pFileName);
 
