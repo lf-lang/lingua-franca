@@ -85,6 +85,12 @@ public class CTest extends ThreadedBase {
     public void runWithFourThreads() {
         super.runWithFourThreads();
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        super.runSerializationTests();
+    }
 
     @Test
     @Disabled("TODO only 27/96 tests pass")

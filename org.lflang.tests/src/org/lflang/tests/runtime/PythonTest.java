@@ -59,6 +59,12 @@ public class PythonTest extends TestBase {
     @Override public void runMultiportTests() {
         super.runMultiportTests();
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        super.runSerializationTests();
+    }
 
     @Test
     @Disabled("TODO")
