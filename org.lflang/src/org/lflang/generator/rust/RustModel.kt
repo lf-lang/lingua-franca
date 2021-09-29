@@ -256,7 +256,8 @@ data class CrateInfo(
 
 data class RuntimeInfo(
     val version: String?,
-    val localPath: String?
+    val localPath: String?,
+    val gitRevision: String?
 )
 
 /*
@@ -384,6 +385,10 @@ private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
  */
 object RustModelBuilder {
 
+    private val runtimeGitRevision =
+        javaClass.getResourceAsStream("rust-runtime-version.txt")!!
+            .bufferedReader().readLine().trim()
+
     /**
      * Given the input to the generator, produce the model classes.
      */
@@ -391,6 +396,7 @@ object RustModelBuilder {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
+
 
         return GenerationInfo(
             crate = CrateInfo(
@@ -400,7 +406,8 @@ object RustModelBuilder {
             ),
             runtime = RuntimeInfo(
                 version = targetConfig.runtimeVersion,
-                localPath = targetConfig.externalRuntimePath
+                localPath = targetConfig.externalRuntimePath,
+                gitRevision = runtimeGitRevision
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,
