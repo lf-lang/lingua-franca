@@ -251,7 +251,7 @@ Serializer:
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' ( pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* )? ','? '}';
+    {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
