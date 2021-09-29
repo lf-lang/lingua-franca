@@ -811,7 +811,7 @@ reaction_t* first_ready_reaction() {
             if (_lf_is_blocked_by_executing_reaction(r)) {
                 pqueue_insert(transfer_q, r);
             } else {
-                // Not blocked. Break of the loop and return the reaction.   
+                // Not blocked. Break out of the loop and return the reaction.
                 break;
             }
         }
