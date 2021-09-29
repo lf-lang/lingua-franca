@@ -211,7 +211,7 @@ class CCmakeGenerator {
         
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
-            cMakeCode.append("include("+includeFile+")\n");
+            cMakeCode.append("include(\""+includeFile+"\")\n");
         } 
         
         return cMakeCode;
