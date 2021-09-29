@@ -33,7 +33,6 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty.ClockSyncMode
-import org.lflang.generator.FederateInstance
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -295,40 +294,40 @@ package class FedLauncher {
         // Index used for storing pids of federates
         var federateIndex = 0
         for (federate : federates) {
-            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+            if (federate.isRemote) {
+                val fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+                val fedRelSrcGenPath = fedFileConfig.srcGenBasePath.relativize(fedFileConfig.srcGenPath);
                 if(distCode.length === 0) distCode.append(distHeader+"\n");
-                val logFileName = '''log/«fileConfig.name»_«federate.name».log'''
+                val logFileName = '''log/«fedFileConfig.name»_«federate.name».log'''
                 val compileCommand = compileCommandForFederate(federate);
                 //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                shCode.append( '''
-                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.host»"
+                distCode.append( '''
+                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.user»@«federate.host»"
                     # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
-                    ssh «federate.host» '\
-                        mkdir -p «path»/src-gen/federated/«fileConfig.name»/core «path»/bin «path»/log «path»/src-gen/core/federated; \
+                    ssh «federate.user»@«federate.host» '\
+                        mkdir -p «path»/src-gen/«fedRelSrcGenPath»/core «path»/bin «path»/log; \
                         echo "--------------" >> «path»/«logFileName»; \
                         date >> «path»/«logFileName»;
                     '
-                    pushd «fileConfig.srcGenPath» > /dev/null
-                    echo "Copying LF core files to host «federate.host»"
-                    scp -r core «federate.host»:«path»/src-gen/federated/«fileConfig.name»
-                    echo "Copying source files to host «federate.host»"
-                    scp «fileConfig.name»_«federate.name».c «FOR file:targetConfig.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen/federated/«fileConfig.name»
+                    pushd «fedFileConfig.srcGenPath» > /dev/null
+                    echo "Copying source files to host «federate.user»@«federate.host»"
+                    scp -r * «federate.user»@«federate.host»:«path»/src-gen/«fedRelSrcGenPath»
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «compileCommand»"
-                    ssh «federate.host» 'cd «path»; \
+                    echo "Compiling on host «federate.user»@«federate.host» using: «compileCommand»"
+                    ssh «federate.user»@«federate.host» 'cd «path»; \
                         echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
                         # Capture the output in the log file and stdout. \
                         «compileCommand» 2>&1 | tee -a «logFileName»;'
                 ''')
                 val executeCommand = executeCommandForFederate(federate);
                 shCode.append( '''
-                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    echo "#### Launching the federate «federate.name» on host «federate.user»@«federate.host»"
                     # FIXME: Killing this ssh does not kill the remote process.
                     # A double -t -t option to ssh forces creation of a virtual terminal, which
                     # fixes the problem, but then the ssh command does not execute. The remote
                     # federate does not start!
-                    ssh «federate.host» '\
+                    ssh «federate.user»@«federate.host» '\
                         cd «path»; \
                         echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                         date >> «logFileName»; \

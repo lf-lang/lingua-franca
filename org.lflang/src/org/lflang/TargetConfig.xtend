@@ -21,6 +21,7 @@
 package org.lflang
 
 import java.util.List
+import java.util.Set
 import org.lflang.TargetProperty.BuildType
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -35,6 +36,11 @@ import org.lflang.lf.TimeUnit
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class TargetConfig {
+    
+    /**
+     * Keep track of every target property that is explicitly set by the user.
+     */
+    public Set<TargetProperty> setByUser = newHashSet;
 
     /**
      * A list of custom build commands that replace the default build process of
@@ -70,6 +76,13 @@ class TargetConfig {
      * Optional additional extensions to include in the generated CMakeLists.txt.
      */
     public List<String> cmakeIncludes = newArrayList
+    
+    /**
+     * List of cmake-includes from the cmake-include target property with no path info.
+     * Useful for copying them to remote machines. This is needed because
+     * target cmake-includes can be resources with resource paths.
+     */
+    public List<String> cmakeIncludesWithoutPath = newArrayList;
 
     /**
      * The compiler to invoke, unless a build command has been specified.
@@ -183,7 +196,7 @@ class TargetConfig {
      * The default is null.
      */
     public TracingOptions tracing = null
-    
+
 }
 
 /**

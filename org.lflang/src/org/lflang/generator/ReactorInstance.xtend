@@ -1025,7 +1025,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     childInstance.bankIndex = index
                 }
             } else {
-                reporter.reportError(definition, "Cannot infer width.")
+                reporter.reportWarning(definition, "Cannot infer width.")
             }
             return
         }
