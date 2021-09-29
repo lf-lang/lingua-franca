@@ -5553,11 +5553,11 @@ class CGenerator extends GeneratorBase {
                 // Output port is a multiport.
                 // Set the _width variable.
                 pr(builder, '''
-                    int «output.name»_width = self->_lf_«output.name»__width;
+                    const int «output.name»_width = «output.multiportWidthExpression»;
                 ''')
                 pr(builder, '''
-                    «outputStructType»* «output.name»[«output.name»_width];
-                    for(int i=0; i < «output.name»_width; i++) {
+                    «outputStructType»* «output.name»[«output.multiportWidthExpression»];
+                    for(int i=0; i < «output.multiportWidthExpression»; i++) {
                          «output.name»[i] = &(self->_lf_«output.name»[i]);
                     }
                 ''')
