@@ -167,7 +167,7 @@ public abstract class TestBase {
             return; 
         }
         printTestHeader("Description: Run serialization tests.");
-        runUnthreaded(TestCategory.SERIALIZATION);
+        runTestsAndPrintResults(target, TestCategory.SERIALIZATION::equals, null, false);
     }
 
     @Test
