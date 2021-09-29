@@ -48,6 +48,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
+import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -439,7 +440,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // If serialization support is
             // requested by the programmer 
             // enable support for them.
-            enableSupportForSerialization();            
+            enableSupportForSerialization(context.cancelIndicator);
         }
     }
 
@@ -913,7 +914,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Add necessary code to the source and necessary build support to
      * enable the requested serializations in 'enabledSerializations'
      */   
-    def void enableSupportForSerialization() {
+    def void enableSupportForSerialization(CancelIndicator cancelIndicator) {
         throw new UnsupportedOperationException(
             "Serialization is target-specific "+
             " and is not implemented for the "+target.toString+" target."
