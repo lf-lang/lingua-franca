@@ -21,6 +21,7 @@
 package org.lflang
 
 import java.util.List
+import java.util.Set
 import org.lflang.TargetProperty.BuildType
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -35,6 +36,11 @@ import org.lflang.lf.TimeUnit
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class TargetConfig {
+    
+    /**
+     * Keep track of every target property that is explicitly set by the user.
+     */
+    public Set<TargetProperty> setByUser = newHashSet;
 
     /**
      * A list of custom build commands that replace the default build process of

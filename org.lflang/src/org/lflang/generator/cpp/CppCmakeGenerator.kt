@@ -139,7 +139,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
                 |)
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include($it)" } ?: "") }
+            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "") }
             """.trimMargin()
         }
     }

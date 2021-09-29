@@ -36,9 +36,8 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
-import java.lang.StringBuilder
 import java.nio.file.Files
-import java.util.LinkedList
+import java.util.*
 import org.lflang.federated.SupportedSerializers
 
 /**
@@ -383,12 +382,90 @@ class TSGenerator(
         serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
-        // FIXME: For now assume the data is a Buffer, but this is not checked.
-        // Replace with ProtoBufs or MessagePack.
+        |// FIXME: For now assume the data is a Buffer, but this is not checked.
+        |// Replace with ProtoBufs or MessagePack.
+        |// generateNetworkReceiverBody
         |if (${action.name} !== undefined) {
-        |    ${receivingPort.container.name}.${receivingPort.variable.name} = 
-        |    ${action.name}; // defaults to utf8 encoding
+        |    ${receivingPort.container.name}.${receivingPort.variable.name} = ${action.name}.toString(); // defaults to utf8 encoding
         |}
+        """.trimMargin()}
+    }
+
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network. This base class throws an exception.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param serializer The serializer used on the connection.
+     */
+    override fun generateNetworkSenderBody(
+        sendingPort: VarRef,
+        receivingPort: VarRef,
+        receivingPortID: Int,
+        sendingFed: FederateInstance,
+        sendingBankIndex: Int,
+        sendingChannelIndex: Int,
+        receivingFed: FederateInstance,
+        type: InferredType,
+        isPhysical: Boolean,
+        delay: Delay?,
+        serializer: SupportedSerializers
+    ): String {
+        return with(PrependOperator) {"""
+        |// FIXME: For now assume the data is a Buffer, but this is not checked.
+        |// Use SupportedSerializers for determining the serialization later.
+        |if (${sendingPort.container.name}.${sendingPort.variable.name} !== undefined) {
+        |    let buf = Buffer.from(${sendingPort.container.name}.${sendingPort.variable.name})
+        |    this.util.sendRTITimedMessage(buf, ${receivingFed.id}, ${receivingPortID});
+        |}
+        """.trimMargin()}
+    }
+
+
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     *
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
+     */
+    override fun generateNetworkOutputControlReactionBody(
+        port: VarRef?,
+        portID: Int,
+        receivingFederateID: Int,
+        sendingBankIndex: Int,
+        sendingChannelIndex: Int,
+        delay: Delay?
+    ): String? {
+        return with(PrependOperator) {"""
+        |// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody
+        """.trimMargin()}
+    }
+
+    /**
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
+     *
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     * that have port as their trigger or source
+     */
+    override fun generateNetworkInputControlReactionBody(receivingPortID: Int, maxSTP: TimeValue?): String? {
+        return with(PrependOperator) {"""
+        |// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody
         """.trimMargin()}
     }
 

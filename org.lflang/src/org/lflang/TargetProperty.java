@@ -406,6 +406,8 @@ public enum TargetProperty {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
+                // Mark the specified target property as set by the user
+                config.setByUser.add(p);
                 p.setter.accept(config, property.getValue());
             }
         });
