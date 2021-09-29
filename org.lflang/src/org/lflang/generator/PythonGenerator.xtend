@@ -1645,7 +1645,7 @@ class PythonGenerator extends CGenerator {
             } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&«output.name»,«output.name»_width) ''')
+                pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
             }
     }
     
