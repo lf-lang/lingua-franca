@@ -722,6 +722,19 @@ void request_stop() {
 }
 
 /**
+ * Return true if the first reaction has precedence over the second, false otherwise.
+ * @param r1 The first reaction.
+ * @param r2 The second reaction.
+ */
+bool _lf_has_precedence_over(reaction_t* r1, reaction_t* r2) {
+    if (LEVEL(r1->index) < LEVEL(r2->index)
+            && OVERLAPPING(r1->chain_id, r2->chain_id)) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * If the reaction is blocked by a currently executing
  * reaction, return true. Otherwise, return false.
  * A reaction blocks the specified reaction if it has a
@@ -739,18 +752,13 @@ bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
     }
     for (size_t i = 1; i < executing_q->size; i++) {
         reaction_t* running = (reaction_t*) executing_q->d[i];
-        if (LEVEL(running->index) < LEVEL(reaction->index)
-                && OVERLAPPING(reaction->chain_id, running->chain_id)) {
+        if (_lf_has_precedence_over(running, reaction)) {
             DEBUG_PRINT("Reaction %s is blocked by reaction %s.", reaction->name, running->name);
             return true;
         }
     }
-    // Note that there is no need to check the transfer_q, which contains
-    // reactions popped from the reaction_q that have previously been
-    // determined to be blocked by executing reactions. The reason that
-    // we don't have to check the transfer_q is that if there is a reaction
-    // on that queue blocking this one, then there must also be a reaction
-    // on the executing queue blocking this one. Blocking is transitive.
+    // NOTE: checks against the transfer_q are not performed in 
+    // this function but at its call site (where appropriate).
 
     // printf("Not blocking for reaction with chainID %llu and level %llu\n", reaction->chain_id, reaction->index);
     // pqueue_dump(executing_q, stdout, executing_q->prt);
@@ -792,16 +800,25 @@ bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
 reaction_t* first_ready_reaction() {    
     reaction_t* r;
     reaction_t* b;
+    // Keep track of the chain IDs of blocked reactions.
+    unsigned long long mask = 0LL;
 
     // Find a reaction that is ready to execute.
     while ((r = (reaction_t*)pqueue_pop(reaction_q)) != NULL) {
-        if (_lf_is_blocked_by_executing_reaction(r)) {
-            // Move blocked reaction onto another queue.
-            // NOTE: This could also just be be a FIFO.
+        // Set the reaction aside if it is blocked, either by another
+        // blocked reaction or by a reaction that is currently executing.
+        if (OVERLAPPING(mask, r->chain_id)) {
             pqueue_insert(transfer_q, r);
+            DEBUG_PRINT("Reaction %s is blocked by a reaction that is also blocked.", r->name);
         } else {
-            break;
+            if (_lf_is_blocked_by_executing_reaction(r)) {
+                pqueue_insert(transfer_q, r);
+            } else {
+                // Not blocked. Break out of the loop and return the reaction.
+                break;
+            }
         }
+        mask = mask | r->chain_id;
     }
     
     // Push blocked reactions back onto the reaction queue.
