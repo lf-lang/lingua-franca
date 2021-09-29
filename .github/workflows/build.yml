@@ -107,6 +107,7 @@ jobs:
           cmake ../
           make
           sudo make install
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
