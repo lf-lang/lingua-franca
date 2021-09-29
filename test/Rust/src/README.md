@@ -9,7 +9,6 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `CompositionWithPorts.lf`: port bindings work
   - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
 - [ ] ports
-    - [x] values
     - [x] `PortValueCleanup.lf`: port value is cleaned up at the end of a tag
     - [x] `PortRefCleanup.lf`: port value is cleaned up at the end of a tag, when the upstream is a port reference
     - [x] connections...
@@ -52,8 +51,8 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
   - [x] `TimerPeriodic.lf`: timer can be periodic
-  - [ ] timer should be queryable with `ReactionCtx::is_present`
-  - [ ] timer cannot be scheduled manually
+  - [x] `TimerIsPresent.lf`: timer should be queryable with `is_present`
+  - [x] timer cannot be scheduled manually
 - [x] `shutdown` trigger & `request_stop`
   - [x] `Stop.lf`: `request_stop` schedules a shutdown at T+(1 microstep)
   - [x] `StopCleanup.lf`: ports are cleaned up before the shutdown wave executes

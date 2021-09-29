@@ -466,18 +466,17 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
         is ActionData                      -> "&mut self.$rustFieldName"
-        is TimerData                       -> null
+        is TimerData                       -> "&self.$rustFieldName"
     }
 
     private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
-        this is TimerData
                 // Item is both in inputs and outputs.
                 // We must not generate 2 parameters, instead we generate the
                 // one with the most permissions (Effects means &mut).
 
                 // eg `reaction(act) -> act` must not generate 2 parameters for act,
                 // we skip the Trigger one and generate the Effects one.
-                || depKind != DepKind.Effects && this in n.effects
+                depKind != DepKind.Effects && this in n.effects
 
     private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
         depKind == DepKind.Effects && (this is PortData || this is ActionData)
@@ -494,6 +493,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         when (this) {
             is PortData           -> portRefWrapper(kind, dataType)
             is ChildPortReference -> portRefWrapper(kind, dataType)
+            is TimerData          -> "& ${toType()}"
             else                  -> "&mut ${toType()}"
         }
 
