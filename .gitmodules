@@ -1,7 +1,3 @@
 [submodule "xtext/org.icyphy.linguafranca/src/lib/TS/reactor-ts"]
 	path = org.lflang/src/lib/TS/reactor-ts
 	url = https://github.com/lf-lang/reactor-ts.git
-[submodule "rust_rt"]
-	path = org.lflang/src/lib/Rust/reactor-rust
-	url = git@github.com:lf-lang/reactor-rust.git
-	branch = main
