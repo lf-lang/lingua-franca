@@ -23,7 +23,7 @@ reactor Print(expected:i32(42)) {
     input inp: {= super::source::Hello =};
     state expected:i32(expected);
     reaction(inp) {=
-        ctx.use_ref(inp, |hello| {
+        ctx.use_ref_opt(inp, |hello| {
             println!("Received: name=\"{}\", value={}.", hello.name, hello.value);
             if hello.value != self.expected {
                 panic!("ERROR: Expected value to be {}.\n", self.expected);
