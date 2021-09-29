@@ -29,8 +29,9 @@ public class LFParsingTest {
     @Test
     public void testLexingEmptyTargetProperties() throws Exception {
         assertNoParsingErrorsIn("target C { };      \nreactor Foo {}");
-        assertNoParsingErrorsIn("target C {,};      \nreactor Foo {}");
         assertNoParsingErrorsIn("target C {a:b,};   \nreactor Foo {}");
+        expectParsingErrorIn("target C {,};      \nreactor Foo {}");
+
         // array elements
         // assertNoParsingErrorsIn("target C {x:[ ]};  \nreactor Foo {}");
         // assertNoParsingErrorsIn("target C {x:[]};   \nreactor Foo {}");
