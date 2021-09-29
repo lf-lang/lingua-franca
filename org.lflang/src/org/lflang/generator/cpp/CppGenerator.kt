@@ -74,7 +74,7 @@ class CppGenerator(
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
-            doCompile()
+            doCompile(context)
         }
     }
 
@@ -127,7 +127,7 @@ class CppGenerator(
         fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
-    fun doCompile() {
+    fun doCompile(context: IGeneratorContext) {
         val outPath = fileConfig.outPath
 
         val buildPath = outPath.resolve("build").resolve(topLevelName)
@@ -170,11 +170,11 @@ class CppGenerator(
         }
 
         // run cmake
-        val cmakeReturnCode = cmakeCommand.run()
+        val cmakeReturnCode = cmakeCommand.run(context.cancelIndicator)
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeReturnCode = makeCommand.run()
+            val makeReturnCode = makeCommand.run(context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")

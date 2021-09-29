@@ -30,6 +30,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.eclipse.xtext.util.CancelIndicator;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Mode;
@@ -85,7 +87,13 @@ public class CCmakeCompiler extends CCompiler {
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary, GeneratorBase generator) throws IOException {
+    @Override
+    public boolean runCCompiler(
+        String file,
+        boolean noBinary,
+        GeneratorBase generator,
+        CancelIndicator cancelIndicator
+    ) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         // Remove the previous build directory if it exists to 
@@ -115,7 +123,7 @@ public class CCmakeCompiler extends CCompiler {
             }
         }
         
-        int cMakeReturnCode = compile.run();
+        int cMakeReturnCode = compile.run(cancelIndicator);
         
         if (cMakeReturnCode != 0 && 
                 fileConfig.getCompilerMode() != Mode.INTEGRATED && 
@@ -136,7 +144,7 @@ public class CCmakeCompiler extends CCompiler {
         if (cMakeReturnCode == 0) {            
             LFCommand build = buildCmakeCommand(file, noBinary);
             
-            makeReturnCode = build.run();
+            makeReturnCode = build.run(cancelIndicator);
             
             if (makeReturnCode != 0 && 
                     fileConfig.getCompilerMode() != Mode.INTEGRATED &&
