@@ -97,7 +97,7 @@ int lf_thread_join(_lf_thread_t thread, void** thread_return) {
  */
 int lf_mutex_init(_lf_critical_section_t* critical_section) {
     // Set up a recursive mutex
-    InitializeCriticalSection((CRITICAL_SECTION*)critical_section);
+    InitializeCriticalSection((PCRITICAL_SECTION)critical_section);
     if(critical_section != NULL){
         return 0;
     }else{
@@ -119,7 +119,7 @@ int lf_mutex_init(_lf_critical_section_t* critical_section) {
 int lf_mutex_lock(_lf_critical_section_t* critical_section) {
     // The following Windows API does not return a value. It can
     // raise a EXCEPTION_POSSIBLE_DEADLOCK. See synchapi.h.
-    EnterCriticalSection((CRITICAL_SECTION*)critical_section);
+    EnterCriticalSection((PCRITICAL_SECTION)critical_section);
     return 0;
 }
 
@@ -130,7 +130,7 @@ int lf_mutex_lock(_lf_critical_section_t* critical_section) {
  */
 int lf_mutex_unlock(_lf_critical_section_t* critical_section) {
     // The following Windows API does not return a value.
-    LeaveCriticalSection((CRITICAL_SECTION*)critical_section);
+    LeaveCriticalSection((PCRITICAL_SECTION)critical_section);
     return 0;
 }
 
@@ -141,7 +141,7 @@ int lf_mutex_unlock(_lf_critical_section_t* critical_section) {
  */
 int lf_cond_init(_lf_cond_t* cond) {
     // The following Windows API does not return a value.
-    InitializeConditionVariable((CONDITION_VARIABLE*)cond);
+    InitializeConditionVariable((PCONDITION_VARIABLE)cond);
     return 0;
 }
 
@@ -152,7 +152,7 @@ int lf_cond_init(_lf_cond_t* cond) {
  */
 int lf_cond_broadcast(_lf_cond_t* cond) {
     // The following Windows API does not return a value.
-    WakeAllConditionVariable((CONDITION_VARIABLE*)cond);
+    WakeAllConditionVariable((PCONDITION_VARIABLE)cond);
     return 0;
 }
 
@@ -163,7 +163,7 @@ int lf_cond_broadcast(_lf_cond_t* cond) {
  */
 int lf_cond_signal(_lf_cond_t* cond) {
     // The following Windows API does not return a value.
-    WakeConditionVariable((CONDITION_VARIABLE*)cond);
+    WakeConditionVariable((PCONDITION_VARIABLE)cond);
     return 0;
 }
 
@@ -178,8 +178,8 @@ int lf_cond_wait(_lf_cond_t* cond, _lf_critical_section_t* critical_section) {
     // and non-zero on success.
     int return_value =
      (int)SleepConditionVariableCS(
-         (CONDITION_VARIABLE*)cond, 
-         (CRITICAL_SECTION*)critical_section, 
+         (PCONDITION_VARIABLE)cond, 
+         (PCRITICAL_SECTION)critical_section, 
          INFINITE
      );
      switch (return_value) {
@@ -204,12 +204,14 @@ int lf_cond_wait(_lf_cond_t* cond, _lf_critical_section_t* critical_section) {
  */
 int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section, instant_t absolute_time_ns) {
     // Convert the absolute time to a relative time
-    DWORD relative_time_ms = (absolute_time_ns - get_physical_time())/1000000LL;
+    instant_t current_time_ns;
+    lf_clock_gettime(&current_time_ns);
+    DWORD relative_time_ms = (absolute_time_ns - current_time_ns)/1000000LL;
 
     int return_value =
      (int)SleepConditionVariableCS(
-         (CONDITION_VARIABLE*)cond, 
-         (CRITICAL_SECTION*)critical_section, 
+         (PCONDITION_VARIABLE)cond, 
+         (PCRITICAL_SECTION)critical_section, 
          relative_time_ms
      );
      switch (return_value) {
