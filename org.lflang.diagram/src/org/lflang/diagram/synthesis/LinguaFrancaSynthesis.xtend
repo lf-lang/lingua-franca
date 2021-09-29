@@ -138,6 +138,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
+    public static val SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", true).setCategory(APPEARANCE)
     public static val SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
@@ -160,6 +161,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			//LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
+			SHOW_PORT_NAMES,
 			SHOW_MULTIPORT_WIDTH,
 			SHOW_REACTION_CODE,
 			SHOW_REACTION_ORDER_EDGES,
@@ -1046,6 +1048,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.addTrianglePort(multiport)
 		
 		var label = lfPort.name
+		if (!SHOW_PORT_NAMES.booleanValue) {
+		    label = ""
+		}
 		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
             if (lfPort instanceof MultiportInstance) {
                 // TODO Fix unresolvable references in ReactorInstance

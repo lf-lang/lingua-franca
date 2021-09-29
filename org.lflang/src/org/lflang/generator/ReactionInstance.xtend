@@ -172,7 +172,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 this.effects.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
             } else {
-                // Effect must be a mode. 
+                // Effect is either a mode or an unresolved reference.
                 // Do nothing, transitions will be set up by the ModeInstance.
             }
         }

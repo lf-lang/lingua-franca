@@ -26,12 +26,14 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/recmatmul"
-    lf_file: "recmatmul/MatMul.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/Matrix.hh"
+    lf_file: "parallelism/MatMul.lf"
     binary: "MatMul"
-    gen_args:
-      workers: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       data_length: ["--dataLength", "<value>"]
       block_threshold: ["--blockThreshold", "<value>"]
       priorities: ["--priorities", "<value>"]
+      workers: ["--numWorkers", "<value>"]
