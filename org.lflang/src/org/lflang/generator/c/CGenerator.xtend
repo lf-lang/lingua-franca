@@ -43,6 +43,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -857,7 +858,7 @@ class CGenerator extends GeneratorBase {
                             cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
                                 errorReporter, CppMode);
                         }
-                        if (!cCompiler.runCCompiler(execName, main === null, generator)) {
+                        if (!cCompiler.runCCompiler(execName, main === null, generator, context.cancelIndicator)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
                         }
@@ -3298,7 +3299,7 @@ class CGenerator extends GeneratorBase {
      * the required .h and .c files.
      * @param filename Name of the file to process.
      */
-     def processProtoFile(String filename) {
+     def processProtoFile(String filename, CancelIndicator cancelIndicator) {
         val protoc = commandFactory.createCommand(
             "protoc-c",
             #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename],
@@ -3307,7 +3308,7 @@ class CGenerator extends GeneratorBase {
             errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.")
             return
         }
-        val returnCode = protoc.run()
+        val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
             targetConfig.compileAdditionalSources.add(
@@ -4697,7 +4698,7 @@ class CGenerator extends GeneratorBase {
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializer in 'enabledSerializers'
      */  
-    override enableSupportForSerialization() {
+    override enableSupportForSerialization(CancelIndicator cancelIndicator) {
         for (serializer : enabledSerializers) {
             switch (serializer) {
                 case SupportedSerializers.NATIVE: {
@@ -4706,7 +4707,7 @@ class CGenerator extends GeneratorBase {
                 case SupportedSerializers.PROTO: {
                     // Handle .proto files.
                     for (file : targetConfig.protoFiles) {
-                        this.processProtoFile(file)
+                        this.processProtoFile(file, cancelIndicator)
                         val dotIndex = file.lastIndexOf('.')
                         var rootFilename = file
                         if (dotIndex > 0) {
