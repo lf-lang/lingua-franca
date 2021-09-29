@@ -84,5 +84,10 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 ### Runtime
 
 - [ ] parallelize independent computation
-- [ ] keepalive option
+- [ ] keepalive option -> relevant with physical actions
 - [ ] timeout option
+
+### Other todos/ nice-to-have things
+
+- [ ] benchmark generation
+- [ ] CLI parameter parsing
