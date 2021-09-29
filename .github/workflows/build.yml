@@ -231,8 +231,6 @@ jobs:
           rust-version: ${{ matrix.rust }}
           components: clippy
       - uses: actions/checkout@v2
-        with:
-          submodules: recursive # check out runtime as well
       - name: Run Rust tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
