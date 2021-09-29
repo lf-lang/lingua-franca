@@ -722,7 +722,9 @@ void request_stop() {
 }
 
 /**
- * Return true of r1 has precedence over r2, false otherwise.
+ * Return true if the first reaction has precedence over the second, false otherwise.
+ * @param r1 The first reaction.
+ * @param r2 The second reaction.
  */
 bool _lf_has_precedence_over(reaction_t* r1, reaction_t* r2) {
     if (LEVEL(r1->index) < LEVEL(r2->index)
