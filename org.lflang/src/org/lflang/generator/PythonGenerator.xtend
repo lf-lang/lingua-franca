@@ -35,6 +35,7 @@ import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -914,7 +915,7 @@ class PythonGenerator extends CGenerator {
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializations in 'enabledSerializations'
      */  
-    override enableSupportForSerialization() {
+    override enableSupportForSerialization(CancelIndicator cancelIndicator) {
         for (serialization : enabledSerializers) {
             switch (serialization) {
                 case NATIVE: {
@@ -923,7 +924,7 @@ class PythonGenerator extends CGenerator {
                 case PROTO: {
                     // Handle .proto files.
                     for (name : targetConfig.protoFiles) {
-                        this.processProtoFile(name)
+                        this.processProtoFile(name, cancelIndicator)
                         val dotIndex = name.lastIndexOf('.')
                         var rootFilename = name
                         if (dotIndex > 0) {
@@ -948,7 +949,7 @@ class PythonGenerator extends CGenerator {
      * the required .h and .c files.
      * @param filename Name of the file to process.
      */
-    override processProtoFile(String filename) {
+    override processProtoFile(String filename, CancelIndicator cancelIndicator) {
          val protoc = commandFactory.createCommand(
             "protoc",
             #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename],
@@ -957,7 +958,7 @@ class PythonGenerator extends CGenerator {
         if (protoc === null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
         }
-        val returnCode = protoc.run()
+        val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
             pythonRequiredModules.append(''', 'google-api-python-client' ''')
         } else {
