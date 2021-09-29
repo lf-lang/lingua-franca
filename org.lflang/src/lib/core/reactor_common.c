@@ -1820,6 +1820,8 @@ void initialize() {
     current_tag.time = physical_start_time;
     start_time = current_tag.time;
 
+    DEBUG_PRINT("Start time: %lldns", start_time);
+
     struct timespec physical_time_timespec = {physical_start_time / BILLION, physical_start_time % BILLION};
 
     info_print("---- Start execution at time %s---- plus %ld nanoseconds.",
