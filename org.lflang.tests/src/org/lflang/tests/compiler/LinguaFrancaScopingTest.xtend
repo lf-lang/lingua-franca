@@ -115,5 +115,41 @@ class LinguaFrancaScopingTest {
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
             "Couldn't resolve reference to Variable 'y'")
     }
-    
+
+    @Test
+    def void unresolvedReferenceInTriggerClause() {
+        '''
+            target C;
+            main reactor {
+                reaction(unknown) {==}
+            }
+        '''.parse.assertError(LfPackage::eINSTANCE.varRef,
+            XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
+            "Couldn't resolve reference to Variable 'unknown'.")
+    }
+
+    @Test
+    def void unresolvedReferenceInUseClause() {
+        '''
+            target C;
+            main reactor {
+                reaction() unknown {==}
+            }
+        '''.parse.assertError(LfPackage::eINSTANCE.varRef,
+            XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
+            "Couldn't resolve reference to Variable 'unknown'.")
+    }
+
+    @Test
+    def void unresolvedReferenceInEffectsClause() {
+        '''
+            target C;
+            main reactor {
+                reaction() -> unknown {==}
+            }
+        '''.parse.assertError(LfPackage::eINSTANCE.varRef,
+            XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
+            "Couldn't resolve reference to Variable 'unknown'.")
+    }
+
 }
