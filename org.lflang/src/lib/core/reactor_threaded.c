@@ -802,7 +802,7 @@ reaction_t* first_ready_reaction() {
 
     // Find a reaction that is ready to execute.
     while ((r = (reaction_t*)pqueue_pop(reaction_q)) != NULL) {
-        // Set the reaction aside of it is blocked, either by another
+        // Set the reaction aside if it is blocked, either by another
         // blocked reaction or by a reaction that is currently executing.
         if (OVERLAPPING(mask, r->chain_id)) {
             pqueue_insert(transfer_q, r);
