@@ -54,10 +54,9 @@ public class RustTest extends TestBase {
         // it's more convenient. You'll have to delete test/Rust/src-gen/*
         // to make a change (and checkout the Cargo.toml back).
         String path = System.getenv("LOCAL_RUST_REACTOR_RT");
-        if (path == null) {
-            path = "../org.lflang/src/lib/Rust/reactor-rust";
+        if (path != null) {
+            args.setProperty("external-runtime-path", path);
         }
-        args.setProperty("external-runtime-path", path);
     }
 
 
