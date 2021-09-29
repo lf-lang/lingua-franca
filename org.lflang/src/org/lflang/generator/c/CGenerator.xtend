@@ -4072,7 +4072,7 @@ class CGenerator extends GeneratorBase {
                                 // Allocate memory to store output of reaction.
                                 «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
                                     * «nameOfSelfStruct»->_lf_«effect.name»__width); 
-                                «nameOfSelfStruct»->_lf_«effect.name»_pointers = («portStructType»*)malloc(sizeof(«portStructType»*) 
+                                «nameOfSelfStruct»->_lf_«effect.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
                                                                     * «nameOfSelfStruct»->_lf_«effect.name»__width);
                                 // Assign each output port pointer to be used in reactions to facilitate user access to output ports
                                 for(int i=0; i < «nameOfSelfStruct»->_lf_«effect.name»__width; i++) {
