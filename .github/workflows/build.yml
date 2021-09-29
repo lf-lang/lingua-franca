@@ -64,7 +64,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run standalone LFC tests
         run: |
-          ./gradlew :org.lflang.lfc:test
+          ./gradlew :org.lflang.lfc:test --stacktrace
 
   c-tests:
     strategy:
