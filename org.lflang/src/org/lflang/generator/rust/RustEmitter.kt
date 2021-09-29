@@ -424,11 +424,11 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |edition = "2018"
             |
             |[dependencies]
-            |# The reactor runtime
-            |$runtimeCrateFullName = { ${gen.runtime.runtimeCrateSpec()} }
-            |# Other dependencies
             |env_logger = "0.9"
             |assert_matches = "1.5.0" # useful for tests
+            |
+            |[dependencies.$runtimeCrateFullName] # the reactor runtime
+            |${gen.runtime.runtimeCrateSpec()}
             |
             |[[bin]]
             |name = "${gen.executableName}"
@@ -439,16 +439,16 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
 
     private fun RuntimeInfo.runtimeCrateSpec(): String =
         buildString {
-            if (version != null) append("version=\"$version\" ")
+            if (version != null) appendLine("version=\"$version\"")
 
             if (localPath != null) {
                 val localPath = Paths.get(localPath).toAbsolutePath().toString().escapeStringLiteral()
 
-                append("path = \"$localPath\"")
+                appendLine("path = \"$localPath\"")
             } else {
-                append("git = \"ssh://git@github.com/lf-lang/reactor-rust.git\"")
+                appendLine("git = \"ssh://git@github.com/lf-lang/reactor-rust.git\"")
                 if (version == null && gitRevision != null)
-                    append("rev=\"$gitRevision\"")
+                    appendLine("rev=\"$gitRevision\"")
             }
         }
 
