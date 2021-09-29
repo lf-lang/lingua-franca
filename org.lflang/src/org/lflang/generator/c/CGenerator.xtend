@@ -1882,10 +1882,15 @@ class CGenerator extends GeneratorBase {
                         // Array of output ports.
                         «variableStructType(output, decl)»* _lf_«output.name»;
                         int _lf_«output.name»__width;
+                        // An array of pointers to the individual ports. Useful
+                        // in the body of reactions because their value can be accessed
+                        // via a -> operater (e.g.,foo[i]->value).
+                        «variableStructType(output, decl)»** _lf_«output.name»_pointers;
                     ''')
                     // Add to the destructor code to free the malloc'd memory.
                     pr(output, destructorCode, '''
                         free(self->_lf_«output.name»);
+                        free(self->_lf_«output.name»_pointers);
                     ''')
                 } else {
                     pr(output, body, '''
@@ -4067,6 +4072,12 @@ class CGenerator extends GeneratorBase {
                                 // Allocate memory to store output of reaction.
                                 «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
                                     * «nameOfSelfStruct»->_lf_«effect.name»__width); 
+                                «nameOfSelfStruct»->_lf_«effect.name»_pointers = («portStructType»*)malloc(sizeof(«portStructType»*) 
+                                                                    * «nameOfSelfStruct»->_lf_«effect.name»__width);
+                                // Assign each output port pointer to be used in reactions to facilitate user access to output ports
+                                for(int i=0; i < «nameOfSelfStruct»->_lf_«effect.name»__width; i++) {
+                                     «nameOfSelfStruct»->_lf_«effect.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«effect.name»[i]);
+                                }
                             ''')
                         }
                         pr(initialization, '''
@@ -5561,10 +5572,7 @@ class CGenerator extends GeneratorBase {
                     int «output.name»_width = self->_lf_«output.name»__width;
                 ''')
                 pr(builder, '''
-                    «outputStructType»* «output.name»[«output.name»_width];
-                    for(int i=0; i < «output.name»_width; i++) {
-                         «output.name»[i] = &(self->_lf_«output.name»[i]);
-                    }
+                    «outputStructType»** «output.name» = self->_lf_«output.name»_pointers;
                 ''')
             }
         }
