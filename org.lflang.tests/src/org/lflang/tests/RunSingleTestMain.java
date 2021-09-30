@@ -31,8 +31,6 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.lflang.Target;
 import org.lflang.tests.runtime.CTest;
 import org.lflang.tests.runtime.CppTest;
@@ -50,7 +48,7 @@ import org.lflang.tests.runtime.TypeScriptTest;
 public class RunSingleTestMain {
 
 
-    private static final Pattern TEST_FILE_PATTERN = Pattern.compile("(test/(\\w+)/src)/([^/]++/)*(\\w+.lf)");
+    private static final Pattern TEST_FILE_PATTERN = Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
 
     public static void main(String[] args) throws FileNotFoundException {
         if (args.length != 1) {
