@@ -388,6 +388,43 @@ class CGenerator extends GeneratorBase {
             }
         } 
     }
+    
+    /** Return true if the operating system is true */
+    private def boolean isWindows() {
+        val OS = System.getProperty("os.name").toLowerCase();
+        if (OS.indexOf("win") >= 0) { return true; }
+        return false;
+    }
+    
+    /**
+     * Check if the host operating system is compatible
+     * with the requested feature(s). 
+     */
+    private def boolean isOSCompatible() {
+        if (isWindows) {
+            // FIXME: These warnings should most likely be an error
+            // but it is left as a warning because otherwise
+            // some  examples and tests will fail to compile
+            // on GitHub Actions tests. A selective test framework
+            // can fix that by skipping those tests altogether. 
+            if (isFederated) { 
+                errorReporter.reportWarning(
+                    "Windows is not supported for C target federated programs. " + "Exiting code generation."
+                )
+                // Return to avoid compiler errors
+                return false
+            }
+            if (CCppMode) {
+                errorReporter.reportWarning(
+                    "Windows is not supported by the CCp target. " + "Exiting code generation."
+                )
+                // FIXME: The incompatibility between our C runtime code and the
+                //  Visual Studio compiler is extensive. 
+                return false;             
+            }
+        }
+        return true;
+    }
 
     /**
      * Generate C code from the Lingua Franca model contained by the
@@ -404,6 +441,8 @@ class CGenerator extends GeneratorBase {
         super.doGenerate(resource, fsa, context)
 
         if (errorsOccurred) return;
+        
+        if (!isOSCompatible()) return; // Incompatible OS and configuration
 
          // Check for duplicate declerations.
          val names = newLinkedHashSet
@@ -457,20 +496,6 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
-            val OS = System.getProperty("os.name").toLowerCase();
-            if (OS.indexOf("win") >= 0) {
-                // FIXME: This should most likely be an error
-                // but it is left as a warning because otherwise
-                // some distributed examples will fail to compile
-                // on GitHub Actions tests. A selective test framework
-                // can fix that by skipping those tests altogether. 
-                errorReporter.reportWarning(
-                    "Windows is not supported for C target federated programs. " +
-                    "Exiting code generation."
-                )
-                // Return to avoid compiler errors
-                return
-            }
             coreFiles.addAll(
                 "federated/net_util.c",
                 "federated/net_util.h",
