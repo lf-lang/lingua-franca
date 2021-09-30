@@ -1,0 +1,63 @@
+target Rust {
+    cargo-features: ["test-program"],
+    keepalive: true
+};
+
+main reactor {
+
+    timer t(0, 20 msec);
+    state min_expected_time: time(20 msec);
+    state toggle: bool(false);
+
+    state timer_triggering: u32(0);
+    state action_triggering: u32(0);
+    state is_shutdown: bool(false);
+    physical action act: u32;
+
+    reaction(t) -> act {=
+        self.timer_triggering += 1;
+        let act = act.clone();
+        ctx.spawn_physical_thread(move |link| {
+            // this thread cannot access Self.
+            let mut i = 0;
+            loop {
+                if i % 2 == 0 {
+                    println!("{}: doing something", i);
+                    link.schedule_physical_with_v(&act, Some(i), Asap);
+                } else {
+                    println!("{}", i);
+                }
+                i += 1;
+
+                if i > 6 {
+                    break;
+                }
+            }
+        });
+    =}
+
+    reaction(act) {=
+        assert!(!self.is_shutdown);
+        let value = ctx.get(act).unwrap();
+        println!("---- Invocation {} at {}", value, ctx.display_tag(ctx.get_logical_time()));
+
+
+        let elapsed_time = ctx.get_elapsed_logical_time();
+        assert!(elapsed_time <= self.min_expected_time);
+        if value == 30 {
+            self.min_expected_time += Duration::from_millis(20);
+        }
+        self.action_triggering += 1;
+
+        if value >= 90 {
+            ctx.request_stop();
+            self.is_shutdown = true;
+        }
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.action_triggering, 9);
+        assert_eq!(self.timer_triggering, 3);
+        println!("success")
+    =}
+}

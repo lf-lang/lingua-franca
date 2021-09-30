@@ -48,6 +48,9 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] `ActionIsPresent.lf`: function `is_present` checks whether an action is present at the current tag
     - [x] `ActionIsPresentDouble.lf`: several actions may be present at the same tag
 - [ ] physical actions
+  - [x] `PhysicalAction.lf`: tests scheduling of a physical action from an asynchronous thread 
+  - [ ] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely
+  - [ ] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are physical actions in the program
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
   - [x] `TimerPeriodic.lf`: timer can be periodic
