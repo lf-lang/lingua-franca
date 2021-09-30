@@ -41,7 +41,7 @@ import org.lflang.Target;
  */
 public class PythonTest extends TestBase {
 
-    PythonTest() {
+    public PythonTest() {
         this.target = Target.Python;
     }
 

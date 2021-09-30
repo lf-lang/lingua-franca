@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Test;
  */
 public class CppTest extends ThreadedBase {
 
-    CppTest() {
+    public CppTest() {
         this.target = Target.CPP;
     }
 

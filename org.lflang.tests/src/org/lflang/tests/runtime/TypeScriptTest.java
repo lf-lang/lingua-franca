@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  */
 
 public class TypeScriptTest extends TestBase {
-    TypeScriptTest() {
+    public TypeScriptTest() {
         this.target = Target.TS;
     }
     

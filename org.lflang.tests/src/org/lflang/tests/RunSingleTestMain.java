@@ -31,8 +31,15 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jetbrains.annotations.NotNull;
+
 import org.lflang.Target;
+import org.lflang.tests.runtime.CTest;
+import org.lflang.tests.runtime.CppTest;
+import org.lflang.tests.runtime.PythonTest;
+import org.lflang.tests.runtime.RustTest;
 import org.lflang.tests.runtime.TestBase;
+import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
  * Execute a single test case. Use it with the gradle task
@@ -62,6 +69,28 @@ public class RunSingleTestMain {
         Path packageRoot = Paths.get(matcher.group(1)).toAbsolutePath();
         Target target = Target.forName(matcher.group(2)).get();
 
-        TestBase.runSingleTestAndPrintResults(new LFTest(target, path.toAbsolutePath(), packageRoot));
+        Class<? extends TestBase> testClass = getTestInstance(target);
+
+        LFTest testCase = new LFTest(target, path.toAbsolutePath(), packageRoot);
+
+        TestBase.runSingleTestAndPrintResults(testCase, testClass);
+    }
+
+    private static Class<? extends TestBase> getTestInstance(Target target) {
+        switch (target) {
+        case C:
+        case CCPP: // todo CCpp
+            return CTest.class;
+        case CPP:
+            return CppTest.class;
+        case TS:
+            return TypeScriptTest.class;
+        case Python:
+            return PythonTest.class;
+        case Rust:
+            return RustTest.class;
+        default:
+            throw new IllegalArgumentException();
+        }
     }
 }
