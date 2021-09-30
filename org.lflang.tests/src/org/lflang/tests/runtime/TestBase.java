@@ -250,6 +250,7 @@ public abstract class TestBase {
         Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
         TestBase runner;
         try {
+            @SuppressWarnings("unchecked")
             Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) testClass.getConstructors()[0];
             runner = constructor.newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
