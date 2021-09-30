@@ -416,7 +416,7 @@ public abstract class TestBase {
             }
             // Adjust binary extension if running on Window
             if (System.getProperty("os.name").startsWith("Windows")) {
-                binaryName = nameOnly + ".exe";
+                binaryName += ".exe";
             }
 
             var fullPath = binPath.resolve(binaryName);
