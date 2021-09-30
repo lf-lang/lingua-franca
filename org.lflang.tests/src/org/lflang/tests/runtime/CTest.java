@@ -71,6 +71,10 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runTargetSpecificTests() {
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping C target-specific tests on Windows.");
+            return; 
+        }
         super.runTargetSpecificTests();
     }
 
@@ -119,6 +123,10 @@ public class CTest extends ThreadedBase {
      */
     @Test
     public void runAsCCpp() {
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping CCpp tests on Windows.");
+            return; 
+        }
         printTestHeader(RUN_AS_CCPP_DESC);
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);

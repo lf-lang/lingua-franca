@@ -41,9 +41,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <windef.h>
 #include <stdint.h> // For fixed-width integral types
 
+#ifndef __cplusplus
 typedef BOOL bool;
 #define true TRUE
 #define false FALSE
+#endif // __cplusplus
 
 #ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
