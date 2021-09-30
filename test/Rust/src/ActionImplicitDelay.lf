@@ -1,5 +1,7 @@
 // Test logical action with delay.
-target Rust;
+target Rust {
+    cargo-features: ["test-program"],
+};
 
 main reactor ActionImplicitDelay {
     logical action act(40 msec);
@@ -10,7 +12,7 @@ main reactor ActionImplicitDelay {
     =}
 
     reaction(act) -> act {=
-        ctx.assert_tag_eq(Duration::from_millis(40 * self.count), 0);
+        ctx.assert_tag_eq(Millis(40 * self.count));
         self.count += 1;
         if self.count <= 3 {
             ctx.schedule(act, Asap);

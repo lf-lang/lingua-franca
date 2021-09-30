@@ -12,7 +12,7 @@ main reactor ActionIsPresent {
             self.tried = true;
             // was triggered by startup
             println!("Startup reaction @ {}", ctx.display_tag(ctx.get_logical_time()));
-            ctx.schedule(a, After(Duration::from_nanos(1)));
+            ctx.schedule(a, AfterNanos(1));
         } else {
             // was triggered by schedule above
             println!("Scheduled reaction @ {}", ctx.display_tag(ctx.get_logical_time()));

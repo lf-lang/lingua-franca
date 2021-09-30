@@ -77,9 +77,12 @@ object RustEmitter {
                 |${generatedByComment("//")}
                 |#![allow(unused)]
                 |
+                |use $rsRuntime::ReactionCtx;
                 |use $rsRuntime::{LogicalInstant, PhysicalInstant, Duration};
-                |use $rsRuntime::Offset::{After, Asap};
-                |use std::sync::{Arc, Mutex};
+                |use $rsRuntime::Offset::*;
+                |
+                |#[cfg(feature = "test-program")]
+                |use $rsRuntime::TagSpec::*;
                 |
 ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |
@@ -433,6 +436,9 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |[[bin]]
             |name = "${gen.executableName}"
             |path = "src/main.rs"
+            |
+            |[features]
+            |test-program=["$runtimeCrateFullName/test-utils"]
         """.trimMargin()
     }
 

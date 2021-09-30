@@ -50,6 +50,11 @@ class TargetConfig {
     public List<String> buildCommands = newLinkedList
 
     /**
+     * List of Cargo features to enable (Rust only).
+     */
+    public List<String> cargoFeatures = newLinkedList
+
+    /**
      * The mode of clock synchronization to be used in federated programs.
      * The default is 'initial'.
      */
@@ -179,11 +184,6 @@ class TargetConfig {
      * The version of the runtime library to be used in the generated target. 
      */
     public String runtimeVersion = null
-
-    /**
-     * List of Cargo runtime features to enable (Rust only).
-     */
-    public List<String> runtimeFeatures = newLinkedList
 
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false

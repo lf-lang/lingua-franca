@@ -1,6 +1,7 @@
 // Tests the is_present function for timers.
 target Rust {
-    timeout: 7 msec
+    timeout: 7 msec,
+    cargo-features: ["test-program"],
 };
 
 main reactor {
@@ -15,25 +16,25 @@ main reactor {
     reaction(startup, a, b, c) {=
         match self.tick {
         0 => { // startup
-            ctx.assert_tag_eq(Duration::from_millis(0), 0);
+            ctx.assert_tag_eq(T0);
             assert!(ctx.is_present(a));
             assert!(!ctx.is_present(b));
             assert!(!ctx.is_present(c));
         },
         1 => { // 1 msec
-            ctx.assert_tag_eq(Duration::from_millis(1), 0);
+            ctx.assert_tag_eq(Milli(1));
             assert!(!ctx.is_present(a));
             assert!(ctx.is_present(b));
             assert!(ctx.is_present(c));
         },
         2 => { // 5 msec (a triggers)
-            ctx.assert_tag_eq(Duration::from_millis(5), 0);
+            ctx.assert_tag_eq(Milli(5));
             assert!(ctx.is_present(a));
             assert!(!ctx.is_present(b));
             assert!(!ctx.is_present(c));
         },
         3 => { // 6 msec (b triggers)
-            ctx.assert_tag_eq(Duration::from_millis(6), 0);
+            ctx.assert_tag_eq(Milli(6));
             assert!(!ctx.is_present(a));
             assert!(ctx.is_present(b));
             assert!(!ctx.is_present(c));

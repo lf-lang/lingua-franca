@@ -8,9 +8,8 @@ main reactor ActionValues {
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some(100), Asap); // scheduled in 100 ms
-        let delay = Duration::from_millis(50);
         // scheduled in 150 ms, value is overwritten
-        ctx.schedule_with_v(act, Some(-100), After(delay));
+        ctx.schedule_with_v(act, Some(-100), AfterMillis(50));
     =}
 
     reaction(act) {=

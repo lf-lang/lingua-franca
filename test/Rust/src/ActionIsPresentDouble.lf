@@ -6,8 +6,8 @@ main reactor ActionIsPresentDouble {
     logical action act1(100 msec);
 
     reaction(startup) -> act0, act1 {=
-        ctx.schedule(act0, After(Duration::from_millis(100)));
-        ctx.schedule(act1, After(Duration::from_millis(0)));
+        ctx.schedule(act0, AfterMillis(100));
+        ctx.schedule(act1, AfterMillis(0));
         ctx.schedule(act1, Asap);
     =}
 
