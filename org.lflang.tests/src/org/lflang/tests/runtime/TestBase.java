@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -235,9 +237,24 @@ public abstract class TestBase {
         }
     }
 
-    public static void runSingleTestAndPrintResults(LFTest test) {
+    /**
+     * Run a test, print results on stderr.
+     *
+     * @param test      Test case.
+     * @param testClass The test class that will execute the test. This is target-specific,
+     *                  it may provide some target-specific configuration. We pass a class
+     *                  and not a new instance because this method needs to ensure the object
+     *                  is properly injected, and so, it needs to control its entire lifecycle.
+     */
+    public static void runSingleTestAndPrintResults(LFTest test, Class<? extends TestBase> testClass) {
         Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
-        TestBase runner = new TestBase(false) {};
+        TestBase runner;
+        try {
+            Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) testClass.getConstructors()[0];
+            runner = constructor.newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new IllegalStateException(e);
+        }
         injector.injectMembers(runner);
 
         Set<LFTest> tests = Set.of(test);
