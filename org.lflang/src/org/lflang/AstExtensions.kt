@@ -420,3 +420,5 @@ fun EObject.toTextTokenBased(): String? {
     }
     return builder.trim().toString()
 }
+
+val Connection.hasMultipleConnections: Boolean get() = ASTUtils.hasMultipleConnections(this)
