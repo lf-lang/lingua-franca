@@ -180,6 +180,11 @@ class TargetConfig {
      */
     public String runtimeVersion = null
 
+    /**
+     * List of Cargo runtime features to enable (Rust only).
+     */
+    public List<String> runtimeFeatures = newLinkedList
+
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false
 

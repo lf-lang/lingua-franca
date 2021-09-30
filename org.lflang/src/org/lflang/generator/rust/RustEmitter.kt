@@ -439,17 +439,22 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
 
     private fun RuntimeInfo.runtimeCrateSpec(): String =
         buildString {
-            if (version != null) appendLine("version=\"$version\"")
-
             if (localPath != null) {
                 val localPath = Paths.get(localPath).toAbsolutePath().toString().escapeStringLiteral()
 
                 appendLine("path = \"$localPath\"")
             } else {
                 appendLine("git = \"https://github.com/lf-lang/reactor-rust.git\"")
-                if (version == null && gitRevision != null)
+                if (version != null) {
+                    // Version just checks out a relevant tag, while we're not published to crates.io
+                    // Maybe we'll never need to be published.
+                    appendLine("tag=\"v$version\"")
+                } else {
                     appendLine("rev=\"$gitRevision\"")
+                }
             }
+
+            enabledCargoFeatures.joinTo(this, separator = ", ", prefix = "features=[", postfix = "]\n")
         }
 
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
