@@ -1,7 +1,7 @@
 // Tests a port connection between (input of self -> input of child)
 target Rust;
 
-reactor Box<T> {
+reactor Box<{= T :Send =}> {
     input inp: T;
     output out: T;
 
