@@ -35,6 +35,7 @@ import org.lflang.withDQuotes
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.exp
 
 
 /**
@@ -459,8 +460,6 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
                     appendLine("rev=\"$gitRevision\"")
                 }
             }
-
-            enabledCargoFeatures.joinTo(this, separator = ", ", prefix = "features=[", postfix = "]\n")
         }
 
     /// Rust pattern that deconstructs a ctor param tuple into individual variables
@@ -479,7 +478,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         is PortData, is ChildPortReference ->
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
-        is ActionData                      -> "&mut self.$rustFieldName"
+        is ActionData                      -> if (isLogical) "&mut self.$rustFieldName" else "&self.$rustFieldName"
         is TimerData                       -> "&self.$rustFieldName"
     }
 
@@ -507,8 +506,8 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         when (this) {
             is PortData           -> portRefWrapper(kind, dataType)
             is ChildPortReference -> portRefWrapper(kind, dataType)
-            is TimerData          -> "& ${toType()}"
-            else                  -> "&mut ${toType()}"
+            is TimerData          -> "&${toType()}"
+            is ActionData          -> if (isLogical) "&mut ${toType()}" else "&${toType()}"
         }
 
     private fun portRefWrapper(kind: DepKind, dataType: TargetCode) =
@@ -518,7 +517,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     private fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData         ->
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
-            else "$rsRuntime::PhysicalAction<${dataType ?: "()"}>"
+            else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
         is PortData           -> "$rsRuntime::Port<$dataType>"
         is ChildPortReference -> "$rsRuntime::Port<$dataType>"
         is TimerData          -> "$rsRuntime::Timer"
@@ -536,10 +535,11 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     }
 
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
-        is ActionData         -> "ctx.cleanup_action(&mut self.$rustFieldName);"
-        is PortData,
-        is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
-        is TimerData          -> null
+        is ActionData                      ->
+            if (isLogical) "ctx.cleanup_logical_action(&mut self.$rustFieldName);"
+            else "ctx.cleanup_physical_action(&mut self.$rustFieldName);"
+        is PortData, is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
+        is TimerData                       -> null
     }
 
 
