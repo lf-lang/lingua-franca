@@ -120,7 +120,7 @@ class CCmakeGenerator {
         }
         cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Windows\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_windows_support.c)\n");
-        cMakeCode.append("    set(CMAKE_SYSTEM_VERSION 10.0 (latest installed version))\n");
+        cMakeCode.append("    set(CMAKE_SYSTEM_VERSION 10.0.19041.0)\n");
         cMakeCode.append("else()\n");
         cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported!"+
                 " The C target supports Linux, MacOS and Windows.\")\n");
