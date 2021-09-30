@@ -52,7 +52,6 @@
 #define REACTOR_H
 
 #include "platform.h"  // Platform-specific times and APIs
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
