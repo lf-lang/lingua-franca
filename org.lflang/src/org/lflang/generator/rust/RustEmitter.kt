@@ -501,8 +501,8 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         }
 
     private fun portRefWrapper(kind: DepKind, dataType: TargetCode) =
-        if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>"
-        else "$rsRuntime::ReadablePort<$dataType>"
+        if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>" // note: owned
+        else "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
 
     private fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData         ->
