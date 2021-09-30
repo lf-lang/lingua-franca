@@ -466,7 +466,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
      */
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
         is PortData, is ChildPortReference ->
-            if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
+            if (kind == DepKind.Effects) "&$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
         is ActionData                      -> "&mut self.$rustFieldName"
         is TimerData                       -> "&self.$rustFieldName"
