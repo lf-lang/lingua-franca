@@ -213,7 +213,7 @@ public abstract class TestBase {
 
 
     /** Returns true if the operating system is true */
-    private boolean isWindows() {
+    protected boolean isWindows() {
         String OS = System.getProperty("os.name").toLowerCase();
         if (OS.indexOf("win") >= 0) { return true; }
         return false;
