@@ -279,6 +279,15 @@ public enum TargetProperty {
             }),
 
     /**
+     * Directive for specifying Cargo features of the reactor
+     * runtime to enable.
+     */
+    RUNTIME_FEATURES("runtime-features", ArrayType.STRING_ARRAY,
+                     List.of(Target.Rust), (config, value) -> {
+        config.runtimeFeatures = ASTUtils.toListOfStrings(value);
+    }),
+
+    /**
      * Directive to specify that all code is generated in a single file.
      */
     SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
