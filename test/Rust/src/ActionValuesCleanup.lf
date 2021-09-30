@@ -1,4 +1,4 @@
-// Test logical action with delay.
+// Test that scheduling actions drops the previous value if any
 target Rust;
 
 main reactor ActionValuesCleanup {
@@ -28,14 +28,24 @@ main reactor ActionValuesCleanup {
     =}
 
     reaction(act) {=
-        println!("{:?}", ctx.get(act));
+        ctx.use_ref(act, |v| println!("{:?}", v));
         if self.count == 0 {
             self.count = 1;
-            assert!(ctx.get(act).is_some());
+            assert!(ctx.is_present(act));
+            assert!(ctx.use_ref(act, |v| v.is_some()));
             ctx.schedule(act, Asap);
         } else if self.count == 1 {
-            assert!(ctx.get(act).is_none());
+            assert!(ctx.is_present(act));
+            assert!(ctx.use_ref(act, |v| v.is_none()));
             assert!(unsafe { DROPPED.load(Ordering::SeqCst) });
+            self.count = 2;
+        } else {
+            unreachable!();
         }
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(2, self.count, "expected 2 invocations");
+        println!("success");
     =}
 }
