@@ -50,4 +50,13 @@ test {
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 	useJUnitPlatform()
     finalizedBy jacocoTestReport
+    workingDir = ".."
+}
+
+task runSingleTest(type: JavaExec) {
+    description = "Execute a single test, use with eg --args test/Python/src/Minimal.lf"
+    group = "test"
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir = ".."
+    mainClass = 'org.lflang.tests.RunSingleTestMain'
 }

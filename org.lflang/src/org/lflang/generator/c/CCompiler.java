@@ -30,6 +30,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import org.eclipse.xtext.util.CancelIndicator;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Mode;
@@ -113,13 +115,18 @@ public class CCompiler {
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary, GeneratorBase generator) throws IOException {
+    public boolean runCCompiler(
+        String file,
+        boolean noBinary,
+        GeneratorBase generator,
+        CancelIndicator cancelIndicator
+    ) throws IOException {
         LFCommand compile = compileCCommand(file, noBinary);
         if (compile == null) {
             return false;
         }
         
-        int returnCode = compile.run();
+        int returnCode = compile.run(cancelIndicator);
 
         if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);

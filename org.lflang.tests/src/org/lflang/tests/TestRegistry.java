@@ -84,7 +84,7 @@ public class TestRegistry {
     /**
      * Path to the root of the repository.
      */
-    public static final Path LF_REPO_PATH = Paths.get(new File("").getAbsolutePath()).getParent();
+    public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
     
     /**
      * Path to the example directory in the repository.
