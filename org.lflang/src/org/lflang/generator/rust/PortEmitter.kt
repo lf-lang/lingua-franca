@@ -53,7 +53,7 @@ object PortEmitter {
         // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
         // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
         // ports
-        val iteratedLhsPorts = if (c.isIsIterated) {
+        val iteratedLhsPorts = if (c.isIterated) {
             val numIterations = ceil(rhsPorts.size.toDouble() / lhsPorts.size.toDouble()).toInt()
             (1..numIterations).flatMap { lhsPorts }
         } else {
