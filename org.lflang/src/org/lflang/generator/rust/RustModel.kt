@@ -30,7 +30,6 @@ import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.util.*
-import javax.xml.catalog.CatalogFeatures
 
 private typealias Ident = String
 
@@ -406,7 +405,7 @@ object RustModelBuilder {
                 version = targetConfig.runtimeVersion,
                 localPath = targetConfig.externalRuntimePath,
                 gitRevision = runtimeGitRevision,
-                enabledCargoFeatures = targetConfig.runtimeFeatures.toSet()
+                enabledCargoFeatures = targetConfig.cargoFeatures.toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,

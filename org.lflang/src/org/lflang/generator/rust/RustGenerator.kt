@@ -31,6 +31,7 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
+import org.lflang.joinWithCommas
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
@@ -83,17 +84,26 @@ class RustGenerator(
     }
 
     private fun invokeRustCompiler() {
-        val cargoCommand = commandFactory.createCommand(
-            "cargo", listOf(
+        val args = mutableListOf<String>().apply {
+            this += listOf(
                 "+nightly",
                 "build",
                 "--release", // enable optimisations
                 // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
                 "-Z", "unstable-options", // ... and that feature flag
-                // user-provided flags
-                *targetConfig.compilerFlags.toTypedArray()
-            ),
+            )
+
+            if (targetConfig.cargoFeatures.isNotEmpty()) {
+                this += "--features"
+                this += targetConfig.cargoFeatures.joinWithCommas()
+            }
+
+            this += targetConfig.compilerFlags
+        }
+
+        val cargoCommand = commandFactory.createCommand(
+            "cargo", args,
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
 

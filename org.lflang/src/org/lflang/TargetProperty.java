@@ -38,7 +38,16 @@ public enum TargetProperty {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
             }),
-    
+
+    /**
+     * Directive for specifying Cargo features of the generated
+     * program to enable.
+     */
+    CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
+                   List.of(Target.Rust), (config, value) -> {
+        config.cargoFeatures = ASTUtils.toListOfStrings(value);
+    }),
+
     /**
      * Directive to let the federate execution handle clock synchronization in software.
      */
@@ -277,15 +286,6 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP), (config, value) -> {
                 config.runtimeVersion = ASTUtils.toText(value);
             }),
-
-    /**
-     * Directive for specifying Cargo features of the reactor
-     * runtime to enable.
-     */
-    RUNTIME_FEATURES("runtime-features", ArrayType.STRING_ARRAY,
-                     List.of(Target.Rust), (config, value) -> {
-        config.runtimeFeatures = ASTUtils.toListOfStrings(value);
-    }),
 
     /**
      * Directive to specify that all code is generated in a single file.
