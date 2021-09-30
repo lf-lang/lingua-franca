@@ -194,7 +194,8 @@ public class CCmakeCompiler extends CCompiler {
                                         fileConfig.binPath
                                         )
                                 ),
-                        FileConfig.toUnixString(fileConfig.getSrcGenPath())
+                        FileConfig.toUnixString(fileConfig.getSrcGenPath()),
+                        "-DCMAKE_SYSTEM_VERSION=\"10.0\""
                     ),
                 buildPath);
         if (command == null) {
