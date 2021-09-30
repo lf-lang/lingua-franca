@@ -67,10 +67,10 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @param obj      The Ecore object, or null if it is not known.
      */
     private String report(String message, int severity, EObject obj) {
-        final int line = NodeModelUtils.getNode(obj).getStartLine();
+        final Integer line = obj == null ? null : NodeModelUtils.getNode(obj).getStartLine();
         Path file = null;
         try {
-            file = FileConfig.toPath(obj.eResource());
+            file = obj == null ? null : FileConfig.toPath(obj.eResource());
         } catch (IOException e) {
             // just continue with null
         }
