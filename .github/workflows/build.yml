@@ -22,7 +22,7 @@ jobs:
   compiler-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [ubuntu-latest, macos-latest, windows-2022]
     runs-on: ${{ matrix.platform }}
     steps:
       # Setup Build dependencies
@@ -99,11 +99,6 @@ jobs:
 #           vcpkgGitCommitId: $(vcpkgGitRef)
 #           vcpkgGitURL: https://github.com/microsoft/vcpkg/
 #         if: runner.os == 'Windows'
-      - name: "Update Windows SDK"
-        uses: fbactions/setup-winsdk@v1
-        with:
-          winsdk-build-version: 19041
-        if: runner.os == 'Windows'
       - name: Install RTI;
         run: |
           cd org.lflang/src/lib/core/federated/RTI
