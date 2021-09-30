@@ -177,7 +177,7 @@ class ASTUtils {
      * if the port on the left or right of the connection involves a bank of reactors or a multiport.
      * @param connection The connection.
      */
-    static def boolean isMultiportConnection(Connection connection) {
+    static def boolean hasMultipleConnections(Connection connection) {
         if (connection.leftPorts.size > 1 || connection.rightPorts.size > 1) {
             return true;
         }
@@ -257,7 +257,7 @@ class ASTUtils {
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
         }
-        if (connection.isMultiportConnection) {
+        if (connection.hasMultipleConnections) {
             val widthSpec = factory.createWidthSpec
             if (defineWidthFromConnection) {
                 // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.

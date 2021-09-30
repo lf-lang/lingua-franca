@@ -27,7 +27,7 @@ package org.lflang.generator.cpp
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
-import org.lflang.isMultiportConnection
+import org.lflang.hasMultipleConnections
 import org.lflang.lf.*
 
 /**
@@ -133,7 +133,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private fun declareConnection(c: Connection, idx: Int): String {
-        return if (c.isMultiportConnection) {
+        return if (c.hasMultipleConnections) {
             declareMultiportConnection(c, idx)
         } else {
             val leftPort = c.leftPorts[0]
