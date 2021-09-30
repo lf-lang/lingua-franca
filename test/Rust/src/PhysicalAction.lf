@@ -20,7 +20,8 @@ main reactor {
         println!("---- Vu {} à {}", value, ctx.display_tag(ctx.get_logical_time()));
 
         let elapsed_time = ctx.get_elapsed_logical_time();
-        assert!(elapsed_time <= Duration::from_millis(20));
-        println!("success")
+        assert!(elapsed_time >= Duration::from_millis(20));
+        println!("success");
+        ctx.request_stop();
     =}
 }
