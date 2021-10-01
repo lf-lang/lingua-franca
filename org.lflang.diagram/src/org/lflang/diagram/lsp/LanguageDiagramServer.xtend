@@ -31,12 +31,14 @@ class LFLsCreator extends AbstractLsCreator {
     
     LayeredInteractiveLanguageServerExtension constraints
     RectpackingInteractiveLanguageServerExtension rectPack
+    LFLanguageServerExtension lfExtension
     
     override getLanguageServerExtensions() {
         constraints = injector.getInstance(LayeredInteractiveLanguageServerExtension)
         rectPack = injector.getInstance(RectpackingInteractiveLanguageServerExtension)
+        lfExtension = injector.getInstance(LFLanguageServerExtension)
         return newArrayList(
-            injector.getInstance(LFRegistrationLanguageServerExtension), constraints, rectPack
+            injector.getInstance(LFRegistrationLanguageServerExtension), constraints, rectPack, lfExtension
         )
     }
     

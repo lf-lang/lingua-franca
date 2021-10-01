@@ -65,7 +65,12 @@
                 }
             }
         ],
-        "commands": [],
+        "commands": [
+            {
+                "command": "linguafranca.build",
+                "title": "Build Lingua Franca File"
+            }
+        ],
         "menus": {
             "editor/title": [
                 {

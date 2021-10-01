@@ -5,7 +5,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 
 import { Trace } from 'vscode-jsonrpc';
-import { commands, window, workspace, ExtensionContext, Uri, languages } from 'vscode';
+import { commands, window, workspace, ExtensionContext, Uri, languages, TextEditor } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 import { legend, semanticTokensProvider } from './highlight';
 
@@ -67,6 +67,14 @@ export async function activate(context: ExtensionContext) {
     }
 
     client.start();
+
+    context.subscriptions.push(commands.registerTextEditorCommand(
+        'linguafranca.build',
+        (textEditor: TextEditor, _) => {
+            // FIXME: Get the URI of the current file
+            client.sendNotification('generator/build', textEditor.document.uri.toString());
+        }
+    ));
 
     context.subscriptions.push(languages.registerDocumentSemanticTokensProvider(
         { language: 'lflang', scheme: 'file' },
