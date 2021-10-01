@@ -181,7 +181,8 @@ data class ChildPortReference(
 data class CtorParamInfo(
     val lfName: Ident,
     val type: TargetCode,
-    val defaultValue: TargetCode?
+    val defaultValue: TargetCode?,
+    val documentation: String?
 )
 
 /** Model class for a state variable. */
@@ -502,7 +503,8 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty())
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty()),
+                        documentation = null // todo
                     )
                 }
             )
