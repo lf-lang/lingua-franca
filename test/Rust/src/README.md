@@ -17,22 +17,21 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
       - [x] `PortConnectionOutChildOutSelf.lf`: output of child to output of self
       - [x] `CompositionWithPorts.lf`: output of child to input of child
     - [ ] mutable inputs
-- [ ] reaction dependency handling
+- [x] reaction dependency handling
     - dependencies can be declared...
-      - [ ] on ports of this reactor
+      - [x] all test files: on ports of this reactor
       - [x] `DependencyOnChildPort.lf`: on ports of a child reactor
-      - [ ] on an action
-    - [ ] trigger dependencies
-      - [ ] `todo.lf`: trigger dependencies trigger reactions
-      - [ ] `todo.lf`: multiple trigger dependencies may be triggered independently
-    - [ ] uses-dependencies
+      - [x] all test files: on an action
+    - [x] trigger dependencies
+      - [x] all test files: trigger dependencies trigger reactions
+      - [x] `ActionIsPresentDouble.lf`: multiple trigger dependencies may be triggered independently
+    - [x] uses-dependencies
       - [x] `DependencyUseNonTrigger`: use dependencies do not trigger reactions 
       - [x] `DependencyUseAccessible`: use dependencies make the port accessible within the reaction, values are observable 
-      - [ ] `todo.lf`: use dependencies may be declared on actions
-    - [ ] effects-dependency
-      - [ ] `todo.lf`: effects dependencies ...
-      - [x] `todo.lf`: on a logical action
-    - [ ] reaction priority is respected
+      - [x] `DependencyUseOnLogicalAction.lf`: use dependencies may be declared on actions and timers
+    - [x] effects-dependency
+      - [x] all test files: effects dependencies allow mutation
+    - [x] reaction priority is respected
       - [x] locally
       - [x] between different child reactors
 - [ ] imports
