@@ -2008,7 +2008,7 @@ class CGenerator extends GeneratorBase {
             ''')
 
             // Generate one struct for each contained reactor that interacts.
-            pr(body, '''struct _lf_«containedReactor.name»_t {''')
+            pr(body, '''struct {''')
             indent(body)
             for (port : contained.portsOfInstance(containedReactor)) {
                 if (port instanceof Input) {
