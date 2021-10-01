@@ -324,7 +324,11 @@ ${"         |    "..declarations}
             |#[macro_use]
             |#[cfg(feature="test-program")]
             |extern crate assert_matches;
+            |
             |extern crate env_logger;
+            |#[macro_use]
+            |extern crate log;
+            |
             |#[cfg(feature="cli")]
             |extern crate clap;
             |
@@ -374,7 +378,13 @@ ${"         |    "..declarations}
             |    use $rsRuntime::*;
             |    use super::*;
             |
+            |    /// Fallback implementation which doesn't parse parameters.
             |    pub fn parse() -> (SchedulerOptions, __MainParams) {
+            |        if std::env::args().len() > 0 {
+            |           error!("CLI arguments are ignored, as the program was built without the \"cli\" feature.");
+            |           error!("In Lingua Franca, use the target property `cargo-features: [\"cli\"]`.");
+            |        }
+            |
             |        let options = SchedulerOptions {
             |           timeout: $defaultTimeOutAsRust,
             |           keep_alive: ${gen.properties.keepAlive}
@@ -523,6 +533,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
             |[dependencies]
             |env_logger = "0.9"
+            |log = "0.4"
             |assert_matches = {version = "1", optional = true}
             |clap = {version = "3.0.0-beta.4", optional = true}
             |

@@ -92,6 +92,6 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 ### Other todos/ nice-to-have things
 
 - [ ] benchmark generation
-- [x] CLI parameter parsing
+- [x] `CliFeature.lf`: CLI parameter parsing
   - [x] for runtime options
   - [x] for parameters of the main reactor
