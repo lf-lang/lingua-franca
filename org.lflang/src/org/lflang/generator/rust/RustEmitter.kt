@@ -322,10 +322,11 @@ ${"         |    "..declarations}
             |#[macro_use]
             |extern crate $runtimeCrateFullName;
             |#[macro_use]
+            |#[cfg(feature="test-program")]
             |extern crate assert_matches;
             |extern crate env_logger;
             |#[cfg(feature="cli")]
-            |extern crate structopt;
+            |extern crate clap;
             |
             |use $rsRuntime::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as _MainReactor;
@@ -367,9 +368,6 @@ ${"         |    "..declarations}
         val defaultTimeOutAsStr = gen.properties.timeoutLf?.toString() ?: "0"
         val defaultTimeOutAsRust = gen.properties.timeoutLf?.toRustTimeExpr().toRustOption()
 
-        // todo we currently use structopt but it has been merged into clap 3.
-        //  upgrade to clap 3 when it's released.
-
         this += """
             |#[cfg(not(feature="cli"))]
             |mod cli {
@@ -393,35 +391,35 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
             |mod cli {
             |    use $rsRuntime::*;
             |    use super::*;
-            |    use structopt::StructOpt;
+            |    use clap::Clap;
             |
             |
-            |    // these aliases are needed because structopt interprets literal
+            |    // these aliases are needed because clap interprets literal
             |    // occurrences of bool and Option.
             |    type BoolAlias = bool;
             |    type OptionAlias<T> = Option<T>;
             |
-            |    #[derive(Debug, StructOpt)]
-            |    #[structopt(name = "${gen.executableName}")]
+            |    #[derive(Debug, Clap)]
+            |    #[clap(name = "${gen.executableName}")]
             |    struct Opt {
             |
             |        /// Whether to keep the program alive when the event queue is empty.
             |        /// This is only useful when physical actions are used, as they may
             |        /// push new asynchronous events.
-            |        #[structopt(long, default_value="${gen.properties.keepAlive}")]
+            |        #[clap(long, default_value="${gen.properties.keepAlive}", help_heading=Some("RUNTIME OPTIONS"))]
             |        keep_alive: BoolAlias,
             |
             |        /// Timeout for the program. A value of zero means no timeout. The
             |        /// timeout is in logical time, it means, no event past this tag will
             |        /// be processed.
-            |        #[structopt(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration))]
+            |        #[clap(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration), help_heading=Some("RUNTIME OPTIONS"))]
             |        timeout: OptionAlias<Duration>,
             |
 ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
             |    }
             |
             |    pub fn parse() -> (SchedulerOptions, _MainParams) {
-            |        let opts = Opt::from_args();
+            |        let opts = Opt::parse();
             |        
             |        let options = SchedulerOptions {
             |            timeout: opts.timeout,
@@ -447,11 +445,11 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.es
 
     private fun CtorParamInfo.toCliParam() = buildString {
         documentation?.lines()?.map { "///$it" }?.forEach { appendLine(it) }
-        append("#[structopt(long, group=\"main parameters\"")
+        append("#[clap(long, help_heading=Some(\"MAIN REACTOR PARAMETERS\"), ")
         if (defaultValue != null)
-            append("default_value=\"").append(defaultValue.removeSurrounding("\"")).append("\",")
+            append("default_value=\"").append(defaultValue.removeSurrounding("\"")).append("\", ")
         else
-            append("required=true,")
+            append("required=true, ")
 
         appendLine(")]")
         append(cliParamName).append(": ").append(type)
@@ -525,8 +523,8 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
             |[dependencies]
             |env_logger = "0.9"
-            |assert_matches = "1.5.0" # useful for tests
-            |structopt = {version = "0.3.23", optional = true}
+            |assert_matches = {version = "1", optional = true}
+            |clap = {version = "3.0.0-beta.4", optional = true}
             |
             |[dependencies.$runtimeCrateFullName] # the reactor runtime
             |${gen.runtime.runtimeCrateSpec()}
@@ -536,8 +534,8 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |path = "src/main.rs"
             |
             |[features]
-            |test-program=["$runtimeCrateFullName/test-utils"]
-            |cli=["structopt"]
+            |test-program=["$runtimeCrateFullName/test-utils", "assert_matches"]
+            |cli=["clap"]
         """.trimMargin()
     }
 
