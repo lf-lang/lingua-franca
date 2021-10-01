@@ -51,7 +51,9 @@ data class GenerationInfo(
 
 data class RustTargetProperties(
     val keepAlive: Boolean = false,
+    /** How the timeout looks like as a Rust expression, eg `Duration::from_millis(40)`. */
     val timeout: TargetCode? = null,
+    val timeoutLf: TimeValue? = null,
     val singleFile: Boolean = false
 )
 
@@ -366,7 +368,7 @@ data class TimerData(
     val period: TargetCode,
 ) : ReactorComponent()
 
-private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
+fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
 private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
@@ -420,6 +422,7 @@ object RustModelBuilder {
         RustTargetProperties(
             keepAlive = this.keepalive,
             timeout = this.timeout?.toRustTimeExpr(),
+            timeoutLf = this.timeout,
             singleFile = this.singleFileProject
         )
 

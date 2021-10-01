@@ -1,0 +1,9 @@
+target Rust {
+    cargo-features: ["cli"]
+};
+
+main reactor CliFeature(size: u32(4)){
+    reaction(startup) {=
+        println!("{}", params.size);
+    =}
+}

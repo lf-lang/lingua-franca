@@ -26,6 +26,7 @@ package org.lflang.generator.rust
 
 import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
@@ -322,23 +323,17 @@ ${"         |    "..declarations}
             |#[macro_use]
             |extern crate assert_matches;
             |extern crate env_logger;
+            |#[cfg(feature="cli")]
+            |extern crate structopt;
             |
             |use $rsRuntime::*;
-            |use self::reactors::${mainReactorNames.wrapperName} as _MainReactor;
-            |use self::reactors::${mainReactorNames.paramStructName} as _MainParams;
+            |pub use self::reactors::${mainReactorNames.wrapperName} as _MainReactor;
+            |pub use self::reactors::${mainReactorNames.paramStructName} as _MainParams;
             |
             |fn main() {
             |    init_logger();
             |
-            |    // todo CLI parsing
-            |    let options = SchedulerOptions {
-            |       timeout: ${gen.properties.timeout.toRustOption()},
-            |       keep_alive: ${gen.properties.keepAlive}
-            |    };
-            |    // todo main params are entirely defaulted for now.
-            |    let main_args = _MainParams {
-${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
-            |    };
+            |    let (options, main_args) = cli::parse();
             |
             |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
             |}
@@ -354,11 +349,96 @@ ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escap
 
         skipLines(2)
 
+        makeCliModule(gen)
+
+        skipLines(2)
+
         if (gen.properties.singleFile) {
             makeSingleFileProject(gen)
         } else {
             this += "mod reactors;\n"
         }
+    }
+
+    private fun Emitter.makeCliModule(gen:GenerationInfo) {
+        val mainReactor = gen.mainReactor
+
+        val defaultTimeOutAsStr = gen.properties.timeoutLf?.toString() ?: "0"
+        val defaultTimeOutAsRust = gen.properties.timeoutLf?.toRustTimeExpr().toRustOption()
+
+        // todo we currently use structopt but it has been merged into clap 3.
+        //  upgrade to clap 3 when it's released.
+
+        this += """
+            |#[cfg(not(feature="cli"))]
+            |mod cli {
+            |    use $rsRuntime::*;
+            |    use super::*;
+            |
+            |    pub fn parse() -> (SchedulerOptions, _MainParams) {
+            |        let options = SchedulerOptions {
+            |           timeout: $defaultTimeOutAsRust,
+            |           keep_alive: ${gen.properties.keepAlive}
+            |        };
+            |        // main params are entirely defaulted
+            |        let main_args = _MainParams {
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
+            |        };
+            |        (options, main_args)
+            |    }
+            |}
+            |
+            |#[cfg(feature="cli")]
+            |mod cli {
+            |    use $rsRuntime::*;
+            |    use super::*;
+            |    use structopt::StructOpt;
+            |
+            |
+            |    // these aliases are needed because structopt interprets literal
+            |    // occurrences of bool and Option.
+            |    type BoolAlias = bool;
+            |    type OptionAlias<T> = Option<T>;
+            |
+            |    #[derive(Debug, StructOpt)]
+            |    #[structopt(name = "${gen.executableName}")]
+            |    struct Opt {
+            |
+            |        /// Whether to keep the program alive when the event queue is empty.
+            |        /// This is only useful when physical actions are used, as they may
+            |        /// push new asynchronous events.
+            |        #[structopt(long, default_value="${gen.properties.keepAlive}")]
+            |        keep_alive: BoolAlias,
+            |
+            |        /// Timeout for the program. A value of zero means no timeout. The
+            |        /// timeout is in logical time, it means, no event past this tag will
+            |        /// be processed.
+            |        #[structopt(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration))]
+            |        timeout: OptionAlias<Duration>,
+            |
+            |    }
+            |
+            |    pub fn parse() -> (SchedulerOptions, _MainParams) {
+            |        let opts = Opt::from_args();
+            |        
+            |        let options = SchedulerOptions {
+            |            timeout: opts.timeout,
+            |            keep_alive: opts.keep_alive,
+            |        };
+            |
+            |        let main_args = _MainParams { // todo
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
+            |        };
+            |        (options, main_args)
+            |    }
+            |
+            |    fn try_parse_duration(t: &str) -> Result<Option<Duration>, String> {
+            |        reactor_rt::try_parse_duration(t).map(|d| {
+            |            if d.is_zero() { None } else { Some(d) }
+            |        })
+            |    }
+            |}
+        """.trimMargin()
     }
 
     private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
@@ -430,6 +510,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |[dependencies]
             |env_logger = "0.9"
             |assert_matches = "1.5.0" # useful for tests
+            |structopt = {version = "0.3.23", optional = true}
             |
             |[dependencies.$runtimeCrateFullName] # the reactor runtime
             |${gen.runtime.runtimeCrateSpec()}
@@ -440,6 +521,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
             |[features]
             |test-program=["$runtimeCrateFullName/test-utils"]
+            |cli=["structopt"]
         """.trimMargin()
     }
 
