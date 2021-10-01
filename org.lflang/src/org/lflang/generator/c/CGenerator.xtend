@@ -2840,20 +2840,18 @@ class CGenerator extends GeneratorBase {
         // Before the reaction initialization,
         // generate the structs used for communication to and from contained reactors.
         for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
+            var array = "";
             if (containedReactor.widthSpec !== null) {
                 pr('''
                     int «containedReactor.name»_width = self->_lf_«containedReactor.name»_width;
                 ''')
-                pr('''
-                    struct _lf_«containedReactor.name»_t* «containedReactor.name» = self->_lf_«containedReactor.name»;
-                ''')
-            } else {
-                pr('''
-                    struct «containedReactor.name» {
-                        «fieldsForStructsForContainedReactors.get(containedReactor)»
-                    } «containedReactor.name»;
-                ''')
+                array = '''[«containedReactor.name»_width]''';
             }
+            pr('''
+                struct «containedReactor.name» {
+                    «fieldsForStructsForContainedReactors.get(containedReactor)»
+                } «containedReactor.name»«array»;
+            ''')
         }
         // Next generate all the collected setup code.
         pr(reactionInitialization.toString)
@@ -5533,6 +5531,33 @@ class CGenerator extends GeneratorBase {
                     «portStructType»** «output.name»;
                     int «output.name»_width;
                 ''')
+            }
+            
+            // Next, initialize the struct with the current values.
+            if (port.container.widthSpec !== null) {
+                // Output is in a bank.
+                pr(builder, '''
+                    for (int i = 0; i < «port.container.name»_width; i++) {
+                        «reactorName»[i].«output.name» = self->_lf_«reactorName»[i].«output.name»;
+                    }
+                ''')
+                if (output.isMultiport) {
+                    pr(builder, '''
+                        for (int i = 0; i < «port.container.name»_width; i++) {
+                            «reactorName»[i].«output.name»_width = self->_lf_«reactorName»[i].«output.name»_width;
+                        }
+                    ''')                    
+                }
+            } else {
+                 // Output is not in a bank.
+                pr(builder, '''
+                    «reactorName».«output.name» = self->_lf_«reactorName».«output.name»;
+                ''')                    
+                if (output.isMultiport) {
+                    pr(builder, '''
+                        «reactorName».«output.name»_width = self->_lf_«reactorName».«output.name»_width;
+                    ''')                    
+                }
             }
         }
     }
