@@ -1,5 +1,4 @@
 target Rust {
-    cargo-features: ["test-program"],
     keepalive: true
 };
 
@@ -8,20 +7,17 @@ main reactor {
     physical action act: u32;
 
     reaction(startup) -> act {=
-        let act = act.clone();
-        ctx.spawn_physical_thread(move |link| {
-            std::thread::sleep(Duration::from_millis(20));
-            link.schedule_physical_with_v(&act, Some(434), Asap);
+        std::thread::spawn(|| {
+            std::thread::sleep(Duration::from_millis(1000));
+            // this is a regular thread which doesn't have a reference to the scheduler
         });
     =}
 
-    reaction(act) {=
-        let value = ctx.get(act).unwrap();
-        println!("---- Vu {} à {}", value, ctx.display_tag(ctx.get_logical_time()));
-
-        let elapsed_time = ctx.get_elapsed_logical_time();
-        assert!(elapsed_time >= Duration::from_millis(20));
+    reaction(shutdown) {=
+        assert!(
+          ctx.get_elapsed_logical_time() < Duration::from_millis(500),
+          "Should shutdown before the other thread catches up"
+        );
         println!("success");
-        ctx.request_stop();
     =}
 }
