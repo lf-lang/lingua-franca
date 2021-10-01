@@ -227,7 +227,7 @@ Instantiation:
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
-    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
     (delay=Delay)?
