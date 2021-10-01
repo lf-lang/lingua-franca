@@ -13,7 +13,8 @@ public abstract class ThreadedBase extends TestBase {
         this.runTestsAndPrintResults(this.target,
                 it -> it != TestCategory.CONCURRENT &&
                         it != TestCategory.FEDERATED &&
-                        it != TestCategory.EXAMPLE,
+                        it != TestCategory.EXAMPLE &&
+                        it != TestCategory.SERIALIZATION,
                 it -> {
                     it.getContext().getArgs().setProperty("threads", "4");
                     return true;
