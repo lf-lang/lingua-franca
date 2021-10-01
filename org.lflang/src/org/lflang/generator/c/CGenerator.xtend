@@ -2845,7 +2845,7 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     int «containedReactor.name»_width = self->_lf_«containedReactor.name»_width;
                 ''')
-                array = '''[«containedReactor.name»_width]''';
+                array = '''[«maxContainedReactorBankWidth(containedReactor, null, 0)»]''';
             }
             pr('''
                 struct «containedReactor.name» {
