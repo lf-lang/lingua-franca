@@ -329,15 +329,15 @@ ${"         |    "..declarations}
             |extern crate clap;
             |
             |use $rsRuntime::*;
-            |pub use self::reactors::${mainReactorNames.wrapperName} as _MainReactor;
-            |pub use self::reactors::${mainReactorNames.paramStructName} as _MainParams;
+            |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
+            |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
             |fn main() {
             |    init_logger();
             |
             |    let (options, main_args) = cli::parse();
             |
-            |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
+            |    SyncScheduler::run_main::<__MainReactor>(options, main_args);
             |}
             |
             |fn init_logger() {
@@ -374,13 +374,13 @@ ${"         |    "..declarations}
             |    use $rsRuntime::*;
             |    use super::*;
             |
-            |    pub fn parse() -> (SchedulerOptions, _MainParams) {
+            |    pub fn parse() -> (SchedulerOptions, __MainParams) {
             |        let options = SchedulerOptions {
             |           timeout: $defaultTimeOutAsRust,
             |           keep_alive: ${gen.properties.keepAlive}
             |        };
             |        // main params are entirely defaulted
-            |        let main_args = _MainParams {
+            |        let main_args = __MainParams {
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
             |        };
             |        (options, main_args)
@@ -418,7 +418,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
 ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
             |    }
             |
-            |    pub fn parse() -> (SchedulerOptions, _MainParams) {
+            |    pub fn parse() -> (SchedulerOptions, __MainParams) {
             |        let opts = Opt::parse();
             |        
             |        let options = SchedulerOptions {
@@ -426,7 +426,7 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |            keep_alive: opts.keep_alive,
             |        };
             |
-            |        let main_args = _MainParams {
+            |        let main_args = __MainParams {
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.escapeRustIdent() + ": opts." + it.cliParamName }}
             |        };
             |        (options, main_args)
