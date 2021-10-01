@@ -1880,7 +1880,7 @@ class CGenerator extends GeneratorBase {
                     pr(input, body, '''
                         // Multiport input array will be malloc'd later.
                         «variableStructType(input, decl)»** _lf_«input.name»;
-                        int _lf_«input.name»__width;
+                        int _lf_«input.name»_width;
                         // Default input (in case it does not get connected)
                         «variableStructType(input, decl)» _lf_default__«input.name»;
                     ''')
@@ -1893,7 +1893,7 @@ class CGenerator extends GeneratorBase {
                     pr(input, body, '''
                         «variableStructType(input, decl)»* _lf_«input.name»;
                         // width of -2 indicates that it is not a multiport.
-                        int _lf_«input.name»__width;
+                        int _lf_«input.name»_width;
                         // Default input (in case it does not get connected)
                         «variableStructType(input, decl)» _lf_default__«input.name»;
                     ''')
@@ -1915,10 +1915,13 @@ class CGenerator extends GeneratorBase {
                     pr(output, body, '''
                         // Array of output ports.
                         «variableStructType(output, decl)»* _lf_«output.name»;
-                        int _lf_«output.name»__width;
+                        int _lf_«output.name»_width;
                         // An array of pointers to the individual ports. Useful
-                        // in the body of reactions because their value can be accessed
-                        // via a -> operater (e.g.,foo[i]->value).
+                        // for the SET macros to work out-of-the-box for
+                        // multiports in the body of reactions because their 
+                        // value can be accessed via a -> operater (e.g.,foo[i]->value).
+                        // So we have to handle multiports specially here a construct that
+                        // array of pointers.
                         «variableStructType(output, decl)»** _lf_«output.name»_pointers;
                     ''')
                     // Add to the destructor code to free the malloc'd memory.
@@ -1929,7 +1932,7 @@ class CGenerator extends GeneratorBase {
                 } else {
                     pr(output, body, '''
                         «variableStructType(output, decl)» _lf_«output.name»;
-                        int _lf_«output.name»__width;
+                        int _lf_«output.name»_width;
                     ''')
                 }
             }
@@ -2012,7 +2015,7 @@ class CGenerator extends GeneratorBase {
             ''')
 
             // Generate one struct for each contained reactor that interacts.
-            pr(body, "struct {")
+            pr(body, '''struct _lf_«containedReactor.name»_t {''')
             indent(body)
             for (port : contained.portsOfInstance(containedReactor)) {
                 if (port instanceof Input) {
@@ -2028,7 +2031,7 @@ class CGenerator extends GeneratorBase {
                         // Memory will be malloc'd in initialization.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)»** «port.name»;
-                            int «port.name»__width;
+                            int «port.name»_width;
                         ''')
                     }
                 } else {
@@ -2046,7 +2049,7 @@ class CGenerator extends GeneratorBase {
                         // Memory will be malloc'd in initialization.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)»** «port.name»;
-                            int «port.name»__width;
+                            int «port.name»_width;
                         ''')
                     }
                     pr(port, body, '''
@@ -2112,14 +2115,14 @@ class CGenerator extends GeneratorBase {
                     if (containedReactor.widthSpec !== null) {
                         pr(port, destructorCode, '''
                             for (int j = 0; j < self->_lf_«containedReactor.name»_width; j++) {
-                                for (int i = 0; i < self->_lf_«containedReactor.name»[j].«port.name»__width; i++) {
+                                for (int i = 0; i < self->_lf_«containedReactor.name»[j].«port.name»_width; i++) {
                                     free(self->_lf_«containedReactor.name»[j].«port.name»[i]);
                                 }
                             }
                         ''')
                     } else {
                         pr(port, destructorCode, '''
-                            for (int i = 0; i < self->_lf_«containedReactor.name».«port.name»__width; i++) {
+                            for (int i = 0; i < self->_lf_«containedReactor.name».«port.name»_width; i++) {
                                 free(self->_lf_«containedReactor.name».«port.name»[i]);
                             }
                         ''')
@@ -2844,18 +2847,18 @@ class CGenerator extends GeneratorBase {
         // Before the reaction initialization,
         // generate the structs used for communication to and from contained reactors.
         for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
-            var array = "";
             if (containedReactor.widthSpec !== null) {
                 pr('''
                     int «containedReactor.name»_width = self->_lf_«containedReactor.name»_width;
                 ''')
-                array = '''[«containedReactor.name»_width]''';
+                pr('''
+                    struct _lf_«containedReactor.name»_t* «containedReactor.name» = self->_lf_«containedReactor.name»;
+                ''')
+            } else {
+                pr('''
+                    struct _lf_«containedReactor.name»_t «containedReactor.name» = self->_lf_«containedReactor.name»;
+                ''')
             }
-            pr('''
-                struct «containedReactor.name» {
-                    «fieldsForStructsForContainedReactors.get(containedReactor)»
-                } «containedReactor.name»«array»;
-            ''')
         }
         // Next generate all the collected setup code.
         pr(reactionInitialization.toString)
@@ -3768,7 +3771,7 @@ class CGenerator extends GeneratorBase {
                 } else {
                     pr(initializeTriggerObjects, '''
                         // width of -2 indicates that it is not a multiport.
-                        «nameOfSelfStruct»->_lf_«output.name»__width = -2;
+                        «nameOfSelfStruct»->_lf_«output.name»_width = -2;
                     ''')
                 }            
             }
@@ -3800,10 +3803,10 @@ class CGenerator extends GeneratorBase {
                                 trigger.parent.definition.reactorClass)
 
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«containerName».«trigger.name»__width = «width»;
+                                «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width = «width»;
                                 // Allocate memory to store pointers to the multiport outputs of a contained reactor.
                                 «nameOfSelfStruct»->_lf_«containerName».«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                        * «nameOfSelfStruct»->_lf_«containerName».«trigger.name»__width);
+                                        * «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width);
                             ''')
                         }
                     }
@@ -3839,18 +3842,18 @@ class CGenerator extends GeneratorBase {
                 // If the port is a multiport, create an array.
                 if (input.isMultiport) {
                     pr(initializeTriggerObjects, '''
-                        «nameOfSelfStruct»->_lf_«input.name»__width = «multiportWidthSpecInC(input, null, instance)»;
+                        «nameOfSelfStruct»->_lf_«input.name»_width = «multiportWidthSpecInC(input, null, instance)»;
                         // Allocate memory for multiport inputs.
-                        «nameOfSelfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->_lf_«input.name»__width); 
+                        «nameOfSelfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->_lf_«input.name»_width); 
                         // Set inputs by default to an always absent default input.
-                        for (int i = 0; i < «nameOfSelfStruct»->_lf_«input.name»__width; i++) {
+                        for (int i = 0; i < «nameOfSelfStruct»->_lf_«input.name»_width; i++) {
                             «nameOfSelfStruct»->_lf_«input.name»[i] = &«nameOfSelfStruct»->_lf_default__«input.name»;
                         }
                     ''')
                 } else {
                     pr(initializeTriggerObjects, '''
                         // width of -2 indicates that it is not a multiport.
-                        «nameOfSelfStruct»->_lf_«input.name»__width = -2;
+                        «nameOfSelfStruct»->_lf_«input.name»_width = -2;
                     ''')
                 }
             }           
@@ -4102,14 +4105,14 @@ class CGenerator extends GeneratorBase {
                         )
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«effect.name»__width = «effect.getMultiportInstance().width»;
+                                «nameOfSelfStruct»->_lf_«effect.name»_width = «effect.getMultiportInstance().width»;
                                 // Allocate memory to store output of reaction.
                                 «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
-                                    * «nameOfSelfStruct»->_lf_«effect.name»__width); 
+                                    * «nameOfSelfStruct»->_lf_«effect.name»_width); 
                                 «nameOfSelfStruct»->_lf_«effect.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                                                    * «nameOfSelfStruct»->_lf_«effect.name»__width);
+                                                                    * «nameOfSelfStruct»->_lf_«effect.name»_width);
                                 // Assign each output port pointer to be used in reactions to facilitate user access to output ports
-                                for(int i=0; i < «nameOfSelfStruct»->_lf_«effect.name»__width; i++) {
+                                for(int i=0; i < «nameOfSelfStruct»->_lf_«effect.name»_width; i++) {
                                      «nameOfSelfStruct»->_lf_«effect.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«effect.name»[i]);
                                 }
                             ''')
@@ -4127,17 +4130,17 @@ class CGenerator extends GeneratorBase {
                             effect.parent.definition.reactorClass)
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width = «effect.getMultiportInstance().width»;
+                                «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width = «effect.getMultiportInstance().width»;
                                 // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
                                 «nameOfSelfStruct»->_lf_«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                    * «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width);
-                                for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width; i++) {
+                                    * «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width);
+                                for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width; i++) {
                                     «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
                                 }
                             ''')
                         }
                         pr(initialization, '''
-                            for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»__width; i++) {
+                            for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width; i++) {
                                 «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
                                         = &«nameOfSelfStruct»->_lf_«containerName».«effect.name»[i]->is_present;
                             }
@@ -4294,9 +4297,9 @@ class CGenerator extends GeneratorBase {
     def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
         val reactor = instance.definition.reactorClass
         pr(builder, '''
-            «nameOfSelfStruct»->_lf_«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
+            «nameOfSelfStruct»->_lf_«output.name»_width = «multiportWidthSpecInC(output, null, instance)»;
             // Allocate memory for multiport output.
-            «nameOfSelfStruct»->_lf_«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->_lf_«output.name»__width); 
+            «nameOfSelfStruct»->_lf_«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->_lf_«output.name»_width); 
         ''')
     }
     
@@ -5271,7 +5274,7 @@ class CGenerator extends GeneratorBase {
                                     pr('''
                                         // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
                                         // of «instance.getFullName», on its self struct.
-                                        for (int i = 0; i < «reactionReference(eventualPort)»__width; i++) {
+                                        for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
                                             «reactionReference(instancePort)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
                                         }
                                     ''')
@@ -5291,7 +5294,7 @@ class CGenerator extends GeneratorBase {
                                 ''')
                             } else {
                                 pr('''
-                                    for (int i = 0; i < «reactionReference(eventualPort)»__width; i++) {
+                                    for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
                                         «reactionReference(port)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
                                     }
                                 ''')
@@ -5485,7 +5488,7 @@ class CGenerator extends GeneratorBase {
         // for a variable-width multiport, which is not currently supported.
         // It will be -2 if it is not multiport.
         pr(builder, '''
-            int «input.name»_width = self->_lf_«input.name»__width;
+            int «input.name»_width = self->_lf_«input.name»_width;
         ''')
     }
     
@@ -5536,33 +5539,6 @@ class CGenerator extends GeneratorBase {
                     int «output.name»_width;
                 ''')
             }
-
-            // Next, initialize the struct with the current values.
-            if (port.container.widthSpec !== null) {
-                // Output is in a bank.
-                pr(builder, '''
-                    for (int i = 0; i < «port.container.name»_width; i++) {
-                        «reactorName»[i].«output.name» = self->_lf_«reactorName»[i].«output.name»;
-                    }
-                ''')
-                if (output.isMultiport) {
-                    pr(builder, '''
-                        for (int i = 0; i < «port.container.name»_width; i++) {
-                            «reactorName»[i].«output.name»_width = self->_lf_«reactorName»[i].«output.name»__width;
-                        }
-                    ''')                    
-                }
-            } else {
-                 // Output is not in a bank.
-                pr(builder, '''
-                    «reactorName».«output.name» = self->_lf_«reactorName».«output.name»;
-                ''')                    
-                if (output.isMultiport) {
-                    pr(builder, '''
-                        «reactorName».«output.name»_width = self->_lf_«reactorName».«output.name»__width;
-                    ''')                    
-                }
-            }
         }
     }
 
@@ -5589,11 +5565,6 @@ class CGenerator extends GeneratorBase {
                     variableStructType(output, decl)
                     :
                     variableStructType(output, effect.container.reactorClass)
-            // Unfortunately, for the SET macros to work out-of-the-box for
-            // multiports, we need an array of *pointers* to the output structs,
-            // but what we have on the self struct is an array of output structs.
-            // So we have to handle multiports specially here a construct that
-            // array of pointers.
             if (!output.isMultiport) {
                 // Output port is not a multiport.
                 pr(builder, '''
@@ -5603,7 +5574,7 @@ class CGenerator extends GeneratorBase {
                 // Output port is a multiport.
                 // Set the _width variable.
                 pr(builder, '''
-                    int «output.name»_width = self->_lf_«output.name»__width;
+                    int «output.name»_width = self->_lf_«output.name»_width;
                 ''')
                 pr(builder, '''
                     «outputStructType»** «output.name» = self->_lf_«output.name»_pointers;
@@ -5668,13 +5639,13 @@ class CGenerator extends GeneratorBase {
                 pr(builder, '''
                     for (int _i = 0; _i < self->_lf_«definition.name»_width; _i++) {
                         «definition.name»[_i].«input.name» = self->_lf_«definition.name»[_i].«input.name»;
-                        «definition.name»[_i].«input.name»_width = self->_lf_«definition.name»[_i].«input.name»__width;
+                        «definition.name»[_i].«input.name»_width = self->_lf_«definition.name»[_i].«input.name»_width;
                     }
                 ''')
             } else {
                 pr(builder, '''
                     «definition.name».«input.name» = self->_lf_«definition.name».«input.name»;
-                    «definition.name».«input.name»_width = self->_lf_«definition.name».«input.name»__width;
+                    «definition.name».«input.name»_width = self->_lf_«definition.name».«input.name»_width;
                 ''')
             }
         }
