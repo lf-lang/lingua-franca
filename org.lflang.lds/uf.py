@@ -87,7 +87,7 @@ def _javac_like_compiler(name):
         subprocess.check_call(
             [name, '-cp', classpath, '-d', output_dir, file],
             cwd=directory,
-            shell=True
+            shell=(os.name == 'nt')  # True iff the OS is Windows.
         )
     return compiler
 
