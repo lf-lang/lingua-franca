@@ -46,10 +46,13 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] `ActionValuesCleanup.lf`: action value is cleaned up at the end of a tag
     - [x] `ActionIsPresent.lf`: function `is_present` checks whether an action is present at the current tag
     - [x] `ActionIsPresentDouble.lf`: several actions may be present at the same tag
+    - [ ] minimum spacing and spacing violation policy
+    - [ ] todo does scheduling an action twice produce two separate triggers at the same instant? 
 - [ ] physical actions
-  - [x] `PhysicalAction.lf`: tests scheduling of a physical action from an asynchronous thread 
+  - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
   - [ ] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely -> todo check it out from the git history and fix it 
-  - [ ] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are physical actions in the program
+  - [ ] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
+  - [ ] it should be possible to request shutdown asynchronously
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
   - [x] `TimerPeriodic.lf`: timer can be periodic
@@ -63,7 +66,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `StopNoEvent.lf`: `shutdown` is triggered even if the program exits because of an empty event queue
   - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
 - [x] state variables
-  - [x] support time type
+  - [x] `TimeState.lf`: support time type
   - [x] are accessible within reactions
   - [x] are *not* accessible within initializers
   - [x] are initialized to their proper value
@@ -83,11 +86,14 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - ...
 - [ ] multiports
 
-### Runtime
+### Runtimes
 
 - [ ] parallelize independent computation
-- [ ] keepalive option -> relevant with physical actions
-- [ ] timeout option
+- [ ] options
+  - [x] `PhysicalActionWithKeepalive.lf`: keepalive option
+  - [x] timeout option
+- [ ] error recovery
+  - [ ] unwind safety around reaction invocation, possibly a panic handler
 
 ### Other todos/ nice-to-have things
 
