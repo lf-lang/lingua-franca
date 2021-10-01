@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.camelToSnakeCase
 import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
@@ -416,6 +417,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
             |        #[structopt(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration))]
             |        timeout: OptionAlias<Duration>,
             |
+${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
             |    }
             |
             |    pub fn parse() -> (SchedulerOptions, _MainParams) {
@@ -426,8 +428,8 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
             |            keep_alive: opts.keep_alive,
             |        };
             |
-            |        let main_args = _MainParams { // todo
-${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
+            |        let main_args = _MainParams {
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.escapeRustIdent() + ": opts." + it.cliParamName }}
             |        };
             |        (options, main_args)
             |    }
@@ -439,6 +441,20 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
             |    }
             |}
         """.trimMargin()
+    }
+
+    private val CtorParamInfo.cliParamName get() = "main_" + lfName.camelToSnakeCase()
+
+    private fun CtorParamInfo.toCliParam() = buildString {
+        documentation?.lines()?.map { "///$it" }?.forEach { appendLine(it) }
+        append("#[structopt(long, group=\"main parameters\"")
+        if (defaultValue != null)
+            append("default_value=\"").append(defaultValue.removeSurrounding("\"")).append("\",")
+        else
+            append("required=true,")
+
+        appendLine(")]")
+        append(cliParamName).append(": ").append(type)
     }
 
     private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
