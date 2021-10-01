@@ -5014,7 +5014,7 @@ class CGenerator extends GeneratorBase {
      */
      def removeLineDirectives(String code) {
         
-        val separator = System.getProperty("line.separator")
+        val separator = "\n"
         val lines = code.split(separator)
         
         val builder = new StringBuilder("")
