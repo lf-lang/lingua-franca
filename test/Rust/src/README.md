@@ -34,7 +34,9 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] reaction priority is respected
       - [x] locally
       - [x] between different child reactors
-- [ ] imports
+- [ ] imports:
+  - [x] `Import.lf`: imports, including recursive import
+  - [ ] visibility of imported preambles
 - [x] preambles
   - [x] `Preamble.lf`: preamble within reactor
   - [ ] top-level preamble

@@ -380,7 +380,7 @@ ${"         |    "..declarations}
             |
             |    /// Fallback implementation which doesn't parse parameters.
             |    pub fn parse() -> (SchedulerOptions, __MainParams) {
-            |        if std::env::args().len() > 0 {
+            |        if std::env::args().len() > 1 {
             |           error!("CLI arguments are ignored, as the program was built without the \"cli\" feature.");
             |           error!("In Lingua Franca, use the target property `cargo-features: [\"cli\"]`.");
             |        }
