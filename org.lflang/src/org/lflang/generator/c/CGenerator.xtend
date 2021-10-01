@@ -389,19 +389,12 @@ class CGenerator extends GeneratorBase {
         } 
     }
     
-    /** Return true if the operating system is true */
-    private def boolean isWindows() {
-        val OS = System.getProperty("os.name").toLowerCase();
-        if (OS.indexOf("win") >= 0) { return true; }
-        return false;
-    }
-    
     /**
      * Check if the host operating system is compatible
      * with the requested feature(s). 
      */
     private def boolean isOSCompatible() {
-        if (isWindows) {
+        if (CCompiler.isHostWindows) {
             // FIXME: These warnings should most likely be an error
             // but it is left as a warning because otherwise
             // some  examples and tests will fail to compile
@@ -2856,7 +2849,9 @@ class CGenerator extends GeneratorBase {
                 ''')
             } else {
                 pr('''
-                    struct _lf_«containedReactor.name»_t «containedReactor.name» = self->_lf_«containedReactor.name»;
+                    struct «containedReactor.name» {
+                        «fieldsForStructsForContainedReactors.get(containedReactor)»
+                    } «containedReactor.name»;
                 ''')
             }
         }
