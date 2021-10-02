@@ -7,6 +7,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.lflang.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -46,6 +47,12 @@ public enum TargetProperty {
     CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
                    List.of(Target.Rust), (config, value) -> {
         config.cargoFeatures = ASTUtils.toListOfStrings(value);
+    }),
+
+    CARGO_DEPENDENCIES("cargo-dependencies",
+                       CargoDependenciesPropertyType.INSTANCE,
+                       List.of(Target.Rust), (config, value) -> {
+        config.cargoDependencies = CargoDependencySpec.parseAll(value);
     }),
 
     /**
@@ -505,6 +512,8 @@ public enum TargetProperty {
     }
 
     // Inner classes for the various supported types.
+
+
     
     /**
      * Interface for dictionary elements. It associates an entry with a type.
@@ -524,7 +533,7 @@ public enum TargetProperty {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
         DOCKER_DICT(Arrays.asList(DockerOption.values())),
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
-        TRACING_DICT(Arrays.asList(TracingOption.values())); 
+        TRACING_DICT(Arrays.asList(TracingOption.values()));
         
         /**
          * The keys and assignable types that are allowed in this dictionary.
@@ -1163,4 +1172,5 @@ public enum TargetProperty {
             return this.type;
         }
     }
+
 }

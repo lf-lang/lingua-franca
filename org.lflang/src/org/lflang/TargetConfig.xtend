@@ -20,7 +20,9 @@
  */
 package org.lflang
 
+import java.util.HashMap
 import java.util.List
+import java.util.Map
 import java.util.Set
 import org.lflang.TargetProperty.BuildType
 import org.lflang.TargetProperty.ClockSyncMode
@@ -53,6 +55,11 @@ class TargetConfig {
      * List of Cargo features to enable (Rust only).
      */
     public List<String> cargoFeatures = newLinkedList
+
+    /**
+     * Map of Cargo dependency to dependency properties.
+     */
+    public Map<String, CargoDependencySpec> cargoDependencies = new HashMap()
 
     /**
      * The mode of clock synchronization to be used in federated programs.
