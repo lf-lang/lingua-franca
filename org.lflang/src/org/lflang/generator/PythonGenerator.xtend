@@ -1371,6 +1371,11 @@ class PythonGenerator extends CGenerator {
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
+        
+            pr('''           
+                PyGILState_STATE gstate;
+                gstate = PyGILState_Ensure();
+            ''')
             
             
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
@@ -1401,11 +1406,12 @@ class PythonGenerator extends CGenerator {
             if (targetConfig.threads > 0) {
                 pr(pyThreadMutexLockCode(1, reactor))
             }
-            //pr(reactionInitialization.toString)
-            // Code verbatim from 'deadline'
-            //prSourceLineNumber(reaction.deadline.code)
-            //pr(reaction.deadline.code.toText)
-            // TODO: Handle deadlines
+            
+            pr('''
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
+            ''')
+            
             unindent()
             pr("}")
         }
