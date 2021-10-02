@@ -981,8 +981,13 @@ get_python_function(string module, string class, int instance_id, string func) {
 
     PyObject *rValue;
 
-
-
+    // According to
+    // https://docs.python.org/3/c-api/init.html#non-python-created-threads
+    // the following code does the following:
+    // - Register this thread with the interpreter
+    // - Acquire the GIL (Global Interpreter Lock)
+    // - Store (return) the thread pointer
+    // When done, we should always call PyGILState_Release(gstate);
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
 
