@@ -364,7 +364,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         createMainInstance()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (mainDef !== null) {
+        if (fileConfig.compilerMode == Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
