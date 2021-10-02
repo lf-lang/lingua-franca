@@ -1,15 +1,25 @@
 from multiprocessing import Process, connection
 from threading import Thread
-from os import sys
+import sys
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-try: 
+
+try:
     from mingus.containers.note import Note
-    from mingus.midi import fluidsynth
 except:
     print("Import Error: Failed to import 'mingus'. Try 'pip3 install mingus'")
     sys.exit(1)
-    
+
+try:
+    from mingus.midi import fluidsynth
+except:
+    if sys.platform == "darwin":
+        print("Import Error: fluidsynth is missing. Try 'brew install fluidsynth'")
+    elif sys.platform == "linux" or sys.platform == "linux2":
+        print("Import Error: fluidsynth is missing. Try 'sudo apt-get install -y fluidsynth'")
+    else:
+        print("Import Error: fluidsynth is missing. ")
+
 try:
     import pygame
 except:
@@ -322,7 +332,7 @@ class PianoGui:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.sensor_pin.send(None)
-                    sys.exit()
+                    sys.exit(0)
                 elif event.type == pygame.KEYDOWN:
                     print('pygame: key down: ' + event.unicode)
                     self.sensor_pin.send(KeyPacket(key_down=True, content=(event.unicode, )))
