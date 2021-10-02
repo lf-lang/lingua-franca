@@ -1324,6 +1324,12 @@ class PythonGenerator extends CGenerator {
         
         
         prSourceLineNumber(reaction.code)
+        
+        pr('''           
+            PyGILState_STATE gstate;
+            gstate = PyGILState_Ensure();
+        ''')
+        
         // Unfortunately, threads cannot run concurrently in Python.
         // Therefore, we need to make sure reactions cannot execute concurrently by
         // holding the mutex lock.
@@ -1349,6 +1355,11 @@ class PythonGenerator extends CGenerator {
         if(targetConfig.threads > 0) {
             pr(pyThreadMutexLockCode(1, reactor))
         }
+        
+        pr('''
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
+        ''')
         
         unindent()
         pr("}")

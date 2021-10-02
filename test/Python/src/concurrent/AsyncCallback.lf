@@ -3,8 +3,7 @@
 // This test will not work with the unthreaded C target because that target
 // does not implement any mutex protecting the event queue.
 target Python {
-	timeout: 2 sec,
-	keepalive: true    // Not really needed here because there is a timer.
+	timeout: 2 sec
 };
 
 main reactor AsyncCallback {

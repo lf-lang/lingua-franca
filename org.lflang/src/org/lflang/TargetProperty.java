@@ -282,7 +282,7 @@ public enum TargetProperty {
      * Directive to specify the number of threads.
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config, value) -> {
                 config.threads = ASTUtils.toInteger(value);
             }),
