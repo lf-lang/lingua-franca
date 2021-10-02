@@ -24,16 +24,14 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.camelToSnakeCase
+import org.lflang.*
 import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
-import org.lflang.joinLines
-import org.lflang.joinWithCommas
-import org.lflang.withDQuotes
+import org.lflang.generator.rust.RustEmitter.toToml
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -332,6 +330,9 @@ ${"         |    "..declarations}
             |#[cfg(feature="cli")]
             |extern crate clap;
             |
+            |// user dependencies
+${"         |"..gen.crate.dependencies.keys.joinToString("\n") { "extern crate ${it.replace('-', '_')};" }}
+            |
             |use $rsRuntime::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
@@ -536,6 +537,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |log = "0.4"
             |assert_matches = {version = "1", optional = true}
             |clap = {version = "3.0.0-beta.4", optional = true}
+${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec) -> name + " = " + spec.toToml() }}
             |
             |[dependencies.$runtimeCrateFullName] # the reactor runtime
             |${gen.runtime.runtimeCrateSpec()}
@@ -549,6 +551,11 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |cli=["clap"]
         """.trimMargin()
     }
+
+    private fun CargoDependencySpec.toToml(): String = mutableMapOf<String, String>().apply {
+        if (version != null) this["version"] = version.removeSurrounding("\"").escapeStringLiteral()
+        if (localPath != null) this["path"] = localPath.removeSurrounding("\"").escapeStringLiteral()
+    }.asIterable().joinWithCommas("{ ", " }", trailing = false) { (k, v) -> "$k = \"$v\"" }
 
 
     private fun RuntimeInfo.runtimeCrateSpec(): String =
@@ -750,7 +757,7 @@ fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
 
 
 fun String.escapeStringLiteral() =
-    replace(Regex("[\\\\ \t]")) {
+    replace(Regex("[\\\\ \t\"]")) {
         when (it.value) {
             "\\" -> "\\\\"
             "\t" -> "\\t"

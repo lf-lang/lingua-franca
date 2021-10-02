@@ -255,6 +255,8 @@ data class CrateInfo(
     val version: String,
     /** List of names of the credited authors. */
     val authors: List<String>,
+    /** Dependencies of the crate. */
+    val dependencies: Map<String, CargoDependencySpec>
 )
 
 /**
@@ -402,7 +404,8 @@ object RustModelBuilder {
             crate = CrateInfo(
                 name = mainReactor.lfName.camelToSnakeCase(),
                 version = "1.0.0",
-                authors = listOf(System.getProperty("user.name"))
+                authors = listOf(System.getProperty("user.name")),
+                dependencies = targetConfig.cargoDependencies
             ),
             runtime = RuntimeInfo(
                 version = targetConfig.runtimeVersion,
