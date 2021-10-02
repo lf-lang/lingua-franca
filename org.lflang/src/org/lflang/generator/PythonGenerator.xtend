@@ -814,25 +814,6 @@ class PythonGenerator extends CGenerator {
         }
     }
     
-    /**
-     * Generate code that ensures only one thread can execute at a time as per Python specifications
-     * @param state 0=beginning, 1=end
-     */
-    def pyThreadMutexLockCode(int state, Reactor reactor) {
-        if(targetConfig.threads > 0)
-        {
-            switch(state){
-                case 0: return '''lf_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
-                case 1: return '''lf_mutex_unlock(&py_«reactor.name»_reaction_mutex);'''
-                default: return ''''''
-            }
-        }
-        else
-        {
-            return ''''''
-        }
-    }
-    
     /** 
      * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
@@ -875,33 +856,6 @@ class PythonGenerator extends CGenerator {
         super.includeTargetLanguageSourceFiles()
 
         super.parseTargetParameters()
-        
-        // If the program is threaded, create a mutex for each reactor
-        // that guards the execution of its reactions.
-        // This is necessary because Python is not thread-safe
-        // and running multiple instances of the same function can cause
-        // a segmentation fault.
-        if (targetConfig.threads > 0) {
-            for (r : this.reactors ?: emptyList) {
-                pr('''
-                    lf_mutex_t py_«r.toDefinition.name»_reaction_mutex;
-                ''')
-                pr(super.initializeTriggerObjects, '''
-                    // Initialize reaction mutex for «r.toDefinition.name»
-                    lf_mutex_init(&py_«r.toDefinition.name»_reaction_mutex);
-                ''')
-            }
-            // Add mutex for the main reactor
-            if (this.mainDef !== null) {
-                pr('''
-                    lf_mutex_t py_«this.mainDef.name»_reaction_mutex;
-                ''')                
-                pr(super.initializeTriggerObjects, '''
-                    // Initialize reaction mutex for «this.mainDef.name»
-                    lf_mutex_init(&py_«this.mainDef.name»_reaction_mutex);
-                ''')
-            }
-        }
         
         // FIXME: Probably not the best place to do 
         // this.
@@ -1325,38 +1279,28 @@ class PythonGenerator extends CGenerator {
         
         prSourceLineNumber(reaction.code)
         
-        pr('''           
+        pr('''
+            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
             gstate = PyGILState_Ensure();
-        ''')
-        
-        // Unfortunately, threads cannot run concurrently in Python.
-        // Therefore, we need to make sure reactions cannot execute concurrently by
-        // holding the mutex lock.
-        if(targetConfig.threads > 0) {
-            pr(pyThreadMutexLockCode(0, reactor))
-        }
-        
-        pr('''
+            
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
-            PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
-        ''')
-        pr('''
+            PyObject *rValue = PyObject_CallObject(
+                self->__py_reaction_function_«reactionIndex», 
+                Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
+            );
             if (rValue == NULL) {
                 error_print("FATAL: Calling reaction «decl.name».«pythonFunctionName» failed.");
                 if (PyErr_Occurred()) {
                     PyErr_PrintEx(0);
                     PyErr_Clear(); // this will reset the error indicator so we can run Python code again
                 }
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
+                Py_FinalizeEx();
                 exit(1);
             }
-        ''')
-        
-        if(targetConfig.threads > 0) {
-            pr(pyThreadMutexLockCode(1, reactor))
-        }
-        
-        pr('''
+            
             /* Release the thread. No Python API allowed beyond this point. */
             PyGILState_Release(gstate);
         ''')
@@ -1371,26 +1315,19 @@ class PythonGenerator extends CGenerator {
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
-        
-            pr('''           
-                PyGILState_STATE gstate;
-                gstate = PyGILState_Ensure();
-            ''')
-            
             
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
-            // Unfortunately, threads cannot run concurrently in Python.
-            // Therefore, we need to make sure reactions cannot execute concurrently by
-            // holding the mutex lock.
-            if (targetConfig.threads > 0) {
-                pr(pyThreadMutexLockCode(0, reactor))
-            }
-            
+        
             pr('''
+                // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
+                PyGILState_STATE gstate;
+                gstate = PyGILState_Ensure();
+                
                 DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
-                PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
-            ''')
-            pr('''
+                PyObject *rValue = PyObject_CallObject(
+                    self->__py_deadline_function_«reactionIndex», 
+                    Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
+                );
                 if (rValue == NULL) {
                     error_print("FATAL: Calling reaction «decl.name».«deadlineFunctionName» failed.\n");
                     if (rValue == NULL) {
@@ -1399,15 +1336,12 @@ class PythonGenerator extends CGenerator {
                             PyErr_Clear(); // this will reset the error indicator so we can run Python code again
                         }
                     }
+                    /* Release the thread. No Python API allowed beyond this point. */
+                    PyGILState_Release(gstate);
+                    Py_FinalizeEx();
                     exit(1);
                 }
-            ''')
-
-            if (targetConfig.threads > 0) {
-                pr(pyThreadMutexLockCode(1, reactor))
-            }
-            
-            pr('''
+                
                 /* Release the thread. No Python API allowed beyond this point. */
                 PyGILState_Release(gstate);
             ''')
