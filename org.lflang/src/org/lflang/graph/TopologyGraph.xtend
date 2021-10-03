@@ -26,6 +26,8 @@
  ***************/
 package org.lflang.graph
 
+import java.util.Collection
+import java.util.Arrays
 import org.lflang.generator.NamedInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -47,11 +49,16 @@ class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
      * constructing this graph.
      * @param model The reactor instances to construct the graph for.
      */
-    new(ReactorInstance ...reactors) {
+    new(Collection<? extends ReactorInstance> reactors) {
         for (r : reactors) {
-            collectNodesFrom(r)    
+            collectNodesFrom(r)
         }
         this.detectCycles()
+    }
+
+    /** See description on other constructor. */
+    new(ReactorInstance... reactors) {
+        this(Arrays.asList(reactors));
     }
 
     /**
