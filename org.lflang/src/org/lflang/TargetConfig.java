@@ -18,42 +18,44 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang
+package org.lflang;
 
-import java.util.List
-import java.util.Set
-import org.lflang.TargetProperty.BuildType
-import org.lflang.TargetProperty.ClockSyncMode
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.TargetProperty.LogLevel
-import org.lflang.lf.TimeUnit
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.lflang.TargetProperty.BuildType;
+import org.lflang.TargetProperty.ClockSyncMode;
+import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.LogLevel;
+import org.lflang.lf.TimeUnit;
 
 /** 
  * A class for keeping the current target configuration.
  * 
  * Class members of type String are initialized as empty strings, 
  * unless otherwise stated.
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-class TargetConfig {
+public class TargetConfig {
     
     /**
      * Keep track of every target property that is explicitly set by the user.
      */
-    public Set<TargetProperty> setByUser = newHashSet;
+    public Set<TargetProperty> setByUser = new HashSet<>();
 
     /**
      * A list of custom build commands that replace the default build process of
      * directly invoking a designated compiler. A common usage of this target
      * property is to set the command to build on the basis of a Makefile.
      */
-    public List<String> buildCommands = newLinkedList
+    public List<String> buildCommands = new ArrayList<>();
 
     /**
      * The mode of clock synchronization to be used in federated programs.
      * The default is 'initial'.
      */
-    public ClockSyncMode clockSync = ClockSyncMode.INITIAL
+    public ClockSyncMode clockSync = ClockSyncMode.INITIAL;
 
     /**
      * Clock sync options.
@@ -63,7 +65,7 @@ class TargetConfig {
     /**
      * Parameter passed to cmake. The default is 'Release'.
      */
-    public BuildType cmakeBuildType = BuildType.RELEASE
+    public BuildType cmakeBuildType = BuildType.RELEASE;
     
     /**
      * Enable or disable the use of CMake to build.
@@ -75,40 +77,40 @@ class TargetConfig {
     /**
      * Optional additional extensions to include in the generated CMakeLists.txt.
      */
-    public List<String> cmakeIncludes = newArrayList
+    public List<String> cmakeIncludes = new ArrayList<>();
     
     /**
      * List of cmake-includes from the cmake-include target property with no path info.
      * Useful for copying them to remote machines. This is needed because
      * target cmake-includes can be resources with resource paths.
      */
-    public List<String> cmakeIncludesWithoutPath = newArrayList;
+    public List<String> cmakeIncludesWithoutPath = new ArrayList<>();
 
     /**
      * The compiler to invoke, unless a build command has been specified.
      */
-    public String compiler = ""
+    public String compiler = "";
 
     /**
      * Additional sources to add to the compile command if appropriate.
      */
-    public List<String> compileAdditionalSources = newArrayList
+    public List<String> compileAdditionalSources = new ArrayList<>();
 
     /**
      * Additional libraries to add to the compile command using the "-l" command-line option.
      */
-    public List<String> compileLibraries = newArrayList
+    public List<String> compileLibraries = new ArrayList<>();
 
     /**
      * Flags to pass to the compiler, unless a build command has been specified.
      */
-    public List<String> compilerFlags = newArrayList
+    public List<String> compilerFlags = new ArrayList<>();
 
     /**
      * The type of coordination used during the execution of a federated program.
      * The default is 'centralized'.
      */
-    public CoordinationType coordination = CoordinationType.CENTRALIZED
+    public CoordinationType coordination = CoordinationType.CENTRALIZED;
 
     /**
      * Docker options.
@@ -129,159 +131,161 @@ class TargetConfig {
      * If true, configure the execution environment such that it does not
      * wait for physical time to match logical time. The default is false.
      */
-    public boolean fastMode = false
+    public boolean fastMode = false;
 
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> fileNames = newLinkedList;
+    public List<String> fileNames = new ArrayList<>();
 
     /**
      * List of file names from the files target property with no path info.
      * Useful for copying them to remote machines. This is needed because
      * target files can be resources with resource paths.
      */
-    public List<String> filesNamesWithoutPath = newLinkedList;
+    public List<String> filesNamesWithoutPath =new ArrayList<>();
 
     /**
      * If true, configure the execution environment to keep executing if there
      * are no more events on the event queue. The default is false.
      */
-    public boolean keepalive = false
+    public boolean keepalive = false;
 
     /**
      * The level of logging during execution. The default is INFO.
      */
-    public LogLevel logLevel = LogLevel.INFO
+    public LogLevel logLevel = LogLevel.INFO;
 
     /**
      * Flags to pass to the linker, unless a build command has been specified.
      */
-    public String linkerFlags = ""
+    public String linkerFlags = "";
 
     /**
      * If true, do not invoke the target compiler or build command.
      * The default is false.
      */
-    public boolean noCompile = false
+    public boolean noCompile = false;
 
     /**
      * If true, do not perform runtime validation. The default is false.
      */
-    public boolean noRuntimeValidation = false
+    public boolean noRuntimeValidation = false;
 
     /**
      * List of proto files to be processed by the code generator.
      */
-    public List<String> protoFiles = newLinkedList
+    public List<String> protoFiles = new ArrayList<>();
 
     /**
      * The version of the runtime library to be used in the generated target. 
      */
-    public String runtimeVersion = null
+    public String runtimeVersion = null;
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,
      * all work is done in the main thread).
      */
-    public int threads = 0
+    public int threads = 0;
 
     /**
      * The timeout to be observed during execution of the program.
      */
-    public TimeValue timeout
+    public TimeValue timeout;
 
     /**
      * If non-null, configure the runtime environment to perform tracing.
      * The default is null.
      */
-    public TracingOptions tracing = null
+    public TracingOptions tracing = null;
 
-}
 
-/**
- * Settings related to clock synchronization.
- */
-class ClockSyncOptions {
-    
-    /**
-     * FIXME
-     * The default is 10.
-     */
-    public int attenuation = 10
 
     /**
-     * Whether or not to collect statistics while performing clock synchronization.
-     * This setting is only considered when clock synchronization has been activated.
-     * The default is true.
+     * Settings related to clock synchronization.
      */
-    public boolean collectStats = true
+    public static class ClockSyncOptions {
+
+        /**
+         * FIXME
+         * The default is 10.
+         */
+        public int attenuation = 10;
+
+        /**
+         * Whether or not to collect statistics while performing clock synchronization.
+         * This setting is only considered when clock synchronization has been activated.
+         * The default is true.
+         */
+        public boolean collectStats = true;
+
+        /**
+         * FIXME
+         */
+        public boolean localFederatesOn = false;
+
+
+        /**
+         * FIXME
+         * The default is 5 milliseconds.
+         */
+        public TimeValue period = new TimeValue(5, TimeUnit.MSEC);
+
+        /**
+         * FIXME
+         * The default is 10.
+         */
+        public int trials = 10;
+
+        /**
+         * Used to create an artificial clock synchronization error for the purpose of testing.
+         * The default is null.
+         */
+        public TimeValue testOffset;
+    }
 
     /**
-     * FIXME
+     * Settings related to coordination of federated execution.
      */
-    public boolean localFederatesOn
+    public static class CoordinationOptions {
 
-    
-    /**
-     * FIXME
-     * The default is 5 milliseconds.
-     */
-    public TimeValue period = new TimeValue(5, TimeUnit.MSEC)
-    
-    /**
-     * FIXME
-     * The default is 10.
-     */
-    public int trials = 10
-    
-    /**
-     * Used to create an artificial clock synchronization error for the purpose of testing.
-     * The default is null.
-     */
-    public TimeValue testOffset;
-}
+        /**
+         * For centralized coordination, if a federate has a physical action that can trigger
+         * an output, directly or indirectly, then it will send NET (next event tag) messages
+         * to the RTI periodically as its physical clock advances. This option sets the amount
+         * of time to wait between sending such messages. Increasing this value results in
+         * downstream federates that lag further behind physical time (if the "after" delays
+         * are insufficient).
+         * The default is null, which means it is up the implementation to choose an interval.
+         */
+        public TimeValue advance_message_interval = null;
+    }
 
-/**
- * Settings related to coordination of federated execution.
- */
-class CoordinationOptions {
-    
     /**
-     * For centralized coordination, if a federate has a physical action that can trigger
-     * an output, directly or indirectly, then it will send NET (next event tag) messages
-     * to the RTI periodically as its physical clock advances. This option sets the amount
-     * of time to wait between sending such messages. Increasing this value results in
-     * downstream federates that lag further behind physical time (if the "after" delays
-     * are insufficient).
-     * The default is null, which means it is up the implementation to choose an interval.
+     * Settings related to Docker options.
      */
-    public TimeValue advance_message_interval = null;
-}
+    public static class DockerOptions {
+        /**
+         * The base image and tag from which to build the Docker image. The default is "alpine:latest".
+         */
+        public String from = "alpine:latest";
+    }
 
-/**
- * Settings related to Docker options.
- */
-class DockerOptions {
+    public enum Mode {
+        STANDALONE,
+        INTEGRATED,
+        UNDEFINED
+    }
+
     /**
-     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
+     * Settings related to tracing options.
      */
-    public String from = "alpine:latest"
-}
+    public static class TracingOptions {
+        /**
+         * The name to use as the root of the trace file produced.
+         * This defaults to the name of the .lf file.
+         */
+        public String traceFileName = null;
+    }
 
-enum Mode {
-    STANDALONE,
-    INTEGRATED,
-    UNDEFINED
-}
-
-/**
- * Settings related to tracing options.
- */
-class TracingOptions {
-    /**
-     * The name to use as the root of the trace file produced.
-     * This defaults to the name of the .lf file.
-     */
-    public String traceFileName = null
 }
