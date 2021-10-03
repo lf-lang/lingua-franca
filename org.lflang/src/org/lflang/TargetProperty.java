@@ -7,6 +7,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.lflang.TargetConfig.DockerOptions;
+import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
@@ -514,7 +516,7 @@ public enum TargetProperty {
     // Inner classes for the various supported types.
 
 
-    
+
     /**
      * Interface for dictionary elements. It associates an entry with a type.
      */
