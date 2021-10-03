@@ -87,12 +87,7 @@ object RustEmitter {
                 |${generatedByComment("//")}
                 |#![allow(unused)]
                 |
-                |use $rsRuntime::ReactionCtx;
-                |use $rsRuntime::{LogicalInstant, PhysicalInstant, Duration};
-                |use $rsRuntime::Offset::*;
-                |
-                |#[cfg(feature = "test-program")]
-                |use $rsRuntime::TagSpec::*;
+                |use $rsRuntime::prelude::*;
                 |
 ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |
