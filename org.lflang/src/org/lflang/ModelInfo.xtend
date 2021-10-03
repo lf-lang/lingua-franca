@@ -161,7 +161,7 @@ class ModelInfo {
      * false otherwise.
      */
     private def boolean isTooLarge(TimeValue time) {
-        if (time !== null && time.toNanoSeconds > TimeValue.MAX_BIGINT_DEADLINE)
+        if (time !== null && time.toNanoSeconds > TimeValue.MAX_LONG_DEADLINE)
             true
         else
             false

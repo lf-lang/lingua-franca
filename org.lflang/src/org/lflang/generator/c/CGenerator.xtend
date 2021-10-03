@@ -4294,8 +4294,9 @@ class CGenerator extends GeneratorBase {
                 reactionInstance.definition
             )) {
                 val reactionStructName = '''«selfStructName(reactionInstance.parent)»->___reaction_«reactionCount»'''
-                val reactionIndex = "0x" + (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).or(
-                    new BigInteger(reactionInstance.level.toString)).toString(16) + "LL"
+                // xtend doesn't support bitwise operators...
+                val indexValue = CGeneratorExtension.longOr(reactionInstance.deadline.toNanoSeconds << 16, reactionInstance.level)
+                val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
                 pr('''
                     «reactionStructName».chain_id = «reactionInstance.chainID.toString»;
                     // index is the OR of level «reactionInstance.level» and 
