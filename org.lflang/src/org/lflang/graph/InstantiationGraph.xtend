@@ -1,5 +1,3 @@
-/* Instantiation graph of a reactor program. */
-
 /*************
 Copyright (c) 2020, The University of California at Berkeley.
 
