@@ -29,6 +29,7 @@ import org.lflang.*
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
+import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
@@ -256,7 +257,9 @@ data class CrateInfo(
     /** List of names of the credited authors. */
     val authors: List<String>,
     /** Dependencies of the crate. */
-    val dependencies: Map<String, CargoDependencySpec>
+    val dependencies: Map<String, CargoDependencySpec>,
+    /** List of root modules to include in the main.rs. Can be directories. */
+    val rootModules: List<Path>,
 )
 
 /**
@@ -399,6 +402,10 @@ object RustModelBuilder {
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
+        for (fileName in targetConfig.fileNames) {
+            // todo test that only those of the main reactor end up here
+
+        }
 
         return GenerationInfo(
             crate = CrateInfo(

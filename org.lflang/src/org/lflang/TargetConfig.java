@@ -54,16 +54,6 @@ public class TargetConfig {
     public List<String> buildCommands = new ArrayList<>();
 
     /**
-     * List of Cargo features to enable (Rust only).
-     */
-    public List<String> cargoFeatures = new ArrayList<>();
-
-    /**
-     * Map of Cargo dependency to dependency properties.
-     */
-    public Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
-
-    /**
      * The mode of clock synchronization to be used in federated programs.
      * The default is 'initial'.
      */
@@ -215,6 +205,17 @@ public class TargetConfig {
     public TracingOptions tracing = null;
 
 
+    // Rust-only properties
+
+    /**
+     * List of Cargo features to enable (Rust only).
+     */
+    public List<String> cargoFeatures = new ArrayList<>();
+
+    /**
+     * Map of Cargo dependency to dependency properties.
+     */
+    public Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
 
     /**
      * Settings related to clock synchronization.
