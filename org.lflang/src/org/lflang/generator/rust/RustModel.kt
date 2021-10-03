@@ -29,7 +29,7 @@ import org.lflang.*
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
-import java.nio.file.Path
+import org.lflang.generator.UnsupportedGeneratorFeatureException
 import java.util.*
 
 private typealias Ident = String
@@ -257,9 +257,7 @@ data class CrateInfo(
     /** List of names of the credited authors. */
     val authors: List<String>,
     /** Dependencies of the crate. */
-    val dependencies: Map<String, CargoDependencySpec>,
-    /** List of root modules to include in the main.rs. Can be directories. */
-    val rootModules: List<Path>,
+    val dependencies: Map<String, CargoDependencySpec>
 )
 
 /**
@@ -331,7 +329,7 @@ sealed class ReactorComponent {
                 literal != null   ->
                     literal.toIntOrNull()
                         ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
-                        ?: throw InvalidSourceException("Not an integer literal", this)
+                        ?: throw InvalidLfSourceException("Not an integer literal", this)
                 time != null      -> time.toRustTimeExpr()
                 code != null      -> code.toText()
                 else              -> RustTypes.getTargetExpr(this, InferredType.time())
@@ -402,10 +400,6 @@ object RustModelBuilder {
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
-        for (fileName in targetConfig.fileNames) {
-            // todo test that only those of the main reactor end up here
-
-        }
 
         return GenerationInfo(
             crate = CrateInfo(
@@ -460,7 +454,9 @@ object RustModelBuilder {
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
                             )
                         } else {
-                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
+                                "Dependency on $it"
+                            )
                         }
                     }
 
@@ -529,7 +525,10 @@ object RustModelBuilder {
                 RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
             }
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
-                ?: throw InvalidSourceException("Cannot find value of parameter ${ithParam.name}", this)
+                ?: throw InvalidLfSourceException(
+                    "Cannot find value of parameter ${ithParam.name}",
+                    this
+                )
             ithParam.name to value
         }
 
@@ -602,5 +601,8 @@ private val TypeParm.identifier: String
     get() {
         val targetCode = toText()
         return IDENT_REGEX.find(targetCode.trimStart())?.value
-            ?: throw InvalidSourceException("No identifier in type param `$targetCode`", this)
+            ?: throw InvalidLfSourceException(
+                "No identifier in type param `$targetCode`",
+                this
+            )
     }

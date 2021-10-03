@@ -22,34 +22,37 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import org.eclipse.emf.ecore.EObject
-
-/**
- * An exception that occurred during code generation. May also
- * wrap another exception.
- */
-open class GenerationException : RuntimeException { // note that this is an unchecked exception.
-    constructor(message: String) : super(message)
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    constructor(cause: Throwable) : super(cause)
-}
+import org.eclipse.emf.ecore.EObject;
 
 /**
- * Signals that the code generator does not support a particular
- * feature of the source language.
+ * An exception that indicates invalid source, which should
+ * be reported to the user. This is an error, it should not
+ * be used for warnings.
+ *
+ * @author Clément Fournier
  */
-class UnsupportedGeneratorFeatureException(feature: String) : GenerationException(feature) {
-    override fun toString(): String {
-        return "Unsupported generator feature: ${message!!.decapitalize()}"
+public class InvalidLfSourceException extends RuntimeException {
+
+    private final EObject node;
+    private final String problem;
+
+    public InvalidLfSourceException(EObject node, String problem) {
+        super(problem);
+        this.node = node;
+        this.problem = problem;
+    }
+
+    public InvalidLfSourceException(String problem, EObject node) {
+        this(node, problem);
+    }
+
+    public EObject getNode() {
+        return node;
+    }
+
+    public String getProblem() {
+        return problem;
     }
 }
-
-class InvalidSourceException(message: String, node: EObject) :
-    GenerationException("at ${node.locationInfo().display()}: $message") {
-    override fun toString(): String {
-        return "[error]: ${message!!.decapitalize()}"
-    }
-}
-

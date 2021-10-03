@@ -20,6 +20,7 @@
  */
 package org.lflang;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,6 +31,8 @@ import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.generator.rust.CargoDependencySpec;
+import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.TimeUnit;
 
 /** 
@@ -205,17 +208,9 @@ public class TargetConfig {
     public TracingOptions tracing = null;
 
 
-    // Rust-only properties
 
-    /**
-     * List of Cargo features to enable (Rust only).
-     */
-    public List<String> cargoFeatures = new ArrayList<>();
-
-    /**
-     * Map of Cargo dependency to dependency properties.
-     */
-    public Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
+    /** Rust-specific configuration. */
+    public final RustTargetConfig rust = new RustTargetConfig();
 
     /**
      * Settings related to clock synchronization.
