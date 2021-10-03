@@ -224,7 +224,7 @@ data class ReactionInfo(
 
     /** Location metadata. */
     val loc: LocationInfo,
-
+    /** Label without quotes. */
     val debugLabel: String?
 ) {
 
