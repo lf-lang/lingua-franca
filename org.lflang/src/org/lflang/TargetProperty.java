@@ -362,15 +362,18 @@ public enum TargetProperty {
             throw new RuntimeIOException(e);
         }
 
+        // we'll resolve relative paths to check that the files
+        // are as expected.
+
         if (value.getLiteral() != null) {
-            Path resolved = referencePath.resolve(value.getLiteral());
+            Path resolved = referencePath.resolveSibling(ASTUtils.withoutQuotes(value.getLiteral()));
+
             config.rust.addAndCheckTopLevelModule(resolved, value, err);
         } else if (value.getArray() != null) {
             for (Element element : value.getArray().getElements()) {
-                String literal = element.getLiteral();
-                Objects.requireNonNull(literal); // validator already ensures it's a file array
-                Path resolved = referencePath.resolve(literal);
-                config.rust.addAndCheckTopLevelModule(resolved, value, err);
+                String literal = ASTUtils.withoutQuotes(element.getLiteral());
+                Path resolved = referencePath.resolveSibling(literal);
+                config.rust.addAndCheckTopLevelModule(resolved, element, err);
             }
         }
     }),

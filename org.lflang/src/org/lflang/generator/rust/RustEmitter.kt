@@ -31,6 +31,7 @@ import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -61,6 +62,16 @@ object RustEmitter {
                 fileConfig.emit("src/reactors/${reactor.names.modFileName}.rs") {
                     makeReactorModule(this, reactor)
                 }
+            }
+        }
+
+        // copy user-defined modules
+        for (modPath in gen.crate.modulesToIncludeInMain) {
+            val target = fileConfig.srcGenPath.resolve("src").resolve(modPath.fileName)
+            if (Files.isDirectory(modPath)) {
+                FileConfig.copyDirectory(modPath, target)
+            } else {
+                FileConfig.copyFile(modPath, target)
             }
         }
     }
@@ -330,6 +341,9 @@ ${"         |    "..declarations}
             |
             |// user dependencies
 ${"         |"..gen.crate.dependencies.keys.joinToString("\n") { "extern crate ${it.replace('-', '_')};" }}
+            |
+            |// user-defined modules
+${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
             |
             |use $rsRuntime::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;

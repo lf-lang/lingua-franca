@@ -100,6 +100,10 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 ### Other todos/ nice-to-have things
 
 - [ ] benchmark generation
-- [x] `CliFeature.lf`: CLI parameter parsing
+- `CliFeature.lf`: CLI parameter parsing
   - [x] for runtime options
   - [x] for parameters of the main reactor
+- dependency handling
+  - [x] `CargoDependency.lf`: generated project can depend on external crates, including local ones
+  - [x] `ModuleDependency.lf`: one can add pure rust modules to the generated project without fuss
+  - [x] `ModuleDependencyWithDirModule.lf`: one can also add a tree of modules
