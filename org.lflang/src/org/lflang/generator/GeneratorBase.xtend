@@ -289,7 +289,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
-            TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList)
+            TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList, errorReporter)
         }
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
@@ -523,7 +523,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     val target = res.findTarget
                     var targetConfig = new TargetConfig();
                     if (target.config !== null) {
-                        TargetProperty.set(targetConfig, target.config.pairs ?: emptyList);
+                        TargetProperty.set(targetConfig, target.config.pairs ?: emptyList, errorReporter);
                     }
                     val fileConfig = new FileConfig(res, fsa, context);
                     // Add it to the list of LFResources

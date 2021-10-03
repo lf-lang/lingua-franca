@@ -71,6 +71,10 @@ public final class RustTargetConfig {
             err.reportError(errorOwner, "File not found");
         } else if (Files.isRegularFile(path) && !path.getFileName().toString().endsWith(".rs")) {
             err.reportError(errorOwner, "Not a rust file");
+        } else if (path.getFileName().toString().equals("main.rs")) {
+            err.reportError(errorOwner, "Cannot use 'main.rs' as a module name (reserved)");
+        } else if (path.getFileName().toString().equals("reactors")) {
+            err.reportError(errorOwner, "Cannot use 'reactors' as a module name (reserved)");
         } else if (Files.isDirectory(path) && !Files.exists(path.resolve("mod.rs"))) {
             err.reportError(errorOwner, "Cannot find module descriptor in directory");
         }

@@ -97,9 +97,9 @@ class RustGenerator(
                 "-Z", "unstable-options", // ... and that feature flag
             )
 
-            if (targetConfig.cargoFeatures.isNotEmpty()) {
+            if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
-                this += targetConfig.cargoFeatures.joinWithCommas()
+                this += targetConfig.rust.cargoFeatures.joinWithCommas()
             }
 
             this += targetConfig.compilerFlags

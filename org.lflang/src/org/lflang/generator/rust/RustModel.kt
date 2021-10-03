@@ -30,6 +30,7 @@ import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.generator.UnsupportedGeneratorFeatureException
+import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
@@ -257,7 +258,8 @@ data class CrateInfo(
     /** List of names of the credited authors. */
     val authors: List<String>,
     /** Dependencies of the crate. */
-    val dependencies: Map<String, CargoDependencySpec>
+    val dependencies: Map<String, CargoDependencySpec>,
+    val modulesToIncludeInMain: List<Path>,
 )
 
 /**
@@ -406,13 +408,14 @@ object RustModelBuilder {
                 name = mainReactor.lfName.camelToSnakeCase(),
                 version = "1.0.0",
                 authors = listOf(System.getProperty("user.name")),
-                dependencies = targetConfig.cargoDependencies
+                dependencies = targetConfig.rust.cargoDependencies,
+                modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules,
             ),
             runtime = RuntimeInfo(
                 version = targetConfig.runtimeVersion,
                 localPath = targetConfig.externalRuntimePath,
                 gitRevision = runtimeGitRevision,
-                enabledCargoFeatures = targetConfig.cargoFeatures.toSet()
+                enabledCargoFeatures = targetConfig.rust.cargoFeatures.toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,
