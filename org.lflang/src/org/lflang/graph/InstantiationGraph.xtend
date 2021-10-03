@@ -71,9 +71,11 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
     
     /**
      * Return the instantiations that point to a given reactor definition.
+     * If none are known, returns an empty set. * The returned set may be
+     * unmodifiable.
      */
     def Set<Instantiation> getInstantiations(Reactor definition) {
-        return this.reactorToInstantiation.get(definition)
+        return this.reactorToInstantiation.get(definition) ?: emptySet
     }
     
     /**

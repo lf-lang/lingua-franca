@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
-import java.math.BigInteger
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
