@@ -14,7 +14,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
