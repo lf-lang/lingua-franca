@@ -58,13 +58,27 @@ public enum TargetProperty {
     }),
 
     /**
+     * List of module files to link into the crate as top-level.
+     * For instance, a {@code target Rust { rust-modules: [ "foo.rs" ] }}
+     * will cause the file to be copied into the generated project,
+     * and the generated `main.rs` will include it with a `mod foo;`.
+     * If one of the paths is a directory, it must contain a `mod.rs`
+     * file, and all its contents are copied.
+     */
+    RUST_INCLUDE("rust-include",
+                 UnionType.FILE_OR_FILE_ARRAY,
+                 List.of(Target.Rust), (config, value) -> {
+        config.fileNames = ASTUtils.toListOfStrings(value);
+    }),
+
+    /**
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
-                config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-                        .forName(ASTUtils.toText(value));
-            }),
+               Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+        config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
+            .forName(ASTUtils.toText(value));
+    }),
     
     /**
      * Key-value pairs giving options for clock synchronization.
