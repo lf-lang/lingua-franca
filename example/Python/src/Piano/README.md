@@ -1,5 +1,6 @@
 # Piano
 This is a pygame-based piano demo for the Python target of Lingua Franca. 
+The contents of the demo is mostly adapted from: https://github.com/bspaans/python-mingus/tree/master/mingus_examples/pygame-piano
 
 ## Installation
 ### MacOs:

@@ -6,50 +6,48 @@ target Python {
     // federated runtime will be started this week 
 };
 
-reactor PianoGui {
-    preamble {=
-        import sensor_simulator
-        import threading
-        import multiprocessing.connection
-        from multiprocessing.connection import Pipe
-        
-        piano_keys = {
-            "z": ("C", 0),
-            "s": ("C#", 0),
-            "x": ("D", 0),
-            "d": ("D#", 0),
-            "c": ("E", 0),
-            "v": ("F", 0),
-            "g": ("F#", 0),
-            "b": ("G", 0),
-            "h": ("G#", 0),
-            "n": ("A", 0),
-            "j": ("A#", 0),
-            "m": ("B", 0),
-            "w": ("C", 1),
-            "3": ("C#", 1),
-            "e": ("D", 1),
-            "4": ("D#", 1),
-            "r": ("E", 1),
-            "t": ("F", 1),
-            "6": ("F#", 1),
-            "y": ("G", 1),
-            "7": ("G#", 1),
-            "u": ("A", 1),
-            "8": ("A#", 1),
-            "i": ("B", 1)
-        }
-    =}
+preamble {=
+    import sensor_simulator
+    import threading
+    import multiprocessing.connection
+    from multiprocessing.connection import Pipe
     
+    piano_keys = {
+        "z": ("C", 0),
+        "s": ("C#", 0),
+        "x": ("D", 0),
+        "d": ("D#", 0),
+        "c": ("E", 0),
+        "v": ("F", 0),
+        "g": ("F#", 0),
+        "b": ("G", 0),
+        "h": ("G#", 0),
+        "n": ("A", 0),
+        "j": ("A#", 0),
+        "m": ("B", 0),
+        "w": ("C", 1),
+        "3": ("C#", 1),
+        "e": ("D", 1),
+        "4": ("D#", 1),
+        "r": ("E", 1),
+        "t": ("F", 1),
+        "6": ("F#", 1),
+        "y": ("G", 1),
+        "7": ("G#", 1),
+        "u": ("A", 1),
+        "8": ("A#", 1),
+        "i": ("B", 1)
+    }
+=}
+
+reactor PianoGui {
     timer t(0, 1 msec);
-    # input key_pressed_in;
-    # output key_pressed;
     physical action key;
     state actuator({=None=}); # multiprocessing.connection.PipeConnection
     
     reaction(startup) -> key {=
         print("starting PianoGui...")
-        self.actuator = self.sensor_simulator.start_sensor_simulator(key, self.piano_keys)
+        self.actuator = sensor_simulator.start_sensor_simulator(key, piano_keys)
     =}
     
     reaction(shutdown) {=
@@ -70,9 +68,8 @@ reactor PianoGui {
         key_packet = key.value
         unicode, = key_packet.content
         print(f"PianoGui: key press detected: {unicode}")
-        if unicode in self.piano_keys:
-            self.actuator.send(self.sensor_simulator.KeyPacket(key_packet.key_down, self.piano_keys[unicode]))
-        # key_pressed.set(unicode)
+        if unicode in piano_keys:
+            self.actuator.send(sensor_simulator.KeyPacket(key_packet.key_down, piano_keys[unicode]))
     =}
 }
 
