@@ -270,7 +270,7 @@ ${"         |    "..declarations}
         val reactionIds = reactions.map { it.invokerId } + timers.map { it.rescheduleReactionId }
 
         val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
-        val debugLabels = reactions.map { it.debugLabel.toRustOption() } + timers.map { "Some(\"reschedule_${it.lfName}\")" }
+        val debugLabels = reactions.map { it.debugLabel?.withDQuotes().toRustOption() } + timers.map { "Some(\"reschedule_${it.lfName}\")" }
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
         return "$pattern = __assembler.new_reactions($debugLabelArray);"
@@ -775,13 +775,3 @@ fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", "
  */
 fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
 
-
-fun String.escapeStringLiteral() =
-    replace(Regex("[\\\\ \t\"]")) {
-        when (it.value) {
-            "\\" -> "\\\\"
-            "\t" -> "\\t"
-            "\"" -> "\\\""
-            else -> it.value
-        }
-    }
