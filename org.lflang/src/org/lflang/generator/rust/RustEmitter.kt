@@ -134,15 +134,23 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    #[inline]
                 |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
                 |        let $ctorParamsDeconstructor = _params.clone();
+                |
+                |        let _impl = {
+                |            // declare them all here so that they are visible to the initializers of state vars declared later
+${"             |            "..reactor.stateVars.joinToString("\n") { "let "+ it.lfName + " = " + (it.init ?: "Default::default()") + ";" }}
+                |
+                |            $structName {
+                |                __phantom: std::marker::PhantomData,
+${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName }}
+                |            }
+                |        };
+                |
                 |        Self {
                 |            _id: __assembler.get_id(),
                 |            _params,
                 |            _startup_reactions: Default::default(),
                 |            _shutdown_reactions: Default::default(),
-                |            _impl: $structName {
-                |                __phantom: std::marker::PhantomData,   
-${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
-                |            },
+                |            _impl,
 ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
                 |        }
                 |    }
