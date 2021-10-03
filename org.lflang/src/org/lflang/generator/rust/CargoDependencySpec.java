@@ -22,12 +22,12 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang;
+package org.lflang.generator.rust;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;

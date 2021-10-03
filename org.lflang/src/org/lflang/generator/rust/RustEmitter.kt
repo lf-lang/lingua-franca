@@ -31,11 +31,9 @@ import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
-import org.lflang.generator.rust.RustEmitter.toToml
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.exp
 
 
 /**
