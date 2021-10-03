@@ -156,14 +156,14 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    }
                 |}
                 |
-                |use $rsRuntime::*; // after this point there's no user-written code
-                |
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName;
-                |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const($maxReactionIdUsize);
+                |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new_const($maxReactionIdUsize);
                 |
-                |    fn assemble(args: Self::Params, __assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
+                |    fn assemble(args: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
+                |        use $rsRuntime::TriggerLike;
+                |
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
@@ -189,31 +189,31 @@ ${"             |        "..nestedInstances.joinToString("\n") { "__assembler.re
                 |}
                 |
                 |
-                |impl$typeParams ReactorBehavior for $wrapperName$typeArgs {
+                |impl$typeParams $rsRuntime::ReactorBehavior for $wrapperName$typeArgs {
                 |
                 |    #[inline]
-                |    fn id(&self) -> ReactorId {
+                |    fn id(&self) -> $rsRuntime::ReactorId {
                 |        self._id
                 |    }
                 |
-                |    fn react_erased(&mut self, ctx: &mut ReactionCtx, rid: LocalReactionId) {
+                |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: $rsRuntime::LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls(reactor)}
 ${"             |            "..syntheticTimerReactions(reactor)}
-                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
+                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, <Self as $rsRuntime::ReactorInitializer>::MAX_REACTION_ID)
                 |        }
                 |    }
                 |
-                |    fn cleanup_tag(&mut self, ctx: &CleanupCtx) {
+                |    fn cleanup_tag(&mut self, ctx: &$rsRuntime::CleanupCtx) {
 ${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn() }
                 |    }
                 |    
-                |    fn enqueue_startup(&self, ctx: &mut StartupCtx) {
+                |    fn enqueue_startup(&self, ctx: &mut $rsRuntime::StartupCtx) {
                 |        ctx.enqueue(&self._startup_reactions);
 ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.rustFieldName});" }}
                 |    }
                 |
-                |    fn enqueue_shutdown(&self, ctx: &mut StartupCtx) {
+                |    fn enqueue_shutdown(&self, ctx: &mut $rsRuntime::StartupCtx) {
                 |        ctx.enqueue(&self._shutdown_reactions);
                 |    }
                 |
@@ -463,7 +463,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.es
             |        (options, main_args)
             |    }
             |
-            |    fn try_parse_duration(t: &str) -> Result<Option<Duration>, String> {
+            |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
             |        reactor_rt::try_parse_duration(t).map(|d| {
             |            if d.is_zero() { None } else { Some(d) }
             |        })
@@ -661,11 +661,11 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
         is ActionData         -> {
             val delay = minDelay.toRustOption()
             val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
-            "__assembler.$ctorName(\"$lfName\", $delay)"
+            "__assembler.$ctorName::<$dataType>(\"$lfName\", $delay)"
         }
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData           -> "__assembler.new_port(\"$lfName\")"
-        is ChildPortReference -> "__assembler.new_port(\"$childName.$lfName\")"
+        is PortData           -> "__assembler.new_port::<$dataType>(\"$lfName\")"
+        is ChildPortReference -> "__assembler.new_port::<$dataType>(\"$childName.$lfName\")"
     }
 
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
