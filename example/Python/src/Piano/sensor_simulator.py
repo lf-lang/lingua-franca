@@ -1,3 +1,4 @@
+import multiprocessing
 from multiprocessing import Process, connection
 from threading import Thread
 import sys
@@ -59,6 +60,8 @@ def start_sensor_simulator(action, piano_keys):
     multiprocessing.connection.PipeConnection
         a pipe object for the LF program to send actuations to the pygame piano.
     '''
+    if sys.platform == "darwin":
+        multiprocessing.set_start_method("spawn")
     sensor_pout, sensor_pin = connection.Pipe(duplex=False)
     actuator_pout, actuator_pin = connection.Pipe(duplex=False)
     t1 = Thread(target=sensor_receiver, args=(action, sensor_pout))
