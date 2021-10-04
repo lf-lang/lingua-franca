@@ -259,7 +259,7 @@ public class FileConfig {
      * Get the specified uri as an Eclipse IResource or, if it is not found, then
      * return the iResource for the main file.
      * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * system, and when running in EPOCH mode, for some things, you cannot access
      * files by referring to their file system location. Instead, you have to refer
      * to them relative the workspace root. This is required, for example, when marking
      * the file with errors or warnings or when deleting those marks. 
@@ -747,25 +747,10 @@ public class FileConfig {
       *  the decision which mode we are in depends on a file (the resource),
       *  thus it seems to fit here.
       * FIXME: Mode is never undefined. Remove Mode.UNDEFINED?
-      * FIXME: Search code base for consequences of the assumption that we
-      *   are always either in Eclipse or the standalone compiler. For
-      *   instance, should EclipseErrorReporter be renamed to IdeErrorReporter,
-      *   to include IDEs and extensible text editors that use LSP? Or must we
-      *   distinguish between the two? (The Xtext team probably worked
-      *   hard to try to make it unnecessary for us to distinguish between the
-      *   two.)
-      * FIXME: This method is now effectively reduced to little more than an
-      *  alias for `instanceof`. Replace calls of this method with `instanceof`?
       */
      public Mode getCompilerMode() {
-         return context instanceof StandaloneContext ? Mode.STANDALONE : Mode.INTEGRATED;
+         if (context instanceof StandaloneContext) return Mode.STANDALONE;
+         if (resource.getURI().isPlatform()) return Mode.EPOCH;
+         return Mode.LSP_FAST; // TODO: Support LSP_SLOW
      }
-
-    /**
-     * Returns whether files are being handled via an Eclipse IDE.
-     * @return whether files are being handled via an Eclipse IDE
-     */
-    public boolean isEclipse() {
-         return resource.getURI().isPlatform();
-    }
 }

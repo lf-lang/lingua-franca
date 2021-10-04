@@ -91,12 +91,12 @@ public class CCompiler {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         int returnCode = compile.run();
 
-        if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+        if (returnCode != 0 && fileConfig.getCompilerMode() == Mode.STANDALONE) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+        if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() != Mode.STANDALONE) {
             errorReporter.reportError(stderr.toString());
         }
         return (returnCode == 0);

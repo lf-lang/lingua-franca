@@ -575,7 +575,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkBuild(Model model) {
         val uri = model.eResource?.URI
         if (uri !== null && uri.isPlatform) {
-            // Running in INTEGRATED mode. Clear marks.
+            // Running in Epoch. Clear marks.
             // This has to be done here rather than in doGenerate()
             // of GeneratorBase because, apparently, doGenerate() is
             // not called at all if there are marks.

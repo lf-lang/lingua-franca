@@ -707,13 +707,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // execute the command
             val returnCode = cmd.run()
 
-            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
+            if (returnCode != 0 && fileConfig.compilerMode === Mode.STANDALONE) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode !== Mode.STANDALONE) {
                 reportCommandErrors(cmd.errors.toString())
                 return
             }
@@ -1070,8 +1070,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.  This should only be called if
-     * mode == INTEGRATED.
+     * marks on the appropriate lines. This should not be called in standalone
+     * mode.
      * 
      * @param stderr The output on standard error of executing a command.
      */
@@ -1211,12 +1211,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
         file.replace(File.separatorChar, '/')
     }
 
-    /** If the mode is INTEGRATED (the code generator is running in an
+    /** If the mode is EPOCH (the code generator is running in an
      *  an Eclipse IDE), then refresh the project. This will ensure that
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (fileConfig.compilerMode == Mode.INTEGRATED) {
+        if (fileConfig.compilerMode == Mode.EPOCH) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator

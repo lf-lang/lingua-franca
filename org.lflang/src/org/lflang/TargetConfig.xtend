@@ -258,7 +258,9 @@ class DockerOptions {
 
 enum Mode {
     STANDALONE,
-    INTEGRATED,
+    EPOCH,
+    LSP_FAST,
+    LSP_SLOW,
     UNDEFINED
 }
 

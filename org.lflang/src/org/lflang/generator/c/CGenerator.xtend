@@ -784,7 +784,7 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty && fileConfig.getCompilerMode() == Mode.STANDALONE) {
                 if (targetConfig.useCmake) {
                     // Use CMake if requested.
                     cCompiler = new CCmakeCompiler(targetConfig, fileConfig, errorReporter);
