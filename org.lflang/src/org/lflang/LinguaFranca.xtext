@@ -227,7 +227,7 @@ Instantiation:
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
-    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
     (delay=Delay)?
@@ -251,12 +251,12 @@ Serializer:
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
+    {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
-Array:
+Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
     
 Element:

@@ -106,6 +106,24 @@ class TSConstructorGenerator (
         return connectionInstantiations.joinToString("\n")
     }
 
+    // Generate code for registering Fed IDs that are connected to
+    // this federate via ports in the TypeScript's FederatedApp.
+    // These Fed IDs are used to let the RTI know about the connections
+    // between federates during the initialization with the RTI.
+    fun generateFederateConfigurations(): String {
+        val federateConfigurations = LinkedList<String>()
+        if (reactor.isFederated) {
+            for ((key, _) in federate.dependsOn) {
+                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
+                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
+            }
+            for ((key, _) in federate.sendsTo) {
+                federateConfigurations.add("this.addDownstreamFederate(${key.id});")
+            }
+        }
+        return federateConfigurations.joinToString("\n")
+    }
+
     fun generateConstructor(
         instances: TSInstanceGenerator,
         timers: TSTimerGenerator,
@@ -123,6 +141,7 @@ class TSConstructorGenerator (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federate)}
+            ${" |    "..generateFederateConfigurations()}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
