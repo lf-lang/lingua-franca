@@ -168,7 +168,7 @@ class CCmakeCompiler extends CCompiler {
 
         int returnCode = configure.run();
 
-        if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+        if (returnCode != 0 && fileConfig.getCompilerMode() == Mode.STANDALONE) {
             // FIXME: Why is the error code attributed to the compiler if it is actually received via CMake? Is it
             //  possible that the source of the error code is not the compiler?
             errorReporter.reportError(
