@@ -246,11 +246,4 @@ public class CGeneratorExtension {
         return additionalDelayString;
     }
 
-    /**
-     * Returns the bitwise OR of the two given long integers.
-     * Xtend doesn't support bitwise operators.
-     */
-    public static long longOr(long a, long b) {
-        return a | b;
-    }
 }

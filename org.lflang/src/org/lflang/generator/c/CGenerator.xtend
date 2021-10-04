@@ -87,6 +87,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
+import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetConfig
@@ -4294,7 +4295,7 @@ class CGenerator extends GeneratorBase {
             )) {
                 val reactionStructName = '''«selfStructName(reactionInstance.parent)»->___reaction_«reactionCount»'''
                 // xtend doesn't support bitwise operators...
-                val indexValue = CGeneratorExtension.longOr(reactionInstance.deadline.toNanoSeconds << 16, reactionInstance.level)
+                val indexValue = XtendUtil.longOr(reactionInstance.deadline.toNanoSeconds << 16, reactionInstance.level)
                 val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
                 pr('''
                     «reactionStructName».chain_id = «reactionInstance.chainID.toString»;
