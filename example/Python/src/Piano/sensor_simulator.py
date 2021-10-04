@@ -150,7 +150,10 @@ class PianoGui:
         ----------
         None
         '''
-        if not fluidsynth.init(SF2):
+        driver = None
+        if sys.platform == "linux" or sys.platform == "linux2":
+            driver = "alsa"
+        if not fluidsynth.init(SF2, driver):
             print("Couldn't load soundfont", SF2)
             sys.exit(1)
         self.sensor_pin = sensor_pin
