@@ -300,7 +300,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();

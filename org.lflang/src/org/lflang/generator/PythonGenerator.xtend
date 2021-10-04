@@ -1000,8 +1000,19 @@ class PythonGenerator extends CGenerator {
      */
     override includeTargetLanguageHeaders() {
         pr('''#define MODULE_NAME LinguaFranca«topLevelName»''')
-        pr('''#define __GARBAGE_COLLECTED''')    	
+        pr('''#define __GARBAGE_COLLECTED''') 
+        if (targetConfig.tracing !== null) {
+            var filename = "";
+            if (targetConfig.tracing.traceFileName !== null) {
+                filename = targetConfig.tracing.traceFileName;
+            }
+            pr('#define LINGUA_FRANCA_TRACE ' + filename)
+        }
+                       
         pr('#include "pythontarget.c"')
+        if (targetConfig.tracing !== null) {
+            pr('#include "core/trace.c"')            
+        }
     }
 
     /** Generate C code from the Lingua Franca model contained by the
