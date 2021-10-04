@@ -9,8 +9,9 @@ reactor Sub(seq([1,2])) {
 
 main reactor {
     state l12([1,2]);
+    state l12_trailing([1,2,]);
     state empty([]);
-    state empty2([,]);
+    // doesn't parse state empty2([,]);
 
     sub  = new Sub(seq = [1, 2]);
     sub2 = new Sub(seq = (1, 2));
@@ -18,8 +19,8 @@ main reactor {
 
     reaction(startup) {=
         assert self.empty == []
-        assert self.empty2 == []
         assert self.l12 == [1, 2]
+        assert self.l12 == self.l12_trailing
         print("Success")
     =}
 }

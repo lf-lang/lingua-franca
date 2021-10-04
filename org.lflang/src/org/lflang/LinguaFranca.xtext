@@ -387,12 +387,8 @@ SignedInt:
 
 // List literals support even empty lists, and a trailing comma.
 
-// Note: this expansion is weirdly written, but without the
-// emptyList property, Xtext fails to push a ListLiteral node
-// when the list is empty... Another bug of Xtext.
 ListLiteral:
-    '[' (items+=Value (',' items+=Value)* ','? ']'
-        | ','? emptyList?=']')
+    {ListLiteral} '[' ( items+=Value (',' items+=Value)* ','? )? ']'
 ;
 
 Literal:

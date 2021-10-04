@@ -27,7 +27,7 @@ public class LFParsingTest {
 
 
     @Test
-    public void testLexingEmptyTargetProperties() throws Exception {
+    public void testParsingEmptyTargetProperties() throws Exception {
         assertNoParsingErrorsIn("target C { };      \nreactor Foo {}");
         assertNoParsingErrorsIn("target C {a:b,};   \nreactor Foo {}");
         expectParsingErrorIn("target C {,};      \nreactor Foo {}");
@@ -36,6 +36,13 @@ public class LFParsingTest {
         // assertNoParsingErrorsIn("target C {x:[ ]};  \nreactor Foo {}");
         // assertNoParsingErrorsIn("target C {x:[]};   \nreactor Foo {}");
         // assertNoParsingErrorsIn("target C {x:[,]};  \nreactor Foo {}");
+    }
+
+    @Test
+    public void testParsingListLiterals() throws Exception {
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p([1,])) {}");
+        // [,] is not an ok list literal
+        expectParsingErrorIn("target Python;      \nreactor Foo(p([,])) {}");
     }
 
     @Test
