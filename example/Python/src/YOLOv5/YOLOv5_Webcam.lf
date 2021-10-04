@@ -1,0 +1,164 @@
+/**
+ * 
+ * Adapted from 
+ * https://towardsdatascience.com/implementing-real-time-object-detection-system-using-pytorch-and-opencv-70bac41148f7
+ */
+target Python;
+
+reactor WebCam {
+    output camera_frame
+    state stream
+    state video_capture_thread
+    state thread_should_be_running
+    physical action frame_action
+    preamble {=
+        import cv2
+        import threading
+        
+        def video_capture(self, frame_action, running):
+            # Read a frame
+            ret, frame = self.stream.read()
+            while running.is_set():
+                if ret is True:
+                    # If got a frame, schedule the physical action
+                    frame_action.schedule(0, frame)
+                ret, frame = self.stream.read()
+            return None
+    =}
+    reaction(startup) -> frame_action {=
+        self.stream = self.cv2.VideoCapture(0, self.cv2.CAP_ANY)
+        if (self.stream.isOpened() is not True):
+            sys.stderr.write("Error: Failed to capture from the webcam.\n")
+            exit(1)
+            
+        self.thread_should_be_running = self.threading.Event()
+        self.thread_should_be_running.set()
+                        
+        self.video_capture_thread = self.threading.Thread(target=self.video_capture, args=(frame_action, self.thread_should_be_running))
+        self.video_capture_thread.start()
+    =}
+    reaction(frame_action) -> camera_frame {=
+        camera_frame.set(frame_action.value)
+    =}
+    
+    reaction(shutdown) {=
+        self.thread_should_be_running.clear()
+        self.video_capture_thread.join()
+        self.stream.release()
+    =}
+}
+
+reactor DNN {
+    // Image input frame
+    input frame
+    
+    // Label outputs
+    output labels
+    // Label coordinates
+    output label_coordinates
+    // Send the model to anyone who's interested
+    output model
+    
+    state _model  # The DNN model
+    state _device # The device to use (e.g., cpu or cuda)
+    preamble {=
+        import torch
+        from torch import hub
+    =}
+    reaction(startup) -> model {=
+        # Load YOLOv5
+        self._model = self.torch.hub.load("ultralytics/yolov5", "yolov5s", pretrained=True)
+        # Find out if CUDA is supported      
+        self._device = "cuda" if self.torch.cuda.is_available() else 'cpu'
+        # Send the model to device
+        self._model.to(self._device)
+        # Send the model to whoever is interested (other reactors)
+        model.set(self._model)
+    =}
+    reaction(frame) -> labels, label_coordinates {=
+        # Convert the frame into a tuple
+        fr = [frame.value]
+        # Run the model on the frame
+        results = self._model(fr)
+        # Extract the labels
+        labels.set(results.xyxyn[0][:, -1].cpu().numpy())
+        # Extract the coordinates for the label
+        label_coordinates.set(results.xyxyn[0][:, :-1].cpu().numpy())
+    =}
+}
+
+reactor Plotter {
+    input frame
+    input labels
+    input label_coordinates
+    input model
+    state _model # Keep the model
+    
+    preamble {=
+        import cv2
+    =}
+    
+    reaction(model) {=
+        self._model = model.value
+        print("\n******* Press 'q' to exit *******\n")
+    =}
+    
+    reaction(labels) {=
+        # DNN output was on time
+    =} deadline(100 msec) {=
+        print(f"Received the DNN output late by about {(get_physical_time() - get_logical_time())/1000000}ms.")
+    =}
+    
+    reaction(frame, labels, label_coordinates) {=
+        if  (not frame.is_present or 
+             not labels.is_present or 
+             not label_coordinates.is_present):
+             sys.stderr.write("Error: Expected all inputs to be present at the same time.\n")
+             request_stop()
+        
+        n = len(labels.value)
+        x_shape, y_shape = frame.value.shape[1], frame.value.shape[0]
+        for i in range(n):
+            row = label_coordinates.value[i]
+            # If score is less than 0.2 we avoid making a prediction.
+            if row[4] < 0.2: 
+                continue
+            x1 = int(row[0]*x_shape)
+            y1 = int(row[1]*y_shape)
+            x2 = int(row[2]*x_shape)
+            y2 = int(row[3]*y_shape)
+            bgr = (0, 255, 0) # color of the box
+            classes = self._model.names # Get the name of label index
+            label_font = self.cv2.FONT_HERSHEY_SIMPLEX #Font for the label.
+            self.cv2.rectangle(frame.value, \
+                          (x1, y1), (x2, y2), \
+                           bgr, 2) #Plot the boxes
+            self.cv2.putText(frame.value,\
+                        classes[int(labels.value[i])], \
+                        (x1, y1), \
+                        label_font, 0.9, bgr, 2) #Put a label over box.
+                       
+        self.cv2.imshow("frame", frame.value)
+            # press 'Q' if you want to exit
+        if self.cv2.waitKey(1) & 0xFF == ord('q'):
+            request_stop()
+        
+    =}
+    
+    reaction(shutdown) {=
+        # Destroy the all windows now
+        self.cv2.destroyAllWindows()
+    =}
+}
+
+main reactor {
+    webcam = new WebCam()
+    dnn = new DNN()
+    plotter = new Plotter()
+    
+    (webcam.camera_frame)+ -> dnn.frame, plotter.frame
+    dnn.labels, dnn.label_coordinates -> plotter.labels, plotter.label_coordinates
+    
+    dnn.model -> plotter.model
+    
+}
