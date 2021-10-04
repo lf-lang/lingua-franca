@@ -64,18 +64,17 @@ public final class TimeValue implements Comparable<TimeValue> {
      * units are given.
      */
     public TimeValue(long time, TimeUnit unit) {
+        if (unit == TimeUnit.NONE && time != 0) {
+            throw new IllegalArgumentException("Non-zero time values must have a unit");
+        }
         this.time = time;
         this.unit = unit;
     }
 
     private static long makeNanosecs(long time, TimeUnit unit) {
         switch (unit) {
-        case NONE: {
-            if (time != 0) {
-                throw new IllegalArgumentException("Non-zero time values must have a unit.");
-            }
-            return time;
-        }
+        case NONE:
+            return time; // == 0, see constructor.
         case NSEC:
         case NSECS:
             return time;
@@ -146,34 +145,24 @@ public final class TimeValue implements Comparable<TimeValue> {
      * @return A new TimeValue (the current value will not be affected)
      */
     public TimeValue add(TimeValue b) {
-        // Prevent overflow
-        if (b.toNanoSeconds() >= MAX_VALUE.toNanoSeconds() - this.toNanoSeconds()) {
+        // Figure out the actual sum
+        final long sumOfNumbers;
+        try {
+            sumOfNumbers = Math.addExact(this.toNanoSeconds(), b.toNanoSeconds());
+        } catch (ArithmeticException overflow) {
             return MAX_VALUE;
         }
-        // Figure out the actual sum
-        var sumOfNumbers = this.toNanoSeconds() + b.toNanoSeconds();
-        // Compare this unit against b's unit and use the smallest value
-        boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
-        // Unit of the return
-        TimeUnit returnUnit = isThisUnitSmallerThanBUnit ? this.unit : b.unit;
-        // In the corner case where one of the TimeUnits is NONE
-        if (returnUnit == TimeUnit.NONE) {
-            // Check if both TimeUnits are NONE
-            if (b.unit == TimeUnit.NONE && this.unit == TimeUnit.NONE) {
-                // Since both time units are NONE, the sum should be 0
-                if (sumOfNumbers != 0) {
-                    // Double-check to ensure the logic is correct
-                    throw new IllegalArgumentException("Adding two TimeValues failed: Non-zero time values must have a unit.");
-                }
-                return new TimeValue(0, TimeUnit.NONE);
-            }
-            // Only one of the units is NONE
-            // Use the maximum of the units instead
-            returnUnit = isThisUnitSmallerThanBUnit ? b.unit : this.unit;
+
+        if (this.unit == TimeUnit.NONE || b.unit == TimeUnit.NONE) {
+            // A time value with no unit is necessarily zero. So
+            // if this is none, (this + b) == b, if b is none, (this+b) == this.
+            return b.unit == TimeUnit.NONE ? this : b;
         }
+        boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
+        TimeUnit smallestUnit = isThisUnitSmallerThanBUnit ? this.unit : b.unit;
         // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
-        var unitDivider = makeNanosecs(1, returnUnit);
-        return new TimeValue(sumOfNumbers / unitDivider, returnUnit);
+        var unitDivider = makeNanosecs(1, smallestUnit);
+        return new TimeValue(sumOfNumbers / unitDivider, smallestUnit);
     }
 
 }
