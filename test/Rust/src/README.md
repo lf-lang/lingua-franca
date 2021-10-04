@@ -81,29 +81,32 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] support fixed-sized arrays
   - [x] `TypeVarLengthList.lf`: support variable length lists (`Vec`)
   - [x] support array initializer syntax
-  - [ ] support array assignment syntax (fixme: doesn't exist in LF)
+  - [ ] support array assignment syntax (needs #544)
 - [ ] deadlines
   - ...
 - [ ] reactor inheritance
   - ...
 - [ ] multiports
 
-### Runtimes
+### Runtime
 
-- [ ] parallelize independent computation
-- [ ] options
+- [x] parallelize independent computation
+  - [x] feature-gated by Cargo (`--features parallel_runtime`)
+  - [ ] make usable as target property
+- [ ] runtime parameters
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option
   - [x] timeout option
 - [ ] error recovery
   - [ ] unwind safety around reaction invocation, possibly a panic handler
 
-### Other todos/ nice-to-have things
+### Rust-specific code generator features
 
 - [ ] benchmark generation
-- `CliFeature.lf`: CLI parameter parsing
-  - [x] for runtime options
-  - [x] for parameters of the main reactor
-- dependency handling
+- interfacing with Rust ecosystem
   - [x] `CargoDependency.lf`: generated project can depend on external crates, including local ones
   - [x] `ModuleDependency.lf`: one can add pure rust modules to the generated project without fuss
   - [x] `ModuleDependencyWithDirModule.lf`: one can also add a tree of modules
+- `CliFeature.lf`: CLI parameter parsing
+  - [x] for runtime options
+  - [x] for parameters of the main reactor
+    - [ ] not sure how to write a test for this
