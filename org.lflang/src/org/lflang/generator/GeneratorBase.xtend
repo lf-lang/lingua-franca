@@ -54,9 +54,9 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.MainConflictChecker
-import org.lflang.Mode
 import org.lflang.Target
 import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue

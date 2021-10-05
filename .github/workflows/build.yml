@@ -44,7 +44,7 @@ jobs:
           # gcov_prefix: 
           # optional flags: unittests 
           # optional name: codecov-umbrella 
-          # optional fail_ci_if_error: true 
+          fail_ci_if_error: false
           # optional (default = false) 
           verbose: true # optional (default = false)
         if: runner.os == 'Linux'

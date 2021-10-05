@@ -315,7 +315,7 @@ public abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-        context.setReporter(DefaultErrorReporter.DEFAULT);
+        context.setReporter(new DefaultErrorReporter());
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
