@@ -393,7 +393,7 @@ class CGenerator extends GeneratorBase {
      * Check if the host operating system is compatible
      * with the requested feature(s). 
      */
-    private def boolean isOSCompatible() {
+    protected def boolean isOSCompatible() {
         if (CCompiler.isHostWindows) { 
             if (isFederated) { 
                 errorReporter.reportError(

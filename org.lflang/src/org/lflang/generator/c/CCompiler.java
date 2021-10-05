@@ -244,7 +244,7 @@ public class CCompiler {
 
     
     /** Return true if the operating system is true */
-    static boolean isHostWindows() {
+    public static boolean isHostWindows() {
         String OS = System.getProperty("os.name").toLowerCase();
         if (OS.indexOf("win") >= 0) { return true; }
         return false;

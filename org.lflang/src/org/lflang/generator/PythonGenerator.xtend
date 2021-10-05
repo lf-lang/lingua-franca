@@ -60,6 +60,7 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetConfig
+import org.lflang.generator.c.CCompiler
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -1013,6 +1014,23 @@ class PythonGenerator extends CGenerator {
         if (targetConfig.tracing !== null) {
             pr('#include "core/trace.c"')            
         }
+    }
+    
+    /**
+     * Check if the host operating system is compatible
+     * with the requested feature(s). 
+     */
+    override isOSCompatible() {
+        if (CCompiler.isHostWindows) { 
+            if (isFederated) { 
+                errorReporter.reportError(
+                    "Windows is not supported for Python target federated programs. " + "Exiting code generation."
+                )
+                // Return to avoid compiler errors
+                return false
+            }
+        }
+        return true;
     }
 
     /** Generate C code from the Lingua Franca model contained by the
