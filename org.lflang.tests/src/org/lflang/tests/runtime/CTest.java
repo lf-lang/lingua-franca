@@ -87,12 +87,21 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runWithFourThreads() {
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping four threads tests on Windows.");
+            return; 
+        }
         super.runWithFourThreads();
     }
     
     @Test
     @Override
     public void runSerializationTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping serialization tests on Windows.");
+            return; 
+        }
         super.runSerializationTests();
     }
 
@@ -100,6 +109,11 @@ public class CTest extends ThreadedBase {
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping federated tests on Windows.");
+            return; 
+        }
         super.runAsFederated();
     }
 
@@ -112,6 +126,11 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runFederatedTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping federated tests on Windows.");
+            return; 
+        }
         super.runFederatedTests();
     }
     

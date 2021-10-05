@@ -170,22 +170,12 @@ public abstract class TestBase {
     
     @Test
     public void runSerializationTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printTestHeader("Warning: Skipping serialization tests on Windows.");
-            return; 
-        }
         printTestHeader("Description: Run serialization tests.");
         runTestsAndPrintResults(target, TestCategory.SERIALIZATION::equals, null, false);
     }
 
     @Test
     public void runAsFederated() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printTestHeader("Warning: Skipping federated tests on Windows.");
-            return; 
-        }
         printTestHeader(RUN_AS_FEDERATED_DESC);
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
         categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
@@ -211,17 +201,12 @@ public abstract class TestBase {
 
     @Test
     public void runFederatedTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) {
-            printTestHeader("Warning: Skipping federated tests on Windows.");
-            return; 
-        }
         printTestHeader("Description: Run federated tests.");
         runTestsAndPrintResults(target, TestCategory.FEDERATED::equals, null, false);
     }
 
 
-    /** Returns true if the operating system is true */
+    /** Returns true if the operating system is Windows. */
     protected boolean isWindows() {
         String OS = System.getProperty("os.name").toLowerCase();
         if (OS.indexOf("win") >= 0) { return true; }
