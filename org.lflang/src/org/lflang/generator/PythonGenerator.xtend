@@ -1017,14 +1017,14 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Check if the host operating system is compatible
-     * with the requested feature(s). 
+     * Return true if the host operating system is compatible and
+     * otherwise report an error and return false.
      */
     override isOSCompatible() {
         if (CCompiler.isHostWindows) { 
             if (isFederated) { 
                 errorReporter.reportError(
-                    "Windows is not supported for Python target federated programs. " + "Exiting code generation."
+                    "Windows is not supported for Python target federated programs. Exiting code generation."
                 )
                 // Return to avoid compiler errors
                 return false

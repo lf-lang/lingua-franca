@@ -397,7 +397,7 @@ class CGenerator extends GeneratorBase {
         if (CCompiler.isHostWindows) { 
             if (isFederated) { 
                 errorReporter.reportError(
-                    "Windows is not supported for C target federated programs. " + "Exiting code generation."
+                    "Windows is not supported for C target federated programs. Exiting code generation."
                 )
                 // Return to avoid compiler errors
                 return false
