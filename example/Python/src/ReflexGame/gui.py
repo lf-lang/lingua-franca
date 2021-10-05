@@ -3,6 +3,7 @@ from multiprocessing import connection
 import threading
 import sys
 import os
+import signal
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
 try:
@@ -16,18 +17,15 @@ def start_gui():
     user_input_pout, user_input_pin = connection.Pipe(duplex=False)
     update_graphics_pout, update_graphics_pin = connection.Pipe(duplex=False)
     multiprocessing.set_start_method("spawn")
-    sema = multiprocessing.Semaphore(0)
-    p = multiprocessing.Process(target=gui, args=(user_input_pin, update_graphics_pout, sema))
+    p = multiprocessing.Process(target=gui, args=(user_input_pin, update_graphics_pout))
     p.start()
-    sema.acquire()
     return user_input_pout, update_graphics_pin, p
 
 
-def gui(user_input_pin, update_graphics_pout, sema):
+def gui(user_input_pin, update_graphics_pout):
     pygame.init()
     pygame.font.init()
     g = Gui(user_input=user_input_pin, update_graphics=update_graphics_pout)
-    sema.release()
     g.start()
 
 
@@ -45,20 +43,26 @@ class Gui:
     def start(self):
         self.screen.fill(self.black)
         pygame.display.flip()
+        self.listener.daemon = True
         self.listener.start()
-
-        while 1:
-            event = pygame.event.wait()
-            if event.type == pygame.QUIT:
-                sys.exit(0)
-            elif event.type == pygame.KEYDOWN:
-                self.user_input.send(event.unicode)
+        try:
+            while 1:
+                event = pygame.event.wait()
+                if event.type == pygame.QUIT:
+                    self.user_input.send(None)
+                    sys.exit(0)
+                elif event.type == pygame.KEYDOWN:
+                    self.user_input.send(event.unicode)
+        except KeyboardInterrupt:
+            pygame.quit()
+            sys.exit(0)
 
     def listen_for_update_graphic(self, update_graphics_pout):
         while 1:
             try:
                 msg = update_graphics_pout.recv()
             except EOFError:
+                pygame.quit()
                 return
             self.screen.fill(self.black)
             text_surface = self.font.render(msg, False, (255, 255, 255))
