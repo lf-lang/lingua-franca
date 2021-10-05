@@ -7,7 +7,7 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1  // This makes sure pthreads is included and gives access to the mutex.
+    threads: 1  // This makes sure threads is included and gives access to the mutex.
 };
 
 /**
@@ -66,7 +66,6 @@ reactor MQTTSubscriber (
     preamble {=
         #include "MQTTClient.h"
         #include "core/federated/net_util.h"
-        #include <pthread.h>
         
         #define QOS         2
         #define TIMEOUT     10000L
@@ -103,7 +102,7 @@ reactor MQTTSubscriber (
             // NOTE: Since schedule_copy also acquires this lock, we assume here that the
             // pthreads library correctly implements recursive mutex locks to unlock all
             // locks held by the current thread when waiting for signals.
-            pthread_mutex_lock(&mutex);
+            lf_mutex_lock(&mutex);
             
             instant_t timestamp = extract_int64((unsigned char*)message->payload + message->payloadlen - sizeof(instant_t));
             interval_t delay = timestamp - get_logical_time();
@@ -127,7 +126,7 @@ reactor MQTTSubscriber (
             // can measure the latency.
             schedule_copy(incoming_message, delay, (char*)message->payload, message->payloadlen);
             
-            pthread_mutex_unlock(&mutex);
+            lf_mutex_unlock(&mutex);
 
             // MQTTClient_freeMessage() also frees the memory allocated to the payload,
             // which is why we have to copy the message here.

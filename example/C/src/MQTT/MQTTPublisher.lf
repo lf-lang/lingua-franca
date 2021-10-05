@@ -6,7 +6,7 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1  // This makes sure pthreads is included and gives access to the mutex.
+    threads: 1  // This makes sure threads is included and gives access to the mutex.
 };
 
 /**
@@ -44,7 +44,6 @@ reactor MQTTPublisher (
     preamble {=
         #include "MQTTClient.h"
         #include "core/federated/net_util.h"
-        #include <pthread.h>
         
         // Timeout for completion of message sending in milliseconds.
         #define TIMEOUT     10000L
