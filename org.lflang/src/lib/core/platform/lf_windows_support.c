@@ -41,7 +41,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <time.h>
 
 /**
- * Indicates wether or not the underlying hardware
+ * Indicate whether or not the underlying hardware
  * supports Windows' high-resolution counter. It should
  * always be supported for Windows Xp and later.
  */
