@@ -77,7 +77,7 @@ public interface TargetTypes {
     }
 
 
-    default String getMissingExpr() {
+    default String getMissingExpr(InferredType type) {
         throw new UnsupportedOperationException();
     }
 

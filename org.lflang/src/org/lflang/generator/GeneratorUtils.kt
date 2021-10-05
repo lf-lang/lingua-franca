@@ -35,8 +35,7 @@ fun TargetTypes.getTargetInitializer(init: List<Value>, type: Type? = null, init
     return when {
         inferredType.isFixedSizeList    -> getFixedSizeListInitExpression(targetValues, initWithBraces)
         inferredType.isVariableSizeList -> getVariableSizeListInitExpression(targetValues, initWithBraces)
-
-        else                            -> this.missingExpr
+        else                            -> this.getMissingExpr(inferredType)
     }
 }
 

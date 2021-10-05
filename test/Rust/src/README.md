@@ -69,6 +69,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
 - [x] state variables
   - [x] `TimeState.lf`: support time type
+  - [x] `StateDefaultValue.lf`: if initializer is missing, `Default::default()` is used
   - [x] are accessible within reactions
   - [x] are *not* accessible within initializers
   - [x] are initialized to their proper value

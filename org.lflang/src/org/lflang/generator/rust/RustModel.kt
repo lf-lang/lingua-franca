@@ -200,11 +200,8 @@ data class StateVarInfo(
     val lfName: String,
     /** Rust static type of the struct field. Must be `Sized`. */
     val type: TargetCode,
-    /**
-     * The field initializer, a Rust expression. If null,
-     * will default to `Default::default()`.
-     */
-    val init: TargetCode?
+    /** The field initializer, a Rust expression. */
+    val init: TargetCode
 )
 
 enum class DepKind { Triggers, Uses, Effects }

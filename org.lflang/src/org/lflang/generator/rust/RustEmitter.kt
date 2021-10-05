@@ -129,7 +129,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |
                 |        let _impl = {
                 |            // declare them all here so that they are visible to the initializers of state vars declared later
-${"             |            "..reactor.stateVars.joinToString("\n") { "let "+ it.lfName + " = " + (it.init ?: "Default::default()") + ";" }}
+${"             |            "..reactor.stateVars.joinToString("\n") { "let ${it.lfName} = ${it.init};" }}
                 |
                 |            $structName {
                 |                __phantom: std::marker::PhantomData,
@@ -470,7 +470,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.es
         documentation?.lines()?.map { "///$it" }?.forEach { appendLine(it) }
         append("#[clap(long, help_heading=Some(\"MAIN REACTOR PARAMETERS\"), ")
 
-        if (isList)
+        if (isList) // todo this should be supported but test it
             throw UnsupportedGeneratorFeatureException("main parameters with list types")
 
         if (defaultValueAsTimeValue != null)
