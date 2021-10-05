@@ -394,26 +394,28 @@ class CGenerator extends GeneratorBase {
      * with the requested feature(s). 
      */
     private def boolean isOSCompatible() {
-        if (CCompiler.isHostWindows) {
-            // FIXME: These warnings should most likely be an error
-            // but it is left as a warning because otherwise
-            // some  examples and tests will fail to compile
-            // on GitHub Actions tests. A selective test framework
-            // can fix that by skipping those tests altogether. 
+        if (CCompiler.isHostWindows) { 
             if (isFederated) { 
-                errorReporter.reportWarning(
+                errorReporter.reportError(
                     "Windows is not supported for C target federated programs. " + "Exiting code generation."
                 )
                 // Return to avoid compiler errors
                 return false
             }
             if (CCppMode) {
-                errorReporter.reportWarning(
+                errorReporter.reportError(
                     "Windows is not supported by the CCp target. " + "Exiting code generation."
                 )
                 // FIXME: The incompatibility between our C runtime code and the
                 //  Visual Studio compiler is extensive. 
                 return false;             
+            }
+            if (targetConfig.useCmake == false) {
+                errorReporter.reportError(
+                    "Only CMake is supported as the build system on Windows. "+
+                    "Use `cmake: true` in the target properties."
+                )
+                return false;
             }
         }
         return true;
