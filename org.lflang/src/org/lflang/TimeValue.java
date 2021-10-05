@@ -25,8 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.lflang.lf.TimeUnit;
 
 /**
@@ -115,7 +113,10 @@ public final class TimeValue implements Comparable<TimeValue> {
     }
 
     @Override
-    public int compareTo(@NotNull TimeValue o) {
+    public int compareTo(TimeValue o) {
+        if (o == null) { 
+            throw new NullPointerException("Can't compare against null timevalue");
+        }
         return Long.compare(this.toNanoSeconds(), o.toNanoSeconds());
     }
 
