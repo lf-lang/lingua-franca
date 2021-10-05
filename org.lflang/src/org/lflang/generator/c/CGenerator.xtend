@@ -4100,8 +4100,8 @@ class CGenerator extends GeneratorBase {
                             pr(initializeTriggerObjectsEnd, '''
                                 «nameOfSelfStruct»->_lf_«effect.name»_width = «effect.getMultiportInstance().width»;
                                 // Allocate memory to store output of reaction.
-                                «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
-                                    * «nameOfSelfStruct»->_lf_«effect.name»_width); 
+                                «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«effect.name»_width,
+                                    sizeof(«portStructType»)); 
                                 «nameOfSelfStruct»->_lf_«effect.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
                                                                     * «nameOfSelfStruct»->_lf_«effect.name»_width);
                                 // Assign each output port pointer to be used in reactions to facilitate user access to output ports
@@ -4128,7 +4128,7 @@ class CGenerator extends GeneratorBase {
                                 «nameOfSelfStruct»->_lf_«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
                                     * «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width);
                                 for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width; i++) {
-                                    «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                                    «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
                                 }
                             ''')
                         }
@@ -4169,7 +4169,7 @@ class CGenerator extends GeneratorBase {
                 «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».triggers 
                         = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
                 «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».triggered_sizes 
-                        = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
+                        = (int*)calloc(«nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs, sizeof(int));
             }
         ''')
         pr(initializeTriggerObjectsEnd, '''
@@ -4292,7 +4292,7 @@ class CGenerator extends GeneratorBase {
         pr(builder, '''
             «nameOfSelfStruct»->_lf_«output.name»_width = «multiportWidthSpecInC(output, null, instance)»;
             // Allocate memory for multiport output.
-            «nameOfSelfStruct»->_lf_«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->_lf_«output.name»_width); 
+            «nameOfSelfStruct»->_lf_«output.name» = («variableStructType(output, reactor)»*)calloc(«nameOfSelfStruct»->_lf_«output.name»_width, sizeof(«variableStructType(output, reactor)»)); 
         ''')
     }
     
