@@ -87,10 +87,6 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runWithFourThreads() {
-        if(isWindows()) {
-            printTestHeader("Warning: Skipping four threads tests on Windows.");
-            return; 
-        }
         super.runWithFourThreads();
     }
     
