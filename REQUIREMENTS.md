@@ -34,7 +34,7 @@ However, to compile the generated code and to create a binary (which is done by 
 ### Dependencies
 
 **C:**
-  - A C compiler (e.g., gcc >= 7, clang, MSVC >= 14.20) 
+  - A C compiler (e.g., gcc >= 7, clang, and MSVC >= 14.20) 
   - CMAKE >= 3.13 (follow https://cmake.org/install/ for installation instructions)
   - **Windows Only:** Visual Studio >= 2019 and Windows SDK >= 10.0.18362.0
   - **Programs using Protocol Buffers:** protoc-c 1.3.3 - see https://github.com/icyphy/lingua-franca/wiki/Protobufs.
@@ -45,7 +45,7 @@ However, to compile the generated code and to create a binary (which is done by 
  - **Windows Only:** Visual Studio >= 2019 and Windows SDK >= 10.0.18362.0
 
 **Python:**
- - A C compiler (e.g., gcc >= 7, clang, MSVC >= 14.20)
+ - A C compiler (e.g., gcc >= 7, clang, and MSVC >= 14.20)
  - Python >= 3.6
  - pip >= 20.0.2
  - setuptools >= 45.2.0-1
