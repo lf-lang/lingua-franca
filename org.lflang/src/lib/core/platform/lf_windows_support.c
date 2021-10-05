@@ -302,8 +302,9 @@ int lf_nanosleep(instant_t requested_time) {
     HANDLE timer;	/* Timer handle */
     LARGE_INTEGER li;	/* Time defintion */
     /* Create timer */
-    if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+    if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL))) {
         return FALSE;
+    }
     /**
     * Set timer properties.
     * A negative number indicates relative time to wait.
