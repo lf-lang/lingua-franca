@@ -7,6 +7,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.lflang.TargetConfig.DockerOptions;
+import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;

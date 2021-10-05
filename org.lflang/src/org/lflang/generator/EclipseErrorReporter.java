@@ -37,7 +37,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 
 /**
  * An error reporter that prints messages to the command line output and also

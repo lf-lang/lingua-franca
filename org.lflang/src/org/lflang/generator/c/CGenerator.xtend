@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
-import java.math.BigInteger
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -88,6 +87,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
+import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetConfig
@@ -4294,8 +4294,9 @@ class CGenerator extends GeneratorBase {
                 reactionInstance.definition
             )) {
                 val reactionStructName = '''«selfStructName(reactionInstance.parent)»->___reaction_«reactionCount»'''
-                val reactionIndex = "0x" + (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).or(
-                    new BigInteger(reactionInstance.level.toString)).toString(16) + "LL"
+                // xtend doesn't support bitwise operators...
+                val indexValue = XtendUtil.longOr(reactionInstance.deadline.toNanoSeconds << 16, reactionInstance.level)
+                val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
                 pr('''
                     «reactionStructName».chain_id = «reactionInstance.chainID.toString»;
                     // index is the OR of level «reactionInstance.level» and 
