@@ -397,14 +397,16 @@ class CGenerator extends GeneratorBase {
         if (CCompiler.isHostWindows) { 
             if (isFederated) { 
                 errorReporter.reportError(
-                    "Windows is not supported for C target federated programs. Exiting code generation."
+                    "Federated LF programs with a C target are currently not supported on Windows. " + 
+                    "Exiting code generation."
                 )
                 // Return to avoid compiler errors
                 return false
             }
             if (CCppMode) {
                 errorReporter.reportError(
-                    "Windows is not supported by the CCpp target. Exiting code generation."
+                    "LF programs with a CCpp target are currently not supported on Windows. " + 
+                    "Exiting code generation."
                 )
                 // FIXME: The incompatibility between our C runtime code and the
                 //  Visual Studio compiler is extensive. 
@@ -413,7 +415,7 @@ class CGenerator extends GeneratorBase {
             if (targetConfig.useCmake == false) {
                 errorReporter.reportError(
                     "Only CMake is supported as the build system on Windows. "+
-                    "Use `cmake: true` in the target properties."
+                    "Use `cmake: true` in the target properties. Exiting code generation."
                 )
                 return false;
             }
