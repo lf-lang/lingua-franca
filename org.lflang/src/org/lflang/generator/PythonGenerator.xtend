@@ -1024,7 +1024,7 @@ class PythonGenerator extends CGenerator {
         if (CCompiler.isHostWindows) { 
             if (isFederated) { 
                 errorReporter.reportError(
-                    "Windows is not supported for Python target federated programs. Exiting code generation."
+                    "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
                 )
                 // Return to avoid compiler errors
                 return false
