@@ -63,12 +63,22 @@ public class PythonTest extends TestBase {
     @Test
     @Override
     public void runSerializationTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping serialization tests on Windows.");
+            return; 
+        }
         super.runSerializationTests();
     }
 
     @Test
     @Disabled("TODO")
     @Override public void runAsFederated() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping federated tests on Windows.");
+            return; 
+        }
         super.runAsFederated();
     }
 
@@ -80,6 +90,11 @@ public class PythonTest extends TestBase {
 
     @Test
     @Override public void runFederatedTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping federated tests on Windows.");
+            return; 
+        }
         super.runFederatedTests();
     }
 }
