@@ -13,7 +13,6 @@ preamble {=
 
 reactor RandomSource(min_time(2 sec), max_time(8 sec)) {
     input another;
-    input first;
     output out;
     logical action prompt(min_time);
     state count(0);
@@ -26,10 +25,6 @@ reactor RandomSource(min_time(2 sec), max_time(8 sec)) {
         out.set(self.count)
     =}
 
-    reaction(first) -> prompt {=
-        prompt.schedule(additional_time(0, self.max_time - self.min_time))        
-    =}
-    
     reaction(another) -> prompt {=
         prompt.schedule(additional_time(0, self.max_time - self.min_time))
     =}
@@ -40,12 +35,11 @@ reactor GetUserInput {
         import threading
         def listen_for_input(self, user_response):
             while 1:
-                try:
-                    c = self.user_input.recv()
-                    user_response.schedule(0, c)
-                except EOFError:
+                c = self.user_input.recv()
+                if c == None:
                     request_stop()
                     return
+                user_response.schedule(0, c)
     =}
     
     physical action user_response;
@@ -61,20 +55,17 @@ reactor GetUserInput {
     =}
     
     reaction(user_response) -> user_input {=
-        if user_response.value == None:
-            request_stop()
-            return
         user_input.set(user_response.value)
     =}
 }
 
 
-reactor UpdateGraphic {
+reactor UpdateGraphics {
     input prompt;
     input update_graphics_pipe_init;
     input user_input;
     output another;
-    state update_graphics({=None=});
+    state update_graphics({=None=}); # multiprocessing.connection.PipeConnection
     state first({=True=})
     state count(0);
     state total_time_in_ms(0);
@@ -129,22 +120,18 @@ reactor StartGui {
     reaction(t) {=
         pass
     =}
-    
-    reaction(shutdown) {=
-        self.gui_process.terminate()
-    =}
 }
 
 
 main reactor {
-    r = new RandomSource()
-    g = new GetUserInput()
-    u = new UpdateGraphic()
-    r.out -> g.prompt
-    r.out -> u.prompt
-    g.user_input -> u.user_input
-    u.another -> r.another
+    random_source = new RandomSource()
+    get_user_input = new GetUserInput()
+    update_graphics = new UpdateGraphics()
+    random_source.out -> get_user_input.prompt
+    random_source.out -> update_graphics.prompt
+    get_user_input.user_input -> update_graphics.user_input
+    update_graphics.another -> random_source.another
     gui = new StartGui()
-    gui.user_input_pipe -> g.user_input_pipe_init; 
-    gui.update_graphics_pipe -> u.update_graphics_pipe_init;  
+    gui.user_input_pipe -> get_user_input.user_input_pipe_init; 
+    gui.update_graphics_pipe -> update_graphics.update_graphics_pipe_init;  
 }
