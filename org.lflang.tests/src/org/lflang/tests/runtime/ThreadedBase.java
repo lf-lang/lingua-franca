@@ -13,16 +13,27 @@ public abstract class ThreadedBase extends TestBase {
     @Test
     public void runWithFourThreads() {
         printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
-        Predicate<TestCategory> categories = (it) -> {
-            if (it != TestCategory.CONCURRENT && 
-                    it != TestCategory.FEDERATED &&
-                    it != TestCategory.EXAMPLE) {
+        this.runTestsAndPrintResults(this.target, defaultExcludedCategories(), it -> {
+            it.getContext().getArgs().setProperty("threads", "4");
+            return true;
+        }, true);
+    }
+    
+    /**
+     * Give a handy lambda function that, given a test category,
+     * will return true if it is not one of the default excluded 
+     * categories.
+     */
+    public final Predicate<TestCategory> defaultExcludedCategories() {
+        return (category) -> {
+            if (category != TestCategory.CONCURRENT && category != TestCategory.FEDERATED &&
+                    category != TestCategory.EXAMPLE) {
                 // Check if running on Windows
                 if (isWindows()) {
-                    // SERIALIZATION and TARGET tests are currently not 
+                    // SERIALIZATION and TARGET tests are currently not
                     // supported on Windows.
-                    if (it != TestCategory.SERIALIZATION &&
-                            it != TestCategory.TARGET) {
+                    if (category != TestCategory.SERIALIZATION &&
+                            category != TestCategory.TARGET) {
                         return true;
                     }
                     return false;
@@ -31,9 +42,5 @@ public abstract class ThreadedBase extends TestBase {
             }
             return false;
         };
-        this.runTestsAndPrintResults(this.target, categories, it -> {
-            it.getContext().getArgs().setProperty("threads", "4");
-            return true;
-        }, true);
     }
 }
