@@ -1,6 +1,6 @@
 target Python {
     keepalive: true,
-    files: [gui.py, "intro_ball.gif"]
+    files: [gui.py]
 }
 
 preamble {=
@@ -35,8 +35,9 @@ reactor GetUserInput {
         import threading
         def listen_for_input(self, user_response):
             while 1:
-                c = self.user_input.recv()
-                if c == None:
+                try:
+                    c = self.user_input.recv()
+                except EOFError:
                     request_stop()
                     return
                 user_response.schedule(0, c)
