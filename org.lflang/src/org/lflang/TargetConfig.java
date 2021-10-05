@@ -207,7 +207,7 @@ public class TargetConfig {
     public static class ClockSyncOptions {
 
         /**
-         * FIXME
+         * Dampen the adjustments to the clock synchronization offset by this rate.
          * The default is 10.
          */
         public int attenuation = 10;
@@ -220,19 +220,22 @@ public class TargetConfig {
         public boolean collectStats = true;
 
         /**
-         * FIXME
+         * Enable clock synchronization for federates on the same machine.
+         * Default is false.
          */
         public boolean localFederatesOn = false;
 
 
         /**
-         * FIXME
+         * Interval at which clock synchronization is initiated by the RTI (will be passed
+         * to it as an argument on the command-line).
          * The default is 5 milliseconds.
          */
         public TimeValue period = new TimeValue(5, TimeUnit.MSEC);
 
         /**
-         * FIXME
+         * Indicate the number of exchanges to be had per each clock synchronization round.
+         * See /lib/core/federated/clock-sync.h for more details.
          * The default is 10.
          */
         public int trials = 10;
