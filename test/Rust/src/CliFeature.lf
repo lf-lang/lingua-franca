@@ -2,7 +2,7 @@ target Rust {
     cargo-features: ["cli"]
 };
 
-main reactor CliFeature(size: u32(4)){
+main reactor CliFeature(size: u32(4), t: time(4 sec)){
     reaction(startup) {=
         println!("{}", params.size);
     =}
