@@ -25,11 +25,8 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
-import org.lflang.generator.LocationInfo
-import org.lflang.generator.PrependOperator
+import org.lflang.generator.*
 import org.lflang.generator.PrependOperator.rangeTo
-import org.lflang.generator.TargetCode
-import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -472,10 +469,20 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.es
     private fun CtorParamInfo.toCliParam() = buildString {
         documentation?.lines()?.map { "///$it" }?.forEach { appendLine(it) }
         append("#[clap(long, help_heading=Some(\"MAIN REACTOR PARAMETERS\"), ")
-        if (defaultValue != null)
+
+        if (isList)
+            throw UnsupportedGeneratorFeatureException("main parameters with list types")
+
+        if (defaultValueAsTimeValue != null)
+            append("default_value=\"").append(defaultValueAsTimeValue).append("\", ")
+        else if (defaultValue != null)
             append("default_value=\"").append(defaultValue.removeSurrounding("\"")).append("\", ")
         else
             append("required=true, ")
+
+        if (isTime) {
+            append("parse(try_from_str = $rsRuntime::try_parse_duration), ")
+        }
 
         appendLine(")]")
         append(cliParamName).append(": ").append(type)
