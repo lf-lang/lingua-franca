@@ -1,0 +1,150 @@
+target Python {
+    keepalive: true,
+    files: [gui.py, "intro_ball.gif"]
+}
+
+preamble {=
+    import multiprocessing
+    import threading
+    import random
+    def additional_time(min_time, max_time):
+        return random.randint(min_time, max_time)
+=}
+
+reactor RandomSource(min_time(2 sec), max_time(8 sec)) {
+    input another;
+    input first;
+    output out;
+    logical action prompt(min_time);
+    state count(0);
+    reaction(startup) {=
+        random.seed()
+    =}
+
+    reaction(prompt) -> out {=
+        self.count += 1
+        out.set(self.count)
+    =}
+
+    reaction(first) -> prompt {=
+        prompt.schedule(additional_time(0, self.max_time - self.min_time))        
+    =}
+    
+    reaction(another) -> prompt {=
+        prompt.schedule(additional_time(0, self.max_time - self.min_time))
+    =}
+}
+
+reactor GetUserInput {
+    preamble {=
+        import threading
+        def listen_for_input(self, user_response):
+            while 1:
+                try:
+                    c = self.user_input.recv()
+                    user_response.schedule(0, c)
+                except EOFError:
+                    request_stop()
+                    return
+    =}
+    
+    physical action user_response;
+    state user_input({=None=}); # multiprocessing.connection.PipeConnection
+    input user_input_pipe_init;
+    input prompt;
+    output user_input;
+    
+    reaction(user_input_pipe_init) -> user_response {=
+        self.user_input = user_input_pipe_init.value
+        t = threading.Thread(target=self.listen_for_input, args=(user_response, ))
+        t.start()
+    =}
+    
+    reaction(user_response) -> user_input {=
+        if user_response.value == None:
+            request_stop()
+            return
+        user_input.set(user_response.value)
+    =}
+}
+
+
+reactor UpdateGraphic {
+    input prompt;
+    input update_graphics_pipe_init;
+    input user_input;
+    output another;
+    state update_graphics({=None=});
+    state first({=True=})
+    state count(0);
+    state total_time_in_ms(0);
+    state prompt_time(0);
+    
+    reaction(update_graphics_pipe_init) {=
+        self.update_graphics = update_graphics_pipe_init.value
+        self.update_graphics.send("Press any key to begin")
+    =}
+    
+    reaction(prompt) {=
+        self.update_graphics.send("{}. Press any key!".format(prompt.value))
+        self.prompt_time = get_physical_time()
+    =}
+    
+    reaction(user_input) -> another {=
+        if self.first:
+            self.first = False
+            self.update_graphics.send("")
+            another.set(42)
+        elif self.prompt_time == 0:
+            self.update_graphics.send("YOU CHEATED!")
+            request_stop()
+        else:
+            time_in_ms = (get_logical_time() - self.prompt_time) // 1000000
+            self.update_graphics.send("Response time in milliseconds: {}".format(time_in_ms))
+            self.count += 1
+            self.total_time_in_ms += time_in_ms
+            self.prompt_time = 0
+            another.set(42)
+    =}
+}
+
+
+reactor StartGui {
+    preamble {=
+        import gui
+    =}
+        
+    timer t(0, 1 msec);
+    state gui_process({=None=})
+    output user_input_pipe;
+    output update_graphics_pipe;
+    
+    reaction(startup) -> user_input_pipe, update_graphics_pipe {=
+        user_input_pout, update_graphics_pin, p = self.gui.start_gui()
+        self.gui_process = p
+        user_input_pipe.set(user_input_pout)
+        update_graphics_pipe.set(update_graphics_pin)
+    =}
+    
+    reaction(t) {=
+        pass
+    =}
+    
+    reaction(shutdown) {=
+        self.gui_process.terminate()
+    =}
+}
+
+
+main reactor {
+    r = new RandomSource()
+    g = new GetUserInput()
+    u = new UpdateGraphic()
+    r.out -> g.prompt
+    r.out -> u.prompt
+    g.user_input -> u.user_input
+    u.another -> r.another
+    gui = new StartGui()
+    gui.user_input_pipe -> g.user_input_pipe_init; 
+    gui.update_graphics_pipe -> u.update_graphics_pipe_init;  
+}
