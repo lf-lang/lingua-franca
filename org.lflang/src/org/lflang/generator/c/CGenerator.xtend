@@ -390,8 +390,8 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Check if the host operating system is compatible
-     * with the requested feature(s). 
+     * Return true if the host operating system is compatible and
+     * otherwise report an error and return false.
      */
     protected def boolean isOSCompatible() {
         if (CCompiler.isHostWindows) { 
@@ -404,7 +404,7 @@ class CGenerator extends GeneratorBase {
             }
             if (CCppMode) {
                 errorReporter.reportError(
-                    "Windows is not supported by the CCp target. " + "Exiting code generation."
+                    "Windows is not supported by the CCpp target. Exiting code generation."
                 )
                 // FIXME: The incompatibility between our C runtime code and the
                 //  Visual Studio compiler is extensive. 
