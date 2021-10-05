@@ -49,7 +49,6 @@ class Gui:
             while 1:
                 event = pygame.event.wait()
                 if event.type == pygame.QUIT:
-                    self.user_input.send(None)
                     sys.exit(0)
                 elif event.type == pygame.KEYDOWN:
                     self.user_input.send(event.unicode)
