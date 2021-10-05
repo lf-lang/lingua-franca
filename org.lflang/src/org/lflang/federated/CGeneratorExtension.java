@@ -227,8 +227,7 @@ public class CGeneratorExtension {
      * @param generator
      * @return
      */
-    public static String getNetworkDelayLiteral(Delay delay,
-            CGenerator generator) {
+    public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
         String additionalDelayString = "NEVER";
         if (delay != null) {
             if (delay.getParameter() != null) {
@@ -236,19 +235,16 @@ public class CGeneratorExtension {
                 // And that value has to be a Time.
                 Value value = delay.getParameter().getInit().get(0);
                 if (value.getTime() != null) {
-                    additionalDelayString = (new TimeValue(value.getTime().getInterval(),
-                            value.getTime().getUnit()))
-                            .toNanoSeconds().toString();
+                    additionalDelayString = Long.toString(ASTUtils.getTimeValue(value).toNanoSeconds());
                 } else if (value.getLiteral() != null) {
                     // If no units are given, e.g. "0", then use the literal.
                     additionalDelayString = value.getLiteral();
                 }
             } else {
-                additionalDelayString = (new TimeValue(delay.getInterval(), 
-                        delay.getUnit()))
-                        .toNanoSeconds().toString();
+                additionalDelayString = Long.toString(new TimeValue(delay.getInterval(), delay.getUnit()).toNanoSeconds());
             }
         }
         return additionalDelayString;
     }
+
 }

@@ -14,10 +14,10 @@ run-lf-tests TS
 
 You can also selectively run just some of the tests. For example, to run the system tests for an individual target language, do this:
 ```
-./gradlew test --tests org.icyphy.tests.runtime.CTest.*
-./gradlew test --tests org.icyphy.tests.runtime.CppTest.*
-./gradlew test --tests org.icyphy.tests.runtime.PythonTest.*
-./gradlew test --tests org.icyphy.tests.runtime.TypeScriptTest.*
+./gradlew test --tests org.lflang.tests.runtime.CTest.*
+./gradlew test --tests org.lflang.tests.runtime.CppTest.*
+./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
+./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
 ```
 
 To run a single test case, use the `runSingleTest` gradle task along with the path to the test source file:
@@ -34,8 +34,8 @@ It is also possible to run a subset of the tests. For example, the C tests are o
 
 To invoke only the tests in the `concurrent` category, for example, do this:
 ```
-cd $LF/xtext
-./gradlew test --tests org.icyphy.tests.runtime.CTest.runConcurrentTests
+cd $LF
+./gradlew test --tests org.lflang.tests.runtime.CTest.runConcurrentTests
 ```
 
 
