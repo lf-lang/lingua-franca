@@ -32,11 +32,17 @@ import java.util.LinkedList
 import java.util.Set
 import org.lflang.ErrorReporter
 import org.lflang.TimeValue
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.PortInstance
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Mode
 import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
@@ -46,11 +52,6 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ActionInstance
-import org.lflang.generator.PortInstance
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -253,7 +254,7 @@ class FederateInstance {
      * @return True if this federate contains the action in the specified reactor
      */
     def containsAction(Action action) {
-        val reactor  = action.eContainer as Reactor
+        val reactor  = ((action.eContainer instanceof Mode) ? action.eContainer.eContainer : action.eContainer) as Reactor
         if (!reactor.federated || isSingleton) return true
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
@@ -341,7 +342,7 @@ class FederateInstance {
      * @param reaction The reaction.
      */
     def containsReaction(Reaction reaction) {
-        val reactor  = reaction.eContainer as Reactor
+        val reactor  = ((reaction.eContainer instanceof Mode) ? reaction.eContainer.eContainer : reaction.eContainer) as Reactor
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
         
