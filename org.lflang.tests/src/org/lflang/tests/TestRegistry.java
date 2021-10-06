@@ -351,7 +351,7 @@ public class TestRegistry {
                         if (exists(reactors, it -> it.isMain() || it.isFederated())) {
 
                             Path packageRoot = TestRegistry.LF_EXAMPLE_PATH.resolve(target.getDirectoryName());
-                            LFTest test = new LFTest(target, path, packageRoot);q
+                            LFTest test = new LFTest(target, path, packageRoot);
                             if (this.inTestDir
                                 || path.getFileName().toString().toLowerCase().contains("test")) {
                                 // File is labeled as test.
