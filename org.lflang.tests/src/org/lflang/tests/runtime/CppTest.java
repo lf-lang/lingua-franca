@@ -45,6 +45,11 @@ public class CppTest extends ThreadedBase {
         this.target = Target.CPP;
     }
 
+    @Override
+    public void runExampleTests() {
+        super.runExampleTests();
+    }
+
     @Test
     @Override
     public void runGenericTests() {
