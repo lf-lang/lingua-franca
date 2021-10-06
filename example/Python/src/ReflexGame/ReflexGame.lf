@@ -89,8 +89,8 @@ reactor UpdateGraphics {
         self.update_graphics = update_graphics_pipe_init.value
         
         # Displays an introductory prompt to the user. 
-        self.update_graphics.send(((0,0,0),             # Color of text
-                                   (255, 255, 255),     # Color of background
+        self.update_graphics.send(((0,0,0),             # Color of background
+                                   (255, 255, 255),     # Color of text
                                    "Press any key to begin", 
                                    "To end the game, you can either: ", 
                                    "1. Close this window", 
