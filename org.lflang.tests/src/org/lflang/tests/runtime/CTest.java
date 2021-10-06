@@ -71,6 +71,10 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runTargetSpecificTests() {
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping C target-specific tests on Windows.");
+            return; 
+        }
         super.runTargetSpecificTests();
     }
 
@@ -85,11 +89,27 @@ public class CTest extends ThreadedBase {
     public void runWithFourThreads() {
         super.runWithFourThreads();
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping serialization tests on Windows.");
+            return; 
+        }
+        super.runSerializationTests();
+    }
 
     @Test
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printTestHeader("Warning: Skipping federated tests on Windows.");
+            return; 
+        }
         super.runAsFederated();
     }
 
@@ -102,6 +122,11 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runFederatedTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping federated tests on Windows.");
+            return; 
+        }
         super.runFederatedTests();
     }
     
@@ -113,6 +138,10 @@ public class CTest extends ThreadedBase {
      */
     @Test
     public void runAsCCpp() {
+        if(isWindows()) {
+            printTestHeader("Warning: Skipping CCpp tests on Windows.");
+            return; 
+        }
         printTestHeader(RUN_AS_CCPP_DESC);
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);

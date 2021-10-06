@@ -48,14 +48,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <structmember.h>
 #include "ctarget.h"
 
+#include <limits.h>
+
 #ifdef _MSC_VER
-#include <../include/limits.h>
-#include <windows.h>
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
 #endif
-#else
-#include <limits.h>
 #endif
 
 // MODULE_NAME is expected to be defined in the main file of the generated code

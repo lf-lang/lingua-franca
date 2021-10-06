@@ -95,6 +95,12 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_CXX_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
+        // Follow the 
+        cMakeCode.append("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
+        cMakeCode.append("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
+        cMakeCode.append("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)\n");
+        cMakeCode.append("endif()\n");
+        
         cMakeCode.append("set(CoreLib core)\n");
         cMakeCode.append("\n");
         
@@ -102,10 +108,20 @@ class CCmakeGenerator {
         cMakeCode.append("# file and assign the file's path to LF_PLATFORM_FILE\n");
         cMakeCode.append("if(${CMAKE_SYSTEM_NAME} STREQUAL \"Linux\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_linux_support.c)\n");
+        if (CppMode) {
+            // Suppress warnings about const char*.
+            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+        }
         cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Darwin\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_macos_support.c)\n");
+        if (CppMode) {
+            // Suppress warnings about const char*.
+            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+        }
         cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Windows\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_windows_support.c)\n");
+        cMakeCode.append("    set(CMAKE_SYSTEM_VERSION 10.0)\n");
+        cMakeCode.append("    message(\"Using Windows SDK version ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}\")\n");
         cMakeCode.append("else()\n");
         cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported!"+
                 " The C target supports Linux, MacOS and Windows.\")\n");
@@ -141,8 +157,6 @@ class CCmakeGenerator {
         if (CppMode) {
             // First enable the CXX language
             cMakeCode.append("enable_language(CXX)\n");
-            // Suppress warnings about const char*.
-            cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
             // FIXME: Instead of mixing a C compiler and a C++ compiler, we use a 
             // CMake flag to set the language of all .c files to C++.
             // Also convert any additional sources. This is a deprecated functionality 
