@@ -165,13 +165,12 @@ class ReactionInstance extends NamedInstance<Reaction> {
                         portInstance.dependsOnReactions.add(this);
                     }
                 }
-            } else {
-                // Effect must be an Action.
+            } else if (effect.variable instanceof Action) {
                 var actionInstance = parent.lookupActionInstance(
                     effect.variable as Action)
                 this.effects.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
-            }
+            } // else it may be an unresolved reference
         }
         // Create a deadline instance if one has been defined.
         if (this.definition.deadline !== null) {

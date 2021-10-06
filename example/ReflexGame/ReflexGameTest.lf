@@ -19,7 +19,7 @@ main reactor {
         }
     =}
 
-    state thread_id:pthread_t(0);
+    state thread_id:lf_thread_t(0);
     state request_time:time(0);
     // NOTE: The following will get the default 1 nsec minimum
     // interarrival time.
@@ -28,7 +28,7 @@ main reactor {
     reaction(startup) -> a {=
         // Start listening for key strokes.
         // Note that these will not be received until Enter.
-        pthread_create(&self->thread_id, NULL, &read_char, a);
+        lf_thread_create(&self->thread_id, &read_char, a);
         printf("Enter character(s) followed by return: ");
         self->request_time = get_logical_time();
     =}

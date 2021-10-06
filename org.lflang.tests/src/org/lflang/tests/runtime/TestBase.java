@@ -31,6 +31,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.LFRuntimeModule;
+import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.LFInjectorProvider;
@@ -40,6 +42,7 @@ import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.google.inject.Provider;
 
 @ExtendWith(InjectionExtension.class)
@@ -105,7 +108,13 @@ public abstract class TestBase {
      * Force the instantiation of the test registry.
      */
     protected TestBase() {
-        TestRegistry.initialize();
+        this(true);
+    }
+
+    private TestBase(boolean initRegistry) {
+        if (initRegistry) {
+            TestRegistry.initialize();
+        }
     }
 
     // Tests.
@@ -158,12 +167,16 @@ public abstract class TestBase {
         printTestHeader("Description: Run multiport tests (threads = 0).");
         runUnthreaded(TestCategory.MULTIPORT);
     }
-
+    
+    @Test
+    public void runSerializationTests() {
+        printTestHeader("Description: Run serialization tests.");
+        runTestsAndPrintResults(target, TestCategory.SERIALIZATION::equals, null, false);
+    }
 
     @Test
     public void runAsFederated() {
         printTestHeader(RUN_AS_FEDERATED_DESC);
-
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
         categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
                                         TestCategory.FEDERATED,
@@ -192,6 +205,13 @@ public abstract class TestBase {
         runTestsAndPrintResults(target, TestCategory.FEDERATED::equals, null, false);
     }
 
+
+    /** Returns true if the operating system is Windows. */
+    protected boolean isWindows() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        if (OS.indexOf("win") >= 0) { return true; }
+        return false;
+    }
 
     //
     private static void restoreOutputs() {
@@ -223,6 +243,20 @@ public abstract class TestBase {
                 checkAndReportFailures(tests);
             }
         }
+    }
+
+    public static void runSingleTestAndPrintResults(LFTest test) {
+        Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+        TestBase runner = new TestBase(false) {};
+        injector.injectMembers(runner);
+
+        Set<LFTest> tests = Set.of(test);
+        try {
+            runner.validateAndRun(tests, t -> true);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+        runner.checkAndReportFailures(tests);
     }
 
 
@@ -266,10 +300,7 @@ public abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-        context.setReporter(DefaultErrorReporter.DEFAULT);
-
-        // make sure that there are no remaining errors from a previous run in the reporter
-        DefaultErrorReporter.DEFAULT.reset();
+        context.setReporter(new DefaultErrorReporter());
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
