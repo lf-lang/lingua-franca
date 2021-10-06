@@ -397,7 +397,7 @@ public abstract class TestBase {
      * an error code.
      */
     private void execute(LFTest test) {
-        ProcessBuilder pb = null;
+        final ProcessBuilder pb;
         final var nameWithExtension = test.srcFile.getFileName().toString();
         final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
 
@@ -422,7 +422,9 @@ public abstract class TestBase {
             } else {
                 test.issues.append(fullPath).append(": No such file or directory.").append(NEW_LINE);
                 test.result = Result.NO_EXEC_FAIL;
+                return;
             }
+            break;
         }
         case Python: {
             var srcGen = test.fileConfig.getSrcGenPath();
@@ -432,11 +434,10 @@ public abstract class TestBase {
                 pb.directory(srcGen.toFile());
             } else {
                 test.result = Result.NO_EXEC_FAIL;
-                if (pb != null) {
-                    test.issues.append("Process builder: ").append(pb).append(NEW_LINE);
-                }
                 test.issues.append("File: ").append(fullPath).append(NEW_LINE);
+                return;
             }
+            break;
         }
         case TS: {
             var dist = test.fileConfig.getSrcGenPath().resolve("dist");
@@ -445,39 +446,34 @@ public abstract class TestBase {
                 pb = new ProcessBuilder("node", file.toString());
             } else {
                 test.result = Result.NO_EXEC_FAIL;
-                if (pb != null) {
-                    test.issues.append("Process builder: ").append(pb).append(NEW_LINE);
-                }
                 test.issues.append("File: ").append(file).append(NEW_LINE);
+                return;
             }
+            break;
         }
+        default:
+            throw new AssertionError("unreachable");
         }
-        if (pb != null) {
-            try {
-                var p = pb.start();
-                var stdout = test.exec.recordStdOut(p);
-                var stderr = test.exec.recordStdErr(p);
-                if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                    stdout.interrupt();
-                    stderr.interrupt();
-                    p.destroyForcibly();
-                    test.result = Result.TEST_TIMEOUT;
+        try {
+            var p = pb.start();
+            var stdout = test.exec.recordStdOut(p);
+            var stderr = test.exec.recordStdErr(p);
+            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
+                stdout.interrupt();
+                stderr.interrupt();
+                p.destroyForcibly();
+                test.result = Result.TEST_TIMEOUT;
+            } else {
+                if (p.exitValue() == 0) {
+                    test.result = Result.TEST_PASS;
                 } else {
-                    if (p.exitValue() == 0) {
-                        test.result = Result.TEST_PASS;
-                    } else {
-                        test.result = Result.TEST_FAIL;
-                    }
+                    test.result = Result.TEST_FAIL;
                 }
-
-            } catch (Exception e) {
-                test.result = Result.TEST_FAIL;
             }
 
-        } else {
-            test.result = Result.NO_EXEC_FAIL;
+        } catch (Exception e) {
+            test.result = Result.TEST_FAIL;
         }
-
     }
 
 
