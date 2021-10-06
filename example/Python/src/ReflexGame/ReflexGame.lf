@@ -82,7 +82,6 @@ reactor UpdateGraphics {
     state count(0);
     state total_time_in_ms(0);
     state prompt_time(0);
-    logical action waiting_prompt;
     
     reaction(update_graphics_pipe_init) {=
         # Stores the Pipe object that will be used to send graphics update to
@@ -107,7 +106,7 @@ reactor UpdateGraphics {
         self.prompt_time = get_physical_time()
     =}
     
-    reaction(user_input) -> another, waiting_prompt {=
+    reaction(user_input) -> another {=
         if self.first:
             # if the first ever key press is detected, set "another" to trigger a prompt from RandomSource
             self.first = False
