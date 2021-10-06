@@ -3,7 +3,10 @@ This is a pygame-based piano demo for the Python target of Lingua Franca.
 The contents of the demo is mostly adapted from: https://github.com/bspaans/python-mingus/tree/master/mingus_examples/pygame-piano
 
 ## Installation
-Pick and download a soundfont from here:
+Download a soundfont file from here (this is the soundfont used for testing the demo):
+http://www.schristiancollins.com/generaluser.php
+
+Alternatively, pick and download a soundfont from here:
 https://github.com/FluidSynth/fluidsynth/wiki/SoundFont
 
 Rename the soundfont to "soundfont.sf2" and put it under the same directory as Piano.lf.
