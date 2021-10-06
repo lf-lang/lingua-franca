@@ -413,3 +413,5 @@ val Instantiation.reactor get() = this.reactorClass.toDefinition()
 
 /** Check if the receiver is a bank instantiation. */
 val Instantiation.isBank: Boolean get() = this.widthSpec != null
+
+val Connection.hasMultipleConnections: Boolean get() = ASTUtils.hasMultipleConnections(this)

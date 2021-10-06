@@ -1,5 +1,3 @@
-/* Instance of an action. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
