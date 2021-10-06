@@ -284,7 +284,7 @@ public abstract class TestBase {
     }
 
 
-    private boolean configureAndValidate(LFTest test, Predicate<LFTest> configuration) throws IOException {
+    private boolean configureAndValidate(LFTest test, Predicate<LFTest> configuration, DefaultErrorReporter err) throws IOException {
 
         if (test.result == Result.PARSE_FAIL) {
             // Abort is parsing was unsuccessful.
@@ -300,7 +300,7 @@ public abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-        context.setReporter(new DefaultErrorReporter());
+        context.setReporter(err);
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
@@ -365,7 +365,7 @@ public abstract class TestBase {
      *
      * @return True if code was generated successfully, false otherwise.
      */
-    private boolean generateCode(LFTest test) {
+    private boolean generateCode(LFTest test, DefaultErrorReporter err) {
         if (test.fileConfig.resource != null) {
             redirectOutputs(test);
             try {
@@ -380,13 +380,10 @@ public abstract class TestBase {
 
             restoreOutputs();
 
-            // FIXME: This is incompatible with Clement's recent change 
-            // that removed DefaultErrorReporter.DEFAULT
-            // // check if any errors occurred during code generation
-            // if (DefaultErrorReporter.DEFAULT.getErrorsOccurred()) {
-            //     test.result = Result.CODE_GEN_FAIL;
-            //     return false;
-            // }
+            if (err.getErrorsOccurred()) {
+                test.result = Result.CODE_GEN_FAIL;
+                return false;
+            }
 
             return true;
         }
@@ -489,7 +486,8 @@ public abstract class TestBase {
         var marks = 0;
         var done = 0;
         for (var test : tests) {
-            if (configureAndValidate(test, configuration) && generateCode(test)) {
+            DefaultErrorReporter err = new DefaultErrorReporter();
+            if (configureAndValidate(test, configuration, err) && generateCode(test, err)) {
                 if (run) {
                     execute(test);
                 } else if (test.result == Result.UNKNOWN) {
