@@ -3,7 +3,8 @@ target C {
     timeout: 2 sec,
     tracing: true, 
     flags: "", // Disable compiler optimization so that TakeTime actually takes time.
-    threads: 4
+    threads: 4,
+    logging: DEBUG
 };
 reactor Source {
 	timer t(0, 200 msec);

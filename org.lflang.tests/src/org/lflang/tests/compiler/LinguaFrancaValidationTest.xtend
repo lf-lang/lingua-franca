@@ -361,7 +361,7 @@ class LinguaFrancaValidationTest {
         ''').assertError(LfPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' is already effect of a reaction.")
     }
-	
+
     /**
      * Disallow connection of multiple ports to the same input port.
      */
@@ -388,7 +388,7 @@ class LinguaFrancaValidationTest {
         ''').assertError(LfPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' may only appear once on the right side of a connection.")
     }
-    
+
     /**
      * Detect cycles in the instantiation graph.
      */

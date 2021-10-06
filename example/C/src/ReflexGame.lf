@@ -87,8 +87,8 @@ reactor GetUserInput {
     
     reaction(startup) -> user_response {=
         // Start the thread that listens for Enter or Return.
-        pthread_t thread_id;
-        pthread_create(&thread_id, NULL, &read_input, user_response);        
+        lf_thread_t thread_id;
+        lf_thread_create(&thread_id, &read_input, user_response);        
     =}
     
     reaction(prompt) {=

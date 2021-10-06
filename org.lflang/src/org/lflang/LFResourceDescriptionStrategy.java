@@ -1,5 +1,3 @@
-/* Custom resource description strategy for Lingua Franca. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -24,71 +22,68 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang
+package org.lflang;
 
-import com.google.inject.Inject
-import java.util.HashMap
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtext.naming.QualifiedName
-import org.eclipse.xtext.resource.EObjectDescription
-import org.eclipse.xtext.resource.IEObjectDescription
-import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy
-import org.eclipse.xtext.scoping.impl.ImportUriResolver
-import org.eclipse.xtext.util.IAcceptor
-import org.lflang.lf.Model
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.naming.QualifiedName;
+import org.eclipse.xtext.resource.EObjectDescription;
+import org.eclipse.xtext.resource.IEObjectDescription;
+import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy;
+import org.eclipse.xtext.scoping.impl.ImportUriResolver;
+import org.eclipse.xtext.util.IAcceptor;
+
+import org.lflang.lf.Model;
+
+import com.google.inject.Inject;
 
 /**
  * Resource description strategy designed to limit global scope to only those
  * files that were explicitly imported.
- * 
+ * <p>
  * Adapted from example provided by Itemis.
- * @see https://blogs.itemis.com/en/in-five-minutes-to-transitive-imports-within-a-dsl-with-xtext
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ *
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ * @see "https://blogs.itemis.com/en/in-five-minutes-to-transitive-imports-within-a-dsl-with-xtext"
  */
-class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStrategy {
-    
+public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStrategy {
+
     /**
      * Key used in user data attached to description of a Model.
      */
-    public static final String INCLUDES = "includes"
-    
+    public static final String INCLUDES = "includes";
+
     /**
      * Delimiter used in the values associated with INCLUDES keys in the
      * user-data descriptions of Models.
      */
-    public static final String DELIMITER = ','
+    public static final String DELIMITER = ",";
 
     @Inject
-    ImportUriResolver uriResolver
+    private ImportUriResolver uriResolver;
 
-    /**
-     * Handle eObject instances of type "Model" separately.
-     */
-    override createEObjectDescriptions(EObject eObject,
-        IAcceptor<IEObjectDescription> acceptor) {
+    @Override
+    public boolean createEObjectDescriptions(EObject eObject, IAcceptor<IEObjectDescription> acceptor) {
         if (eObject instanceof Model) {
-            this.createEObjectDescriptionForModel(eObject, acceptor)
-            return true
+            this.createEObjectDescriptionForModel((Model) eObject, acceptor);
+            return true;
         } else {
-            super.createEObjectDescriptions(eObject, acceptor)
+            return super.createEObjectDescriptions(eObject, acceptor);
         }
     }
 
     /**
      * Build an index containing the strings of the URIs imported resources.
-     * 
-     * All the URIs are added to comma-separated string and stored under the 
+     * <p>
+     * All the URIs are added to comma-separated string and stored under the
      * key "includes" in the userData map of the object description.
      **/
-    def void createEObjectDescriptionForModel(Model model,
-        IAcceptor<IEObjectDescription> acceptor) {
-        val uris = newLinkedHashSet()
-        model.imports.forEach[uris.add(uriResolver.apply(it))]
-        val userData = new HashMap<String, String>
-        userData.put(INCLUDES, uris.join(DELIMITER))
-        acceptor.accept(
-            EObjectDescription.create(
-                QualifiedName.create(model.eResource.URI.toString), model,
-                userData))
+    private void createEObjectDescriptionForModel(Model model, IAcceptor<IEObjectDescription> acceptor) {
+        var uris = model.getImports().stream().map(uriResolver).collect(Collectors.joining(DELIMITER));
+        var userData = Map.of(INCLUDES, uris);
+        QualifiedName qname = QualifiedName.create(model.eResource().getURI().toString());
+        acceptor.accept(EObjectDescription.create(qname, model, userData));
     }
 }
