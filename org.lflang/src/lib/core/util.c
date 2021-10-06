@@ -50,7 +50,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * The ID of this federate. For a non-federated execution, this will
  * be -1.  For a federated execution, it will be assigned when the generated function
- * __initialize_trigger_objects() is called.
+ * _lf_initialize_trigger_objects() is called.
  * @see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CGenerator.xtend.
  */
 int _lf_my_fed_id = -1;
@@ -83,7 +83,7 @@ void _lf_message_print(
     // interleaved between threads.
     // vprintf() is a version that takes an arg list rather than multiple args.
     size_t length = strlen(prefix) + strlen(format) + 32;
-    char message[length + 1];
+    char* message = (char*) malloc(length + 1);
     if (_lf_my_fed_id < 0) {
         snprintf(message, length, "%s%s\n",
                 prefix, format);
@@ -100,6 +100,7 @@ void _lf_message_print(
     } else if (log_level <= print_message_level) {
         (*print_message_function)(message, args);
     }
+    free(message);
 }
 
 /**
