@@ -94,7 +94,7 @@ public class ModelInfo {
     public List<ReactorInstance> topLevelReactorInstances;
 
     /** Cycles found during topology analysis. */
-    private List<Set<NamedInstance<?>>> _topologyCycles = List.of();
+    private List<Set<NamedInstance<?>>> topologyCycles = List.of();
 
     /**
      * Whether or not the model information has been updated at least once.
@@ -124,7 +124,7 @@ public class ModelInfo {
             }
             // don't store the graph into a field, only the cycles.
             var topologyGraph = new TopologyGraph(topLevelReactorInstances);
-            this._topologyCycles = topologyGraph.getCycles();
+            this.topologyCycles = topologyGraph.getCycles();
         }
 
         // may be null if the target is invalid
@@ -136,7 +136,9 @@ public class ModelInfo {
         }
     }
 
-    public List<Set<NamedInstance<?>>> topologyCycles() { this._topologyCycles }
+    public List<Set<NamedInstance<?>>> topologyCycles() {
+        return this.topologyCycles;
+    }
 
     /**
      * Collect all assignments, deadlines, and parameters that can cause the

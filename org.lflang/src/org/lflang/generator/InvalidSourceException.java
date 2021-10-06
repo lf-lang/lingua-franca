@@ -25,10 +25,12 @@
 package org.lflang.generator;
 
 /**
- * Thrown when the compiled sources fails a validity check
- * invalid and the current code cannot recover. For example,
- * this is thrown when detecting a dependency cycle. This
- * should be preferred
+ *
+ * This exception is thrown when a program fails a validity check
+ * performed by a code generator (and not the validator). This should
+ * be thrown only when local control flow cannot recover, otherwise
+ * using {@link GeneratorBase#errorReporter} should be preferred,
+ * in order to collect more errors before failing.
  *
  * @author Clément Fournier
  */

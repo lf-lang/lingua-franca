@@ -1,5 +1,3 @@
-/* Instance of an action. */
-
 /*************
  Copyright (c) 2019, The University of California at Berkeley.
 
@@ -35,7 +33,8 @@ import org.lflang.util.CollectionUtil;
 /**
  * Directed graph that maps nodes to its upstream and downstream neighbors.
  *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
+ * @author Clément Fournier {@literal <clement.fournier@mailbox.tu-dresden.de>}
  */
 public class DirectedGraph<T> implements Graph<T> {
 

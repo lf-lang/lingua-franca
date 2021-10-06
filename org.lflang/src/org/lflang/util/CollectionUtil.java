@@ -12,6 +12,15 @@ import java.util.function.Function;
 
 /**
  * Utilities to manipulate collections.
+ *
+ * <p>Most of these methods are using specialized collection
+ * implementations (possibly unmodifiable) for small collection
+ * sizes. No guarantee is made on the mutability of the collections
+ * returned from these functions, meaning, callers should always
+ * assume they are unmodifiable. Functions that take a collection
+ * parameter as input to produce a new one with a transformation
+ * require the input collection to have been obtained from one of
+ * the utility functions of this class in the first place.
  */
 public class CollectionUtil {
 
@@ -62,6 +71,14 @@ public class CollectionUtil {
      * Remove the given value from all the sets that are values
      * in the given map. Use this if the values of the map (the
      * sets) were build with {@link #plus(Set, Object)}.
+     * <p>
+     * In {@link org.lflang.graph.DirectedGraph}, this is used
+     * to properly remove nodes from a graph. There, we use
+     * maps to represent edges, where a value in a map is a
+     * set of nodes adjacent to the key for that value.
+     * Hence, when a node is removed, it needs to be removed
+     * not just as a key, but it also needs to be removed
+     * from the neighbors sets of any other keys that may contain it.
      *
      * @param map           A *modifiable* map
      * @param valueToRemove Value to remove
@@ -109,6 +126,15 @@ public class CollectionUtil {
     }
 
 
+    /**
+     * Returns a map that is identical to the original map,
+     * except the value for key {@code k} is transformed using
+     * the given function. The transformation function takes the
+     * key and current value (null if the key is not present) as inputs,
+     * and returns the new value to associate to the key (null if the mapping should be removed).
+     *
+     * @see Map#compute(Object, BiFunction)
+     */
     public static <K, V> Map<K, V> compute(Map<K, V> map, K k, BiFunction<K, V, V> computation) {
         if (map == null || map.isEmpty()) {
             return Collections.singletonMap(k, computation.apply(k, null));
