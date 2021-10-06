@@ -84,7 +84,7 @@ public class TestRegistry {
     /**
      * Path to the root of the repository.
      */
-    public static final Path LF_REPO_PATH = Paths.get(new File("").getAbsolutePath()).getParent();
+    public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
     
     /**
      * Path to the example directory in the repository.
@@ -139,7 +139,7 @@ public class TestRegistry {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     public enum TestCategory {
-        CONCURRENT(true), GENERIC(true), MULTIPORT(true), TARGET(false),
+        CONCURRENT(true), GENERIC(true), MULTIPORT(true), SERIALIZATION(false), TARGET(false),
         FEDERATED(true), EXAMPLE(false), EXAMPLE_TEST(false);
         
         /**
