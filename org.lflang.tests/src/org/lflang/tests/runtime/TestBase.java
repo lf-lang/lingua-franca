@@ -397,62 +397,9 @@ public abstract class TestBase {
      * an error code.
      */
     private void execute(LFTest test) {
-        final ProcessBuilder pb;
-        final var nameWithExtension = test.srcFile.getFileName().toString();
-        final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
-
-        switch (test.target) {
-        case C:
-        case CPP:
-        case CCPP: {
-            var binPath = test.fileConfig.binPath;
-            var binaryName = nameOnly;
-            // Adjust binary extension if running on Window
-            if (System.getProperty("os.name").startsWith("Windows")) {
-                binaryName = nameOnly + ".exe";
-            }
-
-            var fullPath = binPath.resolve(binaryName);
-            if (Files.exists(fullPath)) {
-                // Running the command as .\binary.exe does not work on Windows for
-                // some reason... Thus we simply pass the full path here, which
-                // should work across all platforms
-                pb = new ProcessBuilder(fullPath.toString());
-                pb.directory(binPath.toFile());
-            } else {
-                test.issues.append(fullPath).append(": No such file or directory.").append(NEW_LINE);
-                test.result = Result.NO_EXEC_FAIL;
-                return;
-            }
-            break;
-        }
-        case Python: {
-            var srcGen = test.fileConfig.getSrcGenPath();
-            var fullPath = srcGen.resolve(nameOnly + ".py");
-            if (Files.exists(fullPath)) {
-                pb = new ProcessBuilder("python3", fullPath.toFile().getName());
-                pb.directory(srcGen.toFile());
-            } else {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(fullPath).append(NEW_LINE);
-                return;
-            }
-            break;
-        }
-        case TS: {
-            var dist = test.fileConfig.getSrcGenPath().resolve("dist");
-            var file = dist.resolve(nameOnly + ".js");
-            if (Files.exists(file)) {
-                pb = new ProcessBuilder("node", file.toString());
-            } else {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(file).append(NEW_LINE);
-                return;
-            }
-            break;
-        }
-        default:
-            throw new AssertionError("unreachable");
+        final ProcessBuilder pb = getExecCommand(test);
+        if (pb == null) {
+            return;
         }
         try {
             var p = pb.start();
@@ -473,6 +420,65 @@ public abstract class TestBase {
 
         } catch (Exception e) {
             test.result = Result.TEST_FAIL;
+        }
+    }
+
+    /**
+     * Returns a preconfigured ProcessBuilder for the command
+     * that should be used to execute the test program.
+     */
+    private ProcessBuilder getExecCommand(LFTest test) {
+        final var nameWithExtension = test.srcFile.getFileName().toString();
+        final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
+
+        switch (test.target) {
+        case C:
+        case CPP:
+        case CCPP: {
+            var binPath = test.fileConfig.binPath;
+            var binaryName = nameOnly;
+            // Adjust binary extension if running on Window
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                binaryName = nameOnly + ".exe";
+            }
+
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // Running the command as .\binary.exe does not work on Windows for
+                // some reason... Thus we simply pass the full path here, which
+                // should work across all platforms
+                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+            } else {
+                test.issues.append(fullPath).append(": No such file or directory.").append(NEW_LINE);
+                test.result = Result.NO_EXEC_FAIL;
+                return null;
+            }
+        }
+        case Python: {
+            var srcGen = test.fileConfig.getSrcGenPath();
+            var fullPath = srcGen.resolve(nameOnly + ".py");
+            if (Files.exists(fullPath)) {
+                return new ProcessBuilder("python3", fullPath.getFileName().toString())
+                    .directory(srcGen.toFile());
+            } else {
+                test.result = Result.NO_EXEC_FAIL;
+                test.issues.append("File: ").append(fullPath).append(NEW_LINE);
+                return null;
+            }
+        }
+        case TS: {
+            var dist = test.fileConfig.getSrcGenPath().resolve("dist");
+            var file = dist.resolve(nameOnly + ".js");
+            if (Files.exists(file)) {
+                return new ProcessBuilder("node", file.toString());
+            } else {
+                test.result = Result.NO_EXEC_FAIL;
+                test.issues.append("File: ").append(file).append(NEW_LINE);
+                return null;
+            }
+        }
+        default:
+            throw new AssertionError("unreachable");
         }
     }
 
