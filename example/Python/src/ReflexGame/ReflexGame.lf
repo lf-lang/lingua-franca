@@ -3,21 +3,18 @@ target Python {
     files: [gui.py]
 }
 
-preamble {=
-    import multiprocessing
-    import threading
-    import random
-    def additional_time(min_time, max_time):
-        return random.randint(min_time, max_time)
-=}
-
 reactor RandomSource(min_time(2 sec), max_time(8 sec)) {
+    preamble {=
+        import random
+        def additional_time(self, min_time, max_time):
+            return self.random.randint(min_time, max_time)
+    =}
     input another;
     output out;
     logical action prompt(min_time);
     state count(0);
     reaction(startup) {=
-        random.seed()
+        self.random.seed()
     =}
 
     reaction(prompt) -> out {=
@@ -27,7 +24,7 @@ reactor RandomSource(min_time(2 sec), max_time(8 sec)) {
 
     reaction(another) -> prompt {=
         # schedule a prompt event 
-        prompt.schedule(additional_time(0, self.max_time - self.min_time))
+        prompt.schedule(self.additional_time(0, self.max_time - self.min_time))
     =}
 }
 
@@ -59,7 +56,7 @@ reactor GetUserInput {
         self.user_input = user_input_pipe_init.value
         
         # Starts the thread that receives key presses from the pygame process
-        t = threading.Thread(target=self.listen_for_input, args=(user_response, ))
+        t = self.threading.Thread(target=self.listen_for_input, args=(user_response, ))
         t.start()
     =}
     
@@ -159,7 +156,7 @@ reactor StartGui {
     preamble {=
         import gui
     =}
-        
+
     output user_input_pipe;
     output update_graphics_pipe;
     
