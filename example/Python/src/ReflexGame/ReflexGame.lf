@@ -160,7 +160,6 @@ reactor StartGui {
         import gui
     =}
         
-    timer t(0, 1 msec);
     output user_input_pipe;
     output update_graphics_pipe;
     
@@ -171,10 +170,6 @@ reactor StartGui {
         # Sets the outputs to trigger the initialization of GetUserInput and UpdateGrpahics 
         user_input_pipe.set(user_input_pout)
         update_graphics_pipe.set(update_graphics_pin)
-    =}
-    
-    reaction(t) {=
-        pass
     =}
 }
 
