@@ -149,9 +149,9 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
      */
     private void recordDependency(ReactionInstance reaction, PortInstance orig,
             PortInstance dest) {
-        // Note: a reaction also has a parent, but it might not have a
-        // grandparent.
-        // Hence, the first argument given to getConnection might be null.
+        // Note: a reaction always has a parent, but it might not have a
+        // grandparent. Hence, the first argument given to getConnection might
+        // be null.
         if (!dependencyBroken(
                 getConnection(reaction.parent.parent, orig, dest))) {
             addEdge(dest, orig);
