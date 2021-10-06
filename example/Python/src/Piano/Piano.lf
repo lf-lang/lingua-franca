@@ -1,9 +1,6 @@
-// Preambles are put inside the Python reactor class
-// Therefore, accessing them requires the use of self.
 target Python {
-    files: [sensor_simulator.py, keys.png, soundfont.sf2],
-    keepalive: true // event if run out of events, don't exit
-    // federated runtime will be started this week 
+    files: [gui.py, keys.png, soundfont.sf2],
+    keepalive: true
 };
 
 preamble {=
@@ -40,32 +37,89 @@ preamble {=
     }
 =}
 
-reactor PianoGui {
-    physical action key;
-    state actuator({=None=}); # multiprocessing.connection.PipeConnection
-    
-    reaction(startup) -> key {=
-        print("starting PianoGui...")
-        self.actuator = sensor_simulator.start_sensor_simulator(key, piano_keys)
+reactor GetUserInput {
+    preamble {=
+        import threading
+        def listen_for_input(self, user_response):
+            while 1:
+                try:
+                    c = self.user_input.recv()
+                except EOFError:
+                    request_stop()
+                    return
+                # Each time a key press is received, schedule a user_response event 
+                user_response.schedule(0, c)
     =}
+    physical action user_response;
+    input user_input_pipe_init;
+    output user_input;
+    state user_input({=None=}) # multiprocessing.connection.PipeConnection
+    
+    reaction(user_input_pipe_init) -> user_response {=
+        self.user_input = user_input_pipe_init.value
+        t = self.threading.Thread(target=self.listen_for_input, args=(user_response, ))
+        t.start()
+    =}
+    
+    reaction(user_response) -> user_input {=
+        user_input.set(user_response.value)
+    =}
+}
 
-    reaction(key) {=
-        if key.value is None:
-            self.actuator.send(None)
-            request_stop()
-            return
-        key_packet = key.value
-        unicode, = key_packet.content
-        print(f"PianoGui: key press detected: {unicode}")
-        if unicode in piano_keys:
-            self.actuator.send(sensor_simulator.KeyPacket(key_packet.key_down, piano_keys[unicode]))
+reactor UpdateGraphics {
+    input note;
+    input update_graphics_pipe_init;
+    state update_graphics({=None=}); # multiprocessing.connection.PipeConnection
+    state pressed_keys({=set()=})
+    
+    reaction(update_graphics_pipe_init) {=
+        self.update_graphics = update_graphics_pipe_init.value
     =}
     
-    reaction(shutdown) {=
-        print("PianoGui: reactor shutting down")
+    reaction(note) {=
+        key_down, note_t = note.value
+        if key_down and note_t not in self.pressed_keys:
+            self.pressed_keys.add(note_t)
+            self.update_graphics.send(self.pressed_keys)
+        if not key_down and note_t in self.pressed_keys:
+            self.pressed_keys.remove(note_t)
+            self.update_graphics.send(self.pressed_keys)
+    =}
+}
+
+reactor TranslateKeyToNote {
+    input user_input;
+    output note;
+    
+    reaction(user_input) -> note {=
+        key_down, c = user_input.value
+        if c in piano_keys:
+            note.set((key_down, piano_keys[c]))
+    =}
+}
+
+reactor StartGui {
+    preamble {=
+        import gui
+    =}
+    
+    output user_input_pipe;
+    output update_graphics_pipe;
+    
+    reaction(startup) -> user_input_pipe, update_graphics_pipe {=
+          user_input_pout, update_graphics_pin = self.gui.start_gui(piano_keys)
+          user_input_pipe.set(user_input_pout)
+          update_graphics_pipe.set(update_graphics_pin)
     =}
 }
 
 main reactor {
-    p1 = new PianoGui()
+    gui = new StartGui()
+    translate = new TranslateKeyToNote()
+    update_graphics = new UpdateGraphics()
+    get_user_input = new GetUserInput() 
+    gui.user_input_pipe -> get_user_input.user_input_pipe_init
+    gui.update_graphics_pipe -> update_graphics.update_graphics_pipe_init
+    get_user_input.user_input -> translate.user_input
+    translate.note -> update_graphics.note
 }
