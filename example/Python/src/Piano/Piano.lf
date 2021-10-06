@@ -41,23 +41,12 @@ preamble {=
 =}
 
 reactor PianoGui {
-    timer t(0, 1 msec);
     physical action key;
     state actuator({=None=}); # multiprocessing.connection.PipeConnection
     
     reaction(startup) -> key {=
         print("starting PianoGui...")
         self.actuator = sensor_simulator.start_sensor_simulator(key, piano_keys)
-    =}
-    
-    reaction(shutdown) {=
-        print("PianoGui: reactor shutting down")
-    =}
-    
-    reaction (t) {=
-        # do nothing. 
-        # I need to put this reaction here for logical time to progress.
-        pass
     =}
 
     reaction(key) {=
@@ -70,6 +59,10 @@ reactor PianoGui {
         print(f"PianoGui: key press detected: {unicode}")
         if unicode in piano_keys:
             self.actuator.send(sensor_simulator.KeyPacket(key_packet.key_down, piano_keys[unicode]))
+    =}
+    
+    reaction(shutdown) {=
+        print("PianoGui: reactor shutting down")
     =}
 }
 
