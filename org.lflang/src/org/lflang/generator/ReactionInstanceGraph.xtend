@@ -127,11 +127,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * Rather than establishing a total order, we establish a partial order.
      * In this order, the level of each reaction is the least upper bound of
      * the levels of the reactions it depends on.
-     * If any cycles are present in the dependency graph, then a graph
+     *
+     * @return If any cycles are present in the dependency graph, then a graph
      * containing the nodes in the cycle is returned. Otherwise, null is
      * returned.
-     * @return true if the assignment was successful, false if it was not, 
-     * meaning the graph has at least one cycle in it.
      */
     private def DirectedGraph<ReactionInstance> assignLevels() {
         val graph = this.copy
