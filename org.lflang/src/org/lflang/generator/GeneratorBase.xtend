@@ -241,7 +241,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
-
+    
     // //////////////////////////////////////////
     // // Private fields.
     /**

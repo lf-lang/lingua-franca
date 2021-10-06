@@ -38,7 +38,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <windows.h>
 #include <process.h>
+#include <windef.h>
 #include <stdint.h> // For fixed-width integral types
+
+#ifndef __cplusplus
+typedef BOOL bool;
+#define true TRUE
+#define false FALSE
+#endif // __cplusplus
 
 #ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
@@ -54,7 +61,7 @@ typedef CRITICAL_SECTION _lf_mutex_t;
  * For compatibility with other platform APIs, we assume
  * that mutex is analogous to critical section.
  */
-typedef _lf_mutex_t _lf_critical_section_t
+typedef _lf_mutex_t _lf_critical_section_t;
 
 typedef CONDITION_VARIABLE _lf_cond_t;
 typedef HANDLE _lf_thread_t;
@@ -64,41 +71,9 @@ typedef HANDLE _lf_thread_t;
 #endif
 #endif
 
-
-#pragma warning(disable: 4204 4255 4459 4710)
-#ifdef  _M_X64
-typedef long long intptr_t;
-#else
-typedef int intptr_t;
-#endif
-typedef intptr_t INTPTR_T;
-typedef struct HINSTANCE__ *HINSTANCE;
-typedef HINSTANCE HMODULE;
-typedef INTPTR_T (__stdcall *FARPROC)();
-HMODULE __stdcall GetModuleHandleA(char const *lpModuleName);
-FARPROC __stdcall GetProcAddress(HMODULE hModule, char const *lpProcName);
-typedef long NTSTATUS;
-typedef union _LARGE_INTEGER *PLARGE_INTEGER;
-typedef NTSTATUS __stdcall NtDelayExecution_t(unsigned char Alertable,
-  PLARGE_INTEGER Interval);
-NtDelayExecution_t *NtDelayExecution;
-typedef NTSTATUS __stdcall NtQueryPerformanceCounter_t(
-  PLARGE_INTEGER PerformanceCounter, PLARGE_INTEGER PerformanceFrequency);
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter;
-typedef NTSTATUS __stdcall NtQuerySystemTime_t(PLARGE_INTEGER SystemTime); 
-NtQuerySystemTime_t *NtQuerySystemTime;
-#ifndef CLOCK_REALTIME
-#define CLOCK_REALTIME 0
-#endif
-#ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC 1
-#endif
-
 /**
  * Time instant. Both physical and logical times are represented
  * using this typedef.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a 64-bit long long will be insufficient.
  */
 typedef int64_t _instant_t;
 
@@ -113,9 +88,6 @@ typedef int64_t _interval_t;
 typedef uint32_t _microstep_t;
 
 #define _LF_TIMEOUT ETIMEDOUT
-
-// The underlying physical clock for Windows
-#define _LF_CLOCK CLOCK_MONOTONIC
 
 #endif // LF_WINDOWS_SUPPORT_H
 
