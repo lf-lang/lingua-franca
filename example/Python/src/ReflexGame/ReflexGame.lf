@@ -26,10 +26,14 @@ reactor RandomSource(min_time(2 sec), max_time(8 sec)) {
     =}
 
     reaction(another) -> prompt {=
+        # schedule a prompt event 
         prompt.schedule(additional_time(0, self.max_time - self.min_time))
     =}
 }
 
+/*
+ * Receives key presses from the pygame process. 
+ */
 reactor GetUserInput {
     preamble {=
         import threading
@@ -40,17 +44,21 @@ reactor GetUserInput {
                 except EOFError:
                     request_stop()
                     return
+                # Each time a key press is received, schedule a user_response event 
                 user_response.schedule(0, c)
     =}
     
     physical action user_response;
     state user_input({=None=}); # multiprocessing.connection.PipeConnection
     input user_input_pipe_init;
-    input prompt;
     output user_input;
     
     reaction(user_input_pipe_init) -> user_response {=
+        # Stores the Pipe object that will be used to receive key presses from
+        #     the pygame process
         self.user_input = user_input_pipe_init.value
+        
+        # Starts the thread that receives key presses from the pygame process
         t = threading.Thread(target=self.listen_for_input, args=(user_response, ))
         t.start()
     =}
@@ -61,6 +69,9 @@ reactor GetUserInput {
 }
 
 
+/*
+ * Sends graphics updates to the pygame process. 
+ */
 reactor UpdateGraphics {
     input prompt;
     input update_graphics_pipe_init;
@@ -71,49 +82,94 @@ reactor UpdateGraphics {
     state count(0);
     state total_time_in_ms(0);
     state prompt_time(0);
+    logical action waiting_prompt;
     
     reaction(update_graphics_pipe_init) {=
+        # Stores the Pipe object that will be used to send graphics update to
+        #     the pygame process 
         self.update_graphics = update_graphics_pipe_init.value
-        self.update_graphics.send("Press any key to begin")
+        
+        # Displays an introductory prompt to the user. 
+        self.update_graphics.send(((0,0,0),             # Color of text
+                                   (255, 255, 255),     # Color of background
+                                   "Press any key to begin", 
+                                   "To end the game, you can either: ", 
+                                   "1. Close this window", 
+                                   "2. Press CTRL+C in the Terminal", 
+                                   "3. Press any key before the prompt shows up."))
     =}
     
     reaction(prompt) {=
-        self.update_graphics.send("{}. Press any key!".format(prompt.value))
+        # Ask the user for input upon receiving a prompt input from RandomSource
+        self.update_graphics.send(((152,251,152), 
+                                   (0, 0, 0), 
+                                   "{}. Press any key!".format(prompt.value)))
         self.prompt_time = get_physical_time()
     =}
     
-    reaction(user_input) -> another {=
+    reaction(user_input) -> another, waiting_prompt {=
         if self.first:
+            # if the first ever key press is detected, set "another" to trigger a prompt from RandomSource
             self.first = False
-            self.update_graphics.send("")
+            self.update_graphics.send(((205,92,92), 
+                                       (0, 0, 0), 
+                                       "Wait for the prompt..."))
+            
+            # ask for the first ever prompt            
             another.set(42)
         elif self.prompt_time == 0:
-            self.update_graphics.send("YOU CHEATED!")
+            if self.count > 0:
+                self.update_graphics.send(((205,92,92), 
+                                           (0, 0, 0), 
+                                           "YOU CHEATED!", 
+                                           "Average response time: {:.2f} ms".format(self.total_time_in_ms / self.count)))
+            else:
+                self.update_graphics.send(((205,92,92), 
+                                           (0, 0, 0), 
+                                           "YOU CHEATED!", 
+                                           "Average response time: undefined"))
             request_stop()
         else:
-            time_in_ms = (get_logical_time() - self.prompt_time) // 1000000
-            self.update_graphics.send("Response time in milliseconds: {}".format(time_in_ms))
+            time_in_ms = (get_logical_time() - self.prompt_time) // MSEC(1)
+            self.update_graphics.send(((205,92,92), 
+                                       (0, 0, 0), 
+                                       "Response time in milliseconds: {}".format(time_in_ms), 
+                                       "Wait for the prompt..."))
             self.count += 1
             self.total_time_in_ms += time_in_ms
             self.prompt_time = 0
+            
+            # ask for another prompt
             another.set(42)
+    =}
+     
+    reaction(shutdown) {=
+        if self.count > 0:
+            print("Average response time: {:.2f} ms".format(self.total_time_in_ms / self.count))
+        else:
+            print("Average response_time: undefined")
     =}
 }
 
-
+/*
+ * Starts the GUI and pass the user_input_pout and 
+ *     update_graphics_pin Pipe objects
+ *     to GetUserInput and UpdateGraphics
+ */
 reactor StartGui {
     preamble {=
         import gui
     =}
         
     timer t(0, 1 msec);
-    state gui_process({=None=})
     output user_input_pipe;
     output update_graphics_pipe;
     
     reaction(startup) -> user_input_pipe, update_graphics_pipe {=
-        user_input_pout, update_graphics_pin, p = self.gui.start_gui()
-        self.gui_process = p
+        # Starts the gui pygame process
+        user_input_pout, update_graphics_pin = self.gui.start_gui()
+        
+        # Sets the outputs to trigger the initialization of GetUserInput and UpdateGrpahics 
         user_input_pipe.set(user_input_pout)
         update_graphics_pipe.set(update_graphics_pin)
     =}
@@ -128,7 +184,6 @@ main reactor {
     random_source = new RandomSource()
     get_user_input = new GetUserInput()
     update_graphics = new UpdateGraphics()
-    random_source.out -> get_user_input.prompt
     random_source.out -> update_graphics.prompt
     get_user_input.user_input -> update_graphics.user_input
     update_graphics.another -> random_source.another
