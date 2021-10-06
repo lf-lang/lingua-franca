@@ -109,6 +109,7 @@ public class DirectedGraph<T> implements Graph<T> {
         this.graphChanged();
         this.upstreamAdjacentNodes.remove(node);
         this.downstreamAdjacentNodes.remove(node);
+        // The node also needs to be removed from the sets that represent connections to the node.
         CollectionUtil.removeFromValues(this.upstreamAdjacentNodes, node);
         CollectionUtil.removeFromValues(this.downstreamAdjacentNodes, node);
     }
