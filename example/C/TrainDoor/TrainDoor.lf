@@ -41,8 +41,8 @@ reactor MotionDetector {
     output ok:bool;
     reaction(startup) -> movement {=
         buttons.move = movement;
-		pthread_t thread_id;
-        pthread_create(&thread_id, NULL, &read_input, NULL);
+        lf_thread_t thread_id;
+        lf_thread_create(&thread_id, &read_input, NULL);
 	=}
 	reaction(movement) {=
         printf("Motion detected!\n");

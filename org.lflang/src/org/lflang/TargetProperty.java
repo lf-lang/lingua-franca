@@ -7,6 +7,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.lflang.TargetConfig.DockerOptions;
+import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -34,7 +36,7 @@ public enum TargetProperty {
      * Directive to specify the target build type such as 'Release' or 'Debug'.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
             }),
@@ -300,7 +302,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();
