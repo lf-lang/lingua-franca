@@ -6,22 +6,6 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
 try:
-    from mingus.containers.note import Note
-except:
-    print("Import Error: Failed to import 'mingus'. Try 'pip3 install mingus'")
-    sys.exit(1)
-
-try:
-    from mingus.midi import fluidsynth
-except:
-    if sys.platform == "darwin":
-        print("Import Error: fluidsynth is missing. Try 'brew install fluidsynth'")
-    elif sys.platform == "linux" or sys.platform == "linux2":
-        print("Import Error: fluidsynth is missing. Try 'sudo apt-get install -y fluidsynth'")
-    else:
-        print("Import Error: fluidsynth is missing. ")
-
-try:
     import pygame
 except:
     print("Import Error: Failed to import 'pygame'. Try 'pip3 install pygame'")
@@ -29,14 +13,10 @@ except:
 
 
 # sound font and the picture of the keyboard
-SF2 = os.path.join(os.path.dirname(__file__), "soundfont.sf2")
 KEYS_PNG = os.path.join(os.path.dirname(__file__), "keys.png")
 
 # number of octaves to show
 OCTAVES = 2
-
-# lowest octave to show 
-LOWEST = 4
 
 # names of white keys
 WHITE_KEYS = ["C", "D", "E", "F", "G", "A", "B"]
@@ -46,22 +26,22 @@ BLACK_KEYS = ["C#", "D#", "F#", "G#", "A#"]
 
 def start_gui(piano_keys):
     '''
-    spawns a process to run the pygame piano and 
-        a thread to receive key press signals from 
-        the pygame piano.
+    Spawns a process to run the pygame piano.
 
     Parameters
     ----------
-    action : physical action
-        a physical action passed in from the Piano reactor.
+    piano_keys: dict[str] -> tuple(str, int)
+        a mapping of keyboard characters to piano notes.
 
     Returns
     ----------
     multiprocessing.connection.PipeConnection
-        a pipe object for the LF program to send actuations to the pygame piano.
+        a pipe object for the LF program to receive key presses from the pygame process
+
+    multiprocessing.connection.PipeConnection
+        a pipe object for the LF program to send graphics update to the pygame process
     '''
-    if sys.platform == "darwin":
-        multiprocessing.set_start_method("spawn")
+    multiprocessing.set_start_method("spawn")
     user_input_pout, user_input_pin = connection.Pipe(duplex=False)
     update_graphics_pout, update_graphics_pin = connection.Pipe(duplex=False)
     p = Process(target=gui, args=(user_input_pin, update_graphics_pout, piano_keys))
@@ -71,7 +51,7 @@ def start_gui(piano_keys):
 
 def gui(user_input_pin, update_graphics_pout, piano_keys):
     '''
-    starts the pygame piano
+    Starts the pygame piano GUI.
 
     Parameters
     ----------
@@ -79,6 +59,8 @@ def gui(user_input_pin, update_graphics_pout, piano_keys):
         a pipe object for the pygame piano to send key press signals to the LF program.
     update_graphics_pout: multiprocessing.connection.PipeConnection
         a pipe object for the pygame piano to receive acutations from the LF program.
+    piano_keys: dict[str] -> tuple(str, int)
+        a mapping of keyboard characters to piano notes.
 
     Returns
     ----------
@@ -91,7 +73,7 @@ def gui(user_input_pin, update_graphics_pout, piano_keys):
 class PianoGui:
     def __init__(self, user_input_pin, update_graphics_pout, piano_keys):
         '''
-        initialize the screen of the pygame piano.
+        Initialize the screen of the pygame piano.
 
         Parameters
         ----------
@@ -99,17 +81,13 @@ class PianoGui:
             a pipe object for the pygame piano to send key press signals to the LF program.
         update_graphics_pout: multiprocessing.connection.PipeConnection
             a pipe object for the pygame piano to receive acutations from the LF program.
+        piano_keys: dict[str] -> tuple(str, int)
+            a mapping of keyboard characters to piano notes.
 
         Returns
         ----------
         None
         '''
-        driver = None
-        if sys.platform == "linux" or sys.platform == "linux2":
-            driver = "alsa"
-        if not fluidsynth.init(SF2, driver):
-            print("Failed to initialize fluidsynth or load soundfont: ", SF2)
-            sys.exit(1)
         self.user_input_pin = user_input_pin
         self.update_graphics_pout = update_graphics_pout
         self.note_to_key = {v: k for k, v in piano_keys.items()}
@@ -126,8 +104,6 @@ class PianoGui:
         # Reset display to wrap around the keyboard image
         pygame.display.set_mode((OCTAVES * self.width, self.height))
         pygame.display.set_caption("piano demo")
-        self.octave = LOWEST
-        self.channel = 8
 
         # pressed is a surface that is used to show where a key has been pressed
         self.pressed = pygame.Surface((self.white_key_width, self.height))
@@ -136,19 +112,21 @@ class PianoGui:
 
     def get_note_coordinate(self, note_name, octave):
         '''
-        calculates the x-coordinate of the note on the screen of the pygame piano
+        Calculates the x-coordinate of the note on the screen of the pygame piano
 
         Parameters
         ----------
-        note: mingus.containers.note.Note
-            a Note object
+        note_name: str
+            the name of the note (Ex. "C", "D#", etc...).
+        octave: int
+            the number of octave(s) above the lowest "C" note on the pygame piano.
 
         Returns
         ----------
         int
             the x-coordinate of the Note object on the screen.
         '''
-        octave_offset = (octave - LOWEST) * self.width
+        octave_offset = octave * self.width
         if note_name in WHITE_KEYS:
             coordinate = WHITE_KEYS.index(note_name) * self.white_key_width + octave_offset
         else:
@@ -167,56 +145,14 @@ class PianoGui:
         return coordinate
 
 
-    # def play_note(self, note):
-    #     '''
-    #     starts playing note
-    #
-    #     Parameters
-    #     ----------
-    #     note: mingus.containers.note.Note
-    #         a Note object
-    #
-    #     Returns
-    #     ----------
-    #     None
-    #     '''
-    #     coordinate = self.get_note_coordinate(note)
-    #     if note.name in WHITE_KEYS:
-    #         self.playing_w.append((coordinate, note))
-    #     else:
-    #         self.playing_b.append((coordinate, note))
-    #     fluidsynth.play_Note(note, self.channel, 100)
-    #
-    #
-    # def stop_note(self, note):
-    #     '''
-    #     stops playing note
-    #
-    #     Parameters
-    #     ----------
-    #     note: mingus.containers.note.Note
-    #         a Note object
-    #
-    #     Returns
-    #     ----------
-    #     None
-    #     '''
-    #     coordinate = self.get_note_coordinate(note)
-    #     if note.name in WHITE_KEYS:
-    #         self.playing_w.remove((coordinate, note))
-    #     else:
-    #         self.playing_b.remove((coordinate, note))
-    #     fluidsynth.stop_Note(note, self.channel)
-
-
     def listen_for_graphics_update(self):
         '''
-        stops playing note
+        Receives graphics update from the LF program.
+            Redraw the screen upon receiving graphics update.
 
         Parameters
         ----------
-        note: mingus.containers.note.Note
-            a Note object
+        None
 
         Returns
         ----------
@@ -229,17 +165,32 @@ class PianoGui:
                 pygame.quit()
                 return
             self.blit_keyboard()
+
+            # draw the pressed white keys
             for note_name, octave in playing_notes:
                 if note_name in WHITE_KEYS:
-                    # draw the pressed white keys
-                    self.screen.blit(self.pressed, (self.get_note_coordinate(note_name, self.octave + octave), 0), None, pygame.BLEND_SUB)
-                elif note_name in BLACK_KEYS:
-                    # draw the pressed black keys
-                    self.screen.blit(self.pressed, (self.get_note_coordinate(note_name, self.octave + octave), 1), (0, 0, 19, 68), pygame.BLEND_ADD)
+                    self.screen.blit(self.pressed, (self.get_note_coordinate(note_name, octave), 0), None, pygame.BLEND_SUB)
+
+            # draw the pressed black keys
+            for note_name, octave in playing_notes:
+                if note_name in BLACK_KEYS:
+                    self.screen.blit(self.pressed, (self.get_note_coordinate(note_name, octave), 1), (0, 0, 19, 68), pygame.BLEND_ADD)
             pygame.display.flip()
 
 
     def blit_keyboard(self):
+        '''
+        Draws the piano keyboard and the key presses for each note.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None
+        '''
+
         # Displaying the keyboard
         for i in range(OCTAVES):
             self.screen.blit(self.key_graphic, (i * self.width, 0))
@@ -248,13 +199,13 @@ class PianoGui:
             for j, white_key in enumerate(WHITE_KEYS):
                 key_surface = self.font.render(self.note_to_key[(white_key, i)], False, (0, 0, 0))
                 self.screen.blit(key_surface,
-                                 (self.get_note_coordinate(white_key, self.octave + i) + self.white_key_width / 2, self.height * 0.8))
+                                 (self.get_note_coordinate(white_key, i) + self.white_key_width / 2, self.height * 0.8))
 
             # Displaying the text for each black key
             for j, black_key in enumerate(BLACK_KEYS):
                 key_surface = self.font.render(self.note_to_key[(black_key, i)], False, (255, 255, 255))
                 self.screen.blit(key_surface,
-                                 (self.get_note_coordinate(black_key, self.octave + i) + self.white_key_width / 3, self.height * 0.2))
+                                 (self.get_note_coordinate(black_key, i) + self.white_key_width / 3, self.height * 0.2))
 
 
     def start(self):
@@ -272,8 +223,9 @@ class PianoGui:
         self.blit_keyboard()
         pygame.display.flip()
 
-        t = Thread(target=self.listen_for_graphics_update)
-        t.start()
+        listener = Thread(target=self.listen_for_graphics_update)
+        listener.daemon = True
+        listener.start()
 
         try:
             while 1:
