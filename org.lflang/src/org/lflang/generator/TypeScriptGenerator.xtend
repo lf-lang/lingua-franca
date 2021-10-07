@@ -1248,7 +1248,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
      */
     override timeInTargetLanguage(TimeValue value) {
-        if (value.unit != TimeUnit.NONE) {
+        if (value.unit !== null) {
             '''TimeValue.«value.unit»(«value.time»)'''
         } else {
             // The value must be zero.

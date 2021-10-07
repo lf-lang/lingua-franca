@@ -29,7 +29,6 @@ package org.lflang.generator
 
 import org.lflang.TimeValue
 import org.lflang.lf.Deadline
-import org.lflang.lf.TimeUnit
 
 import static extension org.lflang.ASTUtils.*
 
@@ -47,7 +46,7 @@ class DeadlineInstance {
      * The delay D associated with this deadline. If physical time T < logical
      * time t + D, the deadline is met, otherwise, it is violated.
 	 */
-	public TimeValue maxDelay = new TimeValue(0, TimeUnit.NONE)
+	public TimeValue maxDelay = new TimeValue()
 	
 	/**
 	 * Create a new deadline instance associated with the given reaction

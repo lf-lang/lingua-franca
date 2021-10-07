@@ -481,6 +481,60 @@ class LinguaFrancaValidationTest {
         ''').assertNoErrors()
             
     }
+
+
+    /**
+     * Let cyclic dependencies be broken by "after" clauses with zero delay.
+     */
+    @Test
+    def void afterBreaksCycle2() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 0 sec
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
+    }
+
+
+    /**
+     * Let cyclic dependencies be broken by "after" clauses with zero delay and no units.
+     */
+    @Test
+    def void afterBreaksCycle3() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 0
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
+    }
     
     /**
      * Report non-zero time value without units.
@@ -497,7 +551,7 @@ class LinguaFrancaValidationTest {
              }
         ''').assertError(LfPackage::eINSTANCE.value,
             null, "Missing time units. Should be one of " +
-            TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+            TimeUnit.VALUES)
     }    
     
     /**
@@ -695,7 +749,7 @@ class LinguaFrancaValidationTest {
             "Type declaration missing.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Missing time units. Should be one of " +
-            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+            	TimeUnit.VALUES)
         model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Invalid time literal.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
@@ -710,7 +764,7 @@ class LinguaFrancaValidationTest {
             "Uninitialized parameter.")
        	model.assertError(LfPackage::eINSTANCE.value, null,
             "Missing time units. Should be one of " +
-            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+            	TimeUnit.VALUES)
     }  
     
     
