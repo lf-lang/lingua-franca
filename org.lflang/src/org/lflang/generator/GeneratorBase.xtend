@@ -47,8 +47,8 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
-import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.util.CancelIndicator
+import org.eclipse.xtext.validation.CheckMode
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -78,7 +78,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Type
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
@@ -725,7 +724,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
-            if (time.unit != TimeUnit.NONE) {
+            if (time.unit !== null) {
                 return time.unit.name() + '(' + time.time + ')'
             } else {
                 return time.time.toString()
@@ -1460,7 +1459,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         time = new TimeValue(d.interval, d.unit)
 
-        if (time.unit != TimeUnit.NONE) {
+        if (time.unit !== null) {
             return time.unit.name() + '(' + time.time + ')'
         } else {
             return time.time.toString()
@@ -1831,7 +1830,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         if (v.time !== null) {
             return v.time.targetTime
         } else if (v.isZero) {
-            val value = new TimeValue(0, TimeUnit.NONE)
+            val value = new TimeValue()
             return value.timeInTargetLanguage
         }
         return v.toText

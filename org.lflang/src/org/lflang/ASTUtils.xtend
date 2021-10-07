@@ -34,6 +34,7 @@ import java.util.List
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.TerminalRule
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
@@ -63,14 +64,12 @@ import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
 import org.lflang.lf.Type
 import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
-import org.eclipse.emf.ecore.util.EcoreUtil
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 
@@ -334,7 +333,7 @@ class ASTUtils {
         delayParameter.type.id = "time"
         delayParameter.type.time = true
         val defaultTime = factory.createTime
-        defaultTime.unit = TimeUnit.NONE
+        defaultTime.unit = null
         defaultTime.interval = 0
         val defaultValue = factory.createValue
         defaultValue.time = defaultTime
@@ -982,7 +981,7 @@ class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     def static boolean isValidTime(Time t) {
-        if (t !== null && t.unit != TimeUnit.NONE) {
+        if (t !== null && t.unit !== null) {
             return true
         }
         return false
@@ -1024,7 +1023,7 @@ class ASTUtils {
             // Or it has to be initialized as a proper time with units.
             if (p.init !== null && p.init.size == 1) {
                 val time = p.init.get(0).time
-                if (time !== null && time.unit != TimeUnit.NONE) {
+                if (time !== null && time.unit !== null) {
                     return true
                 }
             } 
@@ -1074,7 +1073,7 @@ class ASTUtils {
                 // Parameter value refers to another parameter.
                 return getInitialTimeValue(init.parameter) 
             } else {
-                return new TimeValue(0, TimeUnit.NONE)
+                return new TimeValue()
             }
         }
         return null
@@ -1091,7 +1090,7 @@ class ASTUtils {
         } else if (v.time !== null) {
             return new TimeValue(v.time.interval, v.time.unit)
         } else {
-            return new TimeValue(0, TimeUnit.NONE)
+            return new TimeValue()
         }
     }
         

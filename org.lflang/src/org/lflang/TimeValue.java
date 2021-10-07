@@ -58,11 +58,19 @@ public final class TimeValue implements Comparable<TimeValue> {
     public static final long MAX_LONG_DEADLINE = Long.decode("0x7FFFFFFFFFFF");
 
     /**
+     * Create a new time value equal to zero.
+     */
+    public TimeValue() {
+        this.time = 0;
+        this.unit = null;
+    }
+    
+    /**
      * Create a new time value. Throws an exception time is non-zero and no
      * units are given.
      */
     public TimeValue(long time, TimeUnit unit) {
-        if (unit == TimeUnit.NONE && time != 0) {
+        if (unit == null && time != 0) {
             throw new IllegalArgumentException("Non-zero time values must have a unit");
         }
         this.time = time;
@@ -70,9 +78,10 @@ public final class TimeValue implements Comparable<TimeValue> {
     }
 
     private static long makeNanosecs(long time, TimeUnit unit) {
-        switch (unit) {
-        case NONE:
+        if (unit == null) {
             return time; // == 0, see constructor.
+        }
+        switch (unit) {
         case NSEC:
         case NSECS:
             return time;
@@ -131,7 +140,7 @@ public final class TimeValue implements Comparable<TimeValue> {
      * Return a string representation of this time value.
      */
     public String toString() {
-        return unit != TimeUnit.NONE ? time + " " + unit
+        return unit != null ? time + " " + unit
                                      : Long.toString(time);
     }
 
@@ -154,10 +163,10 @@ public final class TimeValue implements Comparable<TimeValue> {
             return MAX_VALUE;
         }
 
-        if (this.unit == TimeUnit.NONE || b.unit == TimeUnit.NONE) {
+        if (this.unit == null || b.unit == null) {
             // A time value with no unit is necessarily zero. So
-            // if this is none, (this + b) == b, if b is none, (this+b) == this.
-            return b.unit == TimeUnit.NONE ? this : b;
+            // if this is null, (this + b) == b, if b is none, (this+b) == this.
+            return b.unit == null ? this : b;
         }
         boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
         TimeUnit smallestUnit = isThisUnitSmallerThanBUnit ? this.unit : b.unit;

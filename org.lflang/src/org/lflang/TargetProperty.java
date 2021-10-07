@@ -13,7 +13,6 @@ import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
-import org.lflang.lf.TimeUnit;
 import org.lflang.validation.LFValidatorImpl;
 
 /**
@@ -919,7 +918,7 @@ public enum TargetProperty {
         TIME_VALUE("a time value with units", v ->
             v.getKeyvalue() == null && v.getArray() == null
                 && v.getLiteral() == null && v.getId() == null
-                && (v.getTime() == 0 || v.getUnit() != TimeUnit.NONE)),
+                && (v.getTime() == 0 || v.getUnit() != null)),
         STRING("a string", v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
         FILE("a path to a file", STRING.validator);
     
