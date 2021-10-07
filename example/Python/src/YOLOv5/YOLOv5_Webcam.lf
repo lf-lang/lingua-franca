@@ -1,5 +1,6 @@
 /**
- * 
+ * Example of a Deep Neural Network (YOLOv5) in LF.
+ * Please see README.md for instructions.
  * Adapted from 
  * https://towardsdatascience.com/implementing-real-time-object-detection-system-using-pytorch-and-opencv-70bac41148f7
  */
@@ -30,6 +31,8 @@ reactor WebCam {
         if (self.stream.isOpened() is not True):
             sys.stderr.write("Error: Failed to capture from the webcam.\n")
             exit(1)
+            
+        self.stream.set(self.cv2.CAP_PROP_FPS, 30) # Set the camera's FPS to 30
             
         self.thread_should_be_running = self.threading.Event()
         self.thread_should_be_running.set()
@@ -87,7 +90,11 @@ reactor DNN {
     =}
 }
 
-reactor Plotter {
+/**
+ * Plot frames with labels superimposed on top of
+ * each object in the frame.
+ */
+reactor Plotter(label_deadline(100 msec)) {
     input frame
     input labels
     input label_coordinates
@@ -98,17 +105,27 @@ reactor Plotter {
         import cv2
     =}
     
+    /**
+     * Receive the DNN model
+     */
     reaction(model) {=
         self._model = model.value
         print("\n******* Press 'q' to exit *******\n")
     =}
     
+    /**
+     * Impose a deadline on object labels
+     */
     reaction(labels) {=
         # DNN output was on time
-    =} deadline(100 msec) {=
+    =} deadline(label_deadline) {=
         print(f"Received the DNN output late by about {(get_physical_time() - get_logical_time())/1000000}ms.")
     =}
     
+    /**
+     * Given a frame, object labels, and the corresponding
+     * object label coordinates, draw an interactive OpenCV window.
+     */
     reaction(frame, labels, label_coordinates) {=
         if  (not frame.is_present or 
              not labels.is_present or 
@@ -116,6 +133,7 @@ reactor Plotter {
              sys.stderr.write("Error: Expected all inputs to be present at the same time.\n")
              request_stop()
         
+        # Get how many labels we have
         n = len(labels.value)
         x_shape, y_shape = frame.value.shape[1], frame.value.shape[0]
         for i in range(n):
