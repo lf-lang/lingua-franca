@@ -1,6 +1,6 @@
-To run the example:
+To run the example(s):
 
     python3 -m pip install -r requirements.txt
-    lfc YOLOv5_Webcam.lf
+    lfc YOLOv5_Webcam.lf # (or lfc YOLOv5_Webcam_Timer.lf)
 
-Follow the instruction from lfc to run the program.
+Follow the instructions printed by `lfc` to run the program.
