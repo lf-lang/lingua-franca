@@ -31,6 +31,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.LFRuntimeModule;
+import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.LFInjectorProvider;
@@ -40,6 +42,7 @@ import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.google.inject.Provider;
 
 @ExtendWith(InjectionExtension.class)
@@ -105,7 +108,13 @@ public abstract class TestBase {
      * Force the instantiation of the test registry.
      */
     protected TestBase() {
-        TestRegistry.initialize();
+        this(true);
+    }
+
+    private TestBase(boolean initRegistry) {
+        if (initRegistry) {
+            TestRegistry.initialize();
+        }
     }
 
     // Tests.
@@ -223,6 +232,20 @@ public abstract class TestBase {
                 checkAndReportFailures(tests);
             }
         }
+    }
+
+    public static void runSingleTestAndPrintResults(LFTest test) {
+        Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+        TestBase runner = new TestBase(false) {};
+        injector.injectMembers(runner);
+
+        Set<LFTest> tests = Set.of(test);
+        try {
+            runner.validateAndRun(tests, t -> true);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+        runner.checkAndReportFailures(tests);
     }
 
 

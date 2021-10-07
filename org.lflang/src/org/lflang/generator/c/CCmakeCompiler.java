@@ -30,10 +30,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.eclipse.xtext.util.CancelIndicator;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Mode;
 import org.lflang.TargetConfig;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.util.LFCommand;
 
 
@@ -43,11 +46,24 @@ import org.lflang.util.LFCommand;
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
-class CCmakeCompiler extends CCompiler {
-    // FIXME: This does not override the compileCCommand
-    //  method because there is no single command that
-    //  compiles; however, it is not clear why
-    //  compileCCommand is public in the first place.
+public class CCmakeCompiler extends CCompiler {
+    
+    /**
+     * Create an instance of CCmakeCompiler.
+     * 
+     * @param targetConfig The current target configuration.
+     * @param fileConfig The current file configuration.
+     * @param errorReporter Used to report errors.
+     * @param CppMode Indicate if the compilation should happen in C++ mode
+     */
+    public CCmakeCompiler(
+            TargetConfig targetConfig, 
+            FileConfig fileConfig, 
+            ErrorReporter errorReporter, 
+            boolean CppMode
+            ) {
+        super(targetConfig, fileConfig, errorReporter, CppMode);
+    }
 
     /**
      * Create an instance of CCmakeCompiler.
@@ -66,38 +82,105 @@ class CCmakeCompiler extends CCompiler {
      * @param file The source file to compile without the .c extension.
      * @param noBinary If true, the compiler will create a .o output instead of a binary. 
      *  If false, the compile command will produce a binary.
+     * @param generator An instance of GenratorBase, only used to report error line numbers
+     *  in the Eclipse IDE.
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary) throws IOException {
+    @Override
+    public boolean runCCompiler(
+        String file,
+        boolean noBinary,
+        GeneratorBase generator,
+        CancelIndicator cancelIndicator
+    ) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        // Remove the previous build directory if it exists to 
+        // avoid any error residue that can occur in CMake from 
+        // a previous build.
+        // FIXME:This is slow and only needed if an error 
+        // has previously occurred. Deleting the build directory
+        // if no prior errors have occurred can prolong the compilation
+        // substantially.
+        fileConfig.deleteDirectory(buildPath);
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
-        int configureReturnCode = configure();
-        int buildReturnCode = 0;
-        // Do not compile if the code generator is being
-        //  invoked from an IDE or text editor without the
-        //  user's explicit request.
-        if (configureReturnCode == 0) {
-            buildReturnCode = build();
+
+        LFCommand compile = compileCmakeCommand(file, noBinary);
+        if (compile == null) {
+            return false;
         }
-        return configureReturnCode == 0 && buildReturnCode == 0;
+
+        // Use the user-specified compiler if any
+        if (targetConfig.compiler != null) {
+            if (CppMode) {
+                // Set the CXX environment variable to change the C++ compiler.
+                compile.replaceEnvironmentVariable("CXX", targetConfig.compiler);
+            } else {
+                // Set the CC environment variable to change the C compiler.
+                compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
+            }
+        }
+        
+        int cMakeReturnCode = compile.run(cancelIndicator);
+        
+        if (cMakeReturnCode != 0 && 
+                fileConfig.getCompilerMode() == Mode.STANDALONE &&
+                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+            errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
+        }
+        
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (compile.getErrors().toString().length() > 0 && 
+                fileConfig.getCompilerMode() != Mode.STANDALONE &&
+                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+            generator.reportCommandErrors(compile.getErrors().toString());
+        }
+        
+        int makeReturnCode = 0;
+
+        if (cMakeReturnCode == 0) {            
+            LFCommand build = buildCmakeCommand(file, noBinary);
+            
+            makeReturnCode = build.run(cancelIndicator);
+            
+            if (makeReturnCode != 0 && 
+                    fileConfig.getCompilerMode() == Mode.STANDALONE &&
+                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+                errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
+            }
+            
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (build.getErrors().toString().length() > 0 && 
+                    fileConfig.getCompilerMode() != Mode.STANDALONE &&
+                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+                generator.reportCommandErrors(build.getErrors().toString());
+            }
+            
+
+            if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+                System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
+            }
+            
+        }
+        return cMakeReturnCode == 0 && makeReturnCode == 0;
     }
     
     /**
      * Return a command to configure the specified C file
      * using CMake.
      * This produces a C-specific configure command.
+     * @param fileToCompile The C filename without the .c extension.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      */
-    private LFCommand configureCmakeCommand() {
-
-        if (!targetConfig.compileLibraries.isEmpty()) {
-            errorReporter.reportError("The current CMake build system does not support -l libraries.\n"+
-                                        "Use the 'cmake-include' target property to include a CMakeLists file\n"+
-                                        "with the appropriate library discovery syntax.");
-        }
-        
+    public LFCommand compileCmakeCommand(
+            String fileToCompile, 
+            boolean noBinary
+    ) {        
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         
@@ -114,7 +197,7 @@ class CCmakeCompiler extends CCompiler {
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
-                    "The C target requires CMAKE >= 3.5 to compile the generated code. " +
+                    "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. " +
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
@@ -124,12 +207,17 @@ class CCmakeCompiler extends CCompiler {
      * Return a command to build (compile and link) the
      * specified C file using CMake.
      * This produces a C-specific build command.
-     *
-     * It appears that configuration and build cannot
-     * happen in one command. Therefore, this is separated
-     * into a configuration command and a build command.
+     * @note It appears that configuration and build cannot happen in one command.
+     *  Therefore, this is separated into a compile and a build command. 
+     * 
+     * @param fileToCompile The C filename without the .c extension.
+     * @param noBinary If true, the compiler will create a .o output instead of a binary. 
+     *  If false, the compile command will produce a binary.
      */
-    private LFCommand buildCmakeCommand() {
+    public LFCommand buildCmakeCommand(
+            String fileToCompile, 
+            boolean noBinary
+    ) { 
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
@@ -141,66 +229,42 @@ class CCmakeCompiler extends CCompiler {
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
-                    "The C target requires CMAKE >= 3.5 to compile the generated code. " +
+                    "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. " +
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
     }
-
-    private int configure() {
-        LFCommand configure = configureCmakeCommand();
-        if (configure == null) {
-            return 1;
-        }
-
-        // Use the user-specified compiler if any
-        if (targetConfig.compiler != null) {
-            // cmakeEnv.remove("CXX");
-            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
-                // Interpret this as the user wanting their .c programs to be treated as
-                // C++ files. We can't just simply use g++ to compile C code. We use a
-                // specific CMake flag to set the language of all .c files to C++.
-            } else {
-                configure.replaceEnvironmentVariable("CC", targetConfig.compiler);
-            }
-            // cmakeEnv.put("CXX", targetConfig.compiler);
-        }
-
-        int returnCode = configure.run();
-
-        if (returnCode != 0 && fileConfig.getCompilerMode() == Mode.STANDALONE) {
-            // FIXME: Why is the error code attributed to the compiler if it is actually received via CMake? Is it
-            //  possible that the source of the error code is not the compiler?
-            errorReporter.reportError(
-                targetConfig.compiler + " terminated with error code " + returnCode
-                    + ". Cmake output:\n" + configure.getOutput().toString()
-            );
-        }
-
-        return returnCode;
-    }
-
+    
     /**
-     * Compiles the generated target code.
-     * @return the return code from invoking CMake
+     * Check if the output produced by CMake has any known and common errors.
+     * If a known error is detected, a specialized, more informative message
+     * is shown.
+     * 
+     * Errors currently detected:
+     * - C++ compiler used to compile C files: This error shows up as 
+     *  '#error "The CMAKE_C_COMPILER is set to a C++ compiler"' in 
+     *  the 'CMakeOutput' string.
+     * 
+     * @param CMakeOutput The captured output from CMake.
+     * @return true if the provided 'CMakeOutput' contains a known error.
+     *  false otherwise.
      */
-    private int build() {
-        LFCommand build = buildCmakeCommand();
-
-        int makeReturnCode = build.run();
-
-        if (makeReturnCode != 0) {
-            errorReporter.reportError(
-                "CMake terminated with error code " + makeReturnCode + ". Output:\n" + build.getOutput().toString()
-            );
+    private boolean outputContainsKnownCMakeErrors(String CMakeOutput) {
+        // Check if the error thrown is due to the wrong compiler
+        if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
+            // If so, print an appropriate error message
+            if (targetConfig.compiler != null) {
+                errorReporter.reportError(
+                        "A C++ compiler was requested in the compiler target property."
+                                + " Use the CCpp or the Cpp target instead.");
+            } else {
+                errorReporter.reportError("\"A C++ compiler was detected."
+                       + " The C target works best with a C compiler." 
+                       + " Use the CCpp or the Cpp target instead.\"");
+            }
+            return true;
         }
-
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (build.getErrors().toString().length() > 0) {
-            errorReporter.reportError(build.getErrors().toString());
-        }
-        return makeReturnCode;
+        return false;
     }
     
 }

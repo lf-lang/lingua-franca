@@ -5,16 +5,6 @@ node {
     download = true
 }
 
-// OLD language server without diagram support
-// INACTIVE, due to removed dependency in generateVSCodeExtension
-task copyLSJar(type: Sync) {
-    def ide = project(':org.lflang.ide')
-    dependsOn ide.tasks.generateLanguageServer
-    from ide.buildDirectory.file('libs/org.lflang.ide-1.0.0-SNAPSHOT-ls.jar')
-    rename '.*', 'lflang.jar'
-    into './ls'
-}
-
 task copyNonEclipseSupportedDependencies(type: Copy) {
     from project(':org.lflang').configurations.lds
     into '../org.lflang.lds/non_eclipse_supported'

@@ -152,6 +152,7 @@ do { \
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
+#ifndef __cplusplus
 #define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
@@ -159,6 +160,15 @@ do { \
     out->value = token->value; \
     out->token = token; \
 } while(0)
+#else
+#define _LF_SET_NEW(out) \
+do { \
+    out->is_present = true; \
+    lf_token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    out->value = static_cast<decltype(out->value)>(token->value); \
+    out->token = token; \
+} while(0)
+#endif // __cplusplus
 
 /**
  * Version of set() for output types given as 'type[]'.
