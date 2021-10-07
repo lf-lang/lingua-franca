@@ -18,6 +18,8 @@ public class Messages extends NLS {
 	public static String WebServerProject_Description;
 	public static String ReflexGameProject_Label;
 	public static String ReflexGameProject_Description;
+	public static String FederatedProject_Label;
+	public static String FederatedProject_Description;
 	
 	static {
 	// initialize resource bundle
