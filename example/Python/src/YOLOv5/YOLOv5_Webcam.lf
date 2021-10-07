@@ -6,7 +6,16 @@
  */
 target Python;
 
-reactor WebCam {
+/**
+ * Use OpenCV2 to read from the user webcam.
+ * 
+ * Camera frames are captured into the LF program
+ * via a physical action.
+ * 
+ * 'webcam_id' (default 0) can be adjusted
+ *  according your the local setup.
+ */
+reactor WebCam(webcam_id(0)) {
     output camera_frame
     state stream
     state video_capture_thread
@@ -27,7 +36,7 @@ reactor WebCam {
             return None
     =}
     reaction(startup) -> frame_action {=
-        self.stream = self.cv2.VideoCapture(0, self.cv2.CAP_ANY)
+        self.stream = self.cv2.VideoCapture(self.webcam_id, self.cv2.CAP_ANY)
         if (self.stream.isOpened() is not True):
             sys.stderr.write("Error: Failed to capture from the webcam.\n")
             exit(1)
@@ -51,6 +60,11 @@ reactor WebCam {
     =}
 }
 
+/**
+ * A YOLOv5 DNN that takes a frame as input and
+ * produces object 'labels' and object label coordinates
+ * (where each label/object is on the frame).
+ */
 reactor DNN {
     // Image input frame
     input frame
@@ -174,9 +188,13 @@ main reactor {
     dnn = new DNN()
     plotter = new Plotter()
     
+    // Send the camera frame to the DNN to be process and to the plotter to be depicted
     (webcam.camera_frame)+ -> dnn.frame, plotter.frame
+    // Send outputs of the DNN (object labels and their coordinates) to the plotter
     dnn.labels, dnn.label_coordinates -> plotter.labels, plotter.label_coordinates
     
+    // Send the DNN model to the plotter. It will be used to extract the human-readable names
+    // of each label.
     dnn.model -> plotter.model
     
 }

@@ -10,6 +10,15 @@ target Python;
 
 import DNN, Plotter from "YOLOv5_Webcam.lf"
 
+/**
+ * Use OpenCV2 to read from the user webcam.
+ * 
+ * Camera frames are captured periodically
+ * using a timer.
+ * 
+ * 'webcam_id' (default 0) can be adjusted
+ *  according your the local setup.
+ */
 reactor WebCam {
     output camera_frame
     state stream
