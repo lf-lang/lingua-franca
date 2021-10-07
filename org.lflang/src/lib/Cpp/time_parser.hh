@@ -33,8 +33,58 @@
 
 std::string time_to_quoted_string(const reactor::Duration& dur) {
   std::stringstream ss;
-  ss << '\'' << dur.count() << " nsecs" << '\'';
+  ss << dur.count() << " nsecs";
   return ss.str();
+}
+
+std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
+  double value;
+  std::string unit;
+
+  // try to read as double
+  in >> value;
+
+  if (value == 0.0) {
+    dur = reactor::Duration::zero();
+    if (!in.eof()) {
+      // parse whatever remains
+      in >> unit;
+    }
+  } else {
+    in >> unit;
+    if (unit == "nsec" || unit == "nsecs") {
+      std::chrono::duration<double, std::nano> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "usec" || unit == "usecs") {
+      std::chrono::duration<double, std::micro> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "msec" || unit == "msecs") {
+      std::chrono::duration<double, std::milli> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "sec" || unit == "secs" ||
+               unit == "second" || unit == "seconds") {
+      std::chrono::duration<double, std::ratio<1, 1>> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "min" || unit == "mins" ||
+               unit == "minute" || unit == "minutes") {
+      std::chrono::duration<double, std::ratio<60, 1>> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "hour" || unit == "hours") {
+      std::chrono::duration<double, std::ratio<3600, 1>> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "day" || unit == "days") {
+      std::chrono::duration<double, std::ratio<24*3600, 1>> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else if (unit == "week" || unit == "weeks") {
+      std::chrono::duration<double, std::ratio<7*24*3600, 1>> tmp{value};
+      dur = std::chrono::duration_cast<reactor::Duration>(tmp);
+    } else {
+      // mark as error
+      in.setstate(std::ifstream::failbit);
+    }
+  }
+
+  return in;
 }
 
 std::istringstream &operator>>(std::istringstream& in, reactor::Duration& dur) {
