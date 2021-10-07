@@ -168,6 +168,11 @@ reactor StartFluidSynth {
     reaction(startup) -> play_sound_init, translate_init {=
         if not self.os.path.exists(self.soundfont):
             print("Error: Soundfont file does not exist.")
+            print("Try downloading a soundfont file from here (this is the soundfont used for testing the demo): ")
+            print("http://www.schristiancollins.com/generaluser.php")
+            print("Alternatively, pick and download a soundfont from here:")
+            print("https://github.com/FluidSynth/fluidsynth/wiki/SoundFont")
+            print("Rename the soundfont to \"soundfont.sf2\" and put it under the same directory as Piano.lf.")
             request_stop() 
             return
 
