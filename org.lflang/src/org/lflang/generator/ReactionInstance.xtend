@@ -31,11 +31,11 @@ import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
+import org.lflang.TimeUnit
 
 /**
  * Representation of a runtime instance of a reaction.

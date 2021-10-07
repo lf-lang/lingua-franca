@@ -25,8 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
-import org.lflang.lf.TimeUnit;
-
 /**
  * Represents an amount of time (a duration).
  *
@@ -37,7 +35,7 @@ public final class TimeValue implements Comparable<TimeValue> {
     /**
      * The maximum value of this type. This is approximately equal to 292 years.
      */
-    public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NSECS);
+    public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NSEC);
 
     /**
      * Primitive numerical representation of this time value,
@@ -65,6 +63,15 @@ public final class TimeValue implements Comparable<TimeValue> {
         this.unit = null;
     }
     
+    public TimeValue(long time, String unit) {
+        this.time = 0;
+        if (time == 0) {
+            this.unit = null;
+        } else {
+            this.unit = TimeUnit.fromString(unit);
+        }
+    }
+    
     /**
      * Create a new time value. Throws an exception time is non-zero and no
      * units are given.
@@ -83,32 +90,20 @@ public final class TimeValue implements Comparable<TimeValue> {
         }
         switch (unit) {
         case NSEC:
-        case NSECS:
             return time;
         case USEC:
-        case USECS:
             return time * 1000;
         case MSEC:
-        case MSECS:
             return time * 1_000_000;
         case SEC:
-        case SECS:
-        case SECOND:
-        case SECONDS:
             return time * 1_000_000_000;
         case MIN:
-        case MINS:
-        case MINUTE:
-        case MINUTES:
             return time * 60_000_000_000L;
-        case HOURS:
         case HOUR:
             return time * 3_600_000_000_000L;
         case DAY:
-        case DAYS:
             return time * 86_400_000_000_000L;
         case WEEK:
-        case WEEKS:
             return time * 604_800_016_558_522L;
         }
         throw new AssertionError("unreachable");

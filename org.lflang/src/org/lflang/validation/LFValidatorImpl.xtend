@@ -76,7 +76,6 @@ import org.lflang.lf.Serializer
 import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
 import org.lflang.lf.Type
 import org.lflang.lf.TypedVariable
@@ -88,6 +87,8 @@ import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.SupportedSerializers
+import org.lflang.lf.Delay
+import org.lflang.TimeUnit
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -310,7 +311,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                         // This is a value. Check that units are present.
                     error(
                         "Invalid time units: " + assignment.rhs +
-                            ". Should be one of " + TimeUnit.VALUES, Literals.ASSIGNMENT__RHS)
+                            ". Should be one of " + TimeUnit.values(), Literals.ASSIGNMENT__RHS)
                     } else {
                         // This is a reference to another parameter. Report problem.
                 error(
@@ -366,6 +367,14 @@ class LFValidatorImpl extends AbstractLFValidator {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                 }
             }
+        }
+    }
+
+    @Check(FAST)
+    def checkDelay(Delay delay) {
+        if (delay.parameter === null && delay.interval != 0 && delay.unit === null) {
+            error("Missing time units. Should be one of " +
+                                TimeUnit.values(), Literals.DELAY__INTERVAL)
         }
     }
 
@@ -765,7 +774,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                     if (init !== null && !init.isZero) {
                         if (init.isInteger) {
                             error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES, Literals.PARAMETER__INIT)
+                                TimeUnit.values(), Literals.PARAMETER__INIT)
                         } else {
                             error("Invalid time literal.",
                                 Literals.PARAMETER__INIT)
@@ -1160,7 +1169,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                                 if (init.isInteger) {
                                     error(
                                         "Missing time units. Should be one of " +
-                                            TimeUnit.VALUES, Literals.STATE_VAR__INIT)
+                                            TimeUnit.values(), Literals.STATE_VAR__INIT)
                                 } else {
                                     error("Invalid time literal.",
                                         Literals.STATE_VAR__INIT)
@@ -1286,7 +1295,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                 if (value.literal !== null && !value.literal.isZero) {
                     if (value.literal.isInteger) {
                             error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES, Literals.VALUE__LITERAL)
+                                TimeUnit.values(), Literals.VALUE__LITERAL)
                         } else {
                             error("Invalid time literal.",
                                 Literals.VALUE__LITERAL)
@@ -1294,7 +1303,7 @@ class LFValidatorImpl extends AbstractLFValidator {
                 } else if (value.code !== null && !value.code.isZero) {
                     if (value.code.isInteger) {
                             error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES, Literals.VALUE__CODE)
+                                TimeUnit.values(), Literals.VALUE__CODE)
                         } else {
                             error("Invalid time literal.",
                                 Literals.VALUE__CODE)
