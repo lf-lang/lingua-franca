@@ -400,6 +400,16 @@ terminal WS: (' '|'\t'|'\r'|'\n')+;
 
 terminal TRUE:  'true' | 'True';
 terminal FALSE: 'false' | 'False';
+
+terminal NSEC: 'nsec' | 'nsecs';
+terminal USEC: 'usec' | 'usecs';
+terminal MSEC: 'msec' | 'msecs';
+terminal SEC: 'sec' | 'secs' | 'second' | 'seconds';
+terminal MIN: 'min' | 'mins' | 'minute' | 'minutes';
+terminal HOUR: 'hour' | 'hours';
+terminal DAY: 'day' | 'days';
+terminal WEEK: 'week' | 'weeks';
+
 terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 
 terminal INT returns ecore::EInt:     ('0'..'9')+;
@@ -480,15 +490,7 @@ enum ActionOrigin:
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
-enum TimeUnit:
-    NSEC='nsec' | NSECS='nsecs' |
-    USEC='usec' | USECS='usecs' |
-    MSEC='msec' | MSECS='msecs' |
-    SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' |
-    MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' |
-    HOUR='hour' | HOURS='hours' |
-    DAY='day' | DAYS='days' |
-    WEEK='week' | WEEKS='weeks';
+TimeUnit: NSEC | USEC | MSEC | SEC | MIN | HOUR | DAY | WEEK;
 
 // An arbitrary sequence of terminals.
 Body:
@@ -515,9 +517,7 @@ Token:
     // Visibility modifiers
     'private' | 'public' |
     // Time units
-    'nsec' | 'nsecs' | 'usec' | 'usecs' | 'msec' | 'msecs' | 'sec' | 'secs' | 
-    'second' | 'seconds' | 'min' | 'mins' | 'minute' | 'minutes' | 'hour' |
-    'hours' | 'day' | 'days' | 'week' | 'weeks' |
+    TimeUnit |
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets

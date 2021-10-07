@@ -50,7 +50,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;

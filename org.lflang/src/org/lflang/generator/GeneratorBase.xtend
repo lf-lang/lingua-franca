@@ -85,6 +85,7 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.TimeUnit
 
 /**
  * Generator base class for shared code between code generators.

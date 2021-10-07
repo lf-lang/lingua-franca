@@ -30,7 +30,6 @@ import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.TimeUnit
 
 import static extension org.lflang.ASTUtils.*
 
