@@ -35,7 +35,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
-import org.lflang.generator.FederateInstance
+import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.ts.sourcemap.SourceMapBuilder
@@ -45,9 +45,10 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.io.File
 import java.lang.StringBuilder
 import java.nio.file.Files
-import java.util.LinkedList
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import java.util.*
+import org.lflang.federated.SupportedSerializers
 
 /**
  * Generator for TypeScript target.
@@ -105,10 +106,6 @@ class TSGenerator(
     }
 
     // Wrappers to expose GeneratorBase methods.
-    fun prw(builder: StringBuilder, text: Any) = pr(builder, text)
-    fun indentw(builder: StringBuilder) = indent(builder)
-    fun unindentw(builder: StringBuilder) = unindent(builder)
-
     fun federationRTIPropertiesW() = federationRTIProperties
 
     fun getTargetValueW(v: Value): String = getTargetValue(v)
@@ -129,7 +126,7 @@ class TSGenerator(
      * @param output Where to put the output
      * @param eObject The node
      */
-    fun prSourcePosition(f: File, output: StringBuilder, eObject: EObject) {
+    fun prSourcePosition(f: File, eObject: EObject): String {
         // This implementation closely follows the implementation in
         // org.lflang.generator.c.CGenerator.xtend at e1111a0.
         val node: INode? = NodeModelUtils.getNode(eObject)
@@ -150,8 +147,9 @@ class TSGenerator(
                 precedingSegment = null // Context (where this code is relative
                 // to other generated code) is unavailable
             )
-            prw(output, "// <map ${segments.getMappings()}>")
+            return "// <map ${segments.getMappings()}>"
         }
+        return "" // TODO(peter) Determine whether it is preferable to throw a RuntimeException.
     }
 
     /**
@@ -190,7 +188,7 @@ class TSGenerator(
 
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
-            copyFileFromClassPath(
+            fileConfig.copyFileFromClassPath(
                 "/lib/TS/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
@@ -207,13 +205,13 @@ class TSGenerator(
             if (fsa.isFile(configFileInSrc)) {
                 // TODO(hokeun): Check if this logic is still necessary.
                 println("Copying '" + configFile + "' from " + fileConfig.srcPath)
-                copyFileFromClassPath(configFileInSrc, configFileDest)
+                fileConfig.copyFileFromClassPath(configFileInSrc, configFileDest)
             } else {
                 println(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
             }
         }
 
@@ -230,28 +228,27 @@ class TSGenerator(
 
             val tsCode = StringBuilder()
 
-            val preambleGenerator = TSPreambleGenerator(fileConfig.srcFile,
+            val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
-            val parameterGenerator = TSParameterGenerator(this, fileConfig, targetConfig, reactors)
+            val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
             val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
             tsCode.append(parameterCode)
 
             val reactorGenerator = TSReactorGenerator(this, errorReporter, File(tsFilePath.toString()))
             for (reactor in reactors) {
-                reactorGenerator.generateReactor(reactor, federate)
+                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
             }
-            reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters)
-            tsCode.append(reactorGenerator.getCode())
+            tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
             val (cleanedTsCode, sourceMap) = withSourceMap(tsCode.toString(), File(tsFilePath.toString()))
             fsa.generateFile(relativeTsFilePath, cleanedTsCode)
             fsa.generateFile("$relativeTsFilePath.map", sourceMap)
         }
-        if (!targetConfig.noCompile) compile(resource);
+        if (!targetConfig.noCompile) compile(resource, context);
     }
 
-    private fun compile(resource: Resource) {
+    private fun compile(resource: Resource, context: IGeneratorContext) {
 
         // Run necessary commands.
 
@@ -266,7 +263,7 @@ class TSGenerator(
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
-            val ret = pnpmInstall.run()
+            val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
@@ -285,7 +282,7 @@ class TSGenerator(
                 return
             }
 
-            if (npmInstall.run() != 0) {
+            if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
@@ -351,7 +348,7 @@ class TSGenerator(
             return
         }
 
-        if (tsc.run() == 0) {
+        if (tsc.run(context.cancelIndicator) == 0) {
             // Babel will compile TypeScript to JS even if there are type errors
             // so only run compilation if tsc found no problems.
             //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
@@ -364,7 +361,7 @@ class TSGenerator(
                 return
             }
 
-            if (babel.run() == 0) {
+            if (babel.run(context.cancelIndicator) == 0) {
                 println("SUCCESS (compiling generated TypeScript code)")
             } else {
                 errorReporter.reportError("Compiler failed.")
@@ -492,6 +489,7 @@ class TSGenerator(
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      * @param isPhysical Indicates whether or not the connection is physical
+     * @param serializer The serializer used on the connection.
      */
     override fun generateNetworkReceiverBody(
         action: Action,
@@ -503,15 +501,94 @@ class TSGenerator(
         receivingBankIndex: Int,
         receivingChannelIndex: Int,
         type: InferredType,
-        isPhysical: Boolean
+        isPhysical: Boolean,
+        serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
-        // FIXME: For now assume the data is a Buffer, but this is not checked.
-        // Replace with ProtoBufs or MessagePack.
+        |// FIXME: For now assume the data is a Buffer, but this is not checked.
+        |// Replace with ProtoBufs or MessagePack.
+        |// generateNetworkReceiverBody
         |if (${action.name} !== undefined) {
-        |    ${receivingPort.container.name}.${receivingPort.variable.name} = 
-        |    ${action.name}; // defaults to utf8 encoding
+        |    ${receivingPort.container.name}.${receivingPort.variable.name} = ${action.name}.toString(); // defaults to utf8 encoding
         |}
+        """.trimMargin()}
+    }
+
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network. This base class throws an exception.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param serializer The serializer used on the connection.
+     */
+    override fun generateNetworkSenderBody(
+        sendingPort: VarRef,
+        receivingPort: VarRef,
+        receivingPortID: Int,
+        sendingFed: FederateInstance,
+        sendingBankIndex: Int,
+        sendingChannelIndex: Int,
+        receivingFed: FederateInstance,
+        type: InferredType,
+        isPhysical: Boolean,
+        delay: Delay?,
+        serializer: SupportedSerializers
+    ): String {
+        return with(PrependOperator) {"""
+        |// FIXME: For now assume the data is a Buffer, but this is not checked.
+        |// Use SupportedSerializers for determining the serialization later.
+        |if (${sendingPort.container.name}.${sendingPort.variable.name} !== undefined) {
+        |    let buf = Buffer.from(${sendingPort.container.name}.${sendingPort.variable.name})
+        |    this.util.sendRTITimedMessage(buf, ${receivingFed.id}, ${receivingPortID});
+        |}
+        """.trimMargin()}
+    }
+
+
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     *
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
+     */
+    override fun generateNetworkOutputControlReactionBody(
+        port: VarRef?,
+        portID: Int,
+        receivingFederateID: Int,
+        sendingBankIndex: Int,
+        sendingChannelIndex: Int,
+        delay: Delay?
+    ): String? {
+        return with(PrependOperator) {"""
+        |// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody
+        """.trimMargin()}
+    }
+
+    /**
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
+     *
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     * that have port as their trigger or source
+     */
+    override fun generateNetworkInputControlReactionBody(receivingPortID: Int, maxSTP: TimeValue?): String? {
+        return with(PrependOperator) {"""
+        |// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody
         """.trimMargin()}
     }
 

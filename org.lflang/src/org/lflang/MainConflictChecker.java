@@ -2,7 +2,6 @@ package org.lflang;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -23,7 +22,7 @@ import org.lflang.lf.Reactor;
 import com.google.common.collect.Iterables;
 
 /**
- * Class that (up instantiation) determines whether there are any conflicting main reactors in the current package.
+ * Class that (upon instantiation) determines whether there are any conflicting main reactors in the current package.
  * Conflicts are reported in the instance's conflicts list.
  * 
  * @author Marten Lohstroh <marten@berkeley.edu>
