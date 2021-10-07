@@ -540,7 +540,7 @@ class LinguaFrancaValidationTest {
      * Let cyclic dependencies be broken by "after" clauses with zero delay and no units.
      */
     @Test
-    def void afterMustHaveUnits() {
+    def void nonzeroAfterMustHaveUnits() {
         parseWithoutError('''
             target C
             
@@ -557,7 +557,8 @@ class LinguaFrancaValidationTest {
                 a.y -> b.x after 1
             }
             
-        ''').assertNoErrors
+        ''').assertError(LfPackage::eINSTANCE.delay,
+            null, 'Missing time units. Should be one of ' + TimeUnit.list())
             
     }
 
@@ -577,8 +578,8 @@ class LinguaFrancaValidationTest {
                   =}
              }
         ''').assertError(LfPackage::eINSTANCE.value,
-            null, "Missing time units. Should be one of " +
-            TimeUnit.values())
+            null, "Missing time units. Should be one of: " +
+            TimeUnit.list())
     }    
     
     /**
