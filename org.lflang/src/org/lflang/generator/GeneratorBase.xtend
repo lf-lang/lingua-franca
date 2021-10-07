@@ -954,6 +954,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
         public var character = "0"
         public var message = ""
         public var isError = true // false for a warning.
+        override String toString() {
+          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+        }
     }
 
     /**
@@ -1172,7 +1175,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
                       
-                    if (originalPath != path) {
+                    if (originalPath.toFile != path.toFile) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1216,7 +1219,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 }
                 message.append(line);
             }
-        }
+        } // FIXME: This is apparently copy-pasted from above. This method needs to be refactored.
         if (message.length > 0) {
             if (severity == IMarker.SEVERITY_ERROR) {
                 errorReporter.reportError(path, lineNumber, message.toString())
@@ -1224,7 +1227,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath != path) {
+            if (originalPath.toFile != path.toFile) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the

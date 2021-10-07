@@ -71,6 +71,7 @@ import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
+import org.lflang.util.LFCommand
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
@@ -838,6 +839,8 @@ class CGenerator extends GeneratorBase {
                 writeDockerFile(topLevelName)
             }
 
+            if (fileConfig.getCompilerMode() == Mode.LSP_FAST) validate();
+
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (
@@ -897,6 +900,22 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+
+
+    def validate() {
+        // listFiles will not return null unless there is an I/O error
+        // because the src-gen path is a directory
+        for (File f: fileConfig.getSrcGenPath().toFile().listFiles()) {
+            if (f.toString().endsWith(".c")) {
+                val LFCommand validateCommand = commandFactory.createCommand(
+                    "gcc", #["-fsyntax-only", f.toString()],
+                    fileConfig.getSrcGenPath()
+                );
+                validateCommand.run();
+                reportCommandErrors(validateCommand.getErrors().toString());
+            }
+        }
     }
     
     
@@ -4895,7 +4914,9 @@ class CGenerator extends GeneratorBase {
     // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile(
+        "^(file://(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+    );
     
     /** Given a line of text from the output of a compiler, return
      *  an instance of ErrorFileAndLine if the line is recognized as
@@ -4913,10 +4934,10 @@ class CGenerator extends GeneratorBase {
         val matcher = compileErrorPattern.matcher(line)
         if (matcher.find()) {
             val result = new ErrorFileAndLine()
-            result.filepath = matcher.group(1)
-            result.line = matcher.group(2)
-            result.character = matcher.group(3)
-            result.message = matcher.group(4)
+            result.filepath = matcher.group("path")
+            result.line = matcher.group("line")
+            result.character = matcher.group("column")
+            result.message = matcher.group("message")
             
             if (result.message.toLowerCase.contains("warning:")) {
                 result.isError = false

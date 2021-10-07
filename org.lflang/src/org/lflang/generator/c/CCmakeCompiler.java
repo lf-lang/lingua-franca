@@ -107,9 +107,20 @@ public class CCmakeCompiler extends CCompiler {
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
+        int cMakeReturnCode = configure(file, noBinary, generator, cancelIndicator);
+        
+        int makeReturnCode = 0;
+
+        if (cMakeReturnCode == 0) {
+            makeReturnCode = build(file, noBinary, generator, cancelIndicator);
+        }
+        return cMakeReturnCode == 0 && makeReturnCode == 0;
+    }
+
+    private int configure(String file, boolean noBinary, GeneratorBase generator, CancelIndicator cancelIndicator) {
         LFCommand compile = compileCmakeCommand(file, noBinary);
         if (compile == null) {
-            return false;
+            return 1;
         }
 
         // Use the user-specified compiler if any
@@ -122,51 +133,50 @@ public class CCmakeCompiler extends CCompiler {
                 compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
             }
         }
-        
+
         int cMakeReturnCode = compile.run(cancelIndicator);
-        
-        if (cMakeReturnCode != 0 && 
-                fileConfig.getCompilerMode() == Mode.STANDALONE &&
-                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+
+        if (cMakeReturnCode != 0 &&
+            fileConfig.getCompilerMode() == Mode.STANDALONE &&
+            !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
         }
-        
+
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && 
-                fileConfig.getCompilerMode() != Mode.STANDALONE &&
-                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+        if (compile.getErrors().toString().length() > 0 &&
+            fileConfig.getCompilerMode() != Mode.STANDALONE &&
+            !outputContainsKnownCMakeErrors(compile.getErrors().toString())
+        ) {
             generator.reportCommandErrors(compile.getErrors().toString());
+            errorReporter.reportError(compile.getErrors().toString());
         }
-        
-        int makeReturnCode = 0;
+        return cMakeReturnCode;
+    }
 
-        if (cMakeReturnCode == 0) {            
-            LFCommand build = buildCmakeCommand(file, noBinary);
-            
-            makeReturnCode = build.run(cancelIndicator);
-            
-            if (makeReturnCode != 0 && 
-                    fileConfig.getCompilerMode() == Mode.STANDALONE &&
-                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-                errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
-            }
-            
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (build.getErrors().toString().length() > 0 && 
-                    fileConfig.getCompilerMode() != Mode.STANDALONE &&
-                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-                generator.reportCommandErrors(build.getErrors().toString());
-            }
-            
+    private int build(String file, boolean noBinary, GeneratorBase generator, CancelIndicator cancelIndicator) {
+        LFCommand build = buildCmakeCommand(file, noBinary);
 
-            if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
-                System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
-            }
-            
+        int makeReturnCode = build.run(cancelIndicator);
+
+        if (makeReturnCode != 0 &&
+            fileConfig.getCompilerMode() == Mode.STANDALONE &&
+            !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+            errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
         }
-        return cMakeReturnCode == 0 && makeReturnCode == 0;
+
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (build.getErrors().toString().length() > 0 &&
+            fileConfig.getCompilerMode() != Mode.STANDALONE &&
+            !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+            generator.reportCommandErrors(build.getErrors().toString());
+        }
+
+        if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+            System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
+        }
+        return makeReturnCode;
     }
     
     /**
@@ -182,7 +192,7 @@ public class CCmakeCompiler extends CCompiler {
             boolean noBinary
     ) {        
         // Set the build directory to be "build"
-        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        Path buildPath = getBuildPath();
         
         LFCommand command = commandFactory.createCommand(
                 "cmake", List.of(
@@ -219,7 +229,7 @@ public class CCmakeCompiler extends CCompiler {
             boolean noBinary
     ) { 
         // Set the build directory to be "build"
-        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        Path buildPath = getBuildPath();
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
         LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
@@ -233,6 +243,10 @@ public class CCmakeCompiler extends CCompiler {
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
+    }
+
+    private Path getBuildPath() {
+        return fileConfig.getSrcGenPath().resolve("build");
     }
     
     /**

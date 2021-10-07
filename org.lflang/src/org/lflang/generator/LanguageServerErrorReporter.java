@@ -65,12 +65,12 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String reportError(Path file, Integer line, String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Error, message, line != null ? line : 0);
+        return acceptDiagnostic(DiagnosticSeverity.Error, message, line != null ? line - 1 : 0);  // TODO: document one-basedness
     }
 
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Warning, message, line != null ? line : 0);
+        return acceptDiagnostic(DiagnosticSeverity.Warning, message, line != null ? line - 1 : 0);
     }
 
     @Override
@@ -108,12 +108,12 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      * @return a string that describes the diagnostic
      */
     private String acceptDiagnostic(DiagnosticSeverity severity, String message, int line) {
-        Optional<String> firstLine = getLine(line);
+        Optional<String> text = getLine(line);
         return acceptDiagnostic(
             severity,
             message,
-            Position.fromZeroBased(0, 0),
-            Position.fromZeroBased(0, firstLine.isEmpty() ? 1 : firstLine.get().length())
+            Position.fromZeroBased(line, 0),
+            Position.fromZeroBased(line, text.isEmpty() ? 1 : text.get().length())
         );
     }
 
