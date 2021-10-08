@@ -92,7 +92,7 @@ reactor GetUserInput {
     =}
     
     reaction(prompt) {=
-        self->prompt_time = get_physical_time();
+        self->prompt_time = get_logical_time();
     =}
     
     reaction(user_response) -> another {=
