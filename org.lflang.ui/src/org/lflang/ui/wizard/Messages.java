@@ -22,6 +22,8 @@ public class Messages extends NLS {
 	public static String FederatedProject_Description;
 	public static String ParallelProject_Label;
 	public static String ParallelProject_Description;
+	public static String PipelineProject_Label;
+	public static String PipelineProject_Description;
 	
 	static {
 	// initialize resource bundle

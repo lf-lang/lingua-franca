@@ -20,10 +20,124 @@ import static org.eclipse.core.runtime.IStatus.*
  */
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	override getProjectTemplates() {
-		#[new HelloWorldProject, new InteractiveProject, new WebServerProject, new ReflexGameProject, new ParallelProject, new FederatedProject]
+		#[new HelloWorldProject, new InteractiveProject, new WebServerProject, new ReflexGameProject, new ParallelProject, new PipelineProject, new FederatedProject]
 	}
 }
 
+@ProjectTemplate(label="Pipeline", icon="project_temtplate.png", description="<p><b>Pipeline</b></p>
+    <p>Basic pipeline pattern where a periodic source feeds a chain of reactors that can all execute in parallel at each logical time step.</p>")
+    final class PipelineProject {
+        // val advanced = check("Advanced:", false)
+        //val config = group("Configuration")
+        //val target = combo("Target:", #["C"], "The target language to compile down to", config)
+
+
+        override generateProjects(IProjectGenerator generator) {
+            generator.generate(new PluginProjectFactory => [
+                projectName = projectInfo.projectName
+                location = projectInfo.locationPath
+                projectNatures += #[XtextProjectHelper.NATURE_ID]
+                builderIds += #[XtextProjectHelper.BUILDER_ID]
+                folders += #["src"]
+                addFile("src/Pipeline.lf", '''
+                    /**
+                     * Basic pipeline pattern where a periodic source feeds
+                     * a chain of reactors that can all execute in parallel
+                     * at each logical time step.
+                     * 
+                     * The threads argument specifies the number of worker
+                     * threads, which enables the reactors in the chain to
+                     * execute on multiple cores simultaneously.
+                     * 
+                     * This uses the TakeTime reactor to perform computation. 
+                     * If you reduce the number of worker threads to 1, the 
+                     * execution time will be approximately four times as long.
+                     * 
+                     * @author Edward A. Lee
+                     * @author Marten Lohstroh
+                     */
+                    target C {
+                        threads: 4,
+                    }
+                     
+                    /**
+                     * Send counting sequence periodically.
+                     * 
+                     * @param offset The starting time.
+                     * @param period The period.
+                     * @param initial The first output.
+                     * @param increment The increment between outputs
+                     */
+                    reactor SendCount(
+                        offset:time(0), 
+                        period:time(1 sec),
+                        initial:int(0),
+                        increment:int(1)
+                    ) {
+                        state count:int(initial);
+                        output out:int;
+                        timer t(offset, period);
+                        reaction(t) -> out {=
+                            SET(out, self->count);
+                            self->count += self->increment;
+                        =}
+                    }
+                    
+                    /**
+                     * Receive an input and report the elapsed logical tag
+                     * and the value of the input. Request stop when the 10th
+                     * value has been received.
+                     */
+                    reactor Receive {
+                        input in:int;
+                        reaction(in) {=
+                            info_print("At elapsed tag (%lld, %d), received %d.",
+                                get_elapsed_logical_time(), get_microstep(),
+                                in->value
+                            );
+                            if (in->value >= 10) {
+                                request_stop();
+                            }
+                        =}
+                    }
+                    
+                    /**
+                     * When triggered, take the specified amount of physical time
+                     * before outputting the value of the trigger.
+                     * 
+                     * @param approximate_time The approximate amount of physical 
+                     *  time to take for each input.
+                     * 
+                     * @input in A triggering input.
+                     * 
+                     * @output out The triggering input. 
+                     */
+                    reactor TakeTime(
+                        approximate_time:time(100 msec)
+                    ) {
+                        input in:int;
+                        output out:int;
+                        reaction(in) -> out {=
+                            instant_t start_time = get_physical_time();
+                            while (get_physical_time() < start_time + self->approximate_time) {
+                                // Do nothing.
+                            }
+                            SET(out, in->value);
+                        =}
+                    }
+                    
+                    main reactor {
+                        r0 = new SendCount(period = 100 msec);
+                        rp = new[4] TakeTime(approximate_time = 100 msec);
+                        r5 = new Receive();
+                        // Uncomment the "after" clause to expose parallelism.
+                        r0.out, rp.out -> rp.in, r5.in // after 100 msec; 
+                    }
+                ''')
+            ])
+        }
+    
+    }
 
 @ProjectTemplate(label="Federated", icon="project_template.png", description="<p><b>Federated</b></p>
     <p>A federated \"Hello World\" program.</p>")
