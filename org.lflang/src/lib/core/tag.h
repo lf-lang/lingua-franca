@@ -58,8 +58,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NEVER LLONG_MIN
 #define FOREVER LLONG_MAX
 
-#define NEVER_TAG (tag_t){ .time = LLONG_MIN, .microstep = 0 }
+#define NEVER_TAG (tag_t){ .time = LLONG_MIN, .microstep = 0u }
+// Need a separate initializer expression to comply with some C compilers
+#define NEVER_TAG_INITIALIZER { LLONG_MIN,  0u }
 #define FOREVER_TAG (tag_t){ .time = LLONG_MAX, .microstep = UINT_MAX }
+// Need a separate initializer expression to comply with some C compilers
+#define FOREVER_TAG_INITIALIZER { LLONG_MAX,  UINT_MAX }
 
 // Convenience for converting times
 #define BILLION 1000000000LL

@@ -38,58 +38,25 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include "lf_windows_support.h"
 #include "../platform.h"
+#include <time.h>
 
 /**
- * Offset to _LF_CLOCK that would convert it
- * to epoch time.
- * For CLOCK_REALTIME, this offset is always zero.
- * For CLOCK_MONOTONIC, it is the difference between those
- * clocks at the start of the execution.
+ * Indicate whether or not the underlying hardware
+ * supports Windows' high-resolution counter. It should
+ * always be supported for Windows Xp and later.
  */
-interval_t _lf_epoch_offset = 0LL;
-
+int _lf_use_performance_counter = 0;
 
 /**
- * Calculate the necessary offset to bring _LF_CLOCK in parity with the epoch
- * time.
+ * The denominator to convert the performance counter
+ * to nanoseconds.
  */
-void calculate_epoch_offset() {
-    if (_LF_CLOCK == CLOCK_REALTIME) {
-        // Set the epoch offset to zero (see tag.h)
-        _lf_epoch_offset = 0LL;
-    } else {
-        // Initialize _lf_epoch_offset to the difference between what is
-        // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC) and
-        // what is reported by CLOCK_REALTIME.
-        struct timespec physical_clock_snapshot, real_time_start;
+double _lf_frequency_to_ns = 1.0;
 
-        clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
-        instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+#define BILLION 1000000000
 
-        clock_gettime(CLOCK_REALTIME, &real_time_start);
-        instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
-
-        _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
-    }
-    LOG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
-}
-
-/**
- * Initialize the LF clock.
- */
-void lf_initialize_clock() {
-    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
-    // done here for better uniformity across platforms. This requires access to
-    // an epoch-based clock to begin with, which many baremetal target platforms
-    // will most likely not have.
-    _lf_epoch_offset = calculate_epoch_offset(_LF_CLOCK);
-}
-
+#ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-
-NtDelayExecution_t *NtDelayExecution = NULL;
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
-NtQuerySystemTime_t *NtQuerySystemTime = NULL;
 
 /**
  * Create a new thread, starting with execution of lf_thread
@@ -98,13 +65,13 @@ NtQuerySystemTime_t *NtQuerySystemTime = NULL;
  * @return 0 on success, 1 otherwise.
  */
 int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
-    uintptr_t handle = _beginthread((windows_thread)lf_thread,0,arg);
-	thread->handle = (HANDLE)handle;
-	if(thread->handle == (HANDLE)-1){
-		return 1;
-	}else{
-		return 0;
-	}
+    uintptr_t handle = _beginthread(lf_thread, 0, arguments);
+    *thread = (HANDLE)handle;
+    if(thread == (HANDLE)-1){
+        return 1;
+    }else{
+        return 0;
+    }
 }
 
 /**
@@ -115,12 +82,12 @@ int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* ar
  * @return 0 on success, EINVAL otherwise.
  */
 int lf_thread_join(_lf_thread_t thread, void** thread_return) {    
-	DWORD retvalue = WaitForSingleObject(thread.handle,INFINITE);
-	if(retvalue == WAIT_OBJECT_0){
-		return 0;
-	}else{
-		return EINVAL;
-	}
+    DWORD retvalue = WaitForSingleObject(thread, INFINITE);
+    if(retvalue == WAIT_OBJECT_0){
+        return 0;
+    }else{
+        return EINVAL;
+    }
 }
 
 /**
@@ -130,12 +97,12 @@ int lf_thread_join(_lf_thread_t thread, void** thread_return) {
  */
 int lf_mutex_init(_lf_critical_section_t* critical_section) {
     // Set up a recursive mutex
-	InitializeCriticalSection((CRITICAL_SECTION*)critical_section);
-	if(critical_section != NULL){
-		return 0;
-	}else{
-		return 1;
-	}
+    InitializeCriticalSection((PCRITICAL_SECTION)critical_section);
+    if(critical_section != NULL){
+        return 0;
+    }else{
+        return 1;
+    }
 }
 
 /** 
@@ -152,7 +119,7 @@ int lf_mutex_init(_lf_critical_section_t* critical_section) {
 int lf_mutex_lock(_lf_critical_section_t* critical_section) {
     // The following Windows API does not return a value. It can
     // raise a EXCEPTION_POSSIBLE_DEADLOCK. See synchapi.h.
-	EnterCriticalSection((CRITICAL_SECTION*)critical_section);
+    EnterCriticalSection((PCRITICAL_SECTION)critical_section);
     return 0;
 }
 
@@ -163,7 +130,7 @@ int lf_mutex_lock(_lf_critical_section_t* critical_section) {
  */
 int lf_mutex_unlock(_lf_critical_section_t* critical_section) {
     // The following Windows API does not return a value.
-    LeaveCriticalSection((CRITICAL_SECTION*)critical_section);
+    LeaveCriticalSection((PCRITICAL_SECTION)critical_section);
     return 0;
 }
 
@@ -174,7 +141,7 @@ int lf_mutex_unlock(_lf_critical_section_t* critical_section) {
  */
 int lf_cond_init(_lf_cond_t* cond) {
     // The following Windows API does not return a value.
-    InitializeConditionVariable((CONDITION_VARIABLE*)cond);
+    InitializeConditionVariable((PCONDITION_VARIABLE)cond);
     return 0;
 }
 
@@ -185,7 +152,7 @@ int lf_cond_init(_lf_cond_t* cond) {
  */
 int lf_cond_broadcast(_lf_cond_t* cond) {
     // The following Windows API does not return a value.
-    WakeAllConditionVariable((CONDITION_VARIABLE*)cond);
+    WakeAllConditionVariable((PCONDITION_VARIABLE)cond);
     return 0;
 }
 
@@ -196,7 +163,7 @@ int lf_cond_broadcast(_lf_cond_t* cond) {
  */
 int lf_cond_signal(_lf_cond_t* cond) {
     // The following Windows API does not return a value.
-    WakeConditionVariable((CONDITION_VARIABLE*)cond);
+    WakeConditionVariable((PCONDITION_VARIABLE)cond);
     return 0;
 }
 
@@ -211,8 +178,8 @@ int lf_cond_wait(_lf_cond_t* cond, _lf_critical_section_t* critical_section) {
     // and non-zero on success.
     int return_value =
      (int)SleepConditionVariableCS(
-         (CONDITION_VARIABLE*)cond, 
-         (CRITICAL_SECTION*)critical_section, 
+         (PCONDITION_VARIABLE)cond, 
+         (PCRITICAL_SECTION)critical_section, 
          INFINITE
      );
      switch (return_value) {
@@ -237,12 +204,14 @@ int lf_cond_wait(_lf_cond_t* cond, _lf_critical_section_t* critical_section) {
  */
 int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section, instant_t absolute_time_ns) {
     // Convert the absolute time to a relative time
-    DWORD relative_time_ms = (absolute_time_ns - get_physical_time())/1000000LL;
+    instant_t current_time_ns;
+    lf_clock_gettime(&current_time_ns);
+    DWORD relative_time_ms = (absolute_time_ns - current_time_ns)/1000000LL;
 
     int return_value =
      (int)SleepConditionVariableCS(
-         (CONDITION_VARIABLE*)cond, 
-         (CRITICAL_SECTION*)critical_section, 
+         (PCONDITION_VARIABLE)cond, 
+         (PCRITICAL_SECTION)critical_section, 
          relative_time_ms
      );
      switch (return_value) {
@@ -261,48 +230,63 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
      }
 }
 
+
+#else
+#include "lf_C11_threads_support.c"
+#endif
+#endif
+
 /**
- * Fetch the value of _LF_CLOCK (see lf_windows_support.h) and store it in tp.
- * The timestamp value in 'tp' will always be epoch time, which is the number of
- * nanoseconds since January 1st, 1970.
+ * Initialize the LF clock.
+ */
+void lf_initialize_clock() {    
+    // Check if the performance counter is available
+    LARGE_INTEGER performance_frequency;
+    _lf_use_performance_counter = QueryPerformanceFrequency(&performance_frequency);
+    if (_lf_use_performance_counter) {
+        _lf_frequency_to_ns = (double)performance_frequency.QuadPart / BILLION;
+    } else {
+        error_print(
+            "High resolution performance counter is not supported on this machine.");
+        _lf_frequency_to_ns = 0.01;
+    }
+}
+
+
+/**
+ * Fetch the value of the physical clock (see lf_windows_support.h) and store it in t.
+ * The timestamp value in 't' will be based on QueryPerformanceCounter, adjusted to
+ * reflect time passed in nanoseconds, on most modern Windows systems.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
  *  set to EINVAL or EFAULT.
  */
 int lf_clock_gettime(instant_t* t) {
+    // Adapted from gclib/GResUsage.cpp 
+    // (https://github.com/gpertea/gclib/blob/8aee376774ccb2f3bd3f8e3bf1c9df1528ac7c5b/GResUsage.cpp)
+    // License: https://github.com/gpertea/gclib/blob/master/LICENSE.txt
     int result = -1;
     if (t == NULL) {
         // The t argument address references invalid memory
         errno = EFAULT;
         return result;
     }
-    int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
-    long long timestamp, counts, counts_per_sec;
-    switch (_LF_CLOCK) {
-        case CLOCK_REALTIME:
-            NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
-            timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
-            timestamp += _lf_epoch_offset;
-            *t = timestamp;
-            result = 0;
-            break;
-        case CLOCK_MONOTONIC:
-            if ((*NtQueryPerformanceCounter)((PLARGE_INTEGER)&counts, (PLARGE_INTEGER)&counts_per_sec) == 0) {
-                counts += _lf_epoch_offset;
-                *t = counts;
-                result = 0;
-            } else {
-                errno = EINVAL;
-                result = -1;
-            }
-            break;
-        default:
-            errno = EINVAL;
-            result = -1;
-            break;
+    LARGE_INTEGER windows_time;
+    if (_lf_use_performance_counter) {
+        int result = QueryPerformanceCounter(&windows_time);
+        if ( result == 0) {
+            error_print("lf_clock_gettime(): Failed to read the value of the physical clock.");
+            return result;
+        }
+    } else {
+        FILETIME f;
+        GetSystemTimeAsFileTime(&f);
+        windows_time.QuadPart = f.dwHighDateTime;
+        windows_time.QuadPart <<= 32;
+        windows_time.QuadPart |= f.dwLowDateTime;
     }
-    // Adjust the clock by the epoch offset, so epoch time is always reported.
-    return result;
+    *t = (instant_t)((double)windows_time.QuadPart / _lf_frequency_to_ns);
+    return (0);
 }
 
 /**
@@ -313,21 +297,28 @@ int lf_clock_gettime(instant_t* t) {
  *   - EINTR: The sleep was interrupted by a signal handler
  *   - EINVAL: All other errors
  */
-int lf_nanosleep(const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
-    unsigned char alertable = remaining ? 1 : 0;
-    long long duration = -(requested_time->tv_sec * (BILLION / 100) + requested_time->tv_nsec / 100);
-    NTSTATUS status = (*NtDelayExecution)(alertable, (PLARGE_INTEGER)&duration);
-    int result = status == 0 ? 0 : -1;
-    if (alertable) {
-        if (status < 0) {
-            errno = EINVAL;
-        } else if (status > 0 && lf_clock_gettime(clk_id, remaining) == 0) {
-            errno = EINTR;
-        }
+int lf_nanosleep(instant_t requested_time) {
+    /* Declarations */
+    HANDLE timer;	/* Timer handle */
+    LARGE_INTEGER li;	/* Time defintion */
+    /* Create timer */
+    if(!(timer = CreateWaitableTimer(NULL, TRUE, NULL))) {
+        return FALSE;
     }
-    return result;
+    /**
+    * Set timer properties.
+    * A negative number indicates relative time to wait.
+    * The requested relative time must be in number of 100 nanoseconds.
+    */
+    li.QuadPart = -1 * (requested_time / 100.0);
+    if(!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)){
+        CloseHandle(timer);
+        return FALSE;
+    }
+    /* Start & wait for timer */
+    WaitForSingleObject(timer, INFINITE);
+    /* Clean resources */
+    CloseHandle(timer);
+    /* Slept without problems */
+    return TRUE;
 }
-
-#else
-#include "lf_C11_threads_support.c"
-#endif
