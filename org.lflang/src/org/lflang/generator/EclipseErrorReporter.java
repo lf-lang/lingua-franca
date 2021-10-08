@@ -34,10 +34,11 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.eclipse.xtext.diagnostics.Severity;
+import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 
 /**
  * An error reporter that prints messages to the command line output and also
@@ -66,15 +67,20 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
      * @param obj      The Ecore object, or null if it is not known.
      */
-    private String report(String message, int severity, EObject obj) {
-        final Integer line = obj == null ? null : NodeModelUtils.getNode(obj).getStartLine();
-        Path file = null;
-        try {
-            file = obj == null ? null : FileConfig.toPath(obj.eResource());
-        } catch (IOException e) {
-            // just continue with null
+    private String report(String message, Severity severity, EObject obj) {
+        if (obj != null) {
+             final EObjectDiagnosticImpl diagnostic = new EObjectDiagnosticImpl(severity, null, message, obj, null, -1, null);
+             final int line = diagnostic.getLine();
+             Path file = null;
+             try {
+                 file = FileConfig.toPath(diagnostic.getUriToProblem());
+             } catch (IOException e) {
+                // just continue with null
+             }
+             return report(message, severity, line, file);
         }
-        return report(message, severity, line, file);
+        
+        return report(message, severity, null, null);
     }
 
     /**
@@ -89,8 +95,8 @@ public class EclipseErrorReporter implements ErrorReporter {
      * @param line     The line number or null if it is not known.
      * @param file     The file, or null if it is not known.
      */
-    private String report(String message, int severity, Integer line, Path file) {
-        final boolean isError = severity == IMarker.SEVERITY_ERROR;
+    private String report(String message, Severity severity, Integer line, Path file) {
+        final boolean isError = severity == Severity.ERROR;
         if (isError) {
             errorsOccurred = true;
         }
@@ -122,7 +128,7 @@ public class EclipseErrorReporter implements ErrorReporter {
                 marker.setAttribute(IMarker.LOCATION,
                         line == null ? "1" : line.toString());
                 // Mark as an error or warning.
-                marker.setAttribute(IMarker.SEVERITY, severity);
+                marker.setAttribute(IMarker.SEVERITY, isError ? IMarker.SEVERITY_ERROR : IMarker.SEVERITY_WARNING);
                 marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
 
                 marker.setAttribute(IMarker.USER_EDITABLE, false);
@@ -148,7 +154,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportError(String message) {
-        return report(message, IMarker.SEVERITY_ERROR, null, null);
+        return report(message, Severity.ERROR, null, null);
     }
 
     /**
@@ -158,7 +164,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportWarning(String message) {
-        return report(message, IMarker.SEVERITY_WARNING, null, null);
+        return report(message, Severity.WARNING, null, null);
     }
 
     /**
@@ -169,7 +175,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportError(EObject obj, String message) {
-        return report(message, IMarker.SEVERITY_ERROR, obj);
+        return report(message, Severity.ERROR, obj);
     }
 
     /**
@@ -180,7 +186,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportWarning(EObject obj, String message) {
-        return report(message, IMarker.SEVERITY_WARNING, obj);
+        return report(message, Severity.WARNING, obj);
     }
 
     /**
@@ -193,7 +199,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportError(Path file, Integer line, String message) {
-        return report(message, IMarker.SEVERITY_ERROR, line, file);
+        return report(message, Severity.ERROR, line, file);
     }
 
     /**
@@ -206,7 +212,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        return report(message, IMarker.SEVERITY_WARNING, line, file);
+        return report(message, Severity.WARNING, line, file);
     }
 
     /**

@@ -78,7 +78,7 @@ typedef struct _lf_tag_advancement_barrier {
  * Create a global tag barrier and
  * initialize the barrier's semaphore to 0 and its horizon to FOREVER_TAG.
  */
-_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, FOREVER_TAG};
+_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, FOREVER_TAG_INITIALIZER};
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q; // Sorted by index (precedence sort)
@@ -303,10 +303,10 @@ int _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
+trigger_handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     lf_mutex_lock(&mutex);
-    int return_value = __schedule(trigger, extra_delay, token);
+    int return_value = _lf_schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -318,7 +318,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length) {
+trigger_handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length) {
     if (value == NULL) {
         return _lf_schedule_token(action, offset, NULL);
     }
@@ -330,11 +330,11 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t 
     }
     lf_mutex_lock(&mutex);
     // Initialize token with an array size of length and a reference count of 0.
-    lf_token_t* token = __initialize_token(trigger->token, length);
+    lf_token_t* token = _lf_initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
     memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
-    handle_t result = __schedule(trigger, offset, token);
+    trigger_handle_t result = _lf_schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_signal(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -345,14 +345,14 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t 
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length) {
+trigger_handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
     lf_mutex_lock(&mutex);
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
-    int return_value = __schedule(trigger, extra_delay, token);
+    int return_value = _lf_schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     lf_cond_signal(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -572,7 +572,7 @@ tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
  *
  * This does not acquire the mutex lock. It assumes the lock is already held.
  */
-void __next() {
+void _lf_next() {
     // Previous logical time is complete.
     tag_t next_tag = get_next_event_tag();
 
@@ -623,7 +623,7 @@ void __next() {
     // arrives from an upstream federate or a local physical action triggers).
     LOG_PRINT("Waiting until elapsed time %lld.", (next_tag.time - start_time));
     while (!wait_until(next_tag.time, &event_q_changed)) {
-        DEBUG_PRINT("__next(): Wait until time interrupted.");
+        DEBUG_PRINT("_lf_next(): Wait until time interrupted.");
         // Sleep was interrupted.  Check for a new next_event.
         // The interruption could also have been due to a call to request_stop().
         next_tag = get_next_event_tag();
@@ -672,7 +672,7 @@ void __next() {
 
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
-    __start_time_step();
+    _lf_start_time_step();
         
     // At this point, finally, we have an event to process.
     // Advance current time to match that of the first event on the queue.
@@ -681,13 +681,13 @@ void __next() {
     if (compare_tags(current_tag, stop_tag) >= 0) {
         // Pop shutdown events
         DEBUG_PRINT("Scheduling shutdown reactions.");
-        __trigger_shutdown_reactions();
+        _lf_trigger_shutdown_reactions();
     }
 
     // Pop all events from event_q with timestamp equal to current_tag.time,
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
-    __pop_events();
+    _lf_pop_events();
 }
 
 /**
@@ -722,6 +722,19 @@ void request_stop() {
 }
 
 /**
+ * Return true if the first reaction has precedence over the second, false otherwise.
+ * @param r1 The first reaction.
+ * @param r2 The second reaction.
+ */
+bool _lf_has_precedence_over(reaction_t* r1, reaction_t* r2) {
+    if (LEVEL(r1->index) < LEVEL(r2->index)
+            && OVERLAPPING(r1->chain_id, r2->chain_id)) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * If the reaction is blocked by a currently executing
  * reaction, return true. Otherwise, return false.
  * A reaction blocks the specified reaction if it has a
@@ -739,17 +752,13 @@ bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
     }
     for (size_t i = 1; i < executing_q->size; i++) {
         reaction_t* running = (reaction_t*) executing_q->d[i];
-        if (LEVEL(running->index) < LEVEL(reaction->index)
-                && OVERLAPPING(reaction->chain_id, running->chain_id)) {
+        if (_lf_has_precedence_over(running, reaction)) {
+            DEBUG_PRINT("Reaction %s is blocked by reaction %s.", reaction->name, running->name);
             return true;
         }
     }
-    // Note that there is no need to check the transfer_q, which contains
-    // reactions popped from the reaction_q that have previously been
-    // determined to be blocked by executing reactions. The reason that
-    // we don't have to check the transfer_q is that if there is a reaction
-    // on that queue blocking this one, then there must also be a reaction
-    // on the executing queue blocking this one. Blocking is transitive.
+    // NOTE: checks against the transfer_q are not performed in 
+    // this function but at its call site (where appropriate).
 
     // printf("Not blocking for reaction with chainID %llu and level %llu\n", reaction->chain_id, reaction->index);
     // pqueue_dump(executing_q, stdout, executing_q->prt);
@@ -791,16 +800,25 @@ bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
 reaction_t* first_ready_reaction() {    
     reaction_t* r;
     reaction_t* b;
+    // Keep track of the chain IDs of blocked reactions.
+    unsigned long long mask = 0LL;
 
     // Find a reaction that is ready to execute.
     while ((r = (reaction_t*)pqueue_pop(reaction_q)) != NULL) {
-        if (_lf_is_blocked_by_executing_reaction(r)) {
-            // Move blocked reaction onto another queue.
-            // NOTE: This could also just be be a FIFO.
+        // Set the reaction aside if it is blocked, either by another
+        // blocked reaction or by a reaction that is currently executing.
+        if (OVERLAPPING(mask, r->chain_id)) {
             pqueue_insert(transfer_q, r);
+            DEBUG_PRINT("Reaction %s is blocked by a reaction that is also blocked.", r->name);
         } else {
-            break;
+            if (_lf_is_blocked_by_executing_reaction(r)) {
+                pqueue_insert(transfer_q, r);
+            } else {
+                // Not blocked. Break out of the loop and return the reaction.
+                break;
+            }
         }
+        mask = mask | r->chain_id;
     }
     
     // Push blocked reactions back onto the reaction queue.
@@ -829,7 +847,7 @@ reaction_t* first_ready_reaction() {
  * on the reaction queue rather than advance time.
  * This variable should only be accessed while holding the mutex lock.
  */
-bool __advancing_time = false;
+bool _lf_advancing_time = false;
 
 /**
  * Put the specified reaction on the reaction queue.
@@ -896,7 +914,7 @@ void _lf_notify_workers() {
  */
 void _lf_initialize_start_tag() {
     // Add reactions invoked at tag (0,0) (including startup reactions) to the reaction queue
-    __trigger_startup_reactions(); 
+    _lf_trigger_startup_reactions(); 
 
 #ifdef FEDERATED
     // Reset status fields before talking to the RTI to set network port
@@ -908,13 +926,13 @@ void _lf_initialize_start_tag() {
     current_tag = (tag_t){.time = start_time, .microstep = 0u};
 #endif
 
-    __initialize_timers();
+    _lf_initialize_timers();
 
     // If the stop_tag is (0,0), also insert the shutdown
     // reactions. This can only happen if the timeout time
     // was set to 0.
     if (compare_tags(current_tag, stop_tag) >= 0) {
-        __trigger_shutdown_reactions();
+        _lf_trigger_shutdown_reactions();
     }
 
 #ifdef FEDERATED
@@ -1022,16 +1040,16 @@ void* worker(void* arg) {
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0) {
             	// Nothing more happening at this logical time.
-                if (!__advancing_time) {
+                if (!_lf_advancing_time) {
                 	// This thread will take charge of advancing time.
                 	// Block other worker threads from doing that.
-                    __advancing_time = true;
+                    _lf_advancing_time = true;
 
                     // If this is not the very first step, notify that the previous step is complete
                     // and check against the stop tag to see whether this is the last step.
                     if (_lf_logical_tag_completed) {
                         logical_tag_complete(current_tag);
-                        // If we are at the stop tag, do not call __next()
+                        // If we are at the stop tag, do not call _lf_next()
                         // to prevent advancing the logical time.
                         if (compare_tags(current_tag, stop_tag) >= 0) {
                             // Break out of the while loop and notify other
@@ -1047,14 +1065,14 @@ void* worker(void* arg) {
                     _lf_logical_tag_completed = true;
 
                     // Advance time.
-                    // __next() may block waiting for real time to pass or events to appear.
+                    // _lf_next() may block waiting for real time to pass or events to appear.
                     // to appear on the event queue. Note that we already
                     // hold the mutex lock.
                     tracepoint_worker_advancing_time_starts(worker_number);
-                    __next();
+                    _lf_next();
                     tracepoint_worker_advancing_time_ends(worker_number);
-                    __advancing_time = false;
-                    DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
+                    _lf_advancing_time = false;
+                    DEBUG_PRINT("Worker %d: Done waiting for _lf_next().", worker_number);
 
                 } else if (compare_tags(current_tag, stop_tag) >= 0) {
                 	// At the stop tag so we can exit this thread.
@@ -1251,18 +1269,18 @@ void print_snapshot() {
 }
 
 // Array of thread IDs (to be dynamically allocated).
-lf_thread_t* __thread_ids;
+lf_thread_t* _lf_thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
-    LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
-    __thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
+    LOG_PRINT("Starting %u worker threads.", _lf_number_of_threads);
+    _lf_thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
     number_of_idle_threads = (int)_lf_number_of_threads; // Sign is checked when 
                                                          // reading the argument
                                                          // from the command
                                                          // line.
     for (unsigned int i = 0; i < _lf_number_of_threads; i++) {
-        lf_thread_create(&__thread_ids[i], worker, NULL);
+        lf_thread_create(&_lf_thread_ids[i], worker, NULL);
     }
 }
 
@@ -1280,7 +1298,7 @@ void start_threads() {
  */
 int lf_reactor_c_main(int argc, char* argv[]) {
     // Invoke the function that optionally provides default command-line options.
-    __set_default_command_line_options();
+    _lf_set_default_command_line_options();
     
     // Initialize the one and only mutex to be recursive, meaning that it is OK
     // for the same thread to lock and unlock the mutex even if it already holds
@@ -1309,10 +1327,12 @@ int lf_reactor_c_main(int argc, char* argv[]) {
     // As a consequence, we need to also trap ctrl-C, which issues a SIGINT,
     // and cause it to call exit.
     signal(SIGINT, exit);
+#ifdef SIGPIPE
     // Ignore SIGPIPE errors, which terminate the entire application if
     // socket write() fails because the reader has closed the socket.
     // Instead, cause an EPIPE error to be set when write() fails.
     signal(SIGPIPE, SIG_IGN);
+#endif // SIGPIPE
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
@@ -1339,7 +1359,7 @@ int lf_reactor_c_main(int argc, char* argv[]) {
         DEBUG_PRINT("Number of threads: %d.", _lf_number_of_threads);
         int ret = 0;
         for (int i = 0; i < _lf_number_of_threads; i++) {
-        	int failure = lf_thread_join(__thread_ids[i], &worker_thread_exit_status);
+        	int failure = lf_thread_join(_lf_thread_ids[i], &worker_thread_exit_status);
         	if (failure) {
         		error_print("Failed to join thread listening for incoming messages: %s", strerror(failure));
         	}
@@ -1353,7 +1373,7 @@ int lf_reactor_c_main(int argc, char* argv[]) {
             LOG_PRINT("---- All worker threads exited successfully.");
         }
         
-        free(__thread_ids);
+        free(_lf_thread_ids);
         return ret;
     } else {
         return -1;
