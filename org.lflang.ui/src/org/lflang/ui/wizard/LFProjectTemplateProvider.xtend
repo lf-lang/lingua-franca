@@ -38,7 +38,7 @@ class LFProjectTemplateProvider implements IProjectTemplateProvider {
                 location = projectInfo.locationPath
                 projectNatures += #[XtextProjectHelper.NATURE_ID]
                 builderIds += #[XtextProjectHelper.BUILDER_ID]
-                folders += #["src", "src/include"]
+                folders += #["src"]
                 addFile("src/HelloWorld.lf", '''
                     /**
                      * Distributed LF program where a MessageGenerator creates a string
