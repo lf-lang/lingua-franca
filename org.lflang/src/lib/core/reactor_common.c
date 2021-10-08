@@ -633,11 +633,7 @@ void _lf_pop_events() {
         // If the trigger is a periodic timer, create a new event for its next execution.
         if (event->trigger->is_timer && event->trigger->period > 0LL) {
             // Reschedule the trigger.
-            // Note that the delay here may be negative because the _lf_schedule
-            // function will add the trigger->offset, which we don't want at this point.
-            // NULL argument indicates that there is no value.
-            _lf_schedule(event->trigger,
-                    event->trigger->period - event->trigger->offset, NULL);
+            _lf_schedule(event->trigger, event->trigger->period, NULL);
         }
 
         // Copy the token pointer into the trigger struct so that the
@@ -1062,7 +1058,12 @@ trigger_handle_t _lf_schedule(trigger_t* trigger, interval_t extra_delay, lf_tok
     // Compute the tag (the logical timestamp for the future event).
 	// We first do this assuming it is logical action and then, if it is a
 	// physical action, modify it if physical time exceeds the result.
-    interval_t delay = trigger->offset + extra_delay;
+    interval_t delay = extra_delay;
+    // Add the offset if this is not a timer because, in that case,
+    // it is the minimum delay.
+    if (!trigger->is_timer) {
+    	delay += trigger->offset;
+    }
     interval_t intended_time = current_tag.time + delay;
     DEBUG_PRINT("_lf_schedule: current_tag.time = %lld. Total logical delay = %lld",
             current_tag.time, delay);
