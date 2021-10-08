@@ -24,7 +24,7 @@ class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	}
 }
 
-@ProjectTemplate(label="Pipeline", icon="project_temtplate.png", description="<p><b>Pipeline</b></p>
+@ProjectTemplate(label="Pipeline", icon="project_template.png", description="<p><b>Pipeline</b></p>
     <p>Basic pipeline pattern where a periodic source feeds a chain of reactors that can all execute in parallel at each logical time step.</p>")
     final class PipelineProject {
         // val advanced = check("Advanced:", false)
