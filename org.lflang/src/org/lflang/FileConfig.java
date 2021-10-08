@@ -25,6 +25,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.SlowIntegratedContext;
 import org.lflang.lf.Reactor;
 
 /**
@@ -682,7 +683,7 @@ public class FileConfig {
      * @return The package root, or the current working
      * directory if none exists.
      */
-    private static Path findPackageRoot(final Path input) {
+    public static Path findPackageRoot(final Path input) {
         // FIXME: This method is largely a duplicate of one
         //  found in StandaloneContext
         Path p = input;
@@ -851,6 +852,7 @@ public class FileConfig {
      public Mode getCompilerMode() {
          if (context instanceof StandaloneContext) return Mode.STANDALONE;
          if (resource.getURI().isPlatform()) return Mode.EPOCH;
-         return Mode.LSP_FAST; // TODO: Support LSP_SLOW
+         if (context instanceof SlowIntegratedContext) return Mode.LSP_SLOW;
+         return Mode.LSP_FAST;
      }
 }

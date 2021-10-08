@@ -847,7 +847,7 @@ class CGenerator extends GeneratorBase {
                 !targetConfig.noCompile
                 && targetConfig.buildCommands.nullOrEmpty
                 && !federate.isRemote
-                && fileConfig.getCompilerMode() == Mode.STANDALONE
+                && (fileConfig.getCompilerMode() == Mode.STANDALONE || fileConfig.getCompilerMode() == Mode.LSP_SLOW)
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
