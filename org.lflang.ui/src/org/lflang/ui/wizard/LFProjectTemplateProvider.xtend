@@ -20,7 +20,7 @@ import static org.eclipse.core.runtime.IStatus.*
  */
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	override getProjectTemplates() {
-		#[new HelloWorldProject, new InteractiveProject, new WebServerProject, new ReflexGameProject, new FederatedProject]
+		#[new HelloWorldProject, new InteractiveProject, new WebServerProject, new ReflexGameProject, new ParallelProject, new FederatedProject]
 	}
 }
 
@@ -122,6 +122,89 @@ class LFProjectTemplateProvider implements IProjectTemplateProvider {
                         source.message -> print.message;
                     }
                 ''')
+            ])
+        }
+    
+    }
+
+
+@ProjectTemplate(label="Parallel", icon="project_template.png", description="<p><b>Parallel</b></p>
+    <p>A simple fork-join pattern that exploits parallelism.</p>")
+    final class ParallelProject {
+        // val advanced = check("Advanced:", false)
+        //val config = group("Configuration")
+        //val target = combo("Target:", #["C"], "The target language to compile down to", config)
+
+
+        override generateProjects(IProjectGenerator generator) {
+            generator.generate(new PluginProjectFactory => [
+                projectName = projectInfo.projectName
+                location = projectInfo.locationPath
+                projectNatures += #[XtextProjectHelper.NATURE_ID]
+                builderIds += #[XtextProjectHelper.BUILDER_ID]
+                folders += #["src"]
+                addFile("src/Parallel.lf", '''
+                    /**
+                      * Each instance of TakeTime takes 200 ms wall clock time to
+                      * transport the input to the output. Four of them are
+                      * instantiated. Note that without parallel execution, there is 
+                      * no way this program can keep up with real time since in every
+                      * 200 msec cycle it has 800 msec of work to do. Given 4 threads, 
+                      * however, this program can complete 800 msec of work in about
+                      * 225 msec. 
+                      */
+                    target C {
+                        timeout: 2 sec,
+                        threads: 1, // Change to 4 to see speed up.
+                    };
+                    reactor Source {
+                            timer t(0, 200 msec);
+                            output out:int;
+                            state s:int(0);
+                            reaction(t) -> out {=
+                                    SET(out, self->s);
+                                    self->s++;
+                            =}
+                    }
+                    reactor TakeTime {
+                            input in:int;
+                            output out:int;
+                            reaction(in) -> out {=
+                                    struct timespec sleep_time = {(time_t) 0, (long)200000000};
+                                    struct timespec remaining_time;
+                                    nanosleep(&sleep_time, &remaining_time);
+                                    int offset = 0;
+                                    for (int i = 0; i < 100000000; i++) {
+                                        offset++;
+                                    }
+                                    SET(out, in->value + offset);
+                            =}
+                    }
+                    reactor Destination(width:int(4)) {
+                            state s:int(400000000);
+                            input[width] in:int;
+                            reaction(in) {=
+                                    int sum = 0;
+                                    for (int i = 0; i < in_width; i++) {
+                                sum += in[i]->value;
+                            }
+                                    printf("Sum of received: %d.\n", sum);
+                                    if (sum != self->s) {
+                                            printf("ERROR: Expected %d.\n", self->s);
+                                            exit(1);
+                                    }
+                                    self->s += in_width;
+                            =}
+                    }
+                    main reactor Parallel(width:int(4)) {
+                            a = new Source();
+                            t = new[width] TakeTime();
+                            (a.out)+ -> t.in;
+                        b = new Destination(width = width);
+                            t.out -> b.in;
+                    }                    
+                    '''
+                )
             ])
         }
     
