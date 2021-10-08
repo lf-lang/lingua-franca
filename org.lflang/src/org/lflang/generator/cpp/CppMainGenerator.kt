@@ -22,13 +22,13 @@ class CppMainGenerator(
                     """
                         $targetType $name = $defaultValue;
                         options
-                            .add_options("$name", "The "$name" parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_quoted_string($name)), "'FLOAT UNIT'");
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_quoted_string($name)), "'FLOAT UNIT'");
                     """.trimIndent()
                 } else {
                     """
                         $targetType $name = $defaultValue;
                         options
-                            .add_options("$name", "The "$name" parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name));
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name));
                     """.trimIndent()
                 }
             }
@@ -40,13 +40,12 @@ class CppMainGenerator(
             with(param) {
                 return if(inferredType.isTime) {
                     """
-                        $targetType $name = $defaultValue;
                         // is the parameter used then validate it
                         if(result.count("$name")){
                             std::string validation_msg = validate_time_string("$name");
                             if( !validate_time_string("$name").empty() ) {
                                 // throw cxxopts error
-                                throw_or_mimic<argument_incorrect_type>(text);
+                                throw cxxopts::argument_incorrect_type(validation_msg);
                             }
                         }
 
