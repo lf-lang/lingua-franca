@@ -71,8 +71,15 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(commands.registerTextEditorCommand(
         'linguafranca.build',
         (textEditor: TextEditor, _) => {
-            // FIXME: Get the URI of the current file
-            client.sendNotification('generator/build', textEditor.document.uri.toString());
+            const uri = textEditor.document.uri.toString();
+            if (!uri.endsWith('.lf')) {
+                window.showErrorMessage(
+                    'The currently active file is not a Lingua Franca source '
+                    + 'file.'
+                );
+                return;
+            }
+            client.sendNotification('generator/build', uri);
         }
     ));
 
