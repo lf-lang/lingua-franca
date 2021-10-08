@@ -20,10 +20,124 @@ import static org.eclipse.core.runtime.IStatus.*
  */
 class LFProjectTemplateProvider implements IProjectTemplateProvider {
 	override getProjectTemplates() {
-		#[new HelloWorldProject, new InteractiveProject, new WebServerProject, new ReflexGameProject, new FederatedProject]
+		#[new HelloWorldProject, new InteractiveProject, new WebServerProject, new ReflexGameProject, new ParallelProject, new PipelineProject, new FederatedProject]
 	}
 }
 
+@ProjectTemplate(label="Pipeline", icon="project_template.png", description="<p><b>Pipeline</b></p>
+    <p>Basic pipeline pattern where a periodic source feeds a chain of reactors that can all execute in parallel at each logical time step.</p>")
+    final class PipelineProject {
+        // val advanced = check("Advanced:", false)
+        //val config = group("Configuration")
+        //val target = combo("Target:", #["C"], "The target language to compile down to", config)
+
+
+        override generateProjects(IProjectGenerator generator) {
+            generator.generate(new PluginProjectFactory => [
+                projectName = projectInfo.projectName
+                location = projectInfo.locationPath
+                projectNatures += #[XtextProjectHelper.NATURE_ID]
+                builderIds += #[XtextProjectHelper.BUILDER_ID]
+                folders += #["src"]
+                addFile("src/Pipeline.lf", '''
+                    /**
+                     * Basic pipeline pattern where a periodic source feeds
+                     * a chain of reactors that can all execute in parallel
+                     * at each logical time step.
+                     * 
+                     * The threads argument specifies the number of worker
+                     * threads, which enables the reactors in the chain to
+                     * execute on multiple cores simultaneously.
+                     * 
+                     * This uses the TakeTime reactor to perform computation. 
+                     * If you reduce the number of worker threads to 1, the 
+                     * execution time will be approximately four times as long.
+                     * 
+                     * @author Edward A. Lee
+                     * @author Marten Lohstroh
+                     */
+                    target C {
+                        threads: 4,
+                    }
+                     
+                    /**
+                     * Send counting sequence periodically.
+                     * 
+                     * @param offset The starting time.
+                     * @param period The period.
+                     * @param initial The first output.
+                     * @param increment The increment between outputs
+                     */
+                    reactor SendCount(
+                        offset:time(0), 
+                        period:time(1 sec),
+                        initial:int(0),
+                        increment:int(1)
+                    ) {
+                        state count:int(initial);
+                        output out:int;
+                        timer t(offset, period);
+                        reaction(t) -> out {=
+                            SET(out, self->count);
+                            self->count += self->increment;
+                        =}
+                    }
+                    
+                    /**
+                     * Receive an input and report the elapsed logical tag
+                     * and the value of the input. Request stop when the 10th
+                     * value has been received.
+                     */
+                    reactor Receive {
+                        input in:int;
+                        reaction(in) {=
+                            info_print("At elapsed tag (%lld, %d), received %d.",
+                                get_elapsed_logical_time(), get_microstep(),
+                                in->value
+                            );
+                            if (in->value >= 10) {
+                                request_stop();
+                            }
+                        =}
+                    }
+                    
+                    /**
+                     * When triggered, take the specified amount of physical time
+                     * before outputting the value of the trigger.
+                     * 
+                     * @param approximate_time The approximate amount of physical 
+                     *  time to take for each input.
+                     * 
+                     * @input in A triggering input.
+                     * 
+                     * @output out The triggering input. 
+                     */
+                    reactor TakeTime(
+                        approximate_time:time(100 msec)
+                    ) {
+                        input in:int;
+                        output out:int;
+                        reaction(in) -> out {=
+                            instant_t start_time = get_physical_time();
+                            while (get_physical_time() < start_time + self->approximate_time) {
+                                // Do nothing.
+                            }
+                            SET(out, in->value);
+                        =}
+                    }
+                    
+                    main reactor {
+                        r0 = new SendCount(period = 100 msec);
+                        rp = new[4] TakeTime(approximate_time = 100 msec);
+                        r5 = new Receive();
+                        // Uncomment the "after" clause to expose parallelism.
+                        r0.out, rp.out -> rp.in, r5.in // after 100 msec; 
+                    }
+                ''')
+            ])
+        }
+    
+    }
 
 @ProjectTemplate(label="Federated", icon="project_template.png", description="<p><b>Federated</b></p>
     <p>A federated \"Hello World\" program.</p>")
@@ -122,6 +236,89 @@ class LFProjectTemplateProvider implements IProjectTemplateProvider {
                         source.message -> print.message;
                     }
                 ''')
+            ])
+        }
+    
+    }
+
+
+@ProjectTemplate(label="Parallel", icon="project_template.png", description="<p><b>Parallel</b></p>
+    <p>A simple fork-join pattern that exploits parallelism.</p>")
+    final class ParallelProject {
+        // val advanced = check("Advanced:", false)
+        //val config = group("Configuration")
+        //val target = combo("Target:", #["C"], "The target language to compile down to", config)
+
+
+        override generateProjects(IProjectGenerator generator) {
+            generator.generate(new PluginProjectFactory => [
+                projectName = projectInfo.projectName
+                location = projectInfo.locationPath
+                projectNatures += #[XtextProjectHelper.NATURE_ID]
+                builderIds += #[XtextProjectHelper.BUILDER_ID]
+                folders += #["src"]
+                addFile("src/Parallel.lf", '''
+                    /**
+                      * Each instance of TakeTime takes 200 ms wall clock time to
+                      * transport the input to the output. Four of them are
+                      * instantiated. Note that without parallel execution, there is 
+                      * no way this program can keep up with real time since in every
+                      * 200 msec cycle it has 800 msec of work to do. Given 4 threads, 
+                      * however, this program can complete 800 msec of work in about
+                      * 225 msec. 
+                      */
+                    target C {
+                        timeout: 2 sec,
+                        threads: 1, // Change to 4 to see speed up.
+                    };
+                    reactor Source {
+                            timer t(0, 200 msec);
+                            output out:int;
+                            state s:int(0);
+                            reaction(t) -> out {=
+                                    SET(out, self->s);
+                                    self->s++;
+                            =}
+                    }
+                    reactor TakeTime {
+                            input in:int;
+                            output out:int;
+                            reaction(in) -> out {=
+                                    struct timespec sleep_time = {(time_t) 0, (long)200000000};
+                                    struct timespec remaining_time;
+                                    nanosleep(&sleep_time, &remaining_time);
+                                    int offset = 0;
+                                    for (int i = 0; i < 100000000; i++) {
+                                        offset++;
+                                    }
+                                    SET(out, in->value + offset);
+                            =}
+                    }
+                    reactor Destination(width:int(4)) {
+                            state s:int(400000000);
+                            input[width] in:int;
+                            reaction(in) {=
+                                    int sum = 0;
+                                    for (int i = 0; i < in_width; i++) {
+                                sum += in[i]->value;
+                            }
+                                    printf("Sum of received: %d.\n", sum);
+                                    if (sum != self->s) {
+                                            printf("ERROR: Expected %d.\n", self->s);
+                                            exit(1);
+                                    }
+                                    self->s += in_width;
+                            =}
+                    }
+                    main reactor Parallel(width:int(4)) {
+                            a = new Source();
+                            t = new[width] TakeTime();
+                            (a.out)+ -> t.in;
+                        b = new Destination(width = width);
+                            t.out -> b.in;
+                    }                    
+                    '''
+                )
             ])
         }
     
