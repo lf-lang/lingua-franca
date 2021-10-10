@@ -16,6 +16,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
       - [x] `PortConnectionInSelfOutSelf.lf`: input of self to output of self
       - [x] `PortConnectionOutChildOutSelf.lf`: output of child to output of self
       - [x] `CompositionWithPorts.lf`: output of child to input of child
+    - [ ] connections with non-zero delay (`a.o -> b.i after 1 ms`)
     - [ ] mutable inputs
 - [x] reaction dependency handling
     - dependencies can be declared...
@@ -84,21 +85,24 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] support array initializer syntax
   - [ ] support array assignment syntax (needs #544)
 - [ ] deadlines
-  - ...
+  -  shouldn't be so hard to implement
 - [ ] reactor inheritance
   - ...
-- [ ] multiports
+- [ ] multiports and banks of reactors
 
 ### Runtime
 
 - [x] parallelize independent computation
   - [x] feature-gated by Cargo (`--features parallel_runtime`)
   - [ ] make usable as target property
+  - [ ] maybe stop using rayon and use your own thread pool and concurrency primitives (far away)
 - [ ] runtime parameters
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option
   - [x] timeout option
 - [ ] error recovery
   - [ ] unwind safety around reaction invocation, possibly a panic handler
+- [ ] tracing
+  - [ ] binary trace format -> you need benchmarks to measure overhead first
 
 ### Rust-specific code generator features
 
