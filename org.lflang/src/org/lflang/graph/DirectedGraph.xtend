@@ -1,5 +1,3 @@
-/* Instance of an action. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -299,7 +297,7 @@ class DirectedGraph<T> implements Graph<T> {
         val nodes = newLinkedHashSet
         nodes.addAll(this.upstreamAdjacentNodes.keySet)
         nodes.addAll(this.downstreamAdjacentNodes.keySet)
-        return nodes.toList
+        return nodes
     }
     
     def clear() {

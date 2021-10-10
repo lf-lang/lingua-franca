@@ -915,6 +915,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		if (!t.nullOrEmpty) {
 			b.append(":").append(t)
 		}
+		if (!param.init.nullOrEmpty) {
+		    b.append("(").append(param.init.join(", ", [it.toText])).append(")")
+		}
 		return b.toString()
 	}
 	

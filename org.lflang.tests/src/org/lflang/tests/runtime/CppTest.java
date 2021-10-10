@@ -69,6 +69,12 @@ public class CppTest extends ThreadedBase {
         printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
         System.out.println("N/A");
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        super.runSerializationTests();
+    }
 
     @Test
     @Override

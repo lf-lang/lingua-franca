@@ -39,6 +39,12 @@ public class TypeScriptTest extends TestBase {
     
     @Test
     @Override
+    public void runSerializationTests() {
+        super.runSerializationTests();
+    }
+    
+    @Test
+    @Override
     public void runAsFederated() {
         System.out.println("FIXME");
         //super.runNonFederatedTestsAsFederated();
