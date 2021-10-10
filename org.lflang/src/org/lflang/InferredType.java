@@ -53,21 +53,22 @@ public class InferredType {
     /**
      * A flag indicating whether the inferred type has the base type time.
      */
-    public final Boolean isTime;
+    public final boolean isTime;
     /**
      * A flag indicating whether the inferred type is a list.
      */
-    public final Boolean isList;
+    public final boolean isList;
     /**
      * A flag indicating whether the inferred type is a list of variable size.
      */
-    public final Boolean isVariableSizeList;
+    public final boolean isVariableSizeList;
     /**
      * A flag indicating whether the inferred type is a list of fixed size.
      */
-    public final Boolean isFixedSizeList;
+    public final boolean isFixedSizeList;
     /**
      * The list size if the inferred type is a fixed size list.
+     * Otherwise, null.
      */
     public final Integer listSize;
 
@@ -75,8 +76,8 @@ public class InferredType {
     /**
      * Private constructor
      */
-    private InferredType(Type astType, Boolean isTime, Boolean isList, Boolean isVariableSizeList,
-                         Boolean isFixedSizeList, Integer listSize) {
+    private InferredType(Type astType, boolean isTime, boolean isList, boolean isVariableSizeList,
+                         boolean isFixedSizeList, Integer listSize) {
         this.astType = astType;
         this.isTime = isTime;
         this.isList = isList;
@@ -159,13 +160,12 @@ public class InferredType {
     }
 
     /**
-     * Create an inferred type representing a time list.
-     * <p>
-     * This creates a fixed size list if size is given and a variable size list
-     * if size is null.
+     * Create an inferred type representing a list of time values.
      *
-     * @param size The list size
-     * @return A new inferred type representing a time list
+     * <p>This creates a fixed size list if size is non-null,
+     * otherwise a variable size list.
+     *
+     * @param size The list size, may be null
      */
     public static InferredType timeList(Integer size) {
         return new InferredType(null, true, true, size == null, size != null, size);
@@ -173,8 +173,6 @@ public class InferredType {
 
     /**
      * Create an inferred type representing a variable size time list.
-     *
-     * @return A new inferred type representing a variable size time list
      */
     public static InferredType timeList() {
         return timeList(null);
