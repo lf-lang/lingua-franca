@@ -3,6 +3,11 @@
  * asynchronous external inputs, the use of startup and shutdown
  * reactions, and the use of actions with values.
  * 
+ * The example is fashioned after an Esterel implementation given by
+ * Berry and Gonthier in "The ESTEREL synchronous programming language:
+ * design, semantics, implementation," Science of Computer Programming,
+ * 19(2) pp. 87-152, Nov. 1992, DOI: 10.1016/0167-6423(92)90005-V.
+ * 
  * @author Edward A. Lee
  * @author Marten Lohstroh
  */
@@ -92,7 +97,7 @@ reactor GetUserInput {
     =}
     
     reaction(prompt) {=
-        self->prompt_time = get_physical_time();
+        self->prompt_time = get_logical_time();
     =}
     
     reaction(user_response) -> another {=
