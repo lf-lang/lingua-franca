@@ -149,7 +149,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule(void* action, interval_t offset);
+trigger_handle_t schedule(void* action, interval_t offset);
 
 /**
  * Schedule the specified action with an integer value at a later logical
@@ -162,7 +162,7 @@ handle_t schedule(void* action, interval_t offset);
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(void* action, interval_t extra_delay, int value);
+trigger_handle_t schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -214,7 +214,7 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value);
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
+trigger_handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
 
 /**
  * Schedule an action to occur with the specified value and time offset with a
@@ -232,7 +232,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
+trigger_handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -250,6 +250,6 @@ handle_t schedule_copy(void* action, interval_t offset, void* value, int length)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for
  *  error.
  */
-handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
+trigger_handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
 
 #endif // CTARGET_H
