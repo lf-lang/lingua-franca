@@ -427,6 +427,62 @@ class LinguaFrancaValidationTest {
     }
     
     /**
+     * Detect causality loop.
+     */
+    @Test
+    def void detectCausalityLoop() {
+        val model = parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x
+                b.y -> a.x
+            }
+            
+        ''')
+        model.assertError(LfPackage::eINSTANCE.reaction,
+            null, 'Reaction triggers involved in cyclic dependency in reactor X: x.')
+        model.assertError(LfPackage::eINSTANCE.reaction,
+            null, 'Reaction effects involved in cyclic dependency in reactor X: y.')
+            
+    }
+    
+    /**
+     * Let cyclic dependencies be broken by "after" clauses.
+     */
+    @Test
+    def void afterBreaksCycle() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 5 msec
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
+    }
+    
+    /**
      * Report non-zero time value without units.
      */
     @Test

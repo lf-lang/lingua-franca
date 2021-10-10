@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "pythontarget.h"
 #include "core/util.h"
+#include "core/tag.h"
 
 //////////// set Function(s) /////////////
 /**
@@ -99,7 +100,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 /**
  * Prototype for the internal API. @see reactor_common.c
  **/
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length);
+lf_token_t* _lf_initialize_token_with_value(lf_token_t* token, void* value, size_t length);
 
 /**
  * Prototype for API function. @see lib/core/reactor_common.c
@@ -141,7 +142,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
         // DEBUG: adjust the element_size (might not be necessary)
         trigger->token->element_size = sizeof(PyObject*);
         trigger->element_size = sizeof(PyObject*);
-        t = __initialize_token_with_value(trigger->token, value, 1);
+        t = _lf_initialize_token_with_value(trigger->token, value, 1);
 
         // Also give the new value back to the Python action itself
         Py_INCREF(value);
@@ -193,37 +194,35 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args) {
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_elapsed_logical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_elapsed_logical_time());
+    return PyLong_FromLongLong(get_elapsed_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_logical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_logical_time());
+    return PyLong_FromLongLong(get_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_physical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_physical_time());
+    return PyLong_FromLongLong(get_physical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
-instant_t get_elapsed_physical_time();
 static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_elapsed_physical_time());
+    return PyLong_FromLongLong(get_elapsed_physical_time());
 }
 
 /**
  * Return the start time in nanoseconds.
  */
-instant_t get_start_time();
 static PyObject* py_get_start_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_start_time());
+    return PyLong_FromLongLong(get_start_time());
 }
 
 /**
@@ -254,7 +253,15 @@ static PyObject* py_request_stop(PyObject *self) {
 static PyObject* py_main(PyObject *self, PyObject *args) {
     DEBUG_PRINT("Initializing main.");
     const char *argv[] = {TOSTRING(MODULE_NAME), NULL };
+
+    // Initialize the Python interpreter
+    Py_Initialize();
+
+    DEBUG_PRINT("Initialized the Python interpreter.");
+
+    Py_BEGIN_ALLOW_THREADS
     lf_reactor_c_main(1, argv);
+    Py_END_ALLOW_THREADS
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -966,14 +973,6 @@ PyObject* convert_C_action_to_py(void* action) {
  */
 PyObject*
 get_python_function(string module, string class, int instance_id, string func) {
-
-    // Set if the interpreter is already initialized
-    int is_initialized = 0;
-
-    if (Py_IsInitialized()) {
-        is_initialized = 1;
-    }
-
     DEBUG_PRINT("Starting the function start().");
 
     // Necessary PyObject variables to load the react() function from test.py
@@ -981,10 +980,15 @@ get_python_function(string module, string class, int instance_id, string func) {
 
     PyObject *rValue;
 
-    // Initialize the Python interpreter
-    Py_Initialize();
-
-    DEBUG_PRINT("Initialized the Python interpreter.");
+    // According to
+    // https://docs.python.org/3/c-api/init.html#non-python-created-threads
+    // the following code does the following:
+    // - Register this thread with the interpreter
+    // - Acquire the GIL (Global Interpreter Lock)
+    // - Store (return) the thread pointer
+    // When done, we should always call PyGILState_Release(gstate);
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
 
     // If the Python module is already loaded, skip this.
     if (globalPythonModule == NULL) {    
@@ -993,8 +997,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         
         // Set the Python search path to be the current working directory
         char cwd[PATH_MAX];
-        if ( getcwd(cwd, sizeof(cwd)) == NULL)
-        {
+        if ( getcwd(cwd, sizeof(cwd)) == NULL) {
             error_print_and_exit("Failed to get the current working directory.");
         }
 
@@ -1004,7 +1007,7 @@ get_python_function(string module, string class, int instance_id, string func) {
 
         Py_SetPath(wcwd);
 
-    DEBUG_PRINT("Loading module %s in %s.", module, cwd);
+        DEBUG_PRINT("Loading module %s in %s.", module, cwd);
 
         pModule = PyImport_Import(pFileName);
 
@@ -1020,6 +1023,8 @@ get_python_function(string module, string class, int instance_id, string func) {
             if (pDict == NULL) {
                 PyErr_Print();
                 error_print("Failed to load contents of module %s.", module);
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
                 return 1;
             }
 
@@ -1042,6 +1047,8 @@ get_python_function(string module, string class, int instance_id, string func) {
         if (pClasses == NULL){
             PyErr_Print();
             error_print("Failed to load class list \"%s\" in module %s.", class, module);
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
             return 1;
         }
 
@@ -1051,6 +1058,8 @@ get_python_function(string module, string class, int instance_id, string func) {
         if (pClass == NULL) {
             PyErr_Print();
             error_print("Failed to load class \"%s[%d]\" in module %s.", class, instance_id, module);
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
             return 1;
         }
 
@@ -1066,6 +1075,8 @@ get_python_function(string module, string class, int instance_id, string func) {
         if (pFunc && PyCallable_Check(pFunc)) {
             DEBUG_PRINT("Calling function %s from class %s[%d].", func , class, instance_id);
             Py_INCREF(pFunc);
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
             return pFunc;
         }
         else {
@@ -1086,11 +1097,8 @@ get_python_function(string module, string class, int instance_id, string func) {
     
     DEBUG_PRINT("Done with start().");
 
-    if (is_initialized == 0) {
-        /* We are the first to initilize the Pyton interpreter. Destroy it when done. */
-        Py_FinalizeEx();
-    }
-
     Py_INCREF(Py_None);
+    /* Release the thread. No Python API allowed beyond this point. */
+    PyGILState_Release(gstate);
     return Py_None;
 }

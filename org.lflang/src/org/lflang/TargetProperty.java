@@ -46,7 +46,7 @@ public enum TargetProperty {
      * Directive to specify the target build type such as 'Release' or 'Debug'.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.CPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
             }),
@@ -302,7 +302,7 @@ public enum TargetProperty {
      * Directive to specify the number of threads.
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.threads = ASTUtils.toInteger(value);
             }),
@@ -320,7 +320,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();
