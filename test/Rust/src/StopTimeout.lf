@@ -1,16 +1,13 @@
 /* Tests that `shutdown` is triggered even if the program exits because of timeout target property. */
 
  target Rust {
-    timeout: 30 msec
+    timeout: 30 msec,
+    cargo-features: ["test-program"]
  };
 
 main reactor StopTimeout {
     reaction(shutdown) {=
-        // fixme is there a better way to test this?
-
-        assert_eq!(ctx.get_elapsed_logical_time(), Duration::from_millis(30));
-        assert_eq!(MicroStep::ZERO, ctx.get_logical_time().microstep, "Wrong microstep for stop execution");
-
+        assert_tag_is!(ctx, T0 + 30 ms);
         println!("Success!"); // if this is not printed the test failed
     =}
 }
