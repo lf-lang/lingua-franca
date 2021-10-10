@@ -4,7 +4,8 @@
  * @author Soroush Bateni
  */
  target Rust {
-    timeout: 11 msec
+    timeout: 11 msec,
+    cargo-features: ["test-program"],
 };
 
 /**
@@ -17,6 +18,10 @@ reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
     output out: u32;
     logical action act;
     state sent_messages: u32(0);
+
+    state take_a_break_after(take_a_break_after);
+    state break_interval(break_interval);
+
     reaction(startup, act) -> act, out {=
         // Send a message on out
         /* println!("At tag ({}, {}) sending value {}.\n",
@@ -28,12 +33,12 @@ reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
         ctx.set(out, self.sent_messages);
         self.sent_messages += 1;
 
-        if self.sent_messages < params.take_a_break_after {
+        if self.sent_messages < self.take_a_break_after {
             ctx.schedule(act, Asap);
         } else {
             // Take a break
             self.sent_messages = 0;
-            ctx.schedule(act, After(params.break_interval));
+            ctx.schedule(act, After(self.break_interval));
         }
     =}
 }
@@ -42,11 +47,10 @@ reactor Consumer {
     input in_: u32;
     state reaction_invoked_correctly: bool(false);
     reaction(in_) {=
-        let current_tag = ctx.get_logical_time();
+        let current_tag = ctx.get_tag();
 
         let t10_ = |u: u32| {
-            let instant = ctx.get_start_time().instant + Duration::from_millis(10);
-            LogicalInstant { instant, microstep: MicroStep::new(u) }
+            ctx.make_tag(Tag(delay!(10 msec), u))
         };
 
         if current_tag > t10_(9) {
@@ -55,7 +59,7 @@ reactor Consumer {
         } else if current_tag == t10_(8) {
             // Call request_stop() at relative tag (10 msec, 8)
             println!("Requesting stop.");
-            ctx.request_stop();
+            ctx.request_stop(Asap);
             return;
         } else if current_tag == t10_(9) {
             // Check that this reaction is indeed also triggered at (10 msec, 9)
@@ -66,13 +70,12 @@ reactor Consumer {
     =}
     
     reaction(shutdown) {=
-        let current_tag = ctx.get_logical_time();
+        let current_tag = ctx.get_tag();
 
         println!("Shutdown invoked at tag {}.\n", ctx.display_tag(current_tag));
 
         let t10_ = |u: u32| {
-            let instant = ctx.get_start_time().instant + Duration::from_millis(10);
-            LogicalInstant { instant, microstep: MicroStep::new(u) }
+             ctx.make_tag(Tag(delay!(10 msec), u))
         };
 
         // Check to see if shutdown is called at relative tag (10 msec, 9)

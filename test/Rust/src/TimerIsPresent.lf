@@ -16,25 +16,25 @@ main reactor {
     reaction(startup, a, b, c) {=
         match self.tick {
         0 => { // startup
-            ctx.assert_tag_eq(T0);
+            assert_tag_is!(ctx, T0);
             assert!(ctx.is_present(a));
             assert!(!ctx.is_present(b));
             assert!(!ctx.is_present(c));
         },
         1 => { // 1 msec
-            ctx.assert_tag_eq(Milli(1));
+            assert_tag_is!(ctx, T0 + 1 ms);
             assert!(!ctx.is_present(a));
             assert!(ctx.is_present(b));
             assert!(ctx.is_present(c));
         },
         2 => { // 5 msec (a triggers)
-            ctx.assert_tag_eq(Milli(5));
+            assert_tag_is!(ctx, T0 + 5 ms);
             assert!(ctx.is_present(a));
             assert!(!ctx.is_present(b));
             assert!(!ctx.is_present(c));
         },
         3 => { // 6 msec (b triggers)
-            ctx.assert_tag_eq(Milli(6));
+            assert_tag_is!(ctx, T0 + 6 ms);
             assert!(!ctx.is_present(a));
             assert!(ctx.is_present(b));
             assert!(!ctx.is_present(c));

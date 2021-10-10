@@ -78,9 +78,7 @@ object RustEmitter {
                 |${generatedByComment("//")}
                 |#![allow(unused)]
                 |
-                |use $rsRuntime::ReactionCtx;
-                |use $rsRuntime::{LogicalInstant, PhysicalInstant, Duration};
-                |use $rsRuntime::Offset::*;
+                |use $rsRuntime::prelude::*;
                 |
                 |#[cfg(feature = "test-program")]
                 |use $rsRuntime::TagSpec::*;

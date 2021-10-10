@@ -7,7 +7,7 @@ main reactor TimerPeriodic {
     timer t2(0, 3 msec);
 
     reaction(t2) {=
-        println!("Tick {} after {} ms", self.i, ctx.get_elapsed_physical_time().as_millis());
+        println!("Tick {} at {}", self.i, ctx.display_tag());
         self.i += 1;
     =}
 

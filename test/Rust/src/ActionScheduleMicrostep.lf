@@ -8,14 +8,13 @@ main reactor ActionScheduleMicrostep {
     state count: u32(1);
 
     reaction(startup) -> act {=
-        ctx.assert_tag_eq(T0);
+        assert_tag_is!(ctx, T0);
         // executes at (T0, 0)
         ctx.schedule(act, Asap);
     =}
 
     reaction(act) -> act {=
-        // executes at (T0, [123])
-        ctx.assert_tag_eq(MilliStep(0, self.count));
+        assert_tag_is!(ctx, (T0, self.count));
         self.count += 1;
         if self.count <= 3 {
             ctx.schedule(act, Asap);
