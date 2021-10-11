@@ -114,8 +114,6 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRus
                 |    _id: $rsRuntime::ReactorId,
                 |    _impl: $structName$typeArgs,
                 |    _params: $paramStructName,
-                |    _startup_reactions: $rsRuntime::ReactionSet,
-                |    _shutdown_reactions: $rsRuntime::ReactionSet,
 ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
@@ -126,8 +124,6 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |        Self {
                 |            _id: __assembler.get_id(),
                 |            _params,
-                |            _startup_reactions: Default::default(),
-                |            _shutdown_reactions: Default::default(),
                 |            _impl: $structName {
                 |                __phantom: std::marker::PhantomData,   
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
@@ -156,8 +152,6 @@ ${"             |        "..assembleChildReactors()}
 ${"             |        "..declareReactions()}
                 |
                 |        {
-                |            __self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
-                |            __self._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
                 |
 ${"             |            "..graphDependencyDeclarations(reactor)}
                 |
@@ -187,15 +181,6 @@ ${"             |            "..syntheticTimerReactions(reactor)}
                 |
                 |    fn cleanup_tag(&mut self, ctx: &CleanupCtx) {
 ${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn() }
-                |    }
-                |    
-                |    fn enqueue_startup(&self, ctx: &mut StartupCtx) {
-                |        ctx.enqueue(&self._startup_reactions);
-${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.rustFieldName});" }}
-                |    }
-                |
-                |    fn enqueue_shutdown(&self, ctx: &mut StartupCtx) {
-                |        ctx.enqueue(&self._shutdown_reactions);
                 |    }
                 |
                 |}
