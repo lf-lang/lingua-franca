@@ -68,7 +68,7 @@ class CppGenerator(
 
         generateFiles(fsa)
 
-        if (targetConfig.noCompile || errorsOccurred()) {
+        if (targetConfig.noCompile || errorsOccurred() || cppFileConfig.compilerMode == Mode.LSP_FAST) {
             println("Exiting before invoking target compiler.")
         } else {
             doCompile(context)
