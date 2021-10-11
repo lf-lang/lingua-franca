@@ -245,7 +245,7 @@ class TSGenerator(
             fsa.generateFile(relativeTsFilePath, cleanedTsCode)
             fsa.generateFile("$relativeTsFilePath.map", sourceMap)
         }
-        if (!targetConfig.noCompile) compile(resource, context);
+        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_FAST) compile(resource, context);
     }
 
     private fun compile(resource: Resource, context: IGeneratorContext) {
