@@ -35,7 +35,6 @@ import org.lflang.withDQuotes
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.exp
 
 
 /**
@@ -174,13 +173,13 @@ ${"             |        "..nestedInstances.joinToString("\n") { "__assembler.re
                 |    fn react_erased(&mut self, ctx: &mut ReactionCtx, rid: LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls(reactor)}
-${"             |            "..syntheticTimerReactions(reactor)}
+${"             |            "..reactor.syntheticTimerReactions()}
                 |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
                 |        }
                 |    }
                 |
                 |    fn cleanup_tag(&mut self, ctx: &CleanupCtx) {
-${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn() }
+${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn()}
                 |    }
                 |
                 |}
@@ -190,8 +189,8 @@ ${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupActio
         }
     }
 
-    /** timers have a reschedule reaction*/
-    private val ReactorInfo.maxReactionIdUsize get() = reactions.size + timers.size
+    /** timers have a reschedule and a bootstrap reaction*/
+    private val ReactorInfo.maxReactionIdUsize get() = reactions.size + 2 * timers.size
 
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
@@ -233,13 +232,19 @@ ${"         |    "..declarations}
     }
 
     private fun ReactorInfo.declareReactions(): String {
-        val reactionIds = reactions.map { it.invokerId } + timers.map { it.rescheduleReactionId }
+        val reactionIds = reactions.map { it.invokerId } +
+                timers.map { it.rescheduleReactionId } +
+                timers.map { it.startReactionId }
+
+        val debugLabels = reactions.map { it.debugLabel.toRustOption() } +
+                timers.map { "Some(\"reschedule_${it.lfName}\")" } +
+                timers.map { "Some(\"bootstrap_${it.lfName}\")" }
+
 
         val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
-        val debugLabels = reactions.map { it.debugLabel.toRustOption() } + timers.map { "Some(\"reschedule_${it.lfName}\")" }
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
-        return "$pattern = __assembler.new_reactions($debugLabelArray);"
+        return "$pattern = __assembler.new_reactions(${reactions.size}, $debugLabelArray);"
     }
 
     private fun workerFunctionCalls(reactor: ReactorInfo): String {
@@ -263,14 +268,19 @@ ${"         |    "..declarations}
         }
     }
 
-    private fun syntheticTimerReactions(reactor: ReactorInfo): String {
-        return reactor.timers.joinWithCommasLn(trailing = true) { timer: TimerData ->
-            "${reactor.timerReactionId(timer)} => ctx.schedule_timer(&mut self.${timer.rustFieldName})"
+    private fun ReactorInfo.syntheticTimerReactions(): String {
+        val branches = timers.map {
+            "${timerReactionId(it, 0)} => ctx.reschedule_timer(&mut self.${it.rustFieldName})"
+        } + timers.map {
+            "${timerReactionId(it, 1)} => ctx.bootstrap_timer(&mut self.${it.rustFieldName})"
         }
+        return branches.joinWithCommasLn(trailing = true)
     }
 
-    private fun ReactorInfo.timerReactionId(timer: TimerData) =
-        reactions.size + timers.indexOf(timer).also { assert(it != -1) }
+    private fun ReactorInfo.timerReactionId(timer: TimerData, synthesisNum: Int) =
+        reactions.size +
+                timers.indexOf(timer).also { assert(it != -1) } +
+                synthesisNum * timers.size // offset it by a block
 
     private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
         val reactions = reactor.reactions.map { n ->
@@ -281,19 +291,30 @@ ${"         |    "..declarations}
                 if (n.isShutdown)
                     this += "__assembler.declare_triggers($rsRuntime::TriggerId::Shutdown, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
-                this += n.effects.filterIsInstance<PortData>().map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
+                this += n.effects.filterIsInstance<PortData>()
+                    .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
             }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
         }.joinLn()
 
-        val timers = reactor.timers.map { "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;" }.joinLn()
+        val timers = reactor.timers.flatMap {
+            listOf(
+                "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
+                // start reactions may "trigger" the timer, otherwise it schedules it
+                "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${it.startReactionId})?;",
+                "__assembler.effects_instantaneous(${it.startReactionId}, __self.${it.rustFieldName}.get_id())?;",
+            )
+        }.joinLn()
 
         return (reactions + "\n\n" + timers).trimEnd()
     }
 
     private val TimerData.rescheduleReactionId: String
         get() = "_timer_schedule_$lfName"
+
+    private val TimerData.startReactionId: String
+        get() = "_timer_start_$lfName"
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor
