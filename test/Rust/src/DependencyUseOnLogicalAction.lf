@@ -13,15 +13,15 @@ main reactor {
     state tick: u32(0);
 
     reaction(startup) -> clock, a {=
-        ctx.schedule(a, AfterMillis(3)); // out of order on purpose
-        ctx.schedule(a, AfterMillis(1));
-        ctx.schedule(a, AfterMillis(5));
+        ctx.schedule(a, after!(3 ms)); // out of order on purpose
+        ctx.schedule(a, after!(1 ms));
+        ctx.schedule(a, after!(5 ms));
 
         // not scheduled on milli 1 (action is)
-        ctx.schedule_with_v(clock, Some(2), AfterMillis(2));
-        ctx.schedule_with_v(clock, Some(3), AfterMillis(3));
-        ctx.schedule_with_v(clock, Some(4), AfterMillis(4));
-        ctx.schedule_with_v(clock, Some(5), AfterMillis(5));
+        ctx.schedule_with_v(clock, Some(2), after!(2 ms));
+        ctx.schedule_with_v(clock, Some(3), after!(3 ms));
+        ctx.schedule_with_v(clock, Some(4), after!(4 ms));
+        ctx.schedule_with_v(clock, Some(5), after!(5 ms));
         // not scheduled on milli 6 (timer is)
     =}
 
