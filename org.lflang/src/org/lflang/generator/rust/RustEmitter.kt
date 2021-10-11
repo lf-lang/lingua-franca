@@ -88,7 +88,7 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
                 |///
                 |/${loc.lfTextComment()}
                 |pub struct $structName$typeParams {
-                |    __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
+                |    pub __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}
                 |
@@ -100,8 +100,8 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(rea
                 |}
                 |
                 |/// Parameters for the construction of a [$structName]
-                |#[derive(Clone)]
-                |pub struct ${names.paramStructName} {
+                |pub struct ${names.paramStructName}$typeParams {
+                |    pub __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRustIdent()}: ${it.type}" }}
                 |}
                 |
@@ -110,20 +110,18 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRus
                 |
                 |
                 |pub struct $wrapperName$typeParams {
-                |    _id: $rsRuntime::ReactorId,
-                |    _impl: $structName$typeArgs,
-                |    _params: $paramStructName,
+                |    __id: $rsRuntime::ReactorId,
+                |    __impl: $structName$typeArgs,
 ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |impl$typeParams $wrapperName$typeArgs {
                 |    #[inline]
-                |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
-                |        let $ctorParamsDeconstructor = _params.clone();
+                |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, __params: $paramStructName$typeArgs) -> Self {
+                |        let $ctorParamsDeconstructor = __params;
                 |        Self {
-                |            _id: __assembler.get_id(),
-                |            _params,
-                |            _impl: $structName {
+                |            __id: __assembler.get_id(),
+                |            __impl: $structName {
                 |                __phantom: std::marker::PhantomData,   
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
                 |            },
@@ -136,17 +134,17 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
-                |    type Params = $paramStructName;
+                |    type Params = $paramStructName$typeArgs;
                 |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const($maxReactionIdUsize);
                 |
-                |    fn assemble(args: Self::Params, __assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
+                |    fn assemble(__params: Self::Params, __assembler: &mut AssemblyCtx) -> Result<Self, AssemblyError> {
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
                 |        __assembler.fix_cur_id();
                 |
                 |        // assemble self
-                |        let mut __self: Self = Self::user_assemble(__assembler, args);
+                |        let mut __self: Self = Self::user_assemble(__assembler, __params);
                 |
 ${"             |        "..declareReactions()}
                 |
@@ -167,7 +165,7 @@ ${"             |        "..nestedInstances.joinToString("\n") { "__assembler.re
                 |
                 |    #[inline]
                 |    fn id(&self) -> ReactorId {
-                |        self._id
+                |        self.__id
                 |    }
                 |
                 |    fn react_erased(&mut self, ctx: &mut ReactionCtx, rid: LocalReactionId) {
@@ -194,13 +192,13 @@ ${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupActio
 
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
-            args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
+            args.entries.joinWithCommas("super::${names.paramStructName} {  __phantom: std::marker::PhantomData, ", " }") {
                 if (it.key == it.value) it.key.escapeRustIdent()
                 else it.key.escapeRustIdent() + ": " + it.value // do not escape value
             }
 
-        val asTuple = nestedInstances.joinWithCommas("(", ")") { it.rustLocalName }
-        val asMutTuple = nestedInstances.joinWithCommas("(", ")") { "mut ${it.rustLocalName}" }
+        val asTuple = nestedInstances.joinWithCommas("($ctorParamsDeconstructor, ", ")") { it.rustLocalName }
+        val asMutTuple = nestedInstances.joinWithCommas("(__params, ", ")") { "mut ${it.rustLocalName}" }
 
         val declarations = nestedInstances.joinToString("\n") {
             """
@@ -213,7 +211,7 @@ ${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupActio
         // within the block
         return with(PrependOperator) { """
             |let $asMutTuple = {
-            |    let $ctorParamsDeconstructor = args.clone();
+            |    let $ctorParamsDeconstructor = __params;
 ${"         |    "..declarations}
             |    $asTuple
             |};
@@ -264,7 +262,7 @@ ${"         |    "..declarations}
         }
 
         return reactor.reactions.joinWithCommasLn(trailing = true) { n: ReactionInfo ->
-            "${n.idx} => self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)})"
+            "${n.idx} => self.__impl.${n.workerId}(ctx${joinDependencies(n)})"
         }
     }
 
@@ -345,6 +343,7 @@ ${"         |    "..declarations}
             |    };
             |    // todo main params are entirely defaulted for now.
             |    let main_args = _MainParams {
+            |       __phantom: std::marker::PhantomData,
 ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
             |    };
             |
@@ -474,7 +473,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
         get() {
             val fields = ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }
-            return "${names.paramStructName} { $fields }"
+            return "${names.paramStructName} {  __phantom, $fields }"
         }
 
 
@@ -584,7 +583,6 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
                 |${loc.lfTextComment()}
                 |fn $workerId(&mut self, 
                 |$indent#[allow(unused)] ctx: &mut $rsRuntime::ReactionCtx,
-                |$indent#[allow(unused)] params: &${reactor.names.paramStructName},
 ${"             |$indent"..reactionParams().joinWithCommasLn { it }}) {
 ${"             |    "..body}
                 |}
