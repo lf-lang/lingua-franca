@@ -390,7 +390,7 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-        /**
+    /**
      * Look for physical actions in 'resource'.
      * If found, take appropriate actions to accommodate.
      * 
@@ -402,14 +402,14 @@ class CGenerator extends GeneratorBase {
 
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
-        for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
+        for (action : resource.allContents.toIterable.filter(Action)) {
             if (action.origin == ActionOrigin.PHYSICAL) {
                 // If the unthreaded runtime is requested, use the threaded runtime instead
                 // because it is the only one currently capable of handling asynchronous events.
                 if (targetConfig.threads < 1) {
                     targetConfig.threads = 1
                     errorReporter.reportWarning(
-                        fileConfig.resource.findTarget,
+                        action,
                         '''Using the threaded C runtime to allow for asynchronous handling of«
                         » physical action «action.name».'''
                     );
