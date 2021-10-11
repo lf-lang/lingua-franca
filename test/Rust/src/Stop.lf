@@ -82,7 +82,7 @@ reactor Consumer {
         if current_tag == t10_(9) && self.reaction_invoked_correctly {
             println!("SUCCESS: successfully enforced stop.");
         } else if current_tag > t10_(9) {
-            panic!("ERROR: Shutdown invoked at tag {}. Failed to enforce timeout.", ctx.display_tag(current_tag));
+            panic!("ERROR: Shutdown invoked at tag {}. Failed to enforce timeout at (T0 + 10ms, 9).", ctx.display_tag(current_tag));
         } else if !self.reaction_invoked_correctly {
             // Check to see if reactions were called correctly
             panic!("ERROR: Failed to invoke reaction(in) at tag {}.", ctx.display_tag(current_tag));
