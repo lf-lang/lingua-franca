@@ -280,7 +280,7 @@ ${"         |    "..declarations}
 
     private fun syntheticTimerReactions(reactor: ReactorInfo): String {
         return reactor.timers.joinWithCommasLn(trailing = true) { timer: TimerData ->
-            "${reactor.timerReactionId(timer)} => ctx.maybe_reschedule(&self.${timer.rustFieldName})"
+            "${reactor.timerReactionId(timer)} => ctx.schedule_timer(&mut self.${timer.rustFieldName})"
         }
     }
 
@@ -289,11 +289,15 @@ ${"         |    "..declarations}
 
     private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
         val reactions = reactor.reactions.map { n ->
-            val deps =
-                n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" } +
-                        n.effects.filterIsInstance<PortData>()
-                            .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" } +
-                        n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
+            val deps: List<String> = mutableListOf<String>().apply {
+                this += n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" }
+                if (n.isStartup)
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${n.invokerId})?;"
+                if (n.isShutdown)
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Shutdown, ${n.invokerId})?;"
+                this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
+                this += n.effects.filterIsInstance<PortData>().map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
+            }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
         }.joinLn()
