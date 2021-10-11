@@ -24,11 +24,7 @@ reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
 
     reaction(startup, act) -> act, out {=
         // Send a message on out
-        /* println!("At tag ({}, {}) sending value {}.\n",
-            ctx.get_elapsed_logical_time().as_nanos(),
-            ctx.get_logical_time().microstep,
-            self.sent_messages
-        ); */
+        println!("At tag {} sending value {}.\n", ctx.display_tag(ctx.get_tag()), self.sent_messages);
 
         ctx.set(out, self.sent_messages);
         self.sent_messages += 1;
