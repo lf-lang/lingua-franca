@@ -9,17 +9,17 @@ main reactor ActionDelay {
     state count: u32(0);
 
     reaction(startup) -> act0, act1 {=
-        ctx.schedule(act0, AfterMillis(100));
-        ctx.schedule(act1, AfterMillis(40));
+        ctx.schedule(act0, after!(100 ms));
+        ctx.schedule(act1, after!(40 ms));
     =}
 
     reaction(act0) {=
-        ctx.assert_tag_eq(Milli(100));
+        assert_tag_is!(ctx, T0 + 100 ms);
         self.count += 1;
     =}
 
     reaction(act1) {=
-        ctx.assert_tag_eq(Milli(140));
+        assert_tag_is!(ctx, T0 + 140 ms);
         self.count += 1;
     =}
 

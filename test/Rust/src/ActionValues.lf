@@ -9,19 +9,17 @@ main reactor ActionValues {
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some(100), Asap); // scheduled in 100 ms
         // scheduled in 150 ms, value is overwritten
-        ctx.schedule_with_v(act, Some(-100), AfterMillis(50));
+        ctx.schedule_with_v(act, Some(-100), after!(50 ms));
     =}
 
     reaction(act) {=
-        let elapsed_logical = ctx.get_elapsed_logical_time();
+        println!("At {}, received {:?}", ctx.get_tag(), ctx.get(act));
 
-        println!("At {}, received {:?}", ctx.display_tag(ctx.get_logical_time()), ctx.get(act));
-
-        if elapsed_logical == Duration::from_millis(100) {
+        if ctx.get_tag() == tag!(T0 + 100 ms) {
             assert_eq!(Some(100), ctx.get(act));
             self.r1done = true;
         } else {
-            assert_eq!(elapsed_logical, Duration::from_millis(150));
+            assert_tag_is!(ctx, T0 + 150 ms);
             assert_eq!(Some(-100), ctx.get(act));
             self.r2done = true;
         }

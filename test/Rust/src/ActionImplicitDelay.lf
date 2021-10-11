@@ -12,7 +12,7 @@ main reactor ActionImplicitDelay {
     =}
 
     reaction(act) -> act {=
-        ctx.assert_tag_eq(Milli(40 * self.count));
+        assert_tag_is!(ctx, T0 + (40 * self.count) ms);
         self.count += 1;
         if self.count <= 3 {
             ctx.schedule(act, Asap);

@@ -92,7 +92,7 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
                 |///
                 |/${loc.lfTextComment()}
                 |pub struct $structName$typeParams {
-                |    __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
+                |    pub __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}
                 |
@@ -104,8 +104,8 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(rea
                 |}
                 |
                 |/// Parameters for the construction of a [$structName]
-                |#[derive(Clone)]
-                |pub struct ${names.paramStructName} {
+                |pub struct ${names.paramStructName}$typeParams {
+                |    pub __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRustIdent()}: ${it.type}" }}
                 |}
                 |
@@ -114,20 +114,17 @@ ${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRus
                 |
                 |
                 |pub struct $wrapperName$typeParams {
-                |    _id: $rsRuntime::ReactorId,
-                |    _impl: $structName$typeArgs,
-                |    _params: $paramStructName,
-                |    _startup_reactions: $rsRuntime::ReactionSet,
-                |    _shutdown_reactions: $rsRuntime::ReactionSet,
+                |    __id: $rsRuntime::ReactorId,
+                |    __impl: $structName$typeArgs,
 ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |}
                 |
                 |impl$typeParams $wrapperName$typeArgs {
                 |    #[inline]
-                |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, _params: $paramStructName) -> Self {
-                |        let $ctorParamsDeconstructor = _params.clone();
+                |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, __params: $paramStructName$typeArgs) -> Self {
+                |        let $ctorParamsDeconstructor = __params;
                 |
-                |        let _impl = {
+                |        let __impl = {
                 |            // declare them all here so that they are visible to the initializers of state vars declared later
 ${"             |            "..reactor.stateVars.joinToString("\n") { "let ${it.lfName} = ${it.init};" }}
                 |
@@ -138,11 +135,8 @@ ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfNa
                 |        };
                 |
                 |        Self {
-                |            _id: __assembler.get_id(),
-                |            _params,
-                |            _startup_reactions: Default::default(),
-                |            _shutdown_reactions: Default::default(),
-                |            _impl,
+                |            __id: __assembler.get_id(),
+                |            __impl,
 ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
                 |        }
                 |    }
@@ -150,10 +144,10 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
-                |    type Params = $paramStructName;
+                |    type Params = $paramStructName$typeArgs;
                 |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new_const($maxReactionIdUsize);
                 |
-                |    fn assemble(args: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
+                |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
                 |        use $rsRuntime::TriggerLike;
                 |
                 |        // children reactors   
@@ -162,13 +156,11 @@ ${"             |        "..assembleChildReactors()}
                 |        __assembler.fix_cur_id();
                 |
                 |        // assemble self
-                |        let mut __self: Self = Self::user_assemble(__assembler, args);
+                |        let mut __self: Self = Self::user_assemble(__assembler, __params);
                 |
 ${"             |        "..declareReactions()}
                 |
                 |        {
-                |            __self._startup_reactions = ${reactions.filter { it.isStartup }.toVecLiteral { it.invokerId }};
-                |            __self._shutdown_reactions = ${reactions.filter { it.isShutdown }.toVecLiteral { it.invokerId }};
                 |
 ${"             |            "..graphDependencyDeclarations(reactor)}
                 |
@@ -185,28 +177,19 @@ ${"             |        "..nestedInstances.joinToString("\n") { "__assembler.re
                 |
                 |    #[inline]
                 |    fn id(&self) -> $rsRuntime::ReactorId {
-                |        self._id
+                |        self.__id
                 |    }
                 |
                 |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: $rsRuntime::LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls(reactor)}
-${"             |            "..syntheticTimerReactions(reactor)}
+${"             |            "..reactor.syntheticTimerReactions()}
                 |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, <Self as $rsRuntime::ReactorInitializer>::MAX_REACTION_ID)
                 |        }
                 |    }
                 |
                 |    fn cleanup_tag(&mut self, ctx: &$rsRuntime::CleanupCtx) {
-${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn() }
-                |    }
-                |    
-                |    fn enqueue_startup(&self, ctx: &mut $rsRuntime::StartupCtx) {
-                |        ctx.enqueue(&self._startup_reactions);
-${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer(&self.${it.rustFieldName});" }}
-                |    }
-                |
-                |    fn enqueue_shutdown(&self, ctx: &mut $rsRuntime::StartupCtx) {
-                |        ctx.enqueue(&self._shutdown_reactions);
+${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn()}
                 |    }
                 |
                 |}
@@ -216,18 +199,18 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         }
     }
 
-    /** timers have a reschedule reaction*/
-    private val ReactorInfo.maxReactionIdUsize get() = reactions.size + timers.size
+    /** timers have a reschedule and a bootstrap reaction*/
+    private val ReactorInfo.maxReactionIdUsize get() = reactions.size + 2 * timers.size
 
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
-            args.entries.joinWithCommas("super::${names.paramStructName} { ", " }") {
+            args.entries.joinWithCommas("super::${names.paramStructName} {  __phantom: std::marker::PhantomData, ", " }") {
                 if (it.key == it.value) it.key.escapeRustIdent()
                 else it.key.escapeRustIdent() + ": " + it.value // do not escape value
             }
 
-        val asTuple = nestedInstances.joinWithCommas("(", ")") { it.rustLocalName }
-        val asMutTuple = nestedInstances.joinWithCommas("(", ")") { "mut ${it.rustLocalName}" }
+        val asTuple = nestedInstances.joinWithCommas("($ctorParamsDeconstructor, ", ")") { it.rustLocalName }
+        val asMutTuple = nestedInstances.joinWithCommas("(__params, ", ")") { "mut ${it.rustLocalName}" }
 
         val declarations = nestedInstances.joinToString("\n") {
             """
@@ -240,7 +223,7 @@ ${"             |        "..reactor.timers.joinToString("\n") { "ctx.start_timer
         // within the block
         return with(PrependOperator) { """
             |let $asMutTuple = {
-            |    let $ctorParamsDeconstructor = args.clone();
+            |    let $ctorParamsDeconstructor = __params;
 ${"         |    "..declarations}
             |    $asTuple
             |};
@@ -259,13 +242,19 @@ ${"         |    "..declarations}
     }
 
     private fun ReactorInfo.declareReactions(): String {
-        val reactionIds = reactions.map { it.invokerId } + timers.map { it.rescheduleReactionId }
+        val reactionIds = reactions.map { it.invokerId } +
+                timers.map { it.rescheduleReactionId } +
+                timers.map { it.startReactionId }
+
+        val debugLabels = reactions.map { it.debugLabel?.withDQuotes().toRustOption() } +
+                timers.map { "Some(\"reschedule_${it.lfName}\")" } +
+                timers.map { "Some(\"bootstrap_${it.lfName}\")" }
+
 
         val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
-        val debugLabels = reactions.map { it.debugLabel?.withDQuotes().toRustOption() } + timers.map { "Some(\"reschedule_${it.lfName}\")" }
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
-        return "$pattern = __assembler.new_reactions($debugLabelArray);"
+        return "$pattern = __assembler.new_reactions(${reactions.size}, $debugLabelArray);"
     }
 
     private fun workerFunctionCalls(reactor: ReactorInfo): String {
@@ -285,37 +274,57 @@ ${"         |    "..declarations}
         }
 
         return reactor.reactions.joinWithCommasLn(trailing = true) { n: ReactionInfo ->
-            "${n.idx} => self._impl.${n.workerId}(ctx, &self._params${joinDependencies(n)})"
+            "${n.idx} => self.__impl.${n.workerId}(ctx${joinDependencies(n)})"
         }
     }
 
-    private fun syntheticTimerReactions(reactor: ReactorInfo): String {
-        return reactor.timers.joinWithCommasLn(trailing = true) { timer: TimerData ->
-            "${reactor.timerReactionId(timer)} => ctx.maybe_reschedule(&self.${timer.rustFieldName})"
+    private fun ReactorInfo.syntheticTimerReactions(): String {
+        val branches = timers.map {
+            "${timerReactionId(it, 0)} => ctx.reschedule_timer(&mut self.${it.rustFieldName})"
+        } + timers.map {
+            "${timerReactionId(it, 1)} => ctx.bootstrap_timer(&mut self.${it.rustFieldName})"
         }
+        return branches.joinWithCommasLn(trailing = true)
     }
 
-    private fun ReactorInfo.timerReactionId(timer: TimerData) =
-        reactions.size + timers.indexOf(timer).also { assert(it != -1) }
+    private fun ReactorInfo.timerReactionId(timer: TimerData, synthesisNum: Int) =
+        reactions.size +
+                timers.indexOf(timer).also { assert(it != -1) } +
+                synthesisNum * timers.size // offset it by a block
 
     private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
         val reactions = reactor.reactions.map { n ->
-            val deps =
-                n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" } +
-                        n.effects.filterIsInstance<PortData>()
-                            .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" } +
-                        n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
+            val deps: List<String> = mutableListOf<String>().apply {
+                this += n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" }
+                if (n.isStartup)
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${n.invokerId})?;"
+                if (n.isShutdown)
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Shutdown, ${n.invokerId})?;"
+                this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
+                this += n.effects.filterIsInstance<PortData>()
+                    .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
+            }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
         }.joinLn()
 
-        val timers = reactor.timers.map { "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;" }.joinLn()
+        val timers = reactor.timers.flatMap {
+            listOf(
+                "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
+                // start reactions may "trigger" the timer, otherwise it schedules it
+                "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${it.startReactionId})?;",
+                "__assembler.effects_instantaneous(${it.startReactionId}, __self.${it.rustFieldName}.get_id())?;",
+            )
+        }.joinLn()
 
         return (reactions + "\n\n" + timers).trimEnd()
     }
 
     private val TimerData.rescheduleReactionId: String
         get() = "_timer_schedule_$lfName"
+
+    private val TimerData.startReactionId: String
+        get() = "_timer_start_$lfName"
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor
@@ -404,6 +413,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |        };
             |        // main params are entirely defaulted
             |        let main_args = __MainParams {
+            |           __phantom: std::marker::PhantomData,
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
             |        };
             |        (options, main_args)
@@ -450,6 +460,7 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |        };
             |
             |        let main_args = __MainParams {
+            |           __phantom: std::marker::PhantomData,
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.escapeRustIdent() + ": opts." + it.cliParamName }}
             |        };
             |        (options, main_args)
@@ -602,7 +613,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
         get() {
             val fields = ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }
-            return "${names.paramStructName} { $fields }"
+            return "${names.paramStructName} {  __phantom, $fields }"
         }
 
 
@@ -712,7 +723,6 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
                 |${loc.lfTextComment()}
                 |fn $workerId(&mut self, 
                 |$indent#[allow(unused)] ctx: &mut $rsRuntime::ReactionCtx,
-                |$indent#[allow(unused)] params: &${reactor.names.paramStructName},
 ${"             |$indent"..reactionParams().joinWithCommasLn { it }}) {
 ${"             |    "..body}
                 |}
