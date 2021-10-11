@@ -54,10 +54,11 @@ public class IntegratedBuilder {
      * @param uri the URI of a Lingua Franca file
      */
     public void run(URI uri) {
-        System.err.println("DEBUG: " + uri);
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
-        //  org.lflang.lfc.Main.
-        fileAccess.setOutputPath(FileConfig.findPackageRoot(Path.of(uri.path())).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        //  org.lflang.lfc.Main. The issue is that there is duplicated code.
+        fileAccess.setOutputPath(
+            FileConfig.findPackageRoot(Path.of(uri.path())).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
+        );
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
