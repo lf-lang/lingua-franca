@@ -79,9 +79,6 @@ object RustEmitter {
                 |
                 |use $rsRuntime::prelude::*;
                 |
-                |#[cfg(feature = "test-program")]
-                |use $rsRuntime::TagSpec::*;
-                |
 ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |
                 |/// Generated from ${loc.display()}
