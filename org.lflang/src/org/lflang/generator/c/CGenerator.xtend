@@ -372,13 +372,14 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * 
+     * Set the appropriate target properties based on the target properties of
+     * the main .lf file.
      */
     override setTargetConfig(IGeneratorContext context) {
         super.setTargetConfig(context);
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
-        if(targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+        if (targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++"
                 targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
@@ -386,7 +387,38 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compiler = "gcc"
                 targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
             }
-        } 
+        }
+    }
+    
+        /**
+     * Look for physical actions in 'resource'.
+     * If found, take appropriate actions to accommodate.
+     * 
+     * Set keepalive to true.
+     * Set threads to be at least one to allow asynchronous schedule calls
+     */
+    override accommodatePhysicalActionsIfPresent(Resource resource) {
+        super.accommodatePhysicalActionsIfPresent(resource);
+
+        // If there are any physical actions, ensure the threaded engine is used and that
+        // keepalive is set to true, unless the user has explicitly set it to false.
+        for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                // If the unthreaded runtime is requested, use the threaded runtime instead
+                // because it is the only one currently capable of handling asynchronous events.
+                if (targetConfig.threads < 1) {
+                    targetConfig.threads = 1
+                    errorReporter.reportWarning(
+                        fileConfig.resource.findTarget,
+                        '''Using the threaded C runtime to allow for asynchronous handling of«
+                        » physical action «action.name».'''
+                    );
+                }
+
+            }
+
+        }
+        
     }
     
     /**
