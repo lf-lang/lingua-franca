@@ -514,8 +514,8 @@ object RustModelBuilder {
                         type = RustTypes.getTargetType(it.type, it.init),
                         defaultValue = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty()),
                         documentation = null, // todo
-                        isTime = it.type.isTime,
-                        isList = it.type.arraySpec != null,
+                        isTime = it.inferredType.isTime,
+                        isList = it.inferredType.isList,
                         defaultValueAsTimeValue = ASTUtils.getInitialTimeValue(it),
                     )
                 }

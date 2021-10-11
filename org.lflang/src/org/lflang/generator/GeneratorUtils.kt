@@ -3,10 +3,7 @@ package org.lflang.generator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
-import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
-import org.lflang.lf.Type
-import org.lflang.lf.Value
+import org.lflang.lf.*
 
 
 /** A transparent type alias to document when a string contains target code. */
