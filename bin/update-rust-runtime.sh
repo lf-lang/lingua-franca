@@ -3,7 +3,12 @@
 # LFC and tested in CI. See README.md in Rust code generator
 # directory.
 
-cd "$LOCAL_RUST_REACTOR_RT" || (echo "Set LOCAL_RUST_REACTOR_RT properly plz" && exit 1)
+if [[ -z "$LOCAL_RUST_REACTOR_RT" ]]; then
+ echo "Set LOCAL_RUST_REACTOR_RT properly plz"
+ exit 1
+fi
+
+cd "$LOCAL_RUST_REACTOR_RT" || (echo "could not cd to $LOCAL_RUST_REACTOR_RT" && exit 1)
 revision_no="$(git rev-parse HEAD)"
 cd -
 

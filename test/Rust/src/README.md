@@ -68,6 +68,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `StopTimeout.lf`: `shutdown` is triggered even if the program exits because of timeout target property
   - [x] `StopNoEvent.lf`: `shutdown` is triggered even if the program exits because of an empty event queue
   - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
+  - [x] `StopDuringStartup.lf`: `request_stop` may be called within startup.
 - [x] state variables
   - [x] `TimeState.lf`: support time type
   - [x] `StateDefaultValue.lf`: if initializer is missing, `Default::default()` is used
