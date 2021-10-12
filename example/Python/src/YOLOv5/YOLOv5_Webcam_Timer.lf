@@ -37,7 +37,7 @@ reactor WebCam {
         self.stream.set(self.cv2.CAP_PROP_FPS, 30) # Set the camera's FPS to 30
     =}
     
-    timer camera_tick(0, 100msec);
+    timer camera_tick(3 sec, 100 msec);
     
     reaction(camera_tick) -> camera_frame {=
         ret, frame = self.stream.read()
