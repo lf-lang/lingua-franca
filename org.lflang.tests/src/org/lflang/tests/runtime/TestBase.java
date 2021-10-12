@@ -68,23 +68,12 @@ public abstract class TestBase {
     /** Execution timeout enforced for all tests. */
     private static final long MAX_EXECUTION_TIME_SECONDS = 60;
 
-    /** Line separator used for ending lines in terminal output. */
-    public static final String NEW_LINE = System.lineSeparator();
-
-    /** Content separator used in test output, 78 characters wide. */
-    public static final String DIVIDER =
-        "+----------------------------------------------------------------------------+" + NEW_LINE;
-
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
-        "------------------------------------------------------------------------------" + NEW_LINE;
+        "------------------------------------------------------------------------------" + System.lineSeparator();
 
     /** Content separator used in test output, 78 characters wide. */
-    public static final String THICK_LINE = "====================================================" + NEW_LINE;
-
-    /** Content separator used in test output, 78 characters wide. */
-    public static final String EDGE_LINE =
-        "+--------------------------------------------------------------------=-------+" + NEW_LINE;
+    public static final String THICK_LINE = "====================================================" + System.lineSeparator();
 
     /** Static description of test that runs non-federated tests as federated ones. */
     public static final String RUN_AS_FEDERATED_DESC = "Description: Run non-federated tests in federated mode.";
@@ -323,7 +312,7 @@ public abstract class TestBase {
             var issues = validator.validate(test.fileConfig.resource,
                                             CheckMode.ALL, context.getCancelIndicator());
             if (issues != null && !issues.isEmpty()) {
-                String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(NEW_LINE));
+                String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
                 test.issues.append(issuesToString);
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
                     test.result = Result.VALIDATE_FAIL;
@@ -434,7 +423,7 @@ public abstract class TestBase {
                 // should work across all platforms
                 return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
             } else {
-                test.issues.append(fullPath).append(": No such file or directory.").append(NEW_LINE);
+                test.issues.append(fullPath).append(": No such file or directory.").append(System.lineSeparator());
                 test.result = Result.NO_EXEC_FAIL;
                 return null;
             }
@@ -447,7 +436,7 @@ public abstract class TestBase {
                     .directory(srcGen.toFile());
             } else {
                 test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(fullPath).append(NEW_LINE);
+                test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
                 return null;
             }
         }
@@ -458,7 +447,7 @@ public abstract class TestBase {
                 return new ProcessBuilder("node", file.toString());
             } else {
                 test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(file).append(NEW_LINE);
+                test.issues.append("File: ").append(file).append(System.lineSeparator());
                 return null;
             }
         }
@@ -497,6 +486,6 @@ public abstract class TestBase {
             marks++;
         }
 
-        System.out.print(NEW_LINE);
+        System.out.print(System.lineSeparator());
     }
 }

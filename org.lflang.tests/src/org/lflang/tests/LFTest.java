@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -27,18 +28,18 @@ public class LFTest implements Comparable<LFTest> {
      * @author Marten Lohstroh <marten@berkeley.edu>
      *
      */
-    public class TestPhase {
-       
+    public static class TestPhase {
+
         /**
-         * String builder used to record the standard output stream.
+         * String buffer used to record the standard output stream.
          */
-        StringBuilder std = new StringBuilder("");
-        
+        final StringBuffer std = new StringBuffer();
+
         /**
          * String builder used to record the standard error stream.
          */
-        StringBuilder err = new StringBuilder("");
-        
+        final StringBuffer err = new StringBuffer();
+
         /**
          * Return a thread responsible for recording the standard output stream
          * of the given process.
@@ -56,22 +57,21 @@ public class LFTest implements Comparable<LFTest> {
         public Thread recordStdErr(Process process) {
             return recordStream(err, process.getErrorStream());
         }
-        
+
         /**
          * Return a thread responsible for recording the given stream.
-         * @param builder The builder to append to.
+         *
+         * @param builder     The builder to append to.
          * @param inputStream The stream to read from.
          */
-        private Thread recordStream(StringBuilder builder, InputStream inputStream) {
+        private Thread recordStream(StringBuffer builder, InputStream inputStream) {
             Thread t = new Thread(() -> {
-                try {
-                    char[] buf = new char[1024];
+                try (Reader reader = new InputStreamReader(inputStream)) {
                     int len;
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                    char[] buf = new char[1024];
                     while ((len = reader.read(buf)) > 0) {
                         builder.append(buf, 0, len);
                     }
-                    reader.close();
                 } catch (Exception e) {
                     builder.append("[truncated...]\n");
                 }
@@ -169,11 +169,11 @@ public class LFTest implements Comparable<LFTest> {
     
     public String reportErrors() {
         if (this.hasFailed()) {
-            StringBuffer sb = new StringBuffer();
-            sb.append("\n+---------------------------------------------------------------------------+\n");
-            sb.append("Failed: " + this.name + "\n");
-            sb.append("-----------------------------------------------------------------------------\n");
-            sb.append("Reason: " + this.result.reason + TestBase.NEW_LINE);
+            StringBuilder sb = new StringBuilder(System.lineSeparator());
+            sb.append("+---------------------------------------------------------------------------+").append(System.lineSeparator());
+            sb.append("Failed: ").append(this.name).append(System.lineSeparator());
+            sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
+            sb.append("Reason: ").append(this.result.reason).append(System.lineSeparator());
             appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
             appendIfNotEmpty("Compilation error output", this.err.toString(), sb);
             appendIfNotEmpty("Compilation standard output", this.out.toString(), sb);
@@ -186,10 +186,10 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-    public void appendIfNotEmpty(String description, String log, StringBuffer buffer) {
+    public void appendIfNotEmpty(String description, String log, StringBuilder buffer) {
         if (!log.isEmpty()) {
-            buffer.append(description + ":" + TestBase.NEW_LINE);
-            buffer.append(log + TestBase.NEW_LINE);
+            buffer.append(description).append(":").append(System.lineSeparator());
+            buffer.append(log).append(System.lineSeparator());
         }
     }
     
