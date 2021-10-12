@@ -830,7 +830,8 @@ class CGenerator extends GeneratorBase {
                         #[cFilename], 
                         topLevelName, 
                         errorReporter,
-                        CCppMode
+                        CCppMode,
+                        mainDef !== null
                     ).toString().getBytes(),
                     cmakeFile
                 )
