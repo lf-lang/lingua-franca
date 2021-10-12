@@ -1728,11 +1728,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      */
     def boolean generateAfterDelaysWithVariableWidth() { return true }
 
-    // TODO this function is unused, remove it
-    def String getTargetTagIntervalType() {
-        throw new UnsupportedOperationException()
-    }
-
     /**
      * Get the buffer type used for network messages
      */

@@ -34,7 +34,7 @@ object RustTypes : TargetTypes {
 
     override fun getTargetTimeType(): String = "Duration"
 
-    override fun getTargetTagType(): String = "LogicalInstant"
+    override fun getTargetTagType(): String = "EventTag"
 
     override fun getTargetUndefinedType(): String = "()"
 

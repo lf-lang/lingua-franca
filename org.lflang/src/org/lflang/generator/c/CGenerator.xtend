@@ -5885,8 +5885,6 @@ class CGenerator extends GeneratorBase {
     override getTargetTimeType() '''interval_t'''
     
     override getTargetTagType() '''tag_t'''
-    
-    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
