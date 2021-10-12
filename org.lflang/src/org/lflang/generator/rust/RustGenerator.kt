@@ -124,10 +124,6 @@ class RustGenerator(
 
     override fun getTarget(): Target = Target.Rust
 
-    override fun getTargetTagIntervalType(): String {
-        // unused anyway
-        throw UnsupportedOperationException()
-    }
 
     override fun generateDelayBody(action: Action, port: VarRef): String {
         TODO("Not yet implemented")
