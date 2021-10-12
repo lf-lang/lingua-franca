@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -34,6 +33,7 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.generator.LFGenerator;
 import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
@@ -52,7 +52,7 @@ public abstract class TestBase {
     @Inject
     IResourceValidator validator;
     @Inject
-    GeneratorDelegate generator;
+    LFGenerator generator;
     @Inject
     JavaIoFileSystemAccess fileAccess;
     @Inject
@@ -284,7 +284,7 @@ public abstract class TestBase {
     }
 
 
-    private boolean configureAndValidate(LFTest test, Predicate<LFTest> configuration, DefaultErrorReporter err) throws IOException {
+    private boolean configureAndValidate(LFTest test, Predicate<LFTest> configuration) throws IOException {
 
         if (test.result == Result.PARSE_FAIL) {
             // Abort is parsing was unsuccessful.
@@ -298,7 +298,7 @@ public abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-        context.setReporter(err);
+        context.setReporter(new DefaultErrorReporter());
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
@@ -358,24 +358,19 @@ public abstract class TestBase {
      *
      * @return True if code was generated successfully, false otherwise.
      */
-    private boolean generateCode(LFTest test, DefaultErrorReporter err) {
+    private boolean generateCode(LFTest test) {
         if (test.fileConfig.resource != null) {
             try {
-                generator.generate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
+                generator.doGenerate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
+                if (!generator.errorsOccurred()) {
+                    return true;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 test.issues.append(e.getMessage());
-                test.result = Result.CODE_GEN_FAIL;
-                return false;
             }
 
-
-            if (err.getErrorsOccurred()) {
-                test.result = Result.CODE_GEN_FAIL;
-                return false;
-            }
-
-            return true;
+            test.result = Result.CODE_GEN_FAIL;
         }
         return false;
     }
@@ -480,8 +475,7 @@ public abstract class TestBase {
         for (var test : tests) {
             try {
                 redirectOutputs(test);
-                DefaultErrorReporter err = new DefaultErrorReporter();
-                if (configureAndValidate(test, configuration, err) && generateCode(test, err)) {
+                if (configureAndValidate(test, configuration) && generateCode(test)) {
                     if (run) {
                         execute(test);
                     } else if (test.result == Result.UNKNOWN) {
