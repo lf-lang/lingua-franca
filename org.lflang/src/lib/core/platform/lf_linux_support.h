@@ -60,7 +60,7 @@ typedef long long int _interval_t;
 /**
  * Microstep instant.
  */
-typedef unsigned int _microstep_t;
+typedef unsigned long int _microstep_t;
 
 
 // The underlying physical clock for Linux
