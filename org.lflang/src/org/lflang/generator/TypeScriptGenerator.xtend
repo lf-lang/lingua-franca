@@ -1397,11 +1397,7 @@ class TypeScriptGenerator extends GeneratorBase {
     override getTargetTagType() {
         "TimeValue"
     }
-    
-    override getTargetTagIntervalType() {
-        return getTargetUndefinedType()
-    }
-    
+
     override String getTargetUndefinedType() {
         "Present"
     }
