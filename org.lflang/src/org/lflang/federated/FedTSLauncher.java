@@ -58,7 +58,7 @@ public class FedTSLauncher extends FedLauncher {
     }
     
     /**
-     * TODO(hokeun): Check if this is necessary for TypeScript and remove it if not.
+     * TODO(hokeun): Update this to support distribute script, which compiles the code on remote machines.
      * Return the compile command for a federate.
      * 
      * @param federate The federate to compile.
