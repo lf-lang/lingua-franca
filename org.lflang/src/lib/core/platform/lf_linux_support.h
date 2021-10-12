@@ -50,17 +50,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * WARNING: If this code is used after about the year 2262,
  * then representing time as a 64-bit long long will be insufficient.
  */
-typedef int64_t _instant_t;
+typedef long long int _instant_t;
 
 /**
  * Interval of time.
  */
-typedef int64_t _interval_t;
+typedef long long int _interval_t;
 
 /**
  * Microstep instant.
  */
-typedef uint32_t _microstep_t;
+typedef unsigned int _microstep_t;
 
 
 // The underlying physical clock for Linux

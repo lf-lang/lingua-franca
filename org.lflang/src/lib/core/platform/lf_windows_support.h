@@ -75,17 +75,17 @@ typedef HANDLE _lf_thread_t;
  * Time instant. Both physical and logical times are represented
  * using this typedef.
  */
-typedef int64_t _instant_t;
+typedef long long int _instant_t;
 
 /**
  * Interval of time.
  */
-typedef int64_t _interval_t;
+typedef long long int _interval_t;
 
 /**
  * Microstep instant.
  */
-typedef uint32_t _microstep_t;
+typedef unsigned int _microstep_t;
 
 #define _LF_TIMEOUT ETIMEDOUT
 
