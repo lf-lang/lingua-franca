@@ -35,20 +35,21 @@ import org.lflang.generator.c.CCompiler;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs
- * that are written in C.
+ * that are written in TypeScript.
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Hokeun Kim <hokeunkim@berkeley.edu>
  */
-public class FedCLauncher extends FedLauncher {
+public class FedTSLauncher extends FedLauncher {
 
     /**
      * Create an instance of FedCLauncher.
-     * 
+     *
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
-    public FedCLauncher(
+    public FedTSLauncher(
             TargetConfig targetConfig, 
             FileConfig fileConfig,
             ErrorReporter errorReporter
@@ -57,6 +58,7 @@ public class FedCLauncher extends FedLauncher {
     }
     
     /**
+     * TODO(hokeun): Check if this is necessary for TypeScript and remove it if not.
      * Return the compile command for a federate.
      * 
      * @param federate The federate to compile.
@@ -91,7 +93,7 @@ public class FedCLauncher extends FedLauncher {
     }
     
     /**
-     * Return the command that will execute a remote federate, assuming that the current
+     * Return the command that will execute a local federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
      * 
@@ -99,20 +101,9 @@ public class FedCLauncher extends FedLauncher {
      */
     @Override
     protected
-    String executeCommandForRemoteFederate(FederateInstance federate) {
-        return "bin/"+fileConfig.name+"_"+federate.name+" -i '$FEDERATION_ID'";
-    }
-
-    /**
-     * Return the command that will execute a local federate, assuming that the current
-     * directory is the top-level project folder. This is used to create a launcher script
-     * for federates.
-     *
-     * @param federate The federate to execute.
-     */
-    @Override
-    protected
     String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
+        String jsFilename = fileConfig.name + "_" + federate.name + ".js";
+        return "node "+fileConfig.getSrcGenPath().resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
+        //return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
     }
 }
