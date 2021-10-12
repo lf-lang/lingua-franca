@@ -25,13 +25,9 @@
 
 package org.lflang.federated;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.generator.c.CCompiler;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs
@@ -55,41 +51,6 @@ public class FedTSLauncher extends FedLauncher {
             ErrorReporter errorReporter
     ) {
         super(targetConfig, fileConfig, errorReporter);
-    }
-    
-    /**
-     * TODO(hokeun): Update this to support distribute script, which compiles the code on remote machines.
-     * Return the compile command for a federate.
-     * 
-     * @param federate The federate to compile.
-     * @throws IOException 
-     */
-    @Override
-    protected
-    String compileCommandForFederate(FederateInstance federate) {
-        FedFileConfig fedFileConfig = null;
-        TargetConfig localTargetConfig = targetConfig;
-        try {
-            fedFileConfig = new FedFileConfig(fileConfig, federate.name);
-        } catch (IOException e) {
-            errorReporter.reportError("Failed to create file config for federate "+federate.name);
-            return "";
-        }
-        
-        String commandToReturn = "";
-        // FIXME: Hack to add platform support only for linux systems. 
-        // We need to fix the CMake build command for remote federates.
-        String linuxPlatformSupport = "core" + File.separator + "platform" + File.separator + "lf_linux_support.c";
-        if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
-            localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
-        }
-        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter);
-        commandToReturn = String.join(" ", 
-                cCompiler.compileCCommand(
-                        fileConfig.name+"_"+federate.name, 
-                        false
-                    ).toString());
-        return commandToReturn;
     }
     
     /**
