@@ -291,8 +291,6 @@ public abstract class TestBase {
             return false;
         }
 
-        redirectOutputs(test);
-
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
         // been tampered with using AST transformations.
@@ -308,7 +306,6 @@ public abstract class TestBase {
 
         if (r.getErrors().size() > 0) {
             test.result = Result.PARSE_FAIL;
-            restoreOutputs();
             return false;
         }
         fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
@@ -330,24 +327,20 @@ public abstract class TestBase {
                 test.issues.append(issuesToString);
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
                     test.result = Result.VALIDATE_FAIL;
-                    restoreOutputs();
                     return false;
                 }
             }
         } catch (Exception e) {
             test.result = Result.VALIDATE_FAIL;
-            restoreOutputs();
             return false;
         }
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configuration != null && !configuration.test(test)) {
             test.result = Result.CONFIG_FAIL;
-            restoreOutputs();
             return false;
         }
 
-        restoreOutputs();
         return true;
     }
 
@@ -367,18 +360,15 @@ public abstract class TestBase {
      */
     private boolean generateCode(LFTest test, DefaultErrorReporter err) {
         if (test.fileConfig.resource != null) {
-            redirectOutputs(test);
             try {
                 generator.generate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
             } catch (Exception e) {
                 e.printStackTrace();
                 test.issues.append(e.getMessage());
                 test.result = Result.CODE_GEN_FAIL;
-                restoreOutputs();
                 return false;
             }
 
-            restoreOutputs();
 
             if (err.getErrorsOccurred()) {
                 test.result = Result.CODE_GEN_FAIL;
@@ -488,13 +478,18 @@ public abstract class TestBase {
         var marks = 0;
         var done = 0;
         for (var test : tests) {
-            DefaultErrorReporter err = new DefaultErrorReporter();
-            if (configureAndValidate(test, configuration, err) && generateCode(test, err)) {
-                if (run) {
-                    execute(test);
-                } else if (test.result == Result.UNKNOWN) {
-                    test.result = Result.TEST_PASS;
+            try {
+                redirectOutputs(test);
+                DefaultErrorReporter err = new DefaultErrorReporter();
+                if (configureAndValidate(test, configuration, err) && generateCode(test, err)) {
+                    if (run) {
+                        execute(test);
+                    } else if (test.result == Result.UNKNOWN) {
+                        test.result = Result.TEST_PASS;
+                    }
                 }
+            } finally {
+                restoreOutputs();
             }
             done++;
             while (Math.floor(done * x) >= marks && marks < 78) {
