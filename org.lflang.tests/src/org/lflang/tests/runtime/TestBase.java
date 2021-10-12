@@ -2,7 +2,6 @@ package org.lflang.tests.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
@@ -28,7 +27,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.Before;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -39,8 +37,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.TargetProperty.PrimitiveType;
-import org.lflang.generator.LFGenerator;
 import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
@@ -59,7 +55,7 @@ public abstract class TestBase {
     @Inject
     IResourceValidator validator;
     @Inject
-    LFGenerator generator;
+    GeneratorDelegate generator;
     @Inject
     JavaIoFileSystemAccess fileAccess;
     @Inject
@@ -124,11 +120,8 @@ public abstract class TestBase {
         }
     }
 
+    // Tests.
 
-    @Before
-    public void setup() {
-        this.run = true;
-    }
 
     @Test
     public void runExampleTests() {
@@ -143,6 +136,7 @@ public abstract class TestBase {
         this.run = false;
 
         runTestsAndPrintResults(target, TestCategory.EXAMPLE::equals, t -> true, false);
+        this.run = false;
     }
 
 
@@ -316,6 +310,8 @@ public abstract class TestBase {
             return false;
         }
 
+        redirectOutputs(test);
+
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
         // been tampered with using AST transformations.
@@ -331,6 +327,7 @@ public abstract class TestBase {
 
         if (r.getErrors().size() > 0) {
             test.result = Result.PARSE_FAIL;
+            restoreOutputs();
             return false;
         }
         fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
@@ -352,20 +349,24 @@ public abstract class TestBase {
                 test.issues.append(issuesToString);
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
                     test.result = Result.VALIDATE_FAIL;
+                    restoreOutputs();
                     return false;
                 }
             }
         } catch (Exception e) {
             test.result = Result.VALIDATE_FAIL;
+            restoreOutputs();
             return false;
         }
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configuration != null && !configuration.test(test)) {
             test.result = Result.CONFIG_FAIL;
+            restoreOutputs();
             return false;
         }
 
+        restoreOutputs();
         return true;
     }
 
@@ -385,16 +386,19 @@ public abstract class TestBase {
      */
     private boolean generateCode(LFTest test) {
         if (test.fileConfig.resource != null) {
+            redirectOutputs(test);
             try {
-                generator.doGenerate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
-                if (!generator.errorsOccurred()) {
-                    return true;
-                }
+                generator.generate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
             } catch (Exception e) {
                 e.printStackTrace();
                 test.issues.append(e.getMessage());
+                test.result = Result.CODE_GEN_FAIL;
+                restoreOutputs();
+                return false;
             }
-            test.result = Result.CODE_GEN_FAIL;
+
+            restoreOutputs();
+            return true;
         }
         return false;
     }
@@ -500,17 +504,12 @@ public abstract class TestBase {
         var marks = 0;
         var done = 0;
         for (var test : tests) {
-            try {
-                redirectOutputs(test);
-                if (configureAndValidate(test, configuration) && generateCode(test)) {
-                    if (run) {
-                        execute(test);
-                    } else if (test.result == Result.UNKNOWN) {
-                        test.result = Result.TEST_PASS;
-                    }
+            if (configureAndValidate(test, configuration) && generateCode(test)) {
+                if (run) {
+                    execute(test);
+                } else if (test.result == Result.UNKNOWN) {
+                    test.result = Result.TEST_PASS;
                 }
-            } finally {
-                restoreOutputs();
             }
             done++;
             while (Math.floor(done * x) >= marks && marks < 78) {

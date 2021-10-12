@@ -140,7 +140,10 @@ public class LFTest implements Comparable<LFTest> {
     
     @Override
     public boolean equals(Object o) {
-        return o instanceof LFTest && ((LFTest) o).name.equals(this.name);
+        if (o instanceof LFTest && ((LFTest) o).name.equals(this.name)) {
+            return true;
+        }
+        return false;
     }
     
     @Override
@@ -154,7 +157,10 @@ public class LFTest implements Comparable<LFTest> {
     }
     
     public boolean hasFailed() {
-        return result != Result.TEST_PASS;
+        if (result == Result.TEST_PASS) {
+            return false;
+        }
+        return true;
     }
     
     public StandaloneContext getContext() {
@@ -163,11 +169,11 @@ public class LFTest implements Comparable<LFTest> {
     
     public String reportErrors() {
         if (this.hasFailed()) {
-            StringBuilder sb = new StringBuilder();
+            StringBuffer sb = new StringBuffer();
             sb.append("\n+---------------------------------------------------------------------------+\n");
-            sb.append("Failed: ").append(this.name).append("\n");
+            sb.append("Failed: " + this.name + "\n");
             sb.append("-----------------------------------------------------------------------------\n");
-            sb.append("Reason: ").append(this.result.reason).append("\n");
+            sb.append("Reason: " + this.result.reason + TestBase.NEW_LINE);
             appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
             appendIfNotEmpty("Compilation error output", this.err.toString(), sb);
             appendIfNotEmpty("Compilation standard output", this.out.toString(), sb);
@@ -180,10 +186,10 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-    public void appendIfNotEmpty(String description, String log, StringBuilder buffer) {
+    public void appendIfNotEmpty(String description, String log, StringBuffer buffer) {
         if (!log.isEmpty()) {
-            buffer.append(description).append(":\n");
-            buffer.append(log).append("\n");
+            buffer.append(description + ":" + TestBase.NEW_LINE);
+            buffer.append(log + TestBase.NEW_LINE);
         }
     }
     
@@ -201,7 +207,7 @@ public class LFTest implements Comparable<LFTest> {
 
         public final String reason;
         
-        Result(String message) {
+        private Result(String message) {
             this.reason = message;
         }
     }
