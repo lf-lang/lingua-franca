@@ -1,12 +1,18 @@
 package org.lflang.generator;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a position in a document, including line and
- * column.
+ * column. This position may be relative to another
+ * position other than the origin.
  */
 public class Position implements Comparable<Position> {
+    public static final Pattern PATTERN = Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");
+
     /*
     Implementation note: This class is designed to remove
     all ambiguity wrt zero-based and one-based line and
@@ -59,6 +65,9 @@ public class Position implements Comparable<Position> {
      * @param column the zero-based column number
      */
     private Position(int line, int column) {
+        // Assertions about whether line and column are
+        // non-negative are deliberately omitted. Positions
+        // can be relative.
         this.line = line;
         this.column = column;
     }
@@ -159,5 +168,34 @@ public class Position implements Comparable<Position> {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof Position && ((Position) obj).compareTo(this) == 0;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("(%d, %d)", getZeroBasedLine(), getZeroBasedColumn());
+    }
+
+    @NotNull
+    public static Position fromString(String s) {
+        Matcher matcher = PATTERN.matcher(s);
+        if (matcher.matches()) {
+            return Position.fromZeroBased(
+                Integer.parseInt(matcher.group("line")),
+                Integer.parseInt(matcher.group("column"))
+            );
+        }
+        throw new IllegalArgumentException(String.format("Could not parse %s as a Position.", s));
+    }
+
+    /**
+     * Removes the names from the named capturing groups
+     * that appear in <code>regex</code>.
+     * @param regex an arbitrary regular expression
+     * @return a string representation of <code>regex</code>
+     * with the names removed from the named capturing
+     * groups
+     */
+    public static String removeNamedCapturingGroups(Pattern regex) {  // FIXME: Does this belong here?
+        return regex.toString().replaceAll("\\(\\?<\\w+>", "(");
     }
 }
