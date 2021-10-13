@@ -1,6 +1,5 @@
 package org.lflang.tests;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -11,7 +10,6 @@ import java.nio.file.Paths;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.StandaloneContext;
-import org.lflang.tests.runtime.TestBase;
 
 /**
  * Information about an indexed Lingua Franca test program.

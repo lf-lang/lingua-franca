@@ -1,5 +1,6 @@
 package org.lflang.tests.runtime;
 
+import org.lflang.tests.LFTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 import java.util.function.Predicate;
@@ -10,13 +11,16 @@ public abstract class ThreadedBase extends TestBase {
 
     public final static String RUN_WITH_FOUR_THREADS_DESC = "Description: Run non-concurrent and non-federated tests (threads = 4).";
     
+    protected final static Predicate<LFTest> useFourThreads = t -> {
+        t.getContext().getArgs().setProperty("threads", "4");
+        return true;
+    };
+
     @Test
     public void runWithFourThreads() {
-        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
-        this.runTestsAndPrintResults(this.target, defaultExcludedCategories(), it -> {
-            it.getContext().getArgs().setProperty("threads", "4");
-            return true;
-        }, true);
+        this.runTestsForTargets(RUN_WITH_FOUR_THREADS_DESC,
+                defaultExcludedCategories(), useFourThreads,
+                TestLevel.EXECUTION, true);
     }
     
     /**
