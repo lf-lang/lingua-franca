@@ -136,9 +136,9 @@ public abstract class TestBase {
     }
     
     @Test
-    public void validateExamples() {
+    public void checkExamples() {
         runTestsForTargets("Description: Validate examples.",
-                TestCategory.EXAMPLE::equals, t -> true, TestLevel.VALIDATION,
+                TestCategory.EXAMPLE::equals, t -> true, TestLevel.CODE_GEN,
                 false);
     }
     

@@ -59,8 +59,8 @@ public class CTest extends ThreadedBase {
 
     @Test
     @Override
-    public void validateExamples() {
-        super.validateExamples();
+    public void checkExamples() {
+        super.checkExamples();
     }
 
     @Test
