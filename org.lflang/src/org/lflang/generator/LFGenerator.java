@@ -38,7 +38,7 @@ public class LFGenerator extends AbstractGenerator {
     /**
      * Create a target-specific FileConfig object in Kotlin
      *
-     * Since the CppFileConfig and TypeScriptFileConfig class are implemented in Kotlin, the classes are
+     * Since the CppFileConfig and TSFileConfig class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
