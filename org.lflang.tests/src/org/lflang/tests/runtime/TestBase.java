@@ -523,17 +523,23 @@ public abstract class TestBase {
     }
 
     /**
+     * Validate and run the given tests, using the specified configuration and level.
      * 
-     * @param tests
-     * @param configuration
-     * @param level
+     * While performing tests, this method prints a header that reaches completion
+     * once all tests have been run.
+     * 
+     * @param tests A set of tests to run.
+     * @param configuration A function for configuring the tests.
+     * @param level The level of testing.
      * @throws IOException
      */
-    private void validateAndRun(Set<LFTest> tests, Function<LFTest, Boolean> configuration, TestLevel level) throws IOException { // FIXME change this into Consumer
+    private void validateAndRun(Set<LFTest> tests,
+            Function<LFTest, Boolean> configuration, TestLevel level)
+            throws IOException {
         final var x = 78f / tests.size();
         var marks = 0;
         var done = 0;
-        
+
         for (var test : tests) {
             try {
                 redirectOutputs(test);
@@ -549,7 +555,8 @@ public abstract class TestBase {
                 }
 
             } catch (AssertionError e) {
-                // Do not report assertion errors. They are pretty printed during reporting.
+                // Do not report assertion errors. They are pretty printed
+                // during reporting.
             } catch (Exception e) {
                 test.issues.append(e.getMessage());
             } finally {
@@ -559,17 +566,15 @@ public abstract class TestBase {
             while (Math.floor(done * x) >= marks && marks < 78) {
                 System.out.print("=");
                 marks++;
-            }            
+            }
         }
         while (marks < 78) {
-
             System.out.print("=");
             marks++;
         }
 
         System.out.print(System.lineSeparator());
     }
-    
 
 
     @Test
