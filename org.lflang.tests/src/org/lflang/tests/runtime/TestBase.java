@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -50,6 +51,12 @@ import com.google.inject.Provider;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
+/**
+ * Base class for test classes that define JUnit tests.
+ * 
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ *
+ */
 public abstract class TestBase {
 
     @Inject
@@ -84,14 +91,50 @@ public abstract class TestBase {
     /** The targets for which to run the tests. */
     protected List<Target> targets = new ArrayList<Target>();
     
-    /** Whether the goal is to only computer code coverage, in which we cut down on verbosity of our error reporting. */
+    /**
+     * Whether the goal is to only computer code coverage, in which we cut down
+     * on verbosity of our error reporting.
+     */
     protected boolean codeCovOnly;
     
-    private static Predicate<LFTest> makeSingleThreaded = it -> {
+    /**
+     * AST transformation that sets the `threads` target property to 0.
+     * @return True if successful, false otherwise.
+     */
+    private static Function<LFTest, Boolean> makeSingleThreaded = it -> {
         it.getContext().getArgs().setProperty("threads", "0");
         return true;
     };
 
+    
+    /**
+     * An enumeration of test levels.
+     * @author Marten Lohstroh <marten@berkeley.edu>
+     *
+     */
+    public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION};
+    
+    /**
+     * A collection messages often used throughout the test package.
+     * 
+     * @author Marten Lohstroh <marten@berkeley.edu>
+     *
+     */
+    public class Message {
+        /* Reasons for not running tests. */
+        public final static String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
+        public final static String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
+        public final static String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
+        public final static String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
+        
+        /* Descriptions of collections of tests. */
+        public final static String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
+        public final static String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
+        public final static String DESC_FEDERATED = "Run federated tests.";
+        public final static String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
+        public final static String DESC_AS_CCPP = "Running C tests as CCpp.";
+        public final static String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
+    }
     
     /**
      * Force the instantiation of the test registry.
@@ -100,34 +143,435 @@ public abstract class TestBase {
         this(true);
     }
 
+    /**
+     * Private constructor that initializes the test registry.
+     * @param initRegistry
+     */
     private TestBase(boolean initRegistry) {
         if (initRegistry) {
             TestRegistry.initialize();
         }
     }
 
-    // Tests.
-    
-    protected void runTestsForTargets(String description,
-            Predicate<TestCategory> selection, Predicate<LFTest> configuration,
-            TestLevel level, boolean copy) {
-        for (Target target : this.targets) {
-            printTestHeader(target, description);
-            runTestsAndPrintResults(target, selection, configuration, level,
-                    copy);
+    /**
+     * Run selected tests for a given target and configuration up to the specified level.
+     * 
+     * @param target The target to run tests for.
+     * @param selected A predicate that given a test category returns whether
+     * it should be included in this test run or not.
+     * @param configuration  A function for configuring the tests.
+     * @param level The level of testing to be performed during this run.
+     * @param copy Whether or not to work on copies of tests in the test.
+     * registry.
+     */
+    protected final void runTestsAndPrintResults(Target target,
+            Predicate<TestCategory> selected, Function<LFTest, Boolean> configuration,
+            TestLevel level,
+            boolean copy) {
+        var categories = Arrays.stream(TestCategory.values()).filter(selected)
+                .collect(Collectors.toList());
+        for (var category : categories) {
+            System.out.println(category.getHeader());
+            var tests = TestRegistry.getRegisteredTests(target, category, copy);
+            try {
+                validateAndRun(tests, configuration, level);
+            } catch (IOException e) {
+                throw new RuntimeIOException(e);
+            }
+            System.out
+                    .println(TestRegistry.getCoverageReport(target, category));
+            if (!this.codeCovOnly) {
+                checkAndReportFailures(tests);
+            }
         }
     }
     
+    /**
+     * Run tests in the given selection for all targets enabled in this class.
+     * 
+     * @param description A string that describes the collection of tests.
+     * @param selected A predicate that given a test category returns whether
+     * it should be included in this test run or not.
+     * @param configuration A function for configuring the tests.
+     * @param level The level of testing to be performed during this run.
+     * @param copy Whether or not to work on copies of tests in the test.
+     * registry.
+     */
+    protected void runTestsForTargets(String description,
+            Predicate<TestCategory> selected,
+            Function<LFTest, Boolean> configuration, TestLevel level,
+            boolean copy) {
+        for (Target target : this.targets) {
+            runTestsFor(Arrays.asList(target), description, selected,
+                    configuration, level, copy);
+        }
+    }
+    
+    /**
+     * Run tests in the given selection for a subset of given targets.
+     * 
+     * @param subset The subset of targets to run the selected tests for.
+     * @param description A string that describes the collection of tests.
+     * @param selected A predicate that given a test category returns whether
+     * it should be included in this test run or not.
+     * @param configuration A function for configuring the tests.
+     * @param level The level of testing to be performed during this run.
+     * @param copy Whether or not to work on copies of tests in the test.
+     * registry.
+     */
     protected void runTestsFor(List<Target> subset, String description,
-            Predicate<TestCategory> selection, Predicate<LFTest> configuration,
+            Predicate<TestCategory> selected, Function<LFTest, Boolean> configuration,
             TestLevel level, boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selection, configuration, level,
+            runTestsAndPrintResults(target, selected, configuration, level,
                     copy);
         }
     }
     
+    /**
+     * Determine whether the current platform is Windows.
+     * @return true if the current platform is Windwos, false otherwise.
+     */
+    protected static boolean isWindows() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        if (OS.indexOf("win") >= 0) { return true; }
+        return false;
+    }
+
+    /**
+     * End output redirection.
+     */
+    private static void restoreOutputs() {
+        System.out.flush();
+        System.err.flush();
+        System.setOut(out);
+        System.setErr(err);
+    }
+
+    /**
+     * Redirect outputs to the given tests for recording.
+     * 
+     * @param test The test to redirect outputs to.
+     */
+    private static void redirectOutputs(LFTest test) {
+        System.setOut(new PrintStream(test.out));
+        System.setErr(new PrintStream(test.err));
+    }
+
+
+    /**
+     * Run a given test up to the specified level.
+     * 
+     * @param test The test to perform.
+     * @param level The level of testing to perform.
+     */
+    public static void runSingleTestAndPrintResults(LFTest test, TestLevel level) {
+        Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+        TestBase runner = new TestBase(false) {};
+        injector.injectMembers(runner);
+
+        Set<LFTest> tests = Set.of(test);
+        try {
+            runner.validateAndRun(tests, t -> true, level);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+        checkAndReportFailures(tests);
+    }
+
+    /**
+     * Print a header that describes a collection of tests, followed by a reason
+     * for skipping the tests.
+     * 
+     * @param description A string the describes the collection of tests.
+     * @param reason A string that describes why the tests are not performed.
+     */
+    protected void printSkipMessage(String description, String reason) {
+        for (var target : this.targets) {
+           printTestHeader(target, description);
+           System.out.println("Warning! Skipping because: " + reason);
+        }
+    }
+
+    /**
+     * Print a header that describes a collection of tests.
+     * @param target The target for which the tests are being performed.
+     * @param description A string the describes the collection of tests.
+     */
+    protected static void printTestHeader(Target target, String description) {
+        System.out.print(TestBase.THICK_LINE);
+        System.out.println("Target: " + target);
+        System.out.println("Description: " + description);
+        System.out.println(TestBase.THICK_LINE);
+    }
+    
+    /**
+     * Iterate over given tests and evaluate their outcome, report errors if
+     * there are any.
+     * 
+     * @param tests The tests to inspect the results of.
+     */
+    private static void checkAndReportFailures(Set<LFTest> tests) {
+        var passed = tests.stream().filter(it -> !it.hasFailed()).count();
+
+        System.out.print(THIN_LINE);
+        System.out.println("Passing: " + passed + "/" + tests.size());
+        System.out.print(THIN_LINE);
+
+        for (var test : tests) {
+            System.out.print(test.reportErrors());
+        }
+        for (LFTest lfTest : tests) {
+            assertSame(Result.TEST_PASS, lfTest.result);
+        }
+    }
+
+    /**
+     * Configure a test by applying the given configuration and return a
+     * generator context. Also, if the given level is less than
+     * `TestLevel.BUILD`, add a `no-compile` flag to the generator context. If
+     * the configuration was not applied successfully, throw an AssertionError.
+     * 
+     * @param test the test to configure.
+     * @param configuration The configuration to apply to the test.
+     * @param level The level of testing in which the generator context will be
+     * used.
+     * @return a generator context with a fresh resource, unaffected by any AST
+     * transformation that may have occured in other tests.
+     * @throws IOException if there is any file access problem
+     */
+    private GeneratorContext configure(LFTest test,
+            Function<LFTest, Boolean> configuration, TestLevel level) throws IOException {
+        
+        var context = new StandaloneContext();
+        // Update file config, which includes a fresh resource that has not
+        // been tampered with using AST transformations.
+        context.setCancelIndicator(CancelIndicator.NullImpl);
+        context.setArgs(new Properties());
+        context.setPackageRoot(test.packageRoot);
+        context.setHierarchicalBin(true);
+        context.setReporter(new DefaultErrorReporter());
+        
+        var r = resourceSetProvider.get().getResource(
+            URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
+            true);
+
+        if (r.getErrors().size() > 0) {
+            test.result = Result.PARSE_FAIL;
+            throw new AssertionError("Test did not parse correctly.");
+        }
+        
+        fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        test.fileConfig = new FileConfig(r, fileAccess, context);
+
+        // Set the no-compile flag the test is not supposed to reach the build stage.
+        if (level.compareTo(TestLevel.BUILD) < 0 || this.codeCovOnly) {
+            context.getArgs().setProperty("no-compile", "");
+        }
+
+        addExtraLfcArgs(context.getArgs());
+        
+        // Update the test by applying the configuration. E.g., to carry out an AST transformation.
+        if (configuration != null && !configuration.apply(test)) {
+            test.result = Result.CONFIG_FAIL;
+            throw new AssertionError("Test configuration unsuccessful.");
+        }
+        
+        return context;
+    }
+    
+    /**
+     * Validate the given test. Throw an AssertionError if validation failed.
+     * @param test
+     * @param context
+     * @return
+     */
+    private void validate(LFTest test, GeneratorContext context) {
+        // Validate the resource and store issues in the test object.
+        try {
+            var issues = validator.validate(test.fileConfig.resource,
+                                            CheckMode.ALL, context.getCancelIndicator());
+            if (issues != null && !issues.isEmpty()) {
+                String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
+                test.issues.append(issuesToString);
+                if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
+                    test.result = Result.VALIDATE_FAIL;
+                }
+            }
+        } catch (Exception e) {
+            test.result = Result.VALIDATE_FAIL;
+        }
+        if (test.result == Result.VALIDATE_FAIL) {
+            throw new AssertionError("Validation unsuccessful.");
+        }
+    }
+
+
+    /**
+     * Override to add some LFC arguments to all runs of this test class.
+     */
+    protected void addExtraLfcArgs(Properties args) {
+        // to be overridden
+    }
+
+
+    /**
+     * Invoke the code generator for the given test.
+     *
+     */
+    private void generateCode(LFTest test) {
+        if (test.fileConfig.resource != null) {
+            generator.doGenerate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
+            if (generator.errorsOccurred()) {
+                test.result = Result.CODE_GEN_FAIL;
+                throw new AssertionError("Code generation unsuccessful.");
+            }
+        }
+    }
+
+
+    /**
+     * Given an indexed test, execute it and label the test as failing if it
+     * did not execute, took too long to execute, or executed but exited with
+     * an error code.
+     */
+    private void execute(LFTest test) {
+        final ProcessBuilder pb = getExecCommand(test);
+        if (pb == null) {
+            return;
+        }
+        try {
+            var p = pb.start();
+            var stdout = test.exec.recordStdOut(p);
+            var stderr = test.exec.recordStdErr(p);
+            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
+                stdout.interrupt();
+                stderr.interrupt();
+                p.destroyForcibly();
+                test.result = Result.TEST_TIMEOUT;
+            } else {
+                if (p.exitValue() == 0) {
+                    test.result = Result.TEST_PASS;
+                } else {
+                    test.result = Result.TEST_FAIL;
+                }
+            }
+
+        } catch (Exception e) {
+            test.result = Result.TEST_FAIL;
+        }
+    }
+
+    /**
+     * Return a preconfigured ProcessBuilder for the command
+     * that should be used to execute the test program.
+     */
+    private ProcessBuilder getExecCommand(LFTest test) {
+        final var nameWithExtension = test.srcFile.getFileName().toString();
+        final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
+
+        switch (test.target) {
+        case C:
+        case CPP:
+        case CCPP: {
+            var binPath = test.fileConfig.binPath;
+            var binaryName = nameOnly;
+            // Adjust binary extension if running on Window
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                binaryName = nameOnly + ".exe";
+            }
+
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // Running the command as .\binary.exe does not work on Windows for
+                // some reason... Thus we simply pass the full path here, which
+                // should work across all platforms
+                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+            } else {
+                test.issues.append(fullPath).append(": No such file or directory.").append(System.lineSeparator());
+                test.result = Result.NO_EXEC_FAIL;
+                return null;
+            }
+        }
+        case Python: {
+            var srcGen = test.fileConfig.getSrcGenPath();
+            var fullPath = srcGen.resolve(nameOnly + ".py");
+            if (Files.exists(fullPath)) {
+                return new ProcessBuilder("python3", fullPath.getFileName().toString())
+                    .directory(srcGen.toFile());
+            } else {
+                test.result = Result.NO_EXEC_FAIL;
+                test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
+                return null;
+            }
+        }
+        case TS: {
+            var dist = test.fileConfig.getSrcGenPath().resolve("dist");
+            var file = dist.resolve(nameOnly + ".js");
+            if (Files.exists(file)) {
+                return new ProcessBuilder("node", file.toString());
+            } else {
+                test.result = Result.NO_EXEC_FAIL;
+                test.issues.append("File: ").append(file).append(System.lineSeparator());
+                return null;
+            }
+        }
+        default:
+            throw new AssertionError("unreachable");
+        }
+    }
+
+    /**
+     * 
+     * @param tests
+     * @param configuration
+     * @param level
+     * @throws IOException
+     */
+    private void validateAndRun(Set<LFTest> tests, Function<LFTest, Boolean> configuration, TestLevel level) throws IOException { // FIXME change this into Consumer
+        final var x = 78f / tests.size();
+        var marks = 0;
+        var done = 0;
+        
+        for (var test : tests) {
+            try {
+                redirectOutputs(test);
+                var context = configure(test, configuration, level);
+                validate(test, context);
+                if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
+                    generateCode(test);
+                }
+                if (!this.codeCovOnly && level == TestLevel.EXECUTION) {
+                    execute(test);
+                } else if (test.result == Result.UNKNOWN) {
+                    test.result = Result.TEST_PASS;
+                }
+
+            } catch (AssertionError e) {
+                // Do not report assertion errors. They are pretty printed during reporting.
+            } catch (Exception e) {
+                test.issues.append(e.getMessage());
+            } finally {
+                restoreOutputs();
+            }
+            done++;
+            while (Math.floor(done * x) >= marks && marks < 78) {
+                System.out.print("=");
+                marks++;
+            }            
+        }
+        while (marks < 78) {
+
+            System.out.print("=");
+            marks++;
+        }
+
+        System.out.print(System.lineSeparator());
+    }
+    
+
+
     @Test
     public void runExampleTests() {
         runTestsForTargets("Description: Run example tests.",
@@ -202,328 +646,5 @@ public abstract class TestBase {
                 TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
                 false);
     }
-
-
-    /** Returns true if the operating system is Windows. */
-    protected static boolean isWindows() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        if (OS.indexOf("win") >= 0) { return true; }
-        return false;
-    }
-
-    //
-    private static void restoreOutputs() {
-        System.out.flush();
-        System.err.flush();
-        System.setOut(out);
-        System.setErr(err);
-    }
-
-
-    private static void redirectOutputs(LFTest test) {
-        System.setOut(new PrintStream(test.out));
-        System.setErr(new PrintStream(test.err));
-    }
-
-
-    protected final void runTestsAndPrintResults(Target target,
-            Predicate<TestCategory> selection, Predicate<LFTest> configuration,
-            TestLevel level,
-            boolean copy) {
-        var categories = Arrays.stream(TestCategory.values()).filter(selection)
-                .collect(Collectors.toList());
-        for (var category : categories) {
-            System.out.println(category.getHeader());
-            var tests = TestRegistry.getRegisteredTests(target, category, copy);
-            try {
-                validateAndRun(tests, configuration, level);
-            } catch (IOException e) {
-                throw new RuntimeIOException(e);
-            }
-            System.out
-                    .println(TestRegistry.getCoverageReport(target, category));
-            if (!this.codeCovOnly) {
-                checkAndReportFailures(tests);
-            }
-        }
-    }
-
-    public static void runSingleTestAndPrintResults(LFTest test, TestLevel level) {
-        Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
-        TestBase runner = new TestBase(false) {};
-        injector.injectMembers(runner);
-
-        Set<LFTest> tests = Set.of(test);
-        try {
-            runner.validateAndRun(tests, t -> true, level);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-        checkAndReportFailures(tests);
-    }
-
-    protected void printSkipMessage(String description, String reason) {
-        for (var target : this.targets) {
-           printTestHeader(target, description);
-           System.out.println("Warning! Skipping because: " + reason);
-        }
-    }
-
-    protected static void printTestHeader(Target target, String description) {
-        System.out.print(TestBase.THICK_LINE);
-        System.out.println("Target: " + target);
-        System.out.println("Description: " + description);
-        System.out.println(TestBase.THICK_LINE);
-    }
-
-
-    private static void checkAndReportFailures(Set<LFTest> registered) {
-        var passed = registered.stream().filter(it -> !it.hasFailed()).count();
-
-        System.out.print(THIN_LINE);
-        System.out.println("Passing: " + passed + "/" + registered.size());
-        System.out.print(THIN_LINE);
-
-        for (var test : registered) {
-            System.out.print(test.reportErrors());
-        }
-        for (LFTest lfTest : registered) {
-            assertSame(Result.TEST_PASS, lfTest.result);
-        }
-    }
-
-
-    private GeneratorContext configure(LFTest test,
-            Predicate<LFTest> configuration, TestLevel level) throws IOException {
-        
-        var context = new StandaloneContext();
-        // Update file config, which includes a fresh resource that has not
-        // been tampered with using AST transformations.
-        context.setCancelIndicator(CancelIndicator.NullImpl);
-        context.setArgs(new Properties());
-        context.setPackageRoot(test.packageRoot);
-        context.setHierarchicalBin(true);
-        context.setReporter(new DefaultErrorReporter());
-        
-        var r = resourceSetProvider.get().getResource(
-            URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
-            true);
-
-        if (r.getErrors().size() > 0) {
-            test.result = Result.PARSE_FAIL;
-            throw new RuntimeException(
-                    "Test did not parse correctly, so it cannot be configured.");
-        }
-        
-        fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-        test.fileConfig = new FileConfig(r, fileAccess, context);
-
-        // Set the no-compile flag the test is not supposed to reach the build stage.
-        if (level.compareTo(TestLevel.BUILD) < 0 || this.codeCovOnly) {
-            context.getArgs().setProperty("no-compile", "");
-        }
-
-        addExtraLfcArgs(context.getArgs());
-        
-        // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (configuration != null && !configuration.test(test)) {
-            test.result = Result.CONFIG_FAIL;
-            throw new RuntimeException(
-                    "Test configuration could not be applied successfully.");
-        }
-        
-        return context;
-    }
     
-    private boolean validate(LFTest test, GeneratorContext context) {
-        // Validate the resource and store issues in the test object.
-        try {
-            var issues = validator.validate(test.fileConfig.resource,
-                                            CheckMode.ALL, context.getCancelIndicator());
-            if (issues != null && !issues.isEmpty()) {
-                String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
-                test.issues.append(issuesToString);
-                if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
-                    test.result = Result.VALIDATE_FAIL;
-                    return false;
-                }
-            }
-        } catch (Exception e) {
-            test.result = Result.VALIDATE_FAIL;
-            return false;
-        }
-
-        return true;
-    }
-
-
-    /**
-     * Override to add some LFC arguments to all runs of this test class.
-     */
-    protected void addExtraLfcArgs(Properties args) {
-        // to be overridden
-    }
-
-
-    /**
-     * Invoke the code generator for the given test.
-     *
-     */
-    private void generateCode(LFTest test) {
-        if (test.fileConfig.resource != null) {
-            generator.doGenerate(test.fileConfig.resource, fileAccess, test.fileConfig.context);
-            if (generator.errorsOccurred()) {
-                test.result = Result.CODE_GEN_FAIL;
-                throw new RuntimeException("Errors occurred during code generation.");
-            }
-        }
-    }
-
-
-    /**
-     * Given an indexed test, execute it and label the test as failing if it
-     * did not execute, took too long to execute, or executed but exited with
-     * an error code.
-     */
-    private void execute(LFTest test) {
-        final ProcessBuilder pb = getExecCommand(test);
-        if (pb == null) {
-            return;
-        }
-        try {
-            var p = pb.start();
-            var stdout = test.exec.recordStdOut(p);
-            var stderr = test.exec.recordStdErr(p);
-            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                stdout.interrupt();
-                stderr.interrupt();
-                p.destroyForcibly();
-                test.result = Result.TEST_TIMEOUT;
-            } else {
-                if (p.exitValue() == 0) {
-                    test.result = Result.TEST_PASS;
-                } else {
-                    test.result = Result.TEST_FAIL;
-                }
-            }
-
-        } catch (Exception e) {
-            test.result = Result.TEST_FAIL;
-        }
-    }
-
-    /**
-     * Returns a preconfigured ProcessBuilder for the command
-     * that should be used to execute the test program.
-     */
-    private ProcessBuilder getExecCommand(LFTest test) {
-        final var nameWithExtension = test.srcFile.getFileName().toString();
-        final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
-
-        switch (test.target) {
-        case C:
-        case CPP:
-        case CCPP: {
-            var binPath = test.fileConfig.binPath;
-            var binaryName = nameOnly;
-            // Adjust binary extension if running on Window
-            if (System.getProperty("os.name").startsWith("Windows")) {
-                binaryName = nameOnly + ".exe";
-            }
-
-            var fullPath = binPath.resolve(binaryName);
-            if (Files.exists(fullPath)) {
-                // Running the command as .\binary.exe does not work on Windows for
-                // some reason... Thus we simply pass the full path here, which
-                // should work across all platforms
-                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
-            } else {
-                test.issues.append(fullPath).append(": No such file or directory.").append(System.lineSeparator());
-                test.result = Result.NO_EXEC_FAIL;
-                return null;
-            }
-        }
-        case Python: {
-            var srcGen = test.fileConfig.getSrcGenPath();
-            var fullPath = srcGen.resolve(nameOnly + ".py");
-            if (Files.exists(fullPath)) {
-                return new ProcessBuilder("python3", fullPath.getFileName().toString())
-                    .directory(srcGen.toFile());
-            } else {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
-                return null;
-            }
-        }
-        case TS: {
-            var dist = test.fileConfig.getSrcGenPath().resolve("dist");
-            var file = dist.resolve(nameOnly + ".js");
-            if (Files.exists(file)) {
-                return new ProcessBuilder("node", file.toString());
-            } else {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(file).append(System.lineSeparator());
-                return null;
-            }
-        }
-        default:
-            throw new AssertionError("unreachable");
-        }
-    }
-
-
-    private void validateAndRun(Set<LFTest> tests, Predicate<LFTest> configuration, TestLevel level) throws IOException { // FIXME change this into Consumer
-        final var x = 78f / tests.size();
-        var marks = 0;
-        var done = 0;
-        
-        for (var test : tests) {
-            try {
-                redirectOutputs(test);
-                var context = configure(test, configuration, level);
-                validate(test, context);
-                if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
-                    generateCode(test);
-                }
-                if (!this.codeCovOnly && level == TestLevel.EXECUTION) {
-                    execute(test);
-                } else if (test.result == Result.UNKNOWN) {
-                    test.result = Result.TEST_PASS;
-                }
-
-            } catch (Exception e) {
-                // System.out.println(e.getMessage());
-                test.issues.append(e.getMessage());
-            } finally {
-                restoreOutputs();
-            }
-            done++;
-            while (Math.floor(done * x) >= marks && marks < 78) {
-                System.out.print("=");
-                marks++;
-            }            
-        }
-        while (marks < 78) {
-
-            System.out.print("=");
-            marks++;
-        }
-
-        System.out.print(System.lineSeparator());
-    }
-    
-    public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION};
-    public class Message {
-        public final static String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public final static String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
-        public final static String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
-        public final static String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
-        public final static String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
-        public final static String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
-        public final static String DESC_FEDERATED = "Run federated tests.";
-        public final static String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
-        public final static String DESC_AS_CCPP = "Running C tests as CCpp.";
-        public final static String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
-    }
-
 }
