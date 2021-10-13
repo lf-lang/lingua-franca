@@ -347,13 +347,13 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (!isCBasedTarget && this.target != Target.CPP && this.target != Target.Python) {
+        if (!this.target.supportsMultiports()) {
             error("Multiports and banks are currently not supported by the given target.",
                 Literals.WIDTH_SPEC__TERMS)
         } else {
             for (term : widthSpec.terms) {
                 if (term.parameter !== null) {
-                    if (!isCBasedTarget && this.target != Target.Python && this.target != Target.CPP) {
+                    if (!this.target.supportsParameterizedWidths()) {
                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else if (term.port !== null) {
