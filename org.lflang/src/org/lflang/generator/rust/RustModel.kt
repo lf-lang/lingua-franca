@@ -30,6 +30,8 @@ import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.generator.UnsupportedGeneratorFeatureException
+import org.lflang.generator.cpp.name
+import org.lflang.generator.cpp.toCppCode
 import java.nio.file.Path
 import java.util.*
 
@@ -168,9 +170,10 @@ data class ChildPortReference(
     /** Name of the child instance. */
     val childName: Ident,
     override val lfName: Ident,
-    val isInput: Boolean,
-    val dataType: TargetCode
-) : ReactorComponent() {
+    override val isInput: Boolean,
+    override val dataType: TargetCode,
+    override val isMultiport: Boolean
+) : ReactorComponent(), PortLike {
     val rustFieldOnChildName: String = "__$lfName"
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
@@ -339,23 +342,35 @@ sealed class ReactorComponent {
     }
 }
 
+interface PortLike {
+    val lfName: Ident
+    val isInput: Boolean
+
+    /** Rust data type of this component */
+    val dataType: TargetCode
+    val isMultiport: Boolean
+}
 
 /**
  * @property dataType A piece of target code
  */
 data class PortData(
     override val lfName: Ident,
-    val isInput: Boolean,
+    override val isInput: Boolean,
     /** Rust data type of this component */
-    val dataType: TargetCode,
-    val isMultiport: Boolean = false
-) : ReactorComponent() {
+    override val dataType: TargetCode,
+    // may be a compile-time constant
+    val widthSpec: TargetCode?,
+) : ReactorComponent(), PortLike {
+    override val isMultiport: Boolean get() = widthSpec != null
+
     companion object {
         fun from(port: Port) =
             PortData(
                 lfName = port.name,
                 isInput = port.isInput,
-                dataType = RustTypes.getTargetType(port.type)
+                dataType = RustTypes.getTargetType(port.type),
+                widthSpec = port.widthSpec?.toCppCode()
             )
     }
 }
@@ -374,6 +389,16 @@ data class TimerData(
     val period: TargetCode,
 ) : ReactorComponent()
 
+/** Get the textual representation of a width in Rust code */
+fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
+    when {
+        it.parameter != null -> it.parameter.name
+        it.port != null      -> throw UnsupportedGeneratorFeatureException("Width specs that use a port")
+        it.code != null      -> it.code.toText()
+        else                 -> it.width.toString()
+    }
+}
+
 fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
@@ -382,6 +407,7 @@ private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
+
 /** Regex to match a simple (C) code block, captures the insides as $1. */
 private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
 
@@ -455,6 +481,7 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
+                                isMultiport = variable.isMultiport
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(

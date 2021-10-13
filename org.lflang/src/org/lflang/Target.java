@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -436,6 +435,29 @@ public enum Target {
      */
     public boolean isReservedIdent(String ident) {
         return this.keywords.contains(ident);
+    }
+
+    public boolean supportsMultiports() {
+        switch (this) {
+        case C:
+        case CCPP:
+        case CPP:
+        case Python:
+        case Rust:
+            return true;
+        }
+        return false;
+    }
+
+    public boolean supportsParameterizedWidths() {
+        switch (this) {
+        case C:
+        case CCPP:
+        case CPP:
+        case Python:
+            return true;
+        }
+        return false;
     }
 
     /**

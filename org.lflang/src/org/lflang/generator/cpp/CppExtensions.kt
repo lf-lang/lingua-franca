@@ -50,7 +50,7 @@ val Reaction.name
 
 
 /** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCode() = CppTypes.getTargetTimeExpression(time, unit)
+fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpression(time, unit)
 
 /** Convert a value to a time representation in C++ code*
  *
@@ -69,10 +69,10 @@ fun Value.toTime(outerContext: Boolean = false): String =
  * If the value evaluates to 0, it is interpreted as a normal value.
  * FIXME this is redundant to GeneratorBase.getTargetValue
  */
-fun Value.toCode(): String = CppTypes.getTargetExpr(this)
+fun Value.toCppCode(): String = CppTypes.getTargetExpr(this)
 
 /** Get the textual representation of a width in C++ code */
-fun WidthSpec.toCode(): String = terms.joinToString(" + ") {
+fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
     when {
         it.parameter != null -> it.parameter.name
         it.port != null      -> with(it.port) {

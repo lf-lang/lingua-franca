@@ -99,7 +99,7 @@ ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + 
                 |#[warn(unused)]
                 |impl$typeParams $structName$typeArgs {
                 |
-${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(reactor) }}
+${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
                 |
                 |}
                 |
@@ -622,21 +622,28 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
      * dependency within the reaction.
      */
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
-        is PortData, is ChildPortReference ->
-            if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
-            else "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
-        is ActionData                      -> if (isLogical) "&mut self.$rustFieldName" else "&self.$rustFieldName"
-        is TimerData                       -> "&self.$rustFieldName"
+        is PortData           -> portBorrow(kind, isMultiport)
+        is ChildPortReference -> portBorrow(kind, isMultiport)
+        is ActionData         -> if (isLogical) "&mut self.$rustFieldName" else "&self.$rustFieldName"
+        is TimerData          -> "&self.$rustFieldName"
     }
 
-    private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
-                // Item is both in inputs and outputs.
-                // We must not generate 2 parameters, instead we generate the
-                // one with the most permissions (Effects means &mut).
+    private fun ReactorComponent.portBorrow(kind: DepKind, isMultiport: Boolean) =
+        when {
+            kind == DepKind.Effects && isMultiport  -> throw UnsupportedGeneratorFeatureException("Output port banks")
+            kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
+            isMultiport                             -> "$rsRuntime::ReadableMultiPort::new(&self.$rustFieldName)" // note: owned
+            else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
+        }
 
-                // eg `reaction(act) -> act` must not generate 2 parameters for act,
-                // we skip the Trigger one and generate the Effects one.
-                depKind != DepKind.Effects && this in n.effects
+    private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
+        // Item is both in inputs and outputs.
+        // We must not generate 2 parameters, instead we generate the
+        // one with the most permissions (Effects means &mut).
+
+        // eg `reaction(act) -> act` must not generate 2 parameters for act,
+        // we skip the Trigger one and generate the Effects one.
+        depKind != DepKind.Effects && this in n.effects
 
     private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
         depKind == DepKind.Effects && (this is PortData || this is ActionData)
@@ -651,22 +658,30 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
 
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
         when (this) {
-            is PortData           -> portRefWrapper(kind, dataType)
-            is ChildPortReference -> portRefWrapper(kind, dataType)
+            is PortData           -> portRefWrapper(kind, dataType, isMultiport)
+            is ChildPortReference -> portRefWrapper(kind, dataType, isMultiport)
             is TimerData          -> "&${toType()}"
-            is ActionData          -> if (isLogical) "&mut ${toType()}" else "&${toType()}"
+            is ActionData         -> if (isLogical) "&mut ${toType()}" else "&${toType()}"
         }
 
-    private fun portRefWrapper(kind: DepKind, dataType: TargetCode) =
-        if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>" // note: owned
-        else "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
+    private fun portRefWrapper(kind: DepKind, dataType: TargetCode, isMultiport: Boolean) =
+        when {
+            kind == DepKind.Effects && isMultiport -> throw UnsupportedGeneratorFeatureException("Output port banks")
+            kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
+            isMultiport                            -> "$rsRuntime::ReadableMultiPort<$dataType>" // note: owned
+            else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
+        }
 
     private fun ReactorComponent.toType(): TargetCode = when (this) {
         is ActionData         ->
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
-        is PortData           -> "$rsRuntime::Port<$dataType>"
-        is ChildPortReference -> "$rsRuntime::Port<$dataType>"
+        is PortData           ->
+            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
+            else "$rsRuntime::Port<$dataType>"
+        is ChildPortReference ->
+            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
+            else "$rsRuntime::Port<$dataType>"
         is TimerData          -> "$rsRuntime::Timer"
     }
 
@@ -677,16 +692,31 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             "__assembler.$ctorName::<$dataType>(\"$lfName\", $delay)"
         }
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData           -> "__assembler.new_port::<$dataType>(\"$lfName\")"
-        is ChildPortReference -> "__assembler.new_port::<$dataType>(\"$childName.$lfName\")"
+        is PortData           -> {
+            if (widthSpec != null) {
+                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $widthSpec, $isInput)"
+            } else {
+                "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
+            }
+        }
+        is ChildPortReference -> {
+            if (isMultiport) {
+                throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
+            } else {
+                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $isInput)"
+            }
+        }
     }
 
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
-        is ActionData                      ->
+        is ActionData         ->
             if (isLogical) "ctx.cleanup_logical_action(&mut self.$rustFieldName);"
             else "ctx.cleanup_physical_action(&mut self.$rustFieldName);"
-        is PortData, is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
-        is TimerData                       -> null
+        is PortLike           ->
+            if (isMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
+            else "ctx.cleanup_port(&mut self.$rustFieldName);"
+        is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
+        else                  -> null
     }
 
 
@@ -695,7 +725,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
         return "$fieldVisibility$rustFieldName: ${toType()}"
     }
 
-    private fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
+    private fun ReactionInfo.toWorkerFunction(): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
             for ((kind, comps) in allDependencies) {
                 for (comp in comps) {
