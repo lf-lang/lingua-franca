@@ -71,13 +71,24 @@ package class FedLauncher {
     }
     
     /**
-     * Return the command that will execute a federate, assuming that the current
+     * Return the command that will execute a remote federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
      * 
      * @param federate The federate to execute.
      */
-    protected def String executeCommandForFederate(FederateInstance federate) {
+    protected def String executeCommandForRemoteFederate(FederateInstance federate) {
+        throw new UnsupportedOperationException("Don't know how to execute the federates.");
+    }
+
+    /**
+     * Return the command that will execute a local federate, assuming that the current
+     * directory is the top-level project folder. This is used to create a launcher script
+     * for federates.
+     *
+     * @param federate The federate to execute.
+     */
+    protected def String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
     
@@ -320,7 +331,7 @@ package class FedLauncher {
                         # Capture the output in the log file and stdout. \
                         «compileCommand» 2>&1 | tee -a «logFileName»;'
                 ''')
-                val executeCommand = executeCommandForFederate(federate);
+                val executeCommand = executeCommandForRemoteFederate(federate);
                 shCode.append( '''
                     echo "#### Launching the federate «federate.name» on host «federate.user»@«federate.host»"
                     # FIXME: Killing this ssh does not kill the remote process.
@@ -336,9 +347,10 @@ package class FedLauncher {
                     pids[«federateIndex++»]=$!
                 ''')                
             } else {
+                val executeCommand = executeCommandForLocalFederate(fileConfig, federate);
                 shCode.append( '''
                     echo "#### Launching the federate «federate.name»."
-                    «fileConfig.binPath.resolve(fileConfig.name)»_«federate.name» -i $FEDERATION_ID &
+                    «executeCommand» &
                     pids[«federateIndex++»]=$!
                 ''')                
             }

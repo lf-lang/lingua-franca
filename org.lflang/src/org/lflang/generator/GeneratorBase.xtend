@@ -1178,7 +1178,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
                       
-                    if (originalPath != path) {
+                    if (originalPath.compareTo(path) != 0) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1216,7 +1216,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 if (message.length > 0) {
                     message.append("\n")
                 } else {
-                    if (line.toLowerCase.contains('warning:')) {
+                    if (!line.toLowerCase.contains('error:')) {
                         severity = IMarker.SEVERITY_WARNING
                     }
                 }
@@ -1230,7 +1230,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath != path) {
+            if (originalPath.compareTo(path) != 0) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
