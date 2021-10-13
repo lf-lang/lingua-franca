@@ -229,6 +229,11 @@ public class TestRegistry {
     
     /**
      * Return the tests that were indexed for a given target and category.
+     * 
+     * @param target
+     * @param category
+     * @param copy Whether or not to return copies of the indexed tests or not.
+     * @return
      */
     public static Set<LFTest> getRegisteredTests(Target target,
             TestCategory category, boolean copy) {
