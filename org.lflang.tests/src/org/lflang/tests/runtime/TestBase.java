@@ -516,6 +516,7 @@ public abstract class TestBase {
     public class Message {
         public final static String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
         public final static String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
+        public final static String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public final static String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
         public final static String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
         public final static String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
