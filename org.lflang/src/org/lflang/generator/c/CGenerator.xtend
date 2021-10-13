@@ -830,7 +830,8 @@ class CGenerator extends GeneratorBase {
                         #[cFilename], 
                         topLevelName, 
                         errorReporter,
-                        CCppMode
+                        CCppMode,
+                        mainDef !== null
                     ).toString().getBytes(),
                     cmakeFile
                 )
@@ -5012,7 +5013,7 @@ class CGenerator extends GeneratorBase {
     // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile("^file:(/.*):([0-9]+):([0-9]+):(.*)$");
     
     /** Given a line of text from the output of a compiler, return
      *  an instance of ErrorFileAndLine if the line is recognized as
@@ -5035,7 +5036,7 @@ class CGenerator extends GeneratorBase {
             result.character = matcher.group(3)
             result.message = matcher.group(4)
             
-            if (result.message.toLowerCase.contains("warning:")) {
+            if (!result.message.toLowerCase.contains("error:")) {
                 result.isError = false
             }
             return result

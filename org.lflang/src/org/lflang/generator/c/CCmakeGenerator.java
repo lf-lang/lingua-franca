@@ -65,13 +65,16 @@ class CCmakeGenerator {
      * @param executableName The name of the output executable.
      * @param errorReporter Used to report errors.
      * @param CppMode Indicate if the compilation should happen in C++ mode
+     * @param hasMain Indicate if the .lf file has a main reactor or not. If not,
+     *  a library target will be created instead of an executable.
      * @return The content of the CMakeLists.txt.
      */
     StringBuilder generateCMakeCode(
             List<String> sources, 
             String executableName, 
             ErrorReporter errorReporter,
-            boolean CppMode) {
+            boolean CppMode,
+            boolean hasMain) {
         StringBuilder cMakeCode = new StringBuilder();
         
         List<String> additionalSources = new ArrayList<String>();
@@ -134,9 +137,15 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         cMakeCode.append("set(LF_MAIN_TARGET "+executableName+")\n");
-        cMakeCode.append("# Declare a new executable target and list all its sources\n");
-        cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
-                           String.join("\n", additionalSources)+")\n");
+        if (hasMain) {
+            cMakeCode.append("# Declare a new executable target and list all its sources\n");
+            cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
+                               String.join("\n", additionalSources)+")\n");
+        } else {
+            cMakeCode.append("# Declare a new library target and list all its sources\n");
+            cMakeCode.append("add_library( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
+                               String.join("\n", additionalSources)+")\n");
+        }
         cMakeCode.append("\n");
 
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {
