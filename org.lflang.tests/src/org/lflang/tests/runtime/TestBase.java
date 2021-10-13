@@ -73,12 +73,13 @@ public abstract class TestBase {
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
-        "------------------------------------------------------------------------------" + System.lineSeparator();
+        "------------------------------------------------------------------------------" + 
+            System.lineSeparator();
 
     /** Content separator used in test output, 78 characters wide. */
-    public static final String THICK_LINE = "====================================================" + System.lineSeparator();
-
-   
+    public static final String THICK_LINE = 
+        "==============================================================================" +
+            System.lineSeparator();   
 
     /** The targets for which to run the tests. */
     protected List<Target> targets = new ArrayList<Target>();
@@ -318,7 +319,7 @@ public abstract class TestBase {
         test.fileConfig = new FileConfig(r, fileAccess, context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
-        if (level.compareTo(TestLevel.BUILD) < 0) {
+        if (level.compareTo(TestLevel.BUILD) < 0 || this.codeCovOnly) {
             context.getArgs().setProperty("no-compile", "");
         }
 
@@ -477,32 +478,30 @@ public abstract class TestBase {
         var done = 0;
         
         for (var test : tests) {
-            if (level.compareTo(TestLevel.NONE) > 0) {
-                try {
-                    redirectOutputs(test);
-                    var context = configure(test, configuration, level);
-                    validate(test, context);
-                    if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
-                        generateCode(test);
-                    }
-                    if (level == TestLevel.EXECUTION) {
-                        execute(test);
-                    } else if (test.result == Result.UNKNOWN) {
-                        test.result = Result.TEST_PASS;
-                    }
-                    
-                } catch (Exception e) {
-                    //System.out.println(e.getMessage());
-                    test.issues.append(e.getMessage());
-                } finally {
-                    restoreOutputs();
+            try {
+                redirectOutputs(test);
+                var context = configure(test, configuration, level);
+                validate(test, context);
+                if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
+                    generateCode(test);
                 }
-                done++;
-                while (Math.floor(done * x) >= marks && marks < 78) {
-                    System.out.print("=");
-                    marks++;
+                if (!this.codeCovOnly && level == TestLevel.EXECUTION) {
+                    execute(test);
+                } else if (test.result == Result.UNKNOWN) {
+                    test.result = Result.TEST_PASS;
                 }
+
+            } catch (Exception e) {
+                // System.out.println(e.getMessage());
+                test.issues.append(e.getMessage());
+            } finally {
+                restoreOutputs();
             }
+            done++;
+            while (Math.floor(done * x) >= marks && marks < 78) {
+                System.out.print("=");
+                marks++;
+            }            
         }
         while (marks < 78) {
 
@@ -513,7 +512,7 @@ public abstract class TestBase {
         System.out.print(System.lineSeparator());
     }
     
-    public enum TestLevel {NONE, VALIDATION, CODE_GEN, BUILD, EXECUTION};
+    public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION};
     public class Message {
         public final static String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
         public final static String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
