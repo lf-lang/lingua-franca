@@ -79,7 +79,7 @@ public class CodeGenCoverage extends ThreadedBase {
     @Test
     @Override
     public void runWithFourThreads() {
-        super.runWithFourThreads();
+        printSkipMessage(RUN_WITH_FOUR_THREADS_DESC, Message.NOT_FOR_CODE_COV);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class CodeGenCoverage extends ThreadedBase {
     @Test
     @Override
     public void runAsFederated() {
-        super.runAsFederated();
+        printSkipMessage(Message.DESC_AS_FEDERATED, Message.NOT_FOR_CODE_COV);
     }
 
     @Test
