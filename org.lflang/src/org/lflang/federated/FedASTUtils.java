@@ -40,6 +40,7 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
@@ -47,6 +48,7 @@ import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.LfPackage;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -293,14 +295,14 @@ public class FedASTUtils {
      * @param delay The delay value imposed on the connection using after
      */
     private static void addNetworkOutputControlReaction(
-            PortInstance source,
-            FederateInstance instance,
-            int receivingPortID, 
-            int bankIndex, 
-            int channelIndex, 
-            int receivingFedID,
-            GeneratorBase generator,
-            Delay delay
+        PortInstance source,
+        FederateInstance instance,
+        int receivingPortID,
+        int bankIndex,
+        int channelIndex,
+        int receivingFedID,
+        GeneratorBase generator,
+        TimeValue delay
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -393,17 +395,18 @@ public class FedASTUtils {
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      */
     public static void makeCommunication(
-            PortInstance source,
-            PortInstance destination,
-            Connection connection, 
-            FederateInstance leftFederate,
-            int leftBankIndex,
-            int leftChannelIndex,
-            FederateInstance rightFederate,
-            int rightBankIndex,
-            int rightChannelIndex,
-            GeneratorBase generator,
-            CoordinationType coordination
+        PortInstance source,
+        PortInstance destination,
+        Connection connection,
+        FederateInstance leftFederate,
+        int leftBankIndex,
+        int leftChannelIndex,
+        FederateInstance rightFederate,
+        int rightBankIndex,
+        int rightChannelIndex,
+        GeneratorBase generator,
+        CoordinationType coordination,
+        ReactorInstance mainInstance
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         // Assume all the types are the same, so just use the first on the right.
@@ -445,7 +448,9 @@ public class FedASTUtils {
             action_type.setId(generator.getNetworkBufferType());
             action.setType(action_type);
         }
-        
+
+        TimeValue delayValue = mainInstance.resolveTimeValue(delayAsValue(connection.getDelay()));
+
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
             leftFederate.outboundP2PConnections.add(rightFederate);
@@ -458,8 +463,8 @@ public class FedASTUtils {
             if (connection.getDelay() != null) {
                 action.setMinDelay(factory.createValue());
                 action.getMinDelay().setTime(factory.createTime());
-                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
-                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
+                action.getMinDelay().getTime().setInterval((int) delayValue.time);
+                action.getMinDelay().getTime().setUnit(delayValue.unit);
             }
         } else {
             // If the connection is logical but coordination
@@ -503,7 +508,7 @@ public class FedASTUtils {
             rightFederate,
             InferredType.fromAST(type),
             connection.isPhysical(),
-            connection.getDelay(),
+            delayValue,
             serializer
         ));
               
@@ -520,7 +525,7 @@ public class FedASTUtils {
                 leftChannelIndex,
                 rightFederate.id,
                 generator,
-                connection.getDelay()
+                delayValue
             );
             
             // Add the network input control reaction to the parent
@@ -551,8 +556,19 @@ public class FedASTUtils {
             connection.isPhysical(),
             serializer
         ));
-        
+
         // Add the receiver reaction to the parent
         parent.getReactions().add(r2);
     }
+
+    private static Value delayAsValue(Delay delay) {
+        Value value = LfPackage.eINSTANCE.getLfFactory().createValue();
+        if (delay.getParameter() != null) {
+            value.setParameter(delay.getParameter());
+        } else {
+            value.setTime(delay.getTime());
+        }
+        return value;
+    }
+
 }

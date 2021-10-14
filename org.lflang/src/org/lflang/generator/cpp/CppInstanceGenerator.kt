@@ -62,24 +62,15 @@ class CppInstanceGenerator(
             // If no assignment was found, then the parameter is not overwritten and we assign the
             // default value
             with(CppParameterGenerator) { param.defaultValue }
+        } else if (assignment.rhs.isAssign) {
+            assert(assignment.rhs.exprs.size == 1)
+            assignment.rhs.exprs.single().toCode()
+        } else if (assignment.rhs.isBraces) {
+            "{${assignment.rhs.exprs.joinToString(", ") { it.toCode() }}}"
+        } else if (assignment.rhs.isParens) {
+            "(${assignment.rhs.exprs.joinToString(", ") { it.toCode() }})"
         } else {
-            // Otherwise, we use the assigned value.
-            if (assignment.equals == "=") {
-                if (!assignment.braces.isNullOrEmpty()) {
-                    "{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
-                } else if (!assignment.parens.isNullOrEmpty()) {
-                    "(${assignment.rhs.joinToString(", ") { it.toCode() }})"
-                } else {
-                    assert(assignment.rhs.size == 1)
-                    assignment.rhs[0].toCode()
-                }
-            } else {
-                if (!assignment.braces.isNullOrEmpty()) {
-                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCode() }}}"
-                } else {
-                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCode() }})"
-                }
-            }
+            throw AssertionError("unreachable")
         }
     }
 

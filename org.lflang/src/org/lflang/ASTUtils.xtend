@@ -31,7 +31,6 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.TerminalRule
@@ -51,6 +50,7 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Element
 import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
+import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
@@ -280,11 +280,12 @@ class ASTUtils {
         if (delay.parameter !== null) {
             value.parameter = delay.parameter
         } else {
-            value.time = factory.createTime
-            value.time.interval = delay.interval
-            value.time.unit = delay.unit
+            value.time = delay.time
         }
-        assignment.rhs.add(value)
+        val rhs = factory.createInitializer
+        rhs.exprs.add(value)
+        rhs.assign = true
+        assignment.rhs = rhs
         delayInstance.parameters.add(assignment)
         delayInstance.name = "delay" // This has to be overridden.
         
@@ -335,9 +336,12 @@ class ASTUtils {
         val defaultTime = factory.createTime
         defaultTime.unit = TimeUnit.NONE
         defaultTime.interval = 0
+
+        val init = factory.createInitializer
         val defaultValue = factory.createValue
         defaultValue.time = defaultTime
-        delayParameter.init.add(defaultValue)
+        delayParameter.init = init
+        init.exprs.add(defaultValue)
         
         // Name the newly created action; set its delay and type.
         action.name = "act"
@@ -729,6 +733,11 @@ class ASTUtils {
     def static toTimeValue(Element e) {
         return new TimeValue(e.time, e.unit)
     }
+
+    /** Returns the time value represented by the given AST node. */
+    def static TimeValue toTimeValue(Time e) {
+        return new TimeValue(e.interval, e.unit)
+    }
     
     /**
      * Return a boolean based on the given element.
@@ -775,7 +784,7 @@ class ASTUtils {
         if (d.parameter !== null) {
             return d.parameter.name
         }
-        '''«d.interval» «d.unit.toString»'''
+        d.time.toText
     }
     
     /**
@@ -997,7 +1006,7 @@ class ASTUtils {
         if (p !== null) {
             if (p.type !== null && p.type.isTime && p.type.arraySpec !== null) {
                 return true
-            } else if (p.init !== null && p.init.size > 1 && p.init.forall [
+            } else if (p.init !== null && p.init.exprs.size > 1 && p.init.exprs.forall [
                 it.isValidTime
             ]) {
                 return true
@@ -1021,12 +1030,7 @@ class ASTUtils {
                 return true
             }
             // Or it has to be initialized as a proper time with units.
-            if (p.init !== null && p.init.size == 1) {
-                val time = p.init.get(0).time
-                if (time !== null && time.unit != TimeUnit.NONE) {
-                    return true
-                }
-            } 
+            return p.init?.asSingleValue?.time?.unit !== TimeUnit.NONE
             // In other words, one can write:
             // - `x:time(0)` -OR- 
             // - `x:(0 msec)`, `x:(0 sec)`, etc.     
@@ -1045,17 +1049,35 @@ class ASTUtils {
             if (s.type !== null)
                 return s.type.isTime
             // Or the it has to be initialized as a time except zero.
-            if (s.init !== null && s.init.size == 1) {
-                val init = s.init.get(0)
-                if (init.isValidTime && !init.isZero)
-                    return true
-            }   
+            val init = s.init.asSingleValue
+            if (init !== null && init.isValidTime && !init.isZero)
+                return true
+
             // In other words, one can write:
             // - `x:time(0)` -OR- 
             // - `x:(0 msec)`, `x:(0 sec)`, etc. -OR-
             // - `x:(p)` where p is defined as above.
         }
         return false
+    }
+
+    /**
+     * If the initializer contains exactly one expression,
+     * return it. Otherwise return null.
+     */
+    def static Value asSingleValue(Initializer init) {
+        if (init.exprs.size == 1)
+            return init.exprs.get(0)
+        return null
+    }
+
+    /**
+     * If the initializer contains exactly one expression,
+     * return it. Otherwise return null.
+     */
+    def static boolean isList(Initializer init) {
+        return (init.isBraces || init.isParens) && init.exprs.size != 1
+            // || init.isAssign && init.asSingleValue instanceof ListLiteral
     }
     
     /**
@@ -1066,10 +1088,10 @@ class ASTUtils {
 	 */    
     def static TimeValue getInitialTimeValue(Parameter p) {
         if (p !== null && p.isOfTimeType) {
-            val init = p.init.get(0)
-            if (init.time !== null) {
+            val init = p.init.asSingleValue
+            if (init?.time !== null) {
                 return new TimeValue(init.time.interval, init.time.unit)
-            } else if (init.parameter !== null) {
+            } else if (init?.parameter !== null) {
                 // Parameter value refers to another parameter.
                 return getInitialTimeValue(init.parameter) 
             } else {
@@ -1194,7 +1216,7 @@ class ASTUtils {
             if (lastAssignment !== null) {
                 // Right hand side can be a list. Collect the entries.
                 val result = new LinkedList<Value>()
-                for (value: lastAssignment.rhs) {
+                for (value: lastAssignment.rhs.exprs) {
                     if (value.parameter !== null) {
                         if (instantiations.size() > 1
                             && instantiation.eContainer !== instantiations.get(1).reactorClass
@@ -1218,7 +1240,7 @@ class ASTUtils {
         // If we reach here, then either no instantiation was supplied or
         // there was no assignment in the instantiation. So just use the
         // parameter's initial value.
-        return parameter.init;
+        return parameter.init.exprs;
     }
     
     /**
@@ -1477,24 +1499,18 @@ class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
-            return true
-        }
-        return false
+        return v !== null && v.init !== null
     }
         
     /**
-     * Report whether the given time state variable is initialized using a 
-     * parameter or not.
+     * Return whether the given time state variable is initialized using a
+     * single parameter or not.
      * @param s A state variable.
      * @return True if the argument is initialized using a parameter, false 
      * otherwise.
      */
     def static boolean isParameterized(StateVar s) {
-        if (s.init !== null && s.init.exists[it.parameter !== null]) {
-            return true
-        }
-        return false
+        return s?.init?.asSingleValue?.parameter !== null
     }
     
     /**
@@ -1505,32 +1521,23 @@ class ASTUtils {
      * state variable.
      * @return The inferred type, or "undefined" if none could be inferred.
      */    
-    protected static def InferredType getInferredType(EList<Value> initList) {
-        if (initList.size == 1) {
+    static def InferredType getInferredType(Initializer init) {
+        val single = init.asSingleValue
+        if (single !== null) {
         	// If there is a single element in the list, and it is a proper
         	// time value with units, we infer the type "time".
-            val init = initList.get(0)
-            if (init.parameter !== null) {
-                return init.parameter.getInferredType
-            } else if (init.isValidTime && !init.isZero) {
+            if (single.parameter !== null) {
+                return single.parameter.getInferredType
+            } else if (single.isValidTime && !single.isZero) {
                 return InferredType.time;
             }
-        } else if (initList.size > 1) {
+        } else if (init.exprs.size > 1) {
 			// If there are multiple elements in the list, and there is at
 			// least one proper time value with units, and all other elements
 			// are valid times (including zero without units), we infer the
 			// type "time list".
-            var allValidTime = true
-            var foundNonZero = false
-
-            for (init : initList) {
-                if (!init.isValidTime) {
-                    allValidTime = false;
-                } 
-                if (!init.isZero) {
-                    foundNonZero = true
-                }
-            }
+            var allValidTime = init.exprs.forall[ it.isValidTime ]
+            var foundNonZero = init.exprs.exists[ !it.isZero ]
 
             if (allValidTime && foundNonZero) {
                 // Conservatively, no bounds are inferred; the returned type 

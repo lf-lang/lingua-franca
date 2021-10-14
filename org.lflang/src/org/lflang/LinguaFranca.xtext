@@ -139,12 +139,13 @@ TargetDecl:
  *  must be given, or a literal or code that denotes zero.
  */
  StateVar:
-    'state' name=ID (
-        (':' (type=Type))? 
-        ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
-            | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
-        )?
-    ) ';'?
+    'state' name=ID (':' type=Type)? init=Initializer? ';'?
+;
+
+Initializer:
+      parens?='(' (exprs+=Value (','  exprs+=Value)* (trailingComma?=',')?)? ')'
+    | braces?='{' (exprs+=Value (','  exprs+=Value)* (trailingComma?=',')?)? '}'
+    | assign?='=' exprs+=Value
 ;
 
 Method:
@@ -239,8 +240,8 @@ Connection:
 // a literal value. If no units are given (which implies that the time interval
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
-Delay:
-    'after' (parameter=[Parameter] | (interval=INT ((unit=TimeUnit))))
+Delay: // todo replace this with Value, add validator check to constrain expression to be a Time
+    'after' (parameter=[Parameter] | time=Time)
 ;
 
 // Chooses the serializer to use for the connection
@@ -285,23 +286,13 @@ VarRef:
 ;
 
 Assignment:
-    (lhs=[Parameter] (
-        (equals='=' rhs+=Value)
-        | ((equals='=')? (
-            parens+='(' (rhs+=Value (',' rhs+=Value)*)? parens+=')'
-            | braces+='{' (rhs+=Value (',' rhs+=Value)*)? braces+='}'))
-    ));
+    lhs=[Parameter] rhs=Initializer;
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
-    name=ID (':' (type=Type))? 
-    // FIXME: rename Value to Expr
-    ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
-        | (braces+='{' (init+=Value (','  init+=Value)*)? braces+='}')
-    )?
-;
+    name=ID (':' type=Type)? init=Initializer?;
 
 Sum :
     terms+=Difference ('+' terms+=Difference)*;

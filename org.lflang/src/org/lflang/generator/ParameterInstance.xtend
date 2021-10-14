@@ -27,12 +27,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import java.util.LinkedList
-import java.util.List
 import org.lflang.InferredType
 import org.lflang.lf.LfFactory
+import org.lflang.lf.Initializer
 import org.lflang.lf.Parameter
-import org.lflang.lf.Value
 
 import static extension org.lflang.ASTUtils.*
 
@@ -46,7 +44,11 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ParameterInstance extends NamedInstance<Parameter> {
-        
+
+    public Initializer init
+
+    public InferredType type
+
     /** 
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
@@ -68,7 +70,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
         while (assignment !== null) {
             // NOTE: we only allow a reference to single a parameter or 
             // a list of ordinary values.
-            val ref = assignment.rhs.get(0).parameter
+            val ref = assignment.rhs.asSingleValue?.parameter
             if (ref !== null) {
                 // Get the value from the parameter instance, not the parameter
                 // so that overrides like bank_index work.
@@ -89,7 +91,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
                     this.init = ref.init
                 }
             } else {
-                this.init = assignment.rhs    
+                this.init = assignment.rhs
             }
             if (parent.parent !== null) {
                 assignment = parent.parent.definition.parameters.findFirst[it.lhs === ref]
@@ -103,19 +105,13 @@ class ParameterInstance extends NamedInstance<Parameter> {
         if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
             val value = LfFactory.eINSTANCE.createValue
             value.literal = "" + parent.bankIndex
-            val list = new LinkedList<Value>()
-            list.add(value)
-            this.init = list
+
+            this.init = LfFactory.eINSTANCE.createInitializer
+            this.init.assign = true
+            this.init.exprs.add(value)
         }
     }
 
-    /////////////////////////////////////////////
-    //// Public Fields
-    
-    public List<Value> init
-    
-    public InferredType type
-    
     /////////////////////////////////////////////
     //// Public Methods
 

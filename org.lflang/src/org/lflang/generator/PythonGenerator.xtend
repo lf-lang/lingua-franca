@@ -29,7 +29,6 @@ package org.lflang.generator
 import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashSet
-import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -44,6 +43,7 @@ import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.Input
+import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Output
@@ -198,14 +198,24 @@ class PythonGenerator extends CGenerator {
     }
 
     /** Returns the python initializer corresponding to the given LF init list. */
-    def String getPythonInitializer(List<Value> init) {
+    def String getPythonInitializer(Initializer init) {
           if (init === null) {
               return "None"
-          } if (init.size > 1) {
-              // corresponds to a tuple
-              return init.join('(', ', ', ')', [it.pythonTargetValue])
+          } if (init.isParens && (init.exprs.size != 1 || init.isTrailingComma)) {
+              // corresponds to a tuple:
+              //   state foo(1,2) # tuple w/ 2 components
+              //   state foo(1,)  # tuple w/ 1 component
+              //   state foo()    # tuple w/ 0 component
+              if (init.exprs.size == 1) {
+                  // python tuple of size 1
+                  return "(" + init.asSingleValue.pythonTargetValue + ",)"
+              }
+              // regular python tuple (may also have size zero)
+              return init.exprs.join('(', ', ', ')', [it.pythonTargetValue])
+          } else if ((init.isAssign || init.isParens) && init.exprs.size == 1) {
+              return init.asSingleValue.getPythonTargetValue
           } else {
-              return init.get(0).getPythonTargetValue
+              throw new AssertionError("invalid expression form: " + init)
           }
     }
 

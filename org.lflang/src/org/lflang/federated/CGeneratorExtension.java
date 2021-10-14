@@ -207,44 +207,5 @@ public class CGeneratorExtension {
         }
         return builder.toString();
     }
-    
-    /**
-     * Given a connection 'delay' predicate, return a string that represents the 
-     * interval_t value of the additional delay that needs to be applied to the
-     * outgoing message.
-     * 
-     * The returned additional delay in absence of after on network connection
-     * (i.e., if delay is passed as a null) is  NEVER. This has a special 
-     * meaning in C library functions that send network messages that carry 
-     * timestamps (@see send_timed_message and send_port_absent_to_federate 
-     * in lib/core/federate.c). In this case, the sender will send its current 
-     * tag as the timestamp of the outgoing message without adding a microstep delay.
-     * If the user has assigned an after delay to the network connection (that 
-     * can be zero) either as a time value (e.g., 200 msec) or as a literal 
-     * (e.g., a parameter), that delay in nsec will be returned.
-     * 
-     * @param delay
-     * @param generator
-     * @return
-     */
-    public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
-        String additionalDelayString = "NEVER";
-        if (delay != null) {
-            if (delay.getParameter() != null) {
-                // The parameter has to be parameter of the main reactor.
-                // And that value has to be a Time.
-                Value value = delay.getParameter().getInit().get(0);
-                if (value.getTime() != null) {
-                    additionalDelayString = Long.toString(ASTUtils.getTimeValue(value).toNanoSeconds());
-                } else if (value.getLiteral() != null) {
-                    // If no units are given, e.g. "0", then use the literal.
-                    additionalDelayString = value.getLiteral();
-                }
-            } else {
-                additionalDelayString = Long.toString(new TimeValue(delay.getInterval(), delay.getUnit()).toNanoSeconds());
-            }
-        }
-        return additionalDelayString;
-    }
 
 }

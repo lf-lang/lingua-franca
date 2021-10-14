@@ -32,7 +32,7 @@ class TSStateGenerator (
         val stateInstantiations = LinkedList<String>()
         // Next handle states.
         for (stateVar in stateVars) {
-            if (ASTUtils.isInitialized(stateVar)) {
+            if (stateVar.init != null) {
                 stateInstantiations.add("this.${stateVar.name} = new __State(${getTargetInitializer(stateVar)});");
             } else {
                 stateInstantiations.add("this.${stateVar.name} = new __State(undefined);");

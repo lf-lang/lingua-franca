@@ -29,7 +29,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
-import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
 import org.lflang.federated.FedTSLauncher
 import org.lflang.federated.FederateInstance
@@ -90,10 +89,9 @@ class TSGenerator(
     fun getTargetTypeW(state: StateVar): String = getTargetType(state)
     fun getTargetTypeW(t: Type): String = getTargetType(t)
 
-    fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state)
-    fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param)
-    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
-        getInitializerList(param, i)
+    fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state.init, state.inferredType)
+    fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param.init, param.inferredType)
+    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> = getInitializerList(param, i)
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -352,7 +350,7 @@ class TSGenerator(
 
     override fun getTargetType(s: StateVar): String {
         val type = super.getTargetType(s)
-        return if (!isInitialized(s)) {
+        return if (s.init == null) {
             "$type | undefined"
         } else {
             type
@@ -428,7 +426,7 @@ class TSGenerator(
         receivingFed: FederateInstance,
         type: InferredType,
         isPhysical: Boolean,
-        delay: Delay?,
+        delay: TimeValue?,
         serializer: SupportedSerializers
     ): String {
         return with(PrependOperator) {"""
@@ -459,7 +457,7 @@ class TSGenerator(
         receivingFederateID: Int,
         sendingBankIndex: Int,
         sendingChannelIndex: Int,
-        delay: Delay?
+        delay: TimeValue?
     ): String? {
         return with(PrependOperator) {"""
         |// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody

@@ -39,7 +39,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
          *
          * TODO This is redundant to GeneratorBase.getInitializerList
          */
-        private fun Parameter.getInitializerList() = init.map {
+        private fun Parameter.getInitializerList() = init.exprs.map {
             if (isOfTimeType) it.toTime()
             else it.toCode()
         }
@@ -50,7 +50,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String
             get() =
-                if (braces?.size == 2) "$targetType{${getInitializerList().joinToString(", ")}}"
+                if (init?.isBraces == true) "$targetType{${getInitializerList().joinToString(", ")}}"
                 else "$targetType(${getInitializerList().joinToString(", ")})"
 
         /** Get a C++ type that is a const reference to the parameter type */

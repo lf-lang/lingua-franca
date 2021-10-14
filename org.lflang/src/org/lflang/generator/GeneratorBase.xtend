@@ -68,6 +68,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
 import org.lflang.lf.Delay
+import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
@@ -873,7 +874,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        TimeValue delay,
         SupportedSerializers serializer
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.")
@@ -911,7 +912,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        TimeValue delay
     ) {
         throw new UnsupportedOperationException("This target does not support network connections between federates.")        
     }
@@ -1303,57 +1304,35 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Create a list of default parameter initializers in target code.
-     * 
-     * @param param The parameter to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def getInitializerList(Parameter param) {
-        var list = new LinkedList<String>();
-
-        for (i : param?.init) {
-            if (param.isOfTimeType) {
-                list.add(i.targetTime)
-            } else {
-                list.add(i.targetValue)
-            }
-        }
-        return list
-    }
-
-    /**
      * Create a list of state initializers in target code.
      * 
      * @param state The state variable to create initializers for
      * @return A list of initializers in target code
      */
-    protected def List<String> getInitializerList(StateVar state) {
-        if (!state.isInitialized) {
+    protected def List<String> getInitializerList(Initializer init, InferredType type) {
+        if (init === null) {
             return null
         }
 
-        var list = new LinkedList<String>();
-
-        for (i : state?.init) {
+        return init?.exprs.map[i|
             if (i.parameter !== null) {
-                list.add(i.parameter.targetReference)
-            } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
+                i.parameter.targetReference
+            } else if (type.isTime) {
+                i.targetTime
             } else {
-                list.add(i.targetValue)
+                i.targetValue
             }
-        }
-        return list
+        ]
     }
 
     /**
      * Create a list of parameter initializers in target code in the context
      * of an reactor instantiation.
-     * 
+     *
      * This respects the parameter assignments given in the reactor
      * instantiation and falls back to the reactors default initializers
-     * if no value is assigned to it. 
-     * 
+     * if no value is assigned to it.
+     *
      * @param param The parameter to create initializers for
      * @return A list of initializers in target code
      */
@@ -1363,22 +1342,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
 
         val assignments = i.parameters.filter[p|p.lhs === param]
+        val actualValue = assignments.size === 0 ? param.init : assignments.get(0).rhs
 
-        if (assignments.size == 0) {
-            // the parameter was not overwritten in the instantiation
-            return param.initializerList
-        } else {
-            // the parameter was overwritten in the instantiation
-            var list = new LinkedList<String>();
-            for (init : assignments.get(0)?.rhs) {
-                if (param.isOfTimeType) {
-                    list.add(init.targetTime)
-                } else {
-                    list.add(init.targetValue)
-                }
-            }
-            return list
-        }
+        return getInitializerList(actualValue, param.inferredType)
     }
 
     /**
@@ -1459,18 +1425,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return An RTI-compatible (ie. C target) time string
      */
     protected def getRTITime(Delay d) {
-        var TimeValue time
         if (d.parameter !== null) {
             return d.toText
         }
 
-        time = new TimeValue(d.interval, d.unit)
-
-        if (time.unit != TimeUnit.NONE) {
-            return time.unit.name() + '(' + time.time + ')'
-        } else {
-            return time.time.toString()
-        }
+        return d.time.toTimeValue.timeInTargetLanguage
     }
 
     /** Analyze the resource (the .lf file) that is being parsed
@@ -1697,7 +1656,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
                         destination.parent.bankIndex,
                         destination.index,
                         this,
-                        targetConfig.coordination
+                        targetConfig.coordination,
+                        mainInstance
                     )
                 }
             }
@@ -1834,20 +1794,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return A time string in the target language
      */
     protected def getTargetTime(Value v) {
-        if (v.time !== null) {
-            return v.time.targetTime
-        } else if (v.isZero) {
-            val value = new TimeValue(0, TimeUnit.NONE)
-            return value.timeInTargetLanguage
-        }
-        return v.toText
+        v.timeValue?.timeInTargetLanguage ?: v.toText
     }
 
     protected def getTargetTime(Delay d) {
         if (d.parameter !== null) {
             return d.toText
         } else {
-            return new TimeValue(d.interval, d.unit).timeInTargetLanguage
+            return d.time.toTimeValue.timeInTargetLanguage
         }
     }
 

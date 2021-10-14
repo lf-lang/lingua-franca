@@ -153,8 +153,7 @@ fun Element.toText(): String =
     literal?.withoutQuotes()?.trim() ?: id ?: ""
 
 
-fun Delay.toText(): String =
-    parameter?.name ?: "$interval $unit"
+fun Delay.toText(): String = parameter?.name ?: time.toText()
 
 
 /**
@@ -296,14 +295,14 @@ fun <T> List<T>.tail() = subList(1, size)
 fun <T> List<T>.headAndTail() = Pair(first(), tail())
 
 /**
- * Given an initialization list, return an inferred type. Only two types
+ * Given an initializer, return an inferred type. Only two types
  * can be inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
  * @see ASTUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val EList<Value>.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Initializer.inferredType: InferredType get() = ASTUtils.getInferredType(this)
 
 /**
  * Given a parameter, return an inferred type. Only two types can be
@@ -349,7 +348,7 @@ val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @receiver The state variable to be checked.
  * @return True if the variable was initialized, false otherwise.
  */
-val StateVar.isInitialized: Boolean get() = (this.parens.size == 2 || this.braces.size == 2)
+val StateVar.isInitialized: Boolean get() = init != null
 
 /**
  * Given the width specification of port or instantiation

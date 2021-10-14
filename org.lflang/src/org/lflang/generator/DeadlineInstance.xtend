@@ -29,9 +29,6 @@ package org.lflang.generator
 
 import org.lflang.TimeValue
 import org.lflang.lf.Deadline
-import org.lflang.lf.TimeUnit
-
-import static extension org.lflang.ASTUtils.*
 
 /**
  * Instance of a deadline. Upon creation the actual delay is converted into
@@ -42,29 +39,21 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class DeadlineInstance {
-	
+
 	/**
      * The delay D associated with this deadline. If physical time T < logical
      * time t + D, the deadline is met, otherwise, it is violated.
 	 */
-	public TimeValue maxDelay = new TimeValue(0, TimeUnit.NONE)
-	
+	public val TimeValue maxDelay
+
 	/**
 	 * Create a new deadline instance associated with the given reaction
 	 * instance.
 	 */
 	new(Deadline definition, ReactionInstance reaction) {
-        if (definition.delay !== null) {
-            val parm = definition.delay.parameter
-            if (parm !== null) {
-                this.maxDelay = reaction.parent.lookupParameterInstance(parm).init.
-                    get(0).getTimeValue
-            } else {
-                this.maxDelay = definition.delay.timeValue
-            }
-        }
+	    this.maxDelay = reaction.parent.resolveTimeValue(definition.delay) ?: TimeValue.ZERO
     }
-    
+
     override toString() {
         "DeadlineInstance " + maxDelay.toString
     }

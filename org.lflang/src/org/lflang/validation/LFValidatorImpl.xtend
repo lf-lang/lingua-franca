@@ -60,6 +60,7 @@ import org.lflang.lf.IPV6Host
 import org.lflang.lf.Import
 import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
+import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
@@ -302,10 +303,10 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkAssignment(Assignment assignment) {
         // If the left-hand side is a time parameter, make sure the assignment has units
         if (assignment.lhs.isOfTimeType) {
-            if (assignment.rhs.size > 1) {
+            if (assignment.rhs.isList) {
                  error("Incompatible type.", Literals.ASSIGNMENT__RHS)
             } else {
-                val v = assignment.rhs.get(0)
+                val v = assignment.rhs.asSingleValue
                 if (!v.isValidTime) {
                     if (v.parameter === null) {
                         // This is a value. Check that units are present.
@@ -334,10 +335,6 @@ class LFValidatorImpl extends AbstractLFValidator {
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                     Literals.ASSIGNMENT__RHS)
             }
-        }
-
-        if(!assignment.braces.isNullOrEmpty() && this.target != Target.CPP) {
-            error("Brace initializers are only supported for the C++ target", Literals.ASSIGNMENT__BRACES)
         }
 
         // FIXME: lhs is list => rhs is list
@@ -750,13 +747,13 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkParameter(Parameter param) {
         checkName(param.name, Literals.PARAMETER__NAME)
 
-        if (param.init.exists[it.parameter !== null]) {
+        if (param.init.exprs.exists[it.parameter !== null]) {
             // Initialization using parameters is forbidden.
             error("Parameter cannot be initialized using parameter.",
                 Literals.PARAMETER__INIT)
         }
 
-        if (param.init === null || param.init.size == 0) {
+        if (param.init === null || param.init.exprs.size == 0) {
             // All parameters must be initialized.
             error("Uninitialized parameter.", Literals.PARAMETER__INIT)
         } else if (param.isOfTimeType) {
@@ -765,12 +762,12 @@ class LFValidatorImpl extends AbstractLFValidator {
 
              // If the parameter is not a list, cannot be initialized
              // using a one.
-             if (param.init.size > 1 && param.type.arraySpec === null) {
+             if (param.init.exprs.size > 1 && param.type.arraySpec === null) {
                 error("Time parameter cannot be initialized using a list.",
                     Literals.PARAMETER__INIT)
             } else {
                 // The parameter is a singleton time.
-                val init = param.init.get(0)
+                val init = param.init.exprs.get(0)
                 if (init.time === null) {
                     if (init !== null && !init.isZero) {
                         if (init.isInteger) {
@@ -800,10 +797,13 @@ class LFValidatorImpl extends AbstractLFValidator {
                 Literals.PARAMETER__INIT)
         }
         
-        if(!param.braces.isNullOrEmpty && this.target != Target.CPP) {
-            error("Brace initializers are only supported for the C++ target", Literals.PARAMETER__BRACES)
+    }
+
+    @Check(FAST)
+    def checkInitializer(Initializer init) {
+        if (init.isBraces && this.target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES)
         }
-        
     }
 
     @Check(FAST)
@@ -1160,7 +1160,7 @@ class LFValidatorImpl extends AbstractLFValidator {
             // If the state is declared to be a time,
             // make sure that it is initialized correctly.
             if (stateVar.init !== null) {
-                for (init : stateVar.init) {
+                for (init : stateVar.init.exprs) {
                     if (stateVar.type !== null && stateVar.type.isTime &&
                         !init.isValidTime) {
                         if (stateVar.isParameterized) {
@@ -1189,17 +1189,13 @@ class LFValidatorImpl extends AbstractLFValidator {
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
 
-        if (isCBasedTarget && stateVar.init.size > 1) {
+        if (isCBasedTarget && stateVar.init.isList) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
-            if (stateVar.init.exists[it.parameter !== null]) {
+            if (stateVar.init.exprs.exists[it.parameter !== null]) {
                 error("List items cannot refer to a parameter.",
                     Literals.STATE_VAR__INIT)
             }
-        }
-        
-        if(!stateVar.braces.isNullOrEmpty && this.target != Target.CPP) {
-            error("Brace initializers are only supported for the C++ target", Literals.STATE_VAR__BRACES)
         }
     }
 

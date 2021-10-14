@@ -35,6 +35,7 @@ import java.util.Set
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
+import org.lflang.TimeValue
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
@@ -323,7 +324,21 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null
     }
-    
+
+    /**
+     * Returns the time value of the parameter, possibly looking up a parameter
+     * value in this instance. Result may be null if param is
+     * null or code is invalid.
+     */
+    def TimeValue resolveTimeValue(Value v) {
+        val parm = v?.parameter
+        if (parm !== null) {
+            return this.lookupParameterInstance(parm).init.asSingleValue?.getTimeValue
+        } else {
+            return v?.timeValue
+        }
+    }
+
     /** 
      * Override the base class to return the uniqueID of the bank rather
      * than this member of the bank, if this is a member of a bank of reactors.

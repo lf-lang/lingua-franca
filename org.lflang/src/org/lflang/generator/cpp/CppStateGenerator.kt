@@ -24,7 +24,6 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.isInitialized
 import org.lflang.isOfTimeType
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
@@ -37,7 +36,7 @@ class CppStateGenerator(private val reactor: Reactor) {
      *
      * TODO This is redundant to GeneratorBase.getInitializerList
      */
-    private fun getInitializerList(state: StateVar) = state.init.map {
+    private fun getInitializerList(state: StateVar) = state.init.exprs.map {
         when {
             it.parameter != null -> it.parameter.name
             state.isOfTimeType   -> it.toTime()
@@ -46,7 +45,7 @@ class CppStateGenerator(private val reactor: Reactor) {
     }
 
     private fun generateInitializer(state: StateVar): String =
-        if (state.parens.isNullOrEmpty())
+        if (state.init.isBraces)
             "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
         else
             "${state.name}(${getInitializerList(state).joinToString(separator = ", ")})"
@@ -57,6 +56,6 @@ class CppStateGenerator(private val reactor: Reactor) {
         reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.targetType} ${it.name};" }
 
     /** Get all timer initializers */
-    fun generateInitializers(): String = reactor.stateVars.filter { it.isInitialized }
+    fun generateInitializers(): String = reactor.stateVars.filter { it.init != null }
         .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${generateInitializer(it)}" }
 }

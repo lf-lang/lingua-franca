@@ -40,6 +40,11 @@ public final class TimeValue implements Comparable<TimeValue> {
     public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NSECS);
 
     /**
+     * A time value equal to zero.
+     */
+    public static final TimeValue ZERO = new TimeValue(0, TimeUnit.NONE);
+
+    /**
      * Primitive numerical representation of this time value,
      * to be interpreted in terms the associated time unit.
      */

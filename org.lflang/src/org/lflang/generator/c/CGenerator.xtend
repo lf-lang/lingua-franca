@@ -72,8 +72,8 @@ import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
-import org.lflang.lf.Delay
 import org.lflang.lf.Input
+import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Output
@@ -81,7 +81,6 @@ import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
-import org.lflang.lf.StateVar
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
@@ -1345,7 +1344,7 @@ class CGenerator extends GeneratorBase {
                 val reactorInstance = main.getChildReactorInstance(federate.instantiation)
                 for (param : reactorInstance.parameters) {
                     if (param.name.equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                        val stp = param.init.get(0).getTimeValue
+                        val stp = param.init.asSingleValue?.getTimeValue
                         if (stp !== null) {                        
                             pr('''
                                 set_stp_offset(«stp.timeInTargetLanguage»);
@@ -4237,7 +4236,7 @@ class CGenerator extends GeneratorBase {
         val nameOfSelfStruct = selfStructName(instance)
         for (stateVar : reactorClass.toDefinition.stateVars) {
 
-            val initializer = getInitializer(stateVar, instance)
+            val initializer = getInitializer(stateVar.init, stateVar.inferredType, instance)
             if (stateVar.initialized) {
                 if (stateVar.isOfTimeType) {
                     pr(initializeTriggerObjects, nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
@@ -4247,7 +4246,7 @@ class CGenerator extends GeneratorBase {
                     // static initializers for arrays and structs have to be handled
                     // this way, and there is no way to tell whether the type of the array
                     // is a struct.
-                    if (stateVar.isParameterized && stateVar.init.size > 0) {
+                    if (stateVar.isParameterized) {
                         pr(initializeTriggerObjects,
                             nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
                     } else {
@@ -4380,13 +4379,16 @@ class CGenerator extends GeneratorBase {
         return result.toString
     }
     
-    protected def getInitializer(StateVar state, ReactorInstance parent) {
+    protected def getInitializer(Initializer init, InferredType t, ReactorInstance parent) {
+        if (init === null)
+            return "{}"
+
         var list = new LinkedList<String>();
 
-        for (i : state?.init) {
+        for (i : init.exprs) {
             if (i.parameter !== null) {
                 list.add(parent.selfStructName + "->" + i.parameter.name)
-            } else if (state.isOfTimeType) {
+            } else if (t.isTime) {
                 list.add(i.targetTime)
             } else {
                 list.add(i.targetValue)
@@ -4633,7 +4635,7 @@ class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Delay delay,
+        TimeValue delay,
         SupportedSerializers serializer
     ) { 
         var sendRef = generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
@@ -4650,12 +4652,8 @@ class CGenerator extends GeneratorBase {
         var String next_destination_name = '''"federate «receivingFed.id»"'''
         
         // Get the delay literal
-        var String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                this
-            );
-        
+        var String additionalDelayString = delay?.timeInTargetLanguage ?: "NEVER";
+
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE"
         } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
@@ -4798,18 +4796,14 @@ class CGenerator extends GeneratorBase {
         int receivingFederateID,
         int sendingBankIndex,
         int sendingChannelIndex,
-        Delay delay
+        TimeValue delay
     ) {
         // Store the code
         val result = new StringBuilder();
         var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
-        var String additionalDelayString = 
-            CGeneratorExtension.getNetworkDelayLiteral(
-                delay, 
-                this
-            );
+        var String additionalDelayString = delay?.timeInTargetLanguage ?: "NEVER"
         
         result.append('''
             // If the output port has not been SET for the current logical time,
@@ -5901,13 +5895,7 @@ class CGenerator extends GeneratorBase {
     override getNetworkBufferType() '''uint8_t*'''
     
     protected def String getInitializer(ParameterInstance p) {
-        
-            if (p.type.isList && p.init.size > 1) {
-                return p.init.join('{', ', ', '}', [it.targetValue])
-            } else {
-                return p.init.get(0).targetValue
-            }
-        
+        return getInitializer(p.init, p.type, p.parent)
     }
     
     override supportsGenerics() {

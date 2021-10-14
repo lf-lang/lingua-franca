@@ -28,10 +28,7 @@ package org.lflang.generator
 
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
-
-import static extension org.lflang.ASTUtils.*
 
 /**
  * Instance of a timer.
@@ -42,9 +39,9 @@ import static extension org.lflang.ASTUtils.*
 class TimerInstance extends TriggerInstance<Timer> {
     
     /** The global default for offset. */
-    public static val DEFAULT_OFFSET = new TimeValue(0, TimeUnit.NONE)
+    public static val DEFAULT_OFFSET = TimeValue.ZERO
     /** The global default for period. */
-    public static val DEFAULT_PERIOD = new TimeValue(0, TimeUnit.NONE)
+    public static val DEFAULT_PERIOD = TimeValue.ZERO
     
     @Accessors(PUBLIC_GETTER)
 	protected TimeValue offset = DEFAULT_OFFSET
@@ -62,23 +59,7 @@ class TimerInstance extends TriggerInstance<Timer> {
         if (parent === null) {
             throw new Exception('Cannot create an TimerInstance with no parent.')
         }
-        if (definition !== null) {
-            if (definition.offset !== null) {
-                if (definition.offset.parameter !== null) {
-                    val parm = definition.offset.parameter
-                    this.offset = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
-                } else {
-                    this.offset = definition.offset.timeValue
-                }
-            }
-            if (definition.period !== null) {
-                if (definition.period.parameter !== null) {
-                    val parm = definition.period.parameter
-                    this.period = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
-                } else {
-                    this.period = definition.period.timeValue
-                }
-            }
-        }
+        this.offset = parent.resolveTimeValue(definition?.offset) ?: DEFAULT_OFFSET
+        this.period = parent.resolveTimeValue(definition?.period) ?: DEFAULT_PERIOD
     }
 }

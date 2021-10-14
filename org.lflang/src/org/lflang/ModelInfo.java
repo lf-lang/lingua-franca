@@ -38,6 +38,7 @@ import org.lflang.graph.InstantiationGraph;
 import org.lflang.graph.TopologyGraph;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Deadline;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
@@ -192,14 +193,15 @@ public class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (var assignment : instantiation.getParameters()) {
                     if (assignment.getLhs().equals(current)) {
-                        Parameter parameter = assignment.getRhs().get(0).getParameter();
+                        Initializer init = assignment.getRhs();
+                        Parameter parameter = init.getExprs().get(0).getParameter();
                         if (parameter != null) {
                             // Check for overflow in the referenced parameter.
                             overflow = detectOverflow(visited, parameter) || overflow;
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(ASTUtils.getTimeValue(assignment.getRhs().get(0)))) {
+                            if (isTooLarge(ASTUtils.getTimeValue(init.getExprs().get(0)))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }

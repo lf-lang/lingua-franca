@@ -30,9 +30,6 @@ import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.TimeUnit
-
-import static extension org.lflang.ASTUtils.*
 
 /**
  * Instance of an action.
@@ -42,17 +39,16 @@ import static extension org.lflang.ASTUtils.*
 class ActionInstance extends TriggerInstance<Action> {
     
     /** The constant default for a minimum delay. */
-    public static val DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE)
+    public static val DEFAULT_MIN_DELAY = TimeValue.ZERO
     
     @Accessors(PUBLIC_GETTER)
-    TimeValue minDelay = DEFAULT_MIN_DELAY
-    
-    // TODO introduce default value?
-    @Accessors(PUBLIC_GETTER)
-    TimeValue minSpacing = null;
+    TimeValue minDelay
     
     @Accessors(PUBLIC_GETTER)
-    String policy = null;
+    TimeValue minSpacing
+    
+    @Accessors(PUBLIC_GETTER)
+    String policy
     
     @Accessors(PUBLIC_GETTER)
     boolean isPhysical;
@@ -68,27 +64,12 @@ class ActionInstance extends TriggerInstance<Action> {
         if (parent === null) {
             throw new Exception('Cannot create an ActionInstance with no parent.')
         }
-        if (definition !== null) {
-            if (definition.minDelay !== null) {
-                if (definition.minDelay.parameter !== null) {
-                    val parm = definition.minDelay.parameter
-                    this.minDelay = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
-                } else {
-                    this.minDelay = definition.minDelay.timeValue
-                }
-            }
-            if (definition.minSpacing !== null) {
-                if (definition.minSpacing.parameter !== null) {
-                    val parm = definition.minSpacing.parameter
-                    this.minSpacing = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
-                } else {
-                    this.minSpacing = definition.minSpacing.timeValue
-                }
-            }
-            if (definition.origin === ActionOrigin.PHYSICAL) {
-                isPhysical = true
-            }
-            policy = definition.policy
+        this.minDelay = parent.resolveTimeValue(definition?.minDelay) ?: DEFAULT_MIN_DELAY
+        // TODO introduce default value?
+        this.minSpacing = parent.resolveTimeValue(definition?.minSpacing)
+        if (definition?.origin === ActionOrigin.PHYSICAL) {
+            isPhysical = true
         }
+        policy = definition?.policy
     }
 }
