@@ -80,7 +80,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             }
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
-            assignChainIDs(true)
+            assignChainIDs(false)
 
             // Propagate any declared deadline upstream.
         propagateDeadlines()
