@@ -103,7 +103,7 @@ jobs:
 #         if: runner.os == 'Windows'
       - name: Install RTI;
         run: |
-          cd org.lflang/src/lib/reactor-c/core/federated/RTI
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
           mkdir build
           cd build
           cmake ../
