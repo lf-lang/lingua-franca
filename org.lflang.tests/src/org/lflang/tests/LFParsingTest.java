@@ -46,6 +46,44 @@ public class LFParsingTest {
     }
 
     @Test
+    public void testParsingInitializers() throws Exception {
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p = [1,]) {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p = (1,)) {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p = ())   {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p = [])   {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p = 1)    {}");
+
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = [1,] }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = (1,) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = ()   }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = []   }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = 1    }");
+
+
+        // [,] is not an ok list literal
+        expectParsingErrorIn("target Python;      \nreactor Foo(p = [,]) {}");
+    }
+
+    @Test
+    public void testParsingParenInitializers() throws Exception {
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p ([1,])) {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p ((1,))) {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p (()))   {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p ([]))   {}");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo(p (1))    {}");
+
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p([1,]) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p((1,)) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p(())   }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p([])   }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p(1)    }");
+
+
+        // [,] is not an ok list literal
+        expectParsingErrorIn("target Python;      \nreactor Foo(p([,])) {}");
+    }
+
+    @Test
     public void testLexingLifetimeAnnots() throws Exception {
         assertNoParsingErrorsIn(makeLfTargetCode("Rust",
                                                  "        struct Hello<'a> { \n"

@@ -405,6 +405,27 @@ public enum Target {
         return this == Python;
     }
 
+    /**
+     * Returns true if the target supports tuple literals in LF syntax.
+     * If not, they produce validator errors.
+     *
+     * <p>Tuple literals use the production {@link org.lflang.lf.ParenthesizedExpr},
+     * they're only interpreted as a tuple if they match:
+     * <ul>
+     * <li>The empty tuple: {@code ()}
+     * <li>A one element tuple: eg {@code (expr,)} note that the trailing comma is required
+     * <li>A 2+ element tuple: eg {@code ( expr, expr )} note that the trailing comma is NOT required but allowed.
+     * </ul>
+     *
+     * <p>In other words, writing {@code (expr)} is never
+     * interpreted as a tuple, but always as equivalent to
+     * the contained {@code expr}. Hence, that syntax is allowed
+     * in all targets and this method cannot switch it off.
+     */
+    public boolean supportsLfTupleLiterals() {
+        return this == Python;
+    }
+
 
     /**
      * Return the target that matches the given string.

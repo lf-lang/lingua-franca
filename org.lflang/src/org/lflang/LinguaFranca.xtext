@@ -314,8 +314,23 @@ Expr :
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
 Value:
-    (parameter=[Parameter] | time=Time | literal=Literal | list=ListLiteral | code=Code);
+      parameter=[Parameter]
+    | time=Time
+    | literal=Literal
+    | list=ListLiteral
+    | parenthesizedExpr=ParenthesizedExpr
+    | code=Code
+;
 
+// This translates to a tuple in Python & Rust (at least).
+// If it's just a single expression without trailing comma,
+// it's equivalent to the wrapped expression (in all targets).
+//    (expr) = expr
+//    (expr,) = tuple of 1 component
+//    () = tuple of zero components (in Rust/Caml, unit)
+ParenthesizedExpr:
+    {ParenthesizedExpr} '(' ( items+=Value (',' items+=Value)*  )? ')'
+;
 
 Time:
     (interval=INT unit=TimeUnit)

@@ -377,6 +377,20 @@ class LFValidatorImpl extends AbstractLFValidator {
     }
 
     @Check(FAST)
+    def checkTupleLiteral(ParenthesizedExpr expr) {
+        if (expr.items.size == 1 && !expr.isTrailingComma) {
+            // this is allowed in all targets
+            return;
+        }
+        if (!target.supportsLfTupleLiterals()) {
+            if (expr.items.size == 1)
+                error("Target " + target + " does not support tuple literals. You might want to remove the trailing comma.", Literals.PARENTHESIZED_EXPR__ITEMS)
+            else
+                error("Target " + target + " does not support tuple literals.", Literals.PARENTHESIZED_EXPR__ITEMS)
+        }
+    }
+
+    @Check(FAST)
     def checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
