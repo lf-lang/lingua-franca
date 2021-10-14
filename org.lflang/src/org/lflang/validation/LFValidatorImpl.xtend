@@ -1267,10 +1267,8 @@ class LFValidatorImpl extends AbstractLFValidator {
         }
     }
 
-    def void checkValueIsTime(Value v, EStructuralFeature feature) {
-        if (v === null) return;
-
-        val value = v.peelParens
+    def void checkValueIsTime(Value value, EStructuralFeature feature) {
+        if (value === null) return;
 
         if (value instanceof ParamRef) {
             if (!value.parameter.isOfTimeType && target.requiresTypes) {

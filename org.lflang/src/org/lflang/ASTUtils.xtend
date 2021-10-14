@@ -793,18 +793,6 @@ class ASTUtils {
         d.value.toText
     }
 
-    /** Remove parentheses around a single expression. */
-    def static Value peelParens(Value value) {
-        // fixme remove this
-        var v = value
-        while (v instanceof TupleExpr
-               && (v as TupleExpr).items.size == 1
-               && !(v as TupleExpr).isTrailingComma) {
-            throw new AssertionError("grammar should prevent this")
-        }
-        v
-    }
-
     /**
      * Return a string of the form either "name" or "container.name" depending
      * on in which form the variable reference was given.
