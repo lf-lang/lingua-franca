@@ -44,6 +44,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -444,7 +445,9 @@ public class FedASTUtils {
             action.setType(action_type);
         }
 
-        TimeValue delayValue = mainInstance.resolveTimeValue(connection.getDelay().getValue());
+        Delay delay = connection.getDelay();
+        TimeValue delayValue = delay == null ? null
+                                             : mainInstance.resolveTimeValue(delay.getValue());
 
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
@@ -455,7 +458,7 @@ public class FedASTUtils {
             // carry a timestamp, or a delay. The delay
             // provided using after is enforced by setting
             // the minDelay.
-            if (connection.getDelay() != null) {
+            if (delay != null) {
                 Time time = factory.createTime();
                 time.setInterval((int) delayValue.time);
                 time.setUnit(delayValue.unit);

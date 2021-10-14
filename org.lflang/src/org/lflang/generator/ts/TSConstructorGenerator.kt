@@ -143,9 +143,9 @@ class TSConstructorGenerator (
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federate)}
             ${" |    "..generateFederateConfigurations()}
+            ${" |    "..parameters.generateInstantiations()} // generate this first so that later expressions can use them
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
-            ${" |    "..parameters.generateInstantiations()}
             ${" |    "..states.generateInstantiations()}
             ${" |    "..actions.generateInstantiations()}
             ${" |    "..ports.generateInstantiations()}
