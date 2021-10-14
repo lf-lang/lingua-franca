@@ -28,7 +28,7 @@ class CppMainGenerator(
                     """
                         $targetType $name = $defaultValue;
                         options
-                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name));
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name), "'$targetType'");
                     """.trimIndent()
                 }
             }
@@ -106,8 +106,10 @@ class CppMainGenerator(
             |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
-            |  options.add_options()
-            |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads))
+            |  options
+            |    .set_width(120)
+            |    .add_options()
+            |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads), "'unsigned'")
             |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>()->default_value(time_to_quoted_string(timeout)), "'FLOAT UNIT'")
             |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive))
             |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast))
