@@ -674,9 +674,22 @@ class LinguaFrancaValidationTest {
             target C;
             reactor Contained {
                 state x: int[]([1, 2]);
+                state y: int[] = [1, 2];
             }
-        ''').assertError(LfPackage::eINSTANCE.listLiteral,
-            null, 'Target C does not support LF list literals')
+        ''').assertError(LfPackage::eINSTANCE.listExpr,
+            null, 'Target C does not support list literals.')
+    }
+
+
+    @Test
+    def void forbidTupleLiterals() {
+        parseWithoutError('''
+            target C; // in C
+            reactor Contained {
+                state x: int[] = (1, 2);
+            }
+        ''').assertError(LfPackage::eINSTANCE.tupleExpr,
+            null, 'Target C does not support tuple literals.')
     }
 
 

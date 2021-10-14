@@ -55,7 +55,7 @@ import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Literal
-import org.lflang.lf.ListLiteral
+import org.lflang.lf.ListExpr
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
@@ -779,7 +779,7 @@ class ASTUtils {
             ParamRef: v.parameter.name
             Time: v.toText
             Literal: v.literal
-            ListLiteral: v.items.join(',', '[', ']', [ it.toText ])
+            ListExpr: v.items.join(',', '[', ']', [ it.toText ])
             TupleExpr: {
                 val end = v.isTrailingComma ? ",)" : ")"
                 v.items.join(',', '(', end, [ it.toText ])
@@ -1089,7 +1089,7 @@ class ASTUtils {
      */
     def static boolean isList(Initializer init) {
         return (init.isBraces || init.isParens) && init.exprs.size != 1
-            // || init.isAssign && init.asSingleValue instanceof ListLiteral
+            // || init.isAssign && init.asSingleValue instanceof ListExpr
     }
     
     /**

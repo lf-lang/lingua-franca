@@ -67,7 +67,7 @@ import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
 import org.lflang.lf.LfPackage.Literals
 import org.lflang.lf.Literal
-import org.lflang.lf.ListLiteral
+import org.lflang.lf.ListExpr
 import org.lflang.lf.Model
 import org.lflang.lf.NamedHost
 import org.lflang.lf.Output
@@ -82,6 +82,7 @@ import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.TimeUnit
+import org.lflang.lf.Time
 import org.lflang.lf.Timer
 import org.lflang.lf.TupleExpr
 import org.lflang.lf.Type
@@ -374,17 +375,16 @@ class LFValidatorImpl extends AbstractLFValidator {
     }
 
     @Check(FAST)
-    def checkListLiteral(ListLiteral list) {
+    def checkListExpr(ListExpr list) {
         if (!target.supportsLfListLiterals()) {
-            error("Target " + target + " does not support LF list literals", Literals.LIST_LITERAL__ITEMS)
+            error("Target " + target + " does not support list literals.", Literals.LIST_EXPR__ITEMS)
         }
     }
 
     @Check(FAST)
     def checkTupleLiteral(TupleExpr expr) {
         if (expr.items.size == 1 && !expr.isTrailingComma) {
-            // this is allowed in all targets
-            return;
+            throw new AssertionError("this parenthesized expr should not have been parsed as a tuple")
         }
         if (!target.supportsLfTupleLiterals()) {
             if (expr.items.size == 1)
@@ -1276,29 +1276,20 @@ class LFValidatorImpl extends AbstractLFValidator {
             if (!value.parameter.isOfTimeType && target.requiresTypes) {
                 error("Referenced parameter does not have time type.", feature)
             }
+            return;
         } else if (value instanceof Literal) {
             if (value.literal.isZero) return;
 
             if (value.literal.isInteger) {
-                error("Missing time units. Should be one of " +
-                    TimeUnit.VALUES.filter [
-                        it != TimeUnit.NONE
-                    ], feature)
-            } else {
-                error("Invalid time literal.", feature)
+                error("Missing time units. Should be one of " + TimeUnit.VALUES.filter[it != TimeUnit.NONE], feature)
             }
         } else if (value instanceof CodeExpr) {
             if (value.code.isZero) return;
-
-            if (value.code.isInteger) {
-                error("Missing time units. Should be one of " +
-                    TimeUnit.VALUES.filter [
-                        it != TimeUnit.NONE
-                    ], feature)
-            } else {
-                error("Invalid time literal.", feature)
-            }
+            error("Invalid time literal.", feature)
         }
+
+        if (!(value instanceof Time))
+            error("Invalid time literal.", feature)
     }
 
     @Check(FAST)

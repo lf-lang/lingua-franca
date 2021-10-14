@@ -45,7 +45,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
-import org.lflang.lf.ListLiteral
+import org.lflang.lf.ListExpr
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -54,6 +54,7 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.TriggerRef
+import org.lflang.lf.TupleExpr
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
@@ -188,8 +189,14 @@ class PythonGenerator extends CGenerator {
         // if it is a parameter.
         if (v instanceof ParamRef) {
             return "self." + v.parameter.name;
-        } else if (v instanceof ListLiteral) {
-            return "[" + v.items.join(', ', [it.pythonTargetValue]) + "]"
+        } else if (v instanceof ListExpr) {
+            return v.items.join("[", ", ",  "]", [it.pythonTargetValue])
+        } else if (v instanceof TupleExpr) {
+            if (v.items.isEmpty)
+                return "()"
+            else
+                // notice the closing delimiter is ",)",
+                return v.items.join("(", ", ", ",)", [it.pythonTargetValue])
         }
 
         switch(v.toText) {
@@ -204,16 +211,15 @@ class PythonGenerator extends CGenerator {
           if (init === null) {
               return "None"
           } if (init.isParens && (init.exprs.size != 1 || init.isTrailingComma)) {
+
               // corresponds to a tuple:
               //   state foo(1,2) # tuple w/ 2 components
               //   state foo(1,)  # tuple w/ 1 component
               //   state foo()    # tuple w/ 0 component
-              if (init.exprs.size == 1) {
-                  // python tuple of size 1
-                  return "(" + init.asSingleValue.pythonTargetValue + ",)"
-              }
-              // regular python tuple (may also have size zero)
-              return init.exprs.join('(', ', ', ')', [it.pythonTargetValue])
+              return if (init.exprs.size == 0) "()"
+                else if (init.exprs.size == 1)  "(" + init.asSingleValue.pythonTargetValue + ",)"
+                else init.exprs.join('(', ', ', ')', [it.pythonTargetValue])
+
           } else if ((init.isAssign || init.isParens) && init.exprs.size == 1) {
               return init.asSingleValue.getPythonTargetValue
           } else {
