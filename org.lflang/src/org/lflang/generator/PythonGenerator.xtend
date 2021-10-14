@@ -187,41 +187,39 @@ class PythonGenerator extends CGenerator {
         // Parameters in Python are always prepended with a 'self.'
         // predicate. Therefore, we need to append the returned value
         // if it is a parameter.
-        if (v instanceof ParamRef) {
-            return "self." + v.parameter.name;
+        return if (v instanceof ParamRef) {
+            "self." + v.parameter.name;
         } else if (v instanceof ListExpr) {
-            return v.items.join("[", ", ",  "]", [it.pythonTargetValue])
+            if (v.items.isEmpty) "[]"
+            else v.items.join("[", ", ",  "]", [it.pythonTargetValue])
         } else if (v instanceof TupleExpr) {
-            if (v.items.isEmpty)
-                return "()"
-            else
-                // notice the closing delimiter is ",)",
-                return v.items.join("(", ", ", ",)", [it.pythonTargetValue])
-        }
-
-        switch(v.toText) {
-            case "false": return "False"
-            case "true": return "True"
-            default: return super.getTargetValue(v)
+            if (v.items.isEmpty) "()"
+            else return v.items.join("(", ", ", ",)", [it.pythonTargetValue])
+        } else {
+            switch(v.toText) {
+                case "false": "False"
+                case "true": "True"
+                default: super.getTargetValue(v)
+            }
         }
     }
 
     /** Returns the python initializer corresponding to the given LF init list. */
     def String getPythonInitializer(Initializer init) {
-          if (init === null) {
-              return "None"
-          } if (init.isParens && (init.exprs.size != 1 || init.isTrailingComma)) {
+          return if (init === null) {
+              "None"
+          } else if (init.isParens && (init.exprs.size != 1 || init.isTrailingComma)) {
 
               // corresponds to a tuple:
               //   state foo(1,2) # tuple w/ 2 components
               //   state foo(1,)  # tuple w/ 1 component
               //   state foo()    # tuple w/ 0 component
-              return if (init.exprs.size == 0) "()"
-                else if (init.exprs.size == 1)  "(" + init.asSingleValue.pythonTargetValue + ",)"
-                else init.exprs.join('(', ', ', ')', [it.pythonTargetValue])
+
+              if (init.exprs.isEmpty) "()"
+              else init.exprs.join("(", ", ", ",)", [it.pythonTargetValue])
 
           } else if ((init.isAssign || init.isParens) && init.exprs.size == 1) {
-              return init.asSingleValue.getPythonTargetValue
+              init.asSingleValue.getPythonTargetValue
           } else {
               throw new AssertionError("invalid expression form: " + init)
           }
