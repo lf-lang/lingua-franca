@@ -538,7 +538,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            fileConfig.copyFilesFromClassPath("/lib/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
             
             // Copy the header files
             copyTargetHeaderFile()
@@ -1038,7 +1038,7 @@ class CGenerator extends GeneratorBase {
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
         // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/core/platform.h
+        // to enable platform-specific functionality. See lib/reactor-c/core/platform.h
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
