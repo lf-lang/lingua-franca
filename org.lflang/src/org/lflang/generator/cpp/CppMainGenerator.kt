@@ -35,28 +35,6 @@ class CppMainGenerator(
         }
     }
 
-    private fun generateParameterValidation(param: Parameter): String {
-        with(CppParameterGenerator) {
-            with(param) {
-                return if(inferredType.isTime) {
-                    """
-                        // is the parameter used then validate it
-                        if(result.count("$name")){
-                            std::string validation_msg = validate_time_string("$name");
-                            if( !validate_time_string("$name").empty() ) {
-                                // throw cxxopts error
-                                throw cxxopts::argument_incorrect_type(validation_msg);
-                            }
-                        }
-
-                    """.trimIndent()
-                } else {
-                    "";
-                }
-            }
-        }
-    }
-
     private fun generateMainReactorInstantiation(): String =
         if (main.parameters.isEmpty())
             """auto main = std ::make_unique<${main.name}> ("${main.name}", &e);"""
@@ -127,7 +105,6 @@ class CppMainGenerator(
             |   }
             |   
             |   // validate time parameters (inferredType.isTime) and the timeout parameter via the validate_time_string(val) function
-        ${" |"..main.parameters.joinToString("\n\n") { generateParameterValidation(it) }}
             |
             |  reactor::Environment e{threads, keepalive, fast};
             |
