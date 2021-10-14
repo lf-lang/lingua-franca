@@ -45,6 +45,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
+import org.lflang.InferredType
 import org.lflang.ModelInfo
 import org.lflang.Target
 import org.lflang.TargetProperty
@@ -780,8 +781,8 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (param.init === null || param.init.exprs.size == 0) {
             // All parameters must be initialized.
             error("Uninitialized parameter.", Literals.PARAMETER__INIT)
-        } else if (param.isOfTimeType) {
-            checkValueIsTime(param.init, Literals.PARAMETER__INIT)
+        } else {
+            checkType(param.init, param.inferredType, Literals.PARAMETER__INIT)
         }
 
         if (this.target.requiresTypes) {
@@ -1253,6 +1254,36 @@ class LFValidatorImpl extends AbstractLFValidator {
                     clockSyncTargetProperty,
                     Literals.KEY_VALUE_PAIR__NAME
                 )
+            }
+        }
+    }
+
+    def void checkType(Initializer init, InferredType type, EStructuralFeature feature) {
+        if (init === null) return;
+
+        if (type.isTime) {
+            if (type.isList) {
+                 // list of times
+                 val exprs = if (init.isAssign) {
+                     val list = init.asSingleValue
+                     if (list instanceof ListExpr) list.items
+                     else if (list instanceof CodeExpr) return  // cannot check it
+                     else {
+                        error("Expected a list of time values.", feature)
+                        return
+                     }
+                 } else {
+                     init.exprs
+                 }
+                 for (component: exprs) {
+                    checkValueIsTime(component, feature)
+                 }
+            } else {
+                if (init.exprs.size != 1) {
+                    error("Expected exactly one time value.", feature)
+                } else {
+                    checkValueIsTime(init.asSingleValue, feature)
+                }
             }
         }
     }

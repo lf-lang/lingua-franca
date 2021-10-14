@@ -1114,6 +1114,21 @@ class ASTUtils {
             return TimeValue.ZERO //fixme doesn't look right.
         }
     }
+
+    /**
+     * Given an initializer that is known to be of a list type
+     * (because of a type annotation), return the components of
+     * the list. Return null if the initializer is not a list.
+     */
+    def static List<Value> initializerAsList(Initializer init) {
+        return if (init.isAssign) {
+            val list = init.asSingleValue
+            if (list instanceof ListExpr) list.items
+            else null
+        } else {
+            init.exprs
+        }
+    }
         
     /**
      * Given a parameter, return its initial value.
