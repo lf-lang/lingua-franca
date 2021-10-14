@@ -1115,7 +1115,7 @@ class PythonGenerator extends CGenerator {
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c", "ctarget.h");
         for (file : targetFiles) {
             fileConfig.copyFileFromClassPath(
-                "/lib/reactor-c/target/" + file,
+                "/lib/c/reactor-c/target/" + file,
                 fileConfig.getSrcGenPath.resolve(file).toString
             )
         }
