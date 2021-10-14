@@ -1,6 +1,7 @@
 package org.lflang;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -323,7 +324,18 @@ public enum TargetProperty {
                         }
                     }
                 }
-            });
+            }),
+
+
+    /**
+     * Directive to let the runtime export its internal dependency graph.
+     *
+     * This is a debugging feature and currently only used for C++ programs.
+     */
+    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN, Collections.singletonList(Target.CPP),
+                           (config, value) -> {
+        config.exportDependencyGraph = ASTUtils.toBoolean(value);
+    });
     
     /**
      * String representation of this target property.
