@@ -45,6 +45,7 @@ import org.lflang.lf.ActionOrigin
 import org.lflang.lf.ArraySpec
 import org.lflang.lf.Assignment
 import org.lflang.lf.Code
+import org.lflang.lf.CodeExpr
 import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Element
@@ -53,9 +54,12 @@ import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
+import org.lflang.lf.Literal
+import org.lflang.lf.ListLiteral
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
+import org.lflang.lf.ParamRef
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -65,6 +69,7 @@ import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
+import org.lflang.lf.TupleExpr
 import org.lflang.lf.Type
 import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
@@ -276,14 +281,8 @@ class ASTUtils {
         }
         val assignment = factory.createAssignment
         assignment.lhs = delayClass.parameters.get(0)
-        val value = factory.createValue
-        if (delay.parameter !== null) {
-            value.parameter = delay.parameter
-        } else {
-            value.time = delay.time
-        }
         val rhs = factory.createInitializer
-        rhs.exprs.add(value)
+        rhs.exprs.add(delay.value)
         rhs.assign = true
         assignment.rhs = rhs
         delayInstance.parameters.add(assignment)
@@ -338,15 +337,14 @@ class ASTUtils {
         defaultTime.interval = 0
 
         val init = factory.createInitializer
-        val defaultValue = factory.createValue
-        defaultValue.time = defaultTime
         delayParameter.init = init
-        init.exprs.add(defaultValue)
+        init.exprs.add(defaultTime)
         
         // Name the newly created action; set its delay and type.
         action.name = "act"
-        action.minDelay = factory.createValue
-        action.minDelay.parameter = delayParameter
+        val p = factory.createParamRef
+        p.parameter = delayParameter
+        action.minDelay = p
         action.origin = ActionOrigin.LOGICAL
                 
         if (generator.supportsGenerics) {
@@ -616,7 +614,19 @@ class ASTUtils {
             t.code.toText
         }
     }
-    
+
+    /** Format the initializer as it would appear in LF. */
+    def static toText(Initializer init) {
+        if (init.isBraces)
+            init.exprs.join(", ", "{", "}", [it.toText])
+        else if (init.isParens)
+            init.exprs.join(", ", "(", ")", [it.toText])
+        else if (init.isAssign)
+            "= " + init.asSingleValue.toText
+        else
+            "" // no initializer
+    }
+
     /**
      * Intelligently trim the white space in a code block.
 	 * 
@@ -765,28 +775,36 @@ class ASTUtils {
      * @return A textual representation
      */
     def static String toText(Value v) {
-        if (v.parameter !== null) {
-            return v.parameter.name
+        return switch (v) {
+            ParamRef: v.parameter.name
+            Time: v.toText
+            Literal: v.literal
+            ListLiteral: v.items.join(',', '[', ']', [ it.toText ])
+            TupleExpr: {
+                val end = v.isTrailingComma ? ",)" : ")"
+                v.items.join(',', '(', end, [ it.toText ])
+            }
+            CodeExpr: v.code.toText
+            default: throw new AssertionError("unsupported " + v)
         }
-        if (v.time !== null) {
-            return v.time.toText
-        }
-        if (v.literal !== null) {
-            return v.literal
-        }
-        if (v.code !== null) {
-            return v.code.toText
-        }
-        ""
     }
     
     def static String toText(Delay d) {
-        if (d.parameter !== null) {
-            return d.parameter.name
-        }
-        d.time.toText
+        d.value.toText
     }
-    
+
+    /** Remove parentheses around a single expression. */
+    def static Value peelParens(Value value) {
+        // fixme remove this
+        var v = value
+        while (v instanceof TupleExpr
+               && (v as TupleExpr).items.size == 1
+               && !(v as TupleExpr).isTrailingComma) {
+            throw new AssertionError("grammar should prevent this")
+        }
+        v
+    }
+
     /**
      * Return a string of the form either "name" or "container.name" depending
      * on in which form the variable reference was given.
@@ -912,9 +930,9 @@ class ASTUtils {
      * @return True if the given value denotes the constant `0`, false otherwise.
      */
     def static boolean isZero(Value value) {
-        if (value.literal !== null) {
+        if (value instanceof Literal) {
             return value.literal.isZero
-        } else if (value.code !== null) {
+        } else if (value instanceof CodeExpr) {
             return value.code.isZero
         }
         return false
@@ -950,9 +968,9 @@ class ASTUtils {
      * @return True if the given value is an integer, false otherwise.
      */
     def static boolean isInteger(Value value) {
-        if (value.literal !== null) {
+        if (value instanceof Literal) {
             return value.literal.isInteger
-        } else if (value.code !== null) {
+        } else if (value instanceof CodeExpr) {
             return value.code.isInteger
         }
         return false
@@ -964,22 +982,14 @@ class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     def static boolean isValidTime(Value value) {
-        if (value !== null) {
-            if (value.parameter !== null) {
-                if (value.parameter.isOfTimeType) {
-                    return true
-                }
-            } else if (value.time !== null) {
-                return isValidTime(value.time)
-            } else if (value.literal !== null) {
-                if (value.literal.isZero) {
-                    return true
-                }
-            } else if (value.code !== null) {
-                if (value.code.isZero) {
-                    return true
-                }
-            }
+        if (value instanceof ParamRef) {
+            return value.parameter.isOfTimeType
+        } else if (value instanceof Time) {
+            return isValidTime(value)
+        } else if (value instanceof Literal) {
+            return value.isZero
+        } else if (value instanceof CodeExpr) {
+            return value.code.isZero
         }
         return false
     }
@@ -1030,10 +1040,12 @@ class ASTUtils {
                 return true
             }
             // Or it has to be initialized as a proper time with units.
-            return p.init?.asSingleValue?.time?.unit !== TimeUnit.NONE
             // In other words, one can write:
-            // - `x:time(0)` -OR- 
-            // - `x:(0 msec)`, `x:(0 sec)`, etc.     
+            // - `x:time(0)` -OR-
+            // - `x:(0 msec)`, `x:(0 sec)`, etc.
+
+            val init = p.init?.asSingleValue
+            return init instanceof Time && (init as Time).unit !== TimeUnit.NONE
         }
         return false
     }
@@ -1089,13 +1101,12 @@ class ASTUtils {
     def static TimeValue getInitialTimeValue(Parameter p) {
         if (p !== null && p.isOfTimeType) {
             val init = p.init.asSingleValue
-            if (init?.time !== null) {
-                return new TimeValue(init.time.interval, init.time.unit)
-            } else if (init?.parameter !== null) {
-                // Parameter value refers to another parameter.
-                return getInitialTimeValue(init.parameter) 
+            if (init instanceof Time) {
+                return init.toTimeValue
+            } else if (init instanceof ParamRef) {
+                return getInitialTimeValue(init.parameter)
             } else {
-                return new TimeValue(0, TimeUnit.NONE)
+                return TimeValue.ZERO
             }
         }
         return null
@@ -1107,19 +1118,19 @@ class ASTUtils {
 	 * @return A time value based on the given parameter's initial value.
 	 */        
     def static TimeValue getTimeValue(Value v) {
-        if (v.parameter !== null) {
+        if (v instanceof ParamRef) {
             return ASTUtils.getInitialTimeValue(v.parameter)
-        } else if (v.time !== null) {
-            return new TimeValue(v.time.interval, v.time.unit)
+        } else if (v instanceof Time) {
+            return v.toTimeValue
         } else {
-            return new TimeValue(0, TimeUnit.NONE)
+            return TimeValue.ZERO //fixme doesn't look right.
         }
     }
         
     /**
      * Given a parameter, return its initial value.
-     * The initial value is a list of instances of Value, where each
-     * Value is either an instance of Time, Literal, or Code.
+     * The initial value is a list of instances of Expr, where each
+     * Expr is either an instance of Time, Literal, or Code.
      * 
      * If the instantiations argument is null or an empty list, then the
      * value returned is simply the default value given when the parameter
@@ -1217,7 +1228,7 @@ class ASTUtils {
                 // Right hand side can be a list. Collect the entries.
                 val result = new LinkedList<Value>()
                 for (value: lastAssignment.rhs.exprs) {
-                    if (value.parameter !== null) {
+                    if (value instanceof ParamRef) {
                         if (instantiations.size() > 1
                             && instantiation.eContainer !== instantiations.get(1).reactorClass
                         ) {
@@ -1228,7 +1239,7 @@ class ASTUtils {
                                     + "."
                             );
                         }
-                        result.addAll(initialValue(value.parameter, 
+                        result.addAll(initialValue(value.parameter,
                                 instantiations.subList(1, instantiations.size())));
                     } else {
                         result.add(value)
@@ -1262,11 +1273,11 @@ class ASTUtils {
      */
     def static Integer initialValueInt(Parameter parameter, List<Instantiation> instantiations) {
         val values = initialValue(parameter, instantiations);
-        var result = 0;
+        var result = 0; // why does this sum arguments?
         for (value: values) {
-            if (value.literal === null) return null;
+            if (!(value instanceof Literal)) return null;
             try {
-                result += Integer.decode(value.literal);
+                result += Integer.decode((value as Literal).literal);
             } catch (NumberFormatException ex) {
                 return null;
             }
@@ -1510,7 +1521,7 @@ class ASTUtils {
      * otherwise.
      */
     def static boolean isParameterized(StateVar s) {
-        return s?.init?.asSingleValue?.parameter !== null
+        return s?.init?.asSingleValue instanceof ParamRef
     }
     
     /**
@@ -1526,7 +1537,7 @@ class ASTUtils {
         if (single !== null) {
         	// If there is a single element in the list, and it is a proper
         	// time value with units, we infer the type "time".
-            if (single.parameter !== null) {
+            if (single instanceof ParamRef) {
                 return single.parameter.getInferredType
             } else if (single.isValidTime && !single.isZero) {
                 return InferredType.time;

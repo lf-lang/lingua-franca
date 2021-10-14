@@ -44,14 +44,14 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.LfPackage;
+import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Time;
 import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
@@ -86,12 +86,9 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
-     * @param portRef The network input port
-     * @param receivingPortID The ID of the receiving port
      * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
-     * @param parent The federated reactor
      * @param generator The GeneratorBase instance used to identify certain
      *  target properties
      */
@@ -212,13 +209,7 @@ public class FedASTUtils {
                 // If STP offset is determined, add it
                 // If not, assume it is zero
                 if (r.getStp() != null) {
-                    if (r.getStp().getValue().getParameter() != null) {
-                        List<Instantiation> instantList = new ArrayList<Instantiation>();
-                        instantList.add(instance.instantiation);
-                        STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
-                    } else {
-                        STPList.add(r.getStp().getValue());
-                    }
+                    addStp(STPList, r, instance.instantiation);
                 }
             }
          // Check the children for STPs as well
@@ -253,13 +244,7 @@ public class FedASTUtils {
                     // If STP offset is determined, add it
                     // If not, assume it is zero
                     if (r.getStp() != null) {
-                        if (r.getStp().getValue() instanceof Parameter) {
-                            List<Instantiation> instantList = new ArrayList<Instantiation>();
-                            instantList.add(childPort.getContainer());
-                            STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
-                        } else {
-                            STPList.add(r.getStp().getValue());
-                        }
+                        addStp(STPList, r, childPort.getContainer());
                     }
                 }
             }
@@ -276,6 +261,17 @@ public class FedASTUtils {
         return maxSTP;
     }
 
+    private static void addStp(List<Value> STPList, Reaction r, Instantiation instant) {
+        Value stpValue = r.getStp().getValue();
+        if (stpValue instanceof ParamRef) {
+            List<Instantiation> instantList = new ArrayList<>();
+            instantList.add(instant);
+            STPList.addAll(ASTUtils.initialValue(((ParamRef) stpValue).getParameter(), instantList));
+        } else {
+            STPList.add(stpValue);
+        }
+    }
+
     /**
      * Add a network control reaction for a given output port "portRef" to the
      * reactions of the container reactor. This reaction will send a port absent
@@ -283,7 +279,6 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
-     * @param portRef The output port
      * @param instance The federate instance is used to keep track of all
      *        network input ports globally
      * @param receivingPortID The ID of the receiving port
@@ -449,7 +444,7 @@ public class FedASTUtils {
             action.setType(action_type);
         }
 
-        TimeValue delayValue = mainInstance.resolveTimeValue(delayAsValue(connection.getDelay()));
+        TimeValue delayValue = mainInstance.resolveTimeValue(connection.getDelay().getValue());
 
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
@@ -461,10 +456,10 @@ public class FedASTUtils {
             // provided using after is enforced by setting
             // the minDelay.
             if (connection.getDelay() != null) {
-                action.setMinDelay(factory.createValue());
-                action.getMinDelay().setTime(factory.createTime());
-                action.getMinDelay().getTime().setInterval((int) delayValue.time);
-                action.getMinDelay().getTime().setUnit(delayValue.unit);
+                Time time = factory.createTime();
+                time.setInterval((int) delayValue.time);
+                time.setUnit(delayValue.unit);
+                action.setMinDelay(time);
             }
         } else {
             // If the connection is logical but coordination
@@ -559,16 +554,6 @@ public class FedASTUtils {
 
         // Add the receiver reaction to the parent
         parent.getReactions().add(r2);
-    }
-
-    private static Value delayAsValue(Delay delay) {
-        Value value = LfPackage.eINSTANCE.getLfFactory().createValue();
-        if (delay.getParameter() != null) {
-            value.setParameter(delay.getParameter());
-        } else {
-            value.setTime(delay.getTime());
-        }
-        return value;
     }
 
 }

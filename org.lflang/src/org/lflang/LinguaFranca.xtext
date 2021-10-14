@@ -143,9 +143,9 @@ TargetDecl:
 ;
 
 Initializer:
-      parens?='(' (exprs+=Value (','  exprs+=Value)* (trailingComma?=',')?)? ')'
-    | braces?='{' (exprs+=Value (','  exprs+=Value)* (trailingComma?=',')?)? '}'
-    | assign?='=' exprs+=Value
+      parens?='(' (exprs+=Expr (','  exprs+=Expr)* (trailingComma?=',')?)? ')'
+    | braces?='{' (exprs+=Expr (','  exprs+=Expr)* (trailingComma?=',')?)? '}'
+    | assign?='=' exprs+=Expr
 ;
 
 Method:
@@ -171,11 +171,7 @@ Output:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';'?;
-
-Boolean:
-    TRUE | FALSE
-;
+    'timer' name=ID ('(' offset=Expr (',' period=Expr)? ')')? ';'?;
 
 // Action that has either a physical or logical origin.
 // 
@@ -189,7 +185,7 @@ Boolean:
 // the tags of two subsequently scheduled events.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=Value (',' minSpacing=Value (',' policy=STRING)? )? ')')?
+    ('(' minDelay=Expr (',' minSpacing=Expr (',' policy=STRING)? )? ')')?
     (':' type=Type)? ';'?;
 
 Reaction:
@@ -205,10 +201,10 @@ TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
 Deadline:
-    'deadline' '(' delay=Value ')' code=Code;
+    'deadline' '(' delay=Expr ')' code=Code;
     
 STP:
-    'STP' '(' value=Value ')' code=Code;
+    'STP' '(' value=Expr ')' code=Code;
 
 Mutation:
     ('mutation')
@@ -236,12 +232,8 @@ Connection:
     ';'?
     ;
 
-// After clause with a delay that can either be specified as a parameter or as
-// a literal value. If no units are given (which implies that the time interval
-// must be zero), the clause must be ended with a semicolon. If units are given,
-// the semicolon is optional.
-Delay: // todo replace this with Value, add validator check to constrain expression to be a Time
-    'after' (parameter=[Parameter] | time=Time)
+Delay:
+    'after' value=Expr
 ;
 
 // Chooses the serializer to use for the connection
@@ -294,44 +286,54 @@ Assignment:
 Parameter:
     name=ID (':' type=Type)? init=Initializer?;
 
-Sum :
-    terms+=Difference ('+' terms+=Difference)*;
 
-Difference:
-    terms+=Product ('-' terms +=Product)*;
+// fake rule used to generate an interface that Sum, Product, Atom implement
+Value: Sum | Product | Atom;
 
-Product:
-    terms+=Quotient ('*' terms+=Quotient)*;
+Expr returns Value: Sum;
 
-Quotient:
-    terms+=Expr ('/' terms += Expr)*;
-
-Expr :
-  Value | '(' Sum ')';
-
-// Time is either a reference to a parameter or an integer value, 
-// a number followed by a unit specification (unless the value is zero). 
-// If it is a constant, the validator should check that if the value
-// is non-zero, it is accompanied by a unit.
-Value:
-      parameter=[Parameter]
-    | time=Time
-    | literal=Literal
-    | list=ListLiteral
-    | parenthesizedExpr=ParenthesizedExpr
-    | code=Code
+Sum returns Value:
+    Product ({AddExpr.left=current} op=('+'|'-') right=Product)*
 ;
+
+Product returns Value:
+    Atom ({MulExpr.left=current} op=('*'|'/') right=Atom)*
+;
+
+Atom returns Value:
+      ParamRef
+    | Time
+    | {Literal} literal=Literal
+    | ListLiteral
+    | TupleExpr
+    | {CodeExpr} code=Code
+;
+
+ParamRef: parameter=[Parameter];
 
 // This translates to a tuple in Python & Rust (at least).
 // If it's just a single expression without trailing comma,
-// it's equivalent to the wrapped expression (in all targets).
+// it's equivalent to the wrapped expression (in all targets)
+// and no node is pushed.
 //    (expr) = expr
 //    (expr,) = tuple of 1 component
-//    () = tuple of zero components (in Rust/Caml, unit)
-ParenthesizedExpr:
-    {ParenthesizedExpr} '(' ( items+=Value (',' items+=Value)*  )? ')'
+//    (expr,...,expr) = tuple of n component
+//    () = tuple of zero components (in Rust and Caml, this is called "unit")
+TupleExpr returns Value:
+    '(' (
+      {TupleExpr} ')' // empty tuple
+    | Expr ( ')' // regular parenthesized expr
+           | {TupleExpr.items+=current} trailingComma?=',' ')'
+           | {TupleExpr.items+=current} (',' items+=Expr)+ trailingComma?=','? ')'
+           )
+    )
 ;
 
+
+// Time is either a reference to a parameter or an integer value,
+// a number followed by a unit specification (unless the value is zero).
+// If it is a constant, the validator should check that if the value
+// is non-zero, it is accompanied by a unit.
 Time:
     (interval=INT unit=TimeUnit)
 ;
@@ -394,11 +396,16 @@ SignedInt:
 // List literals support even empty lists, and a trailing comma.
 
 ListLiteral:
-    {ListLiteral} '[' ( items+=Value (',' items+=Value)* ','? )? ']'
+    {ListLiteral} '[' ( items+=Expr (',' items+=Expr)* ','? )? ']'
 ;
 
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean;
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
+;
+
+Boolean:
+    TRUE | FALSE
+;
 
 /////////// Elementary components
 

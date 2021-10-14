@@ -73,6 +73,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
 import org.lflang.lf.Parameter
+import org.lflang.lf.ParamRef
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -1315,7 +1316,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
 
         return init?.exprs.map[i|
-            if (i.parameter !== null) {
+            if (i instanceof ParamRef) {
                 i.parameter.targetReference
             } else if (type.isTime) {
                 i.targetTime
@@ -1425,11 +1426,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return An RTI-compatible (ie. C target) time string
      */
     protected def getRTITime(Delay d) {
-        if (d.parameter !== null) {
-            return d.toText
-        }
-
-        return d.time.toTimeValue.timeInTargetLanguage
+        return d.value.targetTime
     }
 
     /** Analyze the resource (the .lf file) that is being parsed
@@ -1779,8 +1776,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return A time string in the target language
      */
     protected def getTargetValue(Value v) {
-        if (v.time !== null) {
-            return v.time.targetTime
+        if (v instanceof Time) {
+            return v.targetTime
         }
         return v.toText
     }
@@ -1793,16 +1790,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param v A time AST node
      * @return A time string in the target language
      */
-    protected def getTargetTime(Value v) {
-        v.timeValue?.timeInTargetLanguage ?: v.toText
+    protected def String getTargetTime(Value v) {
+        v.timeValue.timeInTargetLanguage
     }
 
-    protected def getTargetTime(Delay d) {
-        if (d.parameter !== null) {
-            return d.toText
-        } else {
-            return d.time.toTimeValue.timeInTargetLanguage
-        }
+    protected def String getTargetTime(Delay d) {
+        d.value.targetTime
     }
 
     /**

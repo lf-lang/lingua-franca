@@ -77,10 +77,11 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         var deadlineArgs = ""
-        if (reaction.deadline.delay.parameter != null) {
-            deadlineArgs += "this.${reaction.deadline.delay.parameter.name}.get()";
+        val delay = reaction.deadline.delay
+        if (delay is ParamRef) {
+            deadlineArgs += "this.${delay.parameter.name}.get()"
         } else {
-            deadlineArgs += reaction.deadline.delay.getTargetValue()
+            deadlineArgs += delay.getTargetValue()
         }
 
         return with(PrependOperator) {

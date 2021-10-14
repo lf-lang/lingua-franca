@@ -28,26 +28,7 @@ import org.lflang.lf.Value
 class UtilityExtensions extends AbstractSynthesisExtensions {
 	
 	extension KGraphFactory = KGraphFactory.eINSTANCE
-	
-	/**
-	 * Converts a timing value into readable text
-	 */
-	def String toText(Value value) {
-		if (value !== null) {
-			if (value.parameter !== null) {
-                return value.parameter.name
-            } else if (value.time !== null) {
-                return value.time.interval +
-                        value.time.unit.toString
-            } else if (value.literal !== null) {
-                return value.literal
-            } else if (value.code !== null) {
-                ASTUtils.toText(value.code)
-            }
-		}
-		return ""
-	}
-	
+
 	/**
 	 * Converts a host value into readable text
 	 */

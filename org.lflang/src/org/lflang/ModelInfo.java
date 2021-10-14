@@ -41,8 +41,10 @@ import org.lflang.lf.Deadline;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
+import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Value;
 
 
 /**
@@ -150,9 +152,11 @@ public class ModelInfo {
                 this.overflowingDeadlines.add(deadline);
             }
 
-            // If any of the upstream parameters overflow, report this deadline.
-            if (detectOverflow(new HashSet<>(), deadline.getDelay().getParameter())) {
-                this.overflowingDeadlines.add(deadline);
+            if (deadline.getDelay() instanceof ParamRef) {
+                // If any of the upstream parameters overflow, report this deadline.
+                if (detectOverflow(new HashSet<>(), ((ParamRef) deadline.getDelay()).getParameter())) {
+                    this.overflowingDeadlines.add(deadline);
+                }
             }
         }
     }
@@ -193,15 +197,14 @@ public class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (var assignment : instantiation.getParameters()) {
                     if (assignment.getLhs().equals(current)) {
-                        Initializer init = assignment.getRhs();
-                        Parameter parameter = init.getExprs().get(0).getParameter();
-                        if (parameter != null) {
+                        Value init = assignment.getRhs().getExprs().get(0);
+                        if (init instanceof ParamRef) {
                             // Check for overflow in the referenced parameter.
-                            overflow = detectOverflow(visited, parameter) || overflow;
+                            overflow = detectOverflow(visited, ((ParamRef) init).getParameter()) || overflow;
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(ASTUtils.getTimeValue(init.getExprs().get(0)))) {
+                            if (isTooLarge(ASTUtils.getTimeValue(init))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }

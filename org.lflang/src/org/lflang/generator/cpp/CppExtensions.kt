@@ -94,10 +94,10 @@ fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
  *                    This should be set to false if called from code generators for the inner class.
  */
 fun Value.toTime(outerContext: Boolean = false): String = when {
-    this.time != null                      -> this.time.toCode()
-    this.isZero                            -> TimeValue(0, TimeUnit.NONE).toCode()
-    outerContext && this.parameter != null -> "__lf_inner.${parameter.name}"
-    else                                   -> this.toText()
+    this is Time                     -> this.toCode()
+    this.isZero                      -> TimeValue.ZERO.toCode()
+    outerContext && this is ParamRef -> "__lf_inner.${parameter.name}"
+    else                             -> this.toText()
 }
 
 /**
@@ -106,7 +106,7 @@ fun Value.toTime(outerContext: Boolean = false): String = when {
  * If the value evaluates to 0, it is interpreted as a normal value.
  * FIXME this is redundant to GeneratorBase.getTargetValue
  */
-fun Value.toCode(): String = this.time?.toCode() ?: this.toText()
+fun Value.toCode(): String = (this as? Time)?.toCode() ?: this.toText()
 
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCode(): String = terms.joinToString(" + ") {

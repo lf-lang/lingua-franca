@@ -153,7 +153,7 @@ fun Element.toText(): String =
     literal?.withoutQuotes()?.trim() ?: id ?: ""
 
 
-fun Delay.toText(): String = parameter?.name ?: time.toText()
+fun Delay.toText(): String = value.toText()
 
 
 /**
@@ -182,12 +182,7 @@ fun VarRef.toText(): String =
  * @receiver The value to be converted
  * @return A textual representation
  */
-fun Value.toText(): String =
-    parameter?.name
-        ?: time?.toText()
-        ?: literal
-        ?: code?.toText()
-        ?: ""
+fun Value.toText(): String = ASTUtils.toText(this)
 
 
 /**
@@ -258,10 +253,11 @@ val Code.isZero: Boolean get() = this.toText().isZero
  * @return True if the given value denotes the constant `0`, false otherwise.
  */
 val Value.isZero: Boolean
-    get() =
-        this.literal?.isZero
-            ?: this.code?.isZero
-            ?: false
+    get() = when (this) {
+        is Literal  -> literal.isZero
+        is CodeExpr -> code.isZero
+        else        -> false
+    }
 
 /**
  * Parse and return an integer from this string, much

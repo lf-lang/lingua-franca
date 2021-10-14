@@ -78,6 +78,8 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
+import org.lflang.lf.ParamRef
+import org.lflang.lf.Delay
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
@@ -1511,7 +1513,7 @@ class CGenerator extends GeneratorBase {
                     pr(rtiCode, '''
                         candidate_tmp = FOREVER;
                     ''')
-                    for (delay : delays) {
+                    for (Delay delay : delays) {
                         if (delay === null) {
                             // Use NEVER to encode no delay at all.
                             pr(rtiCode, '''
@@ -1519,10 +1521,6 @@ class CGenerator extends GeneratorBase {
                             ''')
                         } else {
                             var delayTime = delay.getTargetTime
-                            if (delay.parameter !== null) {
-                                // The delay is given as a parameter reference. Find its value.
-                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
-                            }
                             pr(rtiCode, '''
                                 if («delayTime» < candidate_tmp) {
                                     candidate_tmp = «delayTime»;
@@ -4386,7 +4384,7 @@ class CGenerator extends GeneratorBase {
         var list = new LinkedList<String>();
 
         for (i : init.exprs) {
-            if (i.parameter !== null) {
+            if (i instanceof ParamRef) {
                 list.add(parent.selfStructName + "->" + i.parameter.name)
             } else if (t.isTime) {
                 list.add(i.targetTime)

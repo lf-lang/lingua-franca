@@ -45,9 +45,11 @@ import org.lflang.lf.Action
 import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
+import org.lflang.lf.ListLiteral
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
+import org.lflang.lf.ParamRef
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
@@ -184,10 +186,10 @@ class PythonGenerator extends CGenerator {
         // Parameters in Python are always prepended with a 'self.'
         // predicate. Therefore, we need to append the returned value
         // if it is a parameter.
-        if (v.parameter !== null) {
-            return "self." + super.getTargetValue(v);
-        } else if (v.list !== null) {
-            return "[" + v.list.items.join(', ', [it.pythonTargetValue]) + "]"
+        if (v instanceof ParamRef) {
+            return "self." + v.parameter.name;
+        } else if (v instanceof ListLiteral) {
+            return "[" + v.items.join(', ', [it.pythonTargetValue]) + "]"
         }
 
         switch(v.toText) {

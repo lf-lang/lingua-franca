@@ -84,6 +84,16 @@ public class LFParsingTest {
     }
 
     @Test
+    public void testParsingParentheses() throws Exception {
+        // unnecessary parentheses are allowed
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = ((1)) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = (1) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = (1,) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = (1,2) }");
+        assertNoParsingErrorsIn("target Python;   \nreactor Foo{ state p = (1,2,) }");
+    }
+
+    @Test
     public void testLexingLifetimeAnnots() throws Exception {
         assertNoParsingErrorsIn(makeLfTargetCode("Rust",
                                                  "        struct Hello<'a> { \n"

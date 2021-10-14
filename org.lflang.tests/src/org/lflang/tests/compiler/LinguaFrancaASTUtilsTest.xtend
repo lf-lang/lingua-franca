@@ -37,6 +37,8 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
 import org.lflang.lf.Parameter
 import org.lflang.lf.StateVar
+import org.lflang.lf.Value
+import org.lflang.lf.Literal
 import org.lflang.tests.LFInjectorProvider
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -183,28 +185,28 @@ class LinguaFrancaASTUtilsTest {
         for (parameter : model.eAllContents.filter(Parameter).toList) {
             if (parameter.name == 'x') {
                 var values = ASTUtils.initialValue(parameter, null);
-                Assertions.assertEquals(values.get(0).literal, "1");
+                assertIsLiteral(values.get(0), "1");
                 
                 values = ASTUtils.initialValue(parameter, list_a1);
-                Assertions.assertEquals(values.get(0).literal, "2");
+                assertIsLiteral(values.get(0), "2");
 
                 values = ASTUtils.initialValue(parameter, list_a2);
-                Assertions.assertEquals(values.get(0).literal, "-1");
+                assertIsLiteral(values.get(0), "-1");
 
                 values = ASTUtils.initialValue(parameter, list_a1b1);
-                Assertions.assertEquals(values.get(0).literal, "3");
+                assertIsLiteral(values.get(0), "3");
 
                 values = ASTUtils.initialValue(parameter, list_a2b1);
-                Assertions.assertEquals(values.get(0).literal, "-1");
+                assertIsLiteral(values.get(0), "-1");
 
                 values = ASTUtils.initialValue(parameter, list_a1b2);
-                Assertions.assertEquals(values.get(0).literal, "-2");
+                assertIsLiteral(values.get(0), "-2");
 
                 values = ASTUtils.initialValue(parameter, list_a2b2);
-                Assertions.assertEquals(values.get(0).literal, "-1");
+                assertIsLiteral(values.get(0), "-1");
             } else if (parameter.name == 'y') {
                 var values = ASTUtils.initialValue(parameter, null);
-                Assertions.assertEquals(values.get(0).literal, "2");
+                assertIsLiteral(values.get(0), "2");
                 
                 try {
                     values = ASTUtils.initialValue(parameter, list_a1);
@@ -213,11 +215,16 @@ class LinguaFrancaASTUtilsTest {
                 }
                 
                 values = ASTUtils.initialValue(parameter, list_b1);
-                Assertions.assertEquals(values.get(0).literal, "3");
+                assertIsLiteral(values.get(0), "3");
                 
                 values = ASTUtils.initialValue(parameter, list_b2);
-                Assertions.assertEquals(values.get(0).literal, "-2");
+                assertIsLiteral(values.get(0), "-2");
             }
         }
+     }
+     
+     def static assertIsLiteral(Value v, String literalValue) {
+        Assertions.assertTrue(v instanceof Literal, "Expected a literal, got " + v);
+        Assertions.assertEquals((v as Literal).literal, literalValue);
      }
 }

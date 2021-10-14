@@ -43,6 +43,7 @@ import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
+import org.lflang.lf.ParamRef
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -331,9 +332,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * null or code is invalid.
      */
     def TimeValue resolveTimeValue(Value v) {
-        val parm = v?.parameter
-        if (parm !== null) {
-            return this.lookupParameterInstance(parm).init.asSingleValue?.getTimeValue
+        if (v instanceof ParamRef) {
+            return this.lookupParameterInstance(v.parameter).init.asSingleValue?.getTimeValue
         } else {
             return v?.timeValue
         }

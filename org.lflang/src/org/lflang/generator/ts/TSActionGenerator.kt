@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.lf.Action
+import org.lflang.lf.ParamRef
 import org.lflang.lf.Type
 import org.lflang.lf.Value
 import java.util.*
@@ -63,11 +64,7 @@ class TSActionGenerator (
                 if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    if (action.minDelay.parameter != null) {
-                        actionArgs+= ", " + action.minDelay.parameter.name
-                    } else {
-                        actionArgs+= ", " + action.minDelay.getTargetValue()
-                    }
+                    actionArgs += ", " + action.minDelay.getTargetValue()
                 }
                 actionInstantiations.add(
                     "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")

@@ -31,6 +31,7 @@ import org.lflang.InferredType
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Initializer
 import org.lflang.lf.Parameter
+import org.lflang.lf.ParamRef
 
 import static extension org.lflang.ASTUtils.*
 
@@ -70,25 +71,25 @@ class ParameterInstance extends NamedInstance<Parameter> {
         while (assignment !== null) {
             // NOTE: we only allow a reference to single a parameter or 
             // a list of ordinary values.
-            val ref = assignment.rhs.asSingleValue?.parameter
-            if (ref !== null) {
+            val ref = assignment.rhs.asSingleValue
+            if (ref instanceof ParamRef) {
                 // Get the value from the parameter instance, not the parameter
                 // so that overrides like bank_index work.
                 // parent.parent will be non-null or the rhs parameter reference
                 // would not have passed validation. Nevertheless, we check.
                 val parentsParent = parent.parent;
                 if (parentsParent !== null) {
-                    val parameterInstance = parentsParent.parameters.findFirst[it.name.equals(ref.name)]
+                    val parameterInstance = parentsParent.parameters.findFirst[it.name.equals(ref.parameter.name)]
                     // Again, this result should be non-null, but we check.
                     if (parameterInstance !== null) {
                         this.init = parameterInstance.init
                     } else {
                         // Fall back on reference.
-                        this.init = ref.init
+                        this.init = ref.parameter.init
                     }
                 } else {
                     // Fall back on reference.
-                    this.init = ref.init
+                    this.init = ref.parameter.init
                 }
             } else {
                 this.init = assignment.rhs
@@ -103,7 +104,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
         // If the parent is in a bank and the parameter name is "bank_index", then
         // override the default value provided to make it equal to the bank index.
         if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
-            val value = LfFactory.eINSTANCE.createValue
+            val value = LfFactory.eINSTANCE.createLiteral
             value.literal = "" + parent.bankIndex
 
             this.init = LfFactory.eINSTANCE.createInitializer

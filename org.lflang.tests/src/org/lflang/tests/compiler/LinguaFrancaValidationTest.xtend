@@ -283,7 +283,7 @@ class LinguaFrancaValidationTest {
             reactor Foo {
                 output out:int;
             }
-            main reactor Bar {
+            main reactor {
                 output out:int;
                 x = new Foo();
                 x.out -> out;
@@ -495,7 +495,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        ''').assertError(LfPackage::eINSTANCE.value,
+        ''').assertError(LfPackage::eINSTANCE.timer,
             null, "Missing time units. Should be one of " +
             TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }    
@@ -513,8 +513,8 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        ''').assertError(LfPackage::eINSTANCE.value,
-            null, 'Parameter is not of time type')
+        ''').assertError(LfPackage::eINSTANCE.timer,
+            null, 'Referenced parameter does not have time type.')
         
     }
     
@@ -531,7 +531,7 @@ class LinguaFrancaValidationTest {
                     printf("Hello World.\n");
                 =}
             }
-        ''').assertError(LfPackage::eINSTANCE.value,
+        ''').assertError(LfPackage::eINSTANCE.timer,
             null, 'Invalid time literal')
     }  
     
@@ -713,26 +713,15 @@ class LinguaFrancaValidationTest {
 			}
         ''')
 
-		model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Type declaration missing.")
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Missing time units. Should be one of " +
-            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Invalid time literal.")
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Time parameter cannot be initialized using a list.")    
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Parameter cannot be initialized using parameter.")
-        model.assertError(LfPackage::eINSTANCE.stateVar, null,
-            "Referenced parameter does not denote a time.")
-        model.assertError(LfPackage::eINSTANCE.stateVar, null,
-            "Invalid time literal.")
-        model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Uninitialized parameter.")
-       	model.assertError(LfPackage::eINSTANCE.value, null,
-            "Missing time units. Should be one of " +
-            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+		model.assertError(LfPackage::eINSTANCE.parameter, null, "Type declaration missing.")
+        model.assertError(LfPackage::eINSTANCE.parameter, null, "Missing time units. Should be one of " + TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+        model.assertError(LfPackage::eINSTANCE.parameter, null, "Invalid time literal.")
+        model.assertError(LfPackage::eINSTANCE.parameter, null, "Expected exactly one time value.")
+        model.assertError(LfPackage::eINSTANCE.parameter, null, "Parameter cannot be initialized using parameter.")
+        model.assertError(LfPackage::eINSTANCE.stateVar, null, "Referenced parameter does not have time type.")
+        model.assertError(LfPackage::eINSTANCE.stateVar, null, "Invalid time literal.")
+        // model.assertError(LfPackage::eINSTANCE.parameter, null, "Uninitialized parameter.")
+       	model.assertError(LfPackage::eINSTANCE.timer, null, "Missing time units. Should be one of " + TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }  
     
     

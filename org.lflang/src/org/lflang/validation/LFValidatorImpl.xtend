@@ -53,6 +53,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Assignment
 import org.lflang.lf.Connection
+import org.lflang.lf.CodeExpr
 import org.lflang.lf.Deadline
 import org.lflang.lf.Host
 import org.lflang.lf.IPV4Host
@@ -65,6 +66,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
 import org.lflang.lf.LfPackage.Literals
+import org.lflang.lf.Literal
 import org.lflang.lf.ListLiteral
 import org.lflang.lf.Model
 import org.lflang.lf.NamedHost
@@ -72,6 +74,7 @@ import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Preamble
+import org.lflang.lf.ParamRef
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.Serializer
@@ -80,6 +83,7 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
+import org.lflang.lf.TupleExpr
 import org.lflang.lf.Type
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.Value
@@ -283,6 +287,9 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Check(FAST)
     def checkAction(Action action) {
         checkName(action.name, Literals.VARIABLE__NAME)
+        checkValueIsTime(action.minDelay, Literals.ACTION__MIN_DELAY)
+        checkValueIsTime(action.minSpacing, Literals.ACTION__MIN_SPACING)
+
         if (action.origin == ActionOrigin.NONE) {
             error(
                 "Action must have modifier `logical` or `physical`.",
@@ -308,21 +315,18 @@ class LFValidatorImpl extends AbstractLFValidator {
             } else {
                 val v = assignment.rhs.asSingleValue
                 if (!v.isValidTime) {
-                    if (v.parameter === null) {
+                    if (v instanceof ParamRef) {
+                        // This is a reference to another parameter. Report problem.
+                        error("Cannot assign parameter: " + v.parameter.name
+                            + " to " + assignment.lhs.name +
+                            ". The latter is a time parameter, but the former is not.",
+                            Literals.ASSIGNMENT__RHS)
+                    } else {
                         // This is a value. Check that units are present.
-                    error(
-                        "Invalid time units: " + assignment.rhs +
-                            ". Should be one of " + TimeUnit.VALUES.filter [
+                        error("Invalid time units: " + assignment.rhs
+                            + ". Should be one of " + TimeUnit.VALUES.filter [
                                 it != TimeUnit.NONE
                             ], Literals.ASSIGNMENT__RHS)
-                    } else {
-                        // This is a reference to another parameter. Report problem.
-                error(
-                    "Cannot assign parameter: " +
-                        v.parameter.name + " to " +
-                        assignment.lhs.name +
-                        ". The latter is a time parameter, but the former is not.",
-                    Literals.ASSIGNMENT__RHS)
                     }
                 }
             }
@@ -377,21 +381,22 @@ class LFValidatorImpl extends AbstractLFValidator {
     }
 
     @Check(FAST)
-    def checkTupleLiteral(ParenthesizedExpr expr) {
+    def checkTupleLiteral(TupleExpr expr) {
         if (expr.items.size == 1 && !expr.isTrailingComma) {
             // this is allowed in all targets
             return;
         }
         if (!target.supportsLfTupleLiterals()) {
             if (expr.items.size == 1)
-                error("Target " + target + " does not support tuple literals. You might want to remove the trailing comma.", Literals.PARENTHESIZED_EXPR__ITEMS)
+                error("Target " + target + " does not support tuple literals. You might want to remove the trailing comma.", Literals.TUPLE_EXPR__ITEMS)
             else
-                error("Target " + target + " does not support tuple literals.", Literals.PARENTHESIZED_EXPR__ITEMS)
+                error("Target " + target + " does not support tuple literals.", Literals.TUPLE_EXPR__ITEMS)
         }
     }
 
     @Check(FAST)
     def checkConnection(Connection connection) {
+        checkValueIsTime(connection.delay?.value, Literals.CONNECTION__DELAY)
 
         // Report if connection is part of a cycle.
         for (cycle : this.info.topologyGraph.cycles) {
@@ -575,6 +580,8 @@ class LFValidatorImpl extends AbstractLFValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
+        checkValueIsTime(deadline.delay, Literals.DEADLINE__DELAY)
+
         if (isCBasedTarget &&
             this.info.overflowingDeadlines.contains(deadline)) {
             error(
@@ -583,8 +590,11 @@ class LFValidatorImpl extends AbstractLFValidator {
                 Literals.DEADLINE__DELAY)
         }
     }
-@Check(FAST)
+
+    @Check(FAST)
     def checkSTPOffset(STP stp) {
+        checkValueIsTime(stp.value, Literals.STP__VALUE)
+
         if (isCBasedTarget &&
             this.info.overflowingDeadlines.contains(stp)) {
             error(
@@ -761,7 +771,7 @@ class LFValidatorImpl extends AbstractLFValidator {
     def checkParameter(Parameter param) {
         checkName(param.name, Literals.PARAMETER__NAME)
 
-        if (param.init.exprs.exists[it.parameter !== null]) {
+        if (param.init.exprs.exists[it instanceof ParamRef]) {
             // Initialization using parameters is forbidden.
             error("Parameter cannot be initialized using parameter.",
                 Literals.PARAMETER__INIT)
@@ -771,32 +781,10 @@ class LFValidatorImpl extends AbstractLFValidator {
             // All parameters must be initialized.
             error("Uninitialized parameter.", Literals.PARAMETER__INIT)
         } else if (param.isOfTimeType) {
-             // We do additional checks on types because we can make stronger
-             // assumptions about them.
+            checkValueIsTime(param.init, Literals.PARAMETER__INIT)
+        }
 
-             // If the parameter is not a list, cannot be initialized
-             // using a one.
-             if (param.init.exprs.size > 1 && param.type.arraySpec === null) {
-                error("Time parameter cannot be initialized using a list.",
-                    Literals.PARAMETER__INIT)
-            } else {
-                // The parameter is a singleton time.
-                val init = param.init.exprs.get(0)
-                if (init.time === null) {
-                    if (init !== null && !init.isZero) {
-                        if (init.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.PARAMETER__INIT)
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.PARAMETER__INIT)
-                        }
-                    }
-                } // If time is not null, we know that a unit is also specified.
-            }
-        } else if (this.target.requiresTypes) {
+        if (this.target.requiresTypes) {
             // Report missing target type.
             if (param.inferredType.isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE)
@@ -1173,31 +1161,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (stateVar.isOfTimeType) {
             // If the state is declared to be a time,
             // make sure that it is initialized correctly.
-            if (stateVar.init !== null) {
-                for (init : stateVar.init.exprs) {
-                    if (stateVar.type !== null && stateVar.type.isTime &&
-                        !init.isValidTime) {
-                        if (stateVar.isParameterized) {
-                            error(
-                                "Referenced parameter does not denote a time.",
-                                Literals.STATE_VAR__INIT)
-                        } else {
-                            if (init !== null && !init.isZero) {
-                                if (init.isInteger) {
-                                    error(
-                                        "Missing time units. Should be one of " +
-                                            TimeUnit.VALUES.filter [
-                                                it != TimeUnit.NONE
-                                            ], Literals.STATE_VAR__INIT)
-                                } else {
-                                    error("Invalid time literal.",
-                                        Literals.STATE_VAR__INIT)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            checkValueIsTime(stateVar.init, Literals.STATE_VAR__INIT)
         } else if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE)
@@ -1206,7 +1170,7 @@ class LFValidatorImpl extends AbstractLFValidator {
         if (isCBasedTarget && stateVar.init.isList) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
-            if (stateVar.init.exprs.exists[it.parameter !== null]) {
+            if (stateVar.init.exprs.exists[it instanceof ParamRef]) {
                 error("List items cannot refer to a parameter.",
                     Literals.STATE_VAR__INIT)
             }
@@ -1293,41 +1257,46 @@ class LFValidatorImpl extends AbstractLFValidator {
         }
     }
 
-    @Check(FAST)
-    def checkValueAsTime(Value value) {
-        val container = value.eContainer
+    def void checkValueIsTime(Initializer init, EStructuralFeature feature) {
+        if (init === null) return;
 
-        if (container instanceof Timer || container instanceof Action ||
-            container instanceof Connection || container instanceof Deadline) {
+        if (init.exprs.size != 1) {
+            error("Expected exactly one time value.", feature)
+        } else {
+            checkValueIsTime(init.asSingleValue, feature)
+        }
+    }
 
-            // If parameter is referenced, check that it is of the correct type.
-            if (value.parameter !== null) {
-                if (!value.parameter.isOfTimeType && target.requiresTypes === true) {
-                    error("Parameter is not of time type",
-                        Literals.VALUE__PARAMETER)
-                }
-            } else if (value.time === null) {
-                if (value.literal !== null && !value.literal.isZero) {
-                    if (value.literal.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.VALUE__LITERAL)
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__LITERAL)
-                        }
-                } else if (value.code !== null && !value.code.isZero) {
-                    if (value.code.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.VALUE__CODE)
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.VALUE__CODE)
-                        }
-                }
+    def void checkValueIsTime(Value v, EStructuralFeature feature) {
+        if (v === null) return;
+
+        val value = v.peelParens
+
+        if (value instanceof ParamRef) {
+            if (!value.parameter.isOfTimeType && target.requiresTypes) {
+                error("Referenced parameter does not have time type.", feature)
+            }
+        } else if (value instanceof Literal) {
+            if (value.literal.isZero) return;
+
+            if (value.literal.isInteger) {
+                error("Missing time units. Should be one of " +
+                    TimeUnit.VALUES.filter [
+                        it != TimeUnit.NONE
+                    ], feature)
+            } else {
+                error("Invalid time literal.", feature)
+            }
+        } else if (value instanceof CodeExpr) {
+            if (value.code.isZero) return;
+
+            if (value.code.isInteger) {
+                error("Missing time units. Should be one of " +
+                    TimeUnit.VALUES.filter [
+                        it != TimeUnit.NONE
+                    ], feature)
+            } else {
+                error("Invalid time literal.", feature)
             }
         }
     }
@@ -1335,6 +1304,8 @@ class LFValidatorImpl extends AbstractLFValidator {
     @Check(FAST)
     def checkTimer(Timer timer) {
         checkName(timer.name, Literals.VARIABLE__NAME)
+        checkValueIsTime(timer.offset, Literals.TIMER__OFFSET)
+        checkValueIsTime(timer.period, Literals.TIMER__PERIOD)
     }
 
     @Check(FAST)
