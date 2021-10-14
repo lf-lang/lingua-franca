@@ -52,23 +52,22 @@ class CppInstanceGenerator(
     }
 
     private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
-        val assignment = this.parameters.firstOrNull { it.lhs === param }
+        val rhs = this.parameters.firstOrNull { it.lhs === param }?.rhs
 
         return if (isBankInstantiation && param.name == "bank_index") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
             // to the parameter named "bank_index"
             """__lf_idx"""
-        } else if (assignment == null) {
+        } else if (rhs == null) {
             // If no assignment was found, then the parameter is not overwritten and we assign the
             // default value
             with(CppParameterGenerator) { param.defaultValue }
-        } else if (assignment.rhs.isAssign) {
-            assert(assignment.rhs.exprs.size == 1)
-            assignment.rhs.exprs.single().toCode()
-        } else if (assignment.rhs.isBraces) {
-            "{${assignment.rhs.exprs.joinToString(", ") { it.toCode() }}}"
-        } else if (assignment.rhs.isParens) {
-            "(${assignment.rhs.exprs.joinToString(", ") { it.toCode() }})"
+        } else if (rhs.isAssign) {
+            rhs.exprs.single().toCode()
+        } else if (rhs.isBraces) {
+            "${param.targetType}{${rhs.exprs.joinToString(", ") { it.toCode() }}}"
+        } else if (rhs.isParens) {
+            "${param.targetType}(${rhs.exprs.joinToString(", ") { it.toCode() }})"
         } else {
             throw AssertionError("unreachable")
         }
