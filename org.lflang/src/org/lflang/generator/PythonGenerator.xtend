@@ -57,6 +57,7 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetConfig
+import org.lflang.generator.c.CCompiler
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -919,8 +920,36 @@ class PythonGenerator extends CGenerator {
      */
     override includeTargetLanguageHeaders() {
         pr('''#define MODULE_NAME LinguaFranca«topLevelName»''')
-        pr('''#define __GARBAGE_COLLECTED''')    	
+        pr('''#define _LF_GARBAGE_COLLECTED''') 
+        if (targetConfig.tracing !== null) {
+            var filename = "";
+            if (targetConfig.tracing.traceFileName !== null) {
+                filename = targetConfig.tracing.traceFileName;
+            }
+            pr('#define LINGUA_FRANCA_TRACE ' + filename)
+        }
+                       
         pr('#include "pythontarget.c"')
+        if (targetConfig.tracing !== null) {
+            pr('#include "core/trace.c"')            
+        }
+    }
+    
+    /**
+     * Return true if the host operating system is compatible and
+     * otherwise report an error and return false.
+     */
+    override isOSCompatible() {
+        if (CCompiler.isHostWindows) { 
+            if (isFederated) { 
+                errorReporter.reportError(
+                    "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
+                )
+                // Return to avoid compiler errors
+                return false
+            }
+        }
+        return true;
     }
 
     /** Generate C code from the Lingua Franca model contained by the
@@ -1054,7 +1083,7 @@ class PythonGenerator extends CGenerator {
             '''
             // Create a token
             lf_token_t* t = create_token(sizeof(PyObject*));
-            t->value = self->__«ref»->value;
+            t->value = self->_lf_«ref»->value;
             t->length = 1; // Length is 1
             
             // Pass the token along
@@ -1079,10 +1108,10 @@ class PythonGenerator extends CGenerator {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
-            self->__«outputName».token = (lf_token_t*)self->___«action.name».token;
-            ((lf_token_t*)self->___«action.name».token)->ref_count++;
-            self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
+            self->_lf_«outputName».value = («action.inferredType.targetType»)self->_lf__«action.name».token->value;
+            self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
+            ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
+            self->«getStackPortMember('''_lf_«outputName»''', "is_present")» = true;
             '''
         } else {
             '''
@@ -1205,7 +1234,7 @@ class PythonGenerator extends CGenerator {
             
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
             PyObject *rValue = PyObject_CallObject(
-                self->__py_reaction_function_«reactionIndex», 
+                self->_lf_py_reaction_function_«reactionIndex», 
                 Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
             );
             if (rValue == NULL) {
@@ -1244,7 +1273,7 @@ class PythonGenerator extends CGenerator {
                 
                 DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
                 PyObject *rValue = PyObject_CallObject(
-                    self->__py_deadline_function_«reactionIndex», 
+                    self->_lf_py_deadline_function_«reactionIndex», 
                     Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
                 );
                 if (rValue == NULL) {
@@ -1360,7 +1389,7 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Generate code that is executed while the reactor instance is being initialized
-     * @param initializationCode The StringBuilder appended to __initialize_trigger_objects()
+     * @param initializationCode The StringBuilder appended to _lf_initialize_trigger_objects()
      * @param instance The reactor instance
      * @param federate The federate instance
      */
@@ -1378,25 +1407,25 @@ class PythonGenerator extends CGenerator {
         
         // Initialize the name field to the unique name of the instance
         pr(initializationCode, '''
-            «nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+            «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
         
         for (reaction : instance.reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
             // Create a PyObject for each reaction
             pr(initializationCode, '''
-                «nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.reactionIndex» = 
                     get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->__lf_name,
+                        «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "«pythonFunctionName»");
                 ''')
         
             if (reaction.definition.deadline !== null) {
                 pr(initializationCode, '''
-                «nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.reactionIndex» = 
                     get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->__lf_name,
+                        «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "deadline_function_«reaction.reactionIndex»");
                 ''')
@@ -1417,17 +1446,17 @@ class PythonGenerator extends CGenerator {
     override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
         val reactor = decl.toDefinition
         // Add the name field
-        pr(selfStructBody, '''char *__lf_name;
+        pr(selfStructBody, '''char *_lf_name;
         ''');
         
         var reactionIndex = 0
         for (reaction : reactor.allReactions)
         {
             // Create a PyObject for each reaction
-            pr(selfStructBody, '''PyObject *__py_reaction_function_«reactionIndex»;''')
+            pr(selfStructBody, '''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
             
             if (reaction.deadline !== null) {                
-                pr(selfStructBody, '''PyObject *__py_deadline_function_«reactionIndex»;''')
+                pr(selfStructBody, '''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
             }
             
             reactionIndex++
@@ -1516,7 +1545,7 @@ class PythonGenerator extends CGenerator {
             } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&«output.name»,«output.name»_width) ''')
+                pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
             }
     }
     

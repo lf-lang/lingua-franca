@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "pythontarget.h"
 #include "core/util.h"
+#include "core/tag.h"
 
 //////////// set Function(s) /////////////
 /**
@@ -99,7 +100,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 /**
  * Prototype for the internal API. @see reactor_common.c
  **/
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length);
+lf_token_t* _lf_initialize_token_with_value(lf_token_t* token, void* value, size_t length);
 
 /**
  * Prototype for API function. @see lib/core/reactor_common.c
@@ -141,7 +142,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
         // DEBUG: adjust the element_size (might not be necessary)
         trigger->token->element_size = sizeof(PyObject*);
         trigger->element_size = sizeof(PyObject*);
-        t = __initialize_token_with_value(trigger->token, value, 1);
+        t = _lf_initialize_token_with_value(trigger->token, value, 1);
 
         // Also give the new value back to the Python action itself
         Py_INCREF(value);
@@ -193,37 +194,35 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args) {
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_elapsed_logical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_elapsed_logical_time());
+    return PyLong_FromLongLong(get_elapsed_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_logical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_logical_time());
+    return PyLong_FromLongLong(get_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
 static PyObject* py_get_physical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_physical_time());
+    return PyLong_FromLongLong(get_physical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
-instant_t get_elapsed_physical_time();
 static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_elapsed_physical_time());
+    return PyLong_FromLongLong(get_elapsed_physical_time());
 }
 
 /**
  * Return the start time in nanoseconds.
  */
-instant_t get_start_time();
 static PyObject* py_get_start_time(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(get_start_time());
+    return PyLong_FromLongLong(get_start_time());
 }
 
 /**

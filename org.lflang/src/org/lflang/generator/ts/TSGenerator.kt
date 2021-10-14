@@ -31,6 +31,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
+import org.lflang.federated.FedTSLauncher
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
@@ -114,7 +115,6 @@ class TSGenerator(
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
-
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
@@ -291,6 +291,17 @@ class TSGenerator(
             }
         } else {
             errorReporter.reportError("Type checking failed.")
+        }
+
+        if (isFederated) {
+            // Create bin directory for the script.
+            if (!Files.exists(fileConfig.binPath)) {
+                Files.createDirectories(fileConfig.binPath)
+            }
+            // Generate script for launching federation
+            val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
+            val coreFiles = ArrayList<String>()
+            launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
         }
 
         // TODO(hokeun): Modify this to make this work with standalone RTI.
