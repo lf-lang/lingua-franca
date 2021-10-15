@@ -1,0 +1,24 @@
+target Rust {
+    cargo-features: ["test-program"],
+};
+
+main reactor {
+    timer t(80 msec);
+    physical action act: u32;
+
+    reaction(startup) -> act {=
+        let act = act.clone();
+        ctx.spawn_physical_thread(move |link| {
+            std::thread::sleep(delay!(20 msec));
+            link.schedule_physical(&act, Asap);
+        });
+    =}
+
+    reaction(act) {=
+        println!("---- Invocation at {}", ctx.get_tag());
+
+        let elapsed_time = ctx.get_elapsed_logical_time();
+        assert!(elapsed_time < delay!(50 msec));
+        println!("success")
+    =}
+}

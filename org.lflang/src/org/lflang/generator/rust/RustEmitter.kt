@@ -624,7 +624,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
         is PortData           -> portBorrow(kind, isMultiport)
         is ChildPortReference -> portBorrow(kind, isMultiport)
-        is ActionData         -> if (isLogical) "&mut self.$rustFieldName" else "&self.$rustFieldName"
+        is ActionData         -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
         is TimerData          -> "&self.$rustFieldName"
     }
 
