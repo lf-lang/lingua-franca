@@ -10,7 +10,7 @@ main reactor {
 
     reaction(startup) -> act {=
         std::thread::spawn(|| {
-            std::thread::sleep(Duration::from_millis(1000));
+            std::thread::sleep(delay!(1 sec));
             // this is a regular thread which doesn't have a reference to the scheduler
         });
     =}

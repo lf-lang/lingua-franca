@@ -53,7 +53,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [ ] todo does scheduling an action twice produce two separate triggers at the same instant? 
 - [ ] physical actions
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
-  - [ ] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely -> todo check it out from the git history and fix it 
+  - [x] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely
   - [x] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
   - [ ] it should be possible to request shutdown asynchronously
 - [x] timers
