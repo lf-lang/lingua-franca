@@ -694,7 +694,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
         is PortData           -> {
             if (widthSpec != null) {
-                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $widthSpec, $isInput)"
+                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)"
             } else {
                 "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
             }
