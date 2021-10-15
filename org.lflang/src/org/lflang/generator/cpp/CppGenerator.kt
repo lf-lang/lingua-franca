@@ -48,7 +48,7 @@ class CppGenerator(
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val libDir = "/lib/Cpp"
+        const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
         const val defaultRuntimeVersion = "c56febce6a291d5e2727266bb819a839e3f6c71f"
