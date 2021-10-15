@@ -30,6 +30,7 @@ import java.nio.file.Path;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
 import org.lflang.ErrorReporter;
 
 /**
@@ -96,8 +97,8 @@ public class ValidatorErrorReporter implements ErrorReporter {
     @Override
     public String reportError(Path file, Integer line, String message) {
         errorsOccurred = true;
-        String fullMessage = "Error in " + file.toString() + " on line "
-                + line.toString() + "\n" + message;
+        String fullMessage = message + " (Reported from " + file.toString() + " on line "
+            + line.toString() + ")";
         acceptor.acceptError(fullMessage, validatorState.getCurrentObject(),
                 null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
         return fullMessage;
@@ -138,8 +139,8 @@ public class ValidatorErrorReporter implements ErrorReporter {
      */
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        String fullMessage = "Warning in " + file.toString() + " on line "
-                + line.toString() + "\n" + message;
+        String fullMessage = message + " (Reported from " + file.toString() + " on line "
+            + line.toString() + ")";
         acceptor.acceptWarning(fullMessage, validatorState.getCurrentObject(),
                 null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, null);
         return fullMessage;
