@@ -393,10 +393,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         printInfo()
 
-        // Reset the error reporter. If the reporter sets markers in the IDE, this will
-        // clear any markers that may have been created by a previous build.
+        // Clear any IDE markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        errorReporter.reset()
+        if (errorReporter instanceof EclipseErrorReporter) {
+            errorReporter.clearMarkers()
+        }
         
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
