@@ -15,7 +15,7 @@ main reactor {
         server = http.createServer(options, (req : http.IncomingMessage, res : http.ServerResponse) => {
             // Generally browsers make two requests, the first is for favicon.ico.
             // See https://stackoverflow.com/questions/11961902/nodejs-http-createserver-seems-to-call-twice
-            if (req.url != '/favicon.ico') {
+            if (req.url != "/favicon.ico") {
                 actions.serverRequest.schedule(0, [req, res])
             }
         }).listen(8000);
@@ -26,7 +26,7 @@ main reactor {
             let req = requestArray[0];
             let res = requestArray[1];
             res.writeHead(200);
-            res.end('hello world\n');
+            res.end("hello world\n");
         }
     =}
     reaction (shutdown) {=

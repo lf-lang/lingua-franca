@@ -208,6 +208,14 @@ public class TargetConfig {
     public TracingOptions tracing = null;
 
 
+    /**
+     * If true, the resulting binary will output a graph visualizing all reaction dependencies.
+     *
+     * This option is currently only used for C++. This export function is a valuable tool for debugging
+     * LF programs and helps to understand the dependencies inferred by the C++ runtime.
+     */
+    public boolean exportDependencyGraph = false;
+
 
     /** Rust-specific configuration. */
     public final RustTargetConfig rust = new RustTargetConfig();

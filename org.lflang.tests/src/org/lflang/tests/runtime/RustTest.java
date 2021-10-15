@@ -37,14 +37,13 @@ import org.lflang.Target;
 public class RustTest extends TestBase {
 
     public RustTest() {
-        super.target = Target.Rust;
+        super(Target.Rust);
     }
 
 
     @Override
     public void runAsFederated() {
-        this.printTestHeader(TestBase.RUN_AS_FEDERATED_DESC);
-        InputOutput.println("N/A");
+        printSkipMessage(Message.DESC_AS_FEDERATED, Message.NO_RUST_SUPPORT);
     }
 
 

@@ -1,6 +1,9 @@
 package org.lflang.tests.runtime;
 
 import org.lflang.Target;
+
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 /**
@@ -16,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 public class TypeScriptTest extends TestBase {
     public TypeScriptTest() {
-        this.target = Target.TS;
+        super(Target.TS);
     }
     
     @Test

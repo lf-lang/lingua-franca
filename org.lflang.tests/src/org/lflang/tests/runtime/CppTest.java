@@ -27,6 +27,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.tests.runtime;
 
 import org.lflang.Target;
+
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 /**
@@ -39,10 +42,20 @@ import org.junit.jupiter.api.Test;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class CppTest extends ThreadedBase {
+public class CppTest extends TestBase {
 
     public CppTest() {
-        this.target = Target.CPP;
+        super(Target.CPP);
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
+    }
+
+    @Override
+    public void runExampleTests() {
+        super.runExampleTests();
     }
 
     @Test
@@ -66,8 +79,8 @@ public class CppTest extends ThreadedBase {
     @Test
     @Override
     public void runWithFourThreads() {
-        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
-        System.out.println("N/A");
+        printSkipMessage(Message.DESC_FOUR_THREADS,
+                Message.ALWAYS_MULTITHREADED);
     }
     
     @Test
@@ -79,8 +92,8 @@ public class CppTest extends ThreadedBase {
     @Test
     @Override
     public void runAsFederated() {
-        printTestHeader(RUN_AS_FEDERATED_DESC);
-        System.out.println("N/A");
+        printSkipMessage(Message.DESC_AS_FEDERATED,
+                Message.NO_CPP_SUPPORT);
     }
 
 
