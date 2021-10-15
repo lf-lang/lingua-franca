@@ -747,6 +747,15 @@ class LinguaFrancaValidationTest {
         ''').assertNoErrors()
     }
 
+    @Test
+    def void typeInferenceWithEqAssignment() {
+        parseWithoutError('''
+            target C;
+            reactor Contained(p = 4 sec) {
+                state x1 = p;
+            }
+        ''').assertNoErrors()
+    }
 
     /**
      * Tests for state and parameter declarations, including native lists.
