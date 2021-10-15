@@ -1,0 +1,37 @@
+target C;
+
+reactor Foo(
+    p1: int[](4, 2),
+    p2: int[](4, 2),
+
+    p4: string("a")
+) {
+    state s0: int = 2 - 2 - 2; state s1: int(2 - 2 - 2);
+    state s2: string = "a";    state s4: string("a");
+    state s3: char(2 + 'a');   state s5: char = 2 + 'a';
+
+    preamble{=
+#include "assert.h"
+    =}
+
+    reaction(startup) {=
+        assert(p1[0] == 4); assert(p1[1] == 2);
+        assert(p2[0] == 3); assert(p2[1] == 5);
+
+        assert(s0 == -2);
+        assert(s1 == -2);
+
+        assert(strcmp(s2, "a"));
+        assert(strcmp(s4, "a"));
+        assert(strcmp(p4, "a"));
+
+        assert(s3 == 'c');
+        assert(s5 == 'c');
+
+        printf("Success\n");
+    =}
+}
+
+main reactor {
+    foo = new Foo(p2(3,5));
+}

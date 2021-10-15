@@ -1,0 +1,41 @@
+target Python;
+
+reactor Foo(
+    p1(4, 2),    // tuple
+    p2 = (4, 2), // tuple
+
+    p3([4, 2]),  // list
+    p4 = [4, 2], // list
+
+    p5("a"),
+    p6 = "a",
+
+    p12 = 2
+) {
+    state s0 = 2 - 2 - 2; state s1(2 - 2 - 2);
+    # todo # state s0 = 2 - 2 - p12; state s1(2 - p12 - 2);
+    state s2 = "a";       state s4("a");
+    # state s3(2 + 'a');    state s5 = 2 + 'a';
+
+    reaction(startup) {=
+        assert self.p1 == (4, 2);
+        assert self.p2 == (3, 5);
+        assert self.p3 == [4, 2];
+        assert self.p4 == [4, 2];
+
+        assert self.s0 == -2;
+        assert self.s1 == -2;
+
+        assert self.s2 == "a";
+        assert self.s4 == "a";
+        assert self.p5 == "a";
+        assert self.p6 == "a";
+
+        if __debug__: # otherwise asserts are noop
+            print("Success\n")
+    =}
+}
+
+main reactor {
+    foo = new Foo(p2(3,5));
+}

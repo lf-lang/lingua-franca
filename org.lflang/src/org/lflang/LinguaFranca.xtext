@@ -353,8 +353,10 @@ ArraySpec:
     
 WidthSpec:
     '[' ( ofVariableLength?=']' | (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']' );
-    
-WidthTerm:
+    //                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //                            todo replace this with just Expr.
+
+WidthTerm: // todo remove this.
     width=INT 
     | parameter=[Parameter] 
     | 'widthof(' port=VarRef ')'
