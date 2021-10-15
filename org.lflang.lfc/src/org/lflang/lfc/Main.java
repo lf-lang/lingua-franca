@@ -477,6 +477,7 @@ public class Main {
             this.generator.generate(resource, this.fileAccess, context);
 
             exitIfCollectedErrors();
+            // print all other issues (not errors)
             issueCollector.getAllIssues().forEach(reporter::printIssue);
 
             System.out.println("Code generation finished.");
