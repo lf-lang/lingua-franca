@@ -2,12 +2,13 @@
 
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+
 on:
+  # Trigger this workflow on push events, but only on master.
   push:
-    branches-ignore:
-      - 'nightly'
+    branches:
+      - master
+  # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
   pull_request:
     branches-ignore:
       - 'nightly'
@@ -36,14 +37,14 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v1 
+        uses: codecov/codecov-action@v2.1.0 
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos 
-          files: $GITHUB_WORKSPACE/org.lflang.tests/build/reports/xml/jacoco
+          file: org.lflang.tests/build/reports/xml/jacoco
           # gcov_prefix: 
           # optional flags: unittests 
           # optional name: codecov-umbrella 
-          # optional fail_ci_if_error: true 
+          fail_ci_if_error: false
           # optional (default = false) 
           verbose: true # optional (default = false)
         if: runner.os == 'Linux'
@@ -69,7 +70,7 @@ jobs:
   c-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
@@ -78,6 +79,8 @@ jobs:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       # - name: Cache protobuf library # Thanks to https://lukasjoswiak.com/github-actions-protobuf/
       #   id: cache-protobuf
       #   uses: actions/cache@v1
@@ -118,12 +121,13 @@ jobs:
 #         if: runner.os == 'Windows'
       - name: Install RTI;
         run: |
-          cd org.lflang/src/lib/core/federated/RTI
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
           mkdir build
           cd build
           cmake ../
           make
           sudo make install
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
@@ -199,7 +203,7 @@ jobs:
   python-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
@@ -220,13 +224,17 @@ jobs:
       - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgArguments: protobuf
+          vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+          vcpkgTriplet: x64-windows-static
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
@@ -242,7 +250,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Install python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
       - name: Build lfc;

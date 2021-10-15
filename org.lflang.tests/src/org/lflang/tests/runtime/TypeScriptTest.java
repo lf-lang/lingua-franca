@@ -1,6 +1,9 @@
 package org.lflang.tests.runtime;
 
 import org.lflang.Target;
+
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 /**
@@ -16,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 public class TypeScriptTest extends TestBase {
     TypeScriptTest() {
-        this.target = Target.TS;
+        this.targets = Arrays.asList(Target.TS);
     }
     
     @Test
@@ -35,6 +38,12 @@ public class TypeScriptTest extends TestBase {
     @Override
     public void runMultiportTests() {
         super.runMultiportTests();
+    }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        super.runSerializationTests();
     }
     
     @Test

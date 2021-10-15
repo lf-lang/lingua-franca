@@ -24,6 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +44,7 @@ import org.lflang.Target;
 public class PythonTest extends TestBase {
 
     PythonTest() {
-        this.target = Target.Python;
+        this.targets = Arrays.asList(Target.Python);
     }
 
     @Test
@@ -59,10 +61,28 @@ public class PythonTest extends TestBase {
     @Override public void runMultiportTests() {
         super.runMultiportTests();
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_SERIALIZATION,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
+        super.runSerializationTests();
+    }
 
     @Test
     @Disabled("TODO")
     @Override public void runAsFederated() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_AS_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
         super.runAsFederated();
     }
 
@@ -74,6 +94,12 @@ public class PythonTest extends TestBase {
 
     @Test
     @Override public void runFederatedTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
         super.runFederatedTests();
     }
 }

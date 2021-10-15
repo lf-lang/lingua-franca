@@ -27,6 +27,18 @@ public class LFParsingTest {
 
 
     @Test
+    public void testLexingEmptyTargetProperties() throws Exception {
+        assertNoParsingErrorsIn("target C { };      \nreactor Foo {}");
+        assertNoParsingErrorsIn("target C {a:b,};   \nreactor Foo {}");
+        expectParsingErrorIn("target C {,};      \nreactor Foo {}");
+
+        // array elements
+        // assertNoParsingErrorsIn("target C {x:[ ]};  \nreactor Foo {}");
+        // assertNoParsingErrorsIn("target C {x:[]};   \nreactor Foo {}");
+        // assertNoParsingErrorsIn("target C {x:[,]};  \nreactor Foo {}");
+    }
+
+    @Test
     public void testLexingLifetimeAnnots() throws Exception {
         assertNoParsingErrorsIn(makeLfTargetCode("Rust",
                                                  "        struct Hello<'a> { \n"

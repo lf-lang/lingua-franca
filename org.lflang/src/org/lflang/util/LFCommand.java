@@ -28,12 +28,19 @@ package org.lflang.util;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.eclipse.xtext.util.CancelIndicator;
 
 /**
  * An abstraction for an external command
@@ -41,6 +48,18 @@ import java.util.Map;
  * This is a wrapper around ProcessBuilder which allows for a more convenient usage in our code base.
  */
 public class LFCommand {
+
+    /**
+     * The period with which the cancel indicator is
+     * checked and the output and error streams are
+     * forwarded.
+     */
+    private static final int PERIOD_MILLISECONDS = 200;
+    /**
+     * The maximum amount of time to wait for the
+     * forwarding of output and error streams to finish.
+     */
+    private static final int READ_TIMEOUT_MILLISECONDS = 1000;
 
     protected ProcessBuilder processBuilder;
     protected boolean didRun = false;
@@ -73,66 +92,51 @@ public class LFCommand {
 
 
     /**
-     * A runnable that collects the output from a running process, prints it and stores it in the output stream
+     * Collects as much output as possible from <code>in
+     * </code> without blocking, prints it to <code>print
+     * </code>, and stores it in <code>store</code>.
      */
-    private class OutputCollector implements Runnable {
-
-        private final Process process;
-
-
-        OutputCollector(Process process) {
-            this.process = process;
-        }
-
-
-        @Override
-        public void run() {
-            byte[] buffer = new byte[64];
-            int len;
-            do {
-                try {
-                    len = process.getInputStream().read(buffer);
-                    if (len > 0) {
-                        output.write(buffer, 0, len);
-                        System.out.write(buffer, 0, len);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
+    private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print) {
+        byte[] buffer = new byte[64];
+        int len;
+        do {
+            try {
+                // This depends on in.available() being
+                //  greater than zero if data is available
+                //  (so that all data is collected)
+                //  and upper-bounded by maximum number of
+                //  bytes that can be read without blocking.
+                //  Only the latter of these two conditions
+                //  is guaranteed by the spec.
+                len = in.read(buffer, 0, Math.min(in.available(), buffer.length));
+                if (len > 0) {
+                    store.write(buffer, 0, len);
+                    print.write(buffer, 0, len);
                 }
-            } while (len != -1);
-        }
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
+            }
+        } while (len > 0);  // Do not necessarily continue
+        // to EOF (len == -1) because a blocking read
+        // operation is hard to interrupt.
     }
 
     /**
-     * A runnable that collects the error output from a running process, prints it and stores it in the output stream
+     * Handles the user cancellation if one exists, and
+     * handles any output from <code>process</code>
+     * otherwise.
+     * @param process a <code>Process</code>
+     * @param cancelIndicator a flag indicating whether a
+     *                        cancellation of <code>process
+     *                        </code> is requested
      */
-    private class ErrorCollector implements Runnable {
-
-        private final Process process;
-
-
-        ErrorCollector(Process process) {
-            this.process = process;
-        }
-
-
-        @Override
-        public void run() {
-            byte[] buffer = new byte[64];
-            int len;
-            do {
-                try {
-                    len = process.getErrorStream().read(buffer);
-                    if (len > 0) {
-                        errors.write(buffer, 0, len);
-                        System.err.write(buffer, 0, len);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
-                }
-            } while (len != -1);
+    private void poll(Process process, CancelIndicator cancelIndicator) {
+        if (cancelIndicator != null && cancelIndicator.isCanceled()) {
+            process.destroy();
+        } else {
+            collectOutput(process.getInputStream(), output, System.out);
+            collectOutput(process.getErrorStream(), errors, System.err);
         }
     }
 
@@ -140,17 +144,24 @@ public class LFCommand {
     /**
      * Execute the command while forwarding output and error streams.
      * <p>
-     * Executing a process directly with `processBuiler.start()` could
+     * Executing a process directly with `processBuilder.start()` could
      * lead to a deadlock as the subprocess blocks when output or error
      * buffers are full. This method ensures that output and error messages
      * are continuously read and forwards them to the system output and
      * error streams as well as to the output and error streams hold in
      * this class.
+     * </p>
+     * <p>
+     * If the current operation is cancelled (as indicated
+     * by <code>cancelIndicator</code>), the subprocess
+     * is destroyed. Output and error streams until that
+     * point are still collected.
+     * </p>
      *
      * @return the process' return code
      * @author {Christian Menard <christian.menard@tu-dresden.de}
      */
-    public int run() {
+    public int run(CancelIndicator cancelIndicator) {
         assert !didRun;
         didRun = true;
 
@@ -165,21 +176,32 @@ public class LFCommand {
             return -1;
         }
 
-        final Thread collectOutputThread = new Thread(new OutputCollector(process));
-        final Thread collectErrorsThread = new Thread(new ErrorCollector(process));
-
-        collectOutputThread.start();
-        collectErrorsThread.start();
+        ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
+        poller.scheduleAtFixedRate(
+            () -> poll(process, cancelIndicator),
+            0, PERIOD_MILLISECONDS, TimeUnit.MILLISECONDS
+        );
 
         try {
             final int returnCode = process.waitFor();
-            collectOutputThread.join();
-            collectErrorsThread.join();
+            poller.shutdown();
+            poller.awaitTermination(READ_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
+            // Finish collecting any remaining data
+            poll(process, cancelIndicator);
             return returnCode;
         } catch (InterruptedException e) {
             e.printStackTrace();
             return -2;
         }
+    }
+
+    /**
+     * Execute the command while forwarding output and error
+     * streams. Do not allow user cancellation.
+     * @return the process' return code
+     */
+    public int run() {
+        return run(null);
     }
 
 
@@ -251,7 +273,7 @@ public class LFCommand {
      * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
      * <p>
      * But asking users to do that is not ideal. Hence, we try a more hack-y approach of just trying to execute using a
-     * bash shell. Also note that while ProcessBuilder can configured to use custom environment variables, these
+     * bash shell. Also note that while ProcessBuilder can be configured to use custom environment variables, these
      * variables do not affect the command that is to be executed but merely the environment in which the command
      * executes.
      *

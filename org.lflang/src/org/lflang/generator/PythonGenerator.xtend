@@ -35,6 +35,7 @@ import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -59,6 +60,7 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetConfig
+import org.lflang.generator.c.CCompiler
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -787,7 +789,7 @@ class PythonGenerator extends CGenerator {
     /**
      * Execute the command that compiles and installs the current Python module
      */
-    def pythonCompileCode() {
+    def pythonCompileCode(IGeneratorContext context) {
         // if we found the compile command, we will also find the install command
         val installCmd = commandFactory.createCommand(
             '''python3''',
@@ -806,29 +808,10 @@ class PythonGenerator extends CGenerator {
         installCmd.setEnvironmentVariable("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
-        if (installCmd.run() == 0) {
+        if (installCmd.run(context.cancelIndicator) == 0) {
             println("Successfully installed python extension.")
         } else {
             errorReporter.reportError("Failed to install python extension.")
-        }
-    }
-    
-    /**
-     * Generate code that ensures only one thread can execute at a time as per Python specifications
-     * @param state 0=beginning, 1=end
-     */
-    def pyThreadMutexLockCode(int state, Reactor reactor) {
-        if(targetConfig.threads > 0)
-        {
-            switch(state){
-                case 0: return '''lf_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
-                case 1: return '''lf_mutex_unlock(&py_«reactor.name»_reaction_mutex);'''
-                default: return ''''''
-            }
-        }
-        else
-        {
-            return ''''''
         }
     }
     
@@ -875,33 +858,6 @@ class PythonGenerator extends CGenerator {
 
         super.parseTargetParameters()
         
-        // If the program is threaded, create a mutex for each reactor
-        // that guards the execution of its reactions.
-        // This is necessary because Python is not thread-safe
-        // and running multiple instances of the same function can cause
-        // a segmentation fault.
-        if (targetConfig.threads > 0) {
-            for (r : this.reactors ?: emptyList) {
-                pr('''
-                    lf_mutex_t py_«r.toDefinition.name»_reaction_mutex;
-                ''')
-                pr(super.initializeTriggerObjects, '''
-                    // Initialize reaction mutex for «r.toDefinition.name»
-                    lf_mutex_init(&py_«r.toDefinition.name»_reaction_mutex);
-                ''')
-            }
-            // Add mutex for the main reactor
-            if (this.mainDef !== null) {
-                pr('''
-                    lf_mutex_t py_«this.mainDef.name»_reaction_mutex;
-                ''')                
-                pr(super.initializeTriggerObjects, '''
-                    // Initialize reaction mutex for «this.mainDef.name»
-                    lf_mutex_init(&py_«this.mainDef.name»_reaction_mutex);
-                ''')
-            }
-        }
-        
         // FIXME: Probably not the best place to do 
         // this.
         if (!targetConfig.protoFiles.isNullOrEmpty) {
@@ -914,7 +870,7 @@ class PythonGenerator extends CGenerator {
      * Add necessary code to the source and necessary build supports to
      * enable the requested serializations in 'enabledSerializations'
      */  
-    override enableSupportForSerialization() {
+    override enableSupportForSerialization(CancelIndicator cancelIndicator) {
         for (serialization : enabledSerializers) {
             switch (serialization) {
                 case NATIVE: {
@@ -923,7 +879,7 @@ class PythonGenerator extends CGenerator {
                 case PROTO: {
                     // Handle .proto files.
                     for (name : targetConfig.protoFiles) {
-                        this.processProtoFile(name)
+                        this.processProtoFile(name, cancelIndicator)
                         val dotIndex = name.lastIndexOf('.')
                         var rootFilename = name
                         if (dotIndex > 0) {
@@ -948,7 +904,7 @@ class PythonGenerator extends CGenerator {
      * the required .h and .c files.
      * @param filename Name of the file to process.
      */
-    override processProtoFile(String filename) {
+    override processProtoFile(String filename, CancelIndicator cancelIndicator) {
          val protoc = commandFactory.createCommand(
             "protoc",
             #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename],
@@ -957,7 +913,7 @@ class PythonGenerator extends CGenerator {
         if (protoc === null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1")
         }
-        val returnCode = protoc.run()
+        val returnCode = protoc.run(cancelIndicator)
         if (returnCode == 0) {
             pythonRequiredModules.append(''', 'google-api-python-client' ''')
         } else {
@@ -1045,8 +1001,36 @@ class PythonGenerator extends CGenerator {
      */
     override includeTargetLanguageHeaders() {
         pr('''#define MODULE_NAME LinguaFranca«topLevelName»''')
-        pr('''#define __GARBAGE_COLLECTED''')    	
+        pr('''#define _LF_GARBAGE_COLLECTED''') 
+        if (targetConfig.tracing !== null) {
+            var filename = "";
+            if (targetConfig.tracing.traceFileName !== null) {
+                filename = targetConfig.tracing.traceFileName;
+            }
+            pr('#define LINGUA_FRANCA_TRACE ' + filename)
+        }
+                       
         pr('#include "pythontarget.c"')
+        if (targetConfig.tracing !== null) {
+            pr('#include "core/trace.c"')            
+        }
+    }
+    
+    /**
+     * Return true if the host operating system is compatible and
+     * otherwise report an error and return false.
+     */
+    override isOSCompatible() {
+        if (CCompiler.isHostWindows) { 
+            if (isFederated) { 
+                errorReporter.reportError(
+                    "Federated LF programs with a Python target are currently not supported on Windows. Exiting code generation."
+                )
+                // Return to avoid compiler errors
+                return false
+            }
+        }
+        return true;
     }
 
     /** Generate C code from the Lingua Franca model contained by the
@@ -1100,7 +1084,7 @@ class PythonGenerator extends CGenerator {
                 } else {
                     if (targetConfig.noCompile !== true) {
                         // If there are no federates, compile and install the generated code
-                        pythonCompileCode
+                        pythonCompileCode(context)
                     } else {
                         printSetupInfo();
                     }
@@ -1128,23 +1112,18 @@ class PythonGenerator extends CGenerator {
         super.copyUserFiles(targetConfig, fileConfig);
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
-        var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
-        for (file : targetFiles) {
-            fileConfig.copyFileFromClassPath(
-                "/" + "lib" + "/" + "Python" + "/" + file,
-                fileConfig.getSrcGenPath.resolve(file).toString
-            )
-        }
-        
-        // Copy the C target header.
-        // This will also overwrite previous versions.
-        var cTargetFiles = newArrayList("ctarget.h");
-        for (file : cTargetFiles) {
-            fileConfig.copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                fileConfig.getSrcGenPath.resolve(file).toString
-            )
-        }
+        fileConfig.copyFileFromClassPath(
+            "/lib/py/reactor-c-py/include/pythontarget.h",
+            fileConfig.getSrcGenPath.resolve("pythontarget.h").toString
+        )
+        fileConfig.copyFileFromClassPath(
+            "/lib/py/reactor-c-py/lib/pythontarget.c",
+            fileConfig.getSrcGenPath.resolve("pythontarget.c").toString
+        )
+        fileConfig.copyFileFromClassPath(
+            "/lib/c/reactor-c/include/ctarget.h",
+            fileConfig.getSrcGenPath.resolve("ctarget.h").toString
+        )       
     }
     
     
@@ -1180,7 +1159,7 @@ class PythonGenerator extends CGenerator {
             '''
             // Create a token
             lf_token_t* t = create_token(sizeof(PyObject*));
-            t->value = self->__«ref»->value;
+            t->value = self->_lf_«ref»->value;
             t->length = 1; // Length is 1
             
             // Pass the token along
@@ -1205,10 +1184,10 @@ class PythonGenerator extends CGenerator {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
-            self->__«outputName».token = (lf_token_t*)self->___«action.name».token;
-            ((lf_token_t*)self->___«action.name».token)->ref_count++;
-            self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
+            self->_lf_«outputName».value = («action.inferredType.targetType»)self->_lf__«action.name».token->value;
+            self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
+            ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
+            self->«getStackPortMember('''_lf_«outputName»''', "is_present")» = true;
             '''
         } else {
             '''
@@ -1323,31 +1302,32 @@ class PythonGenerator extends CGenerator {
         
         
         prSourceLineNumber(reaction.code)
-        // Unfortunately, threads cannot run concurrently in Python.
-        // Therefore, we need to make sure reactions cannot execute concurrently by
-        // holding the mutex lock.
-        if(targetConfig.threads > 0) {
-            pr(pyThreadMutexLockCode(0, reactor))
-        }
         
         pr('''
+            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
+            PyGILState_STATE gstate;
+            gstate = PyGILState_Ensure();
+            
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
-            PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
-        ''')
-        pr('''
+            PyObject *rValue = PyObject_CallObject(
+                self->_lf_py_reaction_function_«reactionIndex», 
+                Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
+            );
             if (rValue == NULL) {
                 error_print("FATAL: Calling reaction «decl.name».«pythonFunctionName» failed.");
                 if (PyErr_Occurred()) {
                     PyErr_PrintEx(0);
                     PyErr_Clear(); // this will reset the error indicator so we can run Python code again
                 }
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
+                Py_FinalizeEx();
                 exit(1);
             }
+            
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
         ''')
-        
-        if(targetConfig.threads > 0) {
-            pr(pyThreadMutexLockCode(1, reactor))
-        }
         
         unindent()
         pr("}")
@@ -1360,20 +1340,18 @@ class PythonGenerator extends CGenerator {
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
             
-            
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
-            // Unfortunately, threads cannot run concurrently in Python.
-            // Therefore, we need to make sure reactions cannot execute concurrently by
-            // holding the mutex lock.
-            if (targetConfig.threads > 0) {
-                pr(pyThreadMutexLockCode(0, reactor))
-            }
-            
+        
             pr('''
+                // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
+                PyGILState_STATE gstate;
+                gstate = PyGILState_Ensure();
+                
                 DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
-                PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
-            ''')
-            pr('''
+                PyObject *rValue = PyObject_CallObject(
+                    self->_lf_py_deadline_function_«reactionIndex», 
+                    Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)
+                );
                 if (rValue == NULL) {
                     error_print("FATAL: Calling reaction «decl.name».«deadlineFunctionName» failed.\n");
                     if (rValue == NULL) {
@@ -1382,18 +1360,16 @@ class PythonGenerator extends CGenerator {
                             PyErr_Clear(); // this will reset the error indicator so we can run Python code again
                         }
                     }
+                    /* Release the thread. No Python API allowed beyond this point. */
+                    PyGILState_Release(gstate);
+                    Py_FinalizeEx();
                     exit(1);
                 }
+                
+                /* Release the thread. No Python API allowed beyond this point. */
+                PyGILState_Release(gstate);
             ''')
-
-            if (targetConfig.threads > 0) {
-                pr(pyThreadMutexLockCode(1, reactor))
-            }
-            //pr(reactionInitialization.toString)
-            // Code verbatim from 'deadline'
-            //prSourceLineNumber(reaction.deadline.code)
-            //pr(reaction.deadline.code.toText)
-            // TODO: Handle deadlines
+            
             unindent()
             pr("}")
         }
@@ -1489,7 +1465,7 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Generate code that is executed while the reactor instance is being initialized
-     * @param initializationCode The StringBuilder appended to __initialize_trigger_objects()
+     * @param initializationCode The StringBuilder appended to _lf_initialize_trigger_objects()
      * @param instance The reactor instance
      * @param federate The federate instance
      */
@@ -1507,25 +1483,25 @@ class PythonGenerator extends CGenerator {
         
         // Initialize the name field to the unique name of the instance
         pr(initializationCode, '''
-            «nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+            «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
         
         for (reaction : instance.reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
             // Create a PyObject for each reaction
             pr(initializationCode, '''
-                «nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.reactionIndex» = 
                     get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->__lf_name,
+                        «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "«pythonFunctionName»");
                 ''')
         
             if (reaction.definition.deadline !== null) {
                 pr(initializationCode, '''
-                «nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.reactionIndex» = 
                     get_python_function("«topLevelName»", 
-                        «nameOfSelfStruct»->__lf_name,
+                        «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "deadline_function_«reaction.reactionIndex»");
                 ''')
@@ -1546,17 +1522,17 @@ class PythonGenerator extends CGenerator {
     override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
         val reactor = decl.toDefinition
         // Add the name field
-        pr(selfStructBody, '''char *__lf_name;
+        pr(selfStructBody, '''char *_lf_name;
         ''');
         
         var reactionIndex = 0
         for (reaction : reactor.allReactions)
         {
             // Create a PyObject for each reaction
-            pr(selfStructBody, '''PyObject *__py_reaction_function_«reactionIndex»;''')
+            pr(selfStructBody, '''PyObject* _lf_py_reaction_function_«reactionIndex»;''')
             
             if (reaction.deadline !== null) {                
-                pr(selfStructBody, '''PyObject *__py_deadline_function_«reactionIndex»;''')
+                pr(selfStructBody, '''PyObject* _lf_py_deadline_function_«reactionIndex»;''')
             }
             
             reactionIndex++
@@ -1645,7 +1621,7 @@ class PythonGenerator extends CGenerator {
             } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&«output.name»,«output.name»_width) ''')
+                pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
             }
     }
     
