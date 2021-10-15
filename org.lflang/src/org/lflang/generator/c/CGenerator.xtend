@@ -1146,69 +1146,60 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Add the appropriate platform files to 'coreFiles'. These platform files
-     * are specific to the OS/underlying hardware, which is detected here automatically.
+     * Add the platform files to 'coreFiles'.
+     * 
+     * Also if useCmake is set to false, detect the host OS
+     * and add the appropriate platform support file(s) to 
+     * the compile command (compileAdditionalSources).
      */
     def addPlatformFiles(ArrayList<String> coreFiles) {
-        // Check the operating system
-        val OS = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
-        // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
-        // for more detail.
-        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-            // Mac support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_macos_support.c")            
-            coreFiles.add("platform/lf_macos_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
-            if (mainDef !== null && !targetConfig.useCmake) {
+        // If useCmake is set to true, we don't need to add platform files. 
+        // The CMakeLists.txt file will detect and use the appropriate platform 
+        // file based on the platform that cmake is invoked on.
+        // If useCmake is set to false, we have to detect the operating system
+        // here and add the appropriate platform support source file to the compile
+        // command.
+        if (mainDef !== null && !targetConfig.useCmake) {
+            // Check the operating system
+            val OS = System.getProperty("os.name").toLowerCase();
+            // FIXME: allow for cross-compiling
+            // Based on the detected operating system, copy the required files
+            // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
+            // for more detail.
+            if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+                // Mac support
                 targetConfig.compileAdditionalSources.add(
-                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
+                    "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
-            }
-        } else if (OS.indexOf("win") >= 0) {
-            // Windows support
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_windows_support.c")
-            coreFiles.add("platform/lf_windows_support.h")
-            // For 64-bit epoch time
-            coreFiles.add("platform/lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
-            if (mainDef !== null && !targetConfig.useCmake) {
+            } else if (OS.indexOf("win") >= 0) {
+                // Windows support
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_windows_support.c"
                 )
-            }
-        } else if (OS.indexOf("nux") >= 0) {
-            // Linux support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_linux_support.c")
-            coreFiles.add("platform/lf_linux_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
-            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
-            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
-            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
-            if (mainDef !== null && !targetConfig.useCmake) {
+            } else if (OS.indexOf("nux") >= 0) {
+                // Linux support
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
                 )
+            } else {
+                errorReporter.reportError("Platform " + OS + " is not supported")
             }
-        } else {
-            errorReporter.reportError("Platform " + OS + " is not supported")
         }
+
+        coreFiles.addAll(
+            "platform/lf_POSIX_threads_support.c",
+            "platform/lf_C11_threads_support.c",
+            "platform/lf_C11_threads_support.h",
+            "platform/lf_POSIX_threads_support.h",
+            "platform/lf_POSIX_threads_support.c",
+            "platform/lf_unix_clock_support.c",
+            "platform/lf_macos_support.c",
+            "platform/lf_macos_support.h",
+            "platform/lf_windows_support.c",
+            "platform/lf_windows_support.h",
+            "platform/lf_linux_support.c",
+            "platform/lf_linux_support.h"
+        )
     }
     
     /**
