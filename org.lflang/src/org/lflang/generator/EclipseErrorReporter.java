@@ -226,14 +226,6 @@ public class EclipseErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Reset the flag indicating that generator errors occurred.
-     */
-    @Override
-    public void reset() {
-        errorsOccurred = false;
-    }
-
-    /**
      * Clear markers in the IDE.
      * This has the side effect of setting the
      * iResource variable to point to the IFile for the Lingua Franca program.
