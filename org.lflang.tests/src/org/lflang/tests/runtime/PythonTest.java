@@ -44,7 +44,7 @@ import org.lflang.Target;
 public class PythonTest extends TestBase {
 
     PythonTest() {
-        this.targets = Arrays.asList(Target.Python);
+        super(Target.Python);
     }
 
     @Test

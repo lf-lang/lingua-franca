@@ -1,12 +1,15 @@
 package org.lflang.tests.runtime;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -49,14 +52,14 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
 
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
 /**
  * Base class for test classes that define JUnit tests.
- * 
+ *
  * @author Marten Lohstroh <marten@berkeley.edu>
  *
  */
+@ExtendWith(InjectionExtension.class)
+@InjectWith(LFInjectorProvider.class)
 public abstract class TestBase {
 
     @Inject
@@ -80,23 +83,23 @@ public abstract class TestBase {
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
-        "------------------------------------------------------------------------------" + 
+        "------------------------------------------------------------------------------" +
             System.lineSeparator();
 
     /** Content separator used in test output, 78 characters wide. */
-    public static final String THICK_LINE = 
+    public static final String THICK_LINE =
         "==============================================================================" +
-            System.lineSeparator();   
+            System.lineSeparator();
 
     /** The targets for which to run the tests. */
-    protected List<Target> targets = new ArrayList<Target>();
-    
+    private final List<Target> targets;
+
     /**
      * Whether the goal is to only computer code coverage, in which we cut down
      * on verbosity of our error reporting.
      */
     protected boolean codeCovOnly;
-    
+
     /**
      * AST transformation that sets the `threads` target property to 0.
      * @return True if successful, false otherwise.
@@ -106,17 +109,17 @@ public abstract class TestBase {
         return true;
     };
 
-    
+
     /**
      * An enumeration of test levels.
      * @author Marten Lohstroh <marten@berkeley.edu>
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION};
-    
+
     /**
      * A collection messages often used throughout the test package.
-     * 
+     *
      * @author Marten Lohstroh <marten@berkeley.edu>
      *
      */
@@ -124,9 +127,10 @@ public abstract class TestBase {
         /* Reasons for not running tests. */
         public final static String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
         public final static String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
+        public final static String NO_RUST_SUPPORT = "Not supported by reactor-rust.";
         public final static String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public final static String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
-        
+
         /* Descriptions of collections of tests. */
         public final static String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
         public final static String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
@@ -135,27 +139,22 @@ public abstract class TestBase {
         public final static String DESC_AS_CCPP = "Running C tests as CCpp.";
         public final static String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
     }
-    
-    /**
-     * Force the instantiation of the test registry.
-     */
-    protected TestBase() {
-        this(true);
+
+    /** Constructor for test classes that test a single target. */
+    protected TestBase(Target first) {
+        this(Collections.singletonList(first));
     }
 
-    /**
-     * Private constructor that initializes the test registry.
-     * @param initRegistry
-     */
-    private TestBase(boolean initRegistry) {
-        if (initRegistry) {
-            TestRegistry.initialize();
-        }
+    /** Special ctor for the code coverage test */
+    protected TestBase(List<Target> targets) {
+        assertFalse(targets.isEmpty(), "empty target list");
+        this.targets = Collections.unmodifiableList(targets);
+        TestRegistry.initialize();
     }
 
     /**
      * Run selected tests for a given target and configuration up to the specified level.
-     * 
+     *
      * @param target The target to run tests for.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
@@ -185,10 +184,10 @@ public abstract class TestBase {
             }
         }
     }
-    
+
     /**
      * Run tests in the given selection for all targets enabled in this class.
-     * 
+     *
      * @param description A string that describes the collection of tests.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
@@ -209,7 +208,7 @@ public abstract class TestBase {
     
     /**
      * Run tests in the given selection for a subset of given targets.
-     * 
+     *
      * @param subset The subset of targets to run the selected tests for.
      * @param description A string that describes the collection of tests.
      * @param selected A predicate that given a test category returns whether
@@ -228,7 +227,7 @@ public abstract class TestBase {
                     copy);
         }
     }
-    
+
     /**
      * Determine whether the current platform is Windows.
      * @return true if the current platform is Windwos, false otherwise.
@@ -251,7 +250,7 @@ public abstract class TestBase {
 
     /**
      * Redirect outputs to the given tests for recording.
-     * 
+     *
      * @param test The test to redirect outputs to.
      */
     private static void redirectOutputs(LFTest test) {
@@ -262,13 +261,13 @@ public abstract class TestBase {
 
     /**
      * Run a given test up to the specified level.
-     * 
+     *
      * @param test The test to perform.
      * @param level The level of testing to perform.
      */
     public static void runSingleTestAndPrintResults(LFTest test, TestLevel level) {
         Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
-        TestBase runner = new TestBase(false) {};
+        TestBase runner = new TestBase(test.target) {};
         injector.injectMembers(runner);
 
         Set<LFTest> tests = Set.of(test);
@@ -283,7 +282,7 @@ public abstract class TestBase {
     /**
      * Print a header that describes a collection of tests, followed by a reason
      * for skipping the tests.
-     * 
+     *
      * @param description A string the describes the collection of tests.
      * @param reason A string that describes why the tests are not performed.
      */
@@ -305,11 +304,11 @@ public abstract class TestBase {
         System.out.println("Description: " + description);
         System.out.println(TestBase.THICK_LINE);
     }
-    
+
     /**
      * Iterate over given tests and evaluate their outcome, report errors if
      * there are any.
-     * 
+     *
      * @param tests The tests to inspect the results of.
      */
     private static void checkAndReportFailures(Set<LFTest> tests) {
@@ -332,7 +331,7 @@ public abstract class TestBase {
      * generator context. Also, if the given level is less than
      * `TestLevel.BUILD`, add a `no-compile` flag to the generator context. If
      * the configuration was not applied successfully, throw an AssertionError.
-     * 
+     *
      * @param test the test to configure.
      * @param configuration The configuration to apply to the test.
      * @param level The level of testing in which the generator context will be
@@ -343,7 +342,7 @@ public abstract class TestBase {
      */
     private GeneratorContext configure(LFTest test,
             Function<LFTest, Boolean> configuration, TestLevel level) throws IOException {
-        
+
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
         // been tampered with using AST transformations.
@@ -361,7 +360,7 @@ public abstract class TestBase {
             test.result = Result.PARSE_FAIL;
             throw new AssertionError("Test did not parse correctly.");
         }
-        
+
         fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
         test.fileConfig = new FileConfig(r, fileAccess, context);
 
@@ -371,16 +370,16 @@ public abstract class TestBase {
         }
 
         addExtraLfcArgs(context.getArgs());
-        
+
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configuration != null && !configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL;
             throw new AssertionError("Test configuration unsuccessful.");
         }
-        
+
         return context;
     }
-    
+
     /**
      * Validate the given test. Throw an AssertionError if validation failed.
      * @param test
@@ -524,10 +523,10 @@ public abstract class TestBase {
 
     /**
      * Validate and run the given tests, using the specified configuration and level.
-     * 
+     *
      * While performing tests, this method prints a header that reaches completion
      * once all tests have been run.
-     * 
+     *
      * @param tests A set of tests to run.
      * @param configuration A function for configuring the tests.
      * @param level The level of testing.
@@ -583,14 +582,14 @@ public abstract class TestBase {
                 TestCategory.EXAMPLE_TEST::equals, t -> true,
                 TestLevel.EXECUTION, false);
     }
-    
+
     @Test
     public void validateExamples() {
         runTestsForTargets("Description: Validate examples.",
                 TestCategory.EXAMPLE::equals, t -> true, TestLevel.VALIDATION,
                 false);
     }
-    
+
     @Test
     public void runGenericTests() {
         runTestsForTargets("Description: Run generic tests (threads = 0).",
@@ -611,7 +610,7 @@ public abstract class TestBase {
                 TestCategory.MULTIPORT::equals, makeSingleThreaded,
                 TestLevel.EXECUTION, false);
     }
-    
+
     @Test
     public void runSerializationTests() {
         runTestsForTargets("Description: Run serialization tests (threads = 0).",
@@ -651,5 +650,5 @@ public abstract class TestBase {
                 TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
                 false);
     }
-    
+
 }

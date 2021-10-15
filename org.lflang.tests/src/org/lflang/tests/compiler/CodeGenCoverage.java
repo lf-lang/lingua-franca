@@ -42,8 +42,8 @@ import org.lflang.tests.runtime.ThreadedBase;
 public class CodeGenCoverage extends ThreadedBase {
 
     CodeGenCoverage() {
+        super(Arrays.asList(Target.values()));
         this.codeCovOnly = true;
-        this.targets.addAll(Arrays.asList(Target.ALL));
     }
 
     @Test
