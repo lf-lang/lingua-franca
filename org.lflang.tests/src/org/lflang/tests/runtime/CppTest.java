@@ -45,7 +45,7 @@ import org.junit.jupiter.api.Test;
 public class CppTest extends ThreadedBase {
 
     CppTest() {
-        this.targets = Arrays.asList(Target.CPP);
+        super(Target.CPP);
     }
 
     @Override

@@ -48,7 +48,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public class CTest extends ThreadedBase {
 
     public CTest() {
-        this.targets = Arrays.asList(Target.C);
+        super(Target.C);
     }
 
     @Test

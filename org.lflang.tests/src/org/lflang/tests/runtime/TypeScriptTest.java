@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 public class TypeScriptTest extends TestBase {
     TypeScriptTest() {
-        this.targets = Arrays.asList(Target.TS);
+        super(Target.TS);
     }
     
     @Test
