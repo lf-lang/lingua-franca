@@ -719,11 +719,11 @@ class LinguaFrancaValidationTest {
             }
         ''')
 
-        model.assertError(LfPackage::eINSTANCE.addExpr, null, 57, 1, 'Unexpected operand in arithmetic expression.')
-        model.assertError(LfPackage::eINSTANCE.addExpr, null, 97, 1, 'Unexpected operand in arithmetic expression.')
-        model.assertError(LfPackage::eINSTANCE.addExpr, null, 138, 1, 'Unexpected operand in arithmetic expression.')
-        model.assertError(LfPackage::eINSTANCE.addExpr, null, 234, 3, 'Unexpected operand in arithmetic expression.')
-        model.assertError(LfPackage::eINSTANCE.addExpr, null, 234, 3, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 'Unexpected operand in arithmetic expression.')
     }
 
 
