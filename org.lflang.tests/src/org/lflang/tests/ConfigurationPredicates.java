@@ -30,6 +30,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * Configuration predicates for {@link TestBase} methods.
  *
  * @author Clément Fournier
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public class ConfigurationPredicates {
 
