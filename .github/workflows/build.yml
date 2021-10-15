@@ -61,6 +61,8 @@ jobs:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       # - name: Cache protobuf library # Thanks to https://lukasjoswiak.com/github-actions-protobuf/
       #   id: cache-protobuf
       #   uses: actions/cache@v1
@@ -101,7 +103,7 @@ jobs:
 #         if: runner.os == 'Windows'
       - name: Install RTI;
         run: |
-          cd org.lflang/src/lib/core/federated/RTI
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
           mkdir build
           cd build
           cmake ../
@@ -212,7 +214,9 @@ jobs:
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
@@ -228,7 +232,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Install python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
       - name: Build lfc;
