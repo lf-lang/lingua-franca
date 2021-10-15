@@ -703,7 +703,51 @@ class LinguaFrancaValidationTest {
         ''').assertNoErrors()
     }
 
-    
+
+    @Test
+    def void forbidMalformedArithmetic() {
+        val model = parseWithoutError('''
+            target Python;
+            reactor Contained(p = 2) {
+                state x0 = 1 + 2 sec; // int + time
+                state x1 = 1 + (2,);  // int + tuple
+                state x2 = 1 + [2];   // int + list
+
+                // following should probs be ok, currently aren't
+
+                state x3 = [2] + [3]; // list + list
+            }
+        ''')
+
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 57, 1, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 97, 1, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 138, 1, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 234, 3, 'Unexpected operand in arithmetic expression.')
+        model.assertError(LfPackage::eINSTANCE.addExpr, null, 234, 3, 'Unexpected operand in arithmetic expression.')
+    }
+
+
+    @Test
+    def void wellFormedArithmetic() {
+        parseWithoutError('''
+            target Python;
+            reactor Contained(p = 2) {
+                state x1 = 1 * 2
+                state x2 = 1 + 2
+                state x3 = 1 + p
+                state x4 = 1 * p
+                state x5 = "a" + "b"
+                state x6 = "a" + p
+                state x7 = p + "a"
+                state x8 = p * "a"
+
+                // following should probs not be ok, currently are
+                state x9 = "a" * "b";
+            }
+        ''').assertNoErrors()
+    }
+
+
     /**
      * Tests for state and parameter declarations, including native lists.
      */

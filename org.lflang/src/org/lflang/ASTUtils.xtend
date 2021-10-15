@@ -43,6 +43,7 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.ArraySpec
+import org.lflang.lf.AddExpr
 import org.lflang.lf.Assignment
 import org.lflang.lf.Code
 import org.lflang.lf.CodeExpr
@@ -57,6 +58,7 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Literal
 import org.lflang.lf.ListExpr
 import org.lflang.lf.Model
+import org.lflang.lf.MulExpr
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.ParamRef
@@ -779,11 +781,15 @@ class ASTUtils {
             ParamRef: v.parameter.name
             Time: v.toText
             Literal: v.literal
+            AddExpr: "(" + v.left.toText + " " + v.op + " " + v.right.toText  + ")"
+            MulExpr: "(" + v.left.toText + " " + v.op + " " + v.right.toText  + ")"
             ListExpr: v.items.join(',', '[', ']', [ it.toText ])
-            TupleExpr: {
-                val end = v.isTrailingComma ? ",)" : ")"
-                v.items.join(',', '(', end, [ it.toText ])
-            }
+            TupleExpr:
+                if (v.items.isEmpty) "()"
+                else {
+                    val end = v.isTrailingComma ? ",)" : ")"
+                    v.items.join(',', '(', end, [ it.toText ])
+                }
             CodeExpr: v.code.toText
             default: throw new AssertionError("unsupported " + v)
         }

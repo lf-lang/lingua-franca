@@ -47,6 +47,7 @@ import org.lflang.TargetProperty
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
+import org.lflang.lf.AddExpr
 import org.lflang.lf.Assignment
 import org.lflang.lf.Connection
 import org.lflang.lf.CodeExpr
@@ -65,6 +66,7 @@ import org.lflang.lf.LfPackage.Literals
 import org.lflang.lf.Literal
 import org.lflang.lf.ListExpr
 import org.lflang.lf.Model
+import org.lflang.lf.MulExpr
 import org.lflang.lf.NamedHost
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
@@ -754,7 +756,7 @@ class LFValidator extends BaseLFValidator {
             // All parameters must be initialized.
             error("Uninitialized parameter.", Literals.PARAMETER__INIT)
         } else {
-            checkType(param.init, param.inferredType, Literals.PARAMETER__INIT)
+            typeCheck(param.init, param.inferredType, Literals.PARAMETER__INIT)
         }
 
         if (this.target.requiresTypes) {
@@ -1230,7 +1232,49 @@ class LFValidator extends BaseLFValidator {
         }
     }
 
-    def void checkType(Initializer init, InferredType type, EStructuralFeature feature) {
+    @Check(FAST)
+    def checkAddExpr(AddExpr e) {
+        checkValidArithmeticExpr(e, Literals.ADD_EXPR__LEFT)
+    }
+
+    @Check(FAST)
+    def checkMulExpr(MulExpr e) {
+        checkValidArithmeticExpr(e, Literals.MUL_EXPR__LEFT)
+    }
+
+    /**
+     * Check the form of an arithmetic expression.
+     * todo would be nice to allow `time + time` and `int * time`.
+     *   But we'd need to build up our typing infrastructure.
+     */
+    def void checkValidArithmeticExpr(Value e, EStructuralFeature feature) {
+        switch (e) {
+            AddExpr: {
+                checkValidArithmeticExpr(e.left, feature)
+                checkValidArithmeticExpr(e.right, feature)
+            }
+            MulExpr: {
+                checkValidArithmeticExpr(e.left, feature)
+                checkValidArithmeticExpr(e.right, feature)
+            }
+            Literal, CodeExpr, ParamRef: {
+                // Assume it's ok, language will check validity later.
+                // Eg in Python, the following is fine:
+                //    2 * "a"
+                // or in C/Java/C++:
+                //    c - 'a'
+            }
+            default:
+                error("Unexpected operand in arithmetic expression.", feature)
+        }
+    }
+
+    /**
+     * Check that the initializer is compatible with the type of value.
+     * Note that if the type is inferred it will necessarily be compatible
+     * so this method is not harmful.
+     */
+    def void typeCheck(Initializer init, InferredType type, EStructuralFeature feature) {
         if (init === null) return;
 
         if (type.isTime) {
