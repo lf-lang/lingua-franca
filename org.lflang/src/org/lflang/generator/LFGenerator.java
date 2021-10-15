@@ -14,7 +14,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
@@ -38,7 +38,7 @@ public class LFGenerator extends AbstractGenerator {
     /**
      * Create a target-specific FileConfig object in Kotlin
      *
-     * Since the CppFileConfig and TypeScriptFileConfig class are implemented in Kotlin, the classes are
+     * Since the CppFileConfig and TSFileConfig class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
@@ -83,8 +83,8 @@ public class LFGenerator extends AbstractGenerator {
     private GeneratorBase createGenerator(Target target, FileConfig fileConfig,
             ErrorReporter errorReporter) {
         switch (target) {
-        case C: return new CGenerator(fileConfig, errorReporter);
-        case CCPP: return new CCppGenerator(fileConfig, errorReporter);
+        case C: return new CGenerator(fileConfig, errorReporter, false);
+        case CCPP: return new CGenerator(fileConfig, errorReporter, true);
         case Python: return new PythonGenerator(fileConfig, errorReporter);
         case CPP:
         case TS:

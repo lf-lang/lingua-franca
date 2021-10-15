@@ -16,6 +16,14 @@ public class Messages extends NLS {
 	public static String WebserverProject_Description;
 	public static String WebServerProject_Label;
 	public static String WebServerProject_Description;
+	public static String ReflexGameProject_Label;
+	public static String ReflexGameProject_Description;
+	public static String FederatedProject_Label;
+	public static String FederatedProject_Description;
+	public static String ParallelProject_Label;
+	public static String ParallelProject_Description;
+	public static String PipelineProject_Label;
+	public static String PipelineProject_Description;
 	
 	static {
 	// initialize resource bundle
