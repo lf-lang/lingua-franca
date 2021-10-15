@@ -55,7 +55,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
   - [x] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely
   - [x] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
-  - [ ] it should be possible to request shutdown asynchronously
+  - [ ] todo does shutdown abort async threads or not?
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
   - [x] `TimerPeriodic.lf`: timer can be periodic
@@ -69,6 +69,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `StopNoEvent.lf`: `shutdown` is triggered even if the program exits because of an empty event queue
   - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
   - [x] `StopDuringStartup.lf`: `request_stop` may be called within startup.
+  - [x] `StopAsync.lf`: it should be possible to request shutdown asynchronously
 - [x] state variables
   - [x] `TimeState.lf`: support time type
   - [x] `StateDefaultValue.lf`: if initializer is missing, `Default::default()` is used
