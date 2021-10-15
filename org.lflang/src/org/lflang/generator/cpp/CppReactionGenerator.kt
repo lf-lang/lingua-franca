@@ -29,13 +29,14 @@ import org.lflang.isBank
 import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
-import org.lflang.toText
+import org.lflang.toTaggedText
 
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
     private val reactor: Reactor,
     private val portGenerator: CppPortGenerator,
-    private val instanceGenerator: CppInstanceGenerator
+    private val instanceGenerator: CppInstanceGenerator,
+    private val fileConfig: CppFileConfig
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
@@ -144,7 +145,7 @@ class CppReactionGenerator(
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
             ${" |"..getFunctionDefinitionSignature(reaction, "body")} {
-            ${" |  "..reaction.code.toText()}
+            ${" |  "..reaction.code.toTaggedText(fileConfig.srcFile)}
                 |}
                 |
             """.trimMargin()
@@ -155,7 +156,7 @@ class CppReactionGenerator(
         return """
             |${reactor.templateLine}
         ${" |"..getFunctionDefinitionSignature(reaction, "deadline_handler")} {
-        ${" |  "..reaction.deadline.code.toText()}
+        ${" |  "..reaction.deadline.code.toTaggedText(fileConfig.srcFile)}
             |}
             |
         """.trimMargin()

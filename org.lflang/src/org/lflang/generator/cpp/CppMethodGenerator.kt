@@ -29,10 +29,10 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Method
 import org.lflang.lf.MethodArgument
 import org.lflang.lf.Reactor
-import org.lflang.toText
+import org.lflang.toTaggedText
 
 /** A C++ code generator for state variables */
-class CppMethodGenerator(private val reactor: Reactor) {
+class CppMethodGenerator(private val reactor: Reactor, private val fileConfig: CppFileConfig) {
 
     private val Method.targetType: String get() = if (`return` != null) InferredType.fromAST(`return`).targetType else "void"
     private val MethodArgument.targetType: String get() = InferredType.fromAST(type).targetType
@@ -45,7 +45,7 @@ class CppMethodGenerator(private val reactor: Reactor) {
             """
                 |${reactor.templateLine}
                 |$targetType ${reactor.templateName}::Inner::$name(${cppArgs.joinToString(", ")})$constQualifier {
-            ${" |  "..code.toText()}
+            ${" |  "..code.toTaggedText(fileConfig.srcFile)}
                 |}
             """.trimMargin()
         }
