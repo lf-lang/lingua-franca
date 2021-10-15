@@ -45,10 +45,15 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class CTest extends ThreadedBase {
+public class CTest extends TestBase {
 
     public CTest() {
         super(Target.C);
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
     }
 
     @Test

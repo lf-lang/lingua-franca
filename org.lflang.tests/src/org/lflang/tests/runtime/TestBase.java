@@ -122,6 +122,7 @@ public abstract class TestBase {
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
+        public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
@@ -290,7 +291,11 @@ public abstract class TestBase {
     protected static void printTestHeader(Target target, String description) {
         System.out.print(TestBase.THICK_LINE);
         System.out.println("Target: " + target);
-        System.out.println("Description: " + description);
+        if (description.startsWith("Description: ")) {
+            System.out.println(description);
+        } else {
+            System.out.println("Description: " + description);
+        }
         System.out.println(TestBase.THICK_LINE);
     }
 
@@ -622,17 +627,39 @@ public abstract class TestBase {
 
     @Test
     public void runConcurrentTests() {
-        runTestsForTargets("Description: Run concurrent tests.",
-                TestCategory.CONCURRENT::equals, t -> true, TestLevel.EXECUTION,
-                false);
+        runTestsForTargets(Message.DESC_CONCURRENT,
+                           TestCategory.CONCURRENT::equals, t -> true, TestLevel.EXECUTION,
+                           false);
 
     }
 
     @Test
     public void runFederatedTests() {
-        runTestsForTargets("Description: Run federated tests.",
-                TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
-                false);
+        runTestsForTargets(Message.DESC_FEDERATED,
+                           TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
+                           false);
+    }
+
+    /**
+     * Whether to enable {@link #runWithFourThreads()}.
+     */
+    protected boolean supportsThreadsOption() {
+        return false;
+    }
+
+    @Test
+    public void runWithFourThreads() {
+        if (supportsThreadsOption()) {
+            this.runTestsForTargets(
+                Message.DESC_FOUR_THREADS,
+                ConfigurationPredicates::defaultCategoryExclusion,
+                ConfigurationPredicates::useFourThreads,
+                TestLevel.EXECUTION,
+                true
+            );
+        } else {
+            printSkipMessage(Message.DESC_FOUR_THREADS, "target does not support threads property");
+        }
     }
 
 }

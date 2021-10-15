@@ -42,10 +42,15 @@ import org.junit.jupiter.api.Test;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class CppTest extends ThreadedBase {
+public class CppTest extends TestBase {
 
     CppTest() {
         super(Target.CPP);
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
     }
 
     @Override
