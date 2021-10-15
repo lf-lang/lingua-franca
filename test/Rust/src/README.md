@@ -54,7 +54,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [ ] physical actions
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
   - [ ] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely -> todo check it out from the git history and fix it 
-  - [ ] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
+  - [x] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
   - [ ] it should be possible to request shutdown asynchronously
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
@@ -94,16 +94,17 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 ### Runtime
 
 - [x] parallelize independent computation
-  - [x] feature-gated by Cargo (`--features parallel_runtime`)
+  - [x] feature-gated by Cargo (`--features parallel-runtime`)
   - [ ] make usable as target property
   - [ ] maybe stop using rayon and use your own thread pool and concurrency primitives (far away)
 - [ ] runtime parameters
-  - [x] `PhysicalActionWithKeepalive.lf`: keepalive option
+  - [x] `PhysicalActionWithKeepalive.lf`: ~keepalive option~ keepalive isn't needed in Rust
   - [x] timeout option
 - [ ] error recovery
   - [ ] unwind safety around reaction invocation, possibly a panic handler
 - [ ] tracing
   - [ ] binary trace format -> you need benchmarks to measure overhead first
+  - [ ] dumping dependency graph
 
 ### Rust-specific code generator features
 
@@ -112,6 +113,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `CargoDependency.lf`: generated project can depend on external crates, including local ones
   - [x] `ModuleDependency.lf`: one can add pure rust modules to the generated project without fuss
   - [x] `ModuleDependencyWithDirModule.lf`: one can also add a tree of modules
+  - [ ] Specify runtime crate as a cargo dependency
 - `CliFeature.lf`: CLI parameter parsing
   - [x] for runtime options
   - [x] for parameters of the main reactor
