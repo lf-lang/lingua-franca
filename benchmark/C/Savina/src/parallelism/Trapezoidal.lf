@@ -14,12 +14,16 @@
  */
 
 target C {
-    flags: "-lm",
-    keepalive: true,
-    threads: 24
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    flags: "-lm"
 };
-
-// import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
 preamble {=
@@ -156,8 +160,13 @@ reactor Worker(instance:int(0)) {
     =}
 }
 
+/* [[[cog
+    cog.outl(f'main reactor Trapezoidal(numWorkers:int({workers}), numPieces:int({pieces}), leftEndPoint:double({left}), rightEndPoint:double({right}))') 
+]]] */
+    main reactor Trapezoidal(numWorkers:int(100), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0))
 
-main reactor Trapezoidal(numWorkers:int(100), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0)) {
+// [[[end]]]    
+{
     
 
     master = new Master(numWorkers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);

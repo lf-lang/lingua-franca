@@ -17,12 +17,19 @@
  * @author Edward A. Lee
  */
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     fast: true,
-    threads: 4,
     tracing: true
 };
 
-import Philosopher from "lib/Philosopher.lf";
+import Philosopher from "philosopher_original/Philosopher.lf";
 
 reactor Arbitrator(
     num_philosophers:int(20),
