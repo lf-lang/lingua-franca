@@ -50,7 +50,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] `ActionIsPresent.lf`: function `is_present` checks whether an action is present at the current tag
     - [x] `ActionIsPresentDouble.lf`: several actions may be present at the same tag
     - [ ] minimum spacing and spacing violation policy
-    - [ ] todo does scheduling an action twice produce two separate triggers at the same instant? 
+    - [ ] todo does scheduling an action twice produce two separate triggers at the same instant? -> no
 - [ ] physical actions
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
   - [x] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely
@@ -74,7 +74,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `TimeState.lf`: support time type
   - [x] `StateDefaultValue.lf`: if initializer is missing, `Default::default()` is used
   - [x] are accessible within reactions
-  - [x] are *not* accessible within initializers
+  - [x] `StateInitializerVisibility.lf`: are accessible within initializers of other state vars (no forward reference allowed though)
   - [x] are initialized to their proper value
 - [x] reactor parameters
   - [x] `CtorParamSimple.lf`: ctor parameters are accessible in initializers and reactions
