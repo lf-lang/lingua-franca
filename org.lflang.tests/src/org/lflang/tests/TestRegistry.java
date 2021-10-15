@@ -232,7 +232,7 @@ public class TestRegistry {
      * 
      * @param target
      * @param category
-     * @param copy Whether or not to return copies of the indexed tests or not.
+     * @param copy Whether to return copies of the indexed tests instead of the indexed tests themselves.
      * @return
      */
     public static Set<LFTest> getRegisteredTests(Target target,
