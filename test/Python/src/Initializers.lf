@@ -1,5 +1,7 @@
 target Python;
 
+reactor Sub(seq([1,2])) {}
+
 reactor Foo(
     p1(4, 2),    // tuple
     p2 = (4, 2), // tuple
@@ -31,9 +33,38 @@ reactor Foo(
         assert self.p5 == "a";
         assert self.p6 == "a";
 
+        assert self.t0  == ()
+        assert self.t02 == ()
+        assert self.t1  == (1,)
+        assert self.t12 == (1,)
+        assert self.t2  == (1,2)
+        assert self.t22 == (1,2)
+        assert self.justin == 1
+        assert self.justin2 == 1
+
         if __debug__: # otherwise asserts are noop
             print("Success\n")
     =}
+
+
+    state t0 = ();      // empty tuple
+    state t02();        // empty tuple
+
+    state t1 = (1,);    // tuple of 1
+    state t12(1,);      // tuple of 1
+
+    state t2 = (1,2);   // tuple of 2
+    state t22(1,2);     // tuple of 2
+
+    state justin = (1); // just 1
+    state justin2(1);   // just 1
+
+    sub  = new Sub(seq = ());
+    sub2 = new Sub(seq = (1,));
+    sub3 = new Sub(seq = (1, 2));
+    sub4 = new Sub(seq((1, 2,)));
+
+
 }
 
 main reactor {
