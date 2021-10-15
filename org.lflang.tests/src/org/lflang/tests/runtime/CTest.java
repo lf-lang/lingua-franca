@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 
 import org.junit.jupiter.api.Disabled;
@@ -47,7 +48,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public class CTest extends ThreadedBase {
 
     public CTest() {
-        this.target = Target.C;
+        this.targets = Arrays.asList(Target.C);
     }
 
     @Test
@@ -58,8 +59,8 @@ public class CTest extends ThreadedBase {
 
     @Test
     @Override
-    public void compileExamples() {
-        super.compileExamples();
+    public void validateExamples() {
+        super.validateExamples();
     }
 
     @Test
@@ -72,8 +73,9 @@ public class CTest extends ThreadedBase {
     @Override
     public void runTargetSpecificTests() {
         if(isWindows()) {
-            printTestHeader("Warning: Skipping C target-specific tests on Windows.");
-            return; 
+            printSkipMessage(Message.DESC_TARGET_SPECIFIC,
+                    Message.NO_WINDOWS_SUPPORT);
+            return;
         }
         super.runTargetSpecificTests();
     }
@@ -95,7 +97,8 @@ public class CTest extends ThreadedBase {
     public void runSerializationTests() {
         // Skip the test if the OS is Windows
         if(isWindows()) { 
-            printTestHeader("Warning: Skipping serialization tests on Windows.");
+            printSkipMessage(Message.DESC_SERIALIZATION,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
         super.runSerializationTests();
@@ -107,7 +110,8 @@ public class CTest extends ThreadedBase {
     public void runAsFederated() {
         // Skip the test if the OS is Windows
         if(isWindows()) { 
-            printTestHeader("Warning: Skipping federated tests on Windows.");
+            printSkipMessage(Message.DESC_AS_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
         super.runAsFederated();
@@ -124,14 +128,12 @@ public class CTest extends ThreadedBase {
     public void runFederatedTests() {
         // Skip the test if the OS is Windows
         if(isWindows()) {
-            printTestHeader("Warning: Skipping federated tests on Windows.");
+            printSkipMessage(Message.DESC_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
         super.runFederatedTests();
     }
-    
-    /** Static description of test that runs C tests as CCpp. */
-    public static final String RUN_AS_CCPP_DESC = "Description: Running C tests as CCpp.";
     
     /**
      * Run C tests with the target CCpp.
@@ -139,13 +141,12 @@ public class CTest extends ThreadedBase {
     @Test
     public void runAsCCpp() {
         if(isWindows()) {
-            printTestHeader("Warning: Skipping CCpp tests on Windows.");
+            printSkipMessage(Message.DESC_AS_CCPP,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
-        printTestHeader(RUN_AS_CCPP_DESC);
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        
         categories.removeAll(EnumSet.of(
                 // Don't need to test examples.
                 // If any of them uses CCpp, it will
@@ -153,9 +154,9 @@ public class CTest extends ThreadedBase {
                 // run.
                 TestCategory.EXAMPLE));
 
-        runTestsAndPrintResults(target,
-                                categories::contains,
-                                it -> ASTUtils.changeTargetName(it.fileConfig.resource, "CCpp"),
-                                true);
+        runTestsForTargets(Message.DESC_AS_CCPP, categories::contains,
+                it -> ASTUtils.changeTargetName(it.fileConfig.resource,
+                        Target.CCPP.getDisplayName()),
+                TestLevel.EXECUTION, true);
     }
 }
