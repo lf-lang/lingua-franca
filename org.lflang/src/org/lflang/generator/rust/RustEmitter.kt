@@ -511,7 +511,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             is PortData           -> portRefWrapper(kind, dataType)
             is ChildPortReference -> portRefWrapper(kind, dataType)
             is TimerData          -> "&${toType()}"
-            is ActionData          -> if (isLogical) "&mut ${toType()}" else "&${toType()}"
+            is ActionData          -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
 
     private fun portRefWrapper(kind: DepKind, dataType: TargetCode) =
