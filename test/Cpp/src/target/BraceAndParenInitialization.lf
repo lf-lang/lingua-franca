@@ -25,7 +25,7 @@ reactor Foo(
             param_list_4.size() != 2 || param_list_4[0] != 3 ||
             param_list_5.size() != 4 || param_list_5[0] != 2 ||
             state_list_1.size() != 6 || state_list_1[0] != 42 ||
-            state_list_2.size() != 2 || state_list_2[0] != 6
+            state_list_2.size() != 2 || state_list_2[0] != 6 ||
             state_list_eq.size() != 4 || state_list_eq[0] != 2 ||
             state_int != 22 ||
             state_str != "-----" ||
