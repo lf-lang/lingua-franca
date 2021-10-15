@@ -24,12 +24,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
-import java.util.Arrays;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
 import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests for the Python target.
@@ -41,7 +39,7 @@ import org.lflang.Target;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class PythonTest extends TestBase {
+public class PythonTest extends AbstractTest {
 
     PythonTest() {
         super(Target.Python);

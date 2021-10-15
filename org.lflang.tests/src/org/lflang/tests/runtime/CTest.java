@@ -26,13 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
-import java.util.Arrays;
 import java.util.EnumSet;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -45,7 +45,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class CTest extends TestBase {
+public class CTest extends AbstractTest {
 
     public CTest() {
         super(Target.C);

@@ -22,12 +22,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.tests.runtime;
+package org.lflang.tests;
 
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import org.lflang.tests.LFTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -38,17 +34,24 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public class ConfigurationPredicates {
 
     /**
-     * AST transformation that sets the `threads` target property to 0.
+     * Configure the given test by setting its `threads` target property to 0.
      *
+     * @param test The test to configure.
      * @return True if successful, false otherwise.
      */
-    static boolean makeSingleThreaded(LFTest it) {
-        it.getContext().getArgs().setProperty("threads", "0");
+    static boolean useSingleThread(LFTest test) {
+        test.getContext().getArgs().setProperty("threads", "0");
         return true;
     }
 
-    static boolean useFourThreads(LFTest t) {
-        t.getContext().getArgs().setProperty("threads", "4");
+    /**
+     * Configure the given test by setting its `threads` target property to 4.
+     *
+     * @param test The test to configure
+     * @return True if successful, false otherwise.
+     */
+    static boolean useFourThreads(LFTest test) {
+        test.getContext().getArgs().setProperty("threads", "4");
         return true;
     }
 

@@ -1,10 +1,8 @@
 package org.lflang.tests.runtime;
 
-import org.lflang.Target;
-
-import java.util.Arrays;
-
 import org.junit.jupiter.api.Test;
+import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests for the TypeScript target.
@@ -17,7 +15,7 @@ import org.junit.jupiter.api.Test;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 
-public class TypeScriptTest extends TestBase {
+public class TypeScriptTest extends AbstractTest {
     TypeScriptTest() {
         super(Target.TS);
     }
