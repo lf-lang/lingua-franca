@@ -48,10 +48,10 @@ class CppGenerator(
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val libDir = "/lib/Cpp"
+        const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "c56febce6a291d5e2727266bb819a839e3f6c71f"
+        const val defaultRuntimeVersion = "eaa514d4a2a44e6ec57422e1a90481cf15c942fd"
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
@@ -71,7 +71,7 @@ class CppGenerator(
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
-            doCompile()
+            doCompile(context)
         }
     }
 
@@ -124,7 +124,7 @@ class CppGenerator(
         fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
-    fun doCompile() {
+    fun doCompile(context: IGeneratorContext) {
         val outPath = fileConfig.outPath
 
         val buildPath = outPath.resolve("build").resolve(topLevelName)
@@ -167,11 +167,11 @@ class CppGenerator(
         }
 
         // run cmake
-        val cmakeReturnCode = cmakeCommand.run()
+        val cmakeReturnCode = cmakeCommand.run(context.cancelIndicator)
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeReturnCode = makeCommand.run()
+            val makeReturnCode = makeCommand.run(context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")

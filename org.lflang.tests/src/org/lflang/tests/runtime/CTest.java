@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 
 import org.junit.jupiter.api.Disabled;
@@ -47,7 +48,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public class CTest extends ThreadedBase {
 
     public CTest() {
-        this.target = Target.C;
+        this.targets = Arrays.asList(Target.C);
     }
 
     @Test
@@ -58,8 +59,8 @@ public class CTest extends ThreadedBase {
 
     @Test
     @Override
-    public void compileExamples() {
-        super.compileExamples();
+    public void validateExamples() {
+        super.validateExamples();
     }
 
     @Test
@@ -71,6 +72,11 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runTargetSpecificTests() {
+        if(isWindows()) {
+            printSkipMessage(Message.DESC_TARGET_SPECIFIC,
+                    Message.NO_WINDOWS_SUPPORT);
+            return;
+        }
         super.runTargetSpecificTests();
     }
 
@@ -85,11 +91,29 @@ public class CTest extends ThreadedBase {
     public void runWithFourThreads() {
         super.runWithFourThreads();
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_SERIALIZATION,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
+        super.runSerializationTests();
+    }
 
     @Test
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_AS_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
         super.runAsFederated();
     }
 
@@ -102,21 +126,27 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runFederatedTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) {
+            printSkipMessage(Message.DESC_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
         super.runFederatedTests();
     }
-    
-    /** Static description of test that runs C tests as CCpp. */
-    public static final String RUN_AS_CCPP_DESC = "Description: Running C tests as CCpp.";
     
     /**
      * Run C tests with the target CCpp.
      */
     @Test
     public void runAsCCpp() {
-        printTestHeader(RUN_AS_CCPP_DESC);
+        if(isWindows()) {
+            printSkipMessage(Message.DESC_AS_CCPP,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        
         categories.removeAll(EnumSet.of(
                 // Don't need to test examples.
                 // If any of them uses CCpp, it will
@@ -124,9 +154,9 @@ public class CTest extends ThreadedBase {
                 // run.
                 TestCategory.EXAMPLE));
 
-        runTestsAndPrintResults(target,
-                                categories::contains,
-                                it -> ASTUtils.changeTargetName(it.fileConfig.resource, "CCpp"),
-                                true);
+        runTestsForTargets(Message.DESC_AS_CCPP, categories::contains,
+                it -> ASTUtils.changeTargetName(it.fileConfig.resource,
+                        Target.CCPP.getDisplayName()),
+                TestLevel.EXECUTION, true);
     }
 }

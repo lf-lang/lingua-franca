@@ -71,7 +71,7 @@ reactor Sieve {
 reactor Destination {
     input ok:bool;
     input in:int;
-    state last_invoked:tag_t({= NEVER_TAG =});
+    state last_invoked:tag_t({= NEVER_TAG_INITIALIZER =});
     reaction(ok, in) {=
         if (ok->is_present && in->is_present) {
             info_print("Destination: Input %d is prime at tag (%lld, %d).", 

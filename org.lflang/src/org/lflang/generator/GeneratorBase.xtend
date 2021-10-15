@@ -48,14 +48,15 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
+import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.MainConflictChecker
-import org.lflang.Mode
 import org.lflang.Target
 import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
@@ -240,7 +241,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
-
+    
     // //////////////////////////////////////////
     // // Private fields.
     /**
@@ -281,21 +282,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * 
+     * Set the appropriate target properties based on the target properties of
+     * the main .lf file.
      */
     protected def void setTargetConfig(IGeneratorContext context) {
-        // If there are any physical actions, ensure the threaded engine is used.
-        for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
-            if (action.origin == ActionOrigin.PHYSICAL) {
-                targetConfig.threads = 1
-            }
-        }
 
         val target = fileConfig.resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
             TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList)
         }
+
+        // Accommodate the physical actions in the main .lf file
+        accommodatePhysicalActionsIfPresent(fileConfig.resource);
 
         // Override target properties if specified as command line arguments.
         if (context instanceof StandaloneContext) {
@@ -319,6 +318,38 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
             if (context.args.containsKey("external-runtime-path")) {
                 targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
+            }
+            if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
+                targetConfig.keepalive = Boolean.parseBoolean(
+                    context.args.getProperty(TargetProperty.KEEPALIVE.description));
+            }
+        }
+    }
+    
+    /**
+     * Look for physical actions in 'resource'.
+     * If found, take appropriate actions to accommodate.
+     * 
+     * Set keepalive to true.
+     */
+    protected def void accommodatePhysicalActionsIfPresent(Resource resource) {
+        // If there are any physical actions, ensure the threaded engine is used and that
+        // keepalive is set to true, unless the user has explicitly set it to false.
+        for (action : resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                // Check if the user has explicitly set keepalive to false or true
+                if (!targetConfig.setByUser.contains(TargetProperty.KEEPALIVE)
+                    && targetConfig.keepalive == false
+                ) {
+                    // If not, set it to true
+                    targetConfig.keepalive = true
+                    errorReporter.reportWarning(
+                        action,
+                        '''Setting «TargetProperty.KEEPALIVE.description» to true because of «action.name».«
+                        » This can be overridden by setting the «TargetProperty.KEEPALIVE.description»«
+                        » target property manually.'''
+                    );
+                }
             }
         }
     }
@@ -360,10 +391,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         printInfo()
 
-        // Reset the error reporter. If the reporter sets markers in the IDE, this will
-        // clear any markers that may have been created by a previous build.
+        // Clear any IDE markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        errorReporter.reset()
+        if (errorReporter instanceof EclipseErrorReporter) {
+            errorReporter.clearMarkers()
+        }
         
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
@@ -412,7 +444,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // If serialization support is
             // requested by the programmer 
             // enable support for them.
-            enableSupportForSerialization();            
+            enableSupportForSerialization(context.cancelIndicator);
         }
     }
 
@@ -505,6 +537,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             fileConfig,
                             targetConfig)
                     );
+                    
+                    // Accommodate the physical actions in the imported .lf file
+                    accommodatePhysicalActionsIfPresent(res);
                     // FIXME: Should the GeneratorBase pull in `files` from imported
                     // resources? If so, uncomment the following line.
                     // copyUserFiles(targetConfig, fileConfig);
@@ -886,7 +921,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Add necessary code to the source and necessary build support to
      * enable the requested serializations in 'enabledSerializations'
      */   
-    def void enableSupportForSerialization() {
+    def void enableSupportForSerialization(CancelIndicator cancelIndicator) {
         throw new UnsupportedOperationException(
             "Serialization is target-specific "+
             " and is not implemented for the "+target.toString+" target."
@@ -1144,7 +1179,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
                       
-                    if (originalPath != path) {
+                    if (originalPath.compareTo(path) != 0) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1182,7 +1217,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 if (message.length > 0) {
                     message.append("\n")
                 } else {
-                    if (line.toLowerCase.contains('warning:')) {
+                    if (!line.toLowerCase.contains('error:')) {
                         severity = IMarker.SEVERITY_WARNING
                     }
                 }
@@ -1196,7 +1231,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath != path) {
+            if (originalPath.compareTo(path) != 0) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the

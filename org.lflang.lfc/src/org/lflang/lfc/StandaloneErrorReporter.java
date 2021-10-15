@@ -98,10 +98,4 @@ public class StandaloneErrorReporter implements ErrorReporter {
     public boolean getErrorsOccurred() {
         return issueAcceptor.getErrorsOccurred();
     }
-
-
-    @Override
-    public void reset() {
-        issueAcceptor.reset();
-    }
 }
