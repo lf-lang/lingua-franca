@@ -34,16 +34,11 @@ import java.util.LinkedList
 import java.util.List
 import java.util.Set
 
-import org.eclipse.core.resources.IMarker
-import org.eclipse.core.resources.IResource
-import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
@@ -100,14 +95,14 @@ import org.lflang.federated.SupportedSerializers
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
  *
  */
-class LFValidatorImpl extends AbstractLFValidator {
+class LFValidator extends BaseLFValidator {
 
     var Target target
 
     public var info = new ModelInfo()
 
-    @Inject
-    ErrorReporter errorReporter
+    val ValidatorErrorReporter errorReporter = new ValidatorErrorReporter(getMessageAcceptor(),
+        new ValidatorStateAccess())
 
     @Inject(optional = true)
     ValidationMessageAcceptor messageAcceptor
@@ -572,29 +567,6 @@ class LFValidatorImpl extends AbstractLFValidator {
                 "STP offset exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY)
-        }
-    }
-
-    @Check(NORMAL)
-    def checkBuild(Model model) {
-        val uri = model.eResource?.URI
-        if (uri !== null && uri.isPlatform) {
-            // Running in INTEGRATED mode. Clear marks.
-            // This has to be done here rather than in doGenerate()
-            // of GeneratorBase because, apparently, doGenerate() is
-            // not called at all if there are marks.
-            //val uri = model.eResource.URI
-            val iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
-                new Path(uri.toPlatformString(true)))
-            try {
-                // First argument can be null to delete all markers.
-                // But will that delete xtext markers too?
-                iResource.deleteMarkers(IMarker.PROBLEM, true,
-                    IResource.DEPTH_INFINITE);
-            } catch (Exception e) {
-                // Ignore, but print a warning.
-                println("Warning: Deleting markers in the IDE failed: " + e)
-            }
         }
     }
 
