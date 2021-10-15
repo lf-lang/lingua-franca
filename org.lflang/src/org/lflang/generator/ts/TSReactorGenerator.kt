@@ -1,7 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.*
-import org.lflang.generator.FederateInstance
+import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import java.util.*
@@ -60,7 +60,7 @@ class TSReactorGenerator(
             |// ************* Instance $fullName of class ${defn.reactorClass.name}
             |let __app;
             |if (!__noStart) {
-            |    __app = new $fullName(__timeout, __keepAlive, __fast, $mainReactorParams);
+            |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams);
             |}
             """
         }.trimMargin()

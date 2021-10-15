@@ -27,6 +27,7 @@ package org.lflang.generator.cpp
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
+import org.lflang.hasMultipleConnections
 import org.lflang.lf.*
 
 /**
@@ -131,29 +132,8 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    private val Connection.isMultiportConnection: Boolean
-        get() {
-            // if there are multiple ports listed on the left or right side, this is a multiport connection
-            if (leftPorts.size > 1 || rightPorts.size > 1)
-                return true
-
-            // if the ports on either side are multiports, this is a multiport connection
-            val leftPort = leftPorts[0].variable as Port
-            val rightPort = rightPorts[0].variable as Port
-            if (leftPort.isMultiport || rightPort.isMultiport)
-                return true
-
-            // if the containers on either side are banks, this is a multiport connection
-            val leftContainer = leftPorts[0].container
-            val rightContainer = rightPorts[0].container
-            if (leftContainer?.isBank == true || rightContainer?.isBank == true)
-                return true
-
-            return false
-        }
-
     private fun declareConnection(c: Connection, idx: Int): String {
-        return if (c.isMultiportConnection) {
+        return if (c.hasMultipleConnections) {
             declareMultiportConnection(c, idx)
         } else {
             val leftPort = c.leftPorts[0]
@@ -198,7 +178,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIsIterated});
+                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
             """.trimMargin()
         }
     }
