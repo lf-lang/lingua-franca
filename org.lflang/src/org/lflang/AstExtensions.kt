@@ -26,8 +26,12 @@ package org.lflang
 
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.lflang.generator.CodeMap
+import org.lflang.generator.Range
 import org.lflang.generator.cpp.name
 import org.lflang.lf.*
+import java.nio.file.Path
 
 /**
  * If this reactor declaration is an import, then
@@ -132,6 +136,24 @@ val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
  * @see ASTUtils.toText
  */
 fun Code.toText(): String = ASTUtils.toText(this)
+
+fun Code.toTaggedText(path: Path): String {
+    val text: String = this.toText()
+    val node = NodeModelUtils.getNode(this)
+    var adjustment = 0
+    var cutoff: Int = text.length
+    while (cutoff > 0) {
+        val idx = node.text.indexOf(text.substring(0, cutoff))
+        if (idx != -1) {
+            adjustment = idx
+            break
+        }
+        cutoff /= 2
+    }
+    val startOffset = node.totalOffset + adjustment
+    val correspondence = CodeMap.Correspondence(path, Range(startOffset, startOffset + text.length), Range(0, text.length))
+    return correspondence.toString() + text;
+}
 
 /**
  * Translate this code element into its textual representation.

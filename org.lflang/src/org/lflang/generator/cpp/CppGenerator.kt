@@ -31,6 +31,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.Target
+import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -62,20 +63,25 @@ class CppGenerator(
 
         // abort if there is no main reactor
         if (mainDef == null) {
+            // FIXME: Sending directly to stdout only seems to make sense in standalone mode.
+            //  Convert to errorReporter.reportWarning?
+            //  This would tell IDE users why the code generator and C++ validator are not running.
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
 
-        generateFiles(fsa)
+        val codeMaps = generateFiles(fsa)
 
-        if (targetConfig.noCompile || errorsOccurred() || cppFileConfig.compilerMode == Mode.LSP_FAST) {
+        if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
+        } else if (cppFileConfig.compilerMode == Mode.LSP_FAST) {
+            CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
         } else {
             doCompile(context)
         }
     }
 
-    private fun generateFiles(fsa: IFileSystemAccess2) {
+    private fun generateFiles(fsa: IFileSystemAccess2): Map<Path, CodeMap> {
         val srcGenPath = fileConfig.srcGenPath
         val relSrcGenPath = fileConfig.srcGenBasePath.relativize(srcGenPath)
 
@@ -87,25 +93,26 @@ class CppGenerator(
         fileConfig.copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
         fileConfig.copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
 
-        // keep a list of all source files we generate
-        val cppSources = mutableListOf<Path>()
+        // keep track of all source files we generate
+        val cppSources = HashMap<Path, CodeMap>()
 
         // generate the main source file (containing main())
-        val mainGenerator = CppMainGenerator(mainReactor, targetConfig, cppFileConfig)
         val mainFile = Paths.get("main.cc")
-        cppSources.add(mainFile)
-        fsa.generateFile(relSrcGenPath.resolve(mainFile).toString(), mainGenerator.generateCode())
+        val mainCodeMap = CodeMap.fromGeneratedCode(CppMainGenerator(mainReactor, targetConfig, cppFileConfig).generateCode())
+        cppSources[mainFile] = mainCodeMap
+        fsa.generateFile(relSrcGenPath.resolve(mainFile).toString(), mainCodeMap.generatedCode)
 
         // generate header and source files for all reactors
         for (r in reactors) {
             val generator = CppReactorGenerator(r, cppFileConfig, errorReporter)
             val headerFile = cppFileConfig.getReactorHeaderPath(r)
             val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+            val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
-                cppSources.add(sourceFile)
+                cppSources[sourceFile] = reactorCodeMap
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.generateSource())
+            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), reactorCodeMap.generatedCode)
         }
 
         // generate file level preambles for all resources
@@ -113,21 +120,26 @@ class CppGenerator(
             val generator = CppPreambleGenerator(r.getEResource(), cppFileConfig, scopeProvider)
             val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
             val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
-            cppSources.add(sourceFile)
+            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
+            cppSources[sourceFile] = preambleCodeMap
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.generateSource())
+            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), preambleCodeMap.generatedCode)
         }
 
         // generate the cmake script
         val cmakeGenerator = CppCmakeGenerator(targetConfig, cppFileConfig)
-        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
+        fsa.generateFile(
+            relSrcGenPath.resolve("CMakeLists.txt").toString(),
+            cmakeGenerator.generateCode(cppSources.keys.toList())
+        )
+        return cppSources
     }
 
     fun doCompile(context: IGeneratorContext) {
         val outPath = fileConfig.outPath
 
-        val buildPath = outPath.resolve("build").resolve(topLevelName)
+        val buildPath = cppFileConfig.buildPath
         val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
 
         // make sure the build directory exists

@@ -13,6 +13,10 @@ import org.jetbrains.annotations.NotNull;
 public class Position implements Comparable<Position> {
     public static final Pattern PATTERN = Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");
 
+    public static final Position ORIGIN = Position.fromZeroBased(0, 0);
+
+    private static final Pattern LINE_SEPARATOR = Pattern.compile("(\n)|(\r)|(\r\n)");
+
     /*
     Implementation note: This class is designed to remove
     all ambiguity wrt zero-based and one-based line and
@@ -55,6 +59,27 @@ public class Position implements Comparable<Position> {
      */
     public static Position fromOneBased(int line, int column) {
         return new Position(line - 1, column - 1);
+    }
+
+    /**
+     * Returns the Position that describes the same location
+     * in <code>content</code> as <code>offset</code>.
+     * @param offset a location, expressed as an offset from
+     *               the beginning of <code>content</code>
+     * @param content the content of a document
+     * @return the Position that describes the same location
+     * in <code>content</code> as <code>offset</code>
+     */
+    public static Position fromOffset(int offset, String content) {
+        int lineNumber = 0;
+        Matcher matcher = LINE_SEPARATOR.matcher(content);
+        int start = 0;
+        while (matcher.find(start)) {
+            if (matcher.start() > offset) return Position.fromZeroBased(lineNumber, offset - start);
+            start = matcher.end();
+            lineNumber++;
+        }
+        return Position.fromZeroBased(lineNumber, offset);
     }
 
     /**

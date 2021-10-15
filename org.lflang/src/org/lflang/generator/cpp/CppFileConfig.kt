@@ -66,4 +66,7 @@ class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGener
 
     /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
     fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
+
+    /** Path to the build directory containing CMake-generated files */
+    val buildPath: Path get() = outPath.resolve("build").resolve(name)
 }
