@@ -1443,8 +1443,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/target/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
-        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/target/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
     }
 
     ////////////////////////////////////////////

@@ -4,3 +4,6 @@
 [submodule "org.lflang/src/lib/c/reactor-c"]
 	path = org.lflang/src/lib/c/reactor-c
 	url = https://github.com/lf-lang/reactor-c.git
+[submodule "org.lflang/src/lib/py/reactor-c-py"]
+	path = org.lflang/src/lib/py/reactor-c-py
+	url = git@github.com:lf-lang/reactor-c-py.git

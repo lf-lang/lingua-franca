@@ -1112,10 +1112,11 @@ class PythonGenerator extends CGenerator {
         super.copyUserFiles(targetConfig, fileConfig);
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
-        var targetFiles = newArrayList("pythontarget.h", "pythontarget.c", "ctarget.h");
+        var targetFiles = newArrayList("/lib/py/reactor-c-py/include/pythontarget.h",
+            "/lib/py/reactor-c-py/lib/pythontarget.c", "/lib/c/reactor-c/include/ctarget.h");
         for (file : targetFiles) {
             fileConfig.copyFileFromClassPath(
-                "/lib/c/reactor-c/target/" + file,
+                file,
                 fileConfig.getSrcGenPath.resolve(file).toString
             )
         }
