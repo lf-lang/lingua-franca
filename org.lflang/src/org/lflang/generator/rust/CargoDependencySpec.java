@@ -31,7 +31,7 @@ import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
-import org.lflang.validation.LFValidatorImpl;
+import org.lflang.validation.LFValidator;
 
 /**
  * Info about a cargo dependency. See {@link TargetProperty#CARGO_DEPENDENCIES}.
@@ -108,7 +108,7 @@ public class CargoDependencySpec {
         }
 
         @Override
-        public void check(Element element, String name, LFValidatorImpl v) {
+        public void check(Element element, String name, LFValidator v) {
             for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
                 try {
                     parse(pair.getValue());

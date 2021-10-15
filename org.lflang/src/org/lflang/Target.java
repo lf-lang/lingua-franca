@@ -354,7 +354,7 @@ public enum Target {
     /**
      * String representation of this target.
      */
-    private final String description;
+    private final String displayName;
 
     /**
      * Name of package containing Kotlin classes for the target language.
@@ -384,15 +384,15 @@ public enum Target {
     /**
      * Private constructor for targets.
      *
-     * @param description     String representation of this target.
+     * @param displayName     String representation of this target.
      * @param requiresTypes   Types Whether this target requires type annotations or not.
      * @param packageName     Name of package containing Kotlin classes for the target language.
      * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
      * @param keywords        List of reserved strings in the target language.
      */
-    Target(String description, boolean requiresTypes, String packageName,
+    Target(String displayName, boolean requiresTypes, String packageName,
            String classNamePrefix, Collection<String> keywords) {
-        this.description = description;
+        this.displayName = displayName;
         this.requiresTypes = requiresTypes;
         this.keywords = Collections.unmodifiableSet(new LinkedHashSet<>(keywords));
         this.packageName = packageName;
@@ -403,27 +403,51 @@ public enum Target {
     /**
      * Private constructor for targets without pakcageName and classNamePrefix.
      */
-    Target(String description, boolean requiresTypes, Collection<String> keywords) {
-        this(description, requiresTypes, "N/A", "N/A", keywords);
+    Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
+        this(displayName, requiresTypes, "N/A", "N/A", keywords);
     }
 
 
     /**
-     * Return the target that matches the given string.
-     *
-     * @param name The string to match against.
-     * @return The matching target (or null if there is none).
+     * Return the target whose {@linkplain #getDisplayName() display name}
+     * is the given string (modulo character case), or an empty
+     * optional if there is no such target.
      */
     public static Optional<Target> forName(String name) {
-        return Optional.ofNullable(Target.match(name, Target.values()));
+        return Arrays.stream(Target.values())
+                     .filter(it -> it.getDisplayName().equalsIgnoreCase(name))
+                     .findFirst();
     }
 
     /**
-     * Return the description.
+     * Return the display name of the target, as it should be
+     * written in LF code. This is hence a single identifier.
+     * Eg for {@link #CPP} returns {@code "Cpp"}, for {@link #Python}
+     * returns {@code "Python"}. Avoid using either {@link #name()}
+     * or {@link #toString()}, which have unrelated contracts.
+     */
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    /**
+     * Returns the conventional directory name for this target.
+     * This is used to divide e.g. the {@code test} and {@code example}
+     * directories by target language. For instance, {@code test/Cpp}
+     * is the path of {@link #CPP}'s test directory, and this
+     * method returns {@code "Cpp"}.
+     */
+    public String getDirectoryName() {
+        return displayName;
+    }
+
+    /**
+     * Return the description. Avoid depending on this, toString
+     * is supposed to be debug information. Prefer {@link #getDisplayName()}.
      */
     @Override
     public String toString() {
-        return description;
+        return displayName;
     }
 
     /**
@@ -464,6 +488,8 @@ public enum Target {
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
      *
+     * todo move to CollectionUtil (introduced in #442)
+     *
      * @param string     The string to match against candidates.
      * @param candidates The candidates to match the string against.
      */
@@ -481,6 +507,8 @@ public enum Target {
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
+     *
+     * todo move to CollectionUtil (introduced in #442)
      *
      * @param string     The string to match against candidates.
      * @param candidates The candidates to match the string against.

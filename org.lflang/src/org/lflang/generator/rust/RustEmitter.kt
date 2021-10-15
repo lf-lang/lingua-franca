@@ -661,7 +661,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             is PortData           -> portRefWrapper(kind, dataType, isMultiport)
             is ChildPortReference -> portRefWrapper(kind, dataType, isMultiport)
             is TimerData          -> "&${toType()}"
-            is ActionData         -> if (isLogical) "&mut ${toType()}" else "&${toType()}"
+            is ActionData         -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
 
     private fun portRefWrapper(kind: DepKind, dataType: TargetCode, isMultiport: Boolean) =

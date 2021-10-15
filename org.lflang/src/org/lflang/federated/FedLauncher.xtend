@@ -229,7 +229,7 @@ package class FedLauncher {
                 if ! command -v RTI &> /dev/null
                 then
                     echo "RTI could not be found."
-                    echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+                    echo "The source code can be obtained from https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI"
                     exit
                 fi                
                 # The RTI is started first to allow proper boot-up

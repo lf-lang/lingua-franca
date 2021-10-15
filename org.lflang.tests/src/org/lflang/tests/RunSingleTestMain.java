@@ -37,6 +37,7 @@ import org.lflang.tests.runtime.CppTest;
 import org.lflang.tests.runtime.PythonTest;
 import org.lflang.tests.runtime.RustTest;
 import org.lflang.tests.runtime.TestBase;
+import org.lflang.tests.runtime.TestBase.TestLevel;
 import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
@@ -71,8 +72,9 @@ public class RunSingleTestMain {
 
         LFTest testCase = new LFTest(target, path.toAbsolutePath(), packageRoot);
 
-        TestBase.runSingleTestAndPrintResults(testCase, testClass);
+        TestBase.runSingleTestAndPrintResults(testCase, testClass, TestLevel.EXECUTION);
     }
+
 
     private static Class<? extends TestBase> getTestInstance(Target target) {
         switch (target) {

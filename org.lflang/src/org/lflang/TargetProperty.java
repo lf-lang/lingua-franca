@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,7 +25,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.TimeUnit;
-import org.lflang.validation.LFValidatorImpl;
+import org.lflang.validation.LFValidator;
 
 /**
  * A target properties along with a type and a list of supporting targets
@@ -341,8 +342,19 @@ public enum TargetProperty {
                         }
                     }
                 }
-    }),
+            }),
 
+
+    /**
+     * Directive to let the runtime export its internal dependency graph.
+     *
+     * This is a debugging feature and currently only used for C++ programs.
+     */
+    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN, Collections.singletonList(Target.CPP),
+                           (config, value, err) -> {
+        config.exportDependencyGraph = ASTUtils.toBoolean(value);
+
+    }),
 
     /**
      * List of module files to link into the crate as top-level.
@@ -611,7 +623,7 @@ public enum TargetProperty {
          * this dictionary.
          */
         @Override
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             KeyValuePairs kv = e.getKeyvalue();
             if (kv == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -716,7 +728,7 @@ public enum TargetProperty {
          * this union.
          */
         @Override
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             Optional<Enum<?>> match = this.match(e);
             if (match.isPresent()) {
                 // Go deeper if the element is an array or dictionary.
@@ -813,7 +825,7 @@ public enum TargetProperty {
          * its elements are all of the correct type.
          */
         @Override
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             Array array = e.getArray();
             if (array == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -941,7 +953,7 @@ public enum TargetProperty {
          * @param name The name of the target property.
          * @param v    A reference to the validator to report errors to.
          */
-        public void check(Element e, String name, LFValidatorImpl v);
+        public void check(Element e, String name, LFValidator v);
     
         /**
          * Helper function to produce an error during type checking.
@@ -951,7 +963,7 @@ public enum TargetProperty {
          * @param v           A reference to the validator to report errors to.
          */
         public static void produceError(String name, String description,
-                LFValidatorImpl v) {
+                LFValidator v) {
             v.getTargetPropertyErrors().add("Target property '" + name
                     + "' is required to be " + description + ".");
         }
@@ -1031,7 +1043,7 @@ public enum TargetProperty {
          * @param name   The name of the target property.
          * @param errors A list of errors to append to if problems are found.
          */
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {
                 TargetPropertyType.produceError(name, this.description, v);
             }
