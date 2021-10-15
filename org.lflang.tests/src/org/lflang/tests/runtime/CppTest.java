@@ -26,11 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
-import org.lflang.Target;
-
-import java.util.Arrays;
-
 import org.junit.jupiter.api.Test;
+import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests for the Cpp target.
@@ -42,7 +40,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class CppTest extends TestBase {
+public class CppTest extends AbstractTest {
 
     CppTest() {
         super(Target.CPP);

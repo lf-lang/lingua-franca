@@ -34,7 +34,6 @@ import org.lflang.Target;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
-import org.lflang.tests.runtime.TestBase;
 
 /**
  * A registry to retrieve tests from, organized by target and category.

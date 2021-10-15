@@ -1,4 +1,4 @@
-package org.lflang.tests.runtime;
+package org.lflang.tests;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -8,7 +8,6 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -28,10 +27,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -39,10 +35,7 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.StandaloneContext;
-import org.lflang.tests.LFInjectorProvider;
-import org.lflang.tests.LFTest;
 import org.lflang.tests.LFTest.Result;
-import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 import com.google.inject.Inject;
@@ -563,103 +556,11 @@ public abstract class TestBase {
         System.out.print(System.lineSeparator());
     }
 
-
-    @Test
-    public void runExampleTests() {
-        runTestsForTargets("Description: Run example tests.",
-                TestCategory.EXAMPLE_TEST::equals, t -> true,
-                TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void validateExamples() {
-        runTestsForTargets("Description: Validate examples.",
-                TestCategory.EXAMPLE::equals, t -> true, TestLevel.VALIDATION,
-                false);
-    }
-
-    @Test
-    public void runGenericTests() {
-        runTestsForTargets("Description: Run generic tests (threads = 0).",
-                           TestCategory.GENERIC::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runTargetSpecificTests() {
-        runTestsForTargets("Description: Run target-specific tests (threads = 0).",
-                           TestCategory.TARGET::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runMultiportTests() {
-        runTestsForTargets("Description: Run multiport tests (threads = 0).",
-                           TestCategory.MULTIPORT::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runSerializationTests() {
-        runTestsForTargets("Description: Run serialization tests (threads = 0).",
-                           TestCategory.SERIALIZATION::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runAsFederated() {
-        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
-                                        TestCategory.FEDERATED,
-                                        TestCategory.EXAMPLE,
-                                        TestCategory.EXAMPLE_TEST,
-                                        // FIXME: also run the multiport tests once these are supported.
-                                        TestCategory.MULTIPORT));
-
-        runTestsFor(List.of(Target.C),
-                    Message.DESC_AS_FEDERATED,
-                    categories::contains,
-                    it -> ASTUtils.makeFederated(it.fileConfig.resource),
-                    TestLevel.EXECUTION,
-                    true);
-    }
-
-
-    @Test
-    public void runConcurrentTests() {
-        runTestsForTargets(Message.DESC_CONCURRENT,
-                           TestCategory.CONCURRENT::equals, t -> true, TestLevel.EXECUTION,
-                           false);
-
-    }
-
-    @Test
-    public void runFederatedTests() {
-        runTestsForTargets(Message.DESC_FEDERATED,
-                           TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
-                           false);
-    }
-
     /**
      * Whether to enable {@link #runWithFourThreads()}.
      */
     protected boolean supportsThreadsOption() {
         return false;
-    }
-
-    @Test
-    public void runWithFourThreads() {
-        if (supportsThreadsOption()) {
-            this.runTestsForTargets(
-                Message.DESC_FOUR_THREADS,
-                ConfigurationPredicates::defaultCategoryExclusion,
-                ConfigurationPredicates::useFourThreads,
-                TestLevel.EXECUTION,
-                true
-            );
-        } else {
-            printSkipMessage(Message.DESC_FOUR_THREADS, "target does not support threads property");
-        }
     }
 
 }
