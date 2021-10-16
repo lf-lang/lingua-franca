@@ -34,6 +34,17 @@ import org.lflang.tests.TestRegistry.TestCategory;
  */
 public class ConfigurationPredicates {
 
+    /** Test configuration function. */
+    @FunctionalInterface
+    public interface ConfigurationFunction {
+
+        /**
+         * Apply a side effect to the given test case to change its default configuration.
+         * Return true if configuration succeeded, false otherwise.
+         */
+        boolean configure(LFTest test);
+    }
+
     /**
      * Configure the given test by setting its `threads` target property to 0.
      *
