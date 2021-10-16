@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
  * <p>
  *     Represents a range in a document. Ranges have a
  *     natural ordering that respects their start
- *     offset(s) only.
+ *     position(s) only.
  * </p>
  * <p>
  *     Note: This class has a natural ordering that is
@@ -17,12 +17,16 @@ import org.jetbrains.annotations.NotNull;
  * </p>
  */
 public class Range implements Comparable<Range> {
-    public static final Pattern PATTERN = Pattern.compile("Range: \\[(?<start>[0-9]+), (?<end>[0-9]+)\\)");
+    public static final Pattern PATTERN = Pattern.compile(String.format(
+        "Range: \\[(?<start>%s), (?<end>%s)\\)",
+        Position.removeNamedCapturingGroups(Position.PATTERN),
+        Position.removeNamedCapturingGroups(Position.PATTERN)
+    ));
 
     /** The start of the Range (INCLUSIVE). */
-    private final int start;
+    private final Position start;
     /** The end of the Range (EXCLUSIVE). */
-    private final int end;
+    private final Position end;
 
     /* ------------------------- PUBLIC METHODS -------------------------- */
 
@@ -34,17 +38,17 @@ public class Range implements Comparable<Range> {
      *                       (inclusive)
      * @param endExclusive the end of the range (exclusive)
      */
-    public Range(int startInclusive, int endExclusive) {
-        assert startInclusive <= endExclusive: "endExclusive cannot precede startInclusive";
+    public Range(Position startInclusive, Position endExclusive) {
+        assert startInclusive.compareTo(endExclusive) <= 0: "endExclusive cannot precede startInclusive";
         start = startInclusive;
         end = endExclusive;
     }
 
-    public int getStartInclusive() {
+    public Position getStartInclusive() {
         return start;
     }
 
-    public int getEndExclusive() {
+    public Position getEndExclusive() {
         return end;
     }
 
@@ -56,16 +60,38 @@ public class Range implements Comparable<Range> {
      */
     @Override
     public int compareTo(@NotNull Range o) {
-        return this.start - o.start;
+        return this.start.compareTo(o.start);
     }
 
     /**
      * Returns whether this contains <code>p</code>.
-     * @param p an arbitrary offset
+     * @param p an arbitrary Position
      * @return whether this contains <code>p</code>
      */
-    public boolean contains(int p) {
-        return start <= p && p < end;
+    public boolean contains(Position p) {
+        return start.compareTo(p) <= 0 && p.compareTo(end) < 0;
+    }
+
+    /**
+     * Returns the line offset of <code>p</code> from the
+     * start of this Range.
+     * @param p an arbitrary Position
+     * @return the line offset of <code>p</code> from the
+     * start of this Range
+     */
+    public int lineDelta(Position p) {
+        return p.getZeroBasedLine() - start.getZeroBasedLine();
+    }
+
+    /**
+     * Returns the column offset of <code>p</code> from the
+     * start of this Range.
+     * @param p an arbitrary Position
+     * @return the column offset of <code>p</code> from the
+     * start of this Range
+     */
+    public int columnDelta(Position p) {
+        return p.getZeroBasedColumn() - start.getZeroBasedColumn();
     }
 
     @Override
@@ -74,15 +100,15 @@ public class Range implements Comparable<Range> {
     }
 
     public static Range fromString(String s) {
-        return fromString(s, 0);
+        return fromString(s, Position.fromZeroBased(0, 0));
     }
 
-    public static Range fromString(String s, int relativeTo) {
+    public static Range fromString(String s, Position relativeTo) {
         Matcher matcher = PATTERN.matcher(s);
         if (matcher.matches()) {
-            int start = Integer.parseInt(matcher.group("start"));
-            int end = Integer.parseInt(matcher.group("end"));
-            return new Range(relativeTo + start, relativeTo + end);
+            Position start = Position.fromString(matcher.group("start"));
+            Position end = Position.fromString(matcher.group("end"));
+            return new Range(start.plus(relativeTo), end.plus(relativeTo));
         }
         throw new IllegalArgumentException(String.format("Could not parse %s as a Range.", s));
     }
@@ -91,11 +117,11 @@ public class Range implements Comparable<Range> {
      * Returns the degenerate range that simply
      * describes the exact location specified by <code>p
      * </code>.
-     * @param p an arbitrary offset
+     * @param p an arbitrary Position
      * @return a Range that starts and ends immediately
      * before <code>p</code>
      */
-    public static Range degenerateRange(int p) {
+    public static Range degenerateRange(Position p) {
         return new Range(p, p);
     }
 }

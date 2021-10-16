@@ -25,11 +25,10 @@ class CppValidator(
         )
     }
 
-    // -std=c++17 or more generally -std=c++${CMAKE_CXX_STANDARD}
-    // -I TARGET_INCLUDE_DIRECTORIES
     fun doValidate(cancelIndicator: CancelIndicator) {
         if (!cmakeCachePath.toFile().exists()) return
         for (generatedFile: Path in codeMaps.keys) {
+            // FIXME: Respond to cancel. Only validate changed files?
             validateFile(generatedFile, cancelIndicator)
             if (cancelIndicator.isCanceled) return
         }
@@ -37,7 +36,7 @@ class CppValidator(
 
     private fun validateFile(generatedFile: Path, cancelIndicator: CancelIndicator) {
         val validateCommand = getValidateCommand(generatedFile) ?: return
-        validateCommand.run()
+        validateCommand.run(cancelIndicator)
         for (line in validateCommand.errors.toString().lines()) {
             reportErrorLine(line, generatedFile)
         }
@@ -59,7 +58,7 @@ class CppValidator(
                 Integer.parseInt(matcher.group("line")), Integer.parseInt(matcher.group("column"))
             )
             val lfFilePosition = codeMaps[generatedFile]?.adjusted(
-                fileConfig.srcFile, generatedFilePosition, fileConfig.srcGenPath.resolve(generatedFile)
+                fileConfig.srcFile, generatedFilePosition
             ) ?: Position.ORIGIN
             errorReporter.reportError(path, lfFilePosition.oneBasedLine, matcher.group("message"))
         }

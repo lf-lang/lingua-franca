@@ -32,7 +32,7 @@ import org.lflang.lf.Reactor
 import org.lflang.toTaggedText
 
 /** A C++ code generator for state variables */
-class CppMethodGenerator(private val reactor: Reactor, private val fileConfig: CppFileConfig) {
+class CppMethodGenerator(private val reactor: Reactor) {
 
     private val Method.targetType: String get() = if (`return` != null) InferredType.fromAST(`return`).targetType else "void"
     private val MethodArgument.targetType: String get() = InferredType.fromAST(type).targetType
@@ -45,7 +45,7 @@ class CppMethodGenerator(private val reactor: Reactor, private val fileConfig: C
             """
                 |${reactor.templateLine}
                 |$targetType ${reactor.templateName}::Inner::$name(${cppArgs.joinToString(", ")})$constQualifier {
-            ${" |  "..code.toTaggedText(fileConfig.srcFile)}
+            ${" |  "..code.toTaggedText()}
                 |}
             """.trimMargin()
         }

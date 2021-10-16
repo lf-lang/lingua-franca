@@ -35,8 +35,7 @@ import org.lflang.toTaggedText
 class CppReactionGenerator(
     private val reactor: Reactor,
     private val portGenerator: CppPortGenerator,
-    private val instanceGenerator: CppInstanceGenerator,
-    private val fileConfig: CppFileConfig
+    private val instanceGenerator: CppInstanceGenerator
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
@@ -145,7 +144,7 @@ class CppReactionGenerator(
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
             ${" |"..getFunctionDefinitionSignature(reaction, "body")} {
-            ${" |  "..reaction.code.toTaggedText(fileConfig.srcFile)}
+            ${" |  "..reaction.code.toTaggedText()}
                 |}
                 |
             """.trimMargin()
@@ -156,7 +155,7 @@ class CppReactionGenerator(
         return """
             |${reactor.templateLine}
         ${" |"..getFunctionDefinitionSignature(reaction, "deadline_handler")} {
-        ${" |  "..reaction.deadline.code.toTaggedText(fileConfig.srcFile)}
+        ${" |  "..reaction.deadline.code.toTaggedText()}
             |}
             |
         """.trimMargin()
