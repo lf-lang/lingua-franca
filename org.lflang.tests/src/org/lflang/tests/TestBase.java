@@ -35,6 +35,7 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.StandaloneContext;
+import org.lflang.tests.ConfigurationPredicates.ConfigurationFunction;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 
@@ -146,7 +147,8 @@ public abstract class TestBase {
      * registry.
      */
     protected final void runTestsAndPrintResults(Target target,
-                                                 Predicate<TestCategory> selected, Predicate<LFTest> configuration,
+                                                 Predicate<TestCategory> selected,
+                                                 ConfigurationFunction configuration,
                                                  TestLevel level,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected)
@@ -180,7 +182,7 @@ public abstract class TestBase {
      */
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
-                                      Predicate<LFTest> configuration,
+                                      ConfigurationFunction configuration,
                                       TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
@@ -204,7 +206,7 @@ public abstract class TestBase {
     protected void runTestsFor(List<Target> subset,
                                String description,
                                Predicate<TestCategory> selected,
-                               Predicate<LFTest> configuration,
+                               ConfigurationFunction configuration,
                                TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
@@ -328,7 +330,7 @@ public abstract class TestBase {
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private GeneratorContext configure(LFTest test, Predicate<LFTest> configuration, TestLevel level) throws IOException {
+    private GeneratorContext configure(LFTest test, ConfigurationFunction configuration, TestLevel level) throws IOException {
 
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
@@ -359,7 +361,7 @@ public abstract class TestBase {
         addExtraLfcArgs(context.getArgs());
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (configuration != null && !configuration.test(test)) {
+        if (configuration != null && !configuration.configure(test)) {
             test.result = Result.CONFIG_FAIL;
             throw new AssertionError("Test configuration unsuccessful.");
         }
@@ -517,7 +519,7 @@ public abstract class TestBase {
      * @param level The level of testing.
      * @throws IOException If initial file configuration fails
      */
-    private void validateAndRun(Set<LFTest> tests, Predicate<LFTest> configuration, TestLevel level) throws IOException {
+    private void validateAndRun(Set<LFTest> tests, ConfigurationFunction configuration, TestLevel level) throws IOException {
         final var x = 78f / tests.size();
         var marks = 0;
         var done = 0;
