@@ -22,39 +22,63 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.tests.runtime;
+package org.lflang.tests;
 
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import org.lflang.tests.LFTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
- * Configuration predicates for {@link TestBase} methods.
+ * Configuration procedures for {@link TestBase} methods.
  *
  * @author Clément Fournier
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class ConfigurationPredicates {
+public class Configurators {
+
+    /** Test configuration function. */
+    @FunctionalInterface
+    public interface Configurator {
+
+        /**
+         * Apply a side effect to the given test case to change its default configuration.
+         * Return true if configuration succeeded, false otherwise.
+         */
+        boolean configure(LFTest test);
+    }
 
     /**
-     * AST transformation that sets the `threads` target property to 0.
+     * Configure the given test by setting its `threads` target property to 0.
      *
+     * @param test The test to configure.
      * @return True if successful, false otherwise.
      */
-    static boolean makeSingleThreaded(LFTest it) {
-        it.getContext().getArgs().setProperty("threads", "0");
-        return true;
-    }
-
-    static boolean useFourThreads(LFTest t) {
-        t.getContext().getArgs().setProperty("threads", "4");
+    static boolean useSingleThread(LFTest test) {
+        test.getContext().getArgs().setProperty("threads", "0");
         return true;
     }
 
     /**
-     * Give a handy lambda function that, given a test category,
-     * will return true if it is not one of the default excluded
+     * Configure the given test by setting its `threads` target property to 4.
+     *
+     * @param test The test to configure
+     * @return True if successful, false otherwise.
+     */
+    static boolean useFourThreads(LFTest test) {
+        test.getContext().getArgs().setProperty("threads", "4");
+        return true;
+    }
+
+    /**
+     * Make no changes to the configuration.
+     *
+     * @param test The test to configure.
+     * @return True
+     */
+    static boolean noChanges(LFTest test) {
+        return true;
+    }
+
+    /**
+     * Given a test category, return true if it is not one of the default excluded
      * categories.
      */
     public static boolean defaultCategoryExclusion(TestCategory category) {

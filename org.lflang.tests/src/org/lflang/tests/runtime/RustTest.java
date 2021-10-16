@@ -26,15 +26,15 @@ package org.lflang.tests.runtime;
 
 import java.util.Properties;
 
-import org.eclipse.xtext.xbase.lib.InputOutput;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  *
  */
-public class RustTest extends TestBase {
+public class RustTest extends AbstractTest {
 
     public RustTest() {
         super(Target.Rust);
