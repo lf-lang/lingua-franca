@@ -14,9 +14,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -34,7 +34,6 @@ import org.lflang.Target;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
-import org.lflang.tests.runtime.TestBase;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -180,14 +179,11 @@ public class TestRegistry {
         }
         // Populate the registry.
         for (Target target : Target.values()) {
-            // Initialize the lists.
-            Set<TestCategory> supported = new HashSet<>();
+
             // Walk the tree.
             try {
                 Path dir = LF_TEST_PATH.resolve(target.toString());
                 if (Files.exists(dir)) {
-                    // A test directory exist. Assume support for generic tests.
-                    supported.add(TestCategory.GENERIC);
                     Files.walkFileTree(dir, new TestDirVisitor(rs, target));
                 } else {
                     System.out.println("WARNING: No test directory for target " + target + "\n");
@@ -230,10 +226,10 @@ public class TestRegistry {
     /**
      * Return the tests that were indexed for a given target and category.
      * 
-     * @param target
-     * @param category
+     * @param target The target to get indexed tests for.
+     * @param category The category of tests to include in the returned tests.
      * @param copy Whether to return copies of the indexed tests instead of the indexed tests themselves.
-     * @return
+     * @return A set of tests for the given target/category.
      */
     public static Set<LFTest> getRegisteredTests(Target target,
             TestCategory category, boolean copy) {
@@ -286,7 +282,10 @@ public class TestRegistry {
         
         return s.toString();
     }
-    
+
+    /**
+     * File visitor for indexing examples and example tests.
+     */
     public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
 
         protected ResourceSet rs;
@@ -347,12 +346,10 @@ public class TestRegistry {
                 } else {
                     // No errors. Find the target.
                     Iterator<TargetDecl> targetDecls = filter(r.getAllContents(), TargetDecl.class);
-                    
-                    if (targetDecls.hasNext()) {
-                        TargetDecl decl = targetDecls.next();
-                        Target target = Target.forName(decl.getName()).get();
+                    Optional<Target> opt;
+                    if (targetDecls.hasNext() && (opt = Target.forName(targetDecls.next().getName())).isPresent() ) {
+                        Target target = opt.get();
                         Iterator<Reactor> reactors = filter(r.getAllContents(), Reactor.class);
-
                         if (exists(reactors, it -> it.isMain() || it.isFederated())) {
 
                             Path packageRoot = TestRegistry.LF_EXAMPLE_PATH.resolve(target.getDirectoryName());
@@ -439,7 +436,6 @@ public class TestRegistry {
             }
             return CONTINUE;
         }
-        
                
         /**
          * Pop categories from the stack as appropriate.
