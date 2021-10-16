@@ -21,6 +21,7 @@
 package org.lflang;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -367,9 +368,9 @@ public enum Target {
     public final List<String> keywords;
 
     /**
-     * Return an array of all known targets.
+     * Return an unmodifiable list of all known targets.
      */
-    public static final Target[] ALL = Target.values();
+    public static final List<Target> ALL = Collections.unmodifiableList(List.of(Target.values()));
 
     /**
      * Private constructor for targets.

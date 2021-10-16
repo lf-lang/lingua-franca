@@ -35,7 +35,7 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.StandaloneContext;
-import org.lflang.tests.ConfigurationPredicates.ConfigurationFunction;
+import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 
@@ -136,19 +136,19 @@ public abstract class TestBase {
     }
 
     /**
-     * Run selected tests for a given target and configuration up to the specified level.
+     * Run selected tests for a given target and configurator up to the specified level.
      *
      * @param target The target to run tests for.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
-     * @param configuration  A function for configuring the tests.
+     * @param configurator  A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
     protected final void runTestsAndPrintResults(Target target,
                                                  Predicate<TestCategory> selected,
-                                                 ConfigurationFunction configuration,
+                                                 Configurator configurator,
                                                  TestLevel level,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected)
@@ -157,7 +157,7 @@ public abstract class TestBase {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
             try {
-                validateAndRun(tests, configuration, level);
+                validateAndRun(tests, configurator, level);
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
@@ -175,19 +175,19 @@ public abstract class TestBase {
      * @param description A string that describes the collection of tests.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
-     * @param configuration A function for configuring the tests.
+     * @param configurator A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
-                                      ConfigurationFunction configuration,
+                                      Configurator configurator,
                                       TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
             runTestsFor(List.of(target), description, selected,
-                        configuration, level, copy);
+                        configurator, level, copy);
         }
     }
 
@@ -198,7 +198,7 @@ public abstract class TestBase {
      * @param description A string that describes the collection of tests.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
-     * @param configuration A function for configuring the tests.
+     * @param configurator A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
@@ -206,12 +206,12 @@ public abstract class TestBase {
     protected void runTestsFor(List<Target> subset,
                                String description,
                                Predicate<TestCategory> selected,
-                               ConfigurationFunction configuration,
+                               Configurator configurator,
                                TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selected, configuration, level, copy);
+            runTestsAndPrintResults(target, selected, configurator, level, copy);
         }
     }
 
@@ -317,20 +317,20 @@ public abstract class TestBase {
     }
 
     /**
-     * Configure a test by applying the given configuration and return a
+     * Configure a test by applying the given configurator and return a
      * generator context. Also, if the given level is less than
      * `TestLevel.BUILD`, add a `no-compile` flag to the generator context. If
-     * the configuration was not applied successfully, throw an AssertionError.
+     * the configurator was not applied successfully, throw an AssertionError.
      *
      * @param test the test to configure.
-     * @param configuration The configuration to apply to the test.
+     * @param configurator The configurator to apply to the test.
      * @param level The level of testing in which the generator context will be
      * used.
      * @return a generator context with a fresh resource, unaffected by any AST
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private GeneratorContext configure(LFTest test, ConfigurationFunction configuration, TestLevel level) throws IOException {
+    private GeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
 
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
@@ -361,7 +361,7 @@ public abstract class TestBase {
         addExtraLfcArgs(context.getArgs());
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (configuration != null && !configuration.configure(test)) {
+        if (configurator != null && !configurator.configure(test)) {
             test.result = Result.CONFIG_FAIL;
             throw new AssertionError("Test configuration unsuccessful.");
         }
@@ -509,17 +509,17 @@ public abstract class TestBase {
     }
 
     /**
-     * Validate and run the given tests, using the specified configuration and level.
+     * Validate and run the given tests, using the specified configuratator and level.
      *
      * While performing tests, this method prints a header that reaches completion
      * once all tests have been run.
      *
      * @param tests A set of tests to run.
-     * @param configuration A function for configuring the tests.
+     * @param configurator A procedure for configuring the tests.
      * @param level The level of testing.
      * @throws IOException If initial file configuration fails
      */
-    private void validateAndRun(Set<LFTest> tests, ConfigurationFunction configuration, TestLevel level) throws IOException {
+    private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level) throws IOException {
         final var x = 78f / tests.size();
         var marks = 0;
         var done = 0;
@@ -527,7 +527,7 @@ public abstract class TestBase {
         for (var test : tests) {
             try {
                 redirectOutputs(test);
-                var context = configure(test, configuration, level);
+                var context = configure(test, configurator, level);
                 validate(test, context);
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
                     generateCode(test);
@@ -558,13 +558,6 @@ public abstract class TestBase {
         }
 
         System.out.print(System.lineSeparator());
-    }
-
-    /**
-     * Whether to enable {@link #runWithFourThreads()}.
-     */
-    protected boolean supportsThreadsOption() {
-        return false;
     }
 
 }

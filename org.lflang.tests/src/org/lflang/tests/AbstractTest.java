@@ -17,6 +17,13 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public abstract class AbstractTest extends TestBase {
 
     /**
+     * Whether to enable {@link #runWithFourThreads()}.
+     */
+    protected boolean supportsThreadsOption() {
+        return false;
+    }
+
+    /**
      * Construct a test instance that runs tests for a single target.
      * @param target The target to run tests for.
      */
@@ -35,42 +42,42 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void runExampleTests() {
         runTestsForTargets("Description: Run example tests.",
-                TestCategory.EXAMPLE_TEST::equals, t -> true,
+                TestCategory.EXAMPLE_TEST::equals, Configurators::noChanges,
                 TestLevel.EXECUTION, false);
     }
 
     @Test
     public void validateExamples() {
         runTestsForTargets("Description: Validate examples.",
-                TestCategory.EXAMPLE::equals, t -> true, TestLevel.VALIDATION,
+                TestCategory.EXAMPLE::equals, Configurators::noChanges, TestLevel.VALIDATION,
                 false);
     }
 
     @Test
     public void runGenericTests() {
         runTestsForTargets("Description: Run generic tests (threads = 0).",
-                           TestCategory.GENERIC::equals, ConfigurationPredicates::useSingleThread,
+                           TestCategory.GENERIC::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runTargetSpecificTests() {
         runTestsForTargets("Description: Run target-specific tests (threads = 0).",
-                           TestCategory.TARGET::equals, ConfigurationPredicates::useSingleThread,
+                           TestCategory.TARGET::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runMultiportTests() {
         runTestsForTargets("Description: Run multiport tests (threads = 0).",
-                           TestCategory.MULTIPORT::equals, ConfigurationPredicates::useSingleThread,
+                           TestCategory.MULTIPORT::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runSerializationTests() {
         runTestsForTargets("Description: Run serialization tests (threads = 0).",
-                           TestCategory.SERIALIZATION::equals, ConfigurationPredicates::useSingleThread,
+                           TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
@@ -96,7 +103,7 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void runConcurrentTests() {
         runTestsForTargets(Message.DESC_CONCURRENT,
-                           TestCategory.CONCURRENT::equals, t -> true, TestLevel.EXECUTION,
+                           TestCategory.CONCURRENT::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
 
     }
@@ -104,7 +111,7 @@ public abstract class AbstractTest extends TestBase {
     @Test
     public void runFederatedTests() {
         runTestsForTargets(Message.DESC_FEDERATED,
-                           TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
+                           TestCategory.FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
     }
 
@@ -114,8 +121,8 @@ public abstract class AbstractTest extends TestBase {
         if (supportsThreadsOption()) {
             this.runTestsForTargets(
                 Message.DESC_FOUR_THREADS,
-                ConfigurationPredicates::defaultCategoryExclusion,
-                ConfigurationPredicates::useFourThreads,
+                Configurators::defaultCategoryExclusion,
+                Configurators::useFourThreads,
                 TestLevel.EXECUTION,
                 true
             );

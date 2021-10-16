@@ -27,16 +27,16 @@ package org.lflang.tests;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
- * Configuration predicates for {@link TestBase} methods.
+ * Configuration procedures for {@link TestBase} methods.
  *
  * @author Clément Fournier
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class ConfigurationPredicates {
+public class Configurators {
 
     /** Test configuration function. */
     @FunctionalInterface
-    public interface ConfigurationFunction {
+    public interface Configurator {
 
         /**
          * Apply a side effect to the given test case to change its default configuration.
@@ -64,6 +64,16 @@ public class ConfigurationPredicates {
      */
     static boolean useFourThreads(LFTest test) {
         test.getContext().getArgs().setProperty("threads", "4");
+        return true;
+    }
+
+    /**
+     * Make no changes to the configuration.
+     *
+     * @param test The test to configure.
+     * @return True
+     */
+    static boolean noChanges(LFTest test) {
         return true;
     }
 
