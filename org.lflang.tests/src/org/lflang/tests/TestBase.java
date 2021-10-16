@@ -401,7 +401,7 @@ public abstract class TestBase {
 
     /**
      * Invoke the code generator for the given test.
-     *
+     * @param test The test to generate code for.
      */
     private void generateCode(LFTest test) {
         if (test.fileConfig.resource != null) {
@@ -449,6 +449,7 @@ public abstract class TestBase {
     /**
      * Return a preconfigured ProcessBuilder for the command
      * that should be used to execute the test program.
+     * @param test The test to get the execution command for.
      */
     private ProcessBuilder getExecCommand(LFTest test) {
         final var nameWithExtension = test.srcFile.getFileName().toString();

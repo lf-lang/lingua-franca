@@ -34,7 +34,7 @@ import org.lflang.lf.TargetDecl;
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public enum Target {
     C("C", true, Arrays.asList(
@@ -369,7 +369,7 @@ public enum Target {
     /**
      * Return an array of all known targets.
      */
-    public final static Target[] ALL = Target.values();
+    public static final Target[] ALL = Target.values();
 
     /**
      * Private constructor for targets.
