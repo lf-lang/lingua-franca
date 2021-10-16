@@ -57,8 +57,7 @@ public class ConfigurationPredicates {
     }
 
     /**
-     * Give a handy lambda function that, given a test category,
-     * will return true if it is not one of the default excluded
+     * Given a test category, return true if it is not one of the default excluded
      * categories.
      */
     public static boolean defaultCategoryExclusion(TestCategory category) {

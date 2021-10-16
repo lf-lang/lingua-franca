@@ -120,7 +120,7 @@ public abstract class AbstractTest extends TestBase {
                 true
             );
         } else {
-            printSkipMessage(Message.DESC_FOUR_THREADS, "target does not support threads property");
+            printSkipMessage(Message.DESC_FOUR_THREADS, Message.NO_THREAD_SUPPORT);
         }
     }
 }

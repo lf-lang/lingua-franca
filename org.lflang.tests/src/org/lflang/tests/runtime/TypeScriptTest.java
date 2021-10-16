@@ -8,13 +8,13 @@ import org.lflang.tests.AbstractTest;
  * Collection of tests for the TypeScript target.
  * 
  * Even though all tests are implemented in the base class, we override them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking on the name of the test method and selecting
- * "Run As -> JUnit Test" from the pop-up menu.
+ * here so that each test can be easily invoked individually from IDEs with
+ * JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-
 public class TypeScriptTest extends AbstractTest {
     TypeScriptTest() {
         super(Target.TS);
@@ -47,10 +47,9 @@ public class TypeScriptTest extends AbstractTest {
     @Test
     @Override
     public void runAsFederated() {
-        System.out.println("FIXME");
-        //super.runNonFederatedTestsAsFederated();
+        printSkipMessage(Message.DESC_FEDERATED,
+                         Message.NO_TS_SUPPORT);
     }
-    
         
     @Test
     @Override

@@ -108,9 +108,10 @@ public abstract class TestBase {
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
         public static final String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
         public static final String NO_RUST_SUPPORT = "Not supported by reactor-rust.";
+        public static final String NO_TS_SUPPORT = "Not supported by reactor-ts.";
         public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public static final String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
-
+        public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
@@ -425,8 +426,8 @@ public abstract class TestBase {
         }
         try {
             var p = pb.start();
-            var stdout = test.exec.recordStdOut(p);
-            var stderr = test.exec.recordStdErr(p);
+            var stdout = test.execLog.recordStdOut(p);
+            var stderr = test.execLog.recordStdErr(p);
             if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                 stdout.interrupt();
                 stderr.interrupt();
