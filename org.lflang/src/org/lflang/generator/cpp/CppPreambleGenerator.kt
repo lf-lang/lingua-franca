@@ -60,7 +60,7 @@ class CppPreambleGenerator(
                 |#include "reactor-cpp/reactor-cpp.hh"
             ${" |"..includes.joinToString(separator = "\n", prefix = "// include the preambles from imported files \n")}
                 |
-            ${" |"..publicPreambles.joinToString(separator = "\n") { it.code.toTaggedText(fileConfig.srcFile) }}
+            ${" |"..publicPreambles.joinToString(separator = "\n") { it.code.toTaggedText() }}
             """.trimMargin()
         }
     }
@@ -79,7 +79,7 @@ class CppPreambleGenerator(
                 |using namespace std::chrono_literals;
                 |using namespace reactor::operators;
                 |
-            ${" |"..privatePreambles.joinToString(separator = "\n") { it.code.toTaggedText(fileConfig.srcFile) }}
+            ${" |"..privatePreambles.joinToString(separator = "\n") { it.code.toTaggedText() }}
             """.trimMargin()
         }
     }

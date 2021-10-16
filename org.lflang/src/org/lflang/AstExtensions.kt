@@ -137,23 +137,12 @@ val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
  */
 fun Code.toText(): String = ASTUtils.toText(this)
 
-fun Code.toTaggedText(path: Path): String {
-    val text: String = this.toText()
-    val node = NodeModelUtils.getNode(this)
-    var adjustment = 0
-    var cutoff: Int = text.length
-    while (cutoff > 0) {
-        val idx = node.text.indexOf(text.substring(0, cutoff))
-        if (idx != -1) {
-            adjustment = idx
-            break
-        }
-        cutoff /= 2
-    }
-    val startOffset = node.totalOffset + adjustment
-    val correspondence = CodeMap.Correspondence(path, Range(startOffset, startOffset + text.length), Range(0, text.length))
-    return correspondence.toString() + text;
-}
+/**
+ * Translate this code element into its tagged textual
+ * representation.
+ * @see ASTUtils.toTaggedText
+ */
+fun Code.toTaggedText(): String = ASTUtils.toTaggedText(this)
 
 /**
  * Translate this code element into its textual representation.

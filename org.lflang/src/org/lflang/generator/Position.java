@@ -62,6 +62,19 @@ public class Position implements Comparable<Position> {
     }
 
     /**
+     * Returns the Position that equals the displacement
+     * caused by <code>text</code>.
+     * @param text an arbitrary string
+     * @return the Position that equals the displacement
+     * caused by <code>text</code>
+     */
+    public static Position displacementOf(String text) {
+        String[] lines = text.lines().toArray(String[]::new);
+        if (lines.length == 0) return ORIGIN;
+        return Position.fromZeroBased(lines.length - 1, lines[lines.length - 1].length());
+    }
+
+    /**
      * Returns the Position that describes the same location
      * in <code>content</code> as <code>offset</code>.
      * @param offset a location, expressed as an offset from
@@ -158,23 +171,25 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns a new <code>Position</code> that is
-     * <code>lineDelta</code> lines later than this
-     * <code>Position</code> and <code>columnDelta</code>
-     * columns later than this <code>Position</code>.
-     * @param lineDelta the difference in line numbers
-     *                  between this position and the
-     *                  desired position
-     * @param columnDelta the difference in column numbers
-     *                    between this position and the
-     *                    desired position
-     * @return a new <code>Position</code> that is
-     * <code>lineDelta</code> lines later than this
-     * <code>Position</code> and <code>columnDelta</code>
-     * columns later than this <code>Position</code>
+     * Returns the sum of this and another <code>Position
+     * </code>. The result has meaning because Positions are
+     * relative.
+     * @param other another <code>Position</code>
+     * @return the sum of this and <code>other</code>
      */
-    public Position translated(int lineDelta, int columnDelta) {
-        return new Position(line + lineDelta, column + columnDelta);
+    public Position plus(Position other) {
+        return new Position(line + other.line, column + other.column);
+    }
+
+    /**
+     * Returns the difference of this and another <code>
+     * Position</code>. The result has meaning because
+     * Positions are relative.
+     * @param other another <code>Position</code>
+     * @return the difference of this and <code>other</code>
+     */
+    public Position minus(Position other) {
+        return new Position(line - other.line, column - other.column);
     }
 
     /**

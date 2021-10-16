@@ -35,7 +35,7 @@ import org.lflang.toUnixString
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: CppFileConfig, errorReporter: ErrorReporter) {
+class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, errorReporter: ErrorReporter) {
 
     /** Comment to be inserted at the top of generated files */
     private val fileComment = fileComment(reactor.eResource())
@@ -51,22 +51,22 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
 
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
-    private val methods = CppMethodGenerator(reactor, fileConfig)
+    private val methods = CppMethodGenerator(reactor)
     private val instances = CppInstanceGenerator(reactor, fileConfig)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
     private val ports = CppPortGenerator(reactor)
-    private val reactions = CppReactionGenerator(reactor, ports, instances, fileConfig)
+    private val reactions = CppReactionGenerator(reactor, ports, instances)
     private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, ports, reactions)
     private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
-            .joinToString(separator = "\n", prefix = "// public preamble\n") { it.code.toTaggedText(this.fileConfig.srcFile) }
+            .joinToString(separator = "\n", prefix = "// public preamble\n") { it.code.toTaggedText() }
 
     private fun privatePreamble() =
         reactor.preambles.filter { it.isPrivate }
-            .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toTaggedText(this.fileConfig.srcFile) }
+            .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toTaggedText() }
 
     /** Generate a C++ header file declaring the given reactor. */
     fun generateHeader() = with(PrependOperator) {
