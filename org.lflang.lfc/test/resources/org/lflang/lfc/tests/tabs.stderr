@@ -1,5 +1,5 @@
 lfc: error: State must have a type.
---> test/resources/org/lflang/lfc/tests/tabs.lf:4:2
+--> %%%PATH.lf%%%:4:2
   |
 3 | main reactor {
 4 |     state foo(1);
@@ -7,7 +7,7 @@ lfc: error: State must have a type.
   |
 5 |     state    bar(1);
 lfc: error: State must have a type.
---> test/resources/org/lflang/lfc/tests/tabs.lf:5:2
+--> %%%PATH.lf%%%:5:2
   |
 4 |     state foo(1);
 5 |     state    bar(1);
