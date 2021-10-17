@@ -92,7 +92,7 @@ ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + 
                 |#[warn(unused)]
                 |impl$typeParams $structName$typeArgs {
                 |
-${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction(reactor) }}
+${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }}
                 |
                 |}
                 |
@@ -297,7 +297,7 @@ ${"         |    "..declarations}
             listOf(
                 "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
                 // start reactions may "trigger" the timer, otherwise it schedules it
-                "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${it.startReactionId})?;",
+                "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${it.startReactionId})?;",
                 "__assembler.effects_instantaneous(${it.startReactionId}, __self.${it.rustFieldName}.get_id())?;",
             )
         }.joinLn()
@@ -532,8 +532,8 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             "__assembler.$ctorName(\"$lfName\", $delay)"
         }
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData           -> "__assembler.new_port(\"$lfName\")"
-        is ChildPortReference -> "__assembler.new_port(\"$childName.$lfName\")"
+        is PortData           -> "__assembler.new_port(\"$lfName\", $isInput)"
+        is ChildPortReference -> "__assembler.new_port(\"$childName.$lfName\", $isInput)"
     }
 
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
@@ -550,7 +550,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         return "$fieldVisibility$rustFieldName: ${toType()}"
     }
 
-    private fun ReactionInfo.toWorkerFunction(reactor: ReactorInfo): String {
+    private fun ReactionInfo.toWorkerFunction(): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
             for ((kind, comps) in allDependencies) {
                 for (comp in comps) {
