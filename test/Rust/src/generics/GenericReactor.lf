@@ -1,7 +1,7 @@
 // Tests a port connection between (input of self -> input of child)
 target Rust;
 
-reactor Box<{= T :Send =}> {
+reactor Box<{= T: Sync =}> {
     input inp: T;
     output out: T;
 
