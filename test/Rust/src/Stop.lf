@@ -5,7 +5,7 @@
  */
  target Rust {
     timeout: 11 msec,
-    cargo-features: ["test-program"],
+
 };
 
 /**

@@ -7,7 +7,6 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [x] reactor composition
   - [x] `CompositionInitializationOrder.lf`: startup reactions are called bottom-up
   - [x] `CompositionWithPorts.lf`: port bindings work
-  - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
 - [ ] ports
     - [x] `PortValueCleanup.lf`: port value is cleaned up at the end of a tag
     - [x] `PortRefCleanup.lf`: port value is cleaned up at the end of a tag, when the upstream is a port reference
@@ -91,6 +90,10 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [ ] reactor inheritance
   - ...
 - [ ] multiports and banks of reactors
+- [x] generics
+    - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
+    - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
+    - [x] `CtorParamGenericInst.lf`: generic ctor parameters work properly when creating child instance
 
 ### Runtime
 
