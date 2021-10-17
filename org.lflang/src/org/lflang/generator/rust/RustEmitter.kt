@@ -261,11 +261,11 @@ ${"         |    "..declarations}
     }
 
     /**
-     * Number of reactions including synthetic reactions.
+     * Number of reactions, including synthetic reactions.
      * Timers each have a reschedule and a bootstrap reaction.
      */
     private val ReactorInfo.totalNumReactions
-        get() = reactions.size + 2 * timers.size
+        get() = 1 + reactions.size + 2 * timers.size
 
     /** Renders the branches corresponding to synthetic timer reactions in react_erased. */
     private fun ReactorInfo.syntheticTimerReactions(): String {
@@ -517,7 +517,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             is PortData           -> portRefWrapper(dataType)
             is ChildPortReference -> portRefWrapper(dataType)
             is TimerData          -> "&${toType()}"
-            is ActionData         -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+            is ActionData         -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
     }
 

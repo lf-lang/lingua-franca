@@ -27,7 +27,7 @@ main reactor ActionValuesCleanup {
         ctx.schedule_with_v(act, Some(FooDrop { }), Asap)
     =}
 
-    reaction(act) {=
+    reaction(act) -> act {=
         ctx.use_ref(act, |v| println!("{:?}", v));
         if self.count == 0 {
             self.count = 1;
