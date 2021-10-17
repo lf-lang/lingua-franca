@@ -94,12 +94,14 @@ class CppGenerator(
         fileConfig.copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
 
         // keep track of all source files we generate
-        val cppSources = HashMap<Path, CodeMap>()
+        val cppSources = mutableListOf<Path>()
+        val codeMaps = HashMap<Path, CodeMap>()
 
         // generate the main source file (containing main())
         val mainFile = Paths.get("main.cc")
         val mainCodeMap = CodeMap.fromGeneratedCode(CppMainGenerator(mainReactor, targetConfig, cppFileConfig).generateCode())
-        cppSources[mainFile] = mainCodeMap
+        cppSources.add(mainFile)
+        codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
         fsa.generateFile(relSrcGenPath.resolve(mainFile).toString(), mainCodeMap.generatedCode)
 
         // generate header and source files for all reactors
@@ -109,7 +111,8 @@ class CppGenerator(
             val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
-                cppSources[sourceFile] = reactorCodeMap
+                cppSources.add(sourceFile)
+            codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = reactorCodeMap
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
             fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), reactorCodeMap.generatedCode)
@@ -121,7 +124,8 @@ class CppGenerator(
             val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
             val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-            cppSources[sourceFile] = preambleCodeMap
+            cppSources.add(sourceFile)
+            codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = preambleCodeMap
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
             fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), preambleCodeMap.generatedCode)
@@ -129,11 +133,8 @@ class CppGenerator(
 
         // generate the cmake script
         val cmakeGenerator = CppCmakeGenerator(targetConfig, cppFileConfig)
-        fsa.generateFile(
-            relSrcGenPath.resolve("CMakeLists.txt").toString(),
-            cmakeGenerator.generateCode(cppSources.keys.toList())
-        )
-        return cppSources
+        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
+        return codeMaps
     }
 
     fun doCompile(context: IGeneratorContext) {

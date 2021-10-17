@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.regex.Matcher;
@@ -207,6 +208,18 @@ public class CodeMap {
      */
     public String getGeneratedCode() {
         return generatedCode;
+    }
+
+    /**
+     * Returns the set of all paths to Lingua Franca files
+     * that are known to contain code that corresponds to
+     * code in the generated file represented by this.
+     * @return the set of all paths to Lingua Franca files
+     * that are known to contain code that corresponds to
+     * code in the generated file represented by this
+     */
+    public Set<Path> lfSourcePaths() {
+        return map.keySet();
     }
 
     /**

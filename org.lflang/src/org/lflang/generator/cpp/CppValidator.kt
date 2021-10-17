@@ -3,11 +3,11 @@ package org.lflang.generator.cpp
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.generator.CodeMap
-import org.lflang.generator.Position
+import org.lflang.generator.CommandErrorReportingStrategy
+import org.lflang.generator.PerLineReportingStrategy
 import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.regex.Pattern
 
 class CppValidator(
@@ -23,6 +23,33 @@ class CppValidator(
         private val gxxErrorLine: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*)"
         )
+        // Happily, the two tools seem to produce errors that follow the same format.
+        private val clangTidyErrorLine: Pattern = gxxErrorLine
+    }
+
+    enum class CppValidationStrategy(
+        val errorParsingStrategy: CommandErrorReportingStrategy,
+        val outputParsingStrategy: CommandErrorReportingStrategy,
+        val time: Int
+    ) {
+        // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
+        CLANG_TIDY({ _, _, _ -> }, PerLineReportingStrategy(clangTidyErrorLine), 5) {
+            override fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand? {
+                val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${validator.cppStandard}")
+                validator.includes.forEach { args.add("-I${it}") }
+                return LFCommand.get("clang-tidy", args, validator.fileConfig.outPath)
+            }
+        },
+        GXX(PerLineReportingStrategy(gxxErrorLine), { _, _, _ -> }, 1) {
+            override fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand? {
+                val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${validator.cppStandard}")
+                validator.includes.forEach { args.add("-I${it}") }
+                args.add(generatedFile.toString())
+                return LFCommand.get("g++", args, validator.fileConfig.outPath)
+            }
+        };
+
+        abstract fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand?
     }
 
     fun doValidate(cancelIndicator: CancelIndicator) {
@@ -35,32 +62,14 @@ class CppValidator(
     }
 
     private fun validateFile(generatedFile: Path, cancelIndicator: CancelIndicator) {
-        val validateCommand = getValidateCommand(generatedFile) ?: return
-        validateCommand.run(cancelIndicator)
-        for (line in validateCommand.errors.toString().lines()) {
-            reportErrorLine(line, generatedFile)
-        }
-    }
-
-    private fun getValidateCommand(generatedFile: Path): LFCommand? {
-        // TODO: Support compilers other than g++
-        val args: MutableList<String> = mutableListOf("-fsyntax-only", "-std=c++${cppStandard}")
-        includes.forEach { args.add("-I${it}") }
-        args.add(fileConfig.srcGenPath.resolve(generatedFile).toString())
-        return LFCommand.get("g++", args, fileConfig.outPath)
-    }
-
-    private fun reportErrorLine(line: String, generatedFile: Path) {
-        val matcher = gxxErrorLine.matcher(line)
-        if (matcher.matches()) {
-            val path = Paths.get(matcher.group("path"))
-            val generatedFilePosition = Position.fromOneBased(
-                Integer.parseInt(matcher.group("line")), Integer.parseInt(matcher.group("column"))
-            )
-            val lfFilePosition = codeMaps[generatedFile]?.adjusted(
-                fileConfig.srcFile, generatedFilePosition
-            ) ?: Position.ORIGIN
-            errorReporter.reportError(path, lfFilePosition.oneBasedLine, matcher.group("message"))
+        for (strategy in CppValidationStrategy.values().sortedBy {strategy -> strategy.time}) {
+            val validateCommand = strategy.getCommand(this, generatedFile)
+            if (validateCommand != null) {
+                validateCommand.run(cancelIndicator)
+                strategy.outputParsingStrategy.report(validateCommand.output.toString(), errorReporter, codeMaps[generatedFile])
+                strategy.errorParsingStrategy.report(validateCommand.errors.toString(), errorReporter, codeMaps[generatedFile])
+                break
+            }
         }
     }
 
