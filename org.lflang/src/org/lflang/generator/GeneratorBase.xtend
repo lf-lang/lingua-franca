@@ -79,13 +79,13 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
-import org.lflang.lf.Type
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Generator base class for shared code between code generators.
@@ -1753,10 +1753,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
 
     protected def getTargetType(Port p) {
         return p.inferredType.targetType
-    }
-
-    protected def getTargetType(Type t) {
-        InferredType.fromAST(t).targetType
     }
 
     /**

@@ -67,7 +67,11 @@ object RustTypes : TargetTypes {
         TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($magnitude)"
     }
 
-    override fun getFixedSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
+    override fun getFixedSizeListInitExpression(
+        contents: List<String>,
+        listSize: Int,
+        withBraces: Boolean
+    ): String =
         contents.joinToString(", ", "[", "]")
 
     override fun getVariableSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =

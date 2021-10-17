@@ -90,6 +90,7 @@ import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 
 /** 
