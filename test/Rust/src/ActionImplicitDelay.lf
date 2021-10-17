@@ -1,7 +1,5 @@
 // Test logical action with delay.
-target Rust {
-    cargo-features: ["test-program"],
-};
+target Rust;
 
 main reactor ActionImplicitDelay {
     logical action act(40 msec);

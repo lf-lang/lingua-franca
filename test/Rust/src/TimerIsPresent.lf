@@ -1,7 +1,7 @@
 // Tests the is_present function for timers.
 target Rust {
     timeout: 7 msec,
-    cargo-features: ["test-program"],
+
 };
 
 main reactor {

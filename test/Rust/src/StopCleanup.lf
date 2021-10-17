@@ -1,7 +1,7 @@
 /* Tests that ports are cleaned up before the shutdown wave executes. */
 
  target Rust {
-     cargo-features: ["test-program"],
+
  };
 
 reactor Sender {
