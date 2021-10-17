@@ -490,7 +490,7 @@ object RustModelBuilder {
                     StateVarInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        init = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty())
+                        init = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty())
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
@@ -499,7 +499,7 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, initWithBraces = it.braces.isNotEmpty())
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty())
                     )
                 }
             )

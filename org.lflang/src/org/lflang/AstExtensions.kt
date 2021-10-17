@@ -271,53 +271,43 @@ val Value.isZero: Boolean
             ?: false
 
 /**
- * Given an initialization list, return an inferred type. Only two types
- * can be inferred: "time" and "timeList". Return the "undefined" type if
- * neither can be inferred.
- *
- * @see ASTUtils.getInferredType
- * @return The inferred type, or "undefined" if none could be inferred.
- */
-val EList<Value>.inferredType: InferredType get() = ASTUtils.getInferredType(this)
-
-/**
  * Given a parameter, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val Parameter.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Parameter.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Given a state variable, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val StateVar.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val StateVar.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from an "action" AST node based
  * on its declared type. If no type is declared, return the "undefined"
  * type.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Action.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from a "port" AST node based on its declared
  * type. If no type is declared, return the "undefined" type.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Port.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Report whether a state variable has been initialized or not.

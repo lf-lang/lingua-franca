@@ -2,7 +2,6 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
-import org.lflang.generator.getTargetExpr
 import org.lflang.lf.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -69,7 +68,7 @@ fun Value.toTime(outerContext: Boolean = false): String =
  * If the value evaluates to 0, it is interpreted as a normal value.
  * FIXME this is redundant to GeneratorBase.getTargetValue
  */
-fun Value.toCode(): String = CppTypes.getTargetExpr(this)
+fun Value.toCode(): String = CppTypes.getTargetExpr(this, null)
 
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCode(): String = terms.joinToString(" + ") {
