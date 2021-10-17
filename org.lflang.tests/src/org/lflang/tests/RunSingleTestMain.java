@@ -32,12 +32,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.Target;
+import org.lflang.tests.TestBase.TestLevel;
+import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
 import org.lflang.tests.runtime.CppTest;
 import org.lflang.tests.runtime.PythonTest;
 import org.lflang.tests.runtime.RustTest;
-import org.lflang.tests.runtime.TestBase;
-import org.lflang.tests.runtime.TestBase.TestLevel;
 import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
@@ -79,8 +79,9 @@ public class RunSingleTestMain {
     private static Class<? extends TestBase> getTestInstance(Target target) {
         switch (target) {
         case C:
-        case CCPP: // todo CCpp
             return CTest.class;
+        case CCPP:
+            return CCppTest.class;
         case CPP:
             return CppTest.class;
         case TS:

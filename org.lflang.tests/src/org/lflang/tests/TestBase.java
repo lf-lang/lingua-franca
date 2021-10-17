@@ -1,4 +1,4 @@
-package org.lflang.tests.runtime;
+package org.lflang.tests;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -10,7 +10,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -30,10 +29,8 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.ASTUtils;
 import org.lflang.CommonExtensionsKt;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
@@ -42,10 +39,8 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.StandaloneContext;
-import org.lflang.tests.LFInjectorProvider;
-import org.lflang.tests.LFTest;
+import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
-import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 import com.google.inject.Inject;
@@ -117,8 +112,11 @@ public abstract class TestBase {
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
         public static final String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
         public static final String NO_RUST_SUPPORT = "Not supported by reactor-rust.";
+        public static final String NO_TS_SUPPORT = "Not supported by reactor-ts.";
         public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public static final String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
+        public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
+
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
@@ -142,18 +140,19 @@ public abstract class TestBase {
     }
 
     /**
-     * Run selected tests for a given target and configuration up to the specified level.
+     * Run selected tests for a given target and configurator up to the specified level.
      *
      * @param target The target to run tests for.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
-     * @param configuration  A function for configuring the tests.
+     * @param configurator  A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
     protected final void runTestsAndPrintResults(Target target,
-                                                 Predicate<TestCategory> selected, Predicate<LFTest> configuration,
+                                                 Predicate<TestCategory> selected,
+                                                 Configurator configurator,
                                                  TestLevel level,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected)
@@ -162,7 +161,7 @@ public abstract class TestBase {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
             try {
-                validateAndRun(tests, configuration, level);
+                validateAndRun(tests, configurator, level);
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
@@ -180,19 +179,19 @@ public abstract class TestBase {
      * @param description A string that describes the collection of tests.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
-     * @param configuration A function for configuring the tests.
+     * @param configurator A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
-                                      Predicate<LFTest> configuration,
+                                      Configurator configurator,
                                       TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
             runTestsFor(List.of(target), description, selected,
-                        configuration, level, copy);
+                        configurator, level, copy);
         }
     }
 
@@ -203,7 +202,7 @@ public abstract class TestBase {
      * @param description A string that describes the collection of tests.
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
-     * @param configuration A function for configuring the tests.
+     * @param configurator A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
@@ -211,12 +210,12 @@ public abstract class TestBase {
     protected void runTestsFor(List<Target> subset,
                                String description,
                                Predicate<TestCategory> selected,
-                               Predicate<LFTest> configuration,
+                               Configurator configurator,
                                TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selected, configuration, level, copy);
+            runTestsAndPrintResults(target, selected, configurator, level, copy);
         }
     }
 
@@ -333,20 +332,20 @@ public abstract class TestBase {
     }
 
     /**
-     * Configure a test by applying the given configuration and return a
+     * Configure a test by applying the given configurator and return a
      * generator context. Also, if the given level is less than
      * `TestLevel.BUILD`, add a `no-compile` flag to the generator context. If
-     * the configuration was not applied successfully, throw an AssertionError.
+     * the configurator was not applied successfully, throw an AssertionError.
      *
      * @param test the test to configure.
-     * @param configuration The configuration to apply to the test.
+     * @param configurator The configurator to apply to the test.
      * @param level The level of testing in which the generator context will be
      * used.
      * @return a generator context with a fresh resource, unaffected by any AST
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private GeneratorContext configure(LFTest test, Predicate<LFTest> configuration, TestLevel level) throws IOException {
+    private GeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
         // been tampered with using AST transformations.
@@ -376,7 +375,7 @@ public abstract class TestBase {
         addExtraLfcArgs(context.getArgs());
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (configuration != null && !configuration.test(test)) {
+        if (configurator != null && !configurator.configure(test)) {
             test.result = Result.CONFIG_FAIL;
             throw new AssertionError("Test configuration unsuccessful.");
         }
@@ -418,7 +417,7 @@ public abstract class TestBase {
 
     /**
      * Invoke the code generator for the given test.
-     *
+     * @param test The test to generate code for.
      */
     private void generateCode(LFTest test) {
         if (test.fileConfig.resource != null) {
@@ -443,8 +442,8 @@ public abstract class TestBase {
         }
         try {
             var p = pb.start();
-            var stdout = test.exec.recordStdOut(p);
-            var stderr = test.exec.recordStdErr(p);
+            var stdout = test.execLog.recordStdOut(p);
+            var stderr = test.execLog.recordStdErr(p);
             if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                 stdout.interrupt();
                 stderr.interrupt();
@@ -466,6 +465,7 @@ public abstract class TestBase {
     /**
      * Return a preconfigured ProcessBuilder for the command
      * that should be used to execute the test program.
+     * @param test The test to get the execution command for.
      */
     private ProcessBuilder getExecCommand(LFTest test) {
         final var nameWithExtension = test.srcFile.getFileName().toString();
@@ -528,17 +528,17 @@ public abstract class TestBase {
     }
 
     /**
-     * Validate and run the given tests, using the specified configuration and level.
+     * Validate and run the given tests, using the specified configuratator and level.
      *
      * While performing tests, this method prints a header that reaches completion
      * once all tests have been run.
      *
      * @param tests A set of tests to run.
-     * @param configuration A function for configuring the tests.
+     * @param configurator A procedure for configuring the tests.
      * @param level The level of testing.
      * @throws IOException If initial file configuration fails
      */
-    private void validateAndRun(Set<LFTest> tests, Predicate<LFTest> configuration, TestLevel level) throws IOException {
+    private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level) throws IOException {
         final var x = 78f / tests.size();
         var marks = 0;
         var done = 0;
@@ -546,7 +546,7 @@ public abstract class TestBase {
         for (var test : tests) {
             try {
                 redirectOutputs(test);
-                var context = configure(test, configuration, level);
+                var context = configure(test, configurator, level);
                 validate(test, context);
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
                     generateCode(test);
@@ -577,103 +577,5 @@ public abstract class TestBase {
         }
 
         System.out.print(System.lineSeparator());
-    }
-
-
-    @Test
-    public void runExampleTests() {
-        runTestsForTargets("Description: Run example tests.",
-                TestCategory.EXAMPLE_TEST::equals, t -> true,
-                TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void validateExamples() {
-        runTestsForTargets("Description: Validate examples.",
-                TestCategory.EXAMPLE::equals, t -> true, TestLevel.VALIDATION,
-                false);
-    }
-
-    @Test
-    public void runGenericTests() {
-        runTestsForTargets("Description: Run generic tests (threads = 0).",
-                           TestCategory.GENERIC::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runTargetSpecificTests() {
-        runTestsForTargets("Description: Run target-specific tests (threads = 0).",
-                           TestCategory.TARGET::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runMultiportTests() {
-        runTestsForTargets("Description: Run multiport tests (threads = 0).",
-                           TestCategory.MULTIPORT::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runSerializationTests() {
-        runTestsForTargets("Description: Run serialization tests (threads = 0).",
-                           TestCategory.SERIALIZATION::equals, ConfigurationPredicates::makeSingleThreaded,
-                           TestLevel.EXECUTION, false);
-    }
-
-    @Test
-    public void runAsFederated() {
-        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
-                                        TestCategory.FEDERATED,
-                                        TestCategory.EXAMPLE,
-                                        TestCategory.EXAMPLE_TEST,
-                                        // FIXME: also run the multiport tests once these are supported.
-                                        TestCategory.MULTIPORT));
-
-        runTestsFor(List.of(Target.C),
-                    Message.DESC_AS_FEDERATED,
-                    categories::contains,
-                    it -> ASTUtils.makeFederated(it.fileConfig.resource),
-                    TestLevel.EXECUTION,
-                    true);
-    }
-
-
-    @Test
-    public void runConcurrentTests() {
-        runTestsForTargets(Message.DESC_CONCURRENT,
-                           TestCategory.CONCURRENT::equals, t -> true, TestLevel.EXECUTION,
-                           false);
-
-    }
-
-    @Test
-    public void runFederatedTests() {
-        runTestsForTargets(Message.DESC_FEDERATED,
-                           TestCategory.FEDERATED::equals, t -> true, TestLevel.EXECUTION,
-                           false);
-    }
-/**
-     * Whether to enable {@link #runWithFourThreads()}.
-     */
-    protected boolean supportsThreadsOption() {
-        return false;
-    }
-
-    @Test
-    public void runWithFourThreads() {
-        if (supportsThreadsOption()) {
-            this.runTestsForTargets(
-                Message.DESC_FOUR_THREADS,
-                ConfigurationPredicates::defaultCategoryExclusion,
-                ConfigurationPredicates::useFourThreads,
-                TestLevel.EXECUTION,
-                true
-            );
-        } else {
-            printSkipMessage(Message.DESC_FOUR_THREADS, "target does not support threads property");
-        }
     }
 }
