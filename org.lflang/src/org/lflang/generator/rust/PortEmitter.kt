@@ -75,7 +75,8 @@ object PortEmitter {
             else "__assembler.bind_ports($child, $self)?;"
         }
 
-    /** Get a list of PortReferences for the given list of variables
+    /**
+     * Get a list of PortReferences for the given list of variables
      *
      * This checks whether the variable refers to a multiport and generated an instance of
      * PortReferrence for each port instance in the multiport. If the port is containe in a
@@ -102,7 +103,8 @@ object PortEmitter {
         return ports
     }
 
-    /** A data class for holding all information that is relevant for reverencing one specific port
+    /**
+     * A data class for holding all information that is relevant for reverencing one specific port
      *
      * The port could be a member of a bank instance and it could be an instance of a multiport.
      * Thus, the information in this class includes a bank and port index. If the bank (or port)

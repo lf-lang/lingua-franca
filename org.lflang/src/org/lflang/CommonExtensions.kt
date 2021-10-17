@@ -24,6 +24,7 @@
 
 package org.lflang
 
+import org.lflang.generator.TargetCode
 import java.util.Locale
 
 /**
@@ -112,3 +113,45 @@ val String.isIdentifier get() = matches(IDENT_REGEX)
 
 /** Matches alphanumeric identifiers. */
 val IDENT_REGEX = Regex("[a-zA-Z][a-zA-Z0-9_]*")
+
+
+/** Join with new lines. */
+fun Iterable<CharSequence>.joinLn(): String =
+    joinToString("\n")
+
+/**
+ * Join [this] iterable with commas. Supports an optional
+ * [trailing] comma. The [transform] is used to render each
+ * item. If [skipLines] is true, a newline will additionally
+ * be inserted after each item except the last. The [prefix]
+ * and [postfix] are appended even if this iterable is empty.
+ */
+fun <T> Iterable<T>.joinWithCommas(
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    skipLines: Boolean = false,
+    trailing: Boolean = true,
+    transform: (T) -> CharSequence = { it.toString() }
+): String {
+    val delim =
+        (if (skipLines) "\n" else " ")
+            .let { if (trailing) it else ",$it" }
+
+    return joinToString(delim, prefix, postfix) { t ->
+        transform(t).let { if (trailing) "$it," else it }
+    }
+}
+
+/** Like [joinWithCommas], setting the skipLines parameter to true. */
+fun <T> Iterable<T>.joinWithCommasLn(
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    trailing: Boolean = true,
+    transform: (T) -> CharSequence = { it.toString() }
+): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
+
+/**
+ * Join this list with commas, surrounding it with angled brackets (`<...>`).
+ * If this list is empty, returns an empty string.
+ */
+fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", ">")
