@@ -442,8 +442,6 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |name = "${gen.executableName}"
             |path = "src/main.rs"
             |
-            |[features]
-            |test-program=["$runtimeCrateFullName/test-utils"]
         """.trimMargin()
     }
 
