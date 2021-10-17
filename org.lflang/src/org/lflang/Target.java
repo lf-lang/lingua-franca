@@ -378,7 +378,7 @@ public enum Target {
     public final Set<String> keywords;
 
     /**
-     * Return an unmodifiable list of all known targets.
+     *An unmodifiable list of all known targets.
      */
     public static final List<Target> ALL = List.of(Target.values());
 
