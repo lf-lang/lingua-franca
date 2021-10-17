@@ -1,5 +1,5 @@
 lfc: error: Reactor must be named.
---> test/resources/org/lflang/lfc/tests/multilineWarning.lf:3:1
+--> %%%PATH.lf%%%:3:1
   |
 2 |
   | >>>>>>>>>>>>>>

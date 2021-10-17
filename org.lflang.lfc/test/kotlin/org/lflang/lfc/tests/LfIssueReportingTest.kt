@@ -32,7 +32,9 @@ import org.lflang.lfc.*
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 
 
 class SpyPrintStream {
@@ -126,19 +128,27 @@ class LfIssueReportingTest {
         main.getValidatedResource(lfFile)
         main.printErrorsIfAny()
 
-        val actualOutput = stderr.toString()
+        val actualOutput = stderr.toString().normalize(lfFile)
 
         if (!Files.exists(expectedPath)) {
-            Files.writeString(expectedPath, actualOutput)
+            val lines = actualOutput.split("\n") // resplit on normalized delimiter
+            Files.write(expectedPath, lines) // write using platform-specific delimiter, will be normalized by Git
             throw AssertionFailedError("Expected file $expectedPath does not exist, created it. Don't forget to `git add` it.")
         }
         val expected = Files.readString(expectedPath)
 
-        assertEquals(expected.normalize(), actualOutput.normalize())
+        assertEquals(expected.normalize(lfFile), actualOutput)
     }
 
-    private fun String.normalize() =
+    /**
+     * Normalize [this] string to be platform independent.
+     * @param lfFile Path to the test lf file
+     */
+    private fun String.normalize(lfFile: Path) =
         // normalize newlines and remove line-trailing whitespace
         trim().replace(Regex("\\s+\\R"), "\n")
+            // Replace file path with placeholder. File path is not
+            // rendered the same on linux and windows (forward/backward slash)
+            .replace(lfFile.toString(), "%%%PATH.lf%%%")
 
 }
