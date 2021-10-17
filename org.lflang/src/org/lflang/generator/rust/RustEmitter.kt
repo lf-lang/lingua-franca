@@ -282,9 +282,9 @@ ${"         |    "..declarations}
             val deps: List<String> = mutableListOf<String>().apply {
                 this += n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" }
                 if (n.isStartup)
-                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${n.invokerId})?;"
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${n.invokerId})?;"
                 if (n.isShutdown)
-                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Shutdown, ${n.invokerId})?;"
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortData>()
                     .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
@@ -482,7 +482,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         is PortData, is ChildPortReference ->
             if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
             else "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
-        is ActionData                      -> if (isLogical) "&mut self.$rustFieldName" else "&self.$rustFieldName"
+        is ActionData                      -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
         is TimerData                       -> "&self.$rustFieldName"
     }
 
@@ -511,7 +511,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             is PortData           -> portRefWrapper(kind, dataType)
             is ChildPortReference -> portRefWrapper(kind, dataType)
             is TimerData          -> "&${toType()}"
-            is ActionData          -> if (isLogical) "&mut ${toType()}" else "&${toType()}"
+            is ActionData          -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
 
     private fun portRefWrapper(kind: DepKind, dataType: TargetCode) =
