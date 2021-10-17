@@ -2,7 +2,7 @@
 
  target Rust {
     timeout: 30 msec,
-    cargo-features: ["test-program"],
+
  };
 
 main reactor StopIdempotence {

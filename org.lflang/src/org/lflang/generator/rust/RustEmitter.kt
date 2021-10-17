@@ -25,6 +25,7 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
+import org.lflang.*
 import org.lflang.generator.*
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
@@ -145,7 +146,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName$typeArgs;
-                |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new_const($maxReactionIdUsize);
+                |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new_const($totalNumReactions - 1);
                 |
                 |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
                 |        use $rsRuntime::TriggerLike;
@@ -162,7 +163,7 @@ ${"             |        "..declareReactions()}
                 |
                 |        {
                 |
-${"             |            "..graphDependencyDeclarations(reactor)}
+${"             |            "..graphDependencyDeclarations()}
                 |
 ${"             |            "..declareChildConnections()}
                 |        }
@@ -182,14 +183,14 @@ ${"             |        "..nestedInstances.joinToString("\n") { "__assembler.re
                 |
                 |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: $rsRuntime::LocalReactionId) {
                 |        match rid.raw() {
-${"             |            "..workerFunctionCalls(reactor)}
-${"             |            "..reactor.syntheticTimerReactions()}
+${"             |            "..workerFunctionCalls()}
+${"             |            "..syntheticTimerReactions()}
                 |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, <Self as $rsRuntime::ReactorInitializer>::MAX_REACTION_ID)
                 |        }
                 |    }
                 |
                 |    fn cleanup_tag(&mut self, ctx: &$rsRuntime::CleanupCtx) {
-${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupAction() }.joinLn()}
+${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.joinLn()}
                 |    }
                 |
                 |}
@@ -198,9 +199,6 @@ ${"             |        "..reactor.otherComponents.mapNotNull { it.cleanupActio
             }
         }
     }
-
-    /** timers have a reschedule and a bootstrap reaction*/
-    private val ReactorInfo.maxReactionIdUsize get() = reactions.size + 2 * timers.size
 
     private fun ReactorInfo.assembleChildReactors(): String {
         fun NestedReactorInstance.paramStruct(): String =
@@ -241,6 +239,7 @@ ${"         |    "..declarations}
         }
     }
 
+    /** Declare reaction IDs in the assemble routine. */
     private fun ReactorInfo.declareReactions(): String {
         val reactionIds = reactions.map { it.invokerId } +
                 timers.map { it.rescheduleReactionId } +
@@ -257,15 +256,16 @@ ${"         |    "..declarations}
         return "$pattern = __assembler.new_reactions(${reactions.size}, $debugLabelArray);"
     }
 
-    private fun workerFunctionCalls(reactor: ReactorInfo): String {
+    /** Renders calls to worker functions from within the react_erased function. */
+    private fun ReactorInfo.workerFunctionCalls(): TargetCode {
 
         fun joinDependencies(reaction: ReactionInfo): String = sequence {
             for ((kind, deps) in reaction.allDependencies) {
                 for (comp in deps) {
                     if (comp.isNotInjectedInReaction(kind, reaction)) continue
 
-                    val borrow = comp.toBorrow(kind) ?: continue
-                    yield(borrow)
+                    val borrow = comp.toBorrow(kind)
+                    this.yield(borrow)
                 }
             }
         }.toList().let {
@@ -273,12 +273,25 @@ ${"         |    "..declarations}
             else it.joinWithCommas(prefix = ", ")
         }
 
-        return reactor.reactions.joinWithCommasLn(trailing = true) { n: ReactionInfo ->
+        return reactions.joinWithCommasLn(trailing = true) { n: ReactionInfo ->
             "${n.idx} => self.__impl.${n.workerId}(ctx${joinDependencies(n)})"
         }
     }
 
+    /**
+     * Number of reactions including synthetic reactions.
+     * Timers each have a reschedule and a bootstrap reaction.
+     */
+    private val ReactorInfo.totalNumReactions
+        get() = reactions.size + 2 * timers.size
+
+    /** Renders the branches corresponding to synthetic timer reactions in react_erased. */
     private fun ReactorInfo.syntheticTimerReactions(): String {
+        fun ReactorInfo.timerReactionId(timer: TimerData, synthesisNum: Int) =
+            reactions.size +
+                    timers.indexOf(timer).also { assert(it != -1) } +
+                    synthesisNum * timers.size // offset it by a block
+
         val branches = timers.map {
             "${timerReactionId(it, 0)} => ctx.reschedule_timer(&mut self.${it.rustFieldName})"
         } + timers.map {
@@ -287,13 +300,9 @@ ${"         |    "..declarations}
         return branches.joinWithCommasLn(trailing = true)
     }
 
-    private fun ReactorInfo.timerReactionId(timer: TimerData, synthesisNum: Int) =
-        reactions.size +
-                timers.indexOf(timer).also { assert(it != -1) } +
-                synthesisNum * timers.size // offset it by a block
-
-    private fun graphDependencyDeclarations(reactor: ReactorInfo): String {
-        val reactions = reactor.reactions.map { n ->
+    /** Build the dependency graph using the assembler. */
+    private fun ReactorInfo.graphDependencyDeclarations(): String {
+        val reactions = reactions.map { n ->
             val deps: List<String> = mutableListOf<String>().apply {
                 this += n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" }
                 if (n.isStartup)
@@ -308,11 +317,11 @@ ${"         |    "..declarations}
             n.loc.lfTextComment() + "\n" + deps.joinLn()
         }.joinLn()
 
-        val timers = reactor.timers.flatMap {
+        val timers = timers.flatMap {
             listOf(
                 "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
                 // start reactions may "trigger" the timer, otherwise it schedules it
-                "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${it.startReactionId})?;",
+                "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${it.startReactionId})?;",
                 "__assembler.effects_instantaneous(${it.startReactionId}, __self.${it.rustFieldName}.get_id())?;",
             )
         }.joinLn()
@@ -320,11 +329,13 @@ ${"         |    "..declarations}
         return (reactions + "\n\n" + timers).trimEnd()
     }
 
+    /** Name of the reschedule reaction for this timer. */
     private val TimerData.rescheduleReactionId: String
-        get() = "_timer_schedule_$lfName"
+        get() = "__timer_schedule_$lfName"
 
+    /** Name of the bootstrap reaction for this timer. */
     private val TimerData.startReactionId: String
-        get() = "_timer_start_$lfName"
+        get() = "__timer_start_$lfName"
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor
@@ -580,7 +591,6 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             |path = "src/main.rs"
             |
             |[features]
-            |test-program=["$runtimeCrateFullName/test-utils", "assert_matches"]
             |cli=["clap"]
         """.trimMargin()
     }
@@ -609,19 +619,81 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             }
         }
 
-    /// Rust pattern that deconstructs a ctor param tuple into individual variables
+    /** Rust pattern that deconstructs a ctor param tuple into individual variables */
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
         get() {
             val fields = ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }
             return "${names.paramStructName} {  __phantom, $fields }"
         }
 
+    /** Renders the field of the reactor struct that will contain this component. */
+    private fun ReactorComponent.toStructField(): TargetCode {
+        val fieldVisibility = if (this is PortData) "pub " else ""
+        return "$fieldVisibility$rustFieldName: ${toType()}"
+    }
+
+    /** The owned type of this reactor component (type of the struct field). */
+    private fun ReactorComponent.toType(): TargetCode = when (this) {
+        is ActionData         ->
+            if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
+            else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
+        is PortData           ->
+            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
+            else "$rsRuntime::Port<$dataType>"
+        is ChildPortReference ->
+            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
+            else "$rsRuntime::Port<$dataType>"
+        is TimerData          -> "$rsRuntime::Timer"
+    }
+
+    /** Initial expression for the field. */
+
+    private fun ReactorComponent.initialExpression(): TargetCode = when (this) {
+        is ActionData         -> {
+            val delay = minDelay.toRustOption()
+            val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
+            "__assembler.$ctorName::<$dataType>(\"$lfName\", $delay)"
+        }
+        is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
+        is PortData           -> {
+            if (widthSpec != null) {
+                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)"
+            } else {
+                "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
+            }
+        }
+        is ChildPortReference -> {
+            if (isMultiport) {
+                throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
+            } else {
+                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $isInput)"
+            }
+        }
+    }
+
+    /** The type of the parameter injected into a reaction for the given dependency. */
+    private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode {
+        fun portRefWrapper(dataType: TargetCode, isMultiport: Boolean) =
+            when {
+                kind == DepKind.Effects && isMultiport -> throw UnsupportedGeneratorFeatureException("Output port banks")
+                kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
+                isMultiport                            -> "$rsRuntime::ReadableMultiPort<$dataType>" // note: owned
+                else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
+            }
+
+        return when (this) {
+            is PortData           -> portRefWrapper(dataType, isMultiport)
+            is ChildPortReference -> portRefWrapper(dataType, isMultiport)
+            is TimerData          -> "&${toType()}"
+            is ActionData         -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+        }
+    }
 
     /**
-     * Returns null if there is no need to manipulate the
-     * dependency within the reaction.
+     * Produce an instance of the borrowed type ([toBorrowedType]) to inject
+     * into a reaction. This conceptually just borrows the field.
      */
-    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode? = when (this) {
+    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode = when (this) {
         is PortData           -> portBorrow(kind, isMultiport)
         is ChildPortReference -> portBorrow(kind, isMultiport)
         is ActionData         -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
@@ -656,58 +728,8 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
     private fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
         depKind == DepKind.Triggers && this !is PortData
 
-    private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
-        when (this) {
-            is PortData           -> portRefWrapper(kind, dataType, isMultiport)
-            is ChildPortReference -> portRefWrapper(kind, dataType, isMultiport)
-            is TimerData          -> "&${toType()}"
-            is ActionData         -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
-        }
 
-    private fun portRefWrapper(kind: DepKind, dataType: TargetCode, isMultiport: Boolean) =
-        when {
-            kind == DepKind.Effects && isMultiport -> throw UnsupportedGeneratorFeatureException("Output port banks")
-            kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
-            isMultiport                            -> "$rsRuntime::ReadableMultiPort<$dataType>" // note: owned
-            else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
-        }
-
-    private fun ReactorComponent.toType(): TargetCode = when (this) {
-        is ActionData         ->
-            if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
-            else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
-        is PortData           ->
-            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
-            else "$rsRuntime::Port<$dataType>"
-        is ChildPortReference ->
-            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
-            else "$rsRuntime::Port<$dataType>"
-        is TimerData          -> "$rsRuntime::Timer"
-    }
-
-    private fun ReactorComponent.initialExpression(): TargetCode = when (this) {
-        is ActionData         -> {
-            val delay = minDelay.toRustOption()
-            val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
-            "__assembler.$ctorName::<$dataType>(\"$lfName\", $delay)"
-        }
-        is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData           -> {
-            if (widthSpec != null) {
-                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)"
-            } else {
-                "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
-            }
-        }
-        is ChildPortReference -> {
-            if (isMultiport) {
-                throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
-            } else {
-                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $isInput)"
-            }
-        }
-    }
-
+    /** Action that must be taken to cleanup this component within the `cleanup_tag` procedure. */
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
         is ActionData         ->
             if (isLogical) "ctx.cleanup_logical_action(&mut self.$rustFieldName);"
@@ -719,12 +741,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
         else                  -> null
     }
 
-
-    private fun ReactorComponent.toStructField(): TargetCode {
-        val fieldVisibility = if (this is PortData) "pub " else ""
-        return "$fieldVisibility$rustFieldName: ${toType()}"
-    }
-
+    /** Renders the definition of the worker function generated for this reaction. */
     private fun ReactionInfo.toWorkerFunction(): String {
         fun ReactionInfo.reactionParams(): List<String> = sequence {
             for ((kind, comps) in allDependencies) {
@@ -773,43 +790,15 @@ private fun LocationInfo.lfTextComment() =
     "// --- ${lfText.joinLines()}"
 
 private val timeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
+
+/** Header comment for generated files. */
 private fun generatedByComment(delim: String) =
     "$delim-- Generated by LFC @ ${timeFormatter.format(LocalDateTime.now())} --$delim"
 
+/** Convert a nullable value to a rust option. */
 private fun TargetCode?.toRustOption(): TargetCode =
     if (this == null) "None"
     else "Some($this)"
-
-private fun Iterable<CharSequence>.joinLn(): String =
-    joinToString("\n")
-
-private fun <T> Iterable<T>.joinWithCommas(
-    prefix: CharSequence = "",
-    postfix: CharSequence = "",
-    skipLines: Boolean = false,
-    trailing: Boolean = true,
-    transform: (T) -> CharSequence = { it.toString() }
-): String {
-    val delim =
-        (if (skipLines) "\n" else " ")
-            .let { if (trailing) it else ",$it" }
-
-    return joinToString(delim, prefix, postfix) { t ->
-        transform(t).let { if (trailing) "$it," else it }
-    }
-}
-
-private fun <T> List<T>.toVecLiteral(transform: (T) -> String = { it.toString() }) =
-    joinWithCommas("vec![", "]", transform = transform)
-
-private fun <T> Iterable<T>.joinWithCommasLn(
-    prefix: CharSequence = "",
-    postfix: CharSequence = "",
-    trailing: Boolean = true,
-    transform: (T) -> CharSequence = { it.toString() }
-): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
-
-fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", ">")
 
 /**
  * If this is a rust keyword, escape it for it to be interpreted

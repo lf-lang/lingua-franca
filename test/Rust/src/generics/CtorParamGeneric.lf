@@ -2,7 +2,7 @@
 
 target Rust;
 
-reactor Generic<{= T: Default + Eq + Send + std::fmt::Debug =}>(value: T({= Default::default() =})) {
+reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(value: T({= Default::default() =})) {
     input in: T;
     state v: T(value);
 

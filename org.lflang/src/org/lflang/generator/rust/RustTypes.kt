@@ -27,7 +27,6 @@ package org.lflang.generator.rust
 import org.lflang.InferredType
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.getInferredType
 import org.lflang.lf.TimeUnit
 
 object RustTypes : TargetTypes {
@@ -69,7 +68,11 @@ object RustTypes : TargetTypes {
         TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($magnitude)"
     }
 
-    override fun getFixedSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
+    override fun getFixedSizeListInitExpression(
+        contents: List<String>,
+        listSize: Int,
+        withBraces: Boolean
+    ): String =
         contents.joinToString(", ", "[", "]")
 
     override fun getVariableSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
