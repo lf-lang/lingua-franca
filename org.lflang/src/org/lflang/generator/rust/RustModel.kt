@@ -323,7 +323,7 @@ sealed class ReactorComponent {
                 literal != null   ->
                     literal.toIntOrNull()
                         ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
-                        ?: throw InvalidSourceException("Not an integer literal", this)
+                        ?: throw InvalidLfSourceException("Not an integer literal", this)
                 time != null      -> time.toRustTimeExpr()
                 code != null      -> code.toText()
                 else              -> RustTypes.getTargetExpr(this, InferredType.time())
@@ -514,7 +514,7 @@ object RustModelBuilder {
                 RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
             }
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
-                ?: throw InvalidSourceException("Cannot find value of parameter ${ithParam.name}", this)
+                ?: throw InvalidLfSourceException("Cannot find value of parameter ${ithParam.name}", this)
             ithParam.name to value
         }
 
@@ -587,5 +587,5 @@ private val TypeParm.identifier: String
     get() {
         val targetCode = toText()
         return IDENT_REGEX.find(targetCode.trimStart())?.value
-            ?: throw InvalidSourceException("No identifier in type param `$targetCode`", this)
+            ?: throw InvalidLfSourceException("No identifier in type param `$targetCode`", this)
     }
