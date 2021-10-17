@@ -80,8 +80,7 @@ public interface TargetTypes {
         // todo make non-default when we reuse this for all generators,
         //  all targets should support this.
         Objects.requireNonNull(unit);
-        // todo throw UnsupportedGeneratorFeatureException when it's converted to Java
-        throw new UnsupportedOperationException();
+        throw new UnsupportedGeneratorFeatureException("Time expressions");
     }
 
     /**
@@ -91,8 +90,7 @@ public interface TargetTypes {
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
     default String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-        // todo throw UnsupportedGeneratorFeatureException when it's converted to Java
-        throw new UnsupportedOperationException();
+        throw new UnsupportedGeneratorFeatureException("Variable size lists");
     }
 
     /**
@@ -102,8 +100,7 @@ public interface TargetTypes {
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
     default String getFixedSizeListInitExpression(List<String> contents, int listSize, boolean withBraces) {
-        // todo throw UnsupportedGeneratorFeatureException when it's converted to Java
-        throw new UnsupportedOperationException();
+        throw new UnsupportedGeneratorFeatureException("Fixed size lists");
     }
 
 
@@ -117,8 +114,7 @@ public interface TargetTypes {
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
     default String getMissingExpr() {
-        // todo throw UnsupportedGeneratorFeatureException when it's converted to Java
-        throw new UnsupportedOperationException();
+        throw new UnsupportedGeneratorFeatureException("Missing initializers");
     }
 
 
