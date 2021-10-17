@@ -297,9 +297,9 @@ ${"         |    "..declarations}
             val deps: List<String> = mutableListOf<String>().apply {
                 this += n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" }
                 if (n.isStartup)
-                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Startup, ${n.invokerId})?;"
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${n.invokerId})?;"
                 if (n.isShutdown)
-                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::Shutdown, ${n.invokerId})?;"
+                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortData>()
                     .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
