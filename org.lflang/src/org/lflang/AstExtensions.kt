@@ -25,8 +25,9 @@
 package org.lflang
 
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.generator.cpp.name
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
 
 /**
@@ -104,6 +105,15 @@ private fun <T> Reactor.collectInSupertypes(collector: Reactor.() -> List<T>): L
     superClasses.orEmpty().mapNotNull { it.toDefinition().collectInSupertypes(collector) }.flatten() + this.collector()
 
 /**
+ * Return all components declared within this reactor in an
+ * unspecified order.
+ */
+fun Reactor.allComponents(): List<Variable> =
+    collectInSupertypes {
+        outputs + inputs + actions + timers
+    }
+
+/**
  * Check if the reactor class uses generics
  * @receiver the reactor to check
  * @true true if the reactor uses generics
@@ -158,22 +168,18 @@ fun Delay.toText(): String =
 
 
 /**
- * Remove quotation marks surrounding the specified string.
- */
-fun String.withoutQuotes(): String {
-    val r = removeSurrounding("\"")
-    return if (r !== this) this else removeSurrounding("'")
-}
-
-
-/**
  * Return a string of the form either "name" or "container.name" depending
  * on in which form the variable reference was given.
  * @receiver The variable reference.
  */
-fun VarRef.toText(): String =
-    if (container != null) "${container.name}.${variable.name}"
-    else variable.name
+fun TriggerRef.toText(): String =
+    when {
+        this is VarRef && container != null -> "${container.name}.${variable.name}"
+        this is VarRef                      -> variable.name
+        isStartup                           -> "startup"
+        isShutdown                          -> "shutdown"
+        else                                -> throw UnsupportedOperationException("What's this ref: $this")
+    }
 
 
 /**
@@ -265,84 +271,43 @@ val Value.isZero: Boolean
             ?: false
 
 /**
- * Parse and return an integer from this string, much
- * like [String.toIntOrNull], but allows any radix.
- *
- * @see Integer.decode
- */
-fun String.toIntOrNullAnyRadix(): Int? =
-    try {
-        Integer.decode(this)
-    } catch (e: NumberFormatException) {
-        null
-    }
-
-/**
- * Return the sublist consisting of the tail elements of this list,
- * ie, everything except the first elements. This is a list view,
- * and does not copy the backing buffer (if any).
- *
- * @throws NoSuchElementException if the list is empty
- */
-fun <T> List<T>.tail() = subList(1, size)
-
-/**
- * Return a pair consisting of the [List.first] element and the [tail] sublist.
- * This may be used to deconstruct a list recursively, as is usual in
- * functional languages.
- *
- * @throws NoSuchElementException if the list is empty
- */
-fun <T> List<T>.headAndTail() = Pair(first(), tail())
-
-/**
- * Given an initialization list, return an inferred type. Only two types
- * can be inferred: "time" and "timeList". Return the "undefined" type if
- * neither can be inferred.
- *
- * @see ASTUtils.getInferredType
- * @return The inferred type, or "undefined" if none could be inferred.
- */
-val EList<Value>.inferredType: InferredType get() = ASTUtils.getInferredType(this)
-
-/**
  * Given a parameter, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val Parameter.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Parameter.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Given a state variable, return an inferred type. Only two types can be
  * inferred: "time" and "timeList". Return the "undefined" type if
  * neither can be inferred.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none could be inferred.
  */
-val StateVar.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val StateVar.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from an "action" AST node based
  * on its declared type. If no type is declared, return the "undefined"
  * type.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Action.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Construct an inferred type from a "port" AST node based on its declared
  * type. If no type is declared, return the "undefined" type.
  *
- * @see ASTUtils.getInferredType
+ * @see JavaAstUtils.getInferredType
  * @return The inferred type, or "undefined" if none was declared.
  */
-val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+val Port.inferredType: InferredType get() = JavaAstUtils.getInferredType(this)
 
 /**
  * Report whether a state variable has been initialized or not.
@@ -413,5 +378,37 @@ val Instantiation.reactor get() = this.reactorClass.toDefinition()
 
 /** Check if the receiver is a bank instantiation. */
 val Instantiation.isBank: Boolean get() = this.widthSpec != null
+
+
+/** The index of a reaction in its containing reactor. */
+val Reaction.indexInContainer
+    get(): Int = containingReactor.reactions.lastIndexOf(this)
+
+/** The reactor containing a given reaction. */
+val Reaction.containingReactor get() = this.eContainer() as Reactor
+
+/** Returns true if this is an input port (not an output port). */
+val Port.isInput get() = this is Input
+
+val Assignment.isInitWithBraces get() = braces.isNotEmpty()
+val StateVar.isInitWithBraces get() = braces.isNotEmpty()
+val Parameter.isInitWithBraces get() = braces.isNotEmpty()
+
+/**
+ * Produce the text of the given node in the source LF file.
+ * May be null if the node model is unavailable (please blame eclipse).
+ */
+fun EObject.toTextTokenBased(): String? {
+    val node = NodeModelUtils.getNode(this) ?: return null
+    val builder = StringBuilder(node.totalLength.coerceAtLeast(1))
+    var hidden = true // remove hidden tokens until the first non-hidden token
+    for (leaf in node.leafNodes) {
+        hidden = hidden && leaf.isHidden
+        if (!hidden) {
+            builder.append(leaf.text)
+        }
+    }
+    return builder.trim().toString()
+}
 
 val Connection.hasMultipleConnections: Boolean get() = ASTUtils.hasMultipleConnections(this)
