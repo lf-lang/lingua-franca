@@ -21,12 +21,9 @@
 package org.lflang;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.lflang.lf.TargetDecl;
 
@@ -343,14 +340,7 @@ public enum Target {
             "_Static_assert", // (since C11)
             "_Thread_local" // (since C11)
             )
-    ),
-    Rust("Rust", true,
-         "rust", "Rust",
-         // In our Rust implementation, the only reserved keywords
-         // are those that are a valid expression. Others may be escaped
-         // with the syntax r#keyword.
-         Arrays.asList("self", "true", "false")
-    );
+            );
 
     /**
      * String representation of this target.
@@ -375,12 +365,12 @@ public enum Target {
     /**
      * Reserved words in the target language.
      */
-    public final Set<String> keywords;
+    public final List<String> keywords;
 
     /**
-     *An unmodifiable list of all known targets.
+     * Return an unmodifiable list of all known targets.
      */
-    public static final List<Target> ALL = List.of(Target.values());
+    public static final List<Target> ALL = Collections.unmodifiableList(List.of(Target.values()));
 
     /**
      * Private constructor for targets.
@@ -392,10 +382,10 @@ public enum Target {
      * @param keywords        List of reserved strings in the target language.
      */
     Target(String displayName, boolean requiresTypes, String packageName,
-           String classNamePrefix, Collection<String> keywords) {
+           String classNamePrefix, List<String> keywords) {
         this.displayName = displayName;
         this.requiresTypes = requiresTypes;
-        this.keywords = Collections.unmodifiableSet(new LinkedHashSet<>(keywords));
+        this.keywords = keywords;
         this.packageName = packageName;
         this.classNamePrefix = classNamePrefix;
     }
@@ -404,7 +394,7 @@ public enum Target {
     /**
      * Private constructor for targets without pakcageName and classNamePrefix.
      */
-    Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
+    Target(String displayName, boolean requiresTypes, List<String> keywords) {
         this(displayName, requiresTypes, "N/A", "N/A", keywords);
     }
 
@@ -449,17 +439,6 @@ public enum Target {
     @Override
     public String toString() {
         return displayName;
-    }
-
-    /**
-     * Returns whether the given identifier is invalid as the
-     * name of an LF construct. This usually means that the identifier
-     * is a keyword in the target language. In Rust, many
-     * keywords may be escaped with the syntax {@code r#keyword},
-     * and they are considered valid identifiers.
-     */
-    public boolean isReservedIdent(String ident) {
-        return this.keywords.contains(ident);
     }
 
     /**

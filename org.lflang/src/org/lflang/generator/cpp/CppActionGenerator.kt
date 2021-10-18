@@ -26,7 +26,6 @@ package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
-import org.lflang.inferredType
 import org.lflang.isLogical
 import org.lflang.lf.Action
 import org.lflang.lf.LfPackage
@@ -36,12 +35,8 @@ import org.lflang.lf.Reactor
 class CppActionGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
 
     companion object {
-        val Action.cppType: String
-            get() {
-                val dataType = inferredType.cppType
-                return if (this.isLogical) "reactor::LogicalAction<$dataType>"
-                else "reactor::PhysicalAction<$dataType>"
-            }
+        val Action.cppType
+            get() = if (this.isLogical) "reactor::LogicalAction<$targetType>" else "reactor::PhysicalAction<$targetType>"
 
         val startupName: String = LfPackage.Literals.TRIGGER_REF__STARTUP.name
         val shutdownName: String = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name

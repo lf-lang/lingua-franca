@@ -24,7 +24,6 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.inferredType
 import org.lflang.isMultiport
 import org.lflang.lf.Input
 import org.lflang.lf.Output
@@ -51,11 +50,10 @@ class CppPortGenerator(private val reactor: Reactor) {
                 else      -> throw AssertionError()
             }
 
-            val dataType = inferredType.cppType
             return if (isMultiport) {
-                "std::vector<$portType<$dataType>>"
+                "std::vector<$portType<$targetType>>"
             } else {
-                "$portType<$dataType>"
+                "$portType<$targetType>"
             }
         }
 

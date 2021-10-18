@@ -32,9 +32,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
-import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
@@ -46,8 +44,7 @@ class CppGenerator(
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter),
-    TargetTypes by CppTypes {
+    GeneratorBase(cppFileConfig, errorReporter) {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -224,49 +221,17 @@ class CppGenerator(
 
     override fun generateAfterDelaysWithVariableWidth() = false
 
-    override fun getTarget() = Target.CPP
-}
-
-object CppTypes : TargetTypes {
-
     override fun supportsGenerics() = true
 
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
 
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
-    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
+    override fun getTargetTagIntervalType() = targetUndefinedType
 
-    override fun getTargetUndefinedType() = "void"
+    override fun getTargetFixedSizeListType(baseType: String, size: Int) = TODO()
+    override fun getTargetVariableSizeListType(baseType: String) = TODO()
 
-    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): String =
-        if (magnitude == 0L) "reactor::Duration::zero()"
-        else magnitude.toString() + unit.cppUnit
+    override fun getTargetUndefinedType() = TODO()
 
+    override fun getTarget() = Target.CPP
 }
-/** Get a C++ representation of a LF unit. */
-val TimeUnit.cppUnit
-    get() = when (this) {
-        TimeUnit.NSEC    -> "ns"
-        TimeUnit.NSECS   -> "ns"
-        TimeUnit.USEC    -> "us"
-        TimeUnit.USECS   -> "us"
-        TimeUnit.MSEC    -> "ms"
-        TimeUnit.MSECS   -> "ms"
-        TimeUnit.SEC     -> "s"
-        TimeUnit.SECS    -> "s"
-        TimeUnit.SECOND  -> "s"
-        TimeUnit.SECONDS -> "s"
-        TimeUnit.MIN     -> "min"
-        TimeUnit.MINS    -> "min"
-        TimeUnit.MINUTE  -> "min"
-        TimeUnit.MINUTES -> "min"
-        TimeUnit.HOUR    -> "h"
-        TimeUnit.HOURS   -> "h"
-        TimeUnit.DAY     -> "d"
-        TimeUnit.DAYS    -> "d"
-        TimeUnit.WEEK    -> "d*7"
-        TimeUnit.WEEKS   -> "d*7"
-        TimeUnit.NONE    -> ""
-        else             -> ""
-    }

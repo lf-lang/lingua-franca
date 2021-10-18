@@ -45,7 +45,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
         }
 
         /** Type of the parameter in C++ code */
-        val Parameter.targetType get(): String = this.inferredType.cppType
+        val Parameter.targetType get():String = this.inferredType.targetType
 
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String
