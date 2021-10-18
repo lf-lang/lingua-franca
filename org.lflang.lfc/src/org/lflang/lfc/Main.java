@@ -61,7 +61,7 @@ public class Main {
     private static String MAIN_PATH_IN_JAR = String.join("/",
                                                          new String[] {"!", "org", "lflang", "lfc", "Main.class"});
 
-    
+
     /**
      * Object for interpreting command line arguments.
      */
@@ -498,11 +498,11 @@ public class Main {
             reporter.printFatalErrorAndExit("Aborting due to " + cause);
         }
     }
-    
+
     /**
      * Given a path, obtain a resource and validate it. If issues arise during validation,
      * these are recorded using the issue collector.
-     * 
+     *
      * @param path Path to the resource to validate.
      * @return A validated resource
      */
@@ -518,7 +518,7 @@ public class Main {
         }
 
         List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
-        
+
         for (Issue issue : issues) {
             URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
             try {

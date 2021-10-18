@@ -505,20 +505,16 @@ class TSGenerator(
         return "TimeValue"
     }
 
-    override fun getTargetTagIntervalType(): String {
-        return this.targetUndefinedType
-    }
-
     override fun getTargetUndefinedType(): String {
         return "Present"
     }
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array(${size})<${baseType}>"
+        return "Array($size)<$baseType>"
     }
 
     override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<${baseType}>"
+        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {
