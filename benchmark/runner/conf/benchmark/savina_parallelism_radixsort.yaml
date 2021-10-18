@@ -36,6 +36,7 @@ targets:
   lf-c:
     copy_sources:
       - "${lf_path}/benchmark/C/Savina/src/parallelism/RadixSort.lf"
+      - "${lf_path}/benchmark/C/Savina/src/include/PseudoRandom.h"
     lf_file: "RadixSort.lf"
     binary: "RadixSort"
     gen_args:
