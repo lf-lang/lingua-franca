@@ -79,11 +79,14 @@ class RustGenerator(
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
+            val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
+            Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
             invokeRustCompiler()
         }
     }
 
     private fun invokeRustCompiler() {
+
         val args = mutableListOf<String>().apply {
             this += listOf(
                 "+nightly",
@@ -94,9 +97,9 @@ class RustGenerator(
                 "-Z", "unstable-options", // ... and that feature flag
             )
 
-            if (targetConfig.cargoFeatures.isNotEmpty()) {
+            if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
-                this += targetConfig.cargoFeatures.joinWithCommas()
+                this += targetConfig.rust.cargoFeatures.joinWithCommas()
             }
 
             this += targetConfig.compilerFlags
