@@ -173,6 +173,9 @@ public class LFGenerator extends AbstractGenerator {
             generator.doGenerate(resource, fsa, context);
             generatorErrorsOccurred = generator.errorsOccurred();
         }
+        if (errorReporter instanceof LanguageServerErrorReporter) {
+            ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
+        }
     }
 
     /** Return true if errors occurred in the last call to doGenerate(). */

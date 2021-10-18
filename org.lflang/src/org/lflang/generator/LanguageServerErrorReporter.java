@@ -1,6 +1,7 @@
 package org.lflang.generator;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,8 +26,8 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     /** The document for which this is a diagnostic acceptor. */
     private final EObject parseRoot;
-    /** Whether errors occurred since the last reset. */
-    boolean errorsOccurred = false;
+    /** The list of all diagnostics since the last reset. */
+    private List<Diagnostic> diagnostics;
 
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
@@ -39,6 +40,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      */
     public LanguageServerErrorReporter(EObject parseRoot) {
         this.parseRoot = parseRoot;
+        this.diagnostics = new ArrayList<>();
     }
 
     /* -----------------------  PUBLIC METHODS  ------------------------- */
@@ -75,12 +77,12 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public boolean getErrorsOccurred() {
-        return errorsOccurred;
+        return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error);
     }
 
     @Override
     public void reset() {
-        errorsOccurred = false;
+        diagnostics.clear();
     }
 
     public static void setClient(LanguageClient client) {
@@ -129,12 +131,9 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      * @return a string that describes the diagnostic
      */
     private String acceptDiagnostic(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        // FIXME: Diagnostics should be collected, then sent all at once. That is why publishDiagnostics accepts a list.
-        if (client != null)
-            publishDiagnostics(List.of(new Diagnostic(
-                toRange(startPos, endPos), message, severity, "Lingua Franca Language Server"
-            )));
-        if (severity == DiagnosticSeverity.Error) errorsOccurred = true;
+        diagnostics.add(new Diagnostic(
+            toRange(startPos, endPos), message, severity, "LF Language Server"
+        ));
         return "" + severity + ": " + message;
     }
 
@@ -158,7 +157,18 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         return getText().lines().skip(line).findFirst();
     }
 
-    private void publishDiagnostics(List<Diagnostic> diagnostics) {
+    /**
+     * Publishes diagnostics by forwarding them to the
+     * language client.
+     */
+    public void publishDiagnostics() {
+        if (diagnostics.isEmpty()) return;
+        if (client == null) {
+            System.err.println(
+                "WARNING: Cannot publish diagnostics because the language client has not yet been found."
+            );
+            return;
+        }
         PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
         publishDiagnosticsParams.setUri(parseRoot.eResource().getURI().toString());
         publishDiagnosticsParams.setDiagnostics(diagnostics);
