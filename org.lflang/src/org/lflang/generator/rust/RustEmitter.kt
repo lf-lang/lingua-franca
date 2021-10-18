@@ -634,16 +634,14 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
 
     /** The owned type of this reactor component (type of the struct field). */
     private fun ReactorComponent.toType(): TargetCode = when (this) {
-        is ActionData         ->
+        is ActionData                      ->
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
-        is PortData           ->
-            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
+        is PortData, is ChildPortReference -> with(this as PortLike) {
+            if (isMultiport) "$rsRuntime::PortBank<$dataType>"
             else "$rsRuntime::Port<$dataType>"
-        is ChildPortReference ->
-            if (isMultiport) "$rsRuntime::MultiPort<$dataType>"
-            else "$rsRuntime::Port<$dataType>"
-        is TimerData          -> "$rsRuntime::Timer"
+        }
+        is TimerData                       -> "$rsRuntime::Timer"
     }
 
     /** Initial expression for the field. */
@@ -677,7 +675,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             when {
                 kind == DepKind.Effects && isMultiport -> throw UnsupportedGeneratorFeatureException("Output port banks")
                 kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
-                isMultiport                            -> "$rsRuntime::ReadableMultiPort<$dataType>" // note: owned
+                isMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
                 else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
             }
 
@@ -704,7 +702,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
         when {
             kind == DepKind.Effects && isMultiport  -> throw UnsupportedGeneratorFeatureException("Output port banks")
             kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
-            isMultiport                             -> "$rsRuntime::ReadableMultiPort::new(&self.$rustFieldName)" // note: owned
+            isMultiport                             -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
             else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
         }
 
