@@ -1,0 +1,13 @@
+// There was a bug whereby reaction labels mess up generated code.
+// Labels are used as debug info by the runtime.
+target Rust;
+main reactor {
+    state foo: u32(123);
+    state x: u32({= *&foo =});
+
+    reaction(startup) {=
+        assert_eq!(self.x, self.foo);
+        assert_eq!(self.x, 123);
+        println!("success");
+    =}
+}

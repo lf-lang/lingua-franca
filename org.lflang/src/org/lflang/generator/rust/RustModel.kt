@@ -29,6 +29,10 @@ import org.lflang.*
 import org.lflang.generator.*
 import org.lflang.lf.*
 import org.lflang.lf.Timer
+import org.lflang.generator.UnsupportedGeneratorFeatureException
+import org.lflang.generator.cpp.name
+import org.lflang.generator.cpp.toCppCode
+import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
@@ -51,7 +55,9 @@ data class GenerationInfo(
 
 data class RustTargetProperties(
     val keepAlive: Boolean = false,
+    /** How the timeout looks like as a Rust expression, eg `Duration::from_millis(40)`. */
     val timeout: TargetCode? = null,
+    val timeoutLf: TimeValue? = null,
     val singleFile: Boolean = false
 )
 
@@ -164,9 +170,10 @@ data class ChildPortReference(
     /** Name of the child instance. */
     val childName: Ident,
     override val lfName: Ident,
-    val isInput: Boolean,
-    val dataType: TargetCode
-) : ReactorComponent() {
+    override val isInput: Boolean,
+    override val dataType: TargetCode,
+    override val isMultiport: Boolean
+) : ReactorComponent(), PortLike {
     val rustFieldOnChildName: String = "__$lfName"
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
@@ -179,7 +186,11 @@ data class ChildPortReference(
 data class CtorParamInfo(
     val lfName: Ident,
     val type: TargetCode,
-    val defaultValue: TargetCode?
+    val defaultValue: TargetCode?,
+    val isTime: Boolean,
+    val isList: Boolean,
+    val defaultValueAsTimeValue: TimeValue?,
+    val documentation: String?
 )
 
 /** Model class for a state variable. */
@@ -192,11 +203,8 @@ data class StateVarInfo(
     val lfName: String,
     /** Rust static type of the struct field. Must be `Sized`. */
     val type: TargetCode,
-    /**
-     * The field initializer, a Rust expression. If null,
-     * will default to `Default::default()`.
-     */
-    val init: TargetCode?
+    /** The field initializer, a Rust expression. */
+    val init: TargetCode
 )
 
 enum class DepKind { Triggers, Uses, Effects }
@@ -219,7 +227,7 @@ data class ReactionInfo(
 
     /** Location metadata. */
     val loc: LocationInfo,
-
+    /** Label without quotes. */
     val debugLabel: String?
 ) {
 
@@ -252,6 +260,9 @@ data class CrateInfo(
     val version: String,
     /** List of names of the credited authors. */
     val authors: List<String>,
+    /** Dependencies of the crate. */
+    val dependencies: Map<String, CargoDependencySpec>,
+    val modulesToIncludeInMain: List<Path>,
 )
 
 /**
@@ -331,23 +342,35 @@ sealed class ReactorComponent {
     }
 }
 
+interface PortLike {
+    val lfName: Ident
+    val isInput: Boolean
+
+    /** Rust data type of this component */
+    val dataType: TargetCode
+    val isMultiport: Boolean
+}
 
 /**
  * @property dataType A piece of target code
  */
 data class PortData(
     override val lfName: Ident,
-    val isInput: Boolean,
+    override val isInput: Boolean,
     /** Rust data type of this component */
-    val dataType: TargetCode,
-    val isMultiport: Boolean = false
-) : ReactorComponent() {
+    override val dataType: TargetCode,
+    // may be a compile-time constant
+    val widthSpec: TargetCode?,
+) : ReactorComponent(), PortLike {
+    override val isMultiport: Boolean get() = widthSpec != null
+
     companion object {
         fun from(port: Port) =
             PortData(
                 lfName = port.name,
                 isInput = port.isInput,
-                dataType = RustTypes.getTargetType(port.type)
+                dataType = RustTypes.getTargetType(port.type),
+                widthSpec = port.widthSpec?.toCppCode()
             )
     }
 }
@@ -366,7 +389,17 @@ data class TimerData(
     val period: TargetCode,
 ) : ReactorComponent()
 
-private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
+/** Get the textual representation of a width in Rust code */
+fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
+    when {
+        it.parameter != null -> it.parameter.name
+        it.port != null      -> throw UnsupportedGeneratorFeatureException("Width specs that use a port")
+        it.code != null      -> it.code.toText()
+        else                 -> it.width.toString()
+    }
+}
+
+fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
 private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
@@ -374,6 +407,7 @@ private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
+
 /** Regex to match a simple (C) code block, captures the insides as $1. */
 private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
 
@@ -399,13 +433,15 @@ object RustModelBuilder {
             crate = CrateInfo(
                 name = mainReactor.lfName.camelToSnakeCase(),
                 version = "1.0.0",
-                authors = listOf(System.getProperty("user.name"))
+                authors = listOf(System.getProperty("user.name")),
+                dependencies = targetConfig.rust.cargoDependencies,
+                modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules,
             ),
             runtime = RuntimeInfo(
                 version = targetConfig.runtimeVersion,
                 localPath = targetConfig.externalRuntimePath,
                 gitRevision = runtimeGitRevision,
-                enabledCargoFeatures = targetConfig.cargoFeatures.toSet()
+                enabledCargoFeatures = targetConfig.rust.cargoFeatures.toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,
@@ -420,6 +456,7 @@ object RustModelBuilder {
         RustTargetProperties(
             keepAlive = this.keepalive,
             timeout = this.timeout?.toRustTimeExpr(),
+            timeoutLf = this.timeout,
             singleFile = this.singleFileProject
         )
 
@@ -444,9 +481,12 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
+                                isMultiport = variable.isMultiport
                             )
                         } else {
-                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
+                                "Dependency on $it"
+                            )
                         }
                     }
 
@@ -499,7 +539,11 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty())
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty()),
+                        documentation = null, // todo
+                        isTime = it.inferredType.isTime,
+                        isList = it.inferredType.isList,
+                        defaultValueAsTimeValue = ASTUtils.getInitialTimeValue(it),
                     )
                 }
             )
@@ -514,7 +558,10 @@ object RustModelBuilder {
                 RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
             }
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
-                ?: throw InvalidLfSourceException("Cannot find value of parameter ${ithParam.name}", this)
+                ?: throw InvalidLfSourceException(
+                    "Cannot find value of parameter ${ithParam.name}",
+                    this
+                )
             ithParam.name to value
         }
 
@@ -587,5 +634,8 @@ private val TypeParm.identifier: String
     get() {
         val targetCode = toText()
         return IDENT_REGEX.find(targetCode.trimStart())?.value
-            ?: throw InvalidLfSourceException("No identifier in type param `$targetCode`", this)
+            ?: throw InvalidLfSourceException(
+                "No identifier in type param `$targetCode`",
+                this
+            )
     }

@@ -15,26 +15,28 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
       - [x] `PortConnectionInSelfOutSelf.lf`: input of self to output of self
       - [x] `PortConnectionOutChildOutSelf.lf`: output of child to output of self
       - [x] `CompositionWithPorts.lf`: output of child to input of child
+    - [ ] connections with non-zero delay (`a.o -> b.i after 1 ms`)
     - [ ] mutable inputs
-- [ ] reaction dependency handling
+- [x] reaction dependency handling
     - dependencies can be declared...
-      - [ ] on ports of this reactor
+      - [x] all test files: on ports of this reactor
       - [x] `DependencyOnChildPort.lf`: on ports of a child reactor
-      - [ ] on an action
-    - [ ] trigger dependencies
-      - [ ] `todo.lf`: trigger dependencies trigger reactions
-      - [ ] `todo.lf`: multiple trigger dependencies may be triggered independently
-    - [ ] uses-dependencies
+      - [x] all test files: on an action
+    - [x] trigger dependencies
+      - [x] all test files: trigger dependencies trigger reactions
+      - [x] `ActionIsPresentDouble.lf`: multiple trigger dependencies may be triggered independently
+    - [x] uses-dependencies
       - [x] `DependencyUseNonTrigger`: use dependencies do not trigger reactions 
       - [x] `DependencyUseAccessible`: use dependencies make the port accessible within the reaction, values are observable 
-      - [ ] `todo.lf`: use dependencies may be declared on actions
-    - [ ] effects-dependency
-      - [ ] `todo.lf`: effects dependencies ...
-      - [x] `todo.lf`: on a logical action
-    - [ ] reaction priority is respected
+      - [x] `DependencyUseOnLogicalAction.lf`: use dependencies may be declared on actions and timers
+    - [x] effects-dependency
+      - [x] all test files: effects dependencies allow mutation
+    - [x] reaction priority is respected
       - [x] locally
       - [x] between different child reactors
-- [ ] imports
+- [ ] imports:
+  - [x] `Import.lf`: imports, including recursive import
+  - [ ] visibility of imported preambles
 - [x] preambles
   - [x] `Preamble.lf`: preamble within reactor
   - [ ] top-level preamble
@@ -46,10 +48,13 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - [x] `ActionValuesCleanup.lf`: action value is cleaned up at the end of a tag
     - [x] `ActionIsPresent.lf`: function `is_present` checks whether an action is present at the current tag
     - [x] `ActionIsPresentDouble.lf`: several actions may be present at the same tag
+    - [ ] minimum spacing and spacing violation policy
+    - [ ] todo does scheduling an action twice produce two separate triggers at the same instant? -> no
 - [ ] physical actions
-  - [x] `PhysicalAction.lf`: tests scheduling of a physical action from an asynchronous thread 
-  - [ ] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely -> todo check it out from the git history and fix it 
-  - [ ] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are physical actions in the program
+  - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
+  - [x] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely
+  - [x] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
+  - [ ] todo does shutdown abort async threads or not?
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero
   - [x] `TimerPeriodic.lf`: timer can be periodic
@@ -63,10 +68,12 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `StopNoEvent.lf`: `shutdown` is triggered even if the program exits because of an empty event queue
   - [x] `StopIdempotence.lf`: `request_stop` may be called within the shutdown wave, but it should have no effect.
   - [x] `StopDuringStartup.lf`: `request_stop` may be called within startup.
+  - [x] `StopAsync.lf`: it should be possible to request shutdown asynchronously
 - [x] state variables
-  - [x] support time type
+  - [x] `TimeState.lf`: support time type
+  - [x] `StateDefaultValue.lf`: if initializer is missing, `Default::default()` is used
   - [x] are accessible within reactions
-  - [x] are *not* accessible within initializers
+  - [x] `StateInitializerVisibility.lf`: are accessible within initializers of other state vars (no forward reference allowed though)
   - [x] are initialized to their proper value
 - [x] reactor parameters
   - [x] `CtorParamSimple.lf`: ctor parameters are accessible in initializers and reactions
@@ -77,12 +84,12 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] support fixed-sized arrays
   - [x] `TypeVarLengthList.lf`: support variable length lists (`Vec`)
   - [x] support array initializer syntax
-  - [ ] support array assignment syntax (fixme: doesn't exist in LF)
+  - [ ] support array assignment syntax (needs #544)
 - [ ] deadlines
-  - ...
+  -  shouldn't be so hard to implement
 - [ ] reactor inheritance
   - ...
-- [ ] multiports
+- [ ] multiports and banks of reactors
 - [x] generics
     - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
     - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
@@ -90,11 +97,28 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 
 ### Runtime
 
-- [ ] parallelize independent computation
-- [ ] keepalive option -> relevant with physical actions
-- [ ] timeout option
+- [x] parallelize independent computation
+  - [x] feature-gated by Cargo (`--features parallel-runtime`)
+  - [ ] make usable as target property
+  - [ ] maybe stop using rayon and use your own thread pool and concurrency primitives (far away)
+- [ ] runtime parameters
+  - [x] `PhysicalActionWithKeepalive.lf`: ~keepalive option~ keepalive isn't needed in Rust
+  - [x] timeout option
+- [ ] error recovery
+  - [ ] unwind safety around reaction invocation, possibly a panic handler
+- [ ] tracing
+  - [ ] binary trace format -> you need benchmarks to measure overhead first
+  - [ ] dumping dependency graph
 
-### Other todos/ nice-to-have things
+### Rust-specific code generator features
 
 - [ ] benchmark generation
-- [ ] CLI parameter parsing
+- interfacing with Rust ecosystem
+  - [x] `CargoDependency.lf`: generated project can depend on external crates, including local ones
+  - [x] `ModuleDependency.lf`: one can add pure rust modules to the generated project without fuss
+  - [x] `ModuleDependencyWithDirModule.lf`: one can also add a tree of modules
+  - [ ] Specify runtime crate as a cargo dependency
+- `CliFeature.lf`: CLI parameter parsing
+  - [x] for runtime options
+  - [x] for parameters of the main reactor
+    - [ ] not sure how to write a test for this
