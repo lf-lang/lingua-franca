@@ -180,7 +180,7 @@ public interface TargetTypes {
         } else if (inferredType.isVariableSizeList) {
             return getVariableSizeListInitExpression(targetValues, initWithBraces);
         } else {
-            return getMissingExpr();
+            return getMissingExpr(inferredType);
         }
     }
 
