@@ -34,7 +34,7 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Parameter
 import org.lflang.lf.Value
 
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /** 
  * Representation of a runtime instance of a parameter.

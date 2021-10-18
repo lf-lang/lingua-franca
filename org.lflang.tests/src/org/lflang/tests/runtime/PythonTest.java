@@ -42,7 +42,7 @@ import org.lflang.tests.AbstractTest;
  */
 public class PythonTest extends AbstractTest {
 
-    PythonTest() {
+    public PythonTest() {
         super(Target.Python);
     }
 
