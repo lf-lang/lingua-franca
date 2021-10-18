@@ -15,5 +15,5 @@
 # and locally. It's not *needed* for the tests to pass or anything.
 # If it causes problems, we can throw it away or hide it.
 [workspace]
-members = ["*", "multiport/*", "generics/*"]
+members = ["*"]
 exclude = ["target", "multiport", "generics"]
