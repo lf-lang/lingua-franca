@@ -435,7 +435,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
             |mod cli {
             |    use $rsRuntime::*;
             |    use super::*;
-            |    use clap::Clap;
+            |    use clap::Parser;
             |
             |
             |    // these aliases are needed because clap interprets literal
@@ -443,7 +443,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.e
             |    type BoolAlias = bool;
             |    type OptionAlias<T> = Option<T>;
             |
-            |    #[derive(Debug, Clap)]
+            |    #[derive(Debug, Parser)]
             |    #[clap(name = "${gen.executableName}")]
             |    struct Opt {
             |
@@ -580,7 +580,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |env_logger = "0.9"
             |log = "0.4"
             |assert_matches = {version = "1", optional = true}
-            |clap = {version = "3.0.0-beta.4", optional = true}
+            |clap = {version = "=3.0.0-beta.5", optional = true}
 ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec) -> name + " = " + spec.toToml() }}
             |
             |[dependencies.$runtimeCrateFullName] # the reactor runtime
