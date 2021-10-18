@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.HashMap;
@@ -141,8 +142,8 @@ public class CodeMap {
 
         /**
          * Make a best-effort attempt to find the index of
-         * a string that is similar to, but perhaps not the
-         * same as, a substring of <code>s</code>. Return 0
+         * a near substring whose first line is expected to
+         * be an exact substring of <code>x</code>. Return 0
          * upon failure.
          * @param s an arbitrary string
          * @param imperfectSubstring an approximate
@@ -152,16 +153,8 @@ public class CodeMap {
          * </code> within <code>s</code>
          */
         private static int indexOf(String s, String imperfectSubstring) {
-            // FIXME: Guarantee correct output instead of using a heuristic?
-            int cutoff = imperfectSubstring.length();
-            while (cutoff > 0) {
-                int idx = s.indexOf(imperfectSubstring.substring(0, cutoff));
-                if (idx != -1) {
-                    return idx;
-                }
-                cutoff /= 2;
-            }
-            return 0;
+            String firstLine = imperfectSubstring.lines().findFirst().orElse("");
+            return Math.max(0, s.indexOf(firstLine));
         }
     }
 
