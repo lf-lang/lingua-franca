@@ -537,7 +537,7 @@ class LinguaFrancaValidationTest {
     }
 
     /**
-     * Let cyclic dependencies be broken by "after" clauses with zero delay and no units.
+     * Detect missing units in "after" clauses with delay greater than zero.
      */
     @Test
     def void nonzeroAfterMustHaveUnits() {
