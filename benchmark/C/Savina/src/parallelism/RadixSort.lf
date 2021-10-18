@@ -19,8 +19,12 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    files: "PseudoRandom.h"
+    files: "../include/PseudoRandom.h"
 };
+
+preamble {=
+    #include "PseudoRandom.h"
+=}
 
 
 reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
@@ -33,7 +37,7 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
     =}
 
     state numValuesSent:int(0);
-    state random:PseudoRandom(2);
+    state random:PseudoRandom*;
     input inStart:bool;
 
     output outNextSortReactor:{=long=};
@@ -41,7 +45,9 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
     logical action sendRandomNum;
 
     reaction(inStart) -> sendRandomNum {=
-
+        // Initialize the random state variable
+        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
+        
         // reset local state
         self->numValuesSent = 0;
 
@@ -50,10 +56,10 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
     =}
 
     reaction(sendRandomNum) -> outNextSortReactor, sendRandomNum {=
-        random->mValue = self->seed;
+        self->random->mValue = self->seed;
 
         if(self->numValuesSent < self->numValues) {
-             long candidate = labs(random.nextLong(random)) % self->maxValue;
+             long candidate = labs(nextLong(self->random)) % self->maxValue;
              printf("%ld",candidate);
              SET(outNextSortReactor,candidate);
              self->numValuesSent += 1;
