@@ -227,6 +227,11 @@ public class Position implements Comparable<Position> {
         throw new IllegalArgumentException(String.format("Could not parse %s as a Position.", s));
     }
 
+    @Override
+    public int hashCode() {
+        return line * 31 + column;
+    }
+
     /**
      * Removes the names from the named capturing groups
      * that appear in <code>regex</code>.
