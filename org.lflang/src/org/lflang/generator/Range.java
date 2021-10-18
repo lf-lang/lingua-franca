@@ -6,15 +6,9 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * <p>
- *     Represents a range in a document. Ranges have a
- *     natural ordering that respects their start
- *     position(s) only.
- * </p>
- * <p>
- *     Note: This class has a natural ordering that is
- *     inconsistent with <code>equals</code>.
- * </p>
+ * Represents a range in a document. Ranges have a
+ * natural ordering that respects their start
+ * position(s) only.
  */
 public class Range implements Comparable<Range> {
     public static final Pattern PATTERN = Pattern.compile(String.format(
@@ -44,12 +38,36 @@ public class Range implements Comparable<Range> {
         end = endExclusive;
     }
 
+    /**
+     * Returns the first Position that is included in this
+     * Range.
+     * @return the first Position that is included in this
+     * Range
+     */
     public Position getStartInclusive() {
         return start;
     }
 
+    /**
+     * Returns the Position that immediately follows the
+     * last Position in this Range.
+     * @return the Position that immediately follows the
+     * last Position in this Range
+     */
     public Position getEndExclusive() {
         return end;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Range)) return false;
+        Range r = (Range) o;
+        return start.equals(r.start);
+    }
+
+    @Override
+    public int hashCode() {
+        return start.hashCode();
     }
 
     /**
@@ -72,37 +90,36 @@ public class Range implements Comparable<Range> {
         return start.compareTo(p) <= 0 && p.compareTo(end) < 0;
     }
 
-    /**
-     * Returns the line offset of <code>p</code> from the
-     * start of this Range.
-     * @param p an arbitrary Position
-     * @return the line offset of <code>p</code> from the
-     * start of this Range
-     */
-    public int lineDelta(Position p) {
-        return p.getZeroBasedLine() - start.getZeroBasedLine();
-    }
-
-    /**
-     * Returns the column offset of <code>p</code> from the
-     * start of this Range.
-     * @param p an arbitrary Position
-     * @return the column offset of <code>p</code> from the
-     * start of this Range
-     */
-    public int columnDelta(Position p) {
-        return p.getZeroBasedColumn() - start.getZeroBasedColumn();
-    }
-
     @Override
     public String toString() {
         return String.format("Range: [%s, %s)", start, end);
     }
 
+    /**
+     * Converts <code>s</code> to a Range.
+     * @param s a String that represents a Range, formatted
+     *          like the output of Range::toString
+     * @return the Range r such that r.toString() equals
+     * <code>s</code>
+     */
     public static Range fromString(String s) {
         return fromString(s, Position.fromZeroBased(0, 0));
     }
 
+    /**
+     * Converts <code>s</code> to a Range, with the
+     * assumption that the positions expressed in <code>s
+     * </code> are given relative to <code>relativeTo
+     * </code>.
+     * @param s a String that represents a Range, formatted
+     *          like the output of Range::toString
+     * @param relativeTo the position relative to which the
+     *                   positions in <code>s</code> are
+     *                   represented
+     * @return the Range represented by <code>s</code>,
+     * expressed relative to the Position relative to which
+     * the Position <code>relativeTo</code> is expressed
+     */
     public static Range fromString(String s, Position relativeTo) {
         Matcher matcher = PATTERN.matcher(s);
         if (matcher.matches()) {
