@@ -1,8 +1,8 @@
 # @package benchmark
 name: "Bank Transaction"
 params:
-  accounts: 1000
-  transactions: 50000
+  accounts: 100
+  transactions: 500
 
 # target specific configuration
 targets:
@@ -29,3 +29,12 @@ targets:
     run_args:
       transactions: ["--numTransactions", "<value>"]
       accounts: ["--numAccounts", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/Banking.lf"
+      - "${lf_path}/benchmark/C/Savina/src/include"
+    lf_file: "Banking.lf"
+    binary: "Banking"
+    gen_args:
+      accounts: ["-D", "numAccounts=<value>"]
+      transactions: ["-D", "numTransactions=<value>"]

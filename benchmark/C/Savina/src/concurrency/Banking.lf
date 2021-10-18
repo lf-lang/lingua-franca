@@ -1,17 +1,53 @@
-/*
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark consists of a so-called 'Teller' and a number of Account reactors.
+ * The Accounts keep an internal balance. The Teller generates a series of random 
+ * credit messages which it sends to the various accounts. Each credit message
+ * specifies an amount and a destination account. The account that receives a credit
+ * message from the teller will reduce its balance by the given amount and sends a 
+ * debit message of the same amount to the destination account. The destination 
+ * account will then increase its balance accordingly.
+ * 
+ * Note that the original Akka implementation performs an explicit synchronisation, to
+ * ensure that the debit message has been processed by the destination account before
+ * replying to the teller that the credit message was processed. This synchronization
+ * and reply mechanism is not required in LF, as all messages are processed logically
+ * synchronous. The teller can be sure that any credit messages it sends will be 
+ * processed before moving to the next tag, and similarly each account can be sure that
+ * any debit messages it sends will be processed by the receiving accounts before
+ * receiving any new messages.
+ * 
+ * The initial generation of all the credit messages is an interesting problem in LF.
+ * In the Akka implementation, the teller actor will just send `numBankings` randomly 
+ * generated messages to the account actors, which then process one message after the 
+ * other. However, this is not easily doable in LF, as a port can only hold a single 
+ * value. In order to send multiple messages to the same account, the teller needs to
+ * use an action and advance in logical time before sending the next message. This is
+ * currently implemented such that the Teller creates an initial queue per account
+ * which contains all credit messages that should be sent to this account. Then it 
+ * schedules it `next` action and the corresponding reaction will send the first 
+ * round of messages to the accounts. Then it schedules next again. This continues
+ * until all messages are sent.
+ * 
+ * A potential optimization to the problem described above, would be not to send
+ * individual credit messages to the accounts, but instead a list of messages (for
+ * instance a std::vector). This could be done in a single logical step and should
+ * thus be much faster. However, this is likely an unfair advantage over the Akka 
+ * implementation, which also sends all messages individually.
+ * 
+ * @author Hannes Klein
+ * @author Christian Menard
  * @author: Matt Chorlian
  * @author: Arthur Deng
+ *
+ * Major changes from original Cpp implementation:
+ *     - implemented deque for c
+ *     - parameter passing for reactor Account: cannot pass in initialBalance = DBL_MAX / (numAccounts * numTransactions)
+ *   when initializing Account. Have to pass in numTransactions and calculate initialBalance in a startup reaction in 
+ *   numAccounts.
  */
 
- /*
-Major changes from original C implementation:
-
-- implemented deque for c
-- parameter passing for reactor Account: cannot pass in initialBalance = DBL_MAX / (numAccounts * numTransactions)
-  when initializing Account. Have to pass in numTransactions and calculate initialBalance in a startup reaction in 
-  numAccounts.
-  
- */
 
 target C{
     /* [[[cog
@@ -26,30 +62,30 @@ target C{
     /// [[[end]]]
 };
 preamble {=
-   // #include <../include/PseudoRandom.h>
     #include "PseudoRandom.h"
     #include <float.h>
     long seed = 123456;
+
     typedef struct CreditMessage {
       size_t recipient;
       double amount;  
-    } CreditMessage;
+    } credit_message_t;
     
     // implementation of c++ deque
     typedef struct node {
         struct node *next;
         struct node *prev;
-        struct CreditMessage value;
+        credit_message_t value;
     } node;
     
     typedef struct deque {
         struct node* front;
         struct node* back;
-    } MessageQueue;
+    } message_queue_t;
     
-    MessageQueue* initialize_deque() {
+    message_queue_t* deque_initialize() {
         // allocate space for deque
-        struct deque *p = (struct deque *) malloc (sizeof(struct deque));
+        message_queue_t *p = (message_queue_t *) malloc (sizeof(message_queue_t));
         if (p != NULL) {
             p->front = NULL;
             p->back = NULL;
@@ -57,7 +93,7 @@ preamble {=
         return p;
     }
     
-    int isEmpty(struct deque* d) {
+    int deque_is_empty(struct deque* d) {
         if (d==NULL) {
             return true;
         } else if (d->front) {
@@ -67,7 +103,19 @@ preamble {=
     }
     
     
-    node* create_node(struct CreditMessage val) {
+    node* _deque_create_node(credit_message_t val) {
+    /*
+    * Function:  _deque_create_node
+    * --------------------
+    * allocates memory for new node in deque. Used internally by deque_push_front
+    * and deque_push_back. Memory is freed when node is popped using deque_pop_back
+    * and deque_pop_front.
+    *
+    *  val: value to be stored in the node
+    *
+    *  returns: pointer to the node
+
+    */
         node *new_node = (struct node *) malloc(sizeof(struct node));
         new_node->value = val;
         new_node->next = NULL;
@@ -75,8 +123,8 @@ preamble {=
         return new_node;
     }
     
-    void push_front(struct deque* d, struct CreditMessage val) {
-        node *n = create_node(val);
+    void deque_push_front(struct deque* d, credit_message_t val) {
+        node *n = _deque_create_node(val);
         if (d->back == NULL) {
             d->back = d->front = n;
         } else {
@@ -86,8 +134,8 @@ preamble {=
         }
     }
     
-    void push_back(struct deque* d, struct CreditMessage val) {
-        node *n = create_node(val);
+    void deque_push_back(struct deque* d, credit_message_t val) {
+        node *n = _deque_create_node(val);
         if (d->back == NULL) {
             d->back = d->front = n;
         } else {
@@ -97,17 +145,17 @@ preamble {=
         }
     }
 
-    struct CreditMessage pop_front(struct deque* d) {
+    credit_message_t deque_pop_front(struct deque* d) {
         if (d==NULL || d->front == NULL) {
-            printf("Error: popping from empty dequeue\n");
-            return (CreditMessage) {0, 0};
+            fprintf(stderr, "Error: popping from empty deque\n");
+            return (credit_message_t) {0, 0};
         }
         
-        struct CreditMessage value = d->front->value;
+        credit_message_t value = d->front->value;
         struct node *temp = d->front; // temporary pointer for freeing up memory
         
         if (d->front == d->back) { 
-            // popping last element in dequeue
+            // popping last element in deque
             d->front = d->back = NULL;
         } else {
             d->front = d->front->next;
@@ -116,36 +164,36 @@ preamble {=
         return value;
     }
     
-    struct CreditMessage pop_back(struct deque* d) {
+    credit_message_t deque_pop_back(struct deque* d) {
         if (d==NULL || d->back == NULL) {
-            printf("Error: popping from empty dequeue\n");
-            return (CreditMessage) {0, 0};
+            fprintf(stderr, "Error: popping from empty deque\n");
+            return (credit_message_t) {0, 0};
         }
         
-        struct CreditMessage value = d->back->value;
+        credit_message_t value = d->back->value;
         struct node *temp = d->back; // temporary pointer for freeing up memory
         if (d->front == d->back) { 
-            // popping last element in dequeue
+            // popping last element in deque
             d->front = d->back = NULL;
         } else {
             d->back = d->back->prev;
         }
-        free(temp); // free memory for popped node
+        free(temp); 
         return value;
     }
     
-    struct CreditMessage peek_back(struct deque* d) {
+    credit_message_t deque_peek_back(struct deque* d) {
         if (d == NULL || d->back == NULL) {
-            printf("Error: peeking empty dequeue");
-            return (CreditMessage) {0, 0};
+            fprintf(stderr, "Error: peeking empty deque");
+            return (credit_message_t) {0, 0};
         }
         return d->back->value;
     }
     
-    struct CreditMessage peek_front(struct deque* d) {
+    credit_message_t deque_peek_front(struct deque* d) {
         if (d == NULL || d->front == NULL) {
-            printf("Error: peeking empty dequeue");
-            return (CreditMessage) {0, 0};
+            fprintf(stderr, "Error: peeking empty deque");
+            return (credit_message_t) {0, 0};
         }
         return d->front->value;
     }
@@ -157,10 +205,10 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
         struct PseudoRandom *randomGen;
     =}
 
-    state messageQueues: MessageQueue*;
+    state messageQueues: message_queue_t*;
 
     reaction(startup) {=
-        self->messageQueues = (MessageQueue *) calloc(self->numAccounts, sizeof(MessageQueue));
+        self->messageQueues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
         randomGen = (struct PseudoRandom *) malloc(sizeof(struct PseudoRandom));
         initPseudoRandom(randomGen, seed);
     =}
@@ -169,7 +217,7 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     output finished:bool;
     
     output[numAccounts] reset: bool; 
-    output[numAccounts] credit: CreditMessage;
+    output[numAccounts] credit: credit_message_t;
     
     logical action next;
     
@@ -199,10 +247,10 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             
             double amount = nextDouble(randomGen);
             
-            CreditMessage newMsg;
+            credit_message_t newMsg;
             newMsg.recipient = dest_account;
             newMsg.amount = amount;
-            push_back(&(self->messageQueues[src_account]), newMsg);
+            deque_push_back(&(self->messageQueues[src_account]), newMsg);
         }
                 
         // start execution
@@ -215,12 +263,12 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
         int work_found = 0;
         size_t i;
         for (i = 0; i < self->numAccounts; i++) {
-            MessageQueue *queue = &(self->messageQueues[i]);
-            if (!isEmpty(queue)) {
+            message_queue_t *queue = &(self->messageQueues[i]);
+            if (!deque_is_empty(queue)) {
                 work_found = 1;
-                CreditMessage message = peek_front(queue);  
+                credit_message_t message = deque_peek_front(queue);  
                 SET(credit[message.recipient], message);
-                pop_front(queue);
+                deque_pop_front(queue);
             }
         }
         
@@ -244,7 +292,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
     state balance: double(0);
     state initialBalance: double(0);
     input reset: bool; 
-    input inCredit: CreditMessage;
+    input inCredit: credit_message_t;
    
     input[numAccounts] inDebit: double; 
     output[numAccounts] outDebit: double;
@@ -258,7 +306,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
     =}
     
     reaction (inCredit) -> outDebit {=
-        CreditMessage message = inCredit->value; 
+        credit_message_t message = inCredit->value; 
         // reduce the balance
         self->balance -= message.amount;
         // and sent the recipient a debit message
