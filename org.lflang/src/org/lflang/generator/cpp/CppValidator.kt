@@ -27,7 +27,7 @@ class CppValidator(
 
         /** This matches a line of error reports from g++. */
         private val gxxErrorLine: Pattern = Pattern.compile(
-            "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*)"
+            "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*?) ?(?<type>(\\[.*])?)"
         )
         // Happily, the two tools seem to produce errors that follow the same format.
         /** This matches a line of error reports from Clang-Tidy. */
