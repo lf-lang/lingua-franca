@@ -37,13 +37,13 @@ public class LFGenerator extends AbstractGenerator {
 
     /**
      * Create a target-specific FileConfig object in Kotlin
-     * <p>
+     *
      * Since the CppFileConfig and TSFileConfig class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
      * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-     * <p>
+     *
      * If the FileConfig class is found, this method returns an instance.
      * Otherwise, it returns an Instance of FileConfig.
      *
@@ -51,16 +51,16 @@ public class LFGenerator extends AbstractGenerator {
      * @throws IOException If the file config could not be created properly
      */
     private FileConfig createFileConfig(final Target target,
-                                        Resource resource,
-                                        IFileSystemAccess2 fsa,
-                                        IGeneratorContext context) throws IOException {
+                                              Resource resource,
+                                              IFileSystemAccess2 fsa,
+                                              IGeneratorContext context)
+        throws IOException {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
         // found.
         switch (target) {
         case CPP:
-        case Rust:
         case TS: {
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
@@ -79,10 +79,7 @@ public class LFGenerator extends AbstractGenerator {
         }
     }
 
-    /**
-     *  Create a generator object for the given target.
-     *  Returns null if the generator could not be created.
-     */
+    /** Create a generator object for the given target */
     private GeneratorBase createGenerator(Target target, FileConfig fileConfig,
             ErrorReporter errorReporter) {
         switch (target) {
@@ -91,17 +88,15 @@ public class LFGenerator extends AbstractGenerator {
         case Python: return new PythonGenerator(fileConfig, errorReporter);
         case CPP:
         case TS:
-        case Rust:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
         }
         // If no case matched, then throw a runtime exception.
         throw new RuntimeException("Unexpected target!");
     }
 
-
     /**
      * Create a code generator in Kotlin.
-     * <p>
+     *
      * Since the CppGenerator and TSGenerator class are implemented in Kotlin, the classes are
      * not visible from all contexts. If the RCA is run from within Eclipse via
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
@@ -112,7 +107,7 @@ public class LFGenerator extends AbstractGenerator {
      * @return A Kotlin Generator object if the class can be found
      */
     private GeneratorBase createKotlinBaseGenerator(Target target, FileConfig fileConfig,
-                                                ErrorReporter errorReporter) {
+                                            ErrorReporter errorReporter) {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead we look the
@@ -149,7 +144,6 @@ public class LFGenerator extends AbstractGenerator {
             IGeneratorContext context) {
         // Determine which target is desired.
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
-        assert target != null;
 
         FileConfig fileConfig;
         try {

@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.JavaAstUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.generator.GeneratorBase;
@@ -548,7 +547,7 @@ public class FedASTUtils {
             rightFederate,
             rightBankIndex,
             rightChannelIndex,
-            JavaAstUtils.getInferredType(action),
+            ASTUtils.getInferredType(action),
             connection.isPhysical(),
             serializer
         ));

@@ -90,7 +90,6 @@ import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 
 /** 
@@ -5887,10 +5886,13 @@ class CGenerator extends GeneratorBase {
     override getTargetTimeType() '''interval_t'''
     
     override getTargetTagType() '''tag_t'''
+    
+    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
-    override getTargetFixedSizeListType(String baseType, int size) '''«baseType»[«size»]'''
+    override getTargetFixedSizeListType(String baseType,
+        Integer size) '''«baseType»[«size»]'''
         
     override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''

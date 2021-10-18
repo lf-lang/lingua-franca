@@ -897,11 +897,6 @@ class LinguaFrancaValidationTest {
      * name, and the type that it should be.
      */
     val compositeTypeToKnownBad = #{
-        ArrayType.STRING_ARRAY -> #[
-            #["[1 msec]", "[0]", PrimitiveType.STRING],
-            #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
-            #["{bar: baz}", "", ArrayType.STRING_ARRAY]
-        ],
         UnionType.STRING_OR_STRING_ARRAY -> #[
             #["[1 msec]", "[0]", PrimitiveType.STRING],
             #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],

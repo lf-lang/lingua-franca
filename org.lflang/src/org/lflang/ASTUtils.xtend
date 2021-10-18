@@ -31,6 +31,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
+import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.TerminalRule
@@ -1226,7 +1227,7 @@ class ASTUtils {
      * If the value of the parameter is a list of integers,
      * return the sum of value in the list.
      * The instantiations parameter is as in 
-     * {@link initialValue(Parameter, List<Instantiation>)}.
+     * {@link initialValue(Parameter, List<Instantiation>}.
      * 
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
@@ -1494,6 +1495,114 @@ class ASTUtils {
             return true
         }
         return false
+    }
+    
+    /**
+     * Given an initialization list, return an inferred type. Only two types
+     * can be inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     * @param initList A list of values used to initialize a parameter or
+     * state variable.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */    
+    protected static def InferredType getInferredType(EList<Value> initList) {
+        if (initList.size == 1) {
+        	// If there is a single element in the list, and it is a proper
+        	// time value with units, we infer the type "time".
+            val init = initList.get(0)
+            if (init.parameter !== null) {
+                return init.parameter.getInferredType
+            } else if (init.isValidTime && !init.isZero) {
+                return InferredType.time;
+            }
+        } else if (initList.size > 1) {
+			// If there are multiple elements in the list, and there is at
+			// least one proper time value with units, and all other elements
+			// are valid times (including zero without units), we infer the
+			// type "time list".
+            var allValidTime = true
+            var foundNonZero = false
+
+            for (init : initList) {
+                if (!init.isValidTime) {
+                    allValidTime = false;
+                } 
+                if (!init.isZero) {
+                    foundNonZero = true
+                }
+            }
+
+            if (allValidTime && foundNonZero) {
+                // Conservatively, no bounds are inferred; the returned type 
+                // is a variable-size list.
+				return InferredType.timeList()
+            }
+        }
+        return InferredType.undefined
+    }
+    
+    /**
+     * Given a parameter, return an inferred type. Only two types can be
+     * inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     * @param p A parameter to infer the type of. 
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */    
+    def static InferredType getInferredType(Parameter p) {
+        if (p !== null) {
+            if (p.type !== null) {
+                return InferredType.fromAST(p.type)
+            } else {
+                return p.init.inferredType
+            }
+        }
+        return InferredType.undefined
+    }
+    
+    /**
+	 * Given a state variable, return an inferred type. Only two types can be
+	 * inferred: "time" and "timeList". Return the "undefined" type if
+	 * neither can be inferred.
+     * @param s A state variable to infer the type of. 
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */    
+    def static InferredType getInferredType(StateVar s) {
+        if (s !== null) {
+            if (s.type !== null) {
+                return InferredType.fromAST(s.type)
+            }
+            if (s.init !== null) {
+                return s.init.inferredType
+            }
+        }
+        return InferredType.undefined
+    }
+    
+    /**
+     * Construct an inferred type from an "action" AST node based
+     * on its declared type. If no type is declared, return the "undefined"
+     * type.
+     * @param a An action to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */
+    def static InferredType getInferredType(Action a) {
+        if (a !== null && a.type !== null) {
+            return InferredType.fromAST(a.type)
+        }
+        return InferredType.undefined
+    }
+
+	/**
+     * Construct an inferred type from a "port" AST node based on its declared
+     * type. If no type is declared, return the "undefined" type.
+     * @param p A port to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */    
+    def static InferredType getInferredType(Port p) {
+        if (p !== null && p.type !== null) {
+            return InferredType.fromAST(p.type)
+        }
+        return InferredType.undefined
     }
 
     /**
