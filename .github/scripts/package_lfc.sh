@@ -16,9 +16,10 @@ mkdir -p "${outname}/lib"
 # move the jar
 mv org.lflang.lfc/build/libs/org.lflang.lfc-*-SNAPSHOT-all.jar "${outname}/lib"
 
-# copy the wrapper scripts
+# copy the Bash script
 cp bin/lfc "${outname}/bin/lfc"
-cp bin/lfc "${outname}/bin/lfc"
+# copy the PowerShell script
+cp bin/lfc "${outname}/bin/lfc.ps1"
 
 # zip/tar everything - the files will be put into the build_upload directory
 mkdir -p build_upload
