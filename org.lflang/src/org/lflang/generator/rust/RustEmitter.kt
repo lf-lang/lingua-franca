@@ -122,7 +122,9 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |
                 |impl$typeParams $wrapperName$typeArgs {
                 |    #[inline]
-                |    fn user_assemble(__assembler: &mut $rsRuntime::AssemblyCtx, __params: $paramStructName$typeArgs) -> Self {
+                |    fn user_assemble(__assembler: &mut $rsRuntime::ComponentCreator<Self>,
+                |                     __id: $rsRuntime::ReactorId,
+                |                     __params: $paramStructName$typeArgs) -> Self {
                 |        let $ctorParamsDeconstructor = __params;
                 |
                 |        let __impl = {
@@ -136,7 +138,7 @@ ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfNa
                 |        };
                 |
                 |        Self {
-                |            __id: __assembler.get_id(),
+                |            __id,
                 |            __impl,
 ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
                 |        }
@@ -148,16 +150,14 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    type Params = $paramStructName$typeArgs;
                 |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new_const($totalNumReactions - 1);
                 |
-                |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
+                |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx<Self>) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
                 |        use $rsRuntime::TriggerLike;
                 |
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
-                |        __assembler.fix_cur_id();
-                |
                 |        // assemble self
-                |        let mut __self: Self = Self::user_assemble(__assembler, __params);
+                |        let mut __self: Self = __assembler.assemble_self(|cc, id| Self::user_assemble(cc, id, __params));
                 |
 ${"             |        "..declareReactions()}
                 |
