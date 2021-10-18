@@ -35,9 +35,9 @@ targets:
       seed: ["--seed", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/parallelism/RadixSort.lf"
-      - "${lf_path}/benchmark/C/Savina/src/include/PseudoRandom.h"
-    lf_file: "RadixSort.lf"
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+    lf_file: "parallelism/RadixSort.lf"
     binary: "RadixSort"
     gen_args:
       data_size: ["-D", "dataSize=<value>"]
