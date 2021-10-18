@@ -8,6 +8,9 @@ import org.lflang.generator.PerLineReportingStrategy
 import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.regex.Pattern
 
 class CppValidator(
@@ -17,16 +20,26 @@ class CppValidator(
 ) {
 
     companion object {
+        /** This matches the line in the CMake cache that states the C++ standard. */
         val cmakeCxxStandard: Pattern = Pattern.compile("CMAKE_CXX_STANDARD:STRING=(?<cppStandard>.*)")
+        /** This matches the line in the CMake cache that states the compiler includes for a given target. */
         val cmakeIncludes: Pattern = Pattern.compile("${CppCmakeGenerator.includesVarName}:STRING=(?<includes>.*)")
 
+        /** This matches a line of error reports from g++. */
         private val gxxErrorLine: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*)"
         )
         // Happily, the two tools seem to produce errors that follow the same format.
+        /** This matches a line of error reports from Clang-Tidy. */
         private val clangTidyErrorLine: Pattern = gxxErrorLine
     }
 
+    /**
+     * This describes a strategy for validating a C++ source document.
+     * @param errorParsingStrategy a strategy for parsing the stderr of the validation command
+     * @param outputParsingStrategy a strategy for parsing the stdout of the validation command
+     * @param time a number that is large for strategies that take a long time
+     */
     enum class CppValidationStrategy(
         val errorParsingStrategy: CommandErrorReportingStrategy,
         val outputParsingStrategy: CommandErrorReportingStrategy,
@@ -49,30 +62,69 @@ class CppValidator(
             }
         };
 
+        /**
+         * Returns the command that produces validation
+         * output in association with `generatedFile`.
+         * @param validator the C++ validator instance
+         * corresponding to the relevant group of generated
+         * files
+         */
         abstract fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand?
     }
 
+    /**
+     * Validates this Validator's group of generated files.
+     * @param cancelIndicator the cancel indicator for the
+     * current operation
+     */
     fun doValidate(cancelIndicator: CancelIndicator) {
         if (!cmakeCachePath.toFile().exists()) return
+        val futures = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+            .invokeAll(getValidationStrategies().map { Callable {it.third.run(/*cancelIndicator*/); it} })
+        for (f in futures) {
+            val (path, strategy, command) = f.get()
+            strategy.errorParsingStrategy.report(command.errors.toString(), errorReporter, codeMaps[path])
+            strategy.outputParsingStrategy.report(command.output.toString(), errorReporter, codeMaps[path])
+        }
+    }
+
+    /**
+     * Returns the validation strategies and validation
+     * commands corresponding to each generated file.
+     * @return the validation strategies and validation
+     * commands corresponding to each generated file
+     */
+    private fun getValidationStrategies(): List<Triple<Path, CppValidationStrategy, LFCommand>> {
+        val commands = mutableListOf<Triple<Path, CppValidationStrategy, LFCommand>>()
         for (generatedFile: Path in codeMaps.keys) {
             // FIXME: Respond to cancel. Only validate changed files?
-            validateFile(generatedFile, cancelIndicator)
-            if (cancelIndicator.isCanceled) return
+            val p = getValidationStrategy(generatedFile)
+            val (strategy, command) = p
+            if (strategy == null || command == null) continue
+            commands.add(Triple(generatedFile, strategy, command))
         }
+        return commands
     }
 
-    private fun validateFile(generatedFile: Path, cancelIndicator: CancelIndicator) {
+    /**
+     * Returns the validation strategy and command
+     * corresponding to the given file, if such a strategy
+     * and command are available.
+     * @return the validation strategy and command
+     * corresponding to the given file, if such a strategy
+     * and command are available
+     */
+    private fun getValidationStrategy(generatedFile: Path): Pair<CppValidationStrategy?, LFCommand?> {
         for (strategy in CppValidationStrategy.values().sortedBy {strategy -> strategy.time}) {
-            val validateCommand = strategy.getCommand(this, generatedFile)
+            val validateCommand = strategy.getCommand(this, generatedFile) //
             if (validateCommand != null) {
-                validateCommand.run(cancelIndicator)
-                strategy.outputParsingStrategy.report(validateCommand.output.toString(), errorReporter, codeMaps[generatedFile])
-                strategy.errorParsingStrategy.report(validateCommand.errors.toString(), errorReporter, codeMaps[generatedFile])
-                break
+                return Pair(strategy, validateCommand)
             }
         }
+        return Pair(null, null)
     }
 
+    /** The include directories required by the generated files. */
     private val includes: List<String>
         get() {
             for (line in cmakeCache) {
@@ -82,6 +134,7 @@ class CppValidator(
             return listOf()
         }
 
+    /** The C++ standard used by the generated files. */
     private val cppStandard: String
         get() {
             for (line in cmakeCache) {
@@ -91,7 +144,9 @@ class CppValidator(
             return ""
         }
 
+    /** The content of the CMake cache. */ // FIXME: Most of this data will never be used. Should it really be cached?
     private val cmakeCache: List<String> by lazy { Files.readAllLines(cmakeCachePath) }
 
+    /** The path to the CMake cache. */
     private val cmakeCachePath: Path = fileConfig.buildPath.resolve("CMakeCache.txt")
 }
