@@ -1,4 +1,4 @@
-//! A snake minigame. Does not support windows.
+//! A snake terminal game. Does not support windows.
 //!
 //! Highlights of this example:
 //! - external packages are linked in using Cargo (see `cargo-dependencies` target property)
@@ -15,8 +15,6 @@
 //!
 //! Note: Git history of this file may be found in https://github.com/lf-lang/reactor-rust
 //! under the path examples/src/Snake.lf
-
-
 
 target Rust {
     // LF-Rust programs integrate well with Cargo
