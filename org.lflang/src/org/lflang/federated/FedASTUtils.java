@@ -87,6 +87,8 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
+     * @param destination The receiving network input port at the destination federate
+     * @param receivingPortID The ID of the receiving port
      * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
@@ -280,6 +282,7 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
+     * @param source The output port at the source federate
      * @param instance The federate instance is used to keep track of all
      *        network input ports globally
      * @param receivingPortID The ID of the receiving port
