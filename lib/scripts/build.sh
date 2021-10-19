@@ -10,9 +10,9 @@
 source "$(dirname "$(readlink -f "$0")")/init.sh" 
 
 # Find the jar and check whether sources are present or not.
-find_jarpath
+find_jar_path
 
-if [[ "${src_available}" == "false" ]]; then
+if ! src_exists; then
     fatal_error "Cannot find sources."
 fi
 
@@ -67,7 +67,7 @@ fi
 if [ ! -f "${lfc_jar_snapshot_path}" ] || ! "${FIND}" "${lfbase}/src" -path "${lfbase}/test" -prune -o -type f -newer "${lfc_jar_snapshot_path}" -exec false {} +; then
 	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
 	"${base}/gradlew" ${flags} -p "${base}" buildLfc
-	touch -c -- "${jarpath}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
+	touch -c -- "${jar_path}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
 else
     echo "Already up-to-date."
 fi

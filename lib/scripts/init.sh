@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #============================================================================
-# Description: 	Initialize an environment for Lingua Franca helper scripts.
+# Description:  Initialize an environment for Lingua Franca helper scripts.
 # Authors:		Marten Lohstroh, Mehrdad Niknami, Christian Menard
 # Usage:		Source this file at the beginning of other scripts to access
 #               the functions and variables defined in this script.
@@ -48,20 +48,27 @@ function fatal_error() {
     exit 1
 }
 
-# Set the jar_found and jarpath variables depending on 
+# Set the jar_found and jar_path variables depending on 
 # whether there is a jar that matches jar_pattern.
-function find_jarpath() {
-    # Check whether or not we are in a source tree.
-    check_for_sources
+function find_jar_path() {
+    if src_exists; then
+        jar_path_pattern="${base}/${lfc_jar_snapshot_path}"
+    else
+        jar_path_pattern="${base}/${lfc_jar_release_path}"
+    fi
+
+    #echo "Src dir: ${base}/${lfc_src_pkg_name}"
+    #echo "Jar pattern: ${jar_path_pattern}"
+
     # Is there a file that matches our pattern?
-    if ls ${jarpath_pattern} 1> /dev/null 2>&1; then
+    if ls ${jar_path_pattern} 1> /dev/null 2>&1; then
         # Yes. Determine the precise path of the jar. Take the newest version if
         # there are multiple jars.
-        jar_found=true
-        jarpath="$(ls  ${jarpath_pattern} | sort -V | tail -n1)"
+        jar_path="$(ls  ${jar_path_pattern} | sort -V | tail -n1)"
+        true
     else
         # No.
-        jar_found=false
+        false
     fi
 }
 
@@ -94,18 +101,15 @@ function check_jre_version {
 
 # Run the found jar using the found JRE.
 function run_jar_with_args {
-    "${_java}" -jar "${jarpath}" "$@";
+    "${_java}" -jar "${jar_path}" "$@";
     exit $?
 }
 
-function check_for_sources {
+# Determine whether or not we are in a source tree.
+function src_exists {
     if dir_exists "${base}/${lfc_src_pkg_name}"; then
-        src_available=true
-        jarpath_pattern="${base}/${lfc_jar_snapshot_path}"
+        true
     else
-        src_available=false
-        jarpath_pattern="${base}/${lfc_jar_release_path}"
+        false
     fi
-    #echo "Src dir: ${base}/${lfc_src_pkg_name}"
-    #echo "Jar pattern: ${jarpath_pattern}"
 }
