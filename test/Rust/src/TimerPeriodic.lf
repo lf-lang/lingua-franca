@@ -1,0 +1,18 @@
+target Rust {
+    timeout: 15 msec,
+    // fast: true
+};
+main reactor TimerPeriodic {
+    state i: i32(0);
+    timer t2(0, 3 msec);
+
+    reaction(t2) {=
+        println!("Tick {} at {}", self.i, ctx.get_tag());
+        self.i += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.i, 6);
+        println!("success");
+    =}
+}
