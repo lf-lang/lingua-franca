@@ -22,13 +22,12 @@
  ***************/
 package org.lflang.tests.compiler;
 
-import org.lflang.Target;
-
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
-import org.lflang.tests.runtime.ThreadedBase;
+import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests intended to touch as many lines of the code generator as
@@ -39,11 +38,11 @@ import org.lflang.tests.runtime.ThreadedBase;
  * 
  * @author {Marten Lohstroh <marten@berkeley.edu>}
  */
-public class CodeGenCoverage extends ThreadedBase {
+public class CodeGenCoverage extends AbstractTest {
 
     CodeGenCoverage() {
+        super(Arrays.asList(Target.values()));
         this.codeCovOnly = true;
-        this.targets.addAll(Arrays.asList(Target.ALL));
     }
 
     @Test
@@ -79,7 +78,7 @@ public class CodeGenCoverage extends ThreadedBase {
     @Test
     @Override
     public void runWithFourThreads() {
-        printSkipMessage(RUN_WITH_FOUR_THREADS_DESC, Message.NOT_FOR_CODE_COV);
+        printSkipMessage(Message.DESC_FOUR_THREADS, Message.NOT_FOR_CODE_COV);
     }
 
     @Test

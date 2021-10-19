@@ -41,7 +41,16 @@ public enum TargetProperty {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
             }),
-    
+
+    /**
+     * Directive for specifying Cargo features of the generated
+     * program to enable.
+     */
+    CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
+                   List.of(Target.Rust), (config, value) -> {
+        config.cargoFeatures = ASTUtils.toListOfStrings(value);
+    }),
+
     /**
      * Directive to let the federate execution handle clock synchronization in software.
      */
@@ -123,7 +132,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the target compiler.
      */
-    COMPILER("compiler", PrimitiveType.STRING, Arrays.asList(Target.ALL),
+    COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
             (config, value) -> {
                 config.compiler = ASTUtils.toText(value);
             }),
@@ -169,7 +178,7 @@ public enum TargetProperty {
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
      */
-    FAST("fast", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    FAST("fast", PrimitiveType.BOOLEAN, Target.ALL,
             (config, value) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
             }),
@@ -178,7 +187,7 @@ public enum TargetProperty {
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL),
+    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
             (config, value) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
@@ -232,7 +241,7 @@ public enum TargetProperty {
      * Directive to let the execution engine remain active also if there
      * are no more events in the event queue.
      */
-    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Target.ALL,
             (config, value) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
@@ -240,7 +249,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the grain at which to report log messages during execution.
      */
-    LOGGING("logging", UnionType.LOGGING_UNION, Arrays.asList(Target.ALL),
+    LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
             (config, value) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.toText(value));
@@ -282,6 +291,14 @@ public enum TargetProperty {
             }),
 
     /**
+     * Directive to specify that all code is generated in a single file.
+     */
+    SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
+            List.of(Target.Rust), (config, value) -> {
+                config.singleFileProject = ASTUtils.toBoolean(value);
+            }),
+
+    /**
      * Directive to specify the number of threads.
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
@@ -293,7 +310,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the execution timeout.
      */
-    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Arrays.asList(Target.ALL),
+    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
             (config, value) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
