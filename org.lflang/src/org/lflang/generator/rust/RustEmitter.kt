@@ -124,7 +124,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    #[inline]
                 |    fn user_assemble(__assembler: &mut $rsRuntime::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
-                |                     __params: $paramStructName$typeArgs) -> Self {
+                |                     __params: $paramStructName$typeArgs) -> Result<Self, $rsRuntime::AssemblyError> {
                 |        let $ctorParamsDeconstructor = __params;
                 |
                 |        let __impl = {
@@ -137,11 +137,11 @@ ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfNa
                 |            }
                 |        };
                 |
-                |        Self {
+                |        Ok(Self {
                 |            __id,
                 |            __impl,
 ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
-                |        }
+                |        })
                 |    }
                 |}
                 |
@@ -157,7 +157,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
-                |        let mut __self: Self = __assembler.assemble_self(|cc, id| Self::user_assemble(cc, id, __params));
+                |        let mut __self: Self = __assembler.assemble_self(|cc, id| Self::user_assemble(cc, id, __params))?;
                 |
 ${"             |        "..declareReactions()}
                 |
@@ -655,7 +655,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
         is PortData           -> {
             if (widthSpec != null) {
-                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)"
+                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
             }
