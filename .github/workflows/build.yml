@@ -180,12 +180,6 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        if: runner.os == 'Windows'
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
