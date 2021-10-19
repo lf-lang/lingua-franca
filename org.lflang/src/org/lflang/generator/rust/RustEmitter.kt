@@ -310,8 +310,15 @@ ${"         |    "..declarations}
                 if (n.isShutdown)
                     this += "__assembler.declare_triggers($rsRuntime::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
-                this += n.effects.filterIsInstance<PortData>()
-                    .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
+                this += n.effects.filterIsInstance<PortData>().map { port ->
+                    // todo how is a bank channel represented in PortData?
+                    //    reaction(startup) -> out[0]
+                    if (port.isMultiport) {
+                        "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
+                    } else {
+                        "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;"
+                    }
+                }
             }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
@@ -673,7 +680,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode {
         fun portRefWrapper(dataType: TargetCode, isMultiport: Boolean) =
             when {
-                kind == DepKind.Effects && isMultiport -> throw UnsupportedGeneratorFeatureException("Output port banks")
+                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
                 kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
                 isMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
                 else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
@@ -700,7 +707,7 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
 
     private fun ReactorComponent.portBorrow(kind: DepKind, isMultiport: Boolean) =
         when {
-            kind == DepKind.Effects && isMultiport  -> throw UnsupportedGeneratorFeatureException("Output port banks")
+            kind == DepKind.Effects && isMultiport  -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
             kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
             isMultiport                             -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
             else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
