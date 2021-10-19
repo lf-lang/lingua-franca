@@ -32,8 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.Target;
-import org.lflang.tests.runtime.TestBase;
-import org.lflang.tests.runtime.TestBase.TestLevel;
+import org.lflang.tests.TestBase.TestLevel;
 
 /**
  * Execute a single test case. Use it with the gradle task

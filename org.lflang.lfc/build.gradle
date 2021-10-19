@@ -1,7 +1,28 @@
+
+sourceSets {
+    test {
+        java.srcDirs = []
+        kotlin.srcDirs = ['test/kotlin']
+        resources.srcDir('test/resources')
+        resources.include '**/*'
+    }
+}
+
+compileTestKotlin {
+    destinationDir = compileTestJava.destinationDir
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+
+
 dependencies {
     implementation project(':org.lflang')
     implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
+
+    testImplementation "junit:junit:4.12"
 }
 
 apply plugin: 'application'
