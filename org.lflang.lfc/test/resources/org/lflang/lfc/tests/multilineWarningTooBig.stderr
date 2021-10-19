@@ -1,0 +1,12 @@
+lfc: error: Reactor must be named.
+ --> %%%PATH.lf%%%:4:1
+   |
+ 3 | // leading
+   | >>>>>>>>>>>>>>
+ 4 | reactor {
+ 5 |     // included 1
+   | ...
+11 |     // included 2
+12 | }
+   | < Reactor must be named.
+13 | // trailing
