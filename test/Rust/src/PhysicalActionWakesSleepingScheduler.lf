@@ -1,6 +1,4 @@
-target Rust {
-    cargo-features: ["test-program"],
-};
+target Rust;
 
 main reactor {
     timer t(80 msec);
