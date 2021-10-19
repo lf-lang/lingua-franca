@@ -4,15 +4,11 @@ This document includes information about supported operating systems and externa
 ## Core Development Requirements
 
 ### **Supported Operating Systems**
-|                              | C  | C++ | Python | TypeScript |
-|------------------------------|----|-----|--------|------------|
-| Ubuntu 20.04                 | Y  | Y   | Y      | Y          |
-| MacOS 10.15 Catalina         | Y  | Y   | Y      | Y          |
-| Windows 10 1909<sup>†</sup>  | Y  | Y   | Y      | Y          |
-| Windows 10 2004<sup>†</sup>  | Y  | Y   | Y      | Y          |
-
-<sup>†</sup> **Experimental:** Windows support is still considered experimental. You can track our Windows support progress [here](https://github.com/icyphy/lingua-franca/issues?q=is%3Aissue+is%3Aopen+label%3AWindows).
-
+|         |    OS Version     | C  | C++ | Python | TypeScript |
+|---------|-------------------|----|-----|--------|------------|
+| Ubuntu  | >= 20.04          | Y  | Y   | Y      | Y          |
+| MacOS   | >= 10.15 Catalina | Y  | Y   | Y      | Y          |
+| Windows | >= 10 1903        | Y  | Y   | Y      | Y          |
 
 ### **Dependencies**
  - Java >= 11
@@ -28,32 +24,32 @@ However, to compile the generated code and to create a binary (which is done by 
 
 
 ### Supported Operating Systems
-|                      | C             | C++ | Python | TypeScript |
-|----------------------|---------------|-----|--------|------------|
-| Ubuntu 20.04         | Y             | Y   | Y      | Y          |
-| MacOS 10.15 Catalina | Y             | Y   | Y      | Y          |
-| Windows 10 1909      | Y<sup>‡</sup> | Y   | N      | N          |
-| Windows 10 2004      | Y<sup>‡</sup> | N   | N      | N          |
-
-<sup>‡</sup> Requires WSL version 1 or version 2
+|         |    OS Version     | C             | C++ | Python | TypeScript |
+|---------|-------------------|---------------|-----|--------|------------|
+| Ubuntu  | >= 20.04          | Y             | Y   | Y      | Y          |
+| MacOS   | >= 10.15 Catalina | Y             | Y   | Y      | Y          |
+| Windows | >= 10 1903        | Y             | Y   | Y      | N          |
 
 
 ### Dependencies
 
 **C:**
-  - gcc >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019)
-  - CMAKE >= 3.13
-  - **Windows Only:** Windows Subsystem for Linux (WSL) version 1 or 2 with gcc installed - see https://docs.microsoft.com/en-us/windows/wsl/install-win10.
+  - A C compiler (e.g., gcc >= 7, clang, or MSVC >= 14.20) 
+  - CMAKE >= 3.13 (follow https://cmake.org/install/ for installation instructions)
+  - **Windows Only:** Visual Studio >= 2019 and Windows SDK >= 10.0.18362.0
   - **Programs using Protocol Buffers:** protoc-c 1.3.3 - see https://github.com/icyphy/lingua-franca/wiki/Protobufs.
 
 **C++:**
  - g++ >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019)
- - CMAKE >= 3.16
+ - CMAKE >= 3.16 (follow https://cmake.org/install/ for installation instructions)
+ - **Windows Only:** Visual Studio >= 2019 and Windows SDK >= 10.0.18362.0
 
 **Python:**
+ - A C compiler (e.g., gcc >= 7, clang, or MSVC >= 14.20)
  - Python >= 3.6
  - pip >= 20.0.2
  - setuptools >= 45.2.0-1
+ - **Windows Only:** Visual Studio >= 2019 and Windows SDK >= 10.0.18362.0
  - **Programs using Protocol Buffers:** protoc >= 3.6.1
 
 **TypeScript:**

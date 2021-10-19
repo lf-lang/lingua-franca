@@ -17,8 +17,8 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/count"
-    lf_file: "count/Counting.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/micro"
+    lf_file: "micro/Counting.lf"
     binary: "Counting"
     gen_args: null
     run_args:
