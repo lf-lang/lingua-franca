@@ -617,6 +617,10 @@ class ASTUtils {
      * @return a textual representation of <code>code</code>
      */
     def static String toTaggedText(Code code) {
+        // FIXME: Duplicates work already done in
+        //  GeneratorBase::prSourceLineNumber. It does not
+        //  make sense for both methods to persist in the
+        //  code base at once.
         val text = toText(code)
         return CodeMap.Correspondence.tag(code, text, true)
     }
