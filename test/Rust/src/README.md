@@ -91,10 +91,13 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [ ] reactor inheritance
   - ...
 - [ ] multiports and banks of reactors
+  - [x] `MultiportIn.lf`: support banks of input ports
+  - [x] `MultiportOut.lf`: support banks of output ports
+  - [x] `MultiportFromHierarchy.lf`: support binding an output bank to an input bank within a composition
 - [x] generics
-    - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
-    - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
-    - [x] `CtorParamGenericInst.lf`: generic ctor parameters work properly when creating child instance
+  - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
+  - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
+  - [x] `CtorParamGenericInst.lf`: generic ctor parameters work properly when creating child instance
 
 ### Runtime
 
