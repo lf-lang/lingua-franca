@@ -16,7 +16,7 @@ set -euo pipefail
 
 lfc_src_pkg_name="org.lflang.lfc"
 lfc_jar_snapshot_path="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
-lfc_jar_release_path="lib/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
+lfc_jar_release_path="lib/jars/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
 
 # Obtain path to the directory containing this script, even in presence of links.
 bindir=`dirname "$(readlink -f "$0")"`

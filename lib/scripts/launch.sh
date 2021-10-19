@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #============================================================================
-# Description: 	    Run the lfc compiler.
+# Description: 	    Run the Lingua Franca compiler.
 # Authors:          Marten Lohstroh
 #                   Christian Menard
 # Usage:            Usage: lfc [options] files...
