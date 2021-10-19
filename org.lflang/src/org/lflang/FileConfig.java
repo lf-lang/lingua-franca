@@ -847,12 +847,17 @@ public class FileConfig {
       * FIXME: Not sure if that us the right place for this function. But
       *  the decision which mode we are in depends on a file (the resource),
       *  thus it seems to fit here.
-      * FIXME: Mode is never undefined. Remove Mode.UNDEFINED?
+      * FIXME: If/when we move away from Xtext, which limits our ability to
+      *  include info in the context about whether we are in Epoch or LSP_FAST,
+      *  it would be preferable not to rely on a method like this that has to
+      *  translate a weird assortment of data into an enum.
       */
      public Mode getCompilerMode() {
          if (context instanceof StandaloneContext) return Mode.STANDALONE;
          if (resource.getURI().isPlatform()) return Mode.EPOCH;
-         if (context instanceof SlowIntegratedContext) return Mode.LSP_SLOW;
+         if (context instanceof SlowIntegratedContext) {
+             return ((SlowIntegratedContext) context).getMustBeComplete() ? Mode.LSP_SLOW : Mode.LSP_MEDIUM;
+         }
          return Mode.LSP_FAST;
      }
 }

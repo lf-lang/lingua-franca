@@ -10,12 +10,16 @@ public class SlowIntegratedContext implements IGeneratorContext {
      * process is canceled.
      */
     private final CancelIndicator cancelIndicator;
-
+    /** Whether the requested build is required to be complete. */
+    private final boolean complete;
+    // FIXME: This private member is perhaps not right, but
+    //  the way it gets used (in FileConfig.getCompilerMode)
+    //  is already not right.
     /* ------------------------- PUBLIC METHODS -------------------------- */
 
     /** Initializes a context that cannot be cancelled. */
-    public SlowIntegratedContext() {
-        this(CancelIndicator.NullImpl);
+    public SlowIntegratedContext(boolean complete) {
+        this(CancelIndicator.NullImpl, complete);
     }
 
     /**
@@ -25,13 +29,26 @@ public class SlowIntegratedContext implements IGeneratorContext {
      * @param cancelIndicator the cancel indicator of the
      *                        code generation process to
      *                        which this corresponds
+     * @param complete whether the requested build is
+     *                 required to be complete
      */
-    public SlowIntegratedContext(CancelIndicator cancelIndicator) {
+    public SlowIntegratedContext(CancelIndicator cancelIndicator, boolean complete) {
         this.cancelIndicator = cancelIndicator;
+        this.complete = complete;
     }
 
     @Override
     public CancelIndicator getCancelIndicator() {
         return cancelIndicator;
+    }
+
+    /**
+     * Returns whether the requested build is required to be
+     * complete.
+     * @return whether the requested build is required to be
+     * complete
+     */
+    public boolean getMustBeComplete() {
+        return complete;
     }
 }

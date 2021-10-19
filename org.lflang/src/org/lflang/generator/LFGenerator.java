@@ -159,6 +159,7 @@ public class LFGenerator extends AbstractGenerator {
             break;
         case LSP_FAST:
             return;  // The fastest way to generate code is to... not generate any code.
+        case LSP_MEDIUM:
         case LSP_SLOW:
             errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0));
             break;
@@ -166,7 +167,7 @@ public class LFGenerator extends AbstractGenerator {
             errorReporter = Objects.requireNonNull(((StandaloneContext) context).getReporter());
             break;
         default:
-            throw new RuntimeException("Unable to handle context type " + context);
+            throw new RuntimeException("Unable to handle compiler mode " + fileConfig.getCompilerMode());
         }
 
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);

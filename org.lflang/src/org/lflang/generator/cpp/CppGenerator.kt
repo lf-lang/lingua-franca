@@ -74,7 +74,7 @@ class CppGenerator(
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
-        } else if (cppFileConfig.compilerMode == Mode.LSP_FAST) {
+        } else if (cppFileConfig.compilerMode == Mode.LSP_MEDIUM) {
             CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
         } else {
             doCompile(context, codeMaps)
