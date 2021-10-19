@@ -158,6 +158,7 @@ public class LFGenerator extends AbstractGenerator {
             errorReporter = new EclipseErrorReporter(fileConfig);
             break;
         case LSP_FAST:
+            return;  // The fastest way to generate code is to... not generate any code.
         case LSP_SLOW:
             errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0));
             break;
