@@ -34,9 +34,9 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.StandaloneContext;
+import org.lflang.lfc.LFStandaloneModule;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -165,7 +165,6 @@ public class Main {
                          .filter(opt -> opt.passOn).map(opt -> opt.option)
                          .collect(Collectors.toList());
         }
-
     }
 
     /**
@@ -206,6 +205,7 @@ public class Main {
                 main.runGenerator(paths, injector);
             } catch (RuntimeException e) {
                 reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
+
             }
         } catch (ParseException e) {
             reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
@@ -315,12 +315,18 @@ public class Main {
     private void exitIfCollectedErrors() {
         if (issueCollector.getErrorsOccurred()) {
             // if there are errors, don't print warnings.
-            List<LfIssue> errors = issueCollector.getErrors();
-            errors.forEach(reporter::printIssue);
+            List<LfIssue> errors = printErrorsIfAny();
             String cause = errors.size() == 1 ? "previous error"
                                               : errors.size() + " previous errors";
             reporter.printFatalErrorAndExit("Aborting due to " + cause);
         }
+    }
+
+    // visible in tests
+    public List<LfIssue> printErrorsIfAny() {
+        List<LfIssue> errors = issueCollector.getErrors();
+        errors.forEach(reporter::printIssue);
+        return errors;
     }
 
     /**
@@ -330,12 +336,11 @@ public class Main {
      * @param path Path to the resource to validate.
      * @return A validated resource
      */
-    private Resource getValidatedResource(Path path) {
-        final ResourceSet set = this.resourceSetProvider.get();
-        final Resource resource =
-            set.getResource(URI.createFileURI(path.toString()), true);
+    // visible in tests
+    public Resource getValidatedResource(Path path) {
+        final Resource resource = getResource(path);
 
-        if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+        if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
             if (!ASTUtils.makeFederated(resource)) {
                 reporter.printError("Unable to change main reactor to federated reactor.");
             }
@@ -346,13 +351,19 @@ public class Main {
         for (Issue issue : issues) {
             URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
             try {
-                issueCollector.accept(new LfIssue(issue.getMessage(),
-                                                  issue.getSeverity(), issue.getLineNumber(),
-                                                  issue.getColumn(), issue.getLength(), FileConfig.toPath(uri)));
+                issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
+                                                  issue.getLineNumber(), issue.getColumn(),
+                                                  issue.getLineNumberEnd(), issue.getColumnEnd(),
+                                                  issue.getLength(), FileConfig.toPath(uri)));
             } catch (IOException e) {
-                reporter.printError("Unable to convert '" + uri + "' to path.");
+                reporter.printError("Unable to convert '" + uri + "' to path." + e);
             }
         }
         return resource;
+    }
+
+    public Resource getResource(Path path) {
+        final ResourceSet set = this.resourceSetProvider.get();
+        return set.getResource(URI.createFileURI(path.toString()), true);
     }
 }

@@ -42,7 +42,7 @@ import org.lflang.tests.AbstractTest;
  */
 public class CppTest extends AbstractTest {
 
-    CppTest() {
+    public CppTest() {
         super(Target.CPP);
     }
 

@@ -49,6 +49,24 @@ jobs:
           verbose: true # optional (default = false)
         if: runner.os == 'Linux'
 
+  standalone-lfc-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 11
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Run standalone LFC tests
+        run: |
+          ./gradlew :org.lflang.lfc:test --stacktrace
+
   c-tests:
     strategy:
       matrix:
@@ -113,7 +131,42 @@ jobs:
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
-  
+
+  ccpp-tests:
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install Dependencies Ubuntu
+        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+        if: runner.os == 'Linux'
+      - name: Install Dependencies OS X
+        run: |
+          brew install protobuf
+          brew install protobuf-c
+          brew install coreutils
+        if: runner.os == 'macOS'
+      - name: Install RTI;
+        run: |
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
+          mkdir build
+          cd build
+          cmake ../
+          make
+          sudo make install
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Run C tests;
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
+
   cpp-tests:
     strategy:
       matrix:
@@ -162,12 +215,6 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        if: runner.os == 'Windows'
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
@@ -220,7 +267,28 @@ jobs:
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-  
+
+  rust-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [nightly]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          components: clippy
+      - uses: actions/checkout@v2
+      - name: Run Rust tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+
   benchmark-tests:
     runs-on: ubuntu-latest
     steps:
