@@ -273,6 +273,7 @@ enum Mode {
     STANDALONE,
     EPOCH,
     LSP_FAST,
+    LSP_MEDIUM,
     LSP_SLOW,
     UNDEFINED
 }

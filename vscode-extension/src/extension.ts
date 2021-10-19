@@ -5,7 +5,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 
 import { Trace } from 'vscode-jsonrpc';
-import { commands, window, workspace, ExtensionContext, Uri, languages, TextEditor } from 'vscode';
+import { commands, window, workspace, ExtensionContext, languages, TextEditor, TextDocument } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 import { legend, semanticTokensProvider } from './highlight';
 
@@ -71,24 +71,37 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(commands.registerTextEditorCommand(
         'linguafranca.build',
         (textEditor: TextEditor, _) => {
-            const uri = textEditor.document.uri.toString();
-            if (!uri.endsWith('.lf')) {
+            const uri = getLfUri(textEditor.document)
+            if (!uri) {
                 window.showErrorMessage(
                     'The currently active file is not a Lingua Franca source '
                     + 'file.'
                 );
                 return;
-            }
-            workspace.saveAll();
-            client.sendNotification('generator/build', uri);
+            };
+            workspace.saveAll().then(function(successful) {
+                if (!successful) return;
+                client.sendNotification('generator/build', uri);
+            });
         }
     ));
+    workspace.onDidSaveTextDocument(function(textDocument: TextDocument) {
+        const uri = getLfUri(textDocument);
+        if (!uri) return; // This is not an LF document, so do nothing.
+        client.sendNotification('generator/partialBuild', uri);
+    })
 
     context.subscriptions.push(languages.registerDocumentSemanticTokensProvider(
         { language: 'lflang', scheme: 'file' },
         semanticTokensProvider,
         legend
     ));
+}
+
+function getLfUri(textDocument: TextDocument): string | undefined {
+    const uri: string = textDocument.uri.toString();
+    if (!uri.endsWith('.lf')) return undefined;
+    return uri;
 }
 
 function createDebugEnv() {

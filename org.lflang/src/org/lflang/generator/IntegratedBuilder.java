@@ -17,17 +17,19 @@ import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.generator.LanguageServerErrorReporter;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 /**
- * Manages Lingua Franca code generation that is integrated
- * in an editor. FIXME: This should be more specific.
+ * Manages Lingua Franca build processes that are requested
+ * from the language server.
  */
 public class IntegratedBuilder {
-
+    // Note: This class is not currently used in response to
+    //  document edits, even though the validator and code
+    //  generator are invoked by Xtext in response to
+    //  document edits.
     /**
      * A <code>ReportMethod</code> is a way of reporting issues.
      */
@@ -53,7 +55,7 @@ public class IntegratedBuilder {
      * </code>.
      * @param uri the URI of a Lingua Franca file
      */
-    public void run(URI uri) {
+    public void run(URI uri, boolean complete) {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
         //  org.lflang.lfc.Main. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
@@ -63,7 +65,7 @@ public class IntegratedBuilder {
         if (parseRoots.isEmpty()) return;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
         validate(uri, errorReporter);
-        if (!errorReporter.getErrorsOccurred()) doGenerate(uri);
+        if (!errorReporter.getErrorsOccurred()) doGenerate(uri, complete);
     }
 
     /* ------------------------- PRIVATE METHODS ------------------------- */
@@ -86,8 +88,8 @@ public class IntegratedBuilder {
      * Generates code from the contents of <code>f</code>.
      * @param uri the URI of a Lingua Franca file
      */
-    private void doGenerate(URI uri) {
-        generator.generate(getResource(uri), fileAccess, new SlowIntegratedContext());
+    private void doGenerate(URI uri, boolean complete) {
+        generator.generate(getResource(uri), fileAccess, new SlowIntegratedContext(complete));
     }
 
     /**
