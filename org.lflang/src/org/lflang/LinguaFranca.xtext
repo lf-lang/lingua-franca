@@ -37,7 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 
-grammar org.lflang.LF with org.eclipse.xtext.common.Terminals
+grammar org.lflang.LF
+    hidden(WS, ML_COMMENT, SL_COMMENT)
+
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
 // Use the package name "lf" for generated files defining the classes
 // in the metamodel (i.e., the classes representing nodes in the
@@ -173,12 +176,6 @@ Boolean:
     TRUE | FALSE
 ;
 
-terminal TRUE:
-    'true' | 'True';
-    
-terminal FALSE:
-    'false' | 'False';
-
 // Action that has either a physical or logical origin.
 // 
 // If the origin is logical, the minDelay is a minimum logical delay
@@ -230,28 +227,36 @@ Instantiation:
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
-    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
-    (delay=Delay | ';'?);
+    (delay=Delay)?
+    (serializer=Serializer)?
+    ';'?
+    ;
 
 // After clause with a delay that can either be specified as a parameter or as
 // a literal value. If no units are given (which implies that the time interval
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
 Delay:
-    'after' (parameter=[Parameter] ';'? | (interval=INT ((unit=TimeUnit ';'?) | ';')))
+    'after' (parameter=[Parameter] | (interval=INT ((unit=TimeUnit))))
+;
+
+// Chooses the serializer to use for the connection
+Serializer:
+    'serializer' type=STRING
 ;
 
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
+    {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
-Array:
+Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
     
 Element:
@@ -381,21 +386,41 @@ SignedInt:
 ;
 
 Literal:
-    STRING | SignedFloat | SignedInt | Boolean;
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean;
 
 /////////// Elementary components
-// Terminals must be mutually exclusive. They are used by the lexer before parsing.
 
-@Override
+/////////// Lexical grammar
+//// Terminals must be mutually exclusive. They are used by the lexer before parsing.
+
+//// Note that the rest of the grammar implicitly defines
+//// keywords for every string literal, eg 'reaction'.
+
+terminal WS: (' '|'\t'|'\r'|'\n')+;
+
+terminal TRUE:  'true' | 'True';
+terminal FALSE: 'false' | 'False';
+terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+
+terminal INT returns ecore::EInt:     ('0'..'9')+;
+terminal NEGINT:                  '-' ('0'..'9')+;
+
+
 terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
+terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
-@Override
-terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+terminal LT_ANNOT: "'" ID?;
+
+terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
+                 | '"""' -> '"""'
+                 ;
+
+terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
+
+terminal ANY_OTHER: .;
+
 
 Kebab: (ID|"physical")('-'ID)*;
-
-terminal NEGINT:
-    '-' ('0'..'9')+;
 
 IPV4Addr:
     INT '.' INT '.' INT '.' INT
@@ -476,8 +501,8 @@ Body:
 // language tokens that is not featured in this production, this will demarcate
 // the end of a target-code segment.
 Token:
-    // Imported terminals
-    ID | INT | STRING | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER | 
+    // Non-constant terminals
+    ID | INT | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
@@ -513,5 +538,7 @@ Token:
     // Percentage
     '%' |
     // Annotation
-    '@'
+    '@' |
+    // Single quotes
+    "'"
 ;

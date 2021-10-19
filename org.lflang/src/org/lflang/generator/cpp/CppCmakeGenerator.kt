@@ -46,10 +46,8 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
     fun generateCode(sources: List<Path>): String {
         val runtimeVersion = targetConfig.runtimeVersion ?: CppGenerator.defaultRuntimeVersion
 
-        // Resolve path to the cmake include file if one was provided
-        val includeFile = targetConfig.cmakeInclude
-            ?.takeIf { it.isNotBlank() }
-            ?.let { fileConfig.srcPath.resolve(it).toUnixString() }
+        // Resolve path to the cmake include files if any was provided
+        val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
@@ -82,7 +80,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                     |
                     |ExternalProject_Add(dep-reactor-cpp
                     |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
-                    |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
+                    |   GIT_REPOSITORY "https://github.com/lf-lang/reactor-cpp.git"
                     |   GIT_TAG "$runtimeVersion"
                     |   CMAKE_ARGS
                     |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
@@ -140,12 +138,8 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |install(TARGETS $S{LF_MAIN_TARGET}
                 |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
                 |)
-            ${
-                if (includeFile == null) "" else """
-                    |
-                    |include($includeFile)
-                """.trimIndent()
-            }
+                |
+            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "") }
             """.trimMargin()
         }
     }

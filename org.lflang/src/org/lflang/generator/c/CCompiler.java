@@ -25,16 +25,18 @@
 
 package org.lflang.generator.c;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import org.eclipse.xtext.util.CancelIndicator;
+
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.util.LFCommand;
 
@@ -54,6 +56,13 @@ public class CCompiler {
     TargetConfig targetConfig;
     ErrorReporter errorReporter;
     
+    /** 
+     * Indicate whether or not the compiler is in C++ mode 
+     * In C++ mode, the compiler produces .cpp files instead
+     * of .c files and uses a C++ compiler to compiler the code.
+     */
+    boolean CppMode = false;
+    
     /**
      * A factory for compiler commands.
      */
@@ -65,12 +74,34 @@ public class CCompiler {
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter Used to report errors.
+     * @param CppMode Indicate if the compilation should happen in C++ mode
      */
-    public CCompiler(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
+    public CCompiler(
+            TargetConfig targetConfig, 
+            FileConfig fileConfig, 
+            ErrorReporter errorReporter, 
+            boolean CppMode
+            ) {
+        this(targetConfig, fileConfig, errorReporter);
+        this.CppMode = CppMode;
+    }
+    
+    /**
+     * Create an instance of CCompiler.
+     * 
+     * @param targetConfig The current target configuration.
+     * @param fileConfig The current file configuration.
+     * @param errorReporter Used to report errors.
+     */
+    public CCompiler(
+            TargetConfig targetConfig, 
+            FileConfig fileConfig, 
+            ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
         this.errorReporter = errorReporter;
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
+        this.CppMode = false;
     }
 
     /** 
@@ -79,26 +110,37 @@ public class CCompiler {
      * @param file The source file to compile without the .c extension.
      * @param noBinary If true, the compiler will create a .o output instead of a binary. 
      *  If false, the compile command will produce a binary.
+     * @param generator An instance of GenratorBase, only used to report error line numbers
+     *  in the Eclipse IDE.
      * 
      * @return true if compilation succeeds, false otherwise. 
      */
-    public boolean runCCompiler(String file, boolean noBinary) throws IOException {
+    public boolean runCCompiler(
+        String file,
+        boolean noBinary,
+        GeneratorBase generator,
+        CancelIndicator cancelIndicator
+    ) throws IOException {
         LFCommand compile = compileCCommand(file, noBinary);
         if (compile == null) {
             return false;
         }
-
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        int returnCode = compile.run();
+        
+        int returnCode = compile.run(cancelIndicator);
 
         if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (stderr.toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
-            errorReporter.reportError(stderr.toString());
+        if (compile.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+            generator.reportCommandErrors(compile.getErrors().toString());
         }
+        
+        if (returnCode == 0 && compile.getErrors().toString().length() == 0) {
+            System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
+        }
+        
         return (returnCode == 0);
     }
     
@@ -116,7 +158,7 @@ public class CCompiler {
             boolean noBinary
     ) {
         
-        String cFilename = getTargetFileName(fileToCompile);
+        String cFilename = getTargetFileName(fileToCompile, CppMode);
 
         Path relativeSrcPath = fileConfig.getOutPath().relativize(
             fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
@@ -176,7 +218,7 @@ public class CCompiler {
         LFCommand command = commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
         if (command == null) {
             errorReporter.reportError(
-                "The C target requires GCC >= 7 to compile the generated code. " +
+                "The C/CCpp target requires GCC >= 7 to compile the generated code. " +
                 "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
@@ -184,9 +226,28 @@ public class CCompiler {
     }
     
     
-    /** Produces the filename including the target-specific extension */
-    String getTargetFileName(String fileName) {
-        return fileName + ".c"; // FIXME: Does not belong in the base class.
+    /** Produces the filename including the target-specific extension 
+     * 
+     * @param fileName The base name of the file without any extensions
+     * @param CppMode  Indicate whether or not the compiler is in C++ mode 
+     * In C++ mode, the compiler produces .cpp files instead
+     * of .c files and uses a C++ compiler to compiler the code.
+     */
+    static String getTargetFileName(String fileName, boolean CppMode) {
+        if (CppMode) {
+            // If the C++ mode is enabled, use a .cpp extension
+            return fileName + ".cpp";
+        }
+        return fileName + ".c";
+    }
+    
+
+    
+    /** Return true if the operating system is Windows. */
+    public static boolean isHostWindows() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        if (OS.indexOf("win") >= 0) { return true; }
+        return false;
     }
 
 }

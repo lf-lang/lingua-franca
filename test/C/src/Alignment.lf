@@ -19,7 +19,7 @@ reactor Sieve {
     state last_prime:int(0);
     reaction(startup) {=
         // There are 1229 primes between 1 and 10,000.
-        self->primes = calloc(1229, sizeof(int));
+        self->primes = (int*)calloc(1229, sizeof(int));
         // Primes 1 and 2 are not on the list.
         self->primes[0] = 3;
     =}
@@ -71,7 +71,7 @@ reactor Sieve {
 reactor Destination {
     input ok:bool;
     input in:int;
-    state last_invoked:tag_t({= NEVER_TAG =});
+    state last_invoked:tag_t({= NEVER_TAG_INITIALIZER =});
     reaction(ok, in) {=
         if (ok->is_present && in->is_present) {
             info_print("Destination: Input %d is prime at tag (%lld, %d).", 
