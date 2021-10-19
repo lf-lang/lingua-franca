@@ -32,22 +32,28 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * Collection of tests for the C target.
- * <p>
- * Even though all tests are implemented in the base class, we @Override public void them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking anywhere in the header or body of the test
- * method and selecting "Run As -> JUnit Test" from the pop-up menu.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * Tests that are implemented in the base class are still overridden so that
+ * each test can be easily invoked individually from IDEs with JUnit support
+ * like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".*
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class CTest extends ThreadedBase {
+public class CTest extends AbstractTest {
 
     public CTest() {
-        this.target = Target.C;
+        super(Target.C);
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
     }
 
     @Test
@@ -58,8 +64,8 @@ public class CTest extends ThreadedBase {
 
     @Test
     @Override
-    public void compileExamples() {
-        super.compileExamples();
+    public void validateExamples() {
+        super.validateExamples();
     }
 
     @Test
@@ -71,6 +77,11 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runTargetSpecificTests() {
+        if(isWindows()) {
+            printSkipMessage(Message.DESC_TARGET_SPECIFIC,
+                    Message.NO_WINDOWS_SUPPORT);
+            return;
+        }
         super.runTargetSpecificTests();
     }
 
@@ -85,11 +96,29 @@ public class CTest extends ThreadedBase {
     public void runWithFourThreads() {
         super.runWithFourThreads();
     }
+    
+    @Test
+    @Override
+    public void runSerializationTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_SERIALIZATION,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
+        super.runSerializationTests();
+    }
 
     @Test
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) { 
+            printSkipMessage(Message.DESC_AS_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
         super.runAsFederated();
     }
 
@@ -102,21 +131,27 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runFederatedTests() {
+        // Skip the test if the OS is Windows
+        if(isWindows()) {
+            printSkipMessage(Message.DESC_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
         super.runFederatedTests();
     }
-    
-    /** Static description of test that runs C tests as CCpp. */
-    public static final String RUN_AS_CCPP_DESC = "Description: Running C tests as CCpp.";
     
     /**
      * Run C tests with the target CCpp.
      */
     @Test
     public void runAsCCpp() {
-        printTestHeader(RUN_AS_CCPP_DESC);
+        if(isWindows()) {
+            printSkipMessage(Message.DESC_AS_CCPP,
+                    Message.NO_WINDOWS_SUPPORT);
+            return; 
+        }
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        
         categories.removeAll(EnumSet.of(
                 // Don't need to test examples.
                 // If any of them uses CCpp, it will
@@ -124,9 +159,9 @@ public class CTest extends ThreadedBase {
                 // run.
                 TestCategory.EXAMPLE));
 
-        runTestsAndPrintResults(target,
-                                categories::contains,
-                                it -> ASTUtils.changeTargetName(it.fileConfig.resource, "CCpp"),
-                                true);
+        runTestsForTargets(Message.DESC_AS_CCPP, categories::contains,
+                it -> ASTUtils.changeTargetName(it.fileConfig.resource,
+                        Target.CCPP.getDisplayName()),
+                TestLevel.EXECUTION, true);
     }
 }

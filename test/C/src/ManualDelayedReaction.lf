@@ -1,4 +1,12 @@
-target C;
+target C {
+    keepalive: false // Set keepalive to false since
+                     // this is a test and schedule is
+                     // called on a physical action from
+                     // within a reaction. This is one of
+                     // the special rare cases where the
+                     // user might want to manually override
+                     // keepalive.
+};
 
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {

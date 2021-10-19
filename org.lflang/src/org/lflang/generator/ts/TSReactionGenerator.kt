@@ -212,7 +212,13 @@ class TSReactionGenerator(
             if (!effectSet.contains(trigOrSourcePair)) {
                 var reactSignatureElementType = "";
 
-                if (trigOrSource.variable is Timer) {
+                if (trigOrSource.variable.name == "networkMessage") {
+                    // Special handling for the networkMessage action created by
+                    // FedASTUtils.makeCommunication(), by assigning TypeScript
+                    // Buffer type for the action. Action<Buffer> is used as
+                    // FederatePortAction in federation.ts.
+                    reactSignatureElementType = "Buffer"
+                } else if (trigOrSource.variable is Timer) {
                     reactSignatureElementType = "__Tag"
                 } else if (trigOrSource.variable is Action) {
                     reactSignatureElementType = getActionType(trigOrSource.variable as Action)
@@ -349,6 +355,13 @@ class TSReactionGenerator(
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
+                // TODO(hokeun): Find a better way to gracefully handle this skipping.
+                // Do not add reactions created by generateNetworkOutputControlReactionBody
+                // or generateNetworkInputControlReactionBody.
+                if (reaction.code.toText().contains("generateNetworkOutputControlReactionBody")
+                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
+                    continue;
+                }
                 if (federate.containsReaction(reaction)) {
                     generatedReactions.add(reaction)
                 }
