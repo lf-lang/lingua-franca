@@ -14,14 +14,15 @@
 # -o pipefail: Prevents errors in a pipeline from being masked.
 set -euo pipefail
 
-lfc_src_pkg_name="org.lflang.lfc"
-lfc_jar_snapshot_path="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
-lfc_jar_release_path="lib/jars/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
-
 # Obtain path to the directory containing this script, even in presence of links.
 bindir=`dirname "$(readlink -f "$0")"`
-# Get to the base by going from "./lib/scripts" to ".".
+# Get to the base directory by going from "./lib/scripts" to ".".
 base=`dirname $(dirname ${bindir})`
+
+# Paths (relative to the base directory).
+lfc_src_pkg_name="org.lflang.lfc"
+lfc_jar_build_path="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
+lfc_jar_release_path="lib/jars/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
 
 # Check if the sources are available.
 function dir_exists {
@@ -52,7 +53,7 @@ function fatal_error() {
 # If not valid jar can be found, return false.
 function find_jar_path() {
     if src_exists; then
-        jar_path_pattern="${base}/${lfc_jar_snapshot_path}"
+        jar_path_pattern="${base}/${lfc_jar_build_path}"
     else
         jar_path_pattern="${base}/${lfc_jar_release_path}"
     fi

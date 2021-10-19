@@ -64,7 +64,7 @@ if [ $clean -eq 1 ]; then
 fi
 
 # Check if jar is missing or out-of-date compared to the sources
-if [ ! -f "${lfc_jar_snapshot_path}" ] || ! "${FIND}" "${lfbase}/src" -path "${lfbase}/test" -prune -o -type f -newer "${lfc_jar_snapshot_path}" -exec false {} +; then
+if [ ! -f "${lfc_jar_build_path}" ] || ! "${FIND}" "${lfbase}/src" -path "${lfbase}/test" -prune -o -type f -newer "${lfc_jar_build_path}" -exec false {} +; then
 	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
 	"${base}/gradlew" ${flags} -p "${base}" buildLfc
 	touch -c -- "${jar_path}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
