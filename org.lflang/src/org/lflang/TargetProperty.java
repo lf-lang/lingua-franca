@@ -1,15 +1,11 @@
 package org.lflang;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -17,9 +13,9 @@ import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
-import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -497,7 +493,11 @@ public enum TargetProperty {
             if (p != null) {
                 // Mark the specified target property as set by the user
                 config.setByUser.add(p);
-                p.setter.parseIntoTargetConfig(config, property.getValue(), err);
+                try {
+                    p.setter.parseIntoTargetConfig(config, property.getValue(), err);
+                } catch (InvalidLfSourceException e) {
+                    err.reportError(e.getNode(), e.getProblem());
+                }
             }
         });
     }
