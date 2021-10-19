@@ -48,8 +48,8 @@ function fatal_error() {
     exit 1
 }
 
-# Set the jar_found and jar_path variables depending on 
-# whether there is a jar that matches jar_pattern.
+# Set the jar_path variable if a valid jar can be found and return true.
+# If not valid jar can be found, return false.
 function find_jar_path() {
     if src_exists; then
         jar_path_pattern="${base}/${lfc_jar_snapshot_path}"
@@ -57,7 +57,6 @@ function find_jar_path() {
         jar_path_pattern="${base}/${lfc_jar_release_path}"
     fi
 
-    #echo "Src dir: ${base}/${lfc_src_pkg_name}"
     #echo "Jar pattern: ${jar_path_pattern}"
 
     # Is there a file that matches our pattern?
@@ -107,6 +106,7 @@ function run_jar_with_args {
 
 # Determine whether or not we are in a source tree.
 function src_exists {
+    #echo "Src dir: ${base}/${lfc_src_pkg_name}"
     if dir_exists "${base}/${lfc_src_pkg_name}"; then
         true
     else
