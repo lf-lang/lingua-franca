@@ -91,6 +91,7 @@ class RustGenerator(
             this += listOf(
                 "+nightly",
                 "build",
+                // fixme i've seen test pass with --release and fail otherwise!
                 "--release", // enable optimisations
                 // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
