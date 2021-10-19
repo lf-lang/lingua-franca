@@ -32,7 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.Target;
-import org.lflang.tests.runtime.TestBase;
+import org.lflang.tests.TestBase.TestLevel;
 
 /**
  * Execute a single test case. Use it with the gradle task
@@ -62,6 +62,8 @@ public class RunSingleTestMain {
         Path packageRoot = Paths.get(matcher.group(1)).toAbsolutePath();
         Target target = Target.forName(matcher.group(2)).get();
 
-        TestBase.runSingleTestAndPrintResults(new LFTest(target, path.toAbsolutePath(), packageRoot));
+        TestBase.runSingleTestAndPrintResults(
+                new LFTest(target, path.toAbsolutePath(), packageRoot),
+                TestLevel.EXECUTION);
     }
 }

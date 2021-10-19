@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -39,7 +40,7 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.TimeUnit;
-import org.lflang.validation.LFValidatorImpl;
+import org.lflang.validation.LFValidator;
 
 /**
  * A target properties along with a type and a list of supporting targets
@@ -147,7 +148,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the target compiler.
      */
-    COMPILER("compiler", PrimitiveType.STRING, Arrays.asList(Target.ALL),
+    COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
             (config, value) -> {
                 config.compiler = ASTUtils.toText(value);
             }),
@@ -193,7 +194,7 @@ public enum TargetProperty {
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
      */
-    FAST("fast", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    FAST("fast", PrimitiveType.BOOLEAN, Target.ALL,
             (config, value) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
             }),
@@ -202,7 +203,7 @@ public enum TargetProperty {
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL),
+    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
             (config, value) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
@@ -256,7 +257,7 @@ public enum TargetProperty {
      * Directive to let the execution engine remain active also if there
      * are no more events in the event queue.
      */
-    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Target.ALL,
             (config, value) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
@@ -264,7 +265,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the grain at which to report log messages during execution.
      */
-    LOGGING("logging", UnionType.LOGGING_UNION, Arrays.asList(Target.ALL),
+    LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
             (config, value) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.toText(value));
@@ -317,7 +318,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the execution timeout.
      */
-    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Arrays.asList(Target.ALL),
+    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
             (config, value) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
@@ -348,7 +349,18 @@ public enum TargetProperty {
                         }
                     }
                 }
-            });
+            }),
+
+
+    /**
+     * Directive to let the runtime export its internal dependency graph.
+     *
+     * This is a debugging feature and currently only used for C++ programs.
+     */
+    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN, Collections.singletonList(Target.CPP),
+                           (config, value) -> {
+        config.exportDependencyGraph = ASTUtils.toBoolean(value);
+    });
     
     /**
      * String representation of this target property.
@@ -567,7 +579,7 @@ public enum TargetProperty {
          * this dictionary.
          */
         @Override
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             KeyValuePairs kv = e.getKeyvalue();
             if (kv == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -672,7 +684,7 @@ public enum TargetProperty {
          * this union.
          */
         @Override
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             Optional<Enum<?>> match = this.match(e);
             if (match.isPresent()) {
                 // Go deeper if the element is an array or dictionary.
@@ -769,7 +781,7 @@ public enum TargetProperty {
          * its elements are all of the correct type.
          */
         @Override
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             Array array = e.getArray();
             if (array == null) {
                 TargetPropertyType.produceError(name, this.toString(), v);
@@ -897,7 +909,7 @@ public enum TargetProperty {
          * @param name The name of the target property.
          * @param v    A reference to the validator to report errors to.
          */
-        public void check(Element e, String name, LFValidatorImpl v);
+        public void check(Element e, String name, LFValidator v);
     
         /**
          * Helper function to produce an error during type checking.
@@ -907,7 +919,7 @@ public enum TargetProperty {
          * @param v           A reference to the validator to report errors to.
          */
         public static void produceError(String name, String description,
-                LFValidatorImpl v) {
+                LFValidator v) {
             v.getTargetPropertyErrors().add("Target property '" + name
                     + "' is required to be " + description + ".");
         }
@@ -987,7 +999,7 @@ public enum TargetProperty {
          * @param name   The name of the target property.
          * @param errors A list of errors to append to if problems are found.
          */
-        public void check(Element e, String name, LFValidatorImpl v) {
+        public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {
                 TargetPropertyType.produceError(name, this.description, v);
             }

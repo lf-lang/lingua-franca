@@ -49,6 +49,24 @@ jobs:
           verbose: true # optional (default = false)
         if: runner.os == 'Linux'
 
+  standalone-lfc-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 11
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Run standalone LFC tests
+        run: |
+          ./gradlew :org.lflang.lfc:test --stacktrace
+
   c-tests:
     strategy:
       matrix:
@@ -61,6 +79,8 @@ jobs:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       # - name: Cache protobuf library # Thanks to https://lukasjoswiak.com/github-actions-protobuf/
       #   id: cache-protobuf
       #   uses: actions/cache@v1
@@ -101,7 +121,7 @@ jobs:
 #         if: runner.os == 'Windows'
       - name: Install RTI;
         run: |
-          cd org.lflang/src/lib/core/federated/RTI
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
           mkdir build
           cd build
           cmake ../
@@ -160,12 +180,6 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        if: runner.os == 'Windows'
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
@@ -212,7 +226,9 @@ jobs:
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
@@ -228,7 +244,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Install python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
       - name: Build lfc;
