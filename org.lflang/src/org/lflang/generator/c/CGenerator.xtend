@@ -373,13 +373,14 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * 
+     * Set the appropriate target properties based on the target properties of
+     * the main .lf file.
      */
     override setTargetConfig(IGeneratorContext context) {
         super.setTargetConfig(context);
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
-        if(targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+        if (targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++"
                 targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
@@ -387,7 +388,38 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compiler = "gcc"
                 targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
             }
-        } 
+        }
+    }
+    
+    /**
+     * Look for physical actions in 'resource'.
+     * If found, take appropriate actions to accommodate.
+     * 
+     * Set keepalive to true.
+     * Set threads to be at least one to allow asynchronous schedule calls
+     */
+    override accommodatePhysicalActionsIfPresent(Resource resource) {
+        super.accommodatePhysicalActionsIfPresent(resource);
+
+        // If there are any physical actions, ensure the threaded engine is used and that
+        // keepalive is set to true, unless the user has explicitly set it to false.
+        for (action : resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                // If the unthreaded runtime is requested, use the threaded runtime instead
+                // because it is the only one currently capable of handling asynchronous events.
+                if (targetConfig.threads < 1) {
+                    targetConfig.threads = 1
+                    errorReporter.reportWarning(
+                        action,
+                        '''Using the threaded C runtime to allow for asynchronous handling of«
+                        » physical action «action.name».'''
+                    );
+                }
+
+            }
+
+        }
+        
     }
     
     /**
@@ -575,7 +607,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
             
             // Copy the header files
             copyTargetHeaderFile()
@@ -799,7 +831,8 @@ class CGenerator extends GeneratorBase {
                         #[cFilename], 
                         topLevelName, 
                         errorReporter,
-                        CCppMode
+                        CCppMode,
+                        mainDef !== null
                     ).toString().getBytes(),
                     cmakeFile
                 )
@@ -1120,7 +1153,7 @@ class CGenerator extends GeneratorBase {
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
         // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/core/platform.h
+        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
@@ -1411,8 +1444,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        fileConfig.copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
-        fileConfig.copyFileFromClassPath("/lib/C/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
     }
 
     ////////////////////////////////////////////
@@ -4981,7 +5014,7 @@ class CGenerator extends GeneratorBase {
     // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile("^file:(/.*):([0-9]+):([0-9]+):(.*)$");
     
     /** Given a line of text from the output of a compiler, return
      *  an instance of ErrorFileAndLine if the line is recognized as
@@ -5004,7 +5037,7 @@ class CGenerator extends GeneratorBase {
             result.character = matcher.group(3)
             result.message = matcher.group(4)
             
-            if (result.message.toLowerCase.contains("warning:")) {
+            if (!result.message.toLowerCase.contains("error:")) {
                 result.isError = false
             }
             return result

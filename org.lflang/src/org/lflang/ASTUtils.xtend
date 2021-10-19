@@ -217,9 +217,9 @@ class ASTUtils {
         output.variable = delayClass.outputs.get(0)
         upstream.leftPorts.addAll(connection.leftPorts)
         upstream.rightPorts.add(input)
-        upstream.iterated = connection.iterated
         downstream.leftPorts.add(output)
         downstream.rightPorts.addAll(connection.rightPorts)
+        downstream.iterated = connection.iterated
 
         connections.add(upstream)
         connections.add(downstream)
@@ -261,12 +261,11 @@ class ASTUtils {
         if (connection.hasMultipleConnections) {
             val widthSpec = factory.createWidthSpec
             if (defineWidthFromConnection) {
-                // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.
+                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
                 // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the right ports here, as the right hand side should always have a well-defined
-                // width. On the left hand side, we might use the broadcast operator from which we cannot infer
-                // the width.
-                for (port : connection.rightPorts) {
+                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // to delay the ports first, and then broadcast the output of the delays.
+                for (port : connection.leftPorts) {
                     val term = factory.createWidthTerm()
                     term.port = EcoreUtil.copy(port)
                     widthSpec.terms.add(term)
