@@ -68,8 +68,6 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
     state numTermsReceived:int(0);
     state resultArea:double(0.0);
     
-    input inStart:bool;
-    
     output[numWorkers] outWorkers:WorkMessage;
     input[numWorkers] inWorkers:double;
     
