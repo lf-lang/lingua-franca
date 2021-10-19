@@ -16,7 +16,6 @@ target C {
     threads: 0,
     /// [[[end]]]
     flags: "-lm",
-    timeout: 2 secs
 };
 
 

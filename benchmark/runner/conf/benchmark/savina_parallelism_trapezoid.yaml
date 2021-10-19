@@ -41,7 +41,7 @@ targets:
     lf_file: "Trapezoidal.lf"
     binary: "Trapezoidal"
     gen_args:
-      workers: ["-D", "numWorkers=<value>"]
-      pieces: ["-D", "numPieces=<value>"]
-      left: ["-D", "leftEndPoint=<value>"]
-      right: ["-D", "rightEndPoint=<value>"]
+      workers: ["-D", "workers=<value>"]
+      pieces: ["-D", "pieces=<value>"]
+      left: ["-D", "left=<value>"]
+      right: ["-D", "right=<value>"]
