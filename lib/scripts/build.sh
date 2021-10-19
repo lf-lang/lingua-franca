@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #============================================================================
-# Description: 	Build the lfc compiler.
+# Description: 	Build the Lingua Franca compiler.
 # Authors:		Marten Lohstroh, Mehrdad Niknami, Christian Menard
 # Usage:		build-lfc [options] [[-r | --run] [lfc-args]]
 #============================================================================
