@@ -5,20 +5,25 @@
  * This version uses the library GMP.
  * 
  * This version is adapted from Hannes Klein's original implementation
- * to work with the C target.
+ * to work with the C target and does not use the BenchmarkRunner.
  * See github.com/hnnskl/lingua-franca/blob/dev-savina-cpp/benchmark/Cpp/Savina/.
  * 
  * @author Hannes Klein
  * @author Soroush Bateni
  * @author Shaokai Lin
  */
-target C {
-    flags: "-lgmp -g",
-    keepalive: true,
-    threads: 24
-};
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    cmake-include: "PiPrecision.cmake"
+};
 
 preamble {=
     // source for pi: https://www.piday.org/million/
@@ -29,6 +34,34 @@ preamble {=
       int scale;
       int term;
     } WorkMessage;
+    
+    void printBenchmarkInfo(char* benchmarkId) {
+        printf("Benchmark: %s\n", benchmarkId);
+    }
+        
+    void printSystemInfo() {
+            
+        printf("System information\n"); 
+        printf("O/S Name: ");
+            
+        #ifdef _WIN32
+        printf("Windows 32-bit");
+        #elif _WIN64
+        printf("Windows 64-bit");
+        #elif __APPLE__ || __MACH__
+        printf("Mac OSX");
+        #elif __linux__
+        printf("Linux");
+        #elif __FreeBSD__
+        printf("FreeBSD");
+        #elif __unix || __unix__
+        printf("Unix");
+        #else
+        printf("Other");
+        #endif
+            
+        printf("\n");
+    }
 =}
 
 reactor Master(numWorkers:int(20), scale:int(5000)) {
@@ -56,7 +89,7 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
     
     logical action generateWork;
     
-    reaction(inCleanupStart) -> outCleanupFinished {=
+    reaction(shutdown) {=
         char* solutionPruned = (char*)calloc(99200, sizeof(char));
         strncpy(solutionPruned, solution, strlen(self->resultString));
         int correct = strncmp(self->resultString, solutionPruned,
@@ -66,18 +99,22 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
         } else {
             printf("Result is incorrect: %s.\n", self->resultString);
         }
-        SET(outCleanupFinished, true);
-        free(solutionPruned);
-        free(self->workersNeedWork);
-        free(self->resultString);
+        // FIXME: these free statements report memory corruption on my machine
+        // free(solutionPruned);
+        mpf_clear(self->result);
+        mpf_clear(self->tolerance);
+        // free(self->workersNeedWork);
+        // free(self->resultString);
     =}
     
-    reaction(startup) {=  
+    reaction(startup) -> generateWork {=
+        self->resultString = (char*)calloc(99200, sizeof(char));
         self->scaleBinary = 16610; // result of ld(10^scale) with scale = 5000
                                    // FIXME: this only works with scale = 5000
+        mpf_set_default_prec(self->scaleBinary);
+        self->workersNeedWork = (bool*)malloc(self->numWorkers * sizeof(bool));        
         mpf_init(self->result);
         mpf_init(self->tolerance);
-        mpf_set_default_prec(self->scaleBinary);
         // initialization
         mpf_init2(self->tolerance, self->scaleBinary);
         mpf_t base;
@@ -85,11 +122,6 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
         mpf_set_ui(base, 10);
         mpf_pow_ui(self->tolerance, base, self->scale);
         mpf_ui_div(self->tolerance, 1, self->tolerance);
-    =}
-    
-    reaction(inStart) -> generateWork {=
-        self->resultString = (char*)calloc(99200, sizeof(char));
-        self->workersNeedWork = (bool*)malloc(self->numWorkers * sizeof(bool));
         
         // reset local state
         mpf_init2(self->result, self->scaleBinary);
@@ -107,7 +139,7 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
     reaction(generateWork) -> outWorkers {=
         
         if(self->stopRequests) {
-            return;
+            request_stop();
         }
         
         for(int i = 0; i < outWorkers_width; ++i) {
@@ -118,7 +150,7 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
         }
     =}
     
-    reaction(inWorkers) -> outFinished, generateWork {=
+    reaction(inWorkers) -> generateWork {=
         
         for(int i = 0; i < inWorkers_width; ++i) {
             if(inWorkers[i]->is_present) {
@@ -137,7 +169,7 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
                     printf("Number of terms calculated: %d\n", self->numTermsReceived);
                     mp_exp_t exponent;
                     strcat(self->resultString, mpf_get_str(NULL, &exponent, 10, (size_t)0, self->result));
-                    SET(outFinished, true);
+                    request_stop();
                 }
             }
         }
@@ -190,7 +222,7 @@ reactor Worker(scale:int(5000)) {
     output outMaster:mpf_t;
     reaction(startup) {=
         mpf_set_default_prec(16610); // result of ld(10^scale) with scale = 5000
-                                     // FIXME: this only works with scale = 5000
+                                    // FIXME: this only works with scale = 5000
     =}
     
     reaction(inMaster) -> outMaster {=
@@ -202,25 +234,21 @@ reactor Worker(scale:int(5000)) {
     =}
 }
 
-
-main reactor PiPrecision(numWorkers:int(20), numIterations:int(12), precision:int(5000)) {
+/* [[[cog
+    cog.outl(f'main reactor PiPrecision(numWorkers:int({numWorkers}), precision:int({precision}))')
+]]] */
+main reactor PiPrecision(numWorkers:int(20), precision:int(5000)) 
+/// [[[end]]]
+{
     
-    master = new Master(numWorkers=numWorkers, scale=precision);
-    runner = new BenchmarkRunner(numIterations=numIterations, useCleanupIteration=true);
+    master = new Master(numWorkers=numWorkers, scale=precision);    
     
-    runner.outCleanupIterationStart -> master.inCleanupStart;
-    master.outCleanupFinished -> runner.inCleanupIterationFinish;
     
-    runner.outIterationStart -> master.inStart;
-    master.outFinished -> runner.inIterationFinish;
-    
-    reaction(startup) -> runner.inStart {=
+    reaction(startup) {=
         printBenchmarkInfo("PiPrecisionBenchmark");
-        printf("numIterations: %d\n", self->numIterations);
         printf("precision: %d\n", self->precision);
         printf("numWorkers: %d\n", self->numWorkers);
         printSystemInfo();
-        SET(runner.inStart, true);
     =}
     
 
