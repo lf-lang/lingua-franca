@@ -37,10 +37,3 @@ targets:
       messages_per_worker: ["--numMessagesPerWorker", "<value>"]
       write_percentage: ["--writePercentage", "<value>"]
       size_percentage: ["--sizePercentage", "<value>"]
-  lf-c:
-    copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/concurrency/SortedLinkList.lf"
-    lf_file: "SortedLinkList.lf"
-    binary: "SortedLinkList"
-    gen_args:
-      workers: ["-D", "num_workers=<value>"]
