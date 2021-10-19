@@ -79,6 +79,7 @@ export async function activate(context: ExtensionContext) {
                 );
                 return;
             }
+            workspace.saveAll();
             client.sendNotification('generator/build', uri);
         }
     ));

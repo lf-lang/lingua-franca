@@ -1,5 +1,8 @@
 package org.lflang.generator;
 
+import java.nio.file.Path;
+import java.util.Map;
+
 import org.jetbrains.annotations.Nullable;
 
 import org.lflang.ErrorReporter;
@@ -35,8 +38,7 @@ import org.lflang.ErrorReporter;
      * that it contains.
      * @param validationOutput any validation output
      * @param errorReporter any error reporter
-     * @param map the mapping from generated code ranges to
-     *            source file ranges
+     * @param map the map from generated files to CodeMaps
      */
-    void report(String validationOutput, ErrorReporter errorReporter, @Nullable CodeMap map);
+    void report(String validationOutput, ErrorReporter errorReporter, Map<Path, CodeMap> map);
 }

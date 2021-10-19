@@ -2,6 +2,7 @@ package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,11 +24,11 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
     }
 
     @Override
-    public void report(String validationOutput, ErrorReporter errorReporter, @Nullable CodeMap map) {
+    public void report(String validationOutput, ErrorReporter errorReporter, Map<Path, CodeMap> map) {
         validationOutput.lines().forEach(line -> reportErrorLine(line, errorReporter, map));
     }
 
-    private void reportErrorLine(String line, ErrorReporter errorReporter, @Nullable CodeMap map) {
+    private void reportErrorLine(String line, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
         Matcher matcher = p.matcher(line);
         if (matcher.matches()) {
             final Path path = Paths.get(matcher.group("path"));
@@ -39,6 +40,7 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
                 matcher.group("message"), path.getFileName(),
                 matcher.group("line"), matcher.group("column")
             );
+            final CodeMap map = maps.get(path);
             if (map == null) {
                 errorReporter.reportError(message);
                 return;

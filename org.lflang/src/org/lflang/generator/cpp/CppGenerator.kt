@@ -77,7 +77,7 @@ class CppGenerator(
         } else if (cppFileConfig.compilerMode == Mode.LSP_FAST) {
             CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
         } else {
-            doCompile(context)
+            doCompile(context, codeMaps)
         }
     }
 
@@ -138,6 +138,10 @@ class CppGenerator(
     }
 
     fun doCompile(context: IGeneratorContext) {
+        doCompile(context, HashMap())
+    }
+
+    private fun doCompile(context: IGeneratorContext, codeMaps: Map<Path, CodeMap>) {
         val outPath = fileConfig.outPath
 
         val buildPath = cppFileConfig.buildPath
@@ -185,6 +189,7 @@ class CppGenerator(
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
             val makeReturnCode = makeCommand.run(context.cancelIndicator)
+            CppValidator.CppValidationStrategy.GXX.errorParsingStrategy.report(makeCommand.errors.toString(), errorReporter, codeMaps)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")

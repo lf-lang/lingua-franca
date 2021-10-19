@@ -21,9 +21,9 @@ class CppValidator(
 
     companion object {
         /** This matches the line in the CMake cache that states the C++ standard. */
-        val cmakeCxxStandard: Pattern = Pattern.compile("CMAKE_CXX_STANDARD:STRING=(?<cppStandard>.*)")
+        private val cmakeCxxStandard: Pattern = Pattern.compile("CMAKE_CXX_STANDARD:STRING=(?<cppStandard>.*)")
         /** This matches the line in the CMake cache that states the compiler includes for a given target. */
-        val cmakeIncludes: Pattern = Pattern.compile("${CppCmakeGenerator.includesVarName}:STRING=(?<includes>.*)")
+        private val cmakeIncludes: Pattern = Pattern.compile("${CppCmakeGenerator.includesVarName}:STRING=(?<includes>.*)")
 
         /** This matches a line of error reports from g++. */
         private val gxxErrorLine: Pattern = Pattern.compile(
@@ -80,11 +80,11 @@ class CppValidator(
     fun doValidate(cancelIndicator: CancelIndicator) {
         if (!cmakeCachePath.toFile().exists()) return
         val futures = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
-            .invokeAll(getValidationStrategies().map { Callable {it.third.run(/*cancelIndicator*/); it} })
+            .invokeAll(getValidationStrategies().map { Callable {it.second.run(cancelIndicator); it} })
         for (f in futures) {
-            val (path, strategy, command) = f.get()
-            strategy.errorParsingStrategy.report(command.errors.toString(), errorReporter, codeMaps[path])
-            strategy.outputParsingStrategy.report(command.output.toString(), errorReporter, codeMaps[path])
+            val (strategy, command) = f.get()
+            strategy.errorParsingStrategy.report(command.errors.toString(), errorReporter, codeMaps)
+            strategy.outputParsingStrategy.report(command.output.toString(), errorReporter, codeMaps)
         }
     }
 
@@ -94,14 +94,14 @@ class CppValidator(
      * @return the validation strategies and validation
      * commands corresponding to each generated file
      */
-    private fun getValidationStrategies(): List<Triple<Path, CppValidationStrategy, LFCommand>> {
-        val commands = mutableListOf<Triple<Path, CppValidationStrategy, LFCommand>>()
+    private fun getValidationStrategies(): List<Pair<CppValidationStrategy, LFCommand>> {
+        val commands = mutableListOf<Pair<CppValidationStrategy, LFCommand>>()
         for (generatedFile: Path in codeMaps.keys) {
             // FIXME: Respond to cancel. Only validate changed files?
             val p = getValidationStrategy(generatedFile)
             val (strategy, command) = p
             if (strategy == null || command == null) continue
-            commands.add(Triple(generatedFile, strategy, command))
+            commands.add(Pair(strategy, command))
         }
         return commands
     }
