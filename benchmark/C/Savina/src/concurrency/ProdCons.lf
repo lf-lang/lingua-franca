@@ -7,13 +7,17 @@
  */
  
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     flags: "-lm",
-    logging: DEBUG,
-    keepalive: true,
-    timeout: 2 secs
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
@@ -202,7 +206,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             idx = pop(self->availableConsumers);
             SET(outConsumers[*idx], *msg);
             free(idx);
-            free(msg);
+            //free(msg);
             if (!is_empty(self->availableProducers)) {
                 int* idx;
                 idx = pop(self->availableProducers);
@@ -343,20 +347,20 @@ reactor ConsumerReactor(consCost:int(25)) {
 //    =} 
 //
 //}
-main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+
+/* [[[cog
+    cog.outl(f'main reactor ProdCons(bufferSize:int({bufferSize}), prodCost:int({prodCost}), consCost:int({consCost}), numItemsPerProducer:int({numItemsPerProducer}), numProducers:int({numProducers}), numConsumers:int({numConsumers}))')
+]]] */
+main reactor ProdCons(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000), numProducers:int(40), numConsumers:int(40))
+// [[[end]]]    
+{
+    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
+        
     
-    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
     
-    runner = new BenchmarkRunner(numIterations=numIterations);
-    
-    runner.outIterationStart -> manager.inStart;
-    manager.outFinished -> runner.inIterationFinish;
-    
-    reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("ProdConsBenchmark");
+    reaction(startup) -> manager.inStart {=
         // FIXME: what is printArgs?
         // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
-        printf("numIterations: %d.\n", self->numIterations);
         printf("bufferSize: %d.\n", self->bufferSize);
         printf("prodCost: %d.\n", self->prodCost);
         printf("consCost: %d.\n", self->consCost);
@@ -364,13 +368,13 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
         printf("numProducers: %d.\n", 40);
         printf("numConsumers: %d.\n", 40);
 		
-		
-        printSystemInfo();
-        SET(runner.inStart, true);
+        SET(manager.inStart, true);
     =}
     
-    producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
-    consumers = new[40] ConsumerReactor(consCost=consCost);
+    producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+    consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
+ 
+    
     
     manager.outProducers -> producers.inManager;
     producers.outManager -> manager.inProducers;
