@@ -29,8 +29,10 @@ import java.util.Map;
 
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
+import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.LfPackage;
 import org.lflang.validation.LFValidator;
 
 /**
@@ -61,12 +63,12 @@ public class CargoDependencySpec {
     public static Map<String, CargoDependencySpec> parseAll(Element element) {
         var result = new LinkedHashMap<String, CargoDependencySpec>();
         for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
-            result.put(pair.getName(), parse(pair.getValue()));
+            result.put(pair.getName(), parseValue(pair.getValue()));
         }
         return result;
     }
 
-    private static CargoDependencySpec parse(Element element) {
+    private static CargoDependencySpec parseValue(Element element) {
         if (element.getLiteral() != null) {
             return new CargoDependencySpec(element.getLiteral(), null);
         } else if (element.getKeyvalue() != null) {
@@ -76,25 +78,28 @@ public class CargoDependencySpec {
                 String name = pair.getName();
                 String literal = pair.getValue().getLiteral();
                 if (literal == null) {
-                    throw new IllegalArgumentException("expected string literal for key '" + name + "'");
+                    throw new InvalidLfSourceException(pair.getValue(), "Expected string literal for key '" + name + "'");
                 }
                 if (name.equals("version")) {
                     version = literal;
                 } else if (name.equals("path")) {
                     localPath = literal;
                 } else {
-                    throw new IllegalArgumentException("unknown key: '" + name + "'");
+                    throw new InvalidLfSourceException(pair, "Unknown key: '" + name + "'");
                 }
             }
             if (version != null || localPath != null) {
                 return new CargoDependencySpec(version, localPath);
             } else {
-                throw new IllegalArgumentException("must specify one of 'version' or 'path'");
+                throw new InvalidLfSourceException(element.getKeyvalue(), "Must specify one of 'version' or 'path'");
             }
         }
-        throw new IllegalArgumentException("expected string or dictionary");
+        throw new InvalidLfSourceException(element, "Expected string or dictionary");
     }
 
+    /**
+     * The property type for the
+     */
     public static final class CargoDependenciesPropertyType implements TargetPropertyType {
 
         public static final TargetPropertyType INSTANCE = new CargoDependenciesPropertyType();
@@ -111,12 +116,16 @@ public class CargoDependencySpec {
         public void check(Element element, String name, LFValidator v) {
             for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
                 try {
-                    parse(pair.getValue());
-                } catch (IllegalArgumentException e) {
-                    // fixme report on more specific failing element...
-                    TargetPropertyType.produceError(name, e.getMessage(), v);
+                    parseValue(pair.getValue());
+                } catch (InvalidLfSourceException e) {
+                    v.getErrorReporter().reportError(e.getNode(), e.getProblem());
                 }
             }
+        }
+
+        @Override
+        public String toString() {
+            return "<cargo dependency spec>";
         }
     }
 }

@@ -38,6 +38,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.eclipse.xtend.lib.annotations.Accessors
 
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
@@ -102,6 +103,7 @@ class LFValidator extends BaseLFValidator {
 
     public var info = new ModelInfo()
 
+    @Accessors(PUBLIC_GETTER)
     val ValidatorErrorReporter errorReporter = new ValidatorErrorReporter(getMessageAcceptor(),
         new ValidatorStateAccess())
 
