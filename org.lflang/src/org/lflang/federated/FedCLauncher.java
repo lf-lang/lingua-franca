@@ -91,7 +91,7 @@ public class FedCLauncher extends FedLauncher {
     }
     
     /**
-     * Return the command that will execute a federate, assuming that the current
+     * Return the command that will execute a remote federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
      * 
@@ -99,9 +99,20 @@ public class FedCLauncher extends FedLauncher {
      */
     @Override
     protected
-    String executeCommandForFederate(FederateInstance federate) {
+    String executeCommandForRemoteFederate(FederateInstance federate) {
         return "bin/"+fileConfig.name+"_"+federate.name+" -i '$FEDERATION_ID'";
     }
-    
 
+    /**
+     * Return the command that will execute a local federate, assuming that the current
+     * directory is the top-level project folder. This is used to create a launcher script
+     * for federates.
+     *
+     * @param federate The federate to execute.
+     */
+    @Override
+    protected
+    String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
+        return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
+    }
 }

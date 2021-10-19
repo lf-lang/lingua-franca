@@ -11,6 +11,10 @@
  * Locate the generated CarlaIntersection.py and run it:
  * 
  *      python3 ../../../src-gen/Intersection/Carla/CarlaIntersection/CarlaIntersection.py
+ *
+ * **Note:** This example assumes that Carla is installed in
+ *           '/opt/carla-simulator'. Please change CARLA_INSTALL_DIR in the
+ *           preamble to reflect your install location of the simulator.
  * 
  */
 target Python {
@@ -23,15 +27,20 @@ import Vehicle, RSU from "../Intersection.lf";
 preamble {=
 import glob
 import os
+CARLA_INSTALL_DIR = "/opt/carla-simulator"
 try:
-    sys.path.append(glob.glob("../carla/dist/carla-*%d.%d-%s.egg" % (
+    sys.path.append(glob.glob(CARLA_INSTALL_DIR + "/PythonAPI/carla/dist/carla-*%d.%d-%s.egg" % (
         sys.version_info.major,
         sys.version_info.minor,
         "win-amd64" if os.name == "nt" else "linux-x86_64"))[0])
 except IndexError:
     pass
-    
-import carla
+
+try:
+    import carla
+except ImportError:
+    sys.stderr.write("ERROR: Could not find the Carla .egg file.\nPlease make sure that"
+    " CARLA_INSTALL_DIR in CarlaIntersection.lf points to the correct location.\n")
 
 try:
     import queue
@@ -151,13 +160,6 @@ reactor Carla (
             ) \
         )
     =}
-    
-   reaction(shutdown) {=
-        # Shutdown
-        if self.vehicle is not None:
-            self.vehicle.destroy()
-        
-    =}
 }
 
 /**
@@ -219,6 +221,15 @@ reactor Ticker (interval(16 msec)){
         # self.world.wait_for_tick() # Use this instead for asynchronous client mode
         
         tick.set(True)
+    =}
+    reaction(shutdown) {=
+        # Set the world to async mode to stop it from freezing
+        settings = self.world.get_settings()
+        settings.synchronous_mode = False # Disable synchronous mode
+        self.world.apply_settings(settings)
+
+        # Reload the world to destroy all actors
+        self.client.reload_world()
     =}
 }
 

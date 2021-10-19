@@ -173,24 +173,19 @@ class ASTUtils {
     }
     
     /**
-     * Return true if any port on the left or right of the connection involves
-     * a bank of reactors or a multiport.
+     * Return true if the connection involves multiple ports on the left or right side of the connection, or
+     * if the port on the left or right of the connection involves a bank of reactors or a multiport.
      * @param connection The connection.
      */
-    private static def boolean isWide(Connection connection) {
-        for (leftPort : connection.leftPorts) {
-            if ((leftPort.variable as Port).widthSpec !== null
-                || leftPort.container?.widthSpec !== null
-            ) {
-                return true
-            }
+    static def boolean hasMultipleConnections(Connection connection) {
+        if (connection.leftPorts.size > 1 || connection.rightPorts.size > 1) {
+            return true;
         }
-        for (rightPort : connection.rightPorts) {
-            if ((rightPort.variable as Port).widthSpec !== null
-                || rightPort.container?.widthSpec !== null
-            ) {
-                return true
-            }
+        val leftPort = connection.leftPorts.get(0);
+        val rightPort = connection.rightPorts.get(0);
+        if ((leftPort.variable as Port).widthSpec !== null || leftPort.container?.widthSpec !== null ||
+            (rightPort.variable as Port).widthSpec !== null || rightPort.container?.widthSpec !== null) {
+            return true
         }
         return false
     }
@@ -223,6 +218,7 @@ class ASTUtils {
         upstream.rightPorts.add(input)
         downstream.leftPorts.add(output)
         downstream.rightPorts.addAll(connection.rightPorts)
+        downstream.iterated = connection.iterated
 
         connections.add(upstream)
         connections.add(downstream)
@@ -261,15 +257,14 @@ class ASTUtils {
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
         }
-        if (connection.isWide) {
+        if (connection.hasMultipleConnections) {
             val widthSpec = factory.createWidthSpec
             if (defineWidthFromConnection) {
-                // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.
+                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
                 // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the right ports here, as the right hand side should always have a well-defined
-                // width. On the left hand side, we might use the broadcast operator from which we cannot infer
-                // the width.
-                for (port : connection.rightPorts) {
+                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // to delay the ports first, and then broadcast the output of the delays.
+                for (port : connection.leftPorts) {
                     val term = factory.createWidthTerm()
                     term.port = EcoreUtil.copy(port)
                     widthSpec.terms.add(term)
