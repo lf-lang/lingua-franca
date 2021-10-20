@@ -38,4 +38,4 @@ targets:
     binary: "counting"
     gen_args: null
     run_args:
-      messages: ["--count-to", "<value>"]
+      messages: ["--main-count-to", "<value>"]

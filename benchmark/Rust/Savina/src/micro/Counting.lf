@@ -12,7 +12,10 @@
  * @author Clément Fournier
  */
 
-target Rust;
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+};
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
