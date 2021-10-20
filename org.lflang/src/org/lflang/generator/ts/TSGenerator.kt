@@ -126,7 +126,7 @@ class TSGenerator(
          * Check whether configuration files are present in the same directory
          * as the source file. For those that are missing, install a default
          * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from $LIB_TS/.
+         * file, copy a default version of it from $LIB_PATH/.
          */
         for (configFile in CONFIG_FILES) {
             val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
