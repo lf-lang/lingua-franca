@@ -7,6 +7,7 @@
  * @author Edward A. Lee
  * @author Hokeun Kim
  */
+// TODO(hokeun): Add a check for the number of received messages to be exactly 2.
 target TypeScript {
     timeout: 2 secs
 };
