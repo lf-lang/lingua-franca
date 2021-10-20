@@ -35,13 +35,13 @@ class CppValidator(
 
     /**
      * This describes a strategy for validating a C++ source document.
-     * @param errorParsingStrategy a strategy for parsing the stderr of the validation command
-     * @param outputParsingStrategy a strategy for parsing the stdout of the validation command
+     * @param errorReportingStrategy a strategy for parsing the stderr of the validation command
+     * @param outputReportingStrategy a strategy for parsing the stdout of the validation command
      * @param time a number that is large for strategies that take a long time
      */
-    enum class CppValidationStrategy(
-        val errorParsingStrategy: CommandErrorReportingStrategy,
-        val outputParsingStrategy: CommandErrorReportingStrategy,
+    private enum class CppValidationStrategy(
+        val errorReportingStrategy: CommandErrorReportingStrategy,
+        val outputReportingStrategy: CommandErrorReportingStrategy,
         val time: Int
     ) {
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
@@ -82,9 +82,34 @@ class CppValidator(
             .invokeAll(getValidationStrategies().map { Callable {it.second.run(cancelIndicator); it} })
         for (f in futures) {
             val (strategy, command) = f.get()
-            strategy.errorParsingStrategy.report(command.errors.toString(), errorReporter, codeMaps)
-            strategy.outputParsingStrategy.report(command.output.toString(), errorReporter, codeMaps)
+            strategy.errorReportingStrategy.report(command.errors.toString(), errorReporter, codeMaps)
+            strategy.outputReportingStrategy.report(command.output.toString(), errorReporter, codeMaps)
         }
+    }
+
+    /**
+     * Runs the given command, reports any messages it
+     * produces, and returns its return code.
+     */
+    fun run(compileCommand: LFCommand, cancelIndicator: CancelIndicator): Int {
+        val returnCode = compileCommand.run(cancelIndicator)
+        val (errorReportingStrategy, outputReportingStrategy) = getBuildReportingStrategies()
+        errorReportingStrategy.report(compileCommand.errors.toString(), errorReporter, codeMaps)
+        outputReportingStrategy.report(compileCommand.output.toString(), errorReporter, codeMaps)
+        return returnCode
+    }
+
+    /**
+     * Returns the appropriate output and error reporting
+     * strategies for the build process carried out by
+     * CMake and Make.
+     */
+    private fun getBuildReportingStrategies(): Pair<CommandErrorReportingStrategy, CommandErrorReportingStrategy> {
+        // This is a rather silly function, but it is left as-is because the appropriate reporting strategy
+        //  could in principle be a function of the build process carried out by CMake. It just so happens
+        //  that the compilers that are supported in the current version seem to use the same reporting format,
+        //  so this ends up being a constant function.
+        return Pair(CppValidationStrategy.GXX.errorReportingStrategy, CppValidationStrategy.GXX.errorReportingStrategy)
     }
 
     /**
