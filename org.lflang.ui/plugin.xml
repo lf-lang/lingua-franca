@@ -4,12 +4,13 @@
 	<extension
 		point="org.eclipse.ui.editors">
 		<editor
-			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.XtextEditor"
-			contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
-			default="true"
-			extensions="lf"
-			id="org.lflang.LF"
-			name="LF Editor">
+        class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.XtextEditor"
+        contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
+        default="true"
+        extensions="lf"
+        icon="icons/lf-editor.png"
+        id="org.lflang.LF"
+        name="LF Editor">
 		</editor>
 	</extension>
 	<extension
@@ -431,11 +432,62 @@
 			type="text">
 		</fileTypes>
 	</extension>
- <extension
-       point="org.eclipse.ui.intro.configExtension">
-    <configExtension
-          configId="org.eclipse.ui.intro.universalConfig"
-          content="intro/lf-welcome.xml">
-    </configExtension>
- </extension>
+    <extension
+         point="org.eclipse.ui.newWizards">
+       <category
+             id="org.lflang.ui.category"
+             name="Lingua Franca">
+       </category>
+      <wizard
+            canFinishEarly="false"
+            category="org.lflang.ui.category"
+            class="org.lflang.ui.wizard.LFFileWizard"
+            finalPerspective="org.lflang.product.perspective"
+            hasPages="true"
+            icon="icons/new-lf-file.png"
+            id="org.lflang.ui.wizard.LFFileWizard"
+            name="Lingua Franca File"
+            project="false">
+         <description>
+            Create a new Lingua Franca file.
+         </description>
+      </wizard>
+      <wizard
+            category="org.lflang.ui.category"
+            class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.wizard.template.TemplateNewProjectWizard"
+            finalPerspective="org.lflang.product.perspective"
+            icon="icons/new_LF_proj.gif"
+            id="org.lflang.ui.wizard.LFNewProjectWizard"
+            name="Lingua Franca Project"
+            project="true">
+      </wizard>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension
+            targetID="org.lflang.product.perspective">
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFFileWizard">
+         </newWizardShortcut>
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFNewProjectWizard">
+         </newWizardShortcut>
+      </perspectiveExtension>
+      <perspectiveExtension
+            targetID="org.eclipse.ui.resourcePerspective">
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFFileWizard">
+         </newWizardShortcut>
+         <newWizardShortcut
+               id="org.lflang.ui.wizard.LFNewProjectWizard">
+         </newWizardShortcut>
+      </perspectiveExtension>
+   </extension>
+	<extension
+		point="org.eclipse.xtext.ui.projectTemplate">
+		<projectTemplateProvider
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.lflang.ui.wizard.LFProjectTemplateProvider"
+			grammarName="org.lflang.LF">
+		</projectTemplateProvider>
+	</extension>
 </plugin>

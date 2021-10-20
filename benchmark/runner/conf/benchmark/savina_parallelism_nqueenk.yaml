@@ -29,13 +29,13 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/nqueenk"
-    lf_file: "nqueenk/NQueens.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
+    lf_file: "parallelism/NQueens.lf"
     binary: "NQueens"
-    gen_args:
-      num_workers: ["-D", "numWorkers=<value>"]
+    gen_args: null
     run_args:
       size: ["--size", "<value>"]
       threshold: ["--threshold", "<value>"]
       priorities: ["--priorities", "<value>"]
       solution_limit: ["--solutionsLimit", "<value>"]
+      num_workers: ["--numWorkers", "<value>"]

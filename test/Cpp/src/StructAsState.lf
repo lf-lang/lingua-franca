@@ -7,11 +7,11 @@ public preamble {=
 =}
 
 main reactor StructAsState {
-    state s:Hello("Earth", 42);
+    state s: Hello{"Earth", 42};
     reaction(startup) {=
-        std::cout << "State s.name=" << s.name << ", self->s.name" << s.value << '\n';
+        std::cout << "State s.name=" << s.name << ", s.value=" << s.value << '\n';
         if (s.value != 42 && s.name != "Earth") {
-            std::cerr << "ERROR: Expected 42 and Erath!\n";
+            std::cerr << "ERROR: Expected 42 and Earth!\n";
             exit(1);
         }
     =}

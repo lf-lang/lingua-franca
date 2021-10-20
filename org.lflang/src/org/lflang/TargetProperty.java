@@ -1,12 +1,15 @@
 package org.lflang;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.lflang.TargetConfig.DockerOptions;
+import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -26,7 +29,7 @@ public enum TargetProperty {
      * Directive to let the generator use the custom build command.
      */
     BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 config.buildCommands = ASTUtils.toListOfStrings(value);
             }),
     
@@ -34,16 +37,25 @@ public enum TargetProperty {
      * Directive to specify the target build type such as 'Release' or 'Debug'.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
             }),
-    
+
+    /**
+     * Directive for specifying Cargo features of the generated
+     * program to enable.
+     */
+    CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
+                   List.of(Target.Rust), (config, value) -> {
+        config.cargoFeatures = ASTUtils.toListOfStrings(value);
+    }),
+
     /**
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
                         .forName(ASTUtils.toText(value));
             }),
@@ -52,7 +64,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
-            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C),
+            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
             (config, value) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
@@ -92,18 +104,35 @@ public enum TargetProperty {
      * Directive to specify a cmake to be included by the generated build
      * systems.
      *
-     * This gives full control over the C++ build as any cmake parameters
+     * This gives full control over the C/C++ build as any cmake parameters
      * can be adjusted in the included file.
      */
-    CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value) -> {
-                config.cmakeInclude = ASTUtils.toText(value);
+    CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
+            Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value) -> {
+                config.cmakeIncludes = ASTUtils.toListOfStrings(value);
+            },
+            // FIXME: This merging of lists is potentially dangerous since
+            // the incoming list of cmake-includes can belong to a .lf file that is
+            // located in a different location, and keeping just filename
+            // strings like this without absolute paths is incorrect.
+            (config, value) -> {
+                config.cmakeIncludes.addAll(ASTUtils.toListOfStrings(value));
+            }),
+    
+    /**
+     * Directive to enable and disable the use of CMake.
+     * 
+     * The default is enabled.
+     */
+    CMAKE("cmake", PrimitiveType.BOOLEAN,
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+                config.useCmake = ASTUtils.toBoolean(value);
             }),
     
     /**
      * Directive to specify the target compiler.
      */
-    COMPILER("compiler", PrimitiveType.STRING, Arrays.asList(Target.ALL),
+    COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
             (config, value) -> {
                 config.compiler = ASTUtils.toText(value);
             }),
@@ -113,7 +142,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
@@ -149,7 +178,7 @@ public enum TargetProperty {
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
      */
-    FAST("fast", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    FAST("fast", PrimitiveType.BOOLEAN, Target.ALL,
             (config, value) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
             }),
@@ -158,9 +187,16 @@ public enum TargetProperty {
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL),
+    FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
             (config, value) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
+            },
+            // FIXME: This merging of lists is potentially dangerous since
+            // the incoming list of files can belong to a .lf file that is
+            // located in a different location, and keeping just filename
+            // strings like this without absolute paths is incorrect.
+            (config, value) -> {
+                config.fileNames.addAll(ASTUtils.toListOfStrings(value));
             }),
     
     /**
@@ -185,7 +221,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C),
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
             (config, value) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
@@ -205,7 +241,7 @@ public enum TargetProperty {
      * Directive to let the execution engine remain active also if there
      * are no more events in the event queue.
      */
-    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Target.ALL,
             (config, value) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
@@ -213,7 +249,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the grain at which to report log messages during execution.
      */
-    LOGGING("logging", UnionType.LOGGING_UNION, Arrays.asList(Target.ALL),
+    LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
             (config, value) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.toText(value));
@@ -223,7 +259,7 @@ public enum TargetProperty {
      * Directive to not invoke the target compiler.
      */
     NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config, value) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
@@ -241,7 +277,7 @@ public enum TargetProperty {
      * code included in the sources.
      */
     PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
-            Arrays.asList(Target.C, Target.TS, Target.Python),
+            Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
             (config, value) -> {
                 config.protoFiles = ASTUtils.toListOfStrings(value);
             }),
@@ -255,10 +291,18 @@ public enum TargetProperty {
             }),
 
     /**
+     * Directive to specify that all code is generated in a single file.
+     */
+    SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
+            List.of(Target.Rust), (config, value) -> {
+                config.singleFileProject = ASTUtils.toBoolean(value);
+            }),
+
+    /**
      * Directive to specify the number of threads.
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-            Arrays.asList(Target.C, Target.CPP, Target.CCPP),
+            Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config, value) -> {
                 config.threads = ASTUtils.toInteger(value);
             }),
@@ -266,7 +310,7 @@ public enum TargetProperty {
     /**
      * Directive to specify the execution timeout.
      */
-    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Arrays.asList(Target.ALL),
+    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
             (config, value) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
@@ -276,7 +320,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();
@@ -297,7 +341,18 @@ public enum TargetProperty {
                         }
                     }
                 }
-            });
+            }),
+
+
+    /**
+     * Directive to let the runtime export its internal dependency graph.
+     *
+     * This is a debugging feature and currently only used for C++ programs.
+     */
+    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN, Collections.singletonList(Target.CPP),
+                           (config, value) -> {
+        config.exportDependencyGraph = ASTUtils.toBoolean(value);
+    });
     
     /**
      * String representation of this target property.
@@ -318,10 +373,17 @@ public enum TargetProperty {
     
     /**
      * Function that given a configuration object and an Element AST node
-     * updates the configuration. It is assumed that validation already
+     * sets the configuration. It is assumed that validation already
      * occurred, so this code should be straightforward.
      */
     public final BiConsumer<TargetConfig, Element> setter;
+    
+    /**
+     * Function that given a configuration object and an Element AST node
+     * sets the configuration. It is assumed that validation already
+     * occurred, so this code should be straightforward.
+     */
+    public final BiConsumer<TargetConfig, Element> updater;
     
     /**
      * Private constructor for target properties.
@@ -339,6 +401,47 @@ public enum TargetProperty {
         this.type = type;
         this.supportedBy = supportedBy;
         this.setter = setter;
+        this.updater = (config, value) -> { /* Ignore the update by default */ };
+    }
+    
+    /**
+     * Private constructor for target properties. This will take an additional
+     * `updater`, which will be used to merge target properties from imported resources.
+     * 
+     * @param description String representation of this property.
+     * @param type        The type that values assigned to this property
+     *                    should conform to.
+     * @param supportedBy List of targets that support this property.
+     * @param setter      Function for setting configuration values.
+     * @param updater     Function for updating configuration values.
+     */
+    private TargetProperty(String description, TargetPropertyType type,
+            List<Target> supportedBy,
+            BiConsumer<TargetConfig, Element> setter,
+            BiConsumer<TargetConfig, Element> updater) {
+        this.description = description;
+        this.type = type;
+        this.supportedBy = supportedBy;
+        this.setter = setter;
+        this.updater = updater;
+    }
+    
+    /**
+     * Set the given configuration using the given target properties.
+     * 
+     * @param config     The configuration object to update.
+     * @param properties AST node that holds all the target properties.
+     */
+    public static void set(TargetConfig config,
+            List<KeyValuePair> properties) {
+        properties.forEach(property ->  {
+            TargetProperty p = forName(property.getName());
+            if (p != null) {
+                // Mark the specified target property as set by the user
+                config.setByUser.add(p);
+                p.setter.accept(config, property.getValue());
+            }
+        });
     }
 
     /**
@@ -352,9 +455,42 @@ public enum TargetProperty {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
-                p.setter.accept(config, property.getValue());
+                p.updater.accept(config, property.getValue());
             }
         });
+    }
+    
+    /**
+     * Update one of the target properties, given by 'propertyName'.
+     * For convenience, a list of target properties (e.g., taken from
+     * a file or resource) can be passed without any filtering. This
+     * function will do nothing if the list of target properties doesn't
+     * include the property given by 'propertyName'.
+     * 
+     * @param config The target config to apply the update to.
+     * @param propertyName The name of the target property.
+     * @param properties AST node that holds all the target properties.
+     */
+    public static void updateOne(
+            TargetConfig config,
+            String propertyName,
+            List<KeyValuePair> properties
+            ) {
+        TargetProperty p = forName(propertyName);
+        if (p != null) {
+            Element value = properties
+                    .stream()
+                    .filter(
+                            property -> property.getName().equals(propertyName)
+                    ).findFirst()
+                    .map(o -> { return o.getValue(); }).orElse(null);
+            if (value != null) {
+                p.updater.accept(
+                        config, 
+                        value
+                );
+            }
+        }
     }
 
     /**
@@ -362,7 +498,7 @@ public enum TargetProperty {
      * @param name The string to match against.
      */
     public static TargetProperty forName(String name) {
-        return (TargetProperty)Target.match(name, TargetProperty.values());
+        return Target.match(name, TargetProperty.values());
     }
 
     /**
@@ -395,7 +531,7 @@ public enum TargetProperty {
      * A dictionary type with a predefined set of possible keys and assignable
      * types.
      * 
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author {Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum DictionaryType implements TargetPropertyType {
@@ -427,7 +563,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public DictionaryElement forName(String name) {
-            return (DictionaryElement) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -532,7 +668,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public Enum<?> forName(String name) {
-            return (Enum<?>) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -776,7 +912,7 @@ public enum TargetProperty {
          */
         public static void produceError(String name, String description,
                 LFValidator v) {
-            v.targetPropertyErrors.add("Target property '" + name
+            v.getTargetPropertyErrors().add("Target property '" + name
                     + "' is required to be " + description + ".");
         }
     }
@@ -789,50 +925,38 @@ public enum TargetProperty {
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
-                v -> (ASTUtils.toText(v).equalsIgnoreCase("true")
-                        || ASTUtils.toText(v).equalsIgnoreCase("false"))),
+                v -> ASTUtils.toText(v).equalsIgnoreCase("true")
+                        || ASTUtils.toText(v).equalsIgnoreCase("false")),
         INTEGER("an integer", v -> {
             try {
-                Integer.decode(ASTUtils.toText(v));
+                Integer.parseInt(ASTUtils.toText(v));
             } catch (NumberFormatException e) {
                 return false;
             }
             return true;
-        }), 
+        }),
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
-                Integer result = Integer.decode(ASTUtils.toText(v));
+                int result = Integer.parseInt(ASTUtils.toText(v));
                 if (result < 0)
                     return false;
             } catch (NumberFormatException e) {
                 return false;
             }
             return true;
-        }), 
-        TIME_VALUE("a time value with units", v -> {
-            if ((v.getKeyvalue() != null || v.getArray() != null
-                    || v.getLiteral() != null || v.getId() != null)
-                    || (v.getTime() != 0 && v.getUnit() == TimeUnit.NONE)) {
-                return false;
-            } else {
-                return true;
-            }
-        }), 
-        STRING("a string", v -> {
-            if (v.getLiteral() == null && v.getId() == null) {
-                return false;
-            }
-            return true;
-        }), 
-        FILE("a path to a file", v -> {
-            return STRING.validator.test(v);
-        });
+        }),
+        TIME_VALUE("a time value with units", v ->
+            v.getKeyvalue() == null && v.getArray() == null
+                && v.getLiteral() == null && v.getId() == null
+                && (v.getTime() == 0 || v.getUnit() != TimeUnit.NONE)),
+        STRING("a string", v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
+        FILE("a path to a file", STRING.validator);
     
         /**
          * A description of this type, featured in error messages.
          */
         private final String description;
-    
+
         /**
          * A predicate for determining whether a given Element conforms to this
          * type.
@@ -893,6 +1017,13 @@ public enum TargetProperty {
         @Override
         public String toString() {
             return this.description;
+        }
+
+
+        private static boolean isCharLiteral(String s) {
+            return s.length() > 2
+                && '\'' == s.charAt(0)
+                && '\'' == s.charAt(s.length() - 1);
         }
     }
 

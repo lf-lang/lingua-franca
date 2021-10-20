@@ -67,9 +67,26 @@ class ReactionInstance extends NamedInstance<Reaction> {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
                     var portInstance = parent.lookupPortInstance(trigger)
-                    this.sources.add(portInstance)
-                    portInstance.dependentReactions.add(this)
-                    this.triggers.add(portInstance)
+                    // If the trigger is the port of a contained bank, then the
+                    // portInstance will be null and we have to instead search for
+                    // each port instance in the bank.
+                    if (portInstance !== null) {
+                        this.sources.add(portInstance)
+                        portInstance.dependentReactions.add(this)
+                        this.triggers.add(portInstance)
+                    } else if (trigger.container !== null) {
+                        val bankInstance = parent.lookupReactorInstance(trigger.container)
+                        if (bankInstance !== null && bankInstance.bankMembers !== null) {
+                            for (bankMember : bankInstance.bankMembers) {
+                                portInstance = bankMember.lookupPortInstance(trigger.variable as Port)
+                                if (portInstance !== null) {
+                                    this.sources.add(portInstance)
+                                    portInstance.dependentReactions.add(this)
+                                    this.triggers.add(portInstance)
+                                }
+                            }
+                        }
+                    }
                 } else if (trigger.variable instanceof Action) {
                     var actionInstance = parent.lookupActionInstance(
                         trigger.variable as Action)
@@ -92,9 +109,26 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (source : definition.sources) {
             if (source.variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance(source)
-                this.sources.add(portInstance)
-                this.reads.add(portInstance)
-                portInstance.dependentReactions.add(this)
+                // If the trigger is the port of a contained bank, then the
+                // portInstance will be null and we have to instead search for
+                // each port instance in the bank.
+                if (portInstance !== null) {
+                    this.sources.add(portInstance)
+                    this.reads.add(portInstance)
+                    portInstance.dependentReactions.add(this)
+                } else if (source.container !== null) {
+                    val bankInstance = parent.lookupReactorInstance(source.container)
+                    if (bankInstance !== null && bankInstance.bankMembers !== null) {
+                        for (bankMember : bankInstance.bankMembers) {
+                            portInstance = bankMember.lookupPortInstance(source.variable as Port)
+                            if (portInstance !== null) {
+                                this.sources.add(portInstance)
+                                portInstance.dependentReactions.add(this)
+                                this.reads.add(portInstance)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -131,13 +165,12 @@ class ReactionInstance extends NamedInstance<Reaction> {
                         portInstance.dependsOnReactions.add(this);
                     }
                 }
-            } else {
-                // Effect must be an Action.
+            } else if (effect.variable instanceof Action) {
                 var actionInstance = parent.lookupActionInstance(
                     effect.variable as Action)
                 this.effects.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
-            }
+            } // else it may be an unresolved reference
         }
         // Create a deadline instance if one has been defined.
         if (this.definition.deadline !== null) {

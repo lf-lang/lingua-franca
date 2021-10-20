@@ -1,0 +1,16 @@
+[1mlfc: [0m[1;31merror[0m[1m: Unrecognized target: unknown[0m
+[1;36m-->[0m %%%PATH.lf%%%:4:8
+[1;36m  |[0m
+[1;36m3 |[0m
+[1;36m4 |[0m target unknown;
+[1;36m  |[0m[1;31m        ^^^^^^^ Unrecognized target: unknown[0m
+[1;36m  |[0m
+[1;36m5 |[0m
+[1mlfc: [0m[1;31merror[0m[1m: Name of main reactor must match the file name (or be omitted).[0m
+[1;36m-->[0m %%%PATH.lf%%%:6:14
+[1;36m  |[0m
+[1;36m5 |[0m
+[1;36m6 |[0m main reactor Foo {
+[1;36m  |[0m[1;31m              ^^^ Name of main reactor must match the file name (or be omitted).[0m
+[1;36m  |[0m
+[1;36m7 |[0m

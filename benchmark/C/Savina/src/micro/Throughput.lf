@@ -1,0 +1,183 @@
+/**
+ * Micro-benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * According to the Savina paper performance can be achieved by
+ * batch processing messages in the worker actors.
+ * This is not possible with reactors because scheduling and
+ * advancing logical time occurs after each round of
+ * message delivery.
+ * 
+ * @author Hannes Klein (c++ version)
+ * @author Matthew Chorlian (adapted C++ version to C)
+ */
+
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numWorkers=60
+# -D numMessagesPerReactor=10000
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numWorkers' in globals():
+    numWorkers = int(numWorkers)
+  else:
+    globals()['numWorkers'] = 60
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numWorkers = {numWorkers}')
+  cog.outl(f'// numMessagesPerReactor={numMessagesPerReactor}')
+]]] */
+// Generated file with the following parameters:
+// numWorkers = 60
+// numMessagesPerReactor = 10000
+// [[[end]]]
+
+target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    flags: "-lm",
+};
+
+
+reactor ThroughputReactor(totalMessages:int(10000)) {
+    
+    preamble {=
+        #include <math.h>
+
+        void performComputation(double theta) {
+            double sint = sin(theta);
+            double res = sint * sint;
+            // defeat dead code elimination
+            if(res <= 0) {
+                printf("Benchmark exited with unrealistic res value.");
+            }
+        }
+    =}
+    
+    input inReset:bool;
+    input inMessage:bool;
+    output outFinished:bool;
+    
+    state messagesProcessed:int(0);
+    
+    reaction(inReset) {=
+        self->messagesProcessed = 0;
+    =}
+    
+    reaction(inMessage) -> outFinished {=
+        self->messagesProcessed++;
+        performComputation(37.2);
+        
+        if(self->messagesProcessed == self->totalMessages) {
+            SET(outFinished, true);
+        }
+    =}
+    
+}
+
+reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
+    
+    state messagesSent:int(0);
+    state nextConsumer:int(0);
+    state numConsumerFinished:int(0);
+    
+    input inStart:bool;
+    output outFinished:bool;
+
+    output[numConsumer] outMessage:bool;
+    input[numConsumer] inFinished:bool;
+    output[numConsumer] outReset:bool;
+    
+    logical action sendNextMessage;
+    
+    reaction(inStart) -> outReset, sendNextMessage {=
+        
+        // reset local state
+        self->messagesSent = 0;
+        self->nextConsumer = 0;
+        self->numConsumerFinished = 0;
+        for(int i = 0; i < self->numConsumer; i++) {
+            SET(outReset[i], true);
+        }
+        
+        // start execution
+        schedule(sendNextMessage, 0);
+    =}
+    
+    reaction(sendNextMessage) -> outMessage, sendNextMessage {=
+        
+        if(self->messagesSent == self->totalMessages) {
+            return;
+        }
+
+        for(int i = 0; i < self->numConsumer; i++) {
+            SET(outMessage[i], true);
+        }
+
+        self->messagesSent += 1;
+        
+        if(self->messagesSent < self->totalMessages) {
+            schedule(sendNextMessage, 0);
+        } 
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        
+        for(int i = 0; i < self->numConsumer; i++) {
+            if(inFinished[i]->is_present) {
+                self->numConsumerFinished++;
+            }
+        }
+        if(self->numConsumerFinished == self->numConsumer) {
+            SET(outFinished, true);
+        }
+    =}
+}
+
+/* [[[cog
+cog.outl(f'main reactor (numMessagesPerReactor:int({numMessagesPerReactor}), numWorkers:int({numWorkers}))')
+]]] */
+main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60)) 
+// [[[end]]]
+{
+    
+    producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
+    
+    reaction(startup) -> producer.inStart {=
+        SET(producer.inStart, true);
+    =}
+    
+    
+    worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
+
+    producer.outMessage -> worker.inMessage;
+    producer.outReset -> worker.inReset;
+    worker.outFinished -> producer.inFinished;
+    
+}

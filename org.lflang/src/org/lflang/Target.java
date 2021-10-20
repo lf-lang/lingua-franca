@@ -1,5 +1,5 @@
 /* Static information about targets. */
-/** 
+/**
  * Copyright (c) 2019, The University of California at Berkeley.
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -21,7 +21,14 @@
 package org.lflang;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.lflang.lf.TargetDecl;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
@@ -31,7 +38,7 @@ import java.util.List;
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public enum Target {
     C("C", true, Arrays.asList(
@@ -83,7 +90,7 @@ public enum Target {
                 )
     ), 
     CCPP("CCpp", true, Target.C.keywords), 
-    CPP("Cpp", true, Arrays.asList(
+    CPP("Cpp", true, "cpp", "Cpp", Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
                 "alignof", // (since C++11)
@@ -184,7 +191,7 @@ public enum Target {
                 "xor_eq"
                 )
     ),
-    TS("TypeScript", false, Arrays.asList(
+    TS("TypeScript", false, "ts", "TS", Arrays.asList(
                 // List via: https://github.com/Microsoft/TypeScript/issues/2536 
                 // Reserved words
                 "break",
@@ -336,81 +343,170 @@ public enum Target {
             "_Static_assert", // (since C11)
             "_Thread_local" // (since C11)
             )
+    ),
+    Rust("Rust", true,
+         "rust", "Rust",
+         // In our Rust implementation, the only reserved keywords
+         // are those that are a valid expression. Others may be escaped
+         // with the syntax r#keyword.
+         Arrays.asList("self", "true", "false")
     );
-    
+
     /**
      * String representation of this target.
      */
-    private final String description;
-        
+    private final String displayName;
+
+    /**
+     * Name of package containing Kotlin classes for the target language.
+     */
+    public final String packageName;
+
+    /**
+     * Prefix of names of Kotlin classes for the target language.
+     */
+    public final String classNamePrefix;
+
     /**
      * Whether or not this target requires types.
      */
     public final boolean requiresTypes;
-    
+
     /**
      * Reserved words in the target language.
      */
-    public final List<String> keywords;
-    
+    public final Set<String> keywords;
+
     /**
-     * Return an array of all known targets.
+     *An unmodifiable list of all known targets.
      */
-    public final static Target[] ALL = Target.values();
-    
+    public static final List<Target> ALL = List.of(Target.values());
+
     /**
      * Private constructor for targets.
-     * 
-     * @param name String representation of this target.
-     * @param requires Types Whether this target requires type annotations or not.
-     * @param keywords List of reserved strings in the target language.
+     *
+     * @param displayName     String representation of this target.
+     * @param requiresTypes   Types Whether this target requires type annotations or not.
+     * @param packageName     Name of package containing Kotlin classes for the target language.
+     * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
+     * @param keywords        List of reserved strings in the target language.
      */
-    private Target(String description, boolean requiresTypes, List<String> keywords) {
-        this.description = description;
+    Target(String displayName, boolean requiresTypes, String packageName,
+           String classNamePrefix, Collection<String> keywords) {
+        this.displayName = displayName;
         this.requiresTypes = requiresTypes;
-        this.keywords = keywords;
+        this.keywords = Collections.unmodifiableSet(new LinkedHashSet<>(keywords));
+        this.packageName = packageName;
+        this.classNamePrefix = classNamePrefix;
     }
-    
+
+
     /**
-     * Check whether a given string corresponds with the name of a valid target.
-     * @param name The string for which to determine whether there is a match.
-     * @return true if a matching target was found, false otherwise.
+     * Private constructor for targets without pakcageName and classNamePrefix.
      */
-    public final static boolean hasForName(String name) {
-        if (Target.forName(name) != null) {
-            return true;
-        }
-        return false;
+    Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
+        this(displayName, requiresTypes, "N/A", "N/A", keywords);
+    }
+
+
+    /**
+     * Return the target whose {@linkplain #getDisplayName() display name}
+     * is the given string (modulo character case), or an empty
+     * optional if there is no such target.
+     */
+    public static Optional<Target> forName(String name) {
+        return Arrays.stream(Target.values())
+                     .filter(it -> it.getDisplayName().equalsIgnoreCase(name))
+                     .findFirst();
     }
 
     /**
-     * Return the target that matches the given string.
-     * 
-     * @param name The string to match against.
-     * @return The matching target (or null if there is none).
+     * Return the display name of the target, as it should be
+     * written in LF code. This is hence a single identifier.
+     * Eg for {@link #CPP} returns {@code "Cpp"}, for {@link #Python}
+     * returns {@code "Python"}. Avoid using either {@link #name()}
+     * or {@link #toString()}, which have unrelated contracts.
      */
-    public static Target forName(String name) {
-        return (Target)Target.match(name, Target.values());
+    public String getDisplayName() {
+        return displayName;
     }
 
     /**
-     * Return the description.
+     * Returns the conventional directory name for this target.
+     * This is used to divide e.g. the {@code test} and {@code example}
+     * directories by target language. For instance, {@code test/Cpp}
+     * is the path of {@link #CPP}'s test directory, and this
+     * method returns {@code "Cpp"}.
+     */
+    public String getDirectoryName() {
+        return displayName;
+    }
+
+    /**
+     * Return the description. Avoid depending on this, toString
+     * is supposed to be debug information. Prefer {@link #getDisplayName()}.
      */
     @Override
     public String toString() {
-        return this.description;
+        return displayName;
     }
-    
+
+    /**
+     * Returns whether the given identifier is invalid as the
+     * name of an LF construct. This usually means that the identifier
+     * is a keyword in the target language. In Rust, many
+     * keywords may be escaped with the syntax {@code r#keyword},
+     * and they are considered valid identifiers.
+     */
+    public boolean isReservedIdent(String ident) {
+        return this.keywords.contains(ident);
+    }
+
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
-     * 
+     *
+     * todo move to CollectionUtil (introduced in #442)
+     *
      * @param string     The string to match against candidates.
      * @param candidates The candidates to match the string against.
      */
-    public static Object match(final String string, final Object[] candidates) {
-        return Arrays.stream(candidates)
-                .filter(e -> (e.toString().equalsIgnoreCase(string)))
-                .findAny().orElse(null);
+    public static <T> T match(final String string, final Iterable<T> candidates) {
+        // kotlin: candidates.firstOrNull { it.toString().equalsIgnoreCase(string) }
+        for (T candidate : candidates) {
+            if (candidate.toString().equalsIgnoreCase(string)) {
+                return candidate;
+            }
+        }
+        return null;
     }
+
+
+    /**
+     * Given a string and a list of candidate objects, return the first
+     * candidate that matches, or null if no candidate matches.
+     *
+     * todo move to CollectionUtil (introduced in #442)
+     *
+     * @param string     The string to match against candidates.
+     * @param candidates The candidates to match the string against.
+     */
+    public static <T> T match(final String string, final T[] candidates) {
+        return match(string, Arrays.asList(candidates));
+    }
+
+
+    /**
+     * Return the target constant corresponding to given target
+     * declaration among. Return a non-null result, will throw
+     * if invalid.
+     *
+     * @throws RuntimeException If no {@link TargetDecl} is present or if it is invalid.
+     */
+    public static Target fromDecl(TargetDecl targetDecl) {
+        String name = targetDecl.getName();
+        return Target.forName(name)
+                     .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+    }
+
 }

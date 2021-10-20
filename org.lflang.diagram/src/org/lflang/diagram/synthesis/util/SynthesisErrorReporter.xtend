@@ -14,6 +14,7 @@ package org.lflang.diagram.synthesis.util
 
 import org.lflang.ErrorReporter
 import org.eclipse.emf.ecore.EObject
+import java.nio.file.Path
 
 /**
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
@@ -26,10 +27,17 @@ class SynthesisErrorReporter implements ErrorReporter {
     override reportError(EObject object, String message) {
     }
     
+    override reportError(Path file, Integer line, String message) {
+    }
+    
     override reportWarning(String message) {
     }
     
     override reportWarning(EObject object, String message) {
     }
     
+    override reportWarning(Path file, Integer line, String message) {
+    }
+    
+    override getErrorsOccurred() { return false }
 }
