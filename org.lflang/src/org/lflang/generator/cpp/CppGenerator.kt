@@ -34,6 +34,7 @@ import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
+import org.lflang.lf.ParamRef
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -244,6 +245,19 @@ object CppTypes : TargetTypes {
         else magnitude.toString() + unit.cppUnit
 
 }
+
+/**
+ * This object generates types in the context of the outer class,
+ * where parameter references need special handling.
+ */
+object CppOuterTypes : TargetTypes by CppTypes {
+
+    override fun getTargetParamRef(expr: ParamRef, type: InferredType?): String {
+        return "__lf_inner.${expr.parameter.name}"
+    }
+
+}
+
 /** Get a C++ representation of a LF unit. */
 val TimeUnit.cppUnit
     get() = when (this) {

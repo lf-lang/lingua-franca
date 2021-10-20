@@ -31,8 +31,8 @@ import org.lflang.lf.Timer
 class CppTimerGenerator(private val reactor: Reactor) {
 
     private fun generateInitializer(timer: Timer): String {
-        val offset = timer.offset?.toTime() ?: "reactor::Duration::zero()"
-        val period = timer.period?.toTime() ?: "reactor::Duration::zero()"
+        val offset = timer.offset.toCppTime()
+        val period = timer.period.toCppTime()
         return """${timer.name}{"${timer.name}", this, $period, $offset}"""
     }
 

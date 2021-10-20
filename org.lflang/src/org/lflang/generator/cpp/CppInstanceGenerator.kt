@@ -58,18 +58,8 @@ class CppInstanceGenerator(
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
             // to the parameter named "bank_index"
             """__lf_idx"""
-        } else if (rhs == null) {
-            // If no assignment was found, then the parameter is not overwritten and we assign the
-            // default value
-            with(CppParameterGenerator) { param.defaultValue }
-        } else if (rhs.isAssign) {
-            rhs.exprs.single().toCode()
-        } else if (rhs.isBraces) {
-            "${param.targetType}{${rhs.exprs.joinToString(", ") { it.toCode() }}}"
-        } else if (rhs.isParens) {
-            "${param.targetType}(${rhs.exprs.joinToString(", ") { it.toCode() }})"
         } else {
-            throw AssertionError("unreachable")
+            CppTypes.getTargetInitializer(rhs ?: param.init, param.type)
         }
     }
 

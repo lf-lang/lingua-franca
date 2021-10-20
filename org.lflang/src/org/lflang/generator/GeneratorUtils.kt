@@ -2,12 +2,23 @@ package org.lflang.generator
 
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.lflang.*
-import org.lflang.JavaAstUtils.getInferredType
-import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
-import org.lflang.lf.Type
+import org.lflang.InferredType
+import org.lflang.lf.Parameter
+import org.lflang.lf.StateVar
 import org.lflang.lf.Value
+import org.lflang.toPath
+import org.lflang.toTextTokenBased
+import org.lflang.toUnixString
+
+
+fun TargetTypes.getTargetInitializer(sv: StateVar): TargetCode =
+    this.getTargetInitializer(sv.init, sv.type)
+
+fun TargetTypes.getTargetInitializer(sv: Parameter): TargetCode =
+    this.getTargetInitializer(sv.init, sv.type)
+
+fun TargetTypes.getTargetTimeExpr(v: Value): TargetCode =
+    this.getTargetExpr(v, InferredType.time())
 
 
 /** A transparent type alias to document when a string contains target code. */

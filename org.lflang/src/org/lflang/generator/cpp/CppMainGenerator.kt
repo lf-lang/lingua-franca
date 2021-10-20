@@ -1,11 +1,9 @@
 package org.lflang.generator.cpp
 
-import org.lflang.TargetConfig
+import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
 class CppMainGenerator(
@@ -81,7 +79,7 @@ class CppMainGenerator(
             |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
             |  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
             |
-            |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"};
+            |  reactor::Duration timeout = ${CppTypes.getTargetTimeExpr(targetConfig.timeout.orZero())};
             |  auto opt_timeout = app.add_option ("-o,--timeout", timeout, "Time after which the execution is aborted.");
             |
             |  opt_timeout->check([](const std::string& val ){ return validate_time_string(val); });

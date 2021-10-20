@@ -34,7 +34,7 @@ import org.lflang.toText
 /** A C++ code generator for state variables */
 class CppMethodGenerator(private val reactor: Reactor) {
 
-    private val Method.targetType: String get() = if (`return` != null) InferredType.fromAST(`return`).cppType else "void"
+    private val Method.targetType: String get() = InferredType.fromAST(`return`).cppType
     private val MethodArgument.targetType: String get() = InferredType.fromAST(type).cppType
 
     private val Method.cppArgs get() = this.arguments.map { "${it.targetType} ${it.name}" }

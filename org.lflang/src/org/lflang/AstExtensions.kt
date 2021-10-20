@@ -339,6 +339,9 @@ val StateVar.isInitialized: Boolean get() = init != null
  */
 fun WidthSpec.getWidth(instantiations: List<Instantiation>? = null) = ASTUtils.width(this, instantiations)
 
+/** Returns a non-null time value, defaulting null to zero. */
+fun TimeValue?.orZero(): TimeValue = this ?: TimeValue.ZERO
+
 /** Get the LF Model of a resource */
 val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance<Model>().first()
 

@@ -2,6 +2,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
+import org.lflang.generator.getTargetTimeExpr
 import org.lflang.lf.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -48,9 +49,6 @@ val Reaction.name
 //  corresponding generator classes. See for instance the CppParameterGenerator
 
 
-/** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCode() = CppTypes.getTargetTimeExpr(time, unit)
-
 /** Convert a value to a time representation in C++ code*
  *
  * If the value evaluates to 0, it is interpreted as a time.
@@ -58,17 +56,10 @@ fun TimeValue.toCode() = CppTypes.getTargetTimeExpr(time, unit)
  * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
  *                    This should be set to false if called from code generators for the inner class.
  */
-fun Value.toTime(outerContext: Boolean = false): String =
-    if (outerContext && this is ParamRef) "__lf_inner.${parameter.name}"
-    else CppTypes.getTargetExpr(this, InferredType.time())
-
-/**
- * Get textual representation of a value in C++ code
- *
- * If the value evaluates to 0, it is interpreted as a normal value.
- * FIXME this is redundant to GeneratorBase.getTargetValue
- */
-fun Value.toCode(): String = CppTypes.getTargetExpr(this, null)
+fun Value?.toCppTime(outerContext: Boolean = false): String =
+    if (this == null) "reactor::Duration::zero()"
+    else if (outerContext) CppOuterTypes.getTargetTimeExpr(this)
+    else CppTypes.getTargetTimeExpr(this)
 
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCode(): String = terms.joinToString(" + ") {

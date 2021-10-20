@@ -24,8 +24,8 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.getTargetInitializer
 import org.lflang.inferredType
-import org.lflang.isInitialized
 import org.lflang.isOfTimeType
 import org.lflang.lf.ParamRef
 import org.lflang.lf.Reactor
@@ -34,31 +34,11 @@ import org.lflang.lf.StateVar
 /** A C++ code generator for state variables */
 class CppStateGenerator(private val reactor: Reactor) {
 
-    /**
-     * Create a list of state initializers in target code.
-     *
-     * TODO This is redundant to GeneratorBase.getInitializerList
-     */
-    private fun getInitializerList(state: StateVar) = state.init.exprs.map {
-        when {
-            it is ParamRef     -> it.parameter.name
-            state.isOfTimeType -> it.toTime()
-            else               -> it.toCode()
-        }
-    }
-
-    private fun generateInitializer(state: StateVar): String =
-        if (state.init.isBraces)
-            "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
-        else
-            "${state.name}(${getInitializerList(state).joinToString(separator = ", ")})"
-
-
     /** Get all state declarations */
     fun generateDeclarations() =
         reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.inferredType.cppType} ${it.name};" }
 
     /** Get all timer initializers */
     fun generateInitializers(): String = reactor.stateVars.filter { it.init != null }
-        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${generateInitializer(it)}" }
+        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${CppTypes.getTargetInitializer(it)}" }
 }
