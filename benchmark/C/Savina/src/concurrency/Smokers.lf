@@ -10,9 +10,47 @@
  * their count of total cigarettes smoked. After R total 
  * cigarettes smoked, the arbiter finishes.
  */
+ 
+ /* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D num_smokers=200
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'num_smokers' in globals():
+    num_smokers = int(num_smokers)
+  else:
+    globals()['num_smokers'] = 200
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// num_smokers = {num_smokers}')
+]]] */
+// Generated file with the following parameters:
+// num_smokers = 200
+// [[[end]]]
+
 target C {
     fast: true,
-    threads: 4,
+    threads: 1,
     tracing: true
 };
 reactor Arbiter(
@@ -45,17 +83,17 @@ reactor Arbiter(
     reaction(get_ingredients) -> finish, complementary_ingredient {=
         if (self->success_count >= self->num_success){
             SET(finish,true);
-            printf("%d cigarettes have been smoked. Arbiter is done.\n", self->success_count);
+           // printf("%d cigarettes have been smoked. Arbiter is done.\n", self->success_count);
         }else {
             int ingredient = select_ingredients(self->num_ingredients);
             SET(complementary_ingredient[ingredient], ingredient);
-            printf("Arbiter: smoker with ingredient %d can now smoke.\n", ingredient);
+          //  printf("Arbiter: smoker with ingredient %d can now smoke.\n", ingredient);
         }
     =}
     reaction(smoking)-> get_ingredients{=
         for(int i = 0; i<self->num_smokers;i++){
 			if (smoking[i]->is_present && smoking[i]->value == true){
-                printf("Arbiter: smoker %d smoked their cigarette. Increment success count.\n", i);
+             //   printf("Arbiter: smoker %d smoked their cigarette. Increment success count.\n", i);
                 self->success_count++;
                 schedule(get_ingredients,0);
             }
@@ -65,29 +103,36 @@ reactor Arbiter(
  
 }
 
-reactor Smoker(ingredient_supply:int(0),smoke_time:time(1 sec)){
+reactor Smoker(ingredient_supply:int(0),smoke_time:time(1 nsec)){
     input complementary_ingredient:int;
     logical action make_cigarette;
+    state busy:bool;
     output smoking:bool;
+    
     
     reaction(startup) {=
         self->ingredient_supply = self->bank_index;
+        self->busy = false;
     =}
     reaction(complementary_ingredient) -> make_cigarette{=
-        if(complementary_ingredient->value == self->ingredient_supply){
+        if(complementary_ingredient->value == self->ingredient_supply && self->busy == false){
+			self->busy = true;
             schedule(make_cigarette,self->smoke_time);
-            printf("Smoker %d received their ingredients.\n", self->ingredient_supply);
+          //  printf("Smoker %d received their ingredients.\n", self->ingredient_supply);
         }
     =}
     reaction(make_cigarette)-> smoking{=
         SET(smoking,true);
+        self->busy = false;
     =}
 }
-main reactor (
-    num_smokers:int(10),// N, number of smokers and ingredients
-    num_success:int(20) // Number of successes before terminate
-){  
+
+main reactor (num_smokers:int(200),num_success:int(1000)){  
+	/* [[[cog
+  	cog.outl(f'arbiter = new Arbiter(num_smokers = {num_smokers}, num_success=num_success);')
+	]]] */
 	arbiter = new Arbiter(num_smokers = num_smokers, num_success=num_success);
+	// [[[end]]]	
 	smokers = new[num_smokers] Smoker();
 	arbiter.complementary_ingredient -> smokers.complementary_ingredient;
 	smokers.smoking -> arbiter.smoking;
