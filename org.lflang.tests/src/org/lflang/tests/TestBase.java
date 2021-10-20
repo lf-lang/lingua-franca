@@ -31,7 +31,6 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.CommonExtensionsKt;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -42,6 +41,7 @@ import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.util.StringUtil;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -480,7 +480,7 @@ public abstract class TestBase {
             var binaryName = nameOnly;
             if (test.target == Target.Rust) {
                 // rust binaries uses snake_case
-                binaryName = CommonExtensionsKt.camelToSnakeCase(binaryName);
+                binaryName = StringUtil.camelToSnakeCase(binaryName);
             }
             // Adjust binary extension if running on Window
             if (System.getProperty("os.name").startsWith("Windows")) {
