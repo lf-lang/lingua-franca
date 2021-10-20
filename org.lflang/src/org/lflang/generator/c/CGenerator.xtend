@@ -48,6 +48,7 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -62,6 +63,7 @@ import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.InvalidSourceException
+import org.lflang.generator.ModeInstance
 import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
@@ -94,7 +96,6 @@ import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.TargetConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -353,6 +354,7 @@ class CGenerator extends GeneratorBase {
     var startupReactionCount = 0
     var shutdownReactionCount = 0
     var modalReactorCount = 0
+    var modalStateResetCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
@@ -726,6 +728,9 @@ class CGenerator extends GeneratorBase {
                         // Array of pointers to mode states to be handled in _lf_handle_mode_changes().
                         reactor_mode_state_t* _lf_modal_reactor_states[«modalReactorCount»];
                         int _lf_modal_reactor_states_size = «modalReactorCount»;
+                        // Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().
+                        mode_state_variable_reset_data_t _lf_modal_state_reset[«modalStateResetCount»];
+                        int _lf_modal_state_reset_size = «modalStateResetCount»;
                     ''')
                 }
                 
@@ -836,7 +841,7 @@ class CGenerator extends GeneratorBase {
                     // Generate mode change detection
                     pr('''
                         void _lf_handle_mode_changes() {
-                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size);
+                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size, _lf_modal_state_reset, _lf_modal_state_reset_size);
                         }
                     ''')
                 }
@@ -4362,10 +4367,17 @@ class CGenerator extends GeneratorBase {
     def generateStateVariableInitializations(ReactorInstance instance) {
         val reactorClass = instance.definition.reactorClass
         val nameOfSelfStruct = selfStructName(instance)
-        for (stateVar : reactorClass.toDefinition.stateVars) {
+        for (stateVar : reactorClass.toDefinition.allStateVars) {
 
+            var ModeInstance mode = null
+            if (stateVar.eContainer instanceof Mode) {
+                mode = instance.lookupModeInstance(stateVar.eContainer as Mode)
+            } else {
+                mode = instance.getMode(false)
+            }
             val initializer = getInitializer(stateVar, instance)
             if (stateVar.initialized) {
+                var String temporaryVariableName = null
                 if (stateVar.isOfTimeType) {
                     pr(initializeTriggerObjects, nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
                 } else {
@@ -4378,7 +4390,7 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects,
                             nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
                     } else {
-                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
                         // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
                         if (instance.getBank() !== null) {
                             temporaryVariableName += "_" + instance.bankIndex
@@ -4407,6 +4419,26 @@ class CGenerator extends GeneratorBase {
                             nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
                         )
                     }
+                }
+                
+                if (mode !== null) {
+                    val modeRef = '''&«selfStructName(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»]'''
+                    var type = super.getTargetType(stateVar.inferredType)
+                    var source = temporaryVariableName
+                    pr(initializeTriggerObjects, "// Register initial value for reset by mode")
+                    if (source === null) {
+                        source = instance.uniqueID + '_initial_' + stateVar.name
+                        pr(initializeTriggerObjects,
+                            "static " + type + " " + temporaryVariableName + " = " + initializer + ";"
+                        )
+                    }
+                    pr(initializeTriggerObjects, '''
+                        _lf_modal_state_reset[«modalStateResetCount»].mode = «modeRef»;
+                        _lf_modal_state_reset[«modalStateResetCount»].target = &(«nameOfSelfStruct»->«stateVar.name»);
+                        _lf_modal_state_reset[«modalStateResetCount»].source = &«source»;
+                        _lf_modal_state_reset[«modalStateResetCount»].size = sizeof(«type»);
+                    ''')
+                    modalStateResetCount++
                 }
             }
         }

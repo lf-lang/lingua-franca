@@ -1,0 +1,71 @@
+target C {
+    logging: info
+};
+
+import PrintInt from "lib/Printer.lf";
+import TimedStep from "lib/Timer.lf";
+
+reactor CounterCycle {
+    input next:bool;
+    output count0:int;
+    output count1:int;
+    output count2:int;
+    
+    state counter0:int(0);
+    
+    preamble {=
+    	#include <stdio.h>
+    =}
+    
+    reaction(next) -> count0 {=
+        SET(count0, self->counter0);
+    =}
+    
+    initial mode One {
+        state counter1:int(0);
+        timer T1(0msec, 250msec);
+	    
+		reaction(T1) -> count1 {=
+            SET(count1, self->counter1++);
+		=}
+		
+		reaction(next) -> Two {=
+            printf("Transitioning to mode Two (reset)\n");
+            SET_MODE(Two);
+		=}
+    }
+    mode Two {
+        state counter2:int(0);
+        timer T2(0msec, 250msec);
+	    
+		reaction(T2) -> count2 {=
+            SET(count2, self->counter2++);
+        =}
+		
+		reaction(next) -> One continue {=
+            printf("Transitioning to mode One (continue)\n");
+            SET_MODE(One);
+		=}
+    }
+}
+
+main reactor {
+    stepper = new TimedStep(offset=1sec, message="Next\n");
+    counter = new CounterCycle();
+    printer0 = new PrintInt(prefix="Counter0: ");
+    printer1 = new PrintInt(prefix="Counter1: ");
+    printer2 = new PrintInt(prefix="Counter2: ");
+    
+    stepper.step -> counter.next;
+    counter.count0 -> printer0.integer;
+    counter.count1 -> printer1.integer;
+    counter.count2 -> printer2.integer;
+    
+    preamble {=
+        #include <stdio.h>
+    =}
+    
+    reaction(startup) {=
+        printf("Start\n");
+    =}
+}
