@@ -1,0 +1,32 @@
+// Test logical action with delay.
+target Rust;
+
+main reactor ActionValues {
+    state r1done: bool(false);
+    state r2done: bool(false);
+    logical action act(100 msec): i32;
+
+    reaction(startup) -> act {=
+        ctx.schedule_with_v(act, Some(100), Asap); // scheduled in 100 ms
+        // scheduled in 150 ms, value is overwritten
+        ctx.schedule_with_v(act, Some(-100), after!(50 ms));
+    =}
+
+    reaction(act) {=
+        println!("At {}, received {:?}", ctx.get_tag(), ctx.get(act));
+
+        if ctx.get_tag() == tag!(T0 + 100 ms) {
+            assert_eq!(Some(100), ctx.get(act));
+            self.r1done = true;
+        } else {
+            assert_tag_is!(ctx, T0 + 150 ms);
+            assert_eq!(Some(-100), ctx.get(act));
+            self.r2done = true;
+        }
+    =}
+
+    reaction (shutdown) {=
+       assert!(self.r1done && self.r2done);
+       println!("Success")
+    =}
+}

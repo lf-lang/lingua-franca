@@ -2,9 +2,7 @@ package org.lflang.lfc;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.diagnostics.Severity;
@@ -29,11 +27,6 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
     }
 
 
-    void reset() {
-        collector.reset();
-    }
-
-
     void accept(LfIssue lfIssue) {
         collector.accept(lfIssue);
     }
@@ -48,8 +41,10 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
             severity,
             diagnostic.getLine(),
             diagnostic.getColumn(),
+            diagnostic.getLineEnd(),
+            diagnostic.getColumnEnd(),
             diagnostic.getLength(),
-            getPath(object)
+            getPath(diagnostic)
         );
 
         accept(lfIssue);
@@ -59,27 +54,14 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
     /**
      * Best effort to get a fileName. May return null.
      */
-    private static Path getFileNameBestEffort(EObject obj) {
-        Path path;
-        URI uri = obj.eResource().getURI();
+    private Path getPath(EObjectDiagnosticImpl diagnostic) {
+        Path file = null;
         try {
-            path = FileConfig.toPath(uri);
-        } catch (IOException ioe) {
-            String fString = uri.toFileString();
-            path = fString != null ? Paths.get(fString) : null;
+            file = FileConfig.toPath(diagnostic.getUriToProblem());
+        } catch (IOException e) {
+            // just continue with null
         }
-        return path;
-    }
-
-
-    private Path getPath(EObject object) {
-        Path path;
-        try {
-            path = FileConfig.toPath(object.eResource());
-        } catch (IOException ignored) {
-            path = getFileNameBestEffort(object);
-        }
-        return path;
+        return file;
     }
 
 
