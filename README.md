@@ -1,6 +1,7 @@
-[![Build Status](https://github.com/icyphy/lingua-franca/workflows/CI/badge.svg)](https://github.com/icyphy/lingua-franca/actions/)
-[![codecov](https://codecov.io/gh/icyphy/lingua-franca/branch/master/graph/badge.svg?token=CDDG2CNYZY)](https://codecov.io/gh/icyphy/lingua-franca)
-[![Discourse status](https://img.shields.io/badge/Community-online-blue)](https://community.lf-lang.org/)
+[![Build Status](https://github.com/lf-lang/lingua-franca/workflows/CI/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/)
+[![Nightly Build](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/nightly-build.yml)
+[![codecov](https://codecov.io/gh/lf-lang/lingua-franca/branch/master/graph/badge.svg?token=b7LrpihI5a)](https://codecov.io/gh/lf-lang/lingua-franca)
+[![Community Status](https://img.shields.io/badge/Community-online-blue)](https://community.lf-lang.org/)
 
 # Lingua Franca
 

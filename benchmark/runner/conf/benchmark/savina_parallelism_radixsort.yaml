@@ -23,13 +23,24 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/radixsort"
+      - "${lf_path}/benchmark/Cpp/Savina/src/parallelism"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-    lf_file: "radixsort/RadixSort.lf"
+    lf_file: "parallelism/RadixSort.lf"
     binary: "RadixSort"
     gen_args: null
     run_args:
       data_size: ["--dataSize", "<value>"]
       max_value: ["--maxValue", "<value>"]
       seed: ["--seed", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+    lf_file: "parallelism/RadixSort.lf"
+    binary: "RadixSort"
+    gen_args:
+      data_size: ["-D", "dataSize=<value>"]
+      max_value: ["-D", "maxValue=<value>"]
+      seed: ["-D", "seed=<value>"]
+

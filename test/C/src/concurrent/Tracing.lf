@@ -3,7 +3,8 @@ target C {
     timeout: 2 sec,
     tracing: true, 
     flags: "", // Disable compiler optimization so that TakeTime actually takes time.
-    threads: 4
+    threads: 4,
+    logging: DEBUG
 };
 reactor Source {
 	timer t(0, 200 msec);
@@ -14,7 +15,9 @@ reactor Source {
 		self->s++;
 	=}
 }
-reactor TakeTime {
+reactor TakeTime(
+    bank_index:int(0)
+) {
 	input in:int;
 	output out:int;
 	state event:string("No ID");
@@ -22,7 +25,7 @@ reactor TakeTime {
         // Construct an id string for a user trace event.
         const char* format = "Count completed by reactor %d.";
         size_t length = strlen(format) + 2;
-        self->event = malloc(sizeof(char) * (length + 1));
+        self->event = (string)malloc(sizeof(char) * (length + 1));
         snprintf(self->event, length, format, self->bank_index);
         
         // Register the user trace event.

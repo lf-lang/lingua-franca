@@ -66,13 +66,14 @@ import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
+import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 import org.lflang.lf.Connection
 import org.lflang.lf.Model
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
+import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -100,7 +101,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 
 	// -- INTERNAL --
-	public static val REACTOR_INSTANCE = new Property<ReactorInstance>("org.lflang.linguafranca.diagram.synthesis.reactor.instantiation")
 	public static val REACTOR_RECURSIVE_INSTANTIATION = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false)
     public static val REACTOR_HAS_BANK_PORT_OFFSET = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false)
     public static val REACTOR_INPUT = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false)
@@ -136,6 +136,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
+    public static val SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", true).setCategory(APPEARANCE)
     public static val SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
@@ -158,6 +159,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			//LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
+			SHOW_PORT_NAMES,
 			SHOW_MULTIPORT_WIDTH,
 			SHOW_REACTION_CODE,
 			SHOW_REACTION_ORDER_EDGES,
@@ -242,7 +244,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         allReactorNodes.put(reactorInstance, node)
 		node.associateWith(reactor)
 		node.ID = reactorInstance.uniqueID
-		node.setProperty(REACTOR_INSTANCE, reactorInstance) // save to distinguish nodes associated with the same reactor
+		node.linkInstance(reactorInstance) // save to distinguish nodes associated with the same reactor
         
 		val nodes = newArrayList(node)
 		val label = reactorInstance.createReactorLabel()
@@ -430,7 +432,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Find and annotate cycles
-		if (CYCLE_DETECTION.booleanValue) {
+		if (CYCLE_DETECTION.booleanValue && reactorInstance.isRoot) {
 			val errNode = node.detectAndAnnotateCycles(reactorInstance, allReactorNodes)
 			if (errNode !== null) {
 				nodes += errNode
@@ -562,6 +564,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Create timers
 		for (timer : reactorInstance.timers) {
 			val node = createNode().associateWith(timer.definition)
+			node.linkInstance(timer)
 			nodes += node
 			nodes += timer.definition.createUserComments(node)
 			timerNodes.put(timer, node)
@@ -573,6 +576,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (reaction : reactorInstance.reactions.reverseView) {
 			val idx = reactorInstance.reactions.indexOf(reaction)
 			val node = createNode().associateWith(reaction.definition)
+			node.linkInstance(reaction)
 			nodes += node
 			nodes += reaction.definition.createUserComments(node)
 			reactionNodes.put(reaction, node)
@@ -705,6 +709,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		actions += actionDestinations.keySet
 		for (ActionInstance action : actions) {
 			val node = createNode().associateWith(action.definition)
+			node.linkInstance(action)
 			nodes += node
 			nodes += action.definition.createUserComments(node)
 			
@@ -858,11 +863,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         if (reactorInstance.mainOrFederated) {
             b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
+        } else if (reactorInstance.reactorDefinition === null) {
+            // There is an error in the graph.
+            b.append("<Unresolved Reactor>")
         } else {
             b.append(reactorInstance.reactorDefinition.name)
-            // TODO reactivate error handling
-//                reactor === null ? "<NULL>" : reactor.name ?:
-//                    "<Unresolved Reactor>")
         }
         if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
             // If the reactor is a bank, then obtain the details from the first
@@ -909,6 +914,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val t = param.type.toText
 		if (!t.nullOrEmpty) {
 			b.append(":").append(t)
+		}
+		if (!param.init.nullOrEmpty) {
+		    b.append("(").append(param.init.join(", ", [it.toText])).append(")")
 		}
 		return b.toString()
 	}
@@ -1011,6 +1019,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		node.ports += port
 		
 		port.associateWith(lfPort.definition)
+		port.linkInstance(lfPort)
 		port.setPortSize(6, 6)
 		
 		if (input) {
@@ -1034,6 +1043,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.addTrianglePort(multiport)
 		
 		var label = lfPort.name
+		if (!SHOW_PORT_NAMES.booleanValue) {
+		    label = ""
+		}
 		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
             if (lfPort instanceof MultiportInstance) {
                 // TODO Fix unresolvable references in ReactorInstance

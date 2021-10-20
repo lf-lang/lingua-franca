@@ -2,17 +2,21 @@ package org.lflang.diagram.synthesis.util
 
 import com.google.common.collect.HashMultimap
 import com.google.inject.Inject
+import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import java.util.Map
+import java.util.Set
 import java.util.function.Consumer
 import org.eclipse.elk.graph.properties.Property
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
-import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
+import org.lflang.generator.NamedInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.graph.TopologyGraph
 import org.lflang.lf.Connection
+
+import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 
 /**
  * Dependency cycle detection for Lingua Franca diagrams.
@@ -31,88 +35,95 @@ class CycleVisualization extends AbstractSynthesisExtensions {
 	/**
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
 	 */
-	def boolean detectAndHighlightCycles(ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
-		val graph = new TopologyGraph(reactorInstance)
+	def boolean detectAndHighlightCycles(ReactorInstance rootReactorInstance, Map<ReactorInstance, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
+		val graph = new TopologyGraph(rootReactorInstance)
 		
         if (!graph.cycles.empty && highlighter !== null) {
 			// Highlight cycles
             for (cycle : graph.cycles) {
-                // FIXME: Why is cycle being copied into a multimap?
-            	val allAffectedElements = HashMultimap.create
-            	for (elem : cycle) {
-            		allAffectedElements.put(elem, elem.definition)
-            	}
-            	
-            	for (reactorCrumb : allAffectedElements.keySet) {
-            		val affectedElements = allAffectedElements.get(reactorCrumb)
-            		val reactorNode = allReactorNodes.get(reactorCrumb)
-            		// FIXME: reactorNode may be null because allAffectedElements
-            		// includes ports as well as ReactorInstances, so we check here.
-            		// However, now the cycle does not get highlighted.
-            		if (reactorNode !== null) {
-                        reactorNode.setProperty(DEPENDENCY_CYCLE, true)
-                        highlighter.accept(reactorNode)
+                // A cycle consists of reactions and ports, first find the involved reactor instances
+                val cycleElementsByReactor = HashMultimap.create
+                for (element : cycle) {
+                    if (element instanceof ReactorInstance) {
+                        cycleElementsByReactor.put(element, element)
+                    } else {
+                        cycleElementsByReactor.put(element.parent, element)
+                    }
+                }
+                
+                for (reactor : cycleElementsByReactor.keySet) {
+                    val node = allReactorNodes.get(reactor)
+                    if (node !== null) {
+                        node.setProperty(DEPENDENCY_CYCLE, true)
+                        highlighter.accept(node)
 
+                        val reactorContentInCycle = cycleElementsByReactor.get(reactor)
+                        
                         // Reactor edges
-                        for (cycleEgde : reactorNode.outgoingEdges.filter [
-                            affectedElements.contains(sourcePort.sourceElement()) && (
-            				(
-            					!target.sourceIsReactor() && allAffectedElements.values.contains(target.sourceElement())
-            				) || (
-            					target.sourceIsReactor() &&
-                                allAffectedElements.keySet.contains(
-                                    target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)) &&
-                                allAffectedElements.get(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)).
-                                    contains(targetPort.sourceElement())
-            				)
-            			)
-                        ]) {
-                            // FIXME: Still hard-coded semantics
-                            if (!(cycleEgde.sourceElement() instanceof Connection) ||
-                                (cycleEgde.sourceElement() as Connection).delay === null) {
-                                cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
-                                highlighter.accept(cycleEgde)
+                        for (edge : node.outgoingEdges) {
+                            if (edge.connectsCycleElements(cycle)) {
+                                edge.setProperty(DEPENDENCY_CYCLE, true)
+                                highlighter.accept(edge)
                             }
                         }
 
                         // Reactor ports
-                        for (cyclePort : reactorNode.ports.filter[affectedElements.contains(it.sourceElement())]) {
-                            cyclePort.setProperty(DEPENDENCY_CYCLE, true)
-                            highlighter.accept(cyclePort)
+                        for (port : node.ports) {
+                            if (reactorContentInCycle.contains(port.linkedInstance)) {
+                                port.setProperty(DEPENDENCY_CYCLE, true)
+                                highlighter.accept(port)
+                            }
                         }
 
                         // Child Nodes
-                        for (childNode : reactorNode.children.filter [
-                            affectedElements.contains(it.sourceElement()) && !sourceIsReactor
-                        ]) {
-                            childNode.setProperty(DEPENDENCY_CYCLE, true)
-                            highlighter.accept(childNode)
-
-                            for (cycleEgde : childNode.outgoingEdges.filter [
-                                (
-            					!target.sourceIsReactor() && affectedElements.contains(target.sourceElement())
-            				) || (
-            					target.sourceIsReactor() &&
-                                    allAffectedElements.keySet.contains(
-                                        target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)) &&
-                                    allAffectedElements.get(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)).
-                                        contains(targetPort.sourceElement())
-            				)
-                            ]) {
-                                // FIXME: Still hard-coded semantics
-                                if (!(cycleEgde.sourceElement() instanceof Connection) ||
-                                    (cycleEgde.sourceElement() as Connection).delay === null) {
-                                    cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
-                                    highlighter.accept(cycleEgde)
+                        for (childNode : node.children) {
+                            if (reactorContentInCycle.contains(childNode.linkedInstance) && !childNode.sourceIsReactor) {
+                                childNode.setProperty(DEPENDENCY_CYCLE, true)
+                                highlighter.accept(childNode)
+    
+                                for (edge : childNode.outgoingEdges) {
+                                    if (edge.connectsCycleElements(cycle)) {
+                                        edge.setProperty(DEPENDENCY_CYCLE, true)
+                                        highlighter.accept(edge)
+                                    }
                                 }
                             }
                         }
                     }
-            	}
+                }
             }
             return true
          }
-         
          return false
 	}
+	
+	/**
+	 * Checks whether an edge connects two elements that are part of the cycle.
+	 * Assumes that the source node is always part of the cycle!
+	 */
+	private def boolean connectsCycleElements(KEdge edge, Set<NamedInstance<?>> cycle) {
+        return (
+                // if source is not a reactor, there is nothing to check
+                !edge.source.sourceIsReactor
+                ||
+                // otherwise, the source port must be on the cycle
+                cycle.contains(edge.sourcePort.linkedInstance)
+            ) && (
+                // leads to reactor port in cycle
+                edge.target.sourceIsReactor && cycle.contains(edge.targetPort.linkedInstance)
+                ||
+                // leads to reaction in cycle
+                !edge.target.sourceIsReactor && cycle.contains(edge.target.linkedInstance)
+            ) && (
+                // Special case only for connections
+                !(edge.sourceElement() instanceof Connection)
+                || (
+                    // If the edge represents a connections between two ports in the cycle (checked before),
+                    // then it is only included in the actual cycle, if it is neither delayed nor physical.
+                    (edge.sourceElement() as Connection).delay === null
+                    &&
+                    !(edge.sourceElement() as Connection).physical
+                )
+            )
+    }
 }

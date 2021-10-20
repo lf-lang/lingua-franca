@@ -9,13 +9,14 @@ dependencies {
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
 
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
 jacoco {
     toolVersion = "0.8.7"
     reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
 }
 
-apply plugin: 'java'
-apply plugin: 'jacoco'
 
 jacocoTestReport {
     reports {
@@ -49,4 +50,13 @@ test {
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 	useJUnitPlatform()
     finalizedBy jacocoTestReport
+    workingDir = ".."
+}
+
+task runSingleTest(type: JavaExec) {
+    description = "Execute a single test, use with eg --args test/Python/src/Minimal.lf"
+    group = "test"
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir = ".."
+    mainClass = 'org.lflang.tests.RunSingleTestMain'
 }

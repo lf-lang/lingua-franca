@@ -1,5 +1,3 @@
-/* Instance of an action. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -295,10 +293,11 @@ class DirectedGraph<T> implements Graph<T> {
      * Return the nodes in this graph.
      */
     override nodes() {
+        // FIXME: This is an inefficient way to list nodes.
         val nodes = newLinkedHashSet
         nodes.addAll(this.upstreamAdjacentNodes.keySet)
         nodes.addAll(this.downstreamAdjacentNodes.keySet)
-        return nodes.toList
+        return nodes
     }
     
     def clear() {
@@ -307,4 +306,18 @@ class DirectedGraph<T> implements Graph<T> {
         this.upstreamAdjacentNodes.clear()
     }
     
+    /**
+     * Return a textual list of the nodes.
+     */
+    override toString() {
+        val result = new StringBuilder();
+        result.append("{");
+        var first = true;
+        for (node : nodes) {
+            if (!first) result.append(", ");
+            first = false;
+            result.append(node.toString());
+        }
+        return result.toString();
+    }
 }

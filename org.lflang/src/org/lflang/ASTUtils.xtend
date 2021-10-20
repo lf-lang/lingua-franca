@@ -31,7 +31,6 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.TerminalRule
@@ -53,6 +52,7 @@ import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
+import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -60,6 +60,7 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
+import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
@@ -68,6 +69,9 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
+import org.eclipse.emf.ecore.util.EcoreUtil
+
+import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -106,13 +110,8 @@ class ASTUtils {
                     val generic = generator.supportsGenerics
                             ? generator.getTargetType(InferredType.fromAST(type))
                             : ""
-                    // If the left or right has a multiport or bank, then create a bank
-                    // of delays with an inferred width.
-                    // FIXME: If the connection already uses an inferred width on
-                    // the left or right, then this will fail because you cannot
-                    // have an inferred width on both sides.
-                    val isWide = connection.isWide
-                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic, isWide)
+                    val delayInstance = getDelayInstance(delayClass, connection, generic,
+                        !generator.generateAfterDelaysWithVariableWidth)
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
@@ -163,24 +162,29 @@ class ASTUtils {
     }
     
     /**
-     * Return true if any port on the left or right of the connection involves
-     * a bank of reactors or a multiport.
+     * Change the target name to 'newTargetName'.
+     * For example, change C to CCpp.
+     */
+    static def boolean changeTargetName(Resource resource, String newTargetName) {
+        val r = resource.targetDecl
+        r.name = newTargetName
+        return true
+    }
+    
+    /**
+     * Return true if the connection involves multiple ports on the left or right side of the connection, or
+     * if the port on the left or right of the connection involves a bank of reactors or a multiport.
      * @param connection The connection.
      */
-    private static def boolean isWide(Connection connection) {
-        for (leftPort : connection.leftPorts) {
-            if ((leftPort.variable as Port).widthSpec !== null
-                || leftPort.container?.widthSpec !== null
-            ) {
-                return true
-            }
+    static def boolean hasMultipleConnections(Connection connection) {
+        if (connection.leftPorts.size > 1 || connection.rightPorts.size > 1) {
+            return true;
         }
-        for (rightPort : connection.rightPorts) {
-            if ((rightPort.variable as Port).widthSpec !== null
-                || rightPort.container?.widthSpec !== null
-            ) {
-                return true
-            }
+        val leftPort = connection.leftPorts.get(0);
+        val rightPort = connection.rightPorts.get(0);
+        if ((leftPort.variable as Port).widthSpec !== null || leftPort.container?.widthSpec !== null ||
+            (rightPort.variable as Port).widthSpec !== null || rightPort.container?.widthSpec !== null) {
+            return true
         }
         return false
     }
@@ -213,6 +217,7 @@ class ASTUtils {
         upstream.rightPorts.add(input)
         downstream.leftPorts.add(output)
         downstream.rightPorts.addAll(connection.rightPorts)
+        downstream.iterated = connection.iterated
 
         connections.add(upstream)
         connections.add(downstream)
@@ -233,13 +238,17 @@ class ASTUtils {
      * performed in this method in order to avoid causing concurrent
      * modification exceptions. 
      * @param delayClass The class to create an instantiation for
-     * @param value A time interval corresponding to the desired delay
+     * @param connection The connection to create a delay instantiation foe
      * @param generic A string that denotes the appropriate type parameter, 
      *  which should be null or empty if the target does not support generics.
-     * @param isWide True to create a variable-width width specification.
+     * @param defineWidthFromConnection If this is true and if the connection 
+     *  is a wide connection, then instantiate a bank of delays where the width
+     *  is given by ports involved in the connection. Otherwise, the width will
+     *  be  unspecified indicating a variable length.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Delay delay, String generic, boolean isWide) {
+            Connection connection, String generic, Boolean defineWidthFromConnection) {
+        val delay = connection.delay
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
@@ -247,10 +256,22 @@ class ASTUtils {
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
         }
-        if (isWide) {
+        if (connection.hasMultipleConnections) {
             val widthSpec = factory.createWidthSpec
+            if (defineWidthFromConnection) {
+                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
+                // This allows the code generator to later infer the width from the involved ports.
+                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // to delay the ports first, and then broadcast the output of the delays.
+                for (port : connection.leftPorts) {
+                    val term = factory.createWidthTerm()
+                    term.port = EcoreUtil.copy(port)
+                    widthSpec.terms.add(term)
+                }   
+            } else {
+                widthSpec.ofVariableLength = true    
+            }
             delayInstance.widthSpec = widthSpec
-            widthSpec.ofVariableLength = true
         }
         val assignment = factory.createAssignment
         assignment.lhs = delayClass.parameters.get(0)
@@ -308,10 +329,13 @@ class ASTUtils {
         
         delayParameter.name = "delay"
         delayParameter.type = factory.createType
-        delayParameter.type.id = generator.targetTimeType
+        delayParameter.type.id = "time"
+        delayParameter.type.time = true
+        val defaultTime = factory.createTime
+        defaultTime.unit = TimeUnit.NONE
+        defaultTime.interval = 0
         val defaultValue = factory.createValue
-        defaultValue.literal = generator.timeInTargetLanguage(
-            new TimeValue(0, TimeUnit.NONE))
+        defaultValue.time = defaultTime
         delayParameter.init.add(defaultValue)
         
         // Name the newly created action; set its delay and type.
@@ -412,56 +436,7 @@ class ASTUtils {
         }
         return name + suffix
     }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-    private static def getCopy(TypeParm original) {
-        val clone = factory.createTypeParm
-        if (!original.literal.isNullOrEmpty) {
-            clone.literal = original.literal
-        } else if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-        }
-        return clone
-    }
-    
-    /**
-     * Given a "type" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-     static def getCopy(Type original) {
-        if (original !== null) {
-            val clone = factory.createType
-            
-            clone.id = original.id
-            // Set the type based on the argument type.
-            if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-            } 
-            if (original.stars !== null) {
-                original.stars?.forEach[clone.stars.add(it)]
-            }
-                
-            if (original.arraySpec !== null) {
-                clone.arraySpec = factory.createArraySpec
-                clone.arraySpec.ofVariableLength = original.arraySpec.
-                    ofVariableLength
-                clone.arraySpec.length = original.arraySpec.length
-            }
-            clone.time = original.time
-            
-            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
-            
-            return clone
-        }
-    }
-        
+   
     ////////////////////////////////
     //// Utility functions for supporting inheritance
     
@@ -822,7 +797,7 @@ class ASTUtils {
      * @param spec The array spec to be converted
      * @return A textual representation
      */
-    def static toText(ArraySpec spec) {
+    def static String toText(ArraySpec spec) {
         if (spec !== null) {
             return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
         }
@@ -834,7 +809,7 @@ class ASTUtils {
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    def static toText(Type type) {
+    def static String toText(Type type) {
         if (type !== null) {
             val base = type.baseType
             val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
@@ -885,7 +860,11 @@ class ASTUtils {
                     for (s : type.stars ?: emptyList) {
                         stars += s
                     }
-                    return type.id + stars
+                    if (!type.typeParms.isNullOrEmpty) {
+                        return '''«type.id»<«FOR p : type.typeParms SEPARATOR ", "»«p.toText»«ENDFOR»>''' 
+                    } else {
+                        return type.id + stars                        
+                    }
                 }
             }
         }
@@ -1247,7 +1226,7 @@ class ASTUtils {
      * If the value of the parameter is a list of integers,
      * return the sum of value in the list.
      * The instantiations parameter is as in 
-     * {@link initialValue(Parameter, List<Instantiation>}.
+     * {@link initialValue(Parameter, List<Instantiation>)}.
      * 
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
@@ -1262,6 +1241,7 @@ class ASTUtils {
         val values = initialValue(parameter, instantiations);
         var result = 0;
         for (value: values) {
+            if (value.literal === null) return null;
             try {
                 result += Integer.decode(value.literal);
             } catch (NumberFormatException ex) {
@@ -1496,7 +1476,7 @@ class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens.size == 2) {
+        if (v !== null && (v.parens.size == 2 || v.braces.size == 2)) {
             return true
         }
         return false
@@ -1514,114 +1494,6 @@ class ASTUtils {
             return true
         }
         return false
-    }
-    
-    /**
-     * Given an initialization list, return an inferred type. Only two types
-     * can be inferred: "time" and "timeList". Return the "undefined" type if
-     * neither can be inferred.
-     * @param initList A list of values used to initialize a parameter or
-     * state variable.
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */    
-    protected static def InferredType getInferredType(EList<Value> initList) {
-        if (initList.size == 1) {
-        	// If there is a single element in the list, and it is a proper
-        	// time value with units, we infer the type "time".
-            val init = initList.get(0)
-            if (init.parameter !== null) {
-                return init.parameter.getInferredType
-            } else if (init.isValidTime && !init.isZero) {
-                return InferredType.time;
-            }
-        } else if (initList.size > 1) {
-			// If there are multiple elements in the list, and there is at
-			// least one proper time value with units, and all other elements
-			// are valid times (including zero without units), we infer the
-			// type "time list".
-            var allValidTime = true
-            var foundNonZero = false
-
-            for (init : initList) {
-                if (!init.isValidTime) {
-                    allValidTime = false;
-                } 
-                if (!init.isZero) {
-                    foundNonZero = true
-                }
-            }
-
-            if (allValidTime && foundNonZero) {
-                // Conservatively, no bounds are inferred; the returned type 
-                // is a variable-size list.
-				return InferredType.timeList()
-            }
-        }
-        return InferredType.undefined
-    }
-    
-    /**
-     * Given a parameter, return an inferred type. Only two types can be
-     * inferred: "time" and "timeList". Return the "undefined" type if
-     * neither can be inferred.
-     * @param p A parameter to infer the type of. 
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */    
-    def static InferredType getInferredType(Parameter p) {
-        if (p !== null) {
-            if (p.type !== null) {
-                return InferredType.fromAST(p.type)
-            } else {
-                return p.init.inferredType
-            }
-        }
-        return InferredType.undefined
-    }
-    
-    /**
-	 * Given a state variable, return an inferred type. Only two types can be
-	 * inferred: "time" and "timeList". Return the "undefined" type if
-	 * neither can be inferred.
-     * @param s A state variable to infer the type of. 
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */    
-    def static InferredType getInferredType(StateVar s) {
-        if (s !== null) {
-            if (s.type !== null) {
-                return InferredType.fromAST(s.type)
-            }
-            if (s.init !== null) {
-                return s.init.inferredType
-            }
-        }
-        return InferredType.undefined
-    }
-    
-    /**
-     * Construct an inferred type from an "action" AST node based
-     * on its declared type. If no type is declared, return the "undefined"
-     * type.
-     * @param a An action to construct an inferred type object for.
-     * @return The inferred type, or "undefined" if none was declared.
-     */
-    def static InferredType getInferredType(Action a) {
-        if (a !== null && a.type !== null) {
-            return InferredType.fromAST(a.type)
-        }
-        return InferredType.undefined
-    }
-
-	/**
-     * Construct an inferred type from a "port" AST node based on its declared
-     * type. If no type is declared, return the "undefined" type.
-     * @param p A port to construct an inferred type object for.
-     * @return The inferred type, or "undefined" if none was declared.
-     */    
-    def static InferredType getInferredType(Port p) {
-        if (p !== null && p.type !== null) {
-            return InferredType.fromAST(p.type)
-        }
-        return InferredType.undefined
     }
 
     /**
@@ -1769,5 +1641,21 @@ class ASTUtils {
         }
         return inst
     }
-    
+
+    /**
+     * Returns the target declaration in the given model.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Model model) {
+        return model.eAllContents.filter(TargetDecl).head
+    }
+
+    /**
+     * Returns the target declaration in the given resource.
+     * Non-null because it would cause a parse error.
+     */
+    def static TargetDecl targetDecl(Resource model) {
+        return model.allContents.filter(TargetDecl).head
+    }
+
 }

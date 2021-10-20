@@ -15,12 +15,21 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/cigsmok"
+      - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
       - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
       - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
-    lf_file: "cigsmok/CigaretteSmoker.lf"
+    lf_file: "concurrency/CigaretteSmoker.lf"
     binary: "CigaretteSmoker"
-    gen_args:
-      smokers: ["-D", "numSmokers=<value>"]
+    gen_args: null
     run_args:
       rounds: ["--numRounds", "<value>"]
+      smokers: ["--numSmokers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/CigaretteSmoker.lf"
+    binary: "CigaretteSmoker"
+    gen_args:
+      rounds: ["-D", "numRounds=<value>"]
+      smokers: ["-D", "numSmokers=<value>"]

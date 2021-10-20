@@ -20,10 +20,10 @@ targets:
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/src/philosopher"
-    lf_file: "philosopher/Philosopher.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
+    lf_file: "concurrency/Philosopher.lf"
     binary: "Philosopher"
-    gen_args:
-      philosophers: ["-D", "numPhilosophers=<value>"]
+    gen_args: null
     run_args:
+      philosophers: ["--numPhilosophers", "<value>"]
       eating_rounds: ["--numEatingRounds", "<value>"]
