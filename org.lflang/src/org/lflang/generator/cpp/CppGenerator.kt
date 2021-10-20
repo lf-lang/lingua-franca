@@ -188,9 +188,7 @@ class CppGenerator(
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeReturnCode = makeCommand.run(context.cancelIndicator)
-            // FIXME: Get the appropriate error parsing strategy according to CMAKE_CXX_COMPILER_ID
-            CppValidator.CppValidationStrategy.GXX.errorParsingStrategy.report(makeCommand.errors.toString(), errorReporter, codeMaps)
+            val makeReturnCode = CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
