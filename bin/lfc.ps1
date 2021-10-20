@@ -1,6 +1,6 @@
 #==========================================================
 # Description: 	    Run the lfc compiler.
-# Authors:          Christian Menard
+# Authors:          Christian Menard, Peter Donovan
 # Usage:            Usage: lfc [options] files...
 #==========================================================
 
