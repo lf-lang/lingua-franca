@@ -3,8 +3,6 @@ package org.lflang.generator;
 import java.nio.file.Path;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.lflang.ErrorReporter;
 
 /**

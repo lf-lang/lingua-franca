@@ -3,8 +3,6 @@ package org.lflang.generator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
  * Represents a range in a document. Ranges have a
  * natural ordering that respects their start
@@ -77,7 +75,7 @@ public class Range implements Comparable<Range> {
      * <code>o</code>
      */
     @Override
-    public int compareTo(@NotNull Range o) {
+    public int compareTo(Range o) {
         return this.start.compareTo(o.start);
     }
 
