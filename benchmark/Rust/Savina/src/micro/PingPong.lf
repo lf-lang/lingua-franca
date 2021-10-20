@@ -1,6 +1,7 @@
 target Rust {
     single-file-project: true,
-    cargo-features: ["cli"]
+    build-type: Release,
+    cargo-features: ["cli"],
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
