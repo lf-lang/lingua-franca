@@ -156,6 +156,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_ALL_REACTORS,
 			MEMORIZE_EXPANSION_STATES,
 			CYCLE_DETECTION,
+            ModeDiagrams.SHOW_TRANSITION_LABELS,
+            ModeDiagrams.INITIALLY_COLLAPSE_MODES,
 			SHOW_USER_LABELS,
 			SHOW_HYPERLINKS,
 			//LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
@@ -168,8 +170,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
-			REACTOR_PARAMETER_TABLE_COLS,
-			ModeDiagrams.SHOW_TRANSITION_LABELS
+			REACTOR_PARAMETER_TABLE_COLS
 		]
 	}
 	

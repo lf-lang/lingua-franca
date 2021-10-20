@@ -17,6 +17,10 @@ abstract class AbstractAction implements IAction {
 		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
 	}
 	
+    def boolean sourceIs(KNode node, Class<?> clazz) {
+        return clazz.isInstance(node.sourceElement())
+    }
+	
 	def boolean sourceIsReactor(KNode node) {
 		return node.sourceElement() instanceof Reactor
 	}

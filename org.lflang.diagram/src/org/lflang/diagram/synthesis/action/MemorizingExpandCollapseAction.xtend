@@ -81,11 +81,18 @@ class MemorizingExpandCollapseAction extends AbstractAction {
     override execute(ActionContext context) {
         val vc = context.viewContext
         val v = vc.viewer 
-        val node = context.KNode
+        var node = context.KNode
         
-        node.setExpansionState(node.linkedInstance, v, !v.isExpanded(node)) // toggle
+        while(node !== null && node.linkedInstance === null) {
+            node = node.parent
+        }
+        if (node === null) {
+            return IAction.ActionResult.createResult(false);
+        } else {
+            node.setExpansionState(node.linkedInstance, v, !v.isExpanded(node)) // toggle
+            return IAction.ActionResult.createResult(true);
+        }
         
-        return IAction.ActionResult.createResult(true);
     }
     
 }
