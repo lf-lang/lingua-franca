@@ -239,7 +239,7 @@ object CppTypes : TargetTypes {
 
     override fun getTargetUndefinedType() = "void"
 
-    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): String =
+    override fun getTargetTimeExpr(magnitude: Long, unit: TimeUnit): String =
         if (magnitude == 0L) "reactor::Duration::zero()"
         else magnitude.toString() + unit.cppUnit
 

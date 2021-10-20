@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2021, The Authors of this file and their respective Institutions.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
 package org.lflang.generator;
 
 import java.util.List;
@@ -7,13 +32,17 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
+import org.lflang.Target;
 import org.lflang.TimeValue;
+import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Initializer;
+import org.lflang.lf.ListExpr;
 import org.lflang.lf.Literal;
-import org.lflang.lf.Parameter;
+import org.lflang.lf.ParamRef;
 import org.lflang.lf.Time;
 import org.lflang.lf.TimeUnit;
+import org.lflang.lf.TupleExpr;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 
@@ -22,16 +51,18 @@ import org.lflang.lf.Value;
  * utilities to convert LF expressions and types to the target
  * language. Each code generator is expected to use at least one
  * language-specific instance of this interface.
- * 
+ *
  * TODO currently, {@link GeneratorBase} implements this interface,
  *  it should instead contain an instance.
+ *
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public interface TargetTypes {
 
 
     /**
-     * Return true if the target supports generics (i.e., parametric
-     * polymorphism), false otherwise.
+     * Return true if the target supports generic types
+     * (i.e., parametric polymorphism), false otherwise.
      */
     boolean supportsGenerics();
 
@@ -80,11 +111,55 @@ public interface TargetTypes {
      * to a time value ({@link #getTargetTimeType()}), with the given
      * magnitude and unit. The unit may not be null (use {@link TimeUnit#NONE}).
      */
-    default String getTargetTimeExpression(long magnitude, TimeUnit unit) {
+    default String getTargetTimeExpr(long magnitude, TimeUnit unit) {
         // todo make non-default when we reuse this for all generators,
         //  all targets should support this.
         Objects.requireNonNull(unit);
         throw new UnsupportedGeneratorFeatureException("Time expressions");
+    }
+
+    /**
+     * Returns an expression in the target language that is the translation
+     * of the given parameter reference. All targets should support this.
+     * The default returns the simple name of the parameter.
+     */
+    default String getTargetParamRef(ParamRef expr, InferredType type) {
+        return escapeIdentifier(expr.getParameter().getName());
+    }
+
+    /**
+     * Returns an expression in the target language that is
+     * the translation of the given literal. All targets
+     * should support this.
+     * The default returns the literal converted to a string.
+     */
+    default String getTargetLiteral(Literal expr, InferredType type) {
+        if (ASTUtils.isZero(expr) && type != null && type.isTime) {
+            return getTargetTimeExpr(0, TimeUnit.NONE);
+        }
+        return expr.getLiteral(); // unescaped
+    }
+
+    /**
+     * Returns an expression in the target language that is the translation
+     * of the given tuple expression. To support tuple expressions, a target
+     * must also register this capability in {@link Target#supportsLfTupleLiterals()}.
+     *
+     * @throws UnsupportedGeneratorFeatureException If the target does not support this
+     */
+    default String getTargetTupleExpr(TupleExpr expr, InferredType type) {
+        throw new UnsupportedGeneratorFeatureException("Tuple expressions lists");
+    }
+
+    /**
+     * Returns an expression in the target language that is the translation
+     * of the given list expression. To support list expressions, a target
+     * must also register this capability in {@link Target#supportsLfListLiterals()}.
+     *
+     * @throws UnsupportedGeneratorFeatureException If the target does not support this
+     */
+    default String getTargetListExpr(ListExpr expr, InferredType type) {
+        throw new UnsupportedGeneratorFeatureException("Tuple expressions lists");
     }
 
     /**
@@ -194,16 +269,24 @@ public interface TargetTypes {
      * The given type, if non-null, may inform the code generation.
      */
     default String getTargetExpr(Value value, InferredType type) {
-        if (ASTUtils.isZero(value) && type != null && type.isTime) {
-            return getTargetTimeExpression(0, TimeUnit.NONE);
-        } else if (value instanceof Parameter) {
-            return escapeIdentifier(((Parameter) value).getName());
+        if (value instanceof ParamRef) {
+            return getTargetParamRef((ParamRef) value, type);
         } else if (value instanceof Time) {
             return getTargetTimeExpr((Time) value);
         } else if (value instanceof Literal) {
-            return ((Literal) value).getLiteral();// here we don't escape
+            return getTargetLiteral((Literal) value, type);
         } else if (value instanceof CodeExpr) {
-            return ASTUtils.toText(((CodeExpr) value).getCode());
+            Code code = ((CodeExpr) value).getCode();
+            if (ASTUtils.isZero(code) && type != null && type.isTime) {
+                // todo remove this branch, this is not useful
+                return getTargetTimeExpr(TimeValue.ZERO);
+            } else {
+                return ASTUtils.toText(code);
+            }
+        } else if (value instanceof TupleExpr) {
+            return getTargetTupleExpr((TupleExpr) value, type);
+        } else if (value instanceof ListExpr) {
+            return getTargetListExpr((ListExpr) value, type);
         } else {
             throw new IllegalStateException("Invalid value " + value);
         }
@@ -215,7 +298,7 @@ public interface TargetTypes {
      * target code.
      */
     default String getTargetTimeExpr(TimeValue tv) {
-        return getTargetTimeExpression(tv.time, tv.unit);
+        return getTargetTimeExpr(tv.time, tv.unit);
     }
 
     /**
@@ -223,6 +306,6 @@ public interface TargetTypes {
      * target code.
      */
     default String getTargetTimeExpr(Time t) {
-        return getTargetTimeExpression(t.getInterval(), t.getUnit());
+        return getTargetTimeExpr(t.getInterval(), t.getUnit());
     }
 }

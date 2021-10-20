@@ -48,7 +48,7 @@ object RustTypes : TargetTypes {
         if (ident in RustKeywords) "r#$ident"
         else ident
 
-    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): TargetCode = when (unit) {
+    override fun getTargetTimeExpr(magnitude: Long, unit: TimeUnit): TargetCode = when (unit) {
         TimeUnit.NSEC,
         TimeUnit.NSECS                    -> "Duration::from_nanos($magnitude)"
         TimeUnit.USEC,

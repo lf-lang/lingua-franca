@@ -370,7 +370,7 @@ private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
 private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
-    RustTypes.getTargetTimeExpression(interval, unit)
+    RustTypes.getTargetTimeExpr(interval, unit)
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
@@ -490,7 +490,7 @@ object RustModelBuilder {
                     StateVarInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        init = RustTypes.getTargetInitializer(it.init, it.type)
+                        init = it.init?.let { init -> RustTypes.getTargetInitializer(init, it.type) }
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
@@ -499,7 +499,7 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type)
+                        defaultValue = it.init?.let { init -> RustTypes.getTargetInitializer(init, it.type) }
                     )
                 }
             )
@@ -508,12 +508,10 @@ object RustModelBuilder {
     private fun Instantiation.toModel(): NestedReactorInstance {
 
         val byName = parameters.associateBy { it.lhs.name }
-        val args = reactor.parameters.associate { ithParam ->
+        val args = reactor.parameters.associate { ithParam: Parameter ->
             // use provided argument
-            val value = byName[ithParam.name]?.let {
-                RustTypes.getTargetInitializer(it.rhs, ithParam.type)
-            }
-                ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type) }
+            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type) }
+                ?: ithParam.init?.let { RustTypes.getTargetInitializer(it, ithParam.type) }
                 ?: throw InvalidLfSourceException("Cannot find value of parameter ${ithParam.name}", this)
             ithParam.name to value
         }
