@@ -62,7 +62,6 @@ target C {
     threads: 0,
     /// [[[end]]]
     flags: "-lm",
-    fast: true,
 };
 
 

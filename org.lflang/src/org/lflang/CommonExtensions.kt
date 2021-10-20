@@ -25,6 +25,7 @@
 package org.lflang
 
 import org.lflang.generator.TargetCode
+import org.lflang.util.StringUtil
 import java.util.*
 
 /**
@@ -93,20 +94,13 @@ internal fun String.withoutQuotes(): String {
  */
 internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
 
-
 /**
  * Convert a string in Camel case to snake case. E.g.
  * `MinimalReactor` will be converted to `minimal_reactor`.
  * The string is assumed to be a single camel case identifier
  * (no whitespace).
  */
-fun String.camelToSnakeCase(): String {
-    val words = this.split(Regex("(?<![A-Z])(?=[A-Z])"))
-        .map { it.toLowerCase(Locale.ROOT) }
-        .filter { it.isNotEmpty() }
-
-    return words.joinToString("_")
-}
+fun String.camelToSnakeCase(): String = StringUtil.camelToSnakeCase(this)
 
 private val nlPattern = Regex("\\R\\s+")
 

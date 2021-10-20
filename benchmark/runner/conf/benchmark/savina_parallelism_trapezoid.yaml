@@ -35,3 +35,13 @@ targets:
       left: ["--leftEndPoint", "<value>"]
       right: ["--rightEndPoint", "<value>"]
       workers: ["--numWorkers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism/Trapezoidal.lf"
+    lf_file: "Trapezoidal.lf"
+    binary: "Trapezoidal"
+    gen_args:
+      workers: ["-D", "workers=<value>"]
+      pieces: ["-D", "pieces=<value>"]
+      left: ["-D", "left=<value>"]
+      right: ["-D", "right=<value>"]

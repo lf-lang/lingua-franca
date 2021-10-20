@@ -29,7 +29,6 @@ package org.lflang.generator
 import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
@@ -213,7 +212,7 @@ class PythonGenerator extends CGenerator {
             return null
         }
 
-        var list = new LinkedList<String>();
+        var list = new ArrayList<String>();
 
         for (i : state?.init) {
             if (i.parameter !== null) {

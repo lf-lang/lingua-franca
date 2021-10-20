@@ -8,9 +8,9 @@
 #ifndef PSUEDO_RANDOM_H
 #define PSUEDO_RANDOM_H
 
-struct PseudoRandom {
+typedef struct PseudoRandom {
 	long mValue;
-};
+} PseudoRandom;
 
 void initPseudoRandom(struct PseudoRandom* random ,long mValue) {
     random->mValue = mValue;
