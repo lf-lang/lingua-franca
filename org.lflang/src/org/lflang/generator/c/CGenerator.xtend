@@ -723,9 +723,9 @@ class CGenerator extends GeneratorBase {
                 // If there are modes, create a table of mode state to be checked for transitions.
                 if (hasModalReactors) {
                     pr('''
-                        // Array of pointers to mode states to be handled in __handle_mode_changes().
-                        reactor_mode_state_t* __modal_reactor_states[«modalReactorCount»];
-                        int __modal_reactor_states_size = «modalReactorCount»;
+                        // Array of pointers to mode states to be handled in _lf_handle_mode_changes().
+                        reactor_mode_state_t* _lf_modal_reactor_states[«modalReactorCount»];
+                        int _lf_modal_reactor_states_size = «modalReactorCount»;
                     ''')
                 }
                 
@@ -835,8 +835,8 @@ class CGenerator extends GeneratorBase {
                 if (hasModalReactors) {
                     // Generate mode change detection
                     pr('''
-                        void __handle_mode_changes() {
-                            _lf_handle_mode_changes(__modal_reactor_states, __modal_reactor_states_size);
+                        void _lf_handle_mode_changes() {
+                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size);
                         }
                     ''')
                 }
@@ -2013,8 +2013,8 @@ class CGenerator extends GeneratorBase {
         if (!reactor.allModes.empty) {
             // Reactor's mode instances and its state.
             pr(null, body, '''
-                reactor_mode_t ___modes[«reactor.modes.size»];
-                reactor_mode_state_t ___mode_state;
+                reactor_mode_t _lf__modes[«reactor.modes.size»];
+                reactor_mode_state_t _lf__mode_state;
             ''')
             
             // Initialize the mode instances
@@ -2024,20 +2024,20 @@ class CGenerator extends GeneratorBase {
             for (modeAndIdx : reactor.allModes.indexed) {
                 val mode = modeAndIdx.value
                 pr(mode, constructorCode, '''
-                    self->___modes[«modeAndIdx.key»].state = &self->___mode_state;
-                    self->___modes[«modeAndIdx.key»].name = "«mode.name»";
-                    self->___modes[«modeAndIdx.key»].deactivation_time = 0;
+                    self->_lf__modes[«modeAndIdx.key»].state = &self->_lf__mode_state;
+                    self->_lf__modes[«modeAndIdx.key»].name = "«mode.name»";
+                    self->_lf__modes[«modeAndIdx.key»].deactivation_time = 0;
                 ''')
             }
             
             // Initialize mode state with initial mode active upon start
             pr(null, constructorCode, '''
                 // Initialize mode state
-                self->___mode_state.parent_mode = NULL;
-                self->___mode_state.initial_mode = &self->___modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
-                self->___mode_state.active_mode = self->___mode_state.initial_mode;
-                self->___mode_state.next_mode = NULL;
-                self->___mode_state.mode_change = 0;
+                self->_lf__mode_state.parent_mode = NULL;
+                self->_lf__mode_state.initial_mode = &self->_lf__modes[«reactor.modes.indexed.findFirst[it.value.initial].key»];
+                self->_lf__mode_state.active_mode = self->_lf__mode_state.initial_mode;
+                self->_lf__mode_state.next_mode = NULL;
+                self->_lf__mode_state.mode_change = 0;
             ''')
         }
         
@@ -2377,9 +2377,9 @@ class CGenerator extends GeneratorBase {
                     self->_lf__reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
                     self->_lf__reaction_«reactionCount».name = "?";
                     «IF reaction.eContainer instanceof Mode»
-                        self->___reaction_«reactionCount».mode = &self->___modes[«reactor.modes.indexOf(reaction.eContainer as Mode)»];
+                        self->_lf__reaction_«reactionCount».mode = &self->_lf__modes[«reactor.modes.indexOf(reaction.eContainer as Mode)»];
                     «ELSE»
-                        self->___reaction_«reactionCount».mode = NULL;
+                        self->_lf__reaction_«reactionCount».mode = NULL;
                     «ENDIF»
                 ''')
 
@@ -2923,8 +2923,8 @@ class CGenerator extends GeneratorBase {
                     val idx = reactor.allModes.indexOf(effect.variable as Mode)
                     if (idx >= 0) {
                         pr(reactionInitialization, '''
-                            reactor_mode_t* «effect.variable.name» = &self->___modes[«idx»];
-                            char _«effect.variable.name»_change_type = «effect.modeTransitionType === ModeTransitionTypes.HISTORY ? 2 : 1»;
+                            reactor_mode_t* «effect.variable.name» = &self->_lf__modes[«idx»];
+                            char _lf_«effect.variable.name»_change_type = «effect.modeTransitionType === ModeTransitionTypes.HISTORY ? 2 : 1»;
                         ''')
                     } else {
                         errorReporter.reportError(
@@ -3494,7 +3494,7 @@ class CGenerator extends GeneratorBase {
                 // Establish connection to enclosing mode
                 val mode = triggerInstance.getMode(false)
                 if (mode !== null) {
-                    val modeRef = '''&«selfStructName(mode.parent)»->___modes[«mode.parent.modes.indexOf(mode)»];'''
+                    val modeRef = '''&«selfStructName(mode.parent)»->_lf__modes[«mode.parent.modes.indexOf(mode)»];'''
                     pr(initializeTriggerObjects, '''«triggerStructName».mode = «modeRef»;''')
                 } else {
                     pr(initializeTriggerObjects, '''«triggerStructName».mode = NULL;''')
@@ -4116,23 +4116,23 @@ class CGenerator extends GeneratorBase {
         val parentMode = instance.getMode(false);
         // If this instance is enclosed in another mode
         if (parentMode !== null) {
-            val parentModeRef = '''&«selfStructName(parentMode.parent)»->___modes[«parentMode.parent.modes.indexOf(parentMode)»]'''
+            val parentModeRef = '''&«selfStructName(parentMode.parent)»->_lf__modes[«parentMode.parent.modes.indexOf(parentMode)»]'''
             pr(initializeTriggerObjects, "// Setup relation to enclosing mode")
             
             // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
             if (instance.modes.empty) {
                 for (reaction : instance.reactions.indexed) {
                     pr(initializeTriggerObjects, '''
-                        «selfStructName(reaction.value.parent)»->___reaction_«reaction.key».mode = «parentModeRef»;
+                        «selfStructName(reaction.value.parent)»->_lf__reaction_«reaction.key».mode = «parentModeRef»;
                     ''')
                 }
             } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
                 pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->___mode_state.parent_mode = «parentModeRef»;
+                    «nameOfSelfStruct»->_lf__mode_state.parent_mode = «parentModeRef»;
                 ''')
                 for (reaction : instance.reactions.filter[it.getMode(true) === null]) {
                     pr(initializeTriggerObjects, '''
-                        «selfStructName(reaction.parent)»->___reaction_«instance.reactions.indexOf(reaction)».mode = «parentModeRef»;
+                        «selfStructName(reaction.parent)»->_lf__reaction_«instance.reactions.indexOf(reaction)».mode = «parentModeRef»;
                     ''')
                 }
             }
@@ -4141,7 +4141,7 @@ class CGenerator extends GeneratorBase {
         if (!instance.modes.empty) {
             pr(initializeTriggerObjects, '''
                 // Register for transition handling
-                __modal_reactor_states[«modalReactorCount++»] = &«nameOfSelfStruct»->___mode_state;
+                _lf_modal_reactor_states[«modalReactorCount++»] = &«nameOfSelfStruct»->_lf__mode_state;
             ''')
         }
         
