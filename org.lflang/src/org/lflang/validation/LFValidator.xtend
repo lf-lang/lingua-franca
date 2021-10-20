@@ -81,6 +81,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.federated.SupportedSerializers
 
 /**
@@ -204,7 +205,7 @@ class LFValidator extends BaseLFValidator {
             error(UNDERSCORE_MESSAGE + name, feature)
         }
 
-        if (this.target.keywords.contains(name)) {
+        if (this.target.isReservedIdent(name)) {
             error(RESERVED_MESSAGE + name, feature)
         }
 
