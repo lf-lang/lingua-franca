@@ -585,7 +585,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
             |
             |[dependencies]
             |env_logger = "0.9"
-            |log = "0.4"
+            |log = { version = "0.4", features = ["release_max_level_info"] }
             |assert_matches = {version = "1", optional = true}
             |clap = {version = "=3.0.0-beta.5", optional = true}
 ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec) -> name + " = " + spec.toToml() }}
