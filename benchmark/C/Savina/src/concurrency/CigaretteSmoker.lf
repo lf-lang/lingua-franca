@@ -1,0 +1,176 @@
+/*
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark "solves" the Cigarette Smoker Problem similarly to the
+ * original Savina implementation in Akka. However, it is important to note
+ * first, that the Savina implementation does not actually model the resources
+ * (paper, matches, tobacco) and thus does not provide a complete solution. It
+ * only uses a pattern similar to a common solution of the Cigaratte Smokers
+ * Problem. This solution uses an arbitrator that tells the smokers when they
+ * can grab the resources and make a cigarette. Since no resources are modelled
+ * in Savina, the arbitrator actually just randomly selects a smoker and tells
+ * it to smoke.
+ *
+ * The process of smoking is implemented in the Savina suite by calling Java
+ * `Math.random()` a few times in a loop. Converting this "workload" to another
+ * language is non-trivial, as likely no similar function with the precise same
+ * implementation exists. For the C++ port here, we use `rand()` from stdlib.
+ * This is a significant restriction of this benchmark and limits the
+ * comparability of results obtained from Akka and from LF C++.
+ *
+ * In the Cigarette Smokers problem, the arbitrator needs to ensure that only
+ * one smoker can access the table (and its resources) at once. However, once
+ * the smoker made her cigarette and returned the resources, it can "smoke" in
+ * parallel to the other smokers. This parallel execution of smoke operations is
+ * also implemented in the Savina suite. Due to the asynchronous execution of
+ * actors, multiple actors can smoke while only a single actor can make a
+ * cigarette.
+ *
+ * Achieving the parallel execution of smoke operations in LF, however, is
+ * non-trivial. In order to send the resources to the next smoker, the
+ * arbitrator needs to advance logical time by scheduling an action. But, due to
+ * barrier synchronization in the LF runtime, all reactions need to be processed
+ * before advancing logical time. This means, the smoker needs to finish its
+ * smoke reaction before we can advance to the next tag and send the resources
+ * to the next smoker.
+ *
+ * In an alternative solution (this was actually implemented earlier by Hannes),
+ * each smoker could have an additional thread and use this thread to process
+ * the workload asynchronously. This requires an explicit synchronization
+ * mechanisms and getting the interaction between arbitrator, smoker and worker
+ * thread right appears to be hard. However, the workload in this particular
+ * benchmark is processed very rapidly (it produces at most 1000 random
+ * numbers). Thus, the synchronisation overhead required when using an
+ * additional worker thread outweighs the benefit of parallel execution. The
+ * synchronous implementation where only one smoker smokes at a time proved to
+ * be significantly faster.
+ *
+ * Still, finding a simple and efficient solution that processes the smoker
+ * workload in parallel would be an interesting problem. If the process of
+ * making the cigarette is much faster than the smoking, one option would be to
+ * serialize the cigarette making and let the smokers wait before starting to
+ * smoke. This way, we can wait until all smokers have a cigarette and then let
+ * them start smoking all at once in parallel. This could be achieved with
+ * logical actions in each smoker by scheduling each action at a specific known
+ * tag.
+ *
+ * @author Christian Menard 
+ * @author Hannes Klein
+ */
+
+target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    files: "../include/PseudoRandom.h"
+};
+
+
+reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
+    
+    preamble {=
+        #include "PseudoRandom.h"
+    =}
+    
+    state roundsSoFar: size_t(0);
+    state random: PseudoRandom*;
+    
+    input inStart:bool;
+    output outFinished:bool;
+
+    output[numSmokers] startSmoking: size_t;
+    
+    logical action chooseSmoker;
+    logical action stop;
+    
+    reaction(inStart) -> chooseSmoker {=
+        // Initialize the random state variable
+        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
+        self->random->mValue = self->numRounds * self->numSmokers;
+        // reset local state
+        self->roundsSoFar = 0;
+        
+        // start excution
+        schedule(chooseSmoker, 0);
+    =}
+    
+    reaction(chooseSmoker) -> startSmoking, chooseSmoker, stop {=
+        // assume resources grabbed instantaneously and choose a random smoker to start smoking
+        int newSmokerIndex = labs(nextInt(self->random)) % self->numSmokers;
+
+        // new PseudoRandom for busyWaitPeriod
+        PseudoRandom* gen = (PseudoRandom*)malloc(sizeof(PseudoRandom));
+        gen->mValue = 1000;
+        int busyWaitPeriod = nextInt(gen) + 10;
+        free(gen);
+
+        SET(startSmoking[newSmokerIndex], busyWaitPeriod);
+        
+        // no need to wait for feedback from the smoker, as it starts smoking (logically) instantaneously
+        // We can immediately schedule the next round
+        
+        self->roundsSoFar++;
+        if (self->roundsSoFar >= self->numRounds) {
+            schedule(stop, 0);
+        } else {
+            // trigger the next round
+            schedule(chooseSmoker, 0);
+        }
+    =}
+    
+    reaction(stop) -> outFinished {=
+        SET(outFinished, true);
+    =}
+}
+
+reactor SmokerReactor {
+
+    preamble {=
+        size_t busyWait(size_t limit) {
+            size_t test = 0;
+            for(size_t k = 0; k < limit; k++) {
+                // Math.random() is used as workload in the original savina benchmark suite
+                // FIXME: What is equivalent in Cpp complexity-wise? maybe rand()??
+                rand();
+                test++;
+            }
+            return test;
+        }
+    =}
+     
+    input startSmoking: size_t;
+    
+    reaction(startSmoking){=
+        size_t limit = startSmoking->value;
+        busyWait(limit);
+    =}
+    
+}
+
+
+/* [[[cog
+    cog.outl(f'main reactor (numRounds:size_t({numRounds}), numSmokers:size_t({numSmokers}))')
+]]] */
+main reactor (numRounds:size_t(1000), numSmokers:size_t(200))
+/// [[[end]]]
+
+{
+    
+    arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=numSmokers);
+    
+    
+    reaction(startup) ->arbiter.inStart {=
+        // based on the Savina implementation:
+        srand(time(NULL));
+        SET(arbiter.inStart, true);
+    =}
+    
+    smokers = new[numSmokers] SmokerReactor();
+    
+    arbiter.startSmoking -> smokers.startSmoking;
+}

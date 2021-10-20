@@ -62,7 +62,7 @@ class ActionInstance extends TriggerInstance<Action> {
     new(Action definition, ReactorInstance parent) {
         super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create an ActionInstance with no parent.')
+            throw new InvalidSourceException('Cannot create an ActionInstance with no parent.')
         }
         this.minDelay = parent.resolveTimeValue(definition?.minDelay) ?: DEFAULT_MIN_DELAY
         // TODO introduce default value?

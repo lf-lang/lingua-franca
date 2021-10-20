@@ -33,7 +33,7 @@ import org.lflang.lf.Initializer
 import org.lflang.lf.Parameter
 import org.lflang.lf.ParamRef
 
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /** 
  * Representation of a runtime instance of a parameter.
@@ -59,7 +59,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
     new(Parameter definition, ReactorInstance parent) {
         super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create a ParameterInstance with no parent.')
+            throw new InvalidSourceException('Cannot create a ParameterInstance with no parent.')
         }
         
         this.type = definition.inferredType

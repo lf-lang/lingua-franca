@@ -59,6 +59,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 import org.lflang.generator.c.CCompiler
 
@@ -338,7 +339,7 @@ class PythonGenerator extends CGenerator {
         }
 
     }
-    
+
     /**
      * Wrapper function for the more elaborate generatePythonReactorClass that keeps track
      * of visited reactors to avoid duplicate generation

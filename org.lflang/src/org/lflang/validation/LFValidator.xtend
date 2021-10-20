@@ -30,7 +30,6 @@ import com.google.inject.Inject
 
 import java.util.ArrayList
 import java.util.HashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.Set
 
@@ -92,6 +91,7 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.federated.SupportedSerializers
 
 /**
@@ -151,9 +151,9 @@ class LFValidator extends BaseLFValidator {
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
 
-    val List<String> targetPropertyErrors = newLinkedList
+    val List<String> targetPropertyErrors = new ArrayList
 
-    val List<String> targetPropertyWarnings = newLinkedList
+    val List<String> targetPropertyWarnings = new ArrayList
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
@@ -215,7 +215,7 @@ class LFValidator extends BaseLFValidator {
             error(UNDERSCORE_MESSAGE + name, feature)
         }
 
-        if (this.target.keywords.contains(name)) {
+        if (this.target.isReservedIdent(name)) {
             error(RESERVED_MESSAGE + name, feature)
         }
 
@@ -397,7 +397,7 @@ class LFValidator extends BaseLFValidator {
         checkValueIsTime(connection.delay?.value, Literals.CONNECTION__DELAY)
 
         // Report if connection is part of a cycle.
-        for (cycle : this.info.topologyGraph.cycles) {
+        for (cycle : this.info.topologyCycles()) {
             for (lp : connection.leftPorts) {
                 for (rp : connection.rightPorts) {
                     var leftInCycle = false
@@ -874,11 +874,11 @@ class LFValidator extends BaseLFValidator {
         }
 
         // Report error if this reaction is part of a cycle.
-        for (cycle : this.info.topologyGraph.cycles) {
+        for (cycle : this.info.topologyCycles()) {
             val reactor = (reaction.eContainer) as Reactor
             if (cycle.exists[it.definition === reaction]) {
                 // Report involved triggers.
-                val trigs = new LinkedList()
+                val trigs = new ArrayList()
                 reaction.triggers.forEach [ t |
                     (t instanceof VarRef && cycle.exists [ c |
                         c.definition === (t as VarRef).variable
@@ -891,7 +891,7 @@ class LFValidator extends BaseLFValidator {
                 }
 
                 // Report involved sources.
-                val sources = new LinkedList()
+                val sources = new ArrayList()
                 reaction.sources.forEach [ t |
                     (cycle.exists[c|c.definition === t.variable])
                         ? sources.add(t.toText)
@@ -904,7 +904,7 @@ class LFValidator extends BaseLFValidator {
                 }
 
                 // Report involved effects.
-                val effects = new LinkedList()
+                val effects = new ArrayList()
                 reaction.effects.forEach [ t |
                     (cycle.exists[c|c.definition === t.variable])
                         ? effects.add(t.toText)

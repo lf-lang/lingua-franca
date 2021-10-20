@@ -33,7 +33,7 @@ import java.nio.file.Paths
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
+import java.util.ArrayList
 import java.util.List
 import java.util.Map
 import java.util.Set
@@ -81,13 +81,13 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
-import org.lflang.lf.Type
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Generator base class for shared code between code generators.
@@ -99,7 +99,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator {
+abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -160,7 +160,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * such a way that each reactor is preceded by any reactor that it instantiates
      * using a command like `foo = new Foo();`
      */
-    protected var List<Reactor> reactors = newLinkedList
+    protected var List<Reactor> reactors = new ArrayList
     
     /**
      * The set of resources referenced reactor classes reside in.
@@ -195,7 +195,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Map from reactions to bank indices
      */
     protected var Map<Reaction,Integer> reactionBankIndices = null
-    
+
     /**
      * Keep a unique list of enabled serializers
      */
@@ -213,7 +213,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * A list of federate instances or a list with a single empty string
      * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
      */
-    public var List<FederateInstance> federates = new LinkedList<FederateInstance>
+    public var List<FederateInstance> federates = new ArrayList<FederateInstance>
 
     /**
      * A map from federate IDs to federate instances.
@@ -243,7 +243,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * The name of the top-level reactor.
      */
     protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
-    
+
     // //////////////////////////////////////////
     // // Private fields.
     /**
@@ -298,8 +298,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Accommodate the physical actions in the main .lf file
         accommodatePhysicalActionsIfPresent(fileConfig.resource);
 
-        // Override target properties if specified as command line arguments.
-        if (context instanceof StandaloneContext) {
+       // Override target properties if specified as command line arguments.
+       if (context instanceof StandaloneContext) {
             if (context.args.containsKey("no-compile")) {
                 targetConfig.noCompile = true
             }
@@ -327,11 +327,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
     }
-    
+
     /**
      * Look for physical actions in 'resource'.
      * If found, take appropriate actions to accommodate.
-     * 
+     *
      * Set keepalive to true.
      */
     protected def void accommodatePhysicalActionsIfPresent(Resource resource) {
@@ -441,10 +441,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
-        
+
         if (!enabledSerializers.isNullOrEmpty) {
             // If serialization support is
-            // requested by the programmer 
+            // requested by the programmer
             // enable support for them.
             enableSupportForSerialization(context.cancelIndicator);
         }
@@ -539,7 +539,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             fileConfig,
                             targetConfig)
                     );
-                    
+
                     // Accommodate the physical actions in the imported .lf file
                     accommodatePhysicalActionsIfPresent(res);
                     // FIXME: Should the GeneratorBase pull in `files` from imported
@@ -553,7 +553,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Copy all files listed in the target property `files` into the
      * src-gen folder of the main .lf file.
-     * 
+     *
      * @param targetConfig The targetConfig to read the `files` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
@@ -568,7 +568,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     fileConfig.srcFile.parent,
                     targetDir);
             if (relativeFileName.isNullOrEmpty) {
-                errorReporter.reportError( 
+                errorReporter.reportError(
                     "Failed to find file " + filename + "specified in the" +
                     " files target property."
                 )
@@ -756,7 +756,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      */
     protected def runBuildCommand() {
-        var commands = newLinkedList
+        var commands = new ArrayList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 0) {
@@ -808,12 +808,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
         var TargetDecl targetDecl
         for (t : resource.allContents.toIterable.filter(TargetDecl)) {
             if (targetDecl !== null) {
-                throw new RuntimeException("There is more than one target!") // FIXME: check this in validator
+                throw new InvalidSourceException("There is more than one target!") // FIXME: check this in validator
             }
             targetDecl = t
         }
         if (targetDecl === null) {
-            throw new RuntimeException("No target found!")
+            throw new InvalidSourceException("No target found!")
         }
         targetDecl
     }
@@ -894,7 +894,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int receivingPortID,
         TimeValue maxSTP
     ) {
-        throw new UnsupportedOperationException("This target does not support network connections between federates.")        
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }    
     
     /**
@@ -916,13 +916,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
         int sendingChannelIndex,
         TimeValue delay
     ) {
-        throw new UnsupportedOperationException("This target does not support network connections between federates.")        
+        throw new UnsupportedOperationException("This target does not support network connections between federates.")
     }
-    
+
     /**
      * Add necessary code to the source and necessary build support to
      * enable the requested serializations in 'enabledSerializations'
-     */   
+     */
     def void enableSupportForSerialization(CancelIndicator cancelIndicator) {
         throw new UnsupportedOperationException(
             "Serialization is target-specific "+
@@ -1371,10 +1371,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  not a multiport.
      */
     protected def List<String> multiportWidthSpec(Variable variable) {
-        var result = null as LinkedList<String>
+        var result = null as List<String>
         if (variable instanceof Port) {
             if (variable.widthSpec !== null) {
-                result = new LinkedList<String>()
+                result = new ArrayList<String>()
                 if (!variable.widthSpec.ofVariableLength) {
                     for (term : variable.widthSpec.terms) {
                         if (term.parameter !== null) {
@@ -1488,7 +1488,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // Since federates are always within the main (federated) reactor,
             // create a list containing just that one containing instantiation.
             // This will be used to look up parameter values.
-            val context = new LinkedList<Instantiation>();
+            val context = new ArrayList<Instantiation>();
             context.add(mainDef);
 
             // Create a FederateInstance for each top-level reactor.
@@ -1500,7 +1500,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     bankWidth = 1;
                 }
                 // Create one federate instance for each reactor instance in the bank of reactors.
-                val federateInstances = new LinkedList<FederateInstance>();
+                val federateInstances = new ArrayList<FederateInstance>();
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.size
@@ -1519,8 +1519,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
                         /* FIXME: The at keyword should support a directory component.
                          * federateInstance.dir = instantiation.host.dir
                          */
-                        if (federateInstance.host !== null && 
-                            federateInstance.host != 'localhost' && 
+                        if (federateInstance.host !== null &&
+                            federateInstance.host != 'localhost' &&
                             federateInstance.host != '0.0.0.0'
                         ) {
                             federateInstance.isRemote = true;
@@ -1558,7 +1558,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Since federates are always within the main (federated) reactor,
         // create a list containing just that one containing instantiation.
         // This will be used to look up parameter values.
-        val context = new LinkedList<Instantiation>();
+        val context = new ArrayList<Instantiation>();
         context.add(mainDef);
         
         // Each connection in the AST may represent more than one connection between
@@ -1687,24 +1687,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     def boolean generateAfterDelaysWithVariableWidth() { return true }
 
     /**
-     * Return true if the target supports generics (i.e., parametric
-     * polymorphism), false otherwise.
-     */
-    abstract def boolean supportsGenerics()
-
-    abstract def String getTargetTimeType()
-
-    abstract def String getTargetTagType()
-
-    abstract def String getTargetTagIntervalType()
-
-    abstract def String getTargetUndefinedType()
-
-    abstract def String getTargetFixedSizeListType(String baseType, Integer size)
-
-    abstract def String getTargetVariableSizeListType(String baseType);
-    
-    /**
      * Get the buffer type used for network messages
      */
     def String getNetworkBufferType() ''''''
@@ -1713,29 +1695,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Return the Targets enum for the current target
      */
     abstract def Target getTarget()
-
-    /**
-     * Return a string representing the specified type in the target language.
-     * @param type The type.
-     */
-    def String getTargetType(InferredType type) {
-        if (type.isUndefined) {
-            return targetUndefinedType
-        } else if (type.isTime) {
-            if (type.isFixedSizeList) {
-                return targetTimeType.getTargetFixedSizeListType(type.listSize)
-            } else if (type.isVariableSizeList) {
-                return targetTimeType.targetVariableSizeListType
-            } else {
-                return targetTimeType
-            }
-        } else if (type.isFixedSizeList) {
-            return type.baseType.getTargetFixedSizeListType(type.listSize)
-        } else if (type.isVariableSizeList) {
-            return type.baseType.targetVariableSizeListType
-        }
-        return type.toText
-    }
 
     protected def getTargetType(Parameter p) {
         return p.inferredType.targetType
@@ -1751,10 +1710,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
     protected def getTargetType(Port p) {
         return p.inferredType.targetType
-    }
-
-    protected def getTargetType(Type t) {
-        InferredType.fromAST(t).targetType
     }
 
     /**

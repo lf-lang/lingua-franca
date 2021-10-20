@@ -61,6 +61,7 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.InvalidSourceException
 import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
@@ -91,6 +92,7 @@ import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 
 /** 
@@ -3147,7 +3149,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                                 for (portWithDependentReactions : portsWithDependentReactions) {
@@ -3170,7 +3172,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error 2: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error 2: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                             }
@@ -3489,7 +3491,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->_lf_«port.name»«destinationIndexSpec»'''
         } else {
-            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
+            throw new InvalidSourceException("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -4080,7 +4082,7 @@ class CGenerator extends GeneratorBase {
      */
     private def void generateReactionOutputs(
         ReactionInstance reaction, 
-        LinkedHashSet<PortInstance> portAllocatedAlready
+        Set<PortInstance> portAllocatedAlready
     ) {
         val nameOfSelfStruct = selfStructName(reaction.parent);
 
@@ -5878,13 +5880,10 @@ class CGenerator extends GeneratorBase {
     override getTargetTimeType() '''interval_t'''
     
     override getTargetTagType() '''tag_t'''
-    
-    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
-    override getTargetFixedSizeListType(String baseType,
-        Integer size) '''«baseType»[«size»]'''
+    override getTargetFixedSizeListType(String baseType, int size) '''«baseType»[«size»]'''
         
     override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''

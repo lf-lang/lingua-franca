@@ -30,3 +30,16 @@ targets:
       waiting_room_size: ["--waitingRoomSize", "<value>"]
       production_rate: ["--averageProductionRate", "<value>"]
       haircut_rate: ["--averageHaircutRate", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
+    lf_file: "concurrency/SleepingBarber.lf"
+    binary: "SleepingBarber"
+    gen_args:
+      haircuts: ["-D", "numHaircuts=<value>"]
+      waiting_room_size: ["-D", "waitingRoomSize=<value>"]
+      production_rate: ["-D", "averageProductionRate=<value>"]
+      haircut_rate: ["-D", "averageHaircutRate=<value>"]
+
+

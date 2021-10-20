@@ -57,7 +57,7 @@ class TimerInstance extends TriggerInstance<Timer> {
 	new(Timer definition, ReactorInstance parent) {
 		super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create an TimerInstance with no parent.')
+            throw new InvalidSourceException('Cannot create an TimerInstance with no parent.')
         }
         this.offset = parent.resolveTimeValue(definition?.offset) ?: DEFAULT_OFFSET
         this.period = parent.resolveTimeValue(definition?.period) ?: DEFAULT_PERIOD

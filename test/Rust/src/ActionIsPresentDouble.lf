@@ -1,0 +1,22 @@
+// Test logical action with delay.
+target Rust;
+
+main reactor ActionIsPresentDouble {
+    logical action act0;
+    logical action act1(100 msec);
+
+    reaction(startup) -> act0, act1 {=
+        ctx.schedule(act0, after!(100 ms));
+        ctx.schedule(act1, after!(0 ms));
+        ctx.schedule(act1, Asap);
+    =}
+
+    reaction(act1, act0) {=
+        assert!(ctx.is_present(act0));
+        assert!(ctx.is_present(act1));
+        if ctx.get_tag() == tag!(T0 + 100 ms) {
+            println!("success");
+        }
+    =}
+
+}

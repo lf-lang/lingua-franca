@@ -1,0 +1,8 @@
+lfc: error: mismatched input '<EOF>' expecting 'target'
+--> %%%PATH.lf%%%:1:1
+  |
+1 | 
+  | ^ mismatched input '<EOF>' expecting 'target'
+  |
+2 | 
+
