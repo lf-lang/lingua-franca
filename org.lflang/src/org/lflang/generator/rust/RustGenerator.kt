@@ -31,6 +31,7 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.rust.RustTargetConfig.CargoProfile
 import org.lflang.joinWithCommas
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -91,12 +92,14 @@ class RustGenerator(
             this += listOf(
                 "+nightly",
                 "build",
-                // fixme i've seen test pass with --release and fail otherwise!
-                "--release", // enable optimisations
                 // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
                 "-Z", "unstable-options", // ... and that feature flag
             )
+
+            if (targetConfig.rust.buildProfile == CargoProfile.RELEASE) {
+                this += "--release"
+            }
 
             if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
