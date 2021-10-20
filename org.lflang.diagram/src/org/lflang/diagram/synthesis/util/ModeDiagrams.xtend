@@ -62,9 +62,9 @@ import org.lflang.lf.Timer
 import org.lflang.lf.VarRef
 
 import static org.lflang.diagram.synthesis.LinguaFrancaSynthesis.*
-import static org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 
 /**
@@ -74,9 +74,10 @@ import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
 class ModeDiagrams extends AbstractSynthesisExtensions {
     
     // Related synthesis option
-    public static val SynthesisOption MODES_CATEGORY = SynthesisOption.createCategory("Modes", true).setCategory(LinguaFrancaSynthesis.APPEARANCE)
+    public static val SynthesisOption MODES_CATEGORY = SynthesisOption.createCategory("Modes", false).setCategory(LinguaFrancaSynthesis.APPEARANCE)
     //public static val SynthesisOption BREAK_CONNECTIONS = SynthesisOption.createCheckOption("Partition Connections into Modes", true).setCategory(MODES_CATEGORY)
     public static val SynthesisOption SHOW_TRANSITION_LABELS = SynthesisOption.createCheckOption("Transition Labels", true).setCategory(MODES_CATEGORY)
+    public static val SynthesisOption INITIALLY_COLLAPSE_MODES = SynthesisOption.createCheckOption("Initially Collapse Modes", true).setCategory(MODES_CATEGORY)
     
     private static val MODE_FG = Colors.SLATE_GRAY
     private static val MODE_BG = Colors.SLATE_GRAY_3
@@ -109,6 +110,8 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                     node.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
                 }
                 node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
+                
+                node.setLayoutOption(KlighdProperties.EXPAND, mode.getExpansionState?:(!INITIALLY_COLLAPSE_MODES.booleanValue))
                 
                 // Expanded Rectangle
                 node.addModeFigure(mode, true) => [
@@ -166,7 +169,9 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
             val modeContainer = createNode() => [
                 children += modeNodes.values
                 
-                val fig = addModeContainerFigure
+                val fig = addModeContainerFigure => [
+                    addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+                ]
                 if (modeChildren.get(null).empty) {
                     fig.invisible = true
                     setLayoutOption(CoreOptions.PADDING, new ElkPadding())
