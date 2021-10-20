@@ -512,6 +512,18 @@ public abstract class TestBase {
             }
         }
         case TS: {
+            var binPath = test.fileConfig.binPath;
+            var binaryName = nameOnly;
+            // Adjust binary extension if running on Window
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                binaryName += ".exe";
+            }
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // If execution script exists, run it.
+                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+            }
+            // If execution script does not exist, run .js directly.
             var dist = test.fileConfig.getSrcGenPath().resolve("dist");
             var file = dist.resolve(nameOnly + ".js");
             if (Files.exists(file)) {
