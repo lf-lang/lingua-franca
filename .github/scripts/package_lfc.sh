@@ -21,7 +21,7 @@ mv org.lflang.lfc/build/libs/org.lflang.lfc-*-SNAPSHOT-all.jar "${outname}/lib/j
 cp -a lib/scripts "${outname}/lib/"
 ln -s "../lib/scripts/launch.sh" "${outname}/bin/lfc"
 # copy the PowerShell script
-cp bin/lfc "${outname}/bin/lfc.ps1"
+cp bin/lfc.ps1 "${outname}/bin/lfc.ps1"
 
 # zip/tar everything - the files will be put into the build_upload directory
 mkdir -p build_upload
