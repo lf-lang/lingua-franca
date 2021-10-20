@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,6 +30,8 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.lflang.CommonExtensionsKt;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -83,12 +87,12 @@ public abstract class TestBase {
 
     /** The targets for which to run the tests. */
     private final List<Target> targets;
-
     /**
      * Whether the goal is to only computer code coverage, in which we cut down
      * on verbosity of our error reporting.
      */
     protected boolean codeCovOnly;
+
 
 
     /**
@@ -97,7 +101,6 @@ public abstract class TestBase {
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
-
     /**
      * A collection messages often used throughout the test package.
      *
@@ -113,6 +116,7 @@ public abstract class TestBase {
         public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public static final String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
+
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
@@ -246,14 +250,25 @@ public abstract class TestBase {
 
 
     /**
-     * Run a given test up to the specified level.
+     * Run a test, print results on stderr.
      *
-     * @param test The test to perform.
-     * @param level The level of testing to perform.
+     * @param test      Test case.
+     * @param testClass The test class that will execute the test. This is target-specific,
+     *                  it may provide some target-specific configuration. We pass a class
+     *                  and not a new instance because this method needs to ensure the object
+     *                  is properly injected, and so, it needs to control its entire lifecycle.
+     * @param level     Level to which to run the test.
      */
-    public static void runSingleTestAndPrintResults(LFTest test, TestLevel level) {
+    public static void runSingleTestAndPrintResults(LFTest test, Class<? extends TestBase> testClass, TestLevel level) {
         Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
-        TestBase runner = new TestBase(test.target) {};
+        TestBase runner;
+        try {
+            @SuppressWarnings("unchecked")
+            Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) testClass.getConstructors()[0];
+            runner = constructor.newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new IllegalStateException(e);
+        }
         injector.injectMembers(runner);
 
         Set<LFTest> tests = Set.of(test);
@@ -331,7 +346,6 @@ public abstract class TestBase {
      * @throws IOException if there is any file access problem
      */
     private GeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
-
         var context = new StandaloneContext();
         // Update file config, which includes a fresh resource that has not
         // been tampered with using AST transformations.
@@ -460,12 +474,17 @@ public abstract class TestBase {
         switch (test.target) {
         case C:
         case CPP:
+        case Rust:
         case CCPP: {
             var binPath = test.fileConfig.binPath;
             var binaryName = nameOnly;
+            if (test.target == Target.Rust) {
+                // rust binaries uses snake_case
+                binaryName = CommonExtensionsKt.camelToSnakeCase(binaryName);
+            }
             // Adjust binary extension if running on Window
             if (System.getProperty("os.name").startsWith("Windows")) {
-                binaryName = nameOnly + ".exe";
+                binaryName += ".exe";
             }
 
             var fullPath = binPath.resolve(binaryName);
@@ -559,5 +578,4 @@ public abstract class TestBase {
 
         System.out.print(System.lineSeparator());
     }
-
 }

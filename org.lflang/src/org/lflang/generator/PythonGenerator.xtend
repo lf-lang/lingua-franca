@@ -58,6 +58,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 import org.lflang.generator.c.CCompiler
 
