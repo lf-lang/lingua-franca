@@ -1,8 +1,0 @@
-name: lf-rust
-prepare: ["mkdir", "src"]
-copy: ["cp", "-r", "${benchmark.targets.lf-rust.copy_sources}", "src"]
-gen: null
-compile: ["${lf_path}/bin/lfc","--external-runtime-path","/home/clem/Documents/LF/reactor-rust", "src/${benchmark.targets.lf-rust.lf_file}"]
-run: ["bash", "-c", "seq ${iterations} | xargs -I{} bin/${benchmark.targets.lf-rust.binary}"]
-parser:
-  _target_: "parser.parse_lf_rust_output"

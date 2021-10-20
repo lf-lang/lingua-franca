@@ -4,7 +4,6 @@ copy: null
 gen: null
 compile: null
 run: ["java", "-classpath", "${benchmark.targets.akka.jar}",
-      "-Duser.language=en", "-Duser.country=US", #normalize locale
       "${benchmark.targets.akka.class}",
       "-workers", "${threads}",
       "-iter", "${iterations}",

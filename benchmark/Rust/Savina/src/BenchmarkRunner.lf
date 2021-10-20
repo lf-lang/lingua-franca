@@ -1,7 +1,0 @@
-target Rust;
-
-reactor BenchmarkRunner {
-    reaction(shutdown) {=
-        println!("---- Elapsed physical time (in nsec): {}", ctx.get_elapsed_physical_time().as_nanos());
-    =}
-}
