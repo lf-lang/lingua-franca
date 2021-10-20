@@ -1,20 +1,14 @@
 /**
  * Stand-alone version of the Lingua Franca compiler (lfc).
  */
+
 package org.lflang.lfc;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -35,6 +29,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -56,31 +51,9 @@ import com.google.inject.Provider;
 public class Main {
 
     /**
-     * The location of the class file of this class inside of the jar.
-     */
-    private static String MAIN_PATH_IN_JAR = String.join("/",
-                                                         new String[] {"!", "org", "lflang", "lfc", "Main.class"});
-
-
-    /**
      * Object for interpreting command line arguments.
      */
     protected CommandLine cmd;
-
-    /**
-     * Path to the jar.
-     */
-    protected Path jarPath;
-
-    /**
-     * Path to the root of the org.lflang source tree.
-     */
-    protected Path srcPath;
-
-    /**
-     * Path to the project root.
-     */
-    protected Path rootPath;
 
     /**
      * Injected resource provider.
@@ -133,8 +106,6 @@ public class Main {
         CLEAN("c", "clean", false, false, "Clean before building.", true),
         HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
-        REBUILD("r", "rebuild", false, false, "Rebuild the LF compiler first.", false),
-        UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the LF compiler (requires Internet connection).", false),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", false, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
@@ -194,27 +165,11 @@ public class Main {
                          .filter(opt -> opt.passOn).map(opt -> opt.option)
                          .collect(Collectors.toList());
         }
-
-    }
-
-    /**
-     * Indicate whether or not a rebuild and library update must occur.
-     * @return whether or not the update flag is present.
-     */
-    private boolean mustUpdate() {
-        return cmd.hasOption(CLIOption.UPDATE.option.getOpt());
-    }
-
-    /**
-     * Indicate whether or not a rebuild must occur.
-     * @return whether or not the rebuild or update flag is present.
-     */
-    private boolean mustRebuild() {
-        return mustUpdate() || cmd.hasOption(CLIOption.REBUILD.option.getOpt());
     }
 
     /**
      * Main function of the stand-alone compiler.
+     *
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
@@ -231,20 +186,6 @@ public class Main {
         CommandLineParser parser = new DefaultParser();
         // Helper object for printing "help" menu.
         HelpFormatter formatter = new HelpFormatter();
-        // Object used to print messages.
-        // We could easily support eg a "quiet" mode that
-        // disables warnings, or a "no colors" mode for CI environments.
-
-        try {
-            String mainClassUrl = Main.class.getResource("Main.class").toString();
-            String jarUrl = mainClassUrl.replace("jar:", "").replace(MAIN_PATH_IN_JAR, "");
-
-            main.jarPath = Paths.get(new URL(jarUrl).toURI());
-            main.srcPath = main.jarPath.getParent().getParent().getParent().resolve("src").normalize();
-            main.rootPath = main.jarPath.getParent().getParent().getParent().getParent().normalize();
-        } catch (MalformedURLException | URISyntaxException e) {
-            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-        }
 
         try {
             main.cmd = parser.parse(options, args, true);
@@ -254,140 +195,23 @@ public class Main {
                 System.exit(0);
             }
 
-            // If the rebuild flag is not used, or if it is used but the jar
-            // is not out of date, continue with the normal flow of execution.
-            if (!main.mustRebuild() || (main.mustRebuild() && !main.rebuildAndFork())) {
-                List<String> files = main.cmd.getArgList();
+            List<String> files = main.cmd.getArgList();
 
-                if (files.size() < 1) {
-                    reporter.printFatalErrorAndExit("No input files.");
-                }
-                try {
-                    List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
-                    main.runGenerator(paths, injector);
-                } catch (RuntimeException e) {
-                    reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-                }
+            if (files.size() < 1) {
+                reporter.printFatalErrorAndExit("No input files.");
+            }
+            try {
+                List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
+                main.runGenerator(paths, injector);
+            } catch (RuntimeException e) {
+                reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
+
             }
         } catch (ParseException e) {
             reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
             formatter.printHelp("lfc", options);
             System.exit(1);
         }
-    }
-
-    /**
-     * Fork off a new process (that is an execution of a freshly rebuilt jar)
-     * and wait for it to return.
-     *
-     * @param cmd The CommandLine object that has stored in it the CLI
-     * arguments of the parent process, to be passed on to the child process.
-     */
-    private void forkAndWait(CommandLine cmd) {
-        List<String> cmdList = new ArrayList<>();
-        cmdList.add("java");
-        cmdList.add("-jar");
-        cmdList.add(jarPath.toString());
-        for (Option o : cmd.getOptions()) {
-            // Drop -r and -u flags to prevent an infinite loop in case the
-            // source fails to compile.
-            if (!CLIOption.REBUILD.option.equals(o)
-                    && !CLIOption.UPDATE.option.equals(o)) {
-                // pass all other options on to the new command
-                cmdList.add("--" + o.getLongOpt());
-                if (o.hasArg()) {
-                    cmdList.add(o.getValue());
-                }
-            }
-        }
-        cmdList.addAll(cmd.getArgList());
-        Process p;
-        try {
-            p = new ProcessBuilder(cmdList).inheritIO().start();
-            p.waitFor();
-        } catch (IOException e) {
-            reporter.printFatalError("Unable to fork off child process. Reason: " + e);
-        } catch (InterruptedException e) {
-            reporter.printError("Child process was interupted. Exiting.");
-        }
-
-    }
-
-    private boolean modifiedFilesExist(Path start, long mod) throws IOException {
-        return ((Files.find(start, Integer.MAX_VALUE,
-                (path, attr) -> (attr.lastModifiedTime()
-                        .compareTo(FileTime.fromMillis(mod)) > 0))).count() > 0);
-    }
-
-    /**
-     * Indicate whether or not there is any work to do.
-     *
-     * @return True if a rebuild is necessary, false otherwise.
-     */
-    private boolean needsUpdate() {
-        File jar = jarPath.toFile();
-        boolean outOfDate = false;
-        try {
-            outOfDate = (!jar.exists() || modifiedFilesExist(
-                    srcPath, jar.lastModified()));
-
-        } catch (IOException e) {
-            reporter.printFatalErrorAndExit("Rebuild unsuccessful. Reason: " + e);
-        }
-        return outOfDate;
-    }
-
-    /**
-     * Rebuild and return. If the rebuilding failed, exit.
-     */
-    private void rebuildOrExit() {
-        LinkedList<String> cmdList = new LinkedList<String>();
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            cmdList.add(".\\gradlew.bat");
-        } else {
-            cmdList.add("./gradlew");
-        }
-        cmdList.add("buildLfc");
-        if (!this.mustUpdate()) {
-            cmdList.add("--offline");
-        }
-        ProcessBuilder build = new ProcessBuilder(cmdList);
-        build.directory(rootPath.toFile());
-
-        try {
-            Process p = build.start();
-            // Read the output from the build.
-            String result = new String(p.getInputStream().readAllBytes());
-
-            p.waitFor();
-            if (p.exitValue() == 0) {
-                reporter.printInfo("Rebuild successful; forking off updated version of lfc.");
-            } else {
-                reporter.printFatalErrorAndExit("Rebuild failed. Reason: " + result);
-            }
-        } catch (Exception e) {
-            reporter.printFatalErrorAndExit("Rebuild failed. Reason: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Rebuild and fork if an update is needed. If the rebuild was successful,
-     * return true. If no update was needed, return false. If the rebuild was
-     * needed but failed, exit.
-     * @return
-     */
-    private boolean rebuildAndFork() {
-        // jar:file:<root>org.lflang.lfc/build/libs/org.lflang.lfc-<semver>-SNAPSHOT-all.jar!/org/lflang/lfc/Main.class
-        if (needsUpdate()) {
-            // Only rebuild if the jar is out-of-date.
-            reporter.printInfo("Jar file is missing or out-of-date; running Gradle.");
-            rebuildOrExit();
-            forkAndWait(cmd);
-        } else {
-            reporter.printInfo("Not rebuilding; already up-to-date.");
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -497,12 +321,14 @@ public class Main {
             reporter.printFatalErrorAndExit("Aborting due to " + cause);
         }
     }
-// visible in tests
+
+    // visible in tests
     public List<LfIssue> printErrorsIfAny() {
         List<LfIssue> errors = issueCollector.getErrors();
         errors.forEach(reporter::printIssue);
         return errors;
     }
+
     /**
      * Given a path, obtain a resource and validate it. If issues arise during validation,
      * these are recorded using the issue collector.

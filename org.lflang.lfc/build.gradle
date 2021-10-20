@@ -49,11 +49,14 @@ task buildLfc() {
 buildLfc.finalizedBy shadowJar
 
 task runLfc(type: JavaExec) {
-    // Note: when you use --args, you need to escape cli flags which start with --
-    // For instance --args ' --help'
-    // Otherwise they're parsed as arguments to the Gradle CLI, not LFC.
-    description = "Build and run LFC, use --args to pass arguments"
+    // builds and runs lfc
+    // The working directory will be the root directory of the lingua franca project
+    // CLI arguments can be passed to lfc by using --args. Note that you need
+    // to escape cli flags which start with --.For instance --args ' --help'.
+    // Otherwise they're parsed as arguments to the Gradle CLI, not lfc.
+    description = "Build and run lfc, use --args to pass arguments"
     group = "application"
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.lflang.lfc.Main'
+    workingDir = '..'
 }

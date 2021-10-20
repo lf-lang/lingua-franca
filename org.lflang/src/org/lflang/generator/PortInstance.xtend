@@ -26,9 +26,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.LinkedHashSet
+import java.util.Set
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
+import org.lflang.util.CollectionUtil
 
 /** Representation of a runtime instance of a port.
  *  
@@ -36,6 +38,20 @@ import org.lflang.lf.Port
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class PortInstance extends TriggerInstance<Port> {
+
+    /** Set of port instances that receive messages from this port. */
+    Set<PortInstance> dependentPorts = Set.of();
+
+    /** Port that sends messages to this port, if there is one. */
+    protected PortInstance dependsOnPort = null;
+
+    /** * The index in a multiport array or -1 if this port is not in a multiport array. */
+    protected final int index
+
+    /** * The enclosing MultiportInstance or null if this is not in a multiport. */
+    protected MultiportInstance multiport = null
+
+
 
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -59,34 +75,35 @@ class PortInstance extends TriggerInstance<Port> {
         super(definition, parent)
         
         if (parent === null) {
-            throw new Exception('Cannot create a PortInstance with no parent.')
+            throw new NullPointerException('Cannot create a PortInstance with no parent.')
         }
         this.multiport = multiport
         this.index = index
     }
-     
-    /////////////////////////////////////////////
-    //// Public Fields
 
-    /** Set of port instances that receive messages from this port. */
-    public LinkedHashSet<PortInstance> dependentPorts = new LinkedHashSet<PortInstance>();
+    def MultiportInstance getMultiportInstance() { return this.multiport; }
+    def PortInstance getDependsOnPort() { return this.dependsOnPort; }
 
-    /////////////////////////////////////////////
-    //// Public Methods
+    def Set<PortInstance> dependentPorts() {
+        return dependentPorts;
+    }
+
+    def void addDependentPort(PortInstance dependent) {
+        this.dependentPorts = CollectionUtil.plus(dependentPorts, dependent);
+    }
     
     /**
-     * Return the list of ports that this port depends on.
+     * Return the set of ports that this port depends on.
      * For ordinary ports, there is at most one.
      * For multiports, there may be more than one.
      */
-    def LinkedHashSet<PortInstance> dependsOnPorts() {
-        if (_dependsOnPorts === null) {
-            _dependsOnPorts = new LinkedHashSet<PortInstance>();
-            if (dependsOnPort !== null) {
-                _dependsOnPorts.add(dependsOnPort);
-            }
+     // overridden by MultiPortInstance
+    def Set<PortInstance> dependsOnPorts() {
+        if (dependsOnPort !== null) {
+            return Set.of(dependsOnPort);
+        } else {
+            return Set.of();
         }
-        return _dependsOnPorts;
     }
     
     /** 
@@ -145,38 +162,7 @@ class PortInstance extends TriggerInstance<Port> {
         return destinationReactors.size
     }
     
-    /** Return a descriptive string. */
     override toString() {
         "PortInstance " + getFullName
     }
-
-    /////////////////////////////////////////////
-    //// Protected Fields
-
-    /** Port that sends messages to this port, if there is one. */
-    protected PortInstance dependsOnPort = null;
-    def PortInstance getDependsOnPort() { return this.dependsOnPort; }
-        
-    /** 
-     * The index in a multiport array or -1 if this port is not in
-     * a multiport array.
-     */
-    protected final int index
-    
-    /**
-     * The enclosing MultiportInstance or null if this is not in a
-     * multiport.
-     */
-    protected MultiportInstance multiport = null
-    def MultiportInstance getMultiportInstance() { return this.multiport; }
-
-    /////////////////////////////////////////////
-    //// Private Fields
-
-    /**
-     * List of ports that this port depends on.
-     * For ordinary ports, there is at most one.
-     * For multiports, there may be more than one.
-     */
-    LinkedHashSet<PortInstance> _dependsOnPorts
 }
