@@ -41,6 +41,7 @@ import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
+import org.lflang.generator.rust.RustTargetConfig.CargoProfile;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -420,14 +421,20 @@ public enum TargetProperty {
         config.rust.setCargoFeatures(ASTUtils.toListOfStrings(value));
     }),
 
+    /** Dpendency specifications. */
     CARGO_DEPENDENCIES("cargo-dependencies",
                        CargoDependenciesPropertyType.INSTANCE,
                        List.of(Target.Rust), (config, value, err) -> {
         config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
     }),
 
-
-    ;
+    /** Cargo profile to use during build. */
+    CARGO_PROFILE("cargo-profile",
+                  UnionType.CARGO_PROFILE_UNION,
+                  List.of(Target.Rust),
+                  (config, value, err) -> {
+                      config.rust.setBuildProfile((CargoProfile) UnionType.CARGO_PROFILE_UNION.forName(ASTUtils.toText(value)));
+                  });
 
     /**
      * String representation of this target property.
@@ -709,6 +716,7 @@ public enum TargetProperty {
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
+        CARGO_PROFILE_UNION(Arrays.asList(CargoProfile.values()), CargoProfile.DEV),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),

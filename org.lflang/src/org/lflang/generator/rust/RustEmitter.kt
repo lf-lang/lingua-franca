@@ -599,6 +599,10 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             |
             |[features]
             |cli=["clap"]
+            |
+            |[profile.release]
+            |lto = "thin"
+            |codegen-units = 1
         """.trimMargin()
     }
 

@@ -58,6 +58,8 @@ public final class RustTargetConfig {
      */
     private final List<Path> rustTopLevelModules = new ArrayList<>();
 
+    private CargoProfile buildProfile = CargoProfile.DEV;
+
     public void setCargoFeatures(List<String> cargoFeatures) {
         this.cargoFeatures = cargoFeatures;
     }
@@ -91,5 +93,31 @@ public final class RustTargetConfig {
 
     public List<Path> getRustTopLevelModules() {
         return rustTopLevelModules;
+    }
+
+    public CargoProfile getBuildProfile() {
+        return buildProfile;
+    }
+
+    public void setBuildProfile(CargoProfile profile) {
+        this.buildProfile = profile;
+    }
+
+    /**
+     * Option for
+     */
+    public enum CargoProfile {
+        /**
+         * Dev profile preserves debug symbols and enables
+         * debug assertions and finest level of log output.
+         */
+        DEV,
+
+        /**
+         * Release profile enables all optimisations,
+         * may remove some log calls and assertions, and
+         * removes debug symbols from the generated binary.
+         */
+        RELEASE,
     }
 }
