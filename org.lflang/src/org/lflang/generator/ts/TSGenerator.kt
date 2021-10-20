@@ -58,7 +58,7 @@ class TSGenerator(
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val LIB_PATH = "/lib/TS"
+        const val LIB_PATH = "/lib/ts"
 
         /**
          * Names of the configuration files to check for and copy to the generated
