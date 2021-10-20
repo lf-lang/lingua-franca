@@ -421,9 +421,65 @@ class LinguaFrancaValidationTest {
             }
         ''')
         model.assertError(LfPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
+            null, 'Instantiation is part of a cycle: Intermediate, Contained.')
         model.assertError(LfPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
+            null, 'Instantiation is part of a cycle: Intermediate, Contained.')
+    }
+    
+    /**
+     * Detect causality loop.
+     */
+    @Test
+    def void detectCausalityLoop() {
+        val model = parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x
+                b.y -> a.x
+            }
+            
+        ''')
+        model.assertError(LfPackage::eINSTANCE.reaction,
+            null, 'Reaction triggers involved in cyclic dependency in reactor X: x.')
+        model.assertError(LfPackage::eINSTANCE.reaction,
+            null, 'Reaction effects involved in cyclic dependency in reactor X: y.')
+            
+    }
+    
+    /**
+     * Let cyclic dependencies be broken by "after" clauses.
+     */
+    @Test
+    def void afterBreaksCycle() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 5 msec
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
     }
     
     /**
@@ -841,6 +897,11 @@ class LinguaFrancaValidationTest {
      * name, and the type that it should be.
      */
     val compositeTypeToKnownBad = #{
+        ArrayType.STRING_ARRAY -> #[
+            #["[1 msec]", "[0]", PrimitiveType.STRING],
+            #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
+            #["{bar: baz}", "", ArrayType.STRING_ARRAY]
+        ],
         UnionType.STRING_OR_STRING_ARRAY -> #[
             #["[1 msec]", "[0]", PrimitiveType.STRING],
             #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],

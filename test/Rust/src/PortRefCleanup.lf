@@ -1,0 +1,40 @@
+// Tests that a port value is cleaned up after a tag
+target Rust;
+
+reactor Box {
+    input inp: u32;
+    output out: u32;
+
+    inp -> out;
+}
+
+main reactor {
+    boxr = new Box();
+
+    timer t1(0);
+    timer t2(15msec);
+
+    state reaction_num: u32(0);
+    state done: bool(false);
+
+    reaction(t1) -> boxr.inp {=
+        ctx.set(boxr__inp, 150);
+        self.reaction_num += 1;
+    =}
+
+    reaction(boxr.out, t2) {=
+        if self.reaction_num == 1 {
+            assert!(matches!(ctx.get(boxr__out), Some(150)));
+        } else {
+            assert_eq!(self.reaction_num, 2);
+            assert!(ctx.get(boxr__out).is_none(), "value should have been cleaned up");
+            self.done = true;
+        }
+        self.reaction_num += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert!(self.done, "reaction was not executed");
+        println!("success");
+    =}
+}

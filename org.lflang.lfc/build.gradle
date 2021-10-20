@@ -1,7 +1,28 @@
+
+sourceSets {
+    test {
+        java.srcDirs = []
+        kotlin.srcDirs = ['test/kotlin']
+        resources.srcDir('test/resources')
+        resources.include '**/*'
+    }
+}
+
+compileTestKotlin {
+    destinationDir = compileTestJava.destinationDir
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+
+
 dependencies {
     implementation project(':org.lflang')
     implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
+
+    testImplementation "junit:junit:4.12"
 }
 
 apply plugin: 'application'
@@ -28,11 +49,14 @@ task buildLfc() {
 buildLfc.finalizedBy shadowJar
 
 task runLfc(type: JavaExec) {
-    // Note: when you use --args, you need to escape cli flags which start with --
-    // For instance --args ' --help'
-    // Otherwise they're parsed as arguments to the Gradle CLI, not LFC.
-    description = "Build and run LFC, use --args to pass arguments"
+    // builds and runs lfc
+    // The working directory will be the root directory of the lingua franca project
+    // CLI arguments can be passed to lfc by using --args. Note that you need
+    // to escape cli flags which start with --.For instance --args ' --help'.
+    // Otherwise they're parsed as arguments to the Gradle CLI, not lfc.
+    description = "Build and run lfc, use --args to pass arguments"
     group = "application"
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.lflang.lfc.Main'
+    workingDir = '..'
 }

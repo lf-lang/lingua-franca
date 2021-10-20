@@ -27,14 +27,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import java.util.LinkedList
+import java.util.ArrayList
 import java.util.List
 import org.lflang.InferredType
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Parameter
 import org.lflang.lf.Value
 
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /** 
  * Representation of a runtime instance of a parameter.
@@ -56,7 +56,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
     new(Parameter definition, ReactorInstance parent) {
         super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create a ParameterInstance with no parent.')
+            throw new InvalidSourceException('Cannot create a ParameterInstance with no parent.')
         }
         
         this.type = definition.inferredType
@@ -103,7 +103,7 @@ class ParameterInstance extends NamedInstance<Parameter> {
         if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
             val value = LfFactory.eINSTANCE.createValue
             value.literal = "" + parent.bankIndex
-            val list = new LinkedList<Value>()
+            val list = new ArrayList<Value>(1)
             list.add(value)
             this.init = list
         }

@@ -51,6 +51,7 @@ class TSConstructorGenerator (
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
+            arguments.add("federationID: string = 'Unidentified Federation'")
         } else {
             arguments.add("parent: __Reactor")
         }
@@ -82,7 +83,7 @@ class TSConstructorGenerator (
                 port = 15045
             }
             return """
-            super(${federate.id}, ${port},
+            super(federationID, ${federate.id}, ${port},
                 "${federationRTIProperties()["host"]}",
                 timeout, keepAlive, fast, success, fail);
             """

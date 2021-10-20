@@ -31,6 +31,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
+import org.lflang.federated.FedTSLauncher
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
@@ -114,11 +115,10 @@ class TSGenerator(
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
-
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
-                "/lib/TS/reactor-ts/src/core/$runtimeFile",
+                "/lib/ts/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
 
@@ -126,7 +126,7 @@ class TSGenerator(
          * Check whether configuration files are present in the same directory
          * as the source file. For those that are missing, install a default
          * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from /lib/TS/.
+         * file, copy a default version of it from /lib/ts/.
          */
         for (configFile in CONFIG_FILES) {
             val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
@@ -140,7 +140,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("/lib/ts/$configFile", configFileDest)
             }
         }
 
@@ -186,7 +186,7 @@ class TSGenerator(
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
-            val ret = pnpmInstall.run()
+            val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
@@ -205,7 +205,7 @@ class TSGenerator(
                 return
             }
 
-            if (npmInstall.run() != 0) {
+            if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
@@ -271,7 +271,7 @@ class TSGenerator(
             return
         }
 
-        if (tsc.run() == 0) {
+        if (tsc.run(context.cancelIndicator) == 0) {
             // Babel will compile TypeScript to JS even if there are type errors
             // so only run compilation if tsc found no problems.
             //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
@@ -284,13 +284,24 @@ class TSGenerator(
                 return
             }
 
-            if (babel.run() == 0) {
+            if (babel.run(context.cancelIndicator) == 0) {
                 println("SUCCESS (compiling generated TypeScript code)")
             } else {
                 errorReporter.reportError("Compiler failed.")
             }
         } else {
             errorReporter.reportError("Type checking failed.")
+        }
+
+        if (isFederated) {
+            // Create bin directory for the script.
+            if (!Files.exists(fileConfig.binPath)) {
+                Files.createDirectories(fileConfig.binPath)
+            }
+            // Generate script for launching federation
+            val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
+            val coreFiles = ArrayList<String>()
+            launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
         }
 
         // TODO(hokeun): Modify this to make this work with standalone RTI.
@@ -494,20 +505,16 @@ class TSGenerator(
         return "TimeValue"
     }
 
-    override fun getTargetTagIntervalType(): String {
-        return this.targetUndefinedType
-    }
-
     override fun getTargetUndefinedType(): String {
         return "Present"
     }
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array(${size})<${baseType}>"
+        return "Array($size)<$baseType>"
     }
 
     override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<${baseType}>"
+        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {
