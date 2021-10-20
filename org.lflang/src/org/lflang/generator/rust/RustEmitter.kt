@@ -329,7 +329,7 @@ ${"         |    "..declarations}
                 "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
                 // start reactions may "trigger" the timer, otherwise it schedules it
                 "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${it.startReactionId})?;",
-                "__assembler.effects_instantaneous(${it.startReactionId}, __self.${it.rustFieldName}.get_id())?;",
+                "__assembler.effects_timer(${it.startReactionId}, &__self.${it.rustFieldName})?;",
             )
         }.joinLn()
 
