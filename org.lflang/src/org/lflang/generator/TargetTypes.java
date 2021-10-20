@@ -34,11 +34,13 @@ import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.Target;
 import org.lflang.TimeValue;
+import org.lflang.lf.AddExpr;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.ListExpr;
 import org.lflang.lf.Literal;
+import org.lflang.lf.MulExpr;
 import org.lflang.lf.ParamRef;
 import org.lflang.lf.Time;
 import org.lflang.lf.TimeUnit;
@@ -287,6 +289,16 @@ public interface TargetTypes {
             return getTargetTupleExpr((TupleExpr) value, type);
         } else if (value instanceof ListExpr) {
             return getTargetListExpr((ListExpr) value, type);
+        } else if (value instanceof MulExpr) {
+            MulExpr e = (MulExpr) value;
+            return getTargetExpr(e.getLeft(), null)
+                + " " + e.getOp()
+                + " " + getTargetExpr(e.getRight(), null);
+        } else if (value instanceof AddExpr) {
+            AddExpr e = (AddExpr) value;
+            return getTargetExpr(e.getLeft(), null)
+                + " " + e.getOp()
+                + " " + getTargetExpr(e.getRight(), null);
         } else {
             throw new IllegalStateException("Invalid value " + value);
         }
