@@ -3,7 +3,6 @@ package org.lflang.generator;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.HashMap;
@@ -14,7 +13,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Encapsulates data about the correspondence between
@@ -72,7 +70,6 @@ public class CodeMap {
          * @return the Correspondence represented by <code>s
          * </code>
          */
-        @NotNull
         public static Correspondence fromString(String s) {
             return fromString(s, Position.ORIGIN);
         }
@@ -86,7 +83,6 @@ public class CodeMap {
          * @return the Correspondence represented by <code>s
          * </code>
          */
-        @NotNull
         public static Correspondence fromString(String s, Position relativeTo) {
             Matcher matcher = PATTERN.matcher(s);
             if (matcher.matches()) {

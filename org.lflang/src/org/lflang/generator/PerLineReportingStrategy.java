@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.lflang.ErrorReporter;
 
 public class PerLineReportingStrategy implements CommandErrorReportingStrategy {

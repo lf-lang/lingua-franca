@@ -3,8 +3,6 @@ package org.lflang.generator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
  * Represents a position in a document, including line and
  * column. This position may be relative to another
@@ -198,7 +196,7 @@ public class Position implements Comparable<Position> {
      * then according to column).
      */
     @Override
-    public int compareTo(@NotNull Position o) {
+    public int compareTo(Position o) {
         if (line != o.line) {
             return line - o.line;
         }
@@ -215,7 +213,6 @@ public class Position implements Comparable<Position> {
         return String.format("(%d, %d)", getZeroBasedLine(), getZeroBasedColumn());
     }
 
-    @NotNull
     public static Position fromString(String s) {
         Matcher matcher = PATTERN.matcher(s);
         if (matcher.matches()) {
