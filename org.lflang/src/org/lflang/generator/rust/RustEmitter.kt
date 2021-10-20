@@ -148,7 +148,7 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName$typeArgs;
-                |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new_const($totalNumReactions - 1);
+                |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new($totalNumReactions - 1);
                 |
                 |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx<Self>) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
                 |        use $rsRuntime::TriggerLike;
