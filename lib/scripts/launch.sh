@@ -18,5 +18,5 @@ fi
 # Make sure the correct JRE is available.
 check_jre_version
 
-# Lunch the compiler.
+# Launch the compiler.
 run_jar_with_args "$@"
