@@ -24,53 +24,27 @@
 
 #pragma once
 
+#include "reactor-cpp/reactor-cpp.hh"
+#include <sstream>
+
+std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur);
+#include "CLI/cxxopts.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <regex>
-#include "CLI/cxxopts.hpp"
 
-#include "reactor-cpp/reactor-cpp.hh"
 
-std::string time_to_quoted_string(const reactor::Duration& dur) {
+std::string validate_time_string(const std::string& time);
+
+/**
+ * converts a reactor::Duration to a string with nsecs as unit
+ */
+std::string time_to_string(const reactor::Duration& dur) {
   std::stringstream ss;
   ss << dur.count() << " nsecs";
   return ss.str();
-}
-
-std::string validate_time_string(const std::string& time) {
-  auto trimmed = std::regex_replace(time, std::regex("^ +| +$|( ) +"), "$1");
-  if (trimmed.size() == 0) {
-    return "The empty string is not a valid time!";
-  } else if (trimmed[0] == '-') {
-    return "Negative values are not a valid time!";
-  } else if (trimmed.find_first_not_of("0.") == std::string::npos) {
-    return "";
-  } else {
-    auto pos = trimmed.find_first_not_of("0123456789. \n\r\t");
-    if (pos == std::string::npos) {
-      return "No unit given!";
-    } else {
-      auto unit = trimmed.substr(pos);
-      if (unit == "nsec" || unit == "nsecs" ||
-          unit == "usec" || unit == "usecs" ||
-          unit == "msec" || unit == "msecs" ||
-          unit == "sec" || unit == "secs" ||
-          unit == "second" || unit == "seconds" ||
-          unit == "min" || unit == "mins" ||
-          unit == "minute" || unit == "minutes" ||
-          unit == "hour" || unit == "hours" ||
-          unit == "day" || unit == "days" ||
-          unit == "week" || unit == "weeks") {
-        return "";
-      } else {
-        std::stringstream ss;
-        ss << "Not a valid unit: " << unit;
-        return ss.str();
-      }
-    }
-  }
-  return "Unexpected error!";
 }
 
 std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
@@ -127,6 +101,41 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
   }
 
   return in;
+}
+
+std::string validate_time_string(const std::string& time) {
+  auto trimmed = std::regex_replace(time, std::regex("^ +| +$|( ) +"), "$1");
+  if (trimmed.size() == 0) {
+    return "The empty string is not a valid time!";
+  } else if (trimmed[0] == '-') {
+    return "Negative values are not a valid time!";
+  } else if (trimmed.find_first_not_of("0.") == std::string::npos) {
+    return "";
+  } else {
+    auto pos = trimmed.find_first_not_of("0123456789. \n\r\t");
+    if (pos == std::string::npos) {
+      return "No unit given!";
+    } else {
+      auto unit = trimmed.substr(pos);
+      if (unit == "nsec" || unit == "nsecs" ||
+          unit == "usec" || unit == "usecs" ||
+          unit == "msec" || unit == "msecs" ||
+          unit == "sec" || unit == "secs" ||
+          unit == "second" || unit == "seconds" ||
+          unit == "min" || unit == "mins" ||
+          unit == "minute" || unit == "minutes" ||
+          unit == "hour" || unit == "hours" ||
+          unit == "day" || unit == "days" ||
+          unit == "week" || unit == "weeks") {
+        return "";
+      } else {
+        std::stringstream ss;
+        ss << "Not a valid unit: " << unit;
+        return ss.str();
+      }
+    }
+  }
+  return "Unexpected error!";
 }
 
 

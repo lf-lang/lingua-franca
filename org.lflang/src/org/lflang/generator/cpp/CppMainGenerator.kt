@@ -22,7 +22,7 @@ class CppMainGenerator(
                     """
                         $targetType $name = $defaultValue;
                         options
-                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_quoted_string($name)), "'FLOAT UNIT'");
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_string($name)), "'FLOAT UNIT'");
                     """.trimIndent()
                 } else {
                     """
@@ -56,7 +56,6 @@ class CppMainGenerator(
             |
             |#include "time_parser.hh"
             |
-            |#include "CLI/cxxopts.hpp"
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
@@ -88,7 +87,7 @@ class CppMainGenerator(
             |    .set_width(120)
             |    .add_options()
             |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads), "'unsigned'")
-            |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>()->default_value(time_to_quoted_string(timeout)), "'FLOAT UNIT'")
+            |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
             |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive))
             |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast))
             |      ("help", "Print help");
