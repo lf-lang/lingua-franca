@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2020 TU Dresden
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
  * 
  * This benchmark consists of a so-called 'Teller' and a number of Account reactors.
  * The Accounts keep an internal balance. The Teller generates a series of random 
@@ -57,164 +57,34 @@ target C{
           cog.outl("threads: 0")
     ]]] */
     threads: 0,
-    files: "../include/PseudoRandom.h"
+    files: ["../include/PseudoRandom.h", "../include/deque.h"]
     
     /// [[[end]]]
 };
 preamble {=
     #include "PseudoRandom.h"
+    #include "deque.h"
     #include <float.h>
     long seed = 123456;
-
-    typedef struct CreditMessage {
-      size_t recipient;
-      double amount;  
-    } credit_message_t;
-    
-    // implementation of c++ deque
-    typedef struct node {
-        struct node *next;
-        struct node *prev;
-        credit_message_t value;
-    } node;
-    
-    typedef struct deque {
-        struct node* front;
-        struct node* back;
-    } message_queue_t;
-    
-    message_queue_t* deque_initialize() {
-        // allocate space for deque
-        message_queue_t *p = (message_queue_t *) malloc (sizeof(message_queue_t));
-        if (p != NULL) {
-            p->front = NULL;
-            p->back = NULL;
-        }
-        return p;
-    }
-    
-    int deque_is_empty(struct deque* d) {
-        if (d==NULL) {
-            return true;
-        } else if (d->front) {
-            return false;
-        }
-        return true;
-    }
-    
-    
-    node* _deque_create_node(credit_message_t val) {
-    /*
-    * Function:  _deque_create_node
-    * --------------------
-    * allocates memory for new node in deque. Used internally by deque_push_front
-    * and deque_push_back. Memory is freed when node is popped using deque_pop_back
-    * and deque_pop_front.
-    *
-    *  val: value to be stored in the node
-    *
-    *  returns: pointer to the node
-
-    */
-        node *new_node = (struct node *) malloc(sizeof(struct node));
-        new_node->value = val;
-        new_node->next = NULL;
-        new_node->prev = NULL;
-        return new_node;
-    }
-    
-    void deque_push_front(struct deque* d, credit_message_t val) {
-        node *n = _deque_create_node(val);
-        if (d->back == NULL) {
-            d->back = d->front = n;
-        } else {
-            d->front->prev = n;
-            n->next = d->front;
-            d->front = d->front->prev;
-        }
-    }
-    
-    void deque_push_back(struct deque* d, credit_message_t val) {
-        node *n = _deque_create_node(val);
-        if (d->back == NULL) {
-            d->back = d->front = n;
-        } else {
-            d->back->next = n;
-            n->prev = d->back;
-            d->back = d->back->next;
-        }
-    }
-
-    credit_message_t deque_pop_front(struct deque* d) {
-        if (d==NULL || d->front == NULL) {
-            fprintf(stderr, "Error: popping from empty deque\n");
-            return (credit_message_t) {0, 0};
-        }
-        
-        credit_message_t value = d->front->value;
-        struct node *temp = d->front; // temporary pointer for freeing up memory
-        
-        if (d->front == d->back) { 
-            // popping last element in deque
-            d->front = d->back = NULL;
-        } else {
-            d->front = d->front->next;
-        }
-        free(temp); // free memory for popped node
-        return value;
-    }
-    
-    credit_message_t deque_pop_back(struct deque* d) {
-        if (d==NULL || d->back == NULL) {
-            fprintf(stderr, "Error: popping from empty deque\n");
-            return (credit_message_t) {0, 0};
-        }
-        
-        credit_message_t value = d->back->value;
-        struct node *temp = d->back; // temporary pointer for freeing up memory
-        if (d->front == d->back) { 
-            // popping last element in deque
-            d->front = d->back = NULL;
-        } else {
-            d->back = d->back->prev;
-        }
-        free(temp); 
-        return value;
-    }
-    
-    credit_message_t deque_peek_back(struct deque* d) {
-        if (d == NULL || d->back == NULL) {
-            fprintf(stderr, "Error: peeking empty deque");
-            return (credit_message_t) {0, 0};
-        }
-        return d->back->value;
-    }
-    
-    credit_message_t deque_peek_front(struct deque* d) {
-        if (d == NULL || d->front == NULL) {
-            fprintf(stderr, "Error: peeking empty deque");
-            return (credit_message_t) {0, 0};
-        }
-        return d->front->value;
-    }
+    typedef deque message_queue_t;
+    message_queue_t *message_queues = NULL;
 =}
 
 
 reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     preamble {=
-        struct PseudoRandom *randomGen;
+        struct pseudo_random *random_gen;
     =}
 
-    state messageQueues: message_queue_t*;
-
     reaction(startup) {=
-        self->messageQueues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
-        randomGen = (struct PseudoRandom *) malloc(sizeof(struct PseudoRandom));
-        initPseudoRandom(randomGen, seed);
+        if (!message_queues) {
+            message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
+        }
+        random_gen = (struct pseudo_random *) malloc(sizeof(struct pseudo_random));
+        init_pseudo_random(random_gen, seed);
     =}
 
     input start:bool;
-    output finished:bool;
     
     output[numAccounts] reset: bool; 
     output[numAccounts] credit: credit_message_t;
@@ -225,8 +95,8 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
         printf("Teller: Start a new iteration\n");
         
         // reset local state
-        long seed = 123456;
-        
+        init_pseudo_random(random_gen, seed);
+
         // reset all accounts
         int i;
         for (i = 0; i < self->numAccounts; i++) {
@@ -238,32 +108,31 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             // src is lower than dest id to ensure there is never a deadlock
             // Note: this comment stems from the original Akka implementation and 
             // is actually not needed in LF, since cycle free programs cannot deadlock
-            size_t src_account = nextIntEMax(randomGen, (self->numAccounts / 10) * 8);
-            size_t loop_id = nextIntEMax(randomGen, self->numAccounts - src_account);
+            size_t src_account = next_int_exclusive_max(random_gen, (self->numAccounts / 10) * 8);
+            size_t loop_id = next_int_exclusive_max(random_gen, self->numAccounts - src_account);
             if(loop_id == 0) {
                 loop_id += 1;
             }
             size_t dest_account = src_account + loop_id;
             
-            double amount = nextDouble(randomGen);
+            double amount = next_double(random_gen);
             
-            credit_message_t newMsg;
-            newMsg.recipient = dest_account;
-            newMsg.amount = amount;
-            deque_push_back(&(self->messageQueues[src_account]), newMsg);
+            credit_message_t new_msg;
+            new_msg.recipient = dest_account;
+            new_msg.amount = amount;
+            deque_push_back(&(message_queues[src_account]), new_msg);
         }
                 
         // start execution
         schedule(next, 0);
     =}
     
-    reaction(next) -> next, credit, finished {=
+    reaction(next) -> next, credit {=
         printf("Teller: Sending a new round of credit messages\n");
-        //        bool work_found(false);
         int work_found = 0;
         size_t i;
         for (i = 0; i < self->numAccounts; i++) {
-            message_queue_t *queue = &(self->messageQueues[i]);
+            message_queue_t *queue = &(message_queues[i]);
             if (!deque_is_empty(queue)) {
                 work_found = 1;
                 credit_message_t message = deque_peek_front(queue);  
@@ -276,12 +145,10 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             schedule(next, 0);
         } else {
             printf("Teller: Finished iteration\n");
-            SET(finished, true);
         }
     =}
     reaction(shutdown) {=
-        free(self->messageQueues);
-        free(randomGen);
+        free(random_gen);
         printf("shutdown success\n");
     =}
     
@@ -338,13 +205,16 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
     teller = new Teller(numAccounts=numAccounts, numBankings=numTransactions);
     
     accounts = new[numAccounts] Account(numAccounts=numAccounts, numTransactions=numTransactions);
+    
     reaction(startup) -> teller.start {=
-        struct PseudoRandom randomGen;
-        initPseudoRandom(&randomGen, seed);
         SET(teller.start, true);
     =}
     
     teller.credit -> accounts.inCredit;
     teller.reset -> accounts.reset;
     accounts.outDebit -> interleaved(accounts.inDebit);
+
+    reaction(shutdown) {=
+        free(message_queues);
+    =}
 }

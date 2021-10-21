@@ -8,29 +8,29 @@
 #ifndef PSUEDO_RANDOM_H
 #define PSUEDO_RANDOM_H
 
-struct PseudoRandom {
+struct pseudo_random {
 	long mValue;
 };
 
-void initPseudoRandom(struct PseudoRandom* random ,long mValue) {
+void init_pseudo_random(struct pseudo_random* random ,long mValue) {
     random->mValue = mValue;
 }
 
-long nextLong(struct PseudoRandom *random) {
+long next_long(struct pseudo_random *random) {
     random->mValue = ((random->mValue * 1309) + 13849) & 65535;
     return random->mValue;
 }
 
-int nextInt(struct PseudoRandom *random) {
-    return (int)nextLong(random);
+int next_int(struct pseudo_random *random) {
+    return (int) next_long(random);
 }
 
-double nextDouble(struct PseudoRandom *random) {
-    return 1.0 / (nextLong(random) + 1);
+double next_double(struct pseudo_random *random) {
+    return 1.0 / (next_long(random) + 1);
 }
 
-int nextIntEMax(struct PseudoRandom *random, int exclusive_max) {
-    return nextInt(random) % exclusive_max;
+int next_int_exclusive_max(struct pseudo_random *random, int exclusive_max) {
+    return next_int(random) % exclusive_max;
 }
 
 #endif // PSUEDO_RANDOM_H
