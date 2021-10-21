@@ -1242,8 +1242,12 @@ class CGenerator extends GeneratorBase {
         if (file.exists) {
             file.delete
         }
-        // The Docker configuration uses gcc, so config.compiler is ignored here.
-        var compileCommand = '''gcc «targetConfig.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        // The Docker configuration uses cmake, so config.compiler is ignored here.
+        var compileCommand = '''
+        cmake -S src-gen -B bin && \
+        cd bin && \
+        make all
+        '''
         if (!targetConfig.buildCommands.nullOrEmpty) {
             compileCommand = targetConfig.buildCommands.join(' ')
         }
@@ -1254,17 +1258,22 @@ class CGenerator extends GeneratorBase {
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «targetConfig.dockerOptions.from»
-            WORKDIR /lingua-franca
-            COPY src-gen/core src-gen/core
-            COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
+            FROM «targetConfig.dockerOptions.from» AS builder
+            WORKDIR /lingua-franca/«topLevelName»
+            RUN set -ex && apk add --no-cache gcc musl-dev cmake make
+            COPY src-gen/«topLevelName»/core src-gen/core
+            COPY "src-gen/«topLevelName»/ctarget.h" "src-gen/«topLevelName»/ctarget.c" "src-gen/"
+            COPY "src-gen/«topLevelName»/«filename».c" "src-gen/«topLevelName»/CMakeLists.txt" "src-gen/"
             «additionalFiles»
             RUN set -ex && \
-                apk add --no-cache gcc musl-dev && \
                 mkdir bin && \
-                «compileCommand» && \
-                apk del gcc musl-dev && \
-                rm -rf src-gen
+                «compileCommand»
+            
+            FROM «targetConfig.dockerOptions.from» 
+            WORKDIR /lingua-franca
+            RUN mkdir bin
+            COPY --from=builder /lingua-franca/«topLevelName»/bin/«filename» ./bin/«filename»
+            
             # Use ENTRYPOINT not CMD so that command-line arguments go through
             ENTRYPOINT ["./bin/«filename»"]
         ''')
@@ -1425,7 +1434,7 @@ class CGenerator extends GeneratorBase {
                     lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
-                            
+
             for (remoteFederate : federate.outboundP2PConnections) {
                 pr('''connect_to_federate(«remoteFederate.id»);''')
             }
