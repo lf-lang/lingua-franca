@@ -1,0 +1,52 @@
+/**
+ * A test-version of distributed HelloWorld in the example directory,
+ * example/TypeScript/src/DistributedHelloWorld/HelloWorld.lf
+ * This is to make sure that the federated execution for TypeScript target
+ * always works when there is a relevant change.
+ *
+ * @author Edward A. Lee
+ * @author Hokeun Kim
+ */
+// TODO(hokeun): Add a check for the number of received messages to be exactly 2.
+target TypeScript {
+    timeout: 2 secs
+};
+
+/**
+ * Reactor that generates a sequence of messages, one per second.
+ * The message will be a string consisting of a root string followed
+ * by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root:string("")) {
+    // Output type char* instead of string is used for dynamically
+    // allocated character arrays (as opposed to static constant strings).
+    output message:string;
+    state count:number(1);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
+    reaction(t) -> message {=
+        message = root + " " + count++;
+        console.log(`At time (elapsed) logical tag ${util.getElapsedLogicalTime()}, source sends message: ${message}`);
+    =}
+}
+
+/**
+ * Reactor that prints the current tag and an incoming string.
+ *
+ * @input message The message.
+ */
+reactor PrintMessage {
+    input message:string;
+    reaction(message) {=
+        console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
+    =}
+}
+
+federated reactor HelloDistributed {
+    source = new MessageGenerator(root = "Hello World");
+    print = new PrintMessage();
+    source.message -> print.message;
+}
