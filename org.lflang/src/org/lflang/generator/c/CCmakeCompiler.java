@@ -28,13 +28,14 @@ package org.lflang.generator.c;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.util.LFCommand;
@@ -194,16 +195,22 @@ public class CCmakeCompiler extends CCompiler {
         // Set the build directory to be "build"
         Path buildPath = getBuildPath();
         
+        List<String> arguments =  new ArrayList<String>();
+        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
+                "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
+                        fileConfig.getOutPath().relativize(
+                                fileConfig.binPath
+                                )
+                        ),
+                FileConfig.toUnixString(fileConfig.getSrcGenPath())
+            ));
+        
+        if (isHostWindows()) {
+            arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
+        }
+        
         LFCommand command = commandFactory.createCommand(
-                "cmake", List.of(
-                        "-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
-                        "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
-                                fileConfig.getOutPath().relativize(
-                                        fileConfig.binPath
-                                        )
-                                ),
-                        FileConfig.toUnixString(fileConfig.getSrcGenPath())
-                    ),
+                "cmake", arguments,
                 buildPath);
         if (command == null) {
             errorReporter.reportError(

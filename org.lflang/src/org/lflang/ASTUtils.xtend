@@ -27,11 +27,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang
 
+import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.TerminalRule
@@ -42,6 +41,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.CodeMap
+import org.lflang.generator.InvalidSourceException
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.ArraySpec
@@ -97,7 +97,7 @@ class ASTUtils {
     static def insertGeneratedDelays(Resource resource, GeneratorBase generator) {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
-        val oldConnections = new LinkedList<Connection>()
+        val oldConnections = new ArrayList<Connection>()
         val newConnections = new LinkedHashMap<Reactor, List<Connection>>()
         val delayInstances = new LinkedHashMap<Reactor, List<Instantiation>>()
         
@@ -117,7 +117,7 @@ class ASTUtils {
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
-                    if(connections === null) connections = new LinkedList()
+                    if(connections === null) connections = new ArrayList()
                     connections.addAll(connection.rerouteViaDelay(delayInstance))
                     newConnections.put(parent, connections)
 
@@ -126,7 +126,7 @@ class ASTUtils {
 
                     // Stage the newly created delay reactor instance for insertion
                     var instances = delayInstances.get(parent)
-                    if(instances === null) instances = new LinkedList()
+                    if(instances === null) instances = new ArrayList()
                     instances.addAll(delayInstance)
                     delayInstances.put(parent, instances)
                 }
@@ -201,7 +201,7 @@ class ASTUtils {
     private static def List<Connection> rerouteViaDelay(Connection connection, 
             Instantiation delayInstance) {
         
-        val connections = new LinkedList<Connection>()
+        val connections = new ArrayList<Connection>()
                
         val upstream = factory.createConnection
         val downstream = factory.createConnection
@@ -217,9 +217,9 @@ class ASTUtils {
         output.variable = delayClass.outputs.get(0)
         upstream.leftPorts.addAll(connection.leftPorts)
         upstream.rightPorts.add(input)
-        upstream.iterated = connection.iterated
         downstream.leftPorts.add(output)
         downstream.rightPorts.addAll(connection.rightPorts)
+        downstream.iterated = connection.iterated
 
         connections.add(upstream)
         connections.add(downstream)
@@ -261,12 +261,11 @@ class ASTUtils {
         if (connection.hasMultipleConnections) {
             val widthSpec = factory.createWidthSpec
             if (defineWidthFromConnection) {
-                // Add all right ports of the connection to the WidthSpec of the genertaed delay instance.
+                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
                 // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the right ports here, as the right hand side should always have a well-defined
-                // width. On the left hand side, we might use the broadcast operator from which we cannot infer
-                // the width.
-                for (port : connection.rightPorts) {
+                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // to delay the ports first, and then broadcast the output of the delays.
+                for (port : connection.leftPorts) {
                     val term = factory.createWidthTerm()
                     term.port = EcoreUtil.copy(port)
                     widthSpec.terms.add(term)
@@ -449,7 +448,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Action> allActions(Reactor definition) {
-        val result = new LinkedList<Action>()
+        val result = new ArrayList<Action>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allActions)
         }
@@ -463,7 +462,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Connection> allConnections(Reactor definition) {
-        val result = new LinkedList<Connection>()
+        val result = new ArrayList<Connection>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allConnections)
         }
@@ -477,7 +476,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Input> allInputs(Reactor definition) {
-        val result = new LinkedList<Input>()
+        val result = new ArrayList<Input>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allInputs)
         }
@@ -491,7 +490,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Instantiation> allInstantiations(Reactor definition) {
-        val result = new LinkedList<Instantiation>()
+        val result = new ArrayList<Instantiation>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allInstantiations)
         }
@@ -505,7 +504,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Output> allOutputs(Reactor definition) {
-        val result = new LinkedList<Output>()
+        val result = new ArrayList<Output>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allOutputs)
         }
@@ -519,7 +518,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Parameter> allParameters(Reactor definition) {
-        val result = new LinkedList<Parameter>()
+        val result = new ArrayList<Parameter>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allParameters)
         }
@@ -533,7 +532,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Reaction> allReactions(Reactor definition) {
-        val result = new LinkedList<Reaction>()
+        val result = new ArrayList<Reaction>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allReactions)
         }
@@ -547,7 +546,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<StateVar> allStateVars(Reactor definition) {
-        val result = new LinkedList<StateVar>()
+        val result = new ArrayList<StateVar>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allStateVars)
         }
@@ -561,7 +560,7 @@ class ASTUtils {
      * @param definition Reactor class definition.
      */
     def static List<Timer> allTimers(Reactor definition) {
-        val result = new LinkedList<Timer>()
+        val result = new ArrayList<Timer>()
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allTimers)
         }
@@ -848,7 +847,7 @@ class ASTUtils {
      * @param value The right-hand side of a target property.
      */
     def static List<String> toListOfStrings(Element value) {
-        val elements = newLinkedList
+        val elements = new ArrayList()
         if (value.array !== null) {
             for (element : value.array.elements) {
                 elements.addAll(element.toListOfStrings)
@@ -1213,7 +1212,7 @@ class ASTUtils {
             }
             if (lastAssignment !== null) {
                 // Right hand side can be a list. Collect the entries.
-                val result = new LinkedList<Value>()
+                val result = new ArrayList<Value>()
                 for (value: lastAssignment.rhs) {
                     if (value.parameter !== null) {
                         if (instantiations.size() > 1
@@ -1247,7 +1246,7 @@ class ASTUtils {
      * If the value of the parameter is a list of integers,
      * return the sum of value in the list.
      * The instantiations parameter is as in 
-     * {@link initialValue(Parameter, List<Instantiation>}.
+     * {@link initialValue(Parameter, List<Instantiation>)}.
      * 
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
@@ -1313,7 +1312,7 @@ class ASTUtils {
                 for (leftPort : c.leftPorts) {
                     if (leftPort.container === spec.eContainer) {
                         if (leftOrRight !== 0) {
-                            throw new Exception("Multiple ports with variable width on a connection.")
+                            throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                         }
                         // Indicate that the port is on the left.
                         leftOrRight = -1
@@ -1324,7 +1323,7 @@ class ASTUtils {
                 for (rightPort : c.rightPorts) {
                     if (rightPort.container === spec.eContainer) {
                         if (leftOrRight !== 0) {
-                            throw new Exception("Multiple ports with variable width on a connection.")
+                            throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                         }
                         // Indicate that the port is on the right.
                         leftOrRight = 1
@@ -1390,7 +1389,7 @@ class ASTUtils {
             // the list of instantiations to determine the width of this port.
             var extended = instantiations;
             if (reference.container !== null) {
-                extended = new LinkedList<Instantiation>();
+                extended = new ArrayList<Instantiation>();
                 extended.add(reference.container);
                 if (instantiations !== null) {
                     extended.addAll(instantiations);
@@ -1415,7 +1414,7 @@ class ASTUtils {
                         for (leftPort : connection.leftPorts) {
                             if (leftPort === reference) {
                                 if (leftOrRight !== 0) {
-                                    throw new Exception("Multiple ports with variable width on a connection.")
+                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                                 }
                                 // Indicate that this port is on the left.
                                 leftOrRight = -1
@@ -1429,7 +1428,7 @@ class ASTUtils {
                         for (rightPort : connection.rightPorts) {
                             if (rightPort === reference) {
                                 if (leftOrRight !== 0) {
-                                    throw new Exception("Multiple ports with variable width on a connection.")
+                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.")
                                 }
                                 // Indicate that this port is on the right.
                                 leftOrRight = 1
@@ -1485,7 +1484,7 @@ class ASTUtils {
     def static int widthSpecification(Instantiation instantiation) {
         val result = width(instantiation.widthSpec, null);
         if (result < 0) {
-            throw new Exception("Cannot determine width for the instance "
+            throw new InvalidSourceException("Cannot determine width for the instance "
                     + instantiation.name);
         }
         return result
@@ -1515,114 +1514,6 @@ class ASTUtils {
             return true
         }
         return false
-    }
-    
-    /**
-     * Given an initialization list, return an inferred type. Only two types
-     * can be inferred: "time" and "timeList". Return the "undefined" type if
-     * neither can be inferred.
-     * @param initList A list of values used to initialize a parameter or
-     * state variable.
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */    
-    protected static def InferredType getInferredType(EList<Value> initList) {
-        if (initList.size == 1) {
-        	// If there is a single element in the list, and it is a proper
-        	// time value with units, we infer the type "time".
-            val init = initList.get(0)
-            if (init.parameter !== null) {
-                return init.parameter.getInferredType
-            } else if (init.isValidTime && !init.isZero) {
-                return InferredType.time;
-            }
-        } else if (initList.size > 1) {
-			// If there are multiple elements in the list, and there is at
-			// least one proper time value with units, and all other elements
-			// are valid times (including zero without units), we infer the
-			// type "time list".
-            var allValidTime = true
-            var foundNonZero = false
-
-            for (init : initList) {
-                if (!init.isValidTime) {
-                    allValidTime = false;
-                } 
-                if (!init.isZero) {
-                    foundNonZero = true
-                }
-            }
-
-            if (allValidTime && foundNonZero) {
-                // Conservatively, no bounds are inferred; the returned type 
-                // is a variable-size list.
-				return InferredType.timeList()
-            }
-        }
-        return InferredType.undefined
-    }
-    
-    /**
-     * Given a parameter, return an inferred type. Only two types can be
-     * inferred: "time" and "timeList". Return the "undefined" type if
-     * neither can be inferred.
-     * @param p A parameter to infer the type of. 
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */    
-    def static InferredType getInferredType(Parameter p) {
-        if (p !== null) {
-            if (p.type !== null) {
-                return InferredType.fromAST(p.type)
-            } else {
-                return p.init.inferredType
-            }
-        }
-        return InferredType.undefined
-    }
-    
-    /**
-	 * Given a state variable, return an inferred type. Only two types can be
-	 * inferred: "time" and "timeList". Return the "undefined" type if
-	 * neither can be inferred.
-     * @param s A state variable to infer the type of. 
-     * @return The inferred type, or "undefined" if none could be inferred.
-     */    
-    def static InferredType getInferredType(StateVar s) {
-        if (s !== null) {
-            if (s.type !== null) {
-                return InferredType.fromAST(s.type)
-            }
-            if (s.init !== null) {
-                return s.init.inferredType
-            }
-        }
-        return InferredType.undefined
-    }
-    
-    /**
-     * Construct an inferred type from an "action" AST node based
-     * on its declared type. If no type is declared, return the "undefined"
-     * type.
-     * @param a An action to construct an inferred type object for.
-     * @return The inferred type, or "undefined" if none was declared.
-     */
-    def static InferredType getInferredType(Action a) {
-        if (a !== null && a.type !== null) {
-            return InferredType.fromAST(a.type)
-        }
-        return InferredType.undefined
-    }
-
-	/**
-     * Construct an inferred type from a "port" AST node based on its declared
-     * type. If no type is declared, return the "undefined" type.
-     * @param p A port to construct an inferred type object for.
-     * @return The inferred type, or "undefined" if none was declared.
-     */    
-    def static InferredType getInferredType(Port p) {
-        if (p !== null && p.type !== null) {
-            return InferredType.fromAST(p.type)
-        }
-        return InferredType.undefined
     }
 
     /**

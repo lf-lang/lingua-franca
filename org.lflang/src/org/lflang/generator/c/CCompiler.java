@@ -34,7 +34,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Mode;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -239,6 +239,15 @@ public class CCompiler {
             return fileName + ".cpp";
         }
         return fileName + ".c";
+    }
+    
+
+    
+    /** Return true if the operating system is Windows. */
+    public static boolean isHostWindows() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        if (OS.indexOf("win") >= 0) { return true; }
+        return false;
     }
 
 }
