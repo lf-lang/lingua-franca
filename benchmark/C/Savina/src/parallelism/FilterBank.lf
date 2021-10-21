@@ -63,8 +63,20 @@
  */
 
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     fast: true,
+    /* [[[cog
+        cog.outl(f'timeout: {time_steps} msec // Specifies number of samples.')
+    ]]] */
     timeout: 34816 msec // Specifies number of samples.
+    /// [[[end]]]
 };
 
 /**
@@ -244,8 +256,11 @@ reactor Sink(print_rate: size_t(100)) {
     =}
 }
 
+/* [[[cog
+    cog.outl(f'main reactor (columns: size_t({columns}), channels: size_t({channels})) {{')
+]]] */
 main reactor (columns: size_t(16384), channels: size_t(8)) {
-    
+/// [[[end]]]
     source = new Source();
     banks = new[channels] Bank(columns=columns, channels=channels);
     combine = new Combine(channels=channels);
