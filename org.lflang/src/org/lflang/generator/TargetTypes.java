@@ -249,7 +249,9 @@ public interface TargetTypes {
      * @param type Declared type of the expression (nullable)
      */
     default String getTargetInitializer(Initializer init, Type type) {
-        Objects.requireNonNull(init);
+        if (init == null) {
+            return getMissingExpr();
+        }
         var inferredType = JavaAstUtils.getInferredType(type, init);
         Value single = JavaAstUtils.asSingleValue(init);
         if (single != null) {

@@ -33,10 +33,7 @@ import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
-import org.lflang.lf.Action
-import org.lflang.lf.ParamRef
-import org.lflang.lf.TimeUnit
-import org.lflang.lf.VarRef
+import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.nio.file.Path

@@ -24,15 +24,15 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.generator.getTargetInitializer
 import org.lflang.inferredType
-import org.lflang.isOfTimeType
-import org.lflang.lf.ParamRef
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 
 /** A C++ code generator for state variables */
 class CppStateGenerator(private val reactor: Reactor) {
+
+    private fun generateInitializer(state: StateVar): String =
+        state.name + CppTypes.getCppInitializerList(state.init, state.type)
 
     /** Get all state declarations */
     fun generateDeclarations() =
@@ -40,5 +40,5 @@ class CppStateGenerator(private val reactor: Reactor) {
 
     /** Get all timer initializers */
     fun generateInitializers(): String = reactor.stateVars.filter { it.init != null }
-        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${CppTypes.getTargetInitializer(it)}" }
+        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${generateInitializer(it)}" }
 }

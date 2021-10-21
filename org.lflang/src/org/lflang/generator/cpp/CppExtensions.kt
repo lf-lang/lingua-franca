@@ -120,3 +120,20 @@ fun fileComment(r: Resource) = """
 
 val InferredType.cppType: String
     get() = CppTypes.getTargetType(this)
+
+
+fun CppTypes.getCppInitializerList(init: Initializer?, type: Type?): String {
+    val items = if (init == null) {
+        missingExpr
+    } else {
+        val inferredType = JavaAstUtils.getInferredType(type, init)
+        val single = JavaAstUtils.asSingleValue(init)
+        single?.let { getTargetExpr(it, inferredType) }
+            ?: init.exprs.joinToString {
+                val itemType = if (type?.isTime == true) InferredType.time() else null
+                getTargetExpr(it, itemType)
+            }
+    }
+
+    return if (init?.isBraces == true) "{$items}" else "($items)"
+}
