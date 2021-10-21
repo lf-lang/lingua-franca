@@ -80,11 +80,6 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error);
     }
 
-    @Override
-    public void reset() {
-        diagnostics.clear();
-    }
-
     public static void setClient(LanguageClient client) {
         LanguageServerErrorReporter.client = client;
     }

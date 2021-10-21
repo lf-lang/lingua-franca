@@ -35,6 +35,8 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
+import org.lflang.TargetConfig.Mode
+import org.lflang.federated.FedTSLauncher
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
@@ -67,7 +69,7 @@ class TSGenerator(
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val LIB_PATH = "/lib/TS"
+        const val LIB_PATH = "/lib/ts"
 
         /**
          * Names of the configuration files to check for and copy to the generated
@@ -185,11 +187,10 @@ class TSGenerator(
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
-
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
-                "/lib/TS/reactor-ts/src/core/$runtimeFile",
+                "/lib/ts/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
 
@@ -197,7 +198,7 @@ class TSGenerator(
          * Check whether configuration files are present in the same directory
          * as the source file. For those that are missing, install a default
          * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from /lib/TS/.
+         * file, copy a default version of it from /lib/ts/.
          */
         for (configFile in CONFIG_FILES) {
             val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
@@ -211,7 +212,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("/lib/ts/$configFile", configFileDest)
             }
         }
 
@@ -245,7 +246,7 @@ class TSGenerator(
             fsa.generateFile(relativeTsFilePath, cleanedTsCode)
             fsa.generateFile("$relativeTsFilePath.map", sourceMap)
         }
-        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_FAST) compile(resource, context);
+        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_MEDIUM) compile(resource, context);
     }
 
     private fun compile(resource: Resource, context: IGeneratorContext) {
@@ -368,6 +369,17 @@ class TSGenerator(
             }
         } else {
             errorReporter.reportError("Type checking failed.")
+        }
+
+        if (isFederated) {
+            // Create bin directory for the script.
+            if (!Files.exists(fileConfig.binPath)) {
+                Files.createDirectories(fileConfig.binPath)
+            }
+            // Generate script for launching federation
+            val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
+            val coreFiles = ArrayList<String>()
+            launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
         }
 
         // TODO(hokeun): Modify this to make this work with standalone RTI.
@@ -617,20 +629,16 @@ class TSGenerator(
         return "TimeValue"
     }
 
-    override fun getTargetTagIntervalType(): String {
-        return this.targetUndefinedType
-    }
-
     override fun getTargetUndefinedType(): String {
         return "Present"
     }
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array(${size})<${baseType}>"
+        return "Array($size)<$baseType>"
     }
 
     override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<${baseType}>"
+        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {

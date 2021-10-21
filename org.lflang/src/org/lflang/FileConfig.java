@@ -24,6 +24,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
+
+import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.StandaloneContext;
 import org.lflang.generator.SlowIntegratedContext;
 import org.lflang.lf.Reactor;
