@@ -1255,19 +1255,24 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.fileNames.nullOrEmpty) {
             additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
+        var dockerCompiler = 'gcc'
+        var fileExtension = 'c'
+
+        if (CCppMode) {
+            dockerCompiler = 'g++'
+            fileExtension = 'cpp'
+        }
 
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM «targetConfig.dockerOptions.from» AS builder
             WORKDIR /lingua-franca/«topLevelName»
-            RUN set -ex && apk add --no-cache gcc musl-dev g++ cmake make
+            RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
             COPY src-gen/«topLevelName»/core src-gen/core
-            # If target is C, .c file is copied. If target is CCPP, .cpp file is copied
             COPY "src-gen/«topLevelName»/ctarget.h" "src-gen/«topLevelName»/ctarget.c" "src-gen/"
             COPY "src-gen/«topLevelName»/CMakeLists.txt" \ 
-                 "src-gen/«topLevelName»/«filename».[c]" \
-                 "src-gen/«topLevelName»/«filename».cp[p]" "src-gen/"
+                 "src-gen/«topLevelName»/«filename».«fileExtension»" "src-gen/"
             «additionalFiles»
             RUN set -ex && \
                 mkdir bin && \
@@ -1283,6 +1288,14 @@ class CGenerator extends GeneratorBase {
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
         println("Dockerfile written to " + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «fileConfig.getOutPath»
+            
+            #####################################
+        ''')
     }
     
     /**
