@@ -1053,13 +1053,21 @@ class PythonGenerator extends CGenerator {
         targetConfig.noCompile = true;
         targetConfig.useCmake = false; // Force disable the CMake because 
                                        // it interferes with the Python target functionality
+        var dockerOptions = targetConfig.dockerOptions;
+        targetConfig.dockerOptions = null;
         
         super.doGenerate(resource, fsa, context)
         
         targetConfig.noCompile = compileStatus
+        targetConfig.dockerOptions = dockerOptions
 
         if (errorsOccurred) return;
-
+        
+        // Create docker file.
+        if (targetConfig.dockerOptions !== null) {
+            writeDockerFile(topLevelName)
+        }
+        
         var baseFileName = topLevelName
         for (federate : federates) {
             if (isFederated) {
@@ -1092,7 +1100,6 @@ class PythonGenerator extends CGenerator {
                     printRunInfo();
                 }
             }
-
         }
         // Restore filename
         topLevelName = baseFileName
@@ -1697,6 +1704,51 @@ class PythonGenerator extends CGenerator {
             pyObjectDescriptor.append("O")            
             pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         }
+    }
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * The file will go into src-gen/filename.Dockerfile.
+     * If there is no main reactor, then no Dockerfile will be generated
+     * (it wouldn't be very useful).
+     * @param The root filename (without any extension).
+     */
+    override writeDockerFile(String filename) {
+        if (this.mainDef === null) {
+            return
+        }
+        
+        var srcGenPath = fileConfig.getSrcGenPath
+        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val contents = new StringBuilder()
+        
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+
+        pr(contents, '''
+            # Generated docker file for «topLevelName».lf in «srcGenPath».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            FROM python:alpine
+            WORKDIR /lingua-franca/«topLevelName»
+            COPY src-gen/«topLevelName» src-gen
+            RUN set -ex && apk add --no-cache gcc musl-dev \
+             && cd src-gen && python3 setup.py install && cd .. \
+             && apk del gcc musl-dev
+            ENTRYPOINT ["python3", "src-gen/«filename».py"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile written to " + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «fileConfig.getOutPath»
+            
+            #####################################
+        ''')
     }
     
     /**
