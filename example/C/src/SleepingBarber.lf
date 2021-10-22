@@ -10,14 +10,23 @@
  * room or `full` message if all chairs are full. When received
  * a `full` message, customer leaves and retries latter. 
  * Customers sent a `finish` message and leave upon receiving
- * a `done` message from the barber.  
+ * a `done` message from the barber.
+ * 
+ * This example is inspired by Savina benchmark by the same,
+ * which has a C target implementation here:
+ * [https://github.com/lf-lang/lingua-franca/blob/master/benchmark/C/Savina/src/concurrency/SleepingBarber.lf].
+ * Unlike the benchmark, this example illustrates a direct
+ * implementation that takes advantage of the semantics of
+ * Lingua Franca.
  * 
  * @author Thee Ho
+ * @author Edward A. Lee
  */
- 
  
 target C {
     fast: true,
+    tracing: true,
+    logging: DEBUG,
     threads: 1,
 };
 reactor Barber(
@@ -26,7 +35,8 @@ reactor Barber(
     num_customers:int(10)
 ) {
     preamble {=
-       // check for customers in waiting room
+       // Return the customer waiting in the first non-empty
+       // chair or -1 if there are no customers waiting.
        int get_customer(int chairs[], int num_chairs) {
             for (int i = 0; i < num_chairs; i++){
             	int id = chairs[i];
@@ -37,7 +47,8 @@ reactor Barber(
             }
             return -1;
        }
-       // put customer in the first empty chair
+       // Put a customer in the first empty chair, if there is one,
+       // and return true. If there is no empty chair, return false.
        bool put_customer(int chairs[], int num_chairs, int ID){
 	   		for (int i = 0; i < num_chairs; i++){
             	if (chairs[i] < 0){
@@ -53,7 +64,6 @@ reactor Barber(
     output[num_customers] done:bool;
     output[num_customers] wait:bool;
     output[num_customers] full:bool;
-    output[num_customers] customers_start:bool;
    
     state customerID:int;
     state customer_served:int;
@@ -62,38 +72,32 @@ reactor Barber(
 
     logical action done_cutting;
     logical action check_waitingroom;
-    logical action customers_arrive:int; // schedule customer arrival
     
-    reaction(startup)-> customers_arrive {=
+    reaction(startup) {=
         self->chairs = calloc(self->num_chairs, sizeof(int));
-        for (int i=0; i < self->num_chairs; i++){
+        // Mark the chairs empty.
+        for (int i=0; i < self->num_chairs; i++) {
             self->chairs[i] = -1;
         }
         self->customer_served = 0;
         self->sleep = true;
     	self->customerID = -1;
-        // Schedule random customer arrivals
-        srand(0);
-        for(int i = 0; i < self->num_customers; i++) {
-			schedule_int(customers_arrive,NSEC(rand()%(self->num_customers)),i);
-    	}
     =}
-    
-    reaction(customers_arrive) -> customers_start {=
-        int i = customers_arrive->value;
-        SET(customers_start[i], true);
-    =}
+     
     reaction(cut) -> done_cutting, wait, full {=
         for (int i = 0; i < self->num_customers; i++){
             if (cut[i]->is_present){
+                info_print("Customer %d arrives at time %lld.", i, get_elapsed_logical_time());
         		if (self->sleep){
             		self->sleep = false;
-         //   		printf("*********** Barber wakes up at %lld\n", get_elapsed_logical_time());
+            		info_print("Barber begins cut.");
             		schedule(done_cutting, self->cut_time);
             		self->customerID = i;
-        		} else if (put_customer(self->chairs, self->num_chairs,i)){
+        		} else if (put_customer(self->chairs, self->num_chairs, i)) {
+                    info_print("Customer waiting in a chair.");
             		SET(wait[i],true);
         		} else {
+                    info_print("All chairs are full. Customer leaves.");
             		SET(full[i],true);
         		}
         	}
@@ -118,10 +122,16 @@ reactor Barber(
        //    printf("*********** Barber going to sleep at %lld\n", get_elapsed_logical_time());
         }
     =}
+    
+    reaction(shutdown) {=
+        free(self->chairs);
+    =}
 }
 
-reactor Customer(bank_index:int(0), instance:int(0),retry_time:time(2 nsec)){
-    input start:bool;
+reactor Customer(
+    bank_index:int(0), 
+    retry_time:time(5 sec) // Maximum between attempts to enter.
+){
     input done:bool; 
     input wait:bool;
     input full:bool;
@@ -131,20 +141,20 @@ reactor Customer(bank_index:int(0), instance:int(0),retry_time:time(2 nsec)){
     output cut:bool;
     output finish:bool;
     
-    reaction(start) -> enter {=
-        self->instance = self->bank_index;
-        schedule(enter,0);
-        
+    reaction(startup) -> enter {=
+        // Schedule random customer arrivals
+        srand(0);
+        schedule(enter, ((rand()%1000)/1000.0) * self->retry_time); 
     =}
-    reaction(enter) -> cut{=
-        SET(cut,true);
-     // printf("Customer %d arrived.\n", self->instance);
+    reaction(enter) -> cut {=
+        SET(cut,true); 
+     // printf("Customer %d arrived.\n", self->bank_index);
     =}
     reaction(wait){=
-     //   printf("Customer %d is in the wait room.\n", self->instance);
+     //   printf("Customer %d is in the wait room.\n", self->bank_index);
     =}
     reaction(full) -> enter {=
-     //   printf("Waiting room full customer %d left.\n", self->instance);
+     //   printf("Waiting room full customer %d left.\n", self->bank_index);
         schedule(enter,self->retry_time);
     =}
     reaction(done) -> finish {=
@@ -152,7 +162,7 @@ reactor Customer(bank_index:int(0), instance:int(0),retry_time:time(2 nsec)){
     =}
 }
 
-main reactor (cut_time:time(1 nsec), num_chairs:int(100), num_customers:int(500)){  
+main reactor (cut_time:time(1 nsec), num_chairs:int(4), num_customers:int(32)){  
     barber = new Barber(cut_time=cut_time, num_chairs=num_chairs, num_customers=num_customers);
     customers = new[num_customers] Customer();
 
@@ -160,5 +170,4 @@ main reactor (cut_time:time(1 nsec), num_chairs:int(100), num_customers:int(500)
     barber.done -> customers.done;
     barber.wait -> customers.wait;
     barber.full -> customers.full;
-    barber.customers_start -> customers.start;
 }
