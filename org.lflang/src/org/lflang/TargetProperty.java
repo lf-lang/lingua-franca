@@ -167,7 +167,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
