@@ -15,7 +15,7 @@
 # with MacOS, which has a `readlink` implementation that does not support the
 # necessary `-f` flag to canonicalize by following every symlink in every 
 # component of the given name recursively.
-# This solution, adapted from an example written by Geoff Nixon, ia POSIX-
+# This solution, adapted from an example written by Geoff Nixon, is POSIX-
 # compliant and robust to symbolic links. If a chain of more than 1000 links
 # is encountered, we return.
 find_dir() (
