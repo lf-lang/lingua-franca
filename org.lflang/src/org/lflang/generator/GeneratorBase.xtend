@@ -1630,8 +1630,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 }
             }
         }
-        // Remove all connections for the main reactor.
-        mainReactor.connections.clear()
+        // Don't remove connections to allow for assignment of correct levels.
+        // mainReactor.connections.clear()
     }
     
     /**

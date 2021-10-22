@@ -84,17 +84,18 @@ public class FedASTUtils {
      * action corresponding to the given port is present or absent.
      * 
      * @note Used in federated execution
-     * 
-     * @param portRef The network input port
-     * @param receivingPortID The ID of the receiving port
+     *
+     * @param source The output port of the source federate reactor.
+     * @param destination The input port of the destination federate reactor.
+     * @param recevingPortID The ID of the receiving port
      * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
-     * @param parent The federated reactor
      * @param generator The GeneratorBase instance used to identify certain
      *  target properties
      */
     private static void addNetworkInputControlReaction(
+            PortInstance source,
             PortInstance destination,
             int recevingPortID,
             int bankIndex,
@@ -103,7 +104,8 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        VarRef newPortRef = factory.createVarRef();
+        VarRef sourceRef = factory.createVarRef();
+        VarRef destRef = factory.createVarRef();
         Type portType = EcoreUtil.copy(destination.getDefinition().getType());
         
         // If the sender or receiver is in a bank of reactors, then we want
@@ -115,8 +117,10 @@ public class FedASTUtils {
         Input newTriggerForControlReactionInput = factory.createInput();       
 
         // Set the container and variable according to the network port
-        newPortRef.setContainer(destination.parent.getDefinition());
-        newPortRef.setVariable(destination.getDefinition());
+        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setVariable(destination.getDefinition());
+        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setVariable(source.getDefinition());
         
         Reactor top = destination.parent.parent.reactorDefinition;
         
@@ -130,10 +134,11 @@ public class FedASTUtils {
         VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
         newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
         
-        // Add the trigger to the list of triggers of the reaction
+        // Add the appropriate triggers to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
+        reaction.getTriggers().add(sourceRef);
         // Add the network port as an effect of the reaction
-        reaction.getEffects().add(newPortRef);
+        reaction.getEffects().add(destRef);
         reaction.setCode(factory.createCode());
 
         TimeValue maxSTP = findMaxSTP(
@@ -526,6 +531,7 @@ public class FedASTUtils {
             
             // Add the network input control reaction to the parent
             FedASTUtils.addNetworkInputControlReaction(
+                source,
                 destination,
                 receivingPortID,
                 rightBankIndex,
@@ -537,6 +543,10 @@ public class FedASTUtils {
 
         // Configure the receiving reaction.
         r2.getTriggers().add(triggerRef);
+        // Add the original source as a trigger to keep
+        // the overall dependency structure. This is useful
+        // when assigning levels.
+        r2.getTriggers().add(sourceRef);
         r2.getEffects().add(destRef);
         r2.setCode(factory.createCode());
         r2.getCode().setBody(generator.generateNetworkReceiverBody(
