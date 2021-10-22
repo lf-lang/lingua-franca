@@ -9,17 +9,12 @@
 
 # Set up the environment.
 
-# -e: Immediately exit if any command has a non-zero exit status.
+# disabled: -e: Immediately exit if any command has a non-zero exit status.
 # -u: Error on referencing unset variables. 
 # -o pipefail: Prevents errors in a pipeline from being masked.
-set -euo pipefail
+set -uo pipefail
 
-# Obtain path to the directory containing this script, even in presence of links.
-bindir=`dirname "$(readlink -f "$0")"`
-# Get to the base directory by going from "./lib/scripts" to ".".
-base=`dirname $(dirname ${bindir})`
-
-# Paths (relative to the base directory).
+# Paths (relative to the base directory), which is assumed to have been set.
 lfc_src_pkg_name="org.lflang.lfc"
 lfc_jar_build_path="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
 lfc_jar_release_path="lib/jars/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
