@@ -1,4 +1,4 @@
-package org.lflang.mwe2;
+package org.lflang;
 
 import org.eclipse.emf.mwe2.runtime.workflow.IWorkflowContext;
 
@@ -71,7 +71,7 @@ public class CompareSyntax implements IWorkflowComponent {
      * be given with Unix-style formatting.
      */
     public void setRootPath(String path) {
-        rootPath = path.replace('/', File.separator);
+        rootPath = matchPlatform(path);
     }
     
     /**
@@ -80,7 +80,7 @@ public class CompareSyntax implements IWorkflowComponent {
      * This path must be given with Unix-style formatting.
      */
     public void setGrammarPath(String path) {
-        grammarPath = path.replace('/', File.separator);
+        grammarPath = matchPlatform(path);
     }
     
     /**
@@ -91,7 +91,7 @@ public class CompareSyntax implements IWorkflowComponent {
      * Unix-style formatting.
      */
     public void setTextmateGrammarPath(String path) {
-        textmateGrammarPath = path.replace('/', File.separator);
+        textmateGrammarPath = matchPlatform(path);
     }
     
     /**
@@ -133,5 +133,13 @@ public class CompareSyntax implements IWorkflowComponent {
             throw new RuntimeException("Failed to read file at \"" + p + "\":\n" + e);
         }
         return contents;
+    }
+    
+    /**
+     * Converts <code>path</code> to a path representation that is
+     * consistent with the current platform.
+     */
+    private String matchPlatform(String path) {
+	return path.replace("/", File.separator);
     }
 }
