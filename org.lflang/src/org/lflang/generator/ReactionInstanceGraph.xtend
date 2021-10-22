@@ -200,11 +200,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             }    
         } else {
             for (node: this.nodes) {
-                if (node.isUnordered) {
-                    node.chainID = 0
-                } else {
-                    node.chainID = 1
-                }
+                node.chainID = 1
             }    
         }
     }
