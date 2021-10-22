@@ -67,10 +67,9 @@ class CppGenerator(
 
         // abort if there is no main reactor
         if (mainDef == null) {
-            // FIXME: Sending directly to stdout only seems to make sense in standalone mode.
-            //  Convert to errorReporter.reportWarning?
-            //  This would tell IDE users why the code generator and C++ validator are not running.
-            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
+            errorReporter.reportWarning(
+                "WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated."
+            )
             return
         }
 
