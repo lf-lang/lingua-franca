@@ -104,6 +104,6 @@ function run_lfc_with_args {
     fi
 
     # Launch the compiler.
-    "$(get_java_cmd)" -jar "${jar_path}" "$1";
+    "$(get_java_cmd)" -jar "${jar_path}" "$@";
     exit $?
 }
