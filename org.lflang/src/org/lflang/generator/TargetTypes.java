@@ -117,7 +117,7 @@ public interface TargetTypes {
         // todo make non-default when we reuse this for all generators,
         //  all targets should support this.
         Objects.requireNonNull(unit);
-        throw new UnsupportedGeneratorFeatureException("Time expressions");
+        throw new AssertionError("Unimplemented"); // todo make non-default
     }
 
     /**
@@ -166,22 +166,12 @@ public interface TargetTypes {
 
     /**
      * Returns an expression in the target language that corresponds
-     * to a variable-size list expression.
-     *
-     * @throws UnsupportedGeneratorFeatureException If the target does not support this
+     * to a variable or fixed-size list expression, depending on the
+     * parameter type. The inferred type may be opaque, or undefined,
+     * but is non-null. The contents list has size != 1.
      */
-    default String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-        throw new UnsupportedGeneratorFeatureException("Variable size lists");
-    }
-
-    /**
-     * Returns an expression in the target language that corresponds
-     * to a fixed-size list expression.
-     *
-     * @throws UnsupportedGeneratorFeatureException If the target does not support this
-     */
-    default String getFixedSizeListInitExpression(List<String> contents, int listSize, boolean withBraces) {
-        throw new UnsupportedGeneratorFeatureException("Fixed size lists");
+    default String getDefaultInitExpression(List<String> contents, InferredType type, boolean withBraces) {
+        throw new AssertionError("Unimplemented"); // todo make non-default
     }
 
 
@@ -252,19 +242,13 @@ public interface TargetTypes {
         if (init == null) {
             return getMissingExpr();
         }
-        var inferredType = JavaAstUtils.getInferredType(type, init);
+        InferredType inferredType = JavaAstUtils.getInferredType(type, init);
         Value single = JavaAstUtils.asSingleValue(init);
         if (single != null) {
             return getTargetExpr(single, inferredType);
         }
-        var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
-        if (inferredType.isFixedSizeList) {
-            return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
-        } else if (inferredType.isVariableSizeList) {
-            return getVariableSizeListInitExpression(targetValues, init.isBraces());
-        } else {
-            return getMissingExpr();
-        }
+        var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, null)).collect(Collectors.toList());
+        return getDefaultInitExpression(targetValues, inferredType, init.isBraces());
     }
 
 
