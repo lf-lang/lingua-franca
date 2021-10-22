@@ -2,6 +2,7 @@ module org.lflang.GenerateLinguaFranca
 
 import org.eclipse.xtext.xtext.generator.*
 import org.eclipse.xtext.xtext.generator.model.project.*
+import org.lflang.mwe2.CompareSyntax
 
 var rootPath = ".."
 
