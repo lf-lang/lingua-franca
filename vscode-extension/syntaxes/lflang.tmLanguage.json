@@ -30,13 +30,13 @@
         "post-targetspec": {
             "patterns": [
                 {
-                    "include": "#context-insensitive"
-                },
-                {
                     "include": "#target-specification"
                 },
                 {
                     "include": "#import-statement"
+                },
+                {
+                    "include": "#context-insensitive"
                 }
             ]
         },
@@ -94,19 +94,19 @@
                     "include": "#time"
                 },
                 {
-                    "include": "#deadline"
-                },
-                {
                     "include": "#instantiation"
                 },
                 {
                     "include": "#after"
                 },
                 {
-                    "include": "#mutation"
+                    "include": "#connection-modifier"
                 },
                 {
                     "include": "#member-access-operator"
+                },
+                {
+                    "include": "#function-like"
                 }
             ]
         },
@@ -192,7 +192,7 @@
                 },
                 {
                     "name": "variable.parameter.lflang",
-                    "match": "(?<=(^|,|\\{)(\\s)*)\\b(\\w+)\\b(?=(\\s)*:)"
+                    "match": "(?<=(^|,|\\{)(\\s)*)\\b([\\w\\-]+)\\b(?=(\\s)*:)"
                 }
             ]
         },
@@ -239,7 +239,7 @@
             "patterns": [
                 {
                     "name": "keyword.control.lflang",
-                    "match": "\\b(reaction)\\b"
+                    "match": "\\b(reaction|method|STP|deadline|mutation)\\b"
                 }
             ]
         },
@@ -325,15 +325,15 @@
         },
         "boolean": {
             "name": "constant.language.lflang",
-            "match": "\\b(true|false)\\b"
+            "match": "\\b(true|True|false|False)\\b"
         },
         "time-unit": {
-            "name": "support.constant.lflang",
+            "name": "constant.numeric.lflang",
             "match": "\\b(nsec|nsecs|usec|usecs|msec|msecs|sec|secs|second|seconds|min|mins|minute|minutes|hour|hours|day|days|week|weeks)\\b"
         },
         "operator": {
             "name": "keyword.operator.lflang",
-            "match": "->|\\+|-|\\*|/|=|%|@"
+            "match": "->|~>|\\+|-|\\*|/|=|%|@|\\.|::"
         },
         "startup-shutdown": {
             "name": "support.variable.lflang",
@@ -343,14 +343,10 @@
             "name": "storage.type.lflang",
             "match": "\\b(time)\\b"
         },
-        "deadline": {
-            "name": "keyword.control.lflang",
-            "match": "\\b(deadline)\\b"
-        },
         "instantiation": {
             "patterns": [
                 {
-                    "name": "keyword.control.new.lflang",
+                    "name": "keyword.operator.new.lflang",
                     "match": "\\b(new)\\b"
                 },
                 {
@@ -363,25 +359,25 @@
                 }
             ]
         },
-        "after": {
+        "connection-modifier": {
             "name": "keyword.control.lflang",
-            "match": "\\b(after)\\b"
-        },
-        "mutation": {
-            "name": "keyword.control.lflang",
-            "match": "\\b(mutation)\\b"
+            "match": "\\b(after|interleaved|serializer)\\b"
         },
         "member-access-operator": {
             "patterns": [
                 {
                     "name": "variable.other.lflang",
-                    "match": "(\\b\\w+\\b)(?=\\.\\w+)"
+                    "match": "(\\b\\w+\\b)(?=((\\.)|(::))\\w+)"
                 },
                 {
                     "name": "variable.other.lflang",
-                    "match": "(?<=\\w+\\.)(\\b\\w+\\b)"
+                    "match": "(?<=\\w+((\\.)|(::)))(\\b\\w+\\b)"
                 }
             ]
+        },
+        "function-like": {
+            "name": "support.function.lflang",
+            "match": "\\bwidthof(?=\\()"
         }
     },
     "patterns": [
