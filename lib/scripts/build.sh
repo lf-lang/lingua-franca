@@ -9,6 +9,7 @@
 #============================================================================
 # Preamble
 #============================================================================
+
 # Find the directory in which this script resides in a way that is compatible
 # with MacOS, which has a `readlink` implementation that does not support the
 # necessary `-f` flag to canonicalize by following every symlink in every 
@@ -46,21 +47,18 @@ abs_path="$(find_dir "$0")"
 
 if [[ "${abs_path}" ]]; then
     base=`dirname $(dirname ${abs_path})`
-    # Initialize Lingua Franca shell environment.
-    source "${base}/${rel_path}/init.sh"
+    source "${base}/${rel_path}/include.sh"
 else
     fatal_error "Unable to determine absolute path to $0."
 fi
 #============================================================================
 
-# 1. Find the jar and check whether sources are present or not.
-find_jar_path
-
-if ! src_exists; then
-    fatal_error "Cannot find sources."
+# Check whether sources are present and exit if they are not.
+if [ ! get_src_dir ]; then
+    fatal_error "Cannot find Lingua Franca sources."
 fi
 
-# 2. Print message explaining the CLI args.
+# Print message explaining the CLI args.
 function usage() {
     echo "Usage: build-lfc [options] [[-r | --run] [lfc-args]]"
     echo "Options:"
@@ -102,24 +100,30 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# 3. Clean up if requested.
+# Perform cleanup up if requested.
 if [ $clean -eq 1 ]; then
     echo "Performing cleanup..."
     "${base}/gradlew" -p "${base}" clean;
 fi
 
-# 4. Check if jar is missing or out-of-date compared to the sources
-if [ ! -f "${lfc_jar_build_path}" ] || ! "${FIND}" "${lfbase}/src" -path "${lfbase}/test" -prune -o -type f -newer "${lfc_jar_build_path}" -exec false {} +; then
+# Check if jar is missing or out-of-date compared to the sources.
+FIND=find
+if [ "${OSTYPE}" = "msys" ]; then  # Make sure we don't use the built-in Windows 'find' command, which is different
+	FIND="/usr/bin/${FIND}"
+fi
+
+jar_path="$(get_jar_path)"
+
+if [ ! -f "${jar_path}" ] || ! "${FIND}" "${base}" -path "${src_pkg_path}" -path "${lfc_src_pkg_path}" -prune -o -type f -newer "${jar_path}" -exec false {} +; then
 	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
 	"${base}/gradlew" ${flags} -p "${base}" buildLfc
-	touch -c -- "${jar_path}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
+	touch -c -- "$(get_jar_path)"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
 else
     echo "Already up-to-date."
 fi
 
-# 5. Run lfc with the provided arguments.
+# Run lfc with the provided arguments.
 if [[ "${run}" == "true" ]]; then
-    check_jre_version
     echo "Running lfc..."
-    run_jar_with_args "${args[@]}"
+    run_lfc_with_args "${args[@]}"
 fi
