@@ -419,18 +419,18 @@ public class FedASTUtils {
         VarRef sourceRef = factory.createVarRef();
         VarRef destRef = factory.createVarRef();
         Reactor parent = (Reactor)connection.eContainer();
-        Reaction r1 = factory.createReaction();
-        Reaction r2 = factory.createReaction();
+        Reaction networkSenderReaction = factory.createReaction();
+        Reaction networkReceiverReaction = factory.createReaction();
         
         // These reactions do not require any dependency relationship
         // to other reactions in the container.
-        generator.makeUnordered(r1);
-        generator.makeUnordered(r2);
+        generator.makeUnordered(networkSenderReaction);
+        generator.makeUnordered(networkReceiverReaction);
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
-        generator.setReactionBankIndex(r1, leftBankIndex);
-        generator.setReactionBankIndex(r2, rightBankIndex);
+        generator.setReactionBankIndex(networkSenderReaction, leftBankIndex);
+        generator.setReactionBankIndex(networkReceiverReaction, rightBankIndex);
         
         // Get the serializer
         var serializer = SupportedSerializers.NATIVE;
@@ -497,9 +497,9 @@ public class FedASTUtils {
         parent.getActions().add(action);
         
         // Configure the sending reaction.
-        r1.getTriggers().add(sourceRef);
-        r1.setCode(factory.createCode());
-        r1.getCode().setBody(generator.generateNetworkSenderBody(
+        networkSenderReaction.getTriggers().add(sourceRef);
+        networkSenderReaction.setCode(factory.createCode());
+        networkSenderReaction.getCode().setBody(generator.generateNetworkSenderBody(
             sourceRef,
             destRef,
             receivingPortID,
@@ -514,7 +514,7 @@ public class FedASTUtils {
         ));
               
         // Add the sending reaction to the parent.
-        parent.getReactions().add(r1);
+        parent.getReactions().add(networkSenderReaction);
         
         if (!connection.isPhysical()) {           
             // Add the network output control reaction to the parent
@@ -542,14 +542,14 @@ public class FedASTUtils {
 
 
         // Configure the receiving reaction.
-        r2.getTriggers().add(triggerRef);
+        networkReceiverReaction.getTriggers().add(triggerRef);
         // Add the original source as a trigger to keep
         // the overall dependency structure. This is useful
         // when assigning levels.
-        r2.getTriggers().add(sourceRef);
-        r2.getEffects().add(destRef);
-        r2.setCode(factory.createCode());
-        r2.getCode().setBody(generator.generateNetworkReceiverBody(
+        networkReceiverReaction.getTriggers().add(sourceRef);
+        networkReceiverReaction.getEffects().add(destRef);
+        networkReceiverReaction.setCode(factory.createCode());
+        networkReceiverReaction.getCode().setBody(generator.generateNetworkReceiverBody(
             action,
             sourceRef,
             destRef,
@@ -564,6 +564,6 @@ public class FedASTUtils {
         ));
         
         // Add the receiver reaction to the parent
-        parent.getReactions().add(r2);
+        parent.getReactions().add(networkReceiverReaction);
     }
 }
