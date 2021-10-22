@@ -1,4 +1,4 @@
-package org.lflang;
+package org.lflang.mwe2;
 
 import org.eclipse.emf.mwe2.runtime.workflow.IWorkflowContext;
 
@@ -23,7 +23,7 @@ import org.eclipse.emf.mwe2.runtime.workflow.IWorkflowComponent;
  * tool for use only in the MWE2 workflow.
  */
 public class CompareSyntax implements IWorkflowComponent {
-    private static final Pattern KEYWORD_IN_GRAMMAR = Pattern.compile("(?<!\\.\\.)'(?<keyword>[^\s'\\.]*?)'(?!\\.\\.)");
+    private static final Pattern KEYWORD_IN_GRAMMAR = Pattern.compile("(?<!\\.\\.)'(?<keyword>[^\\s'\\.]*?)'(?!\\.\\.)");
     
     private String rootPath;
     private String grammarPath;
@@ -60,7 +60,7 @@ public class CompareSyntax implements IWorkflowComponent {
      * keyword.
      * @param nonKeyword a string that is not a keyword
      */
-    public void setIgnore(String nonKeyword) {
+    public void addIgnore(String nonKeyword) {
         ignore.add(nonKeyword);
     }
     
