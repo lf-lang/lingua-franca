@@ -58,8 +58,6 @@ public final class RustTargetConfig {
      */
     private final List<Path> rustTopLevelModules = new ArrayList<>();
 
-    private CargoProfile buildProfile = CargoProfile.DEV;
-
     public void setCargoFeatures(List<String> cargoFeatures) {
         this.cargoFeatures = cargoFeatures;
     }
@@ -93,14 +91,6 @@ public final class RustTargetConfig {
 
     public List<Path> getRustTopLevelModules() {
         return rustTopLevelModules;
-    }
-
-    public CargoProfile getBuildProfile() {
-        return buildProfile;
-    }
-
-    public void setBuildProfile(CargoProfile profile) {
-        this.buildProfile = profile;
     }
 
     /**

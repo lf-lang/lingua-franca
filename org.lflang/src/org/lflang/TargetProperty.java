@@ -428,13 +428,7 @@ public enum TargetProperty {
         config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
     }),
 
-    /** Cargo profile to use during build. */
-    CARGO_PROFILE("cargo-profile",
-                  UnionType.CARGO_PROFILE_UNION,
-                  List.of(Target.Rust),
-                  (config, value, err) -> {
-                      config.rust.setBuildProfile((CargoProfile) UnionType.CARGO_PROFILE_UNION.forName(ASTUtils.toText(value)));
-                  });
+    ;
 
     /**
      * String representation of this target property.
