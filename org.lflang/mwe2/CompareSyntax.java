@@ -67,28 +67,31 @@ public class CompareSyntax implements IWorkflowComponent {
     /**
      * Sets the path to the root directory relative to which all
      * other paths are given.
-     * @param path the path to the root directory
+     * @param path the path to the root directory. This path must
+     * be given with Unix-style formatting.
      */
     public void setRootPath(String path) {
-        rootPath = path;
+        rootPath = path.replace('/', File.separator);
     }
     
     /**
      * Sets the path to the Xtext grammar for Lingua Franca.
-     * @param path the path to the Xtext grammar for Lingua Franca
+     * @param path the path to the Xtext grammar for Lingua Franca.
+     * This path must be given with Unix-style formatting.
      */
     public void setGrammarPath(String path) {
-        grammarPath = path;
+        grammarPath = path.replace('/', File.separator);
     }
     
     /**
      * Sets the path to the TextMate-style grammar that is used for
      * syntax highlighting.
      * @param path the path to the TextMate-style grammar that is
-     * used for syntax highlighting
+     * used for syntax highlighting. This path must be given with
+     * Unix-style formatting.
      */
     public void setTextmateGrammarPath(String path) {
-        textmateGrammarPath = path;
+        textmateGrammarPath = path.replace('/', File.separator);
     }
     
     /**
