@@ -285,7 +285,7 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
-     * @param portRef The output port
+     * @param source The output port of the source federated reactor
      * @param instance The federate instance is used to keep track of all
      *        network input ports globally
      * @param receivingPortID The ID of the receiving port
@@ -373,9 +373,6 @@ public class FedASTUtils {
         reaction.getCode().setBody(
                 generator.generateNetworkOutputControlReactionBody(newPortRef,
                         receivingPortID, receivingFedID, bankIndex, channelIndex, delay));
-        
-        // Make the reaction unordered w.r.t. other reactions in the top level.
-        generator.makeUnordered(reaction);
 
         // Insert the newly generated reaction after the generated sender and
         // receiver top-level reactions.
