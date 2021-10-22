@@ -27,8 +27,6 @@ package org.lflang;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.emf.common.util.EList;
-
 import org.lflang.lf.Action;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.ParamRef;
@@ -156,7 +154,7 @@ public final class JavaAstUtils {
      * return it. Otherwise return null.
      */
     public static Value asSingleValue(Initializer init) {
-        EList<Value> exprs = init.getExprs();
+        List<Value> exprs = init.getExprs();
         return exprs.size() == 1 ? exprs.get(0) : null;
     }
 

@@ -25,9 +25,12 @@
 package org.lflang.generator.rust
 
 import org.lflang.InferredType
+import org.lflang.JavaAstUtils
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
+import org.lflang.lf.Initializer
 import org.lflang.lf.TimeUnit
+import org.lflang.lf.Type
 
 object RustTypes : TargetTypes {
 
@@ -68,11 +71,18 @@ object RustTypes : TargetTypes {
         TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($magnitude)"
     }
 
-    override fun getDefaultInitExpression(contents: List<String>, type: InferredType, withBraces: Boolean): String =
-        if (type.isFixedSizeList)
-            contents.joinToString(", ", "[", "]")
-        else
-            contents.joinToString(", ", "vec![", "]")
+    override fun getTargetInitializer(init: Initializer?, type: Type?): String {
+        if (init == null) {
+            return missingExpr
+        }
+        val inferredType: InferredType = JavaAstUtils.getInferredType(type, init)
+        return init.exprs.singleOrNull()?.let { getTargetExpr(it, inferredType) }
+            ?: if (inferredType.isFixedSizeList)
+                init.exprs.joinToString(", ", "[", "]") { getTargetExpr(it, null) }
+            else
+                init.exprs.joinToString(", ", "vec![", "].into()") { getTargetExpr(it, null) }
+
+    }
 
     override fun getMissingExpr(): String =
         "Default::default()"

@@ -25,10 +25,9 @@
 package org.lflang.generator.cpp
 
 import org.lflang.InferredType
+import org.lflang.JavaAstUtils
 import org.lflang.generator.TargetTypes
-import org.lflang.joinWithCommas
-import org.lflang.lf.ParamRef
-import org.lflang.lf.TimeUnit
+import org.lflang.lf.*
 
 /**
  * Implementation of [TargetTypes] for C++.
@@ -45,12 +44,19 @@ object CppTypes : TargetTypes {
     override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
     override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
-    override fun getDefaultInitExpression(contents: List<String>, type: InferredType, withBraces: Boolean): String =
-        buildString {
-            this.append(getTargetType(type))
-            val (prefix, postfix) = if (withBraces) Pair("{", "}") else Pair("(", ")")
-            contents.joinTo(this, ", ", prefix, postfix)
+    override fun getTargetInitializer(init: Initializer?, type: Type?): String {
+        if (init == null) {
+            return missingExpr
         }
+        val inferredType = JavaAstUtils.getInferredType(type, init)
+        return init.exprs.singleOrNull()?.let { getTargetExpr(it, inferredType) }
+            ?: buildString {
+                // != 1 expr
+                this.append(getTargetType(type))
+                val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+                init.exprs.joinTo(this, ", ", prefix, postfix) { getTargetExpr(it, null) }
+            }
+    }
 
 
     override fun getTargetUndefinedType() = "void"

@@ -164,16 +164,6 @@ public interface TargetTypes {
         throw new UnsupportedGeneratorFeatureException("Tuple expressions lists");
     }
 
-    /**
-     * Returns an expression in the target language that corresponds
-     * to a variable or fixed-size list expression, depending on the
-     * parameter type. The inferred type may be opaque, or undefined,
-     * but is non-null. The contents list has size != 1.
-     */
-    default String getDefaultInitExpression(List<String> contents, InferredType type, boolean withBraces) {
-        throw new AssertionError("Unimplemented"); // todo make non-default
-    }
-
 
     /**
      * Returns the expression that is used to replace a
@@ -235,7 +225,12 @@ public interface TargetTypes {
      * expression in target code. The given type, if non-null,
      * may inform the code generation.
      *
-     * @param init Initializer list (non-null)
+     * <p>By default, only initializers with exactly one expression
+     * are handled. If you want to provide semantics for other kinds
+     * of initializers, for instance, braced initializer lists, override
+     * this method.
+     *
+     * @param init Initializer list (nullable)
      * @param type Declared type of the expression (nullable)
      */
     default String getTargetInitializer(Initializer init, Type type) {
@@ -247,8 +242,8 @@ public interface TargetTypes {
         if (single != null) {
             return getTargetExpr(single, inferredType);
         }
-        var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, null)).collect(Collectors.toList());
-        return getDefaultInitExpression(targetValues, inferredType, init.isBraces());
+        // override this method to give semantics to this
+        throw new UnsupportedGeneratorFeatureException(init, "Initializers with != 1 value");
     }
 
 
