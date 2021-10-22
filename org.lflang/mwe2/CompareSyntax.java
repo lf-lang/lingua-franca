@@ -39,7 +39,7 @@ public class CompareSyntax implements IWorkflowComponent {
                     "WARNING: The token '" + keyword + "' appears in " + grammarPath
                     + ", but not in " + textmateGrammarPath + ". Consider updating "
                     + textmateGrammarPath + " or silencing the warning by ignoring "
-                    + "'" + keyword + "'" + " in this workflow."
+                    + "'" + keyword + "'" + " in GenerateLinguaFranca.mwe2."
                 );
             }
         }

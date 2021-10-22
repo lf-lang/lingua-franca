@@ -68,5 +68,10 @@ Workflow {
         ignore = "\\t"
         ignore = "\\r"
         ignore = "\\n"
+        ignore = ":\\\\"
+        ignore = "/*"
+        ignore = "_"
+        ignore = "\"\"\""
+        ignore = "[]"
     }
 }
