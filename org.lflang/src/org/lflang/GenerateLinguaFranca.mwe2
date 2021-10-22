@@ -6,6 +6,7 @@ import org.eclipse.xtext.xtext.generator.model.project.*
 var rootPath = ".."
 
 Workflow {
+
     component = XtextGenerator {
         configuration = {
             project = StandardProjectConfig {
@@ -59,18 +60,5 @@ Workflow {
                 generate = true
             }
         }
-    }
-    component = CompareSyntax {
-        rootPath = rootPath
-        grammarPath = "org.lflang/src/org/lflang/LinguaFranca.xtext"
-        textmateGrammarPath = "vscode-extension/syntaxes/lflang.tmLanguage.json"
-        ignore = "\\t"
-        ignore = "\\r"
-        ignore = "\\n"
-        ignore = ":\\\\"
-        ignore = "/*"
-        ignore = "_"
-        ignore = "\"\"\""
-        ignore = "[]"
     }
 }

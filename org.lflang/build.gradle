@@ -38,18 +38,9 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1'
 }
 
-sourceSets {
-    preBuildSources {
-        java {
-            srcDirs = ['mwe2']
-        }
-        compileClasspath += configurations.mwe2
-    }
-}
-
 task generateXtextLanguage(type: JavaExec) {
     main = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
-    classpath = configurations.mwe2 + sourceSets.preBuildSources.output
+    classpath = configurations.mwe2
     inputs.file "src/org/lflang/GenerateLinguaFranca.mwe2"
     inputs.file "src/org/lflang/LinguaFranca.xtext"
     outputs.dir "src-gen"
