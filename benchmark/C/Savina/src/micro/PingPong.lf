@@ -68,9 +68,16 @@ reactor Pong(expected:int(10000000)) {
     =}
 }
 
-main reactor PingPong {
-    ping = new Ping();
-    pong = new Pong();
+/*[[[cog
+cog.outl(f'main reactor PingPong(count:int({count}))')
+]]] */
+main reactor PingPong(count:int(1000000)) 
+
+/// [[[end]]]
+
+{
+    ping = new Ping(count=count);
+    pong = new Pong(expected=count);
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }

@@ -27,3 +27,11 @@ targets:
     run_args:
       pings: ["--numPings", "<value>"]
       actors: ["--numReactors", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/micro/ThreadRing.lf"
+    lf_file: "ThreadRing.lf"
+    binary: "ThreadRing"
+    gen_args:
+      actors: ["-D", "numReactors=<value>"]
+      pings: ["-D", "numPings=<value>"]

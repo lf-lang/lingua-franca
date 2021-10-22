@@ -61,6 +61,7 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.InvalidSourceException
 import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
@@ -90,6 +91,7 @@ import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 
 /** 
@@ -606,7 +608,7 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
             
             // Copy the header files
             copyTargetHeaderFile()
@@ -1152,7 +1154,7 @@ class CGenerator extends GeneratorBase {
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
         // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/core/platform.h
+        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
@@ -1443,8 +1445,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        fileConfig.copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
-        fileConfig.copyFileFromClassPath("/lib/C/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
     }
 
     ////////////////////////////////////////////
@@ -3150,7 +3152,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                                 for (portWithDependentReactions : portsWithDependentReactions) {
@@ -3173,7 +3175,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error 2: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error 2: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                             }
@@ -3492,7 +3494,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->_lf_«port.name»«destinationIndexSpec»'''
         } else {
-            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
+            throw new InvalidSourceException("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -4083,7 +4085,7 @@ class CGenerator extends GeneratorBase {
      */
     private def void generateReactionOutputs(
         ReactionInstance reaction, 
-        LinkedHashSet<PortInstance> portAllocatedAlready
+        Set<PortInstance> portAllocatedAlready
     ) {
         val nameOfSelfStruct = selfStructName(reaction.parent);
 
@@ -5886,13 +5888,10 @@ class CGenerator extends GeneratorBase {
     override getTargetTimeType() '''interval_t'''
     
     override getTargetTagType() '''tag_t'''
-    
-    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
-    override getTargetFixedSizeListType(String baseType,
-        Integer size) '''«baseType»[«size»]'''
+    override getTargetFixedSizeListType(String baseType, int size) '''«baseType»[«size»]'''
         
     override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''
