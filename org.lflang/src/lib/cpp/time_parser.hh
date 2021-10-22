@@ -103,6 +103,9 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
   return in;
 }
 
+/**
+*   Tests for correct syntax in unit usage for time strings
+**/
 std::string validate_time_string(const std::string& time) {
   auto trimmed = std::regex_replace(time, std::regex("^ +| +$|( ) +"), "$1");
   if (trimmed.size() == 0) {

@@ -14,7 +14,7 @@ class CppMainGenerator(
     private val targetConfig: TargetConfig,
     private val fileConfig: CppFileConfig,
 ) {
-    // Cxxopts geneartion
+    // Cxxopts generation
     private fun generateParameterParser(param: Parameter): String {
         with(CppParameterGenerator) {
             with(param) {
@@ -28,7 +28,7 @@ class CppMainGenerator(
                     """
                         $targetType $name = $defaultValue;
                         options
-                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name), "'$targetType'");
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value("$name"), "'$targetType'");
                     """.trimIndent()
                 }
             }
