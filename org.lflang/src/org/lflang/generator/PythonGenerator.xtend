@@ -29,7 +29,6 @@ package org.lflang.generator
 import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
@@ -59,6 +58,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 import org.lflang.generator.c.CCompiler
 
@@ -212,7 +212,7 @@ class PythonGenerator extends CGenerator {
             return null
         }
 
-        var list = new LinkedList<String>();
+        var list = new ArrayList<String>();
 
         for (i : state?.init) {
             if (i.parameter !== null) {
@@ -1112,23 +1112,18 @@ class PythonGenerator extends CGenerator {
         super.copyUserFiles(targetConfig, fileConfig);
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
-        var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
-        for (file : targetFiles) {
-            fileConfig.copyFileFromClassPath(
-                "/" + "lib" + "/" + "Python" + "/" + file,
-                fileConfig.getSrcGenPath.resolve(file).toString
-            )
-        }
-        
-        // Copy the C target header.
-        // This will also overwrite previous versions.
-        var cTargetFiles = newArrayList("ctarget.h");
-        for (file : cTargetFiles) {
-            fileConfig.copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                fileConfig.getSrcGenPath.resolve(file).toString
-            )
-        }
+        fileConfig.copyFileFromClassPath(
+            "/lib/py/reactor-c-py/include/pythontarget.h",
+            fileConfig.getSrcGenPath.resolve("pythontarget.h").toString
+        )
+        fileConfig.copyFileFromClassPath(
+            "/lib/py/reactor-c-py/lib/pythontarget.c",
+            fileConfig.getSrcGenPath.resolve("pythontarget.c").toString
+        )
+        fileConfig.copyFileFromClassPath(
+            "/lib/c/reactor-c/include/ctarget.h",
+            fileConfig.getSrcGenPath.resolve("ctarget.h").toString
+        )       
     }
     
     

@@ -118,9 +118,9 @@ class CppMainGenerator(
             |
             |  // execute the reactor program
             |  e.assemble();
-            |  auto thread = e . startup ();
+            |  auto thread = e.startup();
             |  thread.join();
-            |
+        ${" |".. if (targetConfig.exportDependencyGraph) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
             |  return 0;
             |}
         """.trimMargin()
