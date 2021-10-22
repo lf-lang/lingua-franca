@@ -26,23 +26,24 @@ package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
 import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests for the Python target.
  *
- * Even though all tests are implemented in the base class, we @Override public void them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking anywhere in the header or body of the test
- * method and selecting "Run As -> JUnit Test" from the pop-up menu.
+ * Even though all tests are implemented in the base class, we override them
+ * here so that each test can be easily invoked individually from IDEs with
+ * JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".
  *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public class PythonTest extends TestBase {
+public class PythonTest extends AbstractTest {
 
-    PythonTest() {
-        this.target = Target.Python;
+    public PythonTest() {
+        super(Target.Python);
     }
 
     @Test
@@ -65,7 +66,8 @@ public class PythonTest extends TestBase {
     public void runSerializationTests() {
         // Skip the test if the OS is Windows
         if(isWindows()) { 
-            printTestHeader("Warning: Skipping serialization tests on Windows.");
+            printSkipMessage(Message.DESC_SERIALIZATION,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
         super.runSerializationTests();
@@ -76,7 +78,8 @@ public class PythonTest extends TestBase {
     @Override public void runAsFederated() {
         // Skip the test if the OS is Windows
         if(isWindows()) { 
-            printTestHeader("Warning: Skipping federated tests on Windows.");
+            printSkipMessage(Message.DESC_AS_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
         super.runAsFederated();
@@ -92,7 +95,8 @@ public class PythonTest extends TestBase {
     @Override public void runFederatedTests() {
         // Skip the test if the OS is Windows
         if(isWindows()) { 
-            printTestHeader("Warning: Skipping federated tests on Windows.");
+            printSkipMessage(Message.DESC_FEDERATED,
+                    Message.NO_WINDOWS_SUPPORT);
             return; 
         }
         super.runFederatedTests();
