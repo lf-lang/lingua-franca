@@ -10,6 +10,7 @@
 #============================================================================
 # Preamble
 #============================================================================
+
 # Find the directory in which this script resides in a way that is compatible
 # with MacOS, which has a `readlink` implementation that does not support the
 # necessary `-f` flag to canonicalize by following every symlink in every 
@@ -47,20 +48,11 @@ abs_path="$(find_dir "$0")"
 
 if [[ "${abs_path}" ]]; then
     base=`dirname $(dirname ${abs_path})`
-    # Initialize Lingua Franca shell environment.
-    source "${base}/${rel_path}/init.sh"
+    source "${base}/${rel_path}/include.sh"
 else
     fatal_error "Unable to determine absolute path to $0."
 fi
 #============================================================================
 
-# 1. Find the jar; report error if it was not found.
-if ! find_jar_path; then
-    fatal_error "Cannot find the Lingua Franca jar."
-fi
-
-# 2. Make sure the correct JRE is available.
-check_jre_version
-
-# 3. Launch the compiler.
-run_jar_with_args "$@"
+# Launch the compiler.
+run_lfc_with_args "$@"
