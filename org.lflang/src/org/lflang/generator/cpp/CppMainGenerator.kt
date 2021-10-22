@@ -28,7 +28,7 @@ class CppMainGenerator(
                     """
                         $targetType $name = $defaultValue;
                         options
-                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(std::to_string($name)), "'$targetType'");
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(any_to_string($name)), "'$targetType'");
                     """.trimIndent()
                 }
             }

@@ -47,6 +47,13 @@ std::string time_to_string(const reactor::Duration& dur) {
   return ss.str();
 }
 
+template<typename T>
+std::string any_to_string(const T val){
+    std::stringstream ss;
+    ss << val;
+    return ss.str();
+}
+
 std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
   double value;
   std::string unit;
