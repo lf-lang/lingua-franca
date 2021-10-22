@@ -32,7 +32,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.Target;
-import org.lflang.tests.runtime.TestBase;
+import org.lflang.tests.TestBase.TestLevel;
+import org.lflang.tests.runtime.CCppTest;
+import org.lflang.tests.runtime.CTest;
+import org.lflang.tests.runtime.CppTest;
+import org.lflang.tests.runtime.PythonTest;
+import org.lflang.tests.runtime.RustTest;
+import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
  * Execute a single test case. Use it with the gradle task
@@ -43,7 +49,7 @@ import org.lflang.tests.runtime.TestBase;
 public class RunSingleTestMain {
 
 
-    private static final Pattern TEST_FILE_PATTERN = Pattern.compile("(test/(\\w+)/src)/([^/]++/)*(\\w+.lf)");
+    private static final Pattern TEST_FILE_PATTERN = Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
 
     public static void main(String[] args) throws FileNotFoundException {
         if (args.length != 1) {
@@ -62,6 +68,30 @@ public class RunSingleTestMain {
         Path packageRoot = Paths.get(matcher.group(1)).toAbsolutePath();
         Target target = Target.forName(matcher.group(2)).get();
 
-        TestBase.runSingleTestAndPrintResults(new LFTest(target, path.toAbsolutePath(), packageRoot));
+        Class<? extends TestBase> testClass = getTestInstance(target);
+
+        LFTest testCase = new LFTest(target, path.toAbsolutePath(), packageRoot);
+
+        TestBase.runSingleTestAndPrintResults(testCase, testClass, TestLevel.EXECUTION);
+    }
+
+
+    private static Class<? extends TestBase> getTestInstance(Target target) {
+        switch (target) {
+        case C:
+            return CTest.class;
+        case CCPP:
+            return CCppTest.class;
+        case CPP:
+            return CppTest.class;
+        case TS:
+            return TypeScriptTest.class;
+        case Python:
+            return PythonTest.class;
+        case Rust:
+            return RustTest.class;
+        default:
+            throw new IllegalArgumentException();
+        }
     }
 }

@@ -1,29 +1,34 @@
-/* Class for storing information derived from target properties. */
-/** 
- * Copyright (c) 2021, The University of California at Berkeley.
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
 package org.lflang;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
@@ -38,7 +43,7 @@ import org.lflang.lf.TimeUnit;
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public class TargetConfig {
-    
+
     /**
      * Keep track of every target property that is explicitly set by the user.
      */
@@ -50,6 +55,11 @@ public class TargetConfig {
      * property is to set the command to build on the basis of a Makefile.
      */
     public List<String> buildCommands = new ArrayList<>();
+
+    /**
+     * List of Cargo features to enable (Rust only).
+     */
+    public List<String> cargoFeatures = new ArrayList<>();
 
     /**
      * The mode of clock synchronization to be used in federated programs.
@@ -143,7 +153,7 @@ public class TargetConfig {
      * Useful for copying them to remote machines. This is needed because
      * target files can be resources with resource paths.
      */
-    public List<String> filesNamesWithoutPath =new ArrayList<>();
+    public List<String> filesNamesWithoutPath = new ArrayList<>();
 
     /**
      * If true, configure the execution environment to keep executing if there
@@ -182,6 +192,9 @@ public class TargetConfig {
      */
     public String runtimeVersion = null;
 
+    /** Whether all reactors are to be generated into a single target language file. */
+    public boolean singleFileProject = false;
+
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,
      * all work is done in the main thread).
@@ -199,6 +212,14 @@ public class TargetConfig {
      */
     public TracingOptions tracing = null;
 
+
+    /**
+     * If true, the resulting binary will output a graph visualizing all reaction dependencies.
+     *
+     * This option is currently only used for C++. This export function is a valuable tool for debugging
+     * LF programs and helps to understand the dependencies inferred by the C++ runtime.
+     */
+    public boolean exportDependencyGraph = false;
 
 
     /**

@@ -149,7 +149,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     // Need to find the ports of all the instances within the bank.
                     val bank = parent.lookupReactorInstance(effect.container);
                     if (bank === null || bank.bankIndex != -2) {
-                        throw new Exception("Unexpected effect. Cannot find port " + effect.variable.name);
+                        throw new InvalidSourceException("Unexpected effect. Cannot find port " + effect.variable.name);
                     }
                     for (bankElement : bank.bankMembers) {
                         portInstance = bankElement.lookupPortInstance(effect.variable as Port);
@@ -159,7 +159,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                                 multiportInstance.dependsOnReactions.add(this)
                             } 
                         } else if (portInstance === null) {
-                            throw new Exception("Unexpected effect. Cannot find port within bank: " + effect.variable.name);
+                            throw new InvalidSourceException("Unexpected effect. Cannot find port within bank: " + effect.variable.name);
                         }
                         this.effects.add(portInstance)
                         portInstance.dependsOnReactions.add(this);
