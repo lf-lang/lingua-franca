@@ -86,7 +86,7 @@ class CppMainGenerator(
             |  options
             |    .set_width(120)
             |    .add_options()
-            |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads), "'unsigned'")
+            |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads)->default_value(std::to_string(threads)), "'unsigned'")
             |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
             |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive))
             |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast))
