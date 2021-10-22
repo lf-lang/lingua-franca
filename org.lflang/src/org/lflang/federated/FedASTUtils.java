@@ -151,8 +151,6 @@ public class FedASTUtils {
         reaction.getCode()
                 .setBody(generator.generateNetworkInputControlReactionBody(
                         recevingPortID, maxSTP));
-        
-        generator.makeUnordered(reaction);
 
         // Insert the reaction
         top.getReactions().add(reaction);
@@ -421,11 +419,6 @@ public class FedASTUtils {
         Reactor parent = (Reactor)connection.eContainer();
         Reaction networkSenderReaction = factory.createReaction();
         Reaction networkReceiverReaction = factory.createReaction();
-        
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        generator.makeUnordered(networkSenderReaction);
-        generator.makeUnordered(networkReceiverReaction);
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
