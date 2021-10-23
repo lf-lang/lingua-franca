@@ -19,8 +19,7 @@ import java.util.*
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
-    private val errorReporter: ErrorReporter,
-    private val file: File
+    private val errorReporter: ErrorReporter
 ) {
     // Initializer functions
     fun getTargetInitializerHelper(param: Parameter,
