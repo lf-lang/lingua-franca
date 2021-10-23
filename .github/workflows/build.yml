@@ -63,6 +63,8 @@ jobs:
           java-version: 11
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Run standalone lfc tests
         run: |
           ./gradlew :org.lflang.lfc:test --stacktrace
