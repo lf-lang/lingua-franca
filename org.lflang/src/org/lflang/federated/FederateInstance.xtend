@@ -383,7 +383,7 @@ class FederateInstance {
         
         // Construct the set of excluded reactions for this federate.
         for (react : reactor.allReactions) {
-             // If this reaction is a network reaction that belongs to this federate, we
+            // If this reaction is a network reaction that belongs to this federate, we
             // don't need to perform this analysis.
             if (!networkReactions.contains(react)) {
                 // If the reaction is triggered by an output of a contained
