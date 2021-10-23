@@ -68,9 +68,10 @@ jobs:
       - name: Run standalone lfc tests
         run: |
           ./gradlew :org.lflang.lfc:test --stacktrace
-      - name: Test Bash scripts
+      - name: Test Bash scripts (Linux or macOS only)
         run: |
-          bash .github/scripts/test-lfc.sh
+          .github/scripts/test-lfc.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test PowerShell script (Windows only)
         run: |
           bin/lfc.ps1 --help
