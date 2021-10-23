@@ -67,11 +67,14 @@ public enum TargetProperty {
     
     /**
      * Directive to specify the target build type such as 'Release' or 'Debug'.
+     * This is also used in the Rust target to select a Cargo profile.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust), (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
+                // set it there too, because the default is different.
+                config.rust.setBuildProfile(config.cmakeBuildType);
             }),
 
     /**
