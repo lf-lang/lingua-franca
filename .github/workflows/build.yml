@@ -74,6 +74,7 @@ jobs:
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test PowerShell script (Windows only)
         run: |
+          ./gradlew buildLfc
           bin/lfc.ps1 --help
         if: ${{ runner.os == 'Windows' }}
 
