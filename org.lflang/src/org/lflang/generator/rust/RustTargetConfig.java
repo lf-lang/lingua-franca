@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.eclipse.emf.ecore.EObject;
@@ -45,7 +46,7 @@ public final class RustTargetConfig {
 
 
     /**
-     * List of Cargo features to enable.
+     * List of Cargo features of the generated crate to enable.
      */
     private List<String> cargoFeatures = new ArrayList<>();
 
@@ -140,7 +141,24 @@ public final class RustTargetConfig {
          */
         RELEASE,
 
+        /**
+         * Like {@link #RELEASE} but debug info is available.
+         */
+        RELEASE_WITH_DEBUG_INFO,
+
+        /**
+         * Like {@link #RELEASE}, but optimized for code size
+         * (loop vectorization is still enabled).
+         */
+        RELEASE_MIN_SIZE,
         ;
+
+        /**
+         * Returns the name of the profile for Cargo (how it is declared in Cargo.toml).
+         */
+        String getCargoProfileName() {
+            return name().toLowerCase(Locale.ROOT).replace('_', '-');
+        }
 
         static CargoProfile fromCmake(BuildType cmakeBuildType) {
             switch (cmakeBuildType) {
@@ -148,11 +166,12 @@ public final class RustTargetConfig {
                 return RELEASE;
             case DEBUG:
                 return DEV;
-            // todo
             case REL_WITH_DEB_INFO:
+                return RELEASE_WITH_DEBUG_INFO;
             case MIN_SIZE_REL:
+                return RELEASE_MIN_SIZE;
             default:
-                return RELEASE;
+                throw new AssertionError("unreachable");
             }
         }
     }

@@ -24,8 +24,13 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.TargetProperty
+import org.lflang.TargetProperty.*
+import org.lflang.TargetProperty.BuildType.*
 import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator.rangeTo
+import org.lflang.generator.rust.RustTargetConfig.CargoProfile
+import org.lflang.generator.rust.RustTargetConfig.CargoProfile.RELEASE_MIN_SIZE
 import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
 import java.nio.file.Paths
@@ -64,9 +69,18 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
             |[features]
             |cli=["clap"]
             |
-            |[profile.release]
+            |[profile.${CargoProfile.RELEASE.cargoProfileName}] # use `build-type: ${BuildType.RELEASE}`
             |lto = "thin"
             |codegen-units = 1
+            |
+            |[profile.${RELEASE_MIN_SIZE.cargoProfileName}] # use `build-type: $MIN_SIZE_REL`
+            |inherits = "release"
+            |opt-level = "s"
+            |
+            |[profile.${CargoProfile.RELEASE_WITH_DEBUG_INFO.cargoProfileName}] # use `build-type: $REL_WITH_DEB_INFO`
+            |inherits = "release"
+            |debug = true
+            |
         """.trimMargin()
     }
 
