@@ -75,6 +75,21 @@ public abstract class AbstractTest extends TestBase {
     }
 
     @Test
+    public void runGenericsTests() {
+        if (supportsGenericTypes()) {
+            runTestsForTargets("Description: Run tests about generics.",
+                               TestCategory.GENERICS::equals, Configurators::useSingleThread,
+                               TestLevel.EXECUTION, false);
+        } else {
+            printSkipMessage("Description: Run tests about generics.", Message.NO_GENERICS_SUPPORT);
+        }
+    }
+
+    protected boolean supportsGenericTypes() {
+        return false;
+    }
+
+    @Test
     public void runSerializationTests() {
         runTestsForTargets("Description: Run serialization tests (threads = 0).",
                            TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
