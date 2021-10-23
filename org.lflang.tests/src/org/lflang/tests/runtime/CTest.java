@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +54,11 @@ public class CTest extends AbstractTest {
         return true;
     }
 
+    @Override
+    protected boolean supportsFederatedExecution() {
+        return true;
+    }
+
     @Test
     @Override
     public void runExampleTests() {
@@ -74,11 +80,7 @@ public class CTest extends AbstractTest {
     @Test
     @Override
     public void runTargetSpecificTests() {
-        if(isWindows()) {
-            printSkipMessage(Message.DESC_TARGET_SPECIFIC,
-                    Message.NO_WINDOWS_SUPPORT);
-            return;
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runTargetSpecificTests();
     }
 
@@ -97,12 +99,7 @@ public class CTest extends AbstractTest {
     @Test
     @Override
     public void runSerializationTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_SERIALIZATION,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runSerializationTests();
     }
 
@@ -110,12 +107,7 @@ public class CTest extends AbstractTest {
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_AS_FEDERATED,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runAsFederated();
     }
 
@@ -128,12 +120,7 @@ public class CTest extends AbstractTest {
     @Test
     @Override
     public void runFederatedTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) {
-            printSkipMessage(Message.DESC_FEDERATED,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
     }
 

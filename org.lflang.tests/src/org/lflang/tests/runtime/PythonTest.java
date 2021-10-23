@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
@@ -38,12 +39,22 @@ import org.lflang.tests.AbstractTest;
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
  */
 public class PythonTest extends AbstractTest {
 
     public PythonTest() {
         super(Target.Python);
+    }
+
+    @Override
+    protected boolean supportsFederatedExecution() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
     }
 
     @Test
@@ -64,24 +75,14 @@ public class PythonTest extends AbstractTest {
     @Test
     @Override
     public void runSerializationTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_SERIALIZATION,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runSerializationTests();
     }
 
     @Test
     @Disabled("TODO")
     @Override public void runAsFederated() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_AS_FEDERATED,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runAsFederated();
     }
 
@@ -93,12 +94,7 @@ public class PythonTest extends AbstractTest {
 
     @Test
     @Override public void runFederatedTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_FEDERATED,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
     }
 }

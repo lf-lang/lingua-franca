@@ -3,6 +3,8 @@ package org.lflang.tests;
 import java.util.EnumSet;
 import java.util.List;
 
+import org.junit.Assume;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
@@ -17,14 +19,8 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public abstract class AbstractTest extends TestBase {
 
     /**
-     * Whether to enable {@link #runWithFourThreads()}.
-     */
-    protected boolean supportsThreadsOption() {
-        return false;
-    }
-
-    /**
      * Construct a test instance that runs tests for a single target.
+     *
      * @param target The target to run tests for.
      */
     protected AbstractTest(Target target) {
@@ -38,7 +34,30 @@ public abstract class AbstractTest extends TestBase {
     protected AbstractTest(List<Target> targets) {
         super(targets);
     }
-    
+
+
+    /**
+     * Whether to enable {@link #runWithFourThreads()}.
+     */
+    protected boolean supportsThreadsOption() {
+        return false;
+    }
+
+    /**
+     * Whether to enable {@link #runFederatedTests()}.
+     */
+    protected boolean supportsFederatedExecution() {
+        return false;
+    }
+
+    /**
+     * Whether to enable {@link #runTestsAboutGenerics()}.
+     */
+    protected boolean supportsGenericTypes() {
+        return false;
+    }
+
+
     @Test
     public void runExampleTests() {
         runTestsForTargets("Description: Run example tests.",
@@ -75,19 +94,13 @@ public abstract class AbstractTest extends TestBase {
     }
 
     @Test
-    public void runGenericsTests() {
-        if (supportsGenericTypes()) {
-            runTestsForTargets("Description: Run tests about generics.",
-                               TestCategory.GENERICS::equals, Configurators::useSingleThread,
-                               TestLevel.EXECUTION, false);
-        } else {
-            printSkipMessage("Description: Run tests about generics.", Message.NO_GENERICS_SUPPORT);
-        }
+    public void runTestsAboutGenerics() {
+        Assumptions.assumeTrue(supportsGenericTypes(), "Target should support generic types");
+        runTestsForTargets("Description: Run tests about generics.",
+                           TestCategory.GENERICS::equals, Configurators::useSingleThread,
+                           TestLevel.EXECUTION, false);
     }
 
-    protected boolean supportsGenericTypes() {
-        return false;
-    }
 
     @Test
     public void runSerializationTests() {
@@ -98,6 +111,8 @@ public abstract class AbstractTest extends TestBase {
 
     @Test
     public void runAsFederated() {
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
         categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
                                         TestCategory.FEDERATED,
@@ -125,6 +140,7 @@ public abstract class AbstractTest extends TestBase {
 
     @Test
     public void runFederatedTests() {
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_FEDERATED,
                            TestCategory.FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
@@ -133,16 +149,13 @@ public abstract class AbstractTest extends TestBase {
 
     @Test
     public void runWithFourThreads() {
-        if (supportsThreadsOption()) {
-            this.runTestsForTargets(
-                Message.DESC_FOUR_THREADS,
-                Configurators::defaultCategoryExclusion,
-                Configurators::useFourThreads,
-                TestLevel.EXECUTION,
-                true
-            );
-        } else {
-            printSkipMessage(Message.DESC_FOUR_THREADS, Message.NO_THREAD_SUPPORT);
-        }
+        Assumptions.assumeTrue(supportsThreadsOption(), Message.NO_THREAD_SUPPORT);
+        this.runTestsForTargets(
+            Message.DESC_FOUR_THREADS,
+            Configurators::defaultCategoryExclusion,
+            Configurators::useFourThreads,
+            TestLevel.EXECUTION,
+            true
+        );
     }
 }
