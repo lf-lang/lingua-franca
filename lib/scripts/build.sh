@@ -83,6 +83,10 @@ while [[ "$#" -gt 0 ]]; do
         -c | --clean )
             clean=true
         ;;
+        -h | --help )
+            usage
+            exit 0
+        ;;
         -r | --run ) 
             run=true
             shift
