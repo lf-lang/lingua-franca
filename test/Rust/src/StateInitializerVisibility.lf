@@ -1,5 +1,6 @@
-// There was a bug whereby reaction labels mess up generated code.
-// Labels are used as debug info by the runtime.
+// Tests that state vars are accessible within initializers
+// of other state vars declared further down.
+
 target Rust;
 main reactor {
     state foo: u32(123);
