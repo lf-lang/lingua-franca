@@ -1473,6 +1473,21 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             return time.time.toString()
         }
     }
+    
+    
+    
+    /**
+     * Remove disconnected network ports in federates, if any.
+     * 
+     * This must be done in code generators after the dependency graphs
+     * are built and levels are assigned. Otherwise, these disconnected ports
+     * might reference data structures in remote federates and cause compile errors.
+     */
+    protected def void removeDisconnectedNetworkPorts() {
+        for (federate: federates) {
+            federate.removeDisconnectedNetworkPorts();
+        }
+    }
 
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
@@ -1630,8 +1645,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 }
             }
         }
-        // Don't remove connections to allow for assignment of correct levels.
-        // mainReactor.connections.clear()
+        // It should be okay to remove connections since the reaction graph looks at 
+        // sources and effects, not connections.
+        mainReactor.connections.clear()
     }
     
     /**

@@ -474,6 +474,9 @@ class CGenerator extends GeneratorBase {
         if (errorsOccurred) return;
         
         if (!isOSCompatible()) return; // Incompatible OS and configuration
+        
+        // Avoid compile errors by removing disconnected network ports    
+        removeDisconnectedNetworkPorts();
 
          // Check for duplicate declerations.
          val names = newLinkedHashSet

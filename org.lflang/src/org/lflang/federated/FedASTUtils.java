@@ -136,9 +136,18 @@ public class FedASTUtils {
         
         // Add the appropriate triggers to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
+        
+        // Add the original output port of the source federate
+        // as a trigger to keep the overall dependency structure. 
+        // This is useful when assigning levels.
         reaction.getTriggers().add(sourceRef);
+        // Add this trigger to the list of disconnected network reaction triggers
+        instance.disconnectedNetworkReactionTriggers.add(sourceRef);
+        
         // Add the network port as an effect of the reaction
         reaction.getEffects().add(destRef);
+        
+        // Generate code for the network input control reaction
         reaction.setCode(factory.createCode());
 
         TimeValue maxSTP = findMaxSTP(
@@ -158,6 +167,10 @@ public class FedASTUtils {
         // Add the trigger for this reaction to the list of triggers, used to actually
         // trigger the reaction at the beginning of each logical time.
         instance.networkInputControlReactionsTriggers.add(newTriggerForControlReactionInput);
+        
+        // Add the network input control reaction to the federate instance's list
+        // of network reactions
+        instance.networkReactions.add(reaction);
     }
 
     /**
@@ -377,6 +390,10 @@ public class FedASTUtils {
         // Insert the newly generated reaction after the generated sender and
         // receiver top-level reactions.
         top.getReactions().add(reaction);
+        
+        // Add the network output control reaction to the federate instance's list
+        // of network reactions
+        instance.networkReactions.add(reaction);
     }
     
     /** 
@@ -506,6 +523,10 @@ public class FedASTUtils {
         // Add the sending reaction to the parent.
         parent.getReactions().add(networkSenderReaction);
         
+        // Add the network sender reaction to the federate instance's list
+        // of network reactions
+        leftFederate.networkReactions.add(networkSenderReaction);
+        
         if (!connection.isPhysical()) {           
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(
@@ -533,11 +554,21 @@ public class FedASTUtils {
 
         // Configure the receiving reaction.
         networkReceiverReaction.getTriggers().add(triggerRef);
-        // Add the original source as a trigger to keep
-        // the overall dependency structure. This is useful
-        // when assigning levels.
-        networkReceiverReaction.getTriggers().add(sourceRef);
+        
+        // Add the original output port of the source federate
+        // as a trigger to keep the overall dependency structure. 
+        // This is useful when assigning levels.
+        VarRef senderOutputPort = factory.createVarRef();
+        senderOutputPort.setContainer(source.parent.getDefinition());
+        senderOutputPort.setVariable(source.getDefinition());
+        networkReceiverReaction.getTriggers().add(senderOutputPort);
+        // Add this trigger to the list of disconnected network reaction triggers
+        rightFederate.disconnectedNetworkReactionTriggers.add(senderOutputPort);
+        
+        // Add the input port at the receiver federate reactor as an effect
         networkReceiverReaction.getEffects().add(destRef);
+        
+        // Generate code for the network receiver reaction
         networkReceiverReaction.setCode(factory.createCode());
         networkReceiverReaction.getCode().setBody(generator.generateNetworkReceiverBody(
             action,
@@ -555,5 +586,9 @@ public class FedASTUtils {
         
         // Add the receiver reaction to the parent
         parent.getReactions().add(networkReceiverReaction);
+        
+        // Add the network receiver reaction to the federate instance's list
+        // of network reactions
+        rightFederate.networkReactions.add(networkReceiverReaction);
     }
 }

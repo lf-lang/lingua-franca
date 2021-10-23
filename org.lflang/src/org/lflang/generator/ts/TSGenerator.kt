@@ -115,6 +115,11 @@ class TSGenerator(
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
+        
+        // FIXME: The following operation must be done after levels are assigned
+        // Avoid compile errors by removing disconnected network ports    
+        // removeDisconnectedNetworkPorts();
+        
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
