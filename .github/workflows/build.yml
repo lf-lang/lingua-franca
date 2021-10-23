@@ -37,7 +37,7 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
       - name: Test the `lfc` command line program
-        run: .github/scripts/test_lfc.sh
+        run: .github/scripts/test-lfc.sh
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0 
         with:
