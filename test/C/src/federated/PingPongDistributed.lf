@@ -1,7 +1,10 @@
 /**
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
- * This version is distributed, communicating using physical connections over sockets.
+ * 
+ * This version is distributed, communicating using logical 
+ * connections over sockets.
+ * 
  * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 
  * This is based on https://www.scala-lang.org/old/node/54
@@ -13,14 +16,11 @@
  * There is no parallelism in this application, so it does not benefit from being
  * being distributed.
  * 
- * These measurements are total execution time, including startup and shutdown, of
- * all three programs.
- * 
  * @author Edward A. Lee
  */
 target C;
 import Ping, Pong from "PingPongDistributedPhysical.lf"
-federated reactor(count:int(10000000)) {
+federated reactor(count:int(10)) {
     ping = new Ping(count = count);
     pong = new Pong(expected = count);
     ping.send -> pong.receive;
