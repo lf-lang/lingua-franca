@@ -3027,6 +3027,7 @@ class CGenerator extends GeneratorBase {
                         && federate.containsReaction(
                             dominatingReaction.definition
                             )
+                        && federate.contains(dominatingReaction.parent)
                         )
                 ) {
                     val upstreamReaction =
