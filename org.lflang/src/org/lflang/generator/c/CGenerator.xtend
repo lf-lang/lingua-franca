@@ -848,15 +848,14 @@ class CGenerator extends GeneratorBase {
                 writeDockerFile(topLevelName)
             }
 
-            if (fileConfig.getCompilerMode() == Mode.LSP_FAST) validate();
-
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (
                 !targetConfig.noCompile
                 && targetConfig.buildCommands.nullOrEmpty
                 && !federate.isRemote
-                && (fileConfig.getCompilerMode() == Mode.STANDALONE || fileConfig.getCompilerMode() == Mode.LSP_SLOW)
+                // This code is unreachable in LSP_FAST mode, so that check is omitted.
+                && fileConfig.getCompilerMode() != Mode.LSP_MEDIUM
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
@@ -911,22 +910,6 @@ class CGenerator extends GeneratorBase {
         refreshProject()
     }
 
-
-    def validate() {
-        // listFiles will not return null unless there is an I/O error
-        // because the src-gen path is a directory
-        for (File f: fileConfig.getSrcGenPath().toFile().listFiles()) {
-            if (f.toString().endsWith(".c")) {
-                val LFCommand validateCommand = commandFactory.createCommand(
-                    "gcc", #["-fsyntax-only", f.toString()],
-                    fileConfig.getSrcGenPath()
-                );
-                validateCommand.run();
-                reportCommandErrors(validateCommand.getErrors().toString());
-            }
-        }
-    }
-    
     /**
      * Generate the _lf_trigger_startup_reactions function.
      */
