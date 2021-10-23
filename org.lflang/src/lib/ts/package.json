@@ -34,6 +34,6 @@
     },
     "scripts": {
         "check-types": "tsc",
-        "build": "rm -rf dist && babel src --out-dir dist --extensions '.ts,.js' --source-maps true"
+        "build": "rm -rf dist && babel src --out-dir dist --extensions '.ts,.js'"
     }
 }

@@ -135,9 +135,6 @@ def main(args):
     # Check input
     assert_is_dir(args.source)
 
-    # Check input
-    assert_is_dir(args.gradle_source)
-
     # Create build folders
     if isdir(extracted):
         shutil.rmtree(extracted)
@@ -170,8 +167,6 @@ def main(args):
 
 def extract(args, extracted, merged, klighd):
     conflicts = False
-    for jar in os.listdir(args.gradle_source):
-        shutil.copy(windows_safe_abspath(join(args.gradle_source, jar)), args.source)
     jars = sorted(os.listdir(args.source))
     processed_jars = [] # Tuples of plugin name and jar
     for jar in jars:
@@ -371,7 +366,6 @@ if __name__ == '__main__':
     argParser.add_argument('--noswt', dest='noswt', action='store_true', help='skips bundling platform specific SWT dependencies.')
     argParser.add_argument('--ignore-conflicts', dest='ignore_conflicts', action='store_true', help='prevents failing if merge fail due to a conflict.')
     argParser.add_argument('source', help='directory containing all plugins that should be bundled (self-contained update site)')
-    argParser.add_argument('gradle_source', help='directory for gradle-provided jars')
     argParser.add_argument('name', help='name of the generated executable jar/script')
     argParser.add_argument('main', help='main class of the generated jar')
     argParser.add_argument('target', help='target directory to store generated jar/ and scripts')

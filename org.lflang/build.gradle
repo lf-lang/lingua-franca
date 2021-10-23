@@ -1,7 +1,3 @@
-plugins {
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.5.21'
-}
-
 dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
@@ -26,16 +22,6 @@ dependencies {
     mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
     mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
     mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
-}
-
-configurations {
-    lds // Language and diagram server. LDS dependencies are a subset of
-        // implementation dependencies.
-}
-
-dependencies {
-    lds 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1' // Most recent release that is compatible with Kotlin version 1.4.10.
-    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1'
 }
 
 task generateXtextLanguage(type: JavaExec) {

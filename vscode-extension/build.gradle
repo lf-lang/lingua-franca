@@ -5,16 +5,7 @@ node {
     download = true
 }
 
-task copyNonEclipseSupportedDependencies(type: Copy) {
-    from project(':org.lflang').configurations.lds
-    into '../org.lflang.lds/non_eclipse_supported'
-}
-
-task deleteNonEclipseSupportedDependencies(type: Delete) {
-    delete copyNonEclipseSupportedDependencies.outputs
-}
-
-task generateLDSJar(type: Exec, dependsOn: copyNonEclipseSupportedDependencies) {
+task generateLDSJar(type: Exec) {
     workingDir rootProject.getProjectDir()
     // Run maven to build language server with diagram support (LDS)
     // This requires mvn on PATH
@@ -24,7 +15,6 @@ task generateLDSJar(type: Exec, dependsOn: copyNonEclipseSupportedDependencies) 
         commandLine 'mvn', 'clean', 'package', '-P', 'lds'
     }
 }
-generateLDSJar.finalizedBy deleteNonEclipseSupportedDependencies
 
 task copySWTJars(type: Copy, dependsOn: generateLDSJar) {
     from '../org.lflang.lds/target/repository/plugins'
