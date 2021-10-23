@@ -58,10 +58,8 @@ public class RustTest extends AbstractTest {
         }
     }
 
-
-    @Test
     @Override
-    public void runGenericTests() {
-        super.runGenericTests();
+    protected boolean supportsGenericTypes() {
+        return true;
     }
 }
