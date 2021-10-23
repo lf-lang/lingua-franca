@@ -70,8 +70,8 @@ jobs:
           ./gradlew :org.lflang.lfc:test --stacktrace
       - name: Test Bash scripts
         run: |
-          bash github/scripts/test-lfc.sh
-      - name: Test PowerShell script
+          bash .github/scripts/test-lfc.sh
+      - name: Test PowerShell script (Windows only)
         run: |
           bin/lfc.ps1 --help
         if: ${{ runner.os == 'Windows' }}
