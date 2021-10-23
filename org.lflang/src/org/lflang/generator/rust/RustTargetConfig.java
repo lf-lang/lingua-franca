@@ -34,6 +34,7 @@ import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ErrorReporter;
+import org.lflang.TargetProperty.BuildType;
 
 /**
  * Rust-specific part of a {@link org.lflang.TargetConfig}.
@@ -57,6 +58,11 @@ public final class RustTargetConfig {
      * List of top-level modules, those are absolute paths.
      */
     private final List<Path> rustTopLevelModules = new ArrayList<>();
+
+    /**
+     * Cargo profile, default is DEV.
+     */
+    private CargoProfile profile = CargoProfile.DEV;
 
     public void setCargoFeatures(List<String> cargoFeatures) {
         this.cargoFeatures = cargoFeatures;
@@ -89,12 +95,36 @@ public final class RustTargetConfig {
         return cargoDependencies;
     }
 
+    /**
+     * Returns the list of top-level module files to include in main.rs.
+     * Those files were checked to exists previously.
+     */
     public List<Path> getRustTopLevelModules() {
         return rustTopLevelModules;
     }
 
     /**
-     * Option for
+     * The build profile to use.
+     */
+    public CargoProfile getBuildProfile() {
+        return profile;
+    }
+
+    public void setBuildProfile(CargoProfile profile) {
+        this.profile = profile;
+    }
+
+    /**
+     * Set a build profile chosen based on a cmake profile.
+     */
+    public void setBuildProfile(BuildType cmakeProfile) {
+        this.profile = CargoProfile.fromCmake(cmakeProfile);
+    }
+
+    /**
+     * Cargo profile to use for building. This can be configured
+     * through the {@link org.lflang.TargetProperty#BUILD_TYPE}
+     * property.
      */
     public enum CargoProfile {
         /**
@@ -109,5 +139,21 @@ public final class RustTargetConfig {
          * removes debug symbols from the generated binary.
          */
         RELEASE,
+
+        ;
+
+        static CargoProfile fromCmake(BuildType cmakeBuildType) {
+            switch (cmakeBuildType) {
+            case RELEASE:
+                return RELEASE;
+            case DEBUG:
+                return DEV;
+            // todo
+            case REL_WITH_DEB_INFO:
+            case MIN_SIZE_REL:
+            default:
+                return RELEASE;
+            }
+        }
     }
 }

@@ -97,6 +97,10 @@ class RustGenerator(
                 "-Z", "unstable-options", // ... and that feature flag
             )
 
+            if (targetConfig.rust.buildProfile == CargoProfile.RELEASE) {
+                this += "--release"
+            }
+
             if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
                 this += targetConfig.rust.cargoFeatures.joinWithCommas()
