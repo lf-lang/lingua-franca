@@ -29,9 +29,9 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.rust.RustTargetConfig.CargoProfile
 import org.lflang.joinWithCommas
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -97,9 +97,14 @@ class RustGenerator(
                 "-Z", "unstable-options", // ... and that feature flag
             )
 
-            if (targetConfig.rust.buildProfile == CargoProfile.RELEASE) {
+            val buildType = targetConfig.rust.buildType
+            if (buildType == BuildType.RELEASE) {
                 this += "--release"
+            } else if (buildType != BuildType.DEBUG) {
+                this += "--profile"
+                this += buildType.cargoProfileName
             }
+
 
             if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"

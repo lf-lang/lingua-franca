@@ -58,12 +58,6 @@ abstract class RustEmitterBase {
         if (this == null) "None"
         else "Some($this)"
 
-    /**
-     * If this is a rust keyword, escape it for it to be interpreted
-     * as an identifier, except if this keyword is a valid rust expression.
-     */
-    protected fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
-
 
     protected companion object {
         /** Name of the runtime crate that is in its Cargo.toml.*/
@@ -75,3 +69,9 @@ abstract class RustEmitterBase {
         private val timeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
     }
 }
+
+/**
+ * If this is a rust keyword, escape it for it to be interpreted
+ * as an identifier, except if this keyword is a valid rust expression.
+ */
+fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
