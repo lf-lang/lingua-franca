@@ -61,9 +61,9 @@ public final class RustTargetConfig {
     private final List<Path> rustTopLevelModules = new ArrayList<>();
 
     /**
-     * Cargo profile, default is DEV.
+     * Cargo profile, default is debug (corresponds to cargo dev profile).
      */
-    private CargoProfile profile = CargoProfile.DEV;
+    private BuildType profile = BuildType.DEBUG;
 
     public void setCargoFeatures(List<String> cargoFeatures) {
         this.cargoFeatures = cargoFeatures;
@@ -105,74 +105,18 @@ public final class RustTargetConfig {
     }
 
     /**
-     * The build profile to use.
+     * The build type to use. Corresponds to a Cargo profile.
      */
-    public CargoProfile getBuildProfile() {
+    public BuildType getBuildType() {
         return profile;
     }
 
-    public void setBuildProfile(CargoProfile profile) {
-        this.profile = profile;
-    }
 
     /**
      * Set a build profile chosen based on a cmake profile.
      */
-    public void setBuildProfile(BuildType cmakeProfile) {
-        this.profile = CargoProfile.fromCmake(cmakeProfile);
+    public void setBuildType(BuildType profile) {
+        this.profile = profile;
     }
 
-    /**
-     * Cargo profile to use for building. This can be configured
-     * through the {@link org.lflang.TargetProperty#BUILD_TYPE}
-     * property.
-     */
-    public enum CargoProfile {
-        /**
-         * Dev profile preserves debug symbols and enables
-         * debug assertions and finest level of log output.
-         */
-        DEV,
-
-        /**
-         * Release profile enables all optimisations,
-         * may remove some log calls and assertions, and
-         * removes debug symbols from the generated binary.
-         */
-        RELEASE,
-
-        /**
-         * Like {@link #RELEASE} but debug info is available.
-         */
-        RELEASE_WITH_DEBUG_INFO,
-
-        /**
-         * Like {@link #RELEASE}, but optimized for code size
-         * (loop vectorization is still enabled).
-         */
-        RELEASE_MIN_SIZE,
-        ;
-
-        /**
-         * Returns the name of the profile for Cargo (how it is declared in Cargo.toml).
-         */
-        String getCargoProfileName() {
-            return name().toLowerCase(Locale.ROOT).replace('_', '-');
-        }
-
-        static CargoProfile fromCmake(BuildType cmakeBuildType) {
-            switch (cmakeBuildType) {
-            case RELEASE:
-                return RELEASE;
-            case DEBUG:
-                return DEV;
-            case REL_WITH_DEB_INFO:
-                return RELEASE_WITH_DEBUG_INFO;
-            case MIN_SIZE_REL:
-                return RELEASE_MIN_SIZE;
-            default:
-                throw new AssertionError("unreachable");
-            }
-        }
-    }
 }

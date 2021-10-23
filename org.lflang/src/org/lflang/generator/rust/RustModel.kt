@@ -26,12 +26,11 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
+import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.*
+import org.lflang.generator.cpp.toCppCode
 import org.lflang.lf.*
 import org.lflang.lf.Timer
-import org.lflang.generator.UnsupportedGeneratorFeatureException
-import org.lflang.generator.cpp.name
-import org.lflang.generator.cpp.toCppCode
 import java.nio.file.Path
 import java.util.*
 
@@ -638,4 +637,16 @@ private val TypeParm.identifier: String
                 "No identifier in type param `$targetCode`",
                 this
             )
+    }
+
+/**
+ * Returns the name of the profile for Cargo (how it is
+ * declared in `Cargo.toml`).
+ */
+val BuildType.cargoProfileName: String
+    get() = when (this) {
+        BuildType.DEBUG             -> "dev"
+        BuildType.RELEASE           -> "release"
+        BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
+        BuildType.MIN_SIZE_REL      -> "release-with-min-size"
     }

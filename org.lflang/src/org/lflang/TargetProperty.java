@@ -41,7 +41,6 @@ import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
-import org.lflang.generator.rust.RustTargetConfig.CargoProfile;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -74,7 +73,7 @@ public enum TargetProperty {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
                 // set it there too, because the default is different.
-                config.rust.setBuildProfile(config.cmakeBuildType);
+                config.rust.setBuildType(config.cmakeBuildType);
             }),
 
     /**
@@ -713,7 +712,6 @@ public enum TargetProperty {
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
-        CARGO_PROFILE_UNION(Arrays.asList(CargoProfile.values()), CargoProfile.DEV),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -888,9 +886,10 @@ public enum TargetProperty {
     }
     
     /**
-     * Enumeration of Cmake build types.
+     * Enumeration of Cmake build types. These are also mapped
+     * to Cargo profiles for the Rust target (see {@link org.lflang.generator.rust.RustTargetConfig})
      * 
-     * @author{Christian Menard <christian.menard@tu-dresden.de>}
+     * @author Christian Menard {@literal <christian.menard@tu-dresden.de>}
      */
     public enum BuildType {
         RELEASE("Release"), 
@@ -901,12 +900,12 @@ public enum TargetProperty {
         /**
          * Alias used in toString method.
          */
-        private String alias;
+        private final String alias;
         
         /**
          * Private constructor for Cmake build types.
          */
-        private BuildType(String alias) {
+        BuildType(String alias) {
             this.alias = alias;
         }
         
