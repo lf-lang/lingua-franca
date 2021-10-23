@@ -559,21 +559,22 @@ public class FedASTUtils {
                 rightFederate,
                 generator
             );
+            
+            // If the connection is not physical,
+            // add the original output port of the source federate
+            // as a trigger to keep the overall dependency structure. 
+            // This is useful when assigning levels.
+            VarRef senderOutputPort = factory.createVarRef();
+            senderOutputPort.setContainer(source.parent.getDefinition());
+            senderOutputPort.setVariable(source.getDefinition());
+            networkReceiverReaction.getTriggers().add(senderOutputPort);
+            // Add this trigger to the list of disconnected network reaction triggers
+            rightFederate.disconnectedNetworkReactionTriggers.add(senderOutputPort);
         }        
 
 
         // Configure the receiving reaction.
         networkReceiverReaction.getTriggers().add(triggerRef);
-        
-        // Add the original output port of the source federate
-        // as a trigger to keep the overall dependency structure. 
-        // This is useful when assigning levels.
-        VarRef senderOutputPort = factory.createVarRef();
-        senderOutputPort.setContainer(source.parent.getDefinition());
-        senderOutputPort.setVariable(source.getDefinition());
-        networkReceiverReaction.getTriggers().add(senderOutputPort);
-        // Add this trigger to the list of disconnected network reaction triggers
-        rightFederate.disconnectedNetworkReactionTriggers.add(senderOutputPort);
         
         // Add the input port at the receiver federate reactor as an effect
         networkReceiverReaction.getEffects().add(destRef);
