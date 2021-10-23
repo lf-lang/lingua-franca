@@ -36,8 +36,6 @@ jobs:
       - name: Run compiler tests
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
-      - name: Test the `lfc` command line program
-        run: .github/scripts/test-lfc.sh
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0 
         with:
@@ -65,9 +63,11 @@ jobs:
           java-version: 11
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      - name: Run standalone LFC tests
+      - name: Run standalone lfc tests
         run: |
           ./gradlew :org.lflang.lfc:test --stacktrace
+          .github/scripts/test-lfc.sh
+
 
   c-tests:
     strategy:
