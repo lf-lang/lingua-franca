@@ -395,6 +395,7 @@ public enum TargetProperty {
         try {
             referencePath = FileConfig.toPath(value.eResource().getURI()).toAbsolutePath();
         } catch (IOException e) {
+            err.reportError(value, "Invalid path? " + e.getMessage());
             throw new RuntimeIOException(e);
         }
 
@@ -465,6 +466,11 @@ public enum TargetProperty {
 
     @FunctionalInterface
     private interface PropertyParser {
+
+        /**
+         * Parse the given element into the given target config.
+         * May use the error reporter to report format errors.
+         */
         void parseIntoTargetConfig(TargetConfig config, Element element, ErrorReporter err);
     }
 
@@ -508,12 +514,13 @@ public enum TargetProperty {
         this.setter = setter;
         this.updater = updater;
     }
-    
+
     /**
      * Set the given configuration using the given target properties.
-     * 
+     *
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
+     * @param err        Error reporter on which property format errors will be reported
      */
     public static void set(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
         properties.forEach(property ->  {
@@ -544,17 +551,18 @@ public enum TargetProperty {
             }
         });
     }
-    
+
     /**
      * Update one of the target properties, given by 'propertyName'.
      * For convenience, a list of target properties (e.g., taken from
      * a file or resource) can be passed without any filtering. This
      * function will do nothing if the list of target properties doesn't
      * include the property given by 'propertyName'.
-     * 
+     *
      * @param config The target config to apply the update to.
      * @param propertyName The name of the target property.
      * @param properties AST node that holds all the target properties.
+     * @param err        Error reporter on which property format errors will be reported
      */
     public static void updateOne(TargetConfig config, String propertyName, List<KeyValuePair> properties, ErrorReporter err) {
         TargetProperty p = forName(propertyName);
@@ -604,7 +612,8 @@ public enum TargetProperty {
      * Interface for dictionary elements. It associates an entry with a type.
      */
     public interface DictionaryElement {
-        public TargetPropertyType getType();
+
+        TargetPropertyType getType();
     }
 
     /**
