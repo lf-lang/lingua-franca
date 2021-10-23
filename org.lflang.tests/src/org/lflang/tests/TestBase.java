@@ -116,6 +116,7 @@ public abstract class TestBase {
         public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
         public static final String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
+        public static final String NO_GENERICS_SUPPORT = "Target language does not feature generic types.";
 
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
