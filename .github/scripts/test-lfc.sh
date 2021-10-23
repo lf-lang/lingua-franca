@@ -27,10 +27,37 @@ bin/build-lfc --clean --offline --stacktrace
 # Ensure that build-lfc is robust to symbolic links.
 test_with_links "build-lfc"
 
-bin/lfc --help
 bin/lfc test/C/src/Minimal.lf
 
-# FIXME: add more tests here
+# -c,--clean                         Clean before building.
+bin/lfc -c test/C/src/Minimal.lf
+bin/lfc --clean test/C/src/Minimal.lf
+
+#    --external-runtime-path <arg>   Specify an external runtime library to
+#                                    be used by the compiled binary.
+
+# -f,--federated                     Treat main reactor as federated.
+# bin/lfc -f test/C/src/Minimal.lf # FIXME: does not work
+# bin/lfc --federated test/C/src/Minimal.lf
+
+# -h,--help                          Display this information.
+bin/lfc --help
+
+# -n,--no-compile                    Do not invoke target compiler.
+
+# -o,--output-path <arg>             Specify the root output directory.
+
+#    --runtime-version <arg>         Specify the version of the runtime
+#                                    library used for compiling LF
+#                                    programs.
+
+# -t,--threads                       Specify the default number of threads.
+# bin/lfc -t 2 test/C/src/Minimal.lf # FIXME: does not work
+# bin/lfc -threads 2 test/C/src/Minimal.lf
+
+#    --target-compiler <arg>         Target compiler to invoke.
+# (Added no-compile to avoid adding dependency.)
+bin/lfc --target-compiler gcc --no-compile test/C/src/Minimal.lf 
 
 # Ensure that lfc is robust to symbolic links.
 test_with_links "lfc"
