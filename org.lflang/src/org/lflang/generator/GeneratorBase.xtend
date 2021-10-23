@@ -1484,8 +1484,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * might reference data structures in remote federates and cause compile errors.
      */
     protected def void removeDisconnectedNetworkPorts() {
-        for (federate: federates) {
-            federate.removeDisconnectedNetworkPorts();
+        if (isFederated) {
+            for (federate: federates) {
+                federate.removeDisconnectedNetworkPorts();
+            }
+            
+            // Remove the connections at the top level
+            this.mainDef?.reactorClass.toDefinition.connections.clear()
         }
     }
 
@@ -1645,9 +1650,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 }
             }
         }
-        // It should be okay to remove connections since the reaction graph looks at 
-        // sources and effects, not connections.
-        mainReactor.connections.clear()
     }
     
     /**
