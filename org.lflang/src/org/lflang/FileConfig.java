@@ -223,7 +223,6 @@ public class FileConfig {
      * @throws IOException
      */
     public IResource getIResource(Resource r) throws IOException {
-        // FIXME: Logic is duplicate of getIResource(java.net.URI uri)
         IResource iResource = null;
         java.net.URI uri = toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
@@ -686,8 +685,6 @@ public class FileConfig {
      * directory if none exists.
      */
     public static Path findPackageRoot(final Path input) {
-        // FIXME: This method is largely a duplicate of one
-        //  found in StandaloneContext
         Path p = input;
         do {
             p = p.getParent();
@@ -695,8 +692,6 @@ public class FileConfig {
                 return Paths.get(".").toAbsolutePath();
             }
         } while (!p.toFile().getName().equals("src"));
-        // FIXME: Logically this seems right, but src-gen ends up one step
-        //  too high in the file hierarchy.
         return p.getParent();
     }
     
