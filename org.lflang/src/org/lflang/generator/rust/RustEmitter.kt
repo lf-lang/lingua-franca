@@ -239,6 +239,8 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
                 |    $debugLabelArray,
                 |    // dependency declarations
                 |    |__assembler, __self, $pattern| {
+                |        #[allow(unused)]
+                |        use reactor_rt::unsafe_iter_bank;
 ${"             |        "..graphDependencyDeclarations()}
 ${"             |        "..declareChildConnections()}
                 |
@@ -354,7 +356,6 @@ ${"             |        "..declareChildConnections()}
             |#![allow(unused_imports)]
             |#![allow(non_snake_case)]
             |
-            |#[macro_use]
             |extern crate $runtimeCrateFullName;
             |#[macro_use]
             |#[cfg(feature="test-program")]

@@ -91,11 +91,12 @@ object PortEmitter : RustEmitterBase() {
         val port = PortData.from(variable as Port)
 
         if (container?.isBank == true && port.isMultiport) {
-            return "${container.name}.iter_mut().flat_map(|inst| inst.${port.rustFieldName}.iter_mut())"
+            return "unsafe_iter_bank!(${container.name} # (${port.rustFieldName})+)"
         } else if (container?.isBank == true) {
-            return "${container.name}.iter_mut().map(|inst| &mut inst.${port.rustFieldName})"
+            return "unsafe_iter_bank!(${container.name} # ${port.rustFieldName})"
         }
 
+        // todo this is missing some tests where we try to borrow several multiports from same reactor
         val ref = (container?.name ?: "__self") + "." + port.rustFieldName
 
         return if (port.isMultiport) {
