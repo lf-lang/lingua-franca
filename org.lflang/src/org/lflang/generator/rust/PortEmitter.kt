@@ -24,46 +24,37 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.generator.UnsupportedGeneratorFeatureException
-import org.lflang.getWidth
+import org.lflang.generator.TargetCode
+import org.lflang.generator.locationInfo
+import org.lflang.headAndTail
 import org.lflang.isBank
-import org.lflang.isMultiport
-import org.lflang.lf.*
-import kotlin.math.ceil
+import org.lflang.lf.Connection
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Port
+import org.lflang.lf.VarRef
 
 /**
- * Specialized thing to render port connections. This was
- * copy-pasted from the C++ generator,
+ * Specialized thing to render port connections.
  */
-object PortEmitter {
+object PortEmitter : RustEmitterBase() {
 
-    /*
-     * todo refactor what can be reused
-     *  Maybe with an abstract class, the only changed behavior
-     *  between Rust & C++ for now is the syntax of the method
-     *  calls & such.
-     *
-     * fixme some pieces of code that this generates without error are actually unsupported by the runtime
+    /**
+     * Returns the Rust code that declares the given connection.
      */
+    fun Connection.declareConnection(): String {
+        val lhsPorts = enumerateAllPortsFromReferences(leftPorts)
+        val rhsPorts = enumerateAllPortsFromReferences(rightPorts)
 
-    fun declareConnection(c: Connection): String {
-        val lhsPorts = enumerateAllPortsFromReferences(c.leftPorts)
-        val rhsPorts = enumerateAllPortsFromReferences(c.rightPorts)
-
-        // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
-        // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
-        // ports
-        val iteratedLhsPorts = if (c.isIterated) {
-            val numIterations = ceil(rhsPorts.size.toDouble() / lhsPorts.size.toDouble()).toInt()
-            (1..numIterations).flatMap { lhsPorts }
-        } else {
-            lhsPorts
-        }
+        val methodName = if (isIterated) "bind_ports_iterated" else "bind_ports_zip"
 
         // bind each pair of lhs and rhs ports individually
-        return (iteratedLhsPorts zip rhsPorts).joinToString("\n") {
-            "__assembler.bind_ports(&mut ${it.first.toCode()}, &mut ${it.second.toCode()})?;"
-        }
+        return """
+                |{${locationInfo().lfTextComment()}
+                |let up = $lhsPorts;
+                |let down = $rhsPorts;
+                |__assembler.$methodName(up, down)?;
+                |}
+            """.trimMargin()
     }
 
     fun declarePortRef(ref: ChildPortReference): String =
@@ -83,52 +74,31 @@ object PortEmitter {
      * multiport, the result includes instances PortReference for each pair of bank and multiport
      * instance.
      */
-    private fun enumerateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
-        val ports = mutableListOf<PortReference>()
+    private fun enumerateAllPortsFromReferences(references: List<VarRef>): TargetCode {
+        if (references.size == 1) return references[0].iterPorts()
 
-        for (ref in references) {
-            val container = ref.container
-            val port = ref.variable as Port
-            val bankIndexes =
-                if (container?.isBank == true) (0 until container.widthSpec.getValidWidth())
-                else listOf<Int?>(null)
-            val portIndices =
-                if (port.isMultiport) (0 until port.widthSpec.getValidWidth())
-                else listOf<Int?>(null)
-            // calculate the Cartesian product af both index lists defined above
-            // TODO iterate over banks or ports first?
-            val indexPairs = portIndices.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
-            ports.addAll(indexPairs.map { PortReference(port, it.first, container, it.second) })
+        val (hd, tl) = references.headAndTail()
+
+        return tl.fold(hd.iterPorts()) { acc, varRef ->
+            "$acc.chain(${varRef.iterPorts()})"
         }
-        return ports
     }
 
-    /**
-     * A data class for holding all information that is relevant for reverencing one specific port
-     *
-     * The port could be a member of a bank instance and it could be an instance of a multiport.
-     * Thus, the information in this class includes a bank and port index. If the bank (or port)
-     * index is null, then the referenced port is not part of a bank (or multiport).
-     */
-    private data class PortReference(val port: Port, val portIndex: Int?, val container: Instantiation?, val containerIndex: Int?)
+    private fun VarRef.iterPorts(): TargetCode {
+        val container: Instantiation? = container
+        val port = PortData.from(variable as Port)
 
-    private fun PortReference.toCode(): String {
-        val port = PortData.from(port)
-        val portRef = if (port.isMultiport) "${port.rustFieldName}[$portIndex]" else port.rustFieldName
-        return if (container != null) {
-            val containerRef = if (container.isBank) "${container.name.escapeRustIdent()}[$containerIndex]" else container.name.escapeRustIdent()
-            "$containerRef.$portRef"
+        if (container?.isBank == true && port.isMultiport) {
+            return "${container.name}.iter_mut().flat_map(|inst| inst.${port.rustFieldName}.iter_mut())"
+        } else if (container?.isBank == true) {
+            return "${container.name}.iter_mut().map(|inst| &mut inst.${port.rustFieldName})"
+        }
+
+        val ref = container?.let { "${it.name}.${port.rustFieldName}" } ?: port.rustFieldName
+        return if (port.isMultiport) {
+            "$ref.iter_mut()"
         } else {
-            "__self.$portRef"
+            "std::iter::once(&mut $ref)"
         }
     }
-
-    /**
-     * Calculate the width of a multiport.
-     * This reports an error on the receiving port if the width is not given as a literal integer.
-     */
-    private fun WidthSpec.getValidWidth(): Int =
-        getWidth().takeIf { it >= 0 }
-            ?: throw UnsupportedGeneratorFeatureException("Non-literal multiport widths")
-
 }
