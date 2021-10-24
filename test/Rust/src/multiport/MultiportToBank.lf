@@ -5,8 +5,8 @@ reactor Source {
     output[4] out: usize;
     
     reaction (startup) -> out {=
-        for (i, p) in out.into_iter().enumerate() {
-            ctx.set(p, i);
+        for (i, out) in out.into_iter().enumerate() {
+            ctx.set(out, i)
         }
     =}
 }
