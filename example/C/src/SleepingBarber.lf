@@ -159,7 +159,7 @@ reactor Customer(
     =}
 }
 
-main reactor (cut_time:time(10 min), num_chairs:int(4), num_customers:int(10)){  
+main reactor (cut_time:time(10 minutes), num_chairs:int(4), num_customers:int(10)){  
     barber = new Barber(cut_time=cut_time, num_chairs=num_chairs, num_customers=num_customers);
     customers = new[num_customers] Customer();
 
