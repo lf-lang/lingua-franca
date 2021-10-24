@@ -42,17 +42,16 @@ object PortEmitter : RustEmitterBase() {
      * Returns the Rust code that declares the given connection.
      */
     fun Connection.declareConnection(): String {
-        val lhsPorts = enumerateAllPortsFromReferences(leftPorts)
-        val rhsPorts = enumerateAllPortsFromReferences(rightPorts)
+        val lhsPorts = leftPorts.iterAllPorts()
+        val rhsPorts = rightPorts.iterAllPorts()
 
         val methodName = if (isIterated) "bind_ports_iterated" else "bind_ports_zip"
 
-        // bind each pair of lhs and rhs ports individually
         return """
-                |{${locationInfo().lfTextComment()}
-                |let up = $lhsPorts;
-                |let down = $rhsPorts;
-                |__assembler.$methodName(up, down)?;
+                |{ ${locationInfo().lfTextComment()}
+                |    let up = $lhsPorts;
+                |    let down = $rhsPorts;
+                |    __assembler.$methodName(up, down)?;
                 |}
             """.trimMargin()
     }
@@ -67,23 +66,26 @@ object PortEmitter : RustEmitterBase() {
         }
 
     /**
-     * Get a list of PortReferences for the given list of variables
-     *
-     * This checks whether the variable refers to a multiport and generated an instance of
-     * PortReference for each port instance in the multiport. If the port is containe in a
-     * multiport, the result includes instances PortReference for each pair of bank and multiport
-     * instance.
+     * Produce a Rust expression that creates a single iterator
+     * by chaining the result of [iterPorts] for all the components
+     * of [this] list.
      */
-    private fun enumerateAllPortsFromReferences(references: List<VarRef>): TargetCode {
-        if (references.size == 1) return references[0].iterPorts()
+    private fun List<VarRef>.iterAllPorts(): TargetCode {
+        if (size == 1) return this[0].iterPorts()
 
-        val (hd, tl) = references.headAndTail()
+        val (hd, tl) = headAndTail()
 
         return tl.fold(hd.iterPorts()) { acc, varRef ->
             "$acc.chain(${varRef.iterPorts()})"
         }
     }
 
+    /**
+     * Produce an expression that creates an `Iterator<Item=&mut Port<T>>`,
+     * which iterates over all the individual channels of the
+     * port reference. This expands port banks and multiports
+     * into individual channels.
+     */
     private fun VarRef.iterPorts(): TargetCode {
         val container: Instantiation? = container
         val port = PortData.from(variable as Port)
@@ -94,7 +96,8 @@ object PortEmitter : RustEmitterBase() {
             return "${container.name}.iter_mut().map(|inst| &mut inst.${port.rustFieldName})"
         }
 
-        val ref = container?.let { "${it.name}.${port.rustFieldName}" } ?: port.rustFieldName
+        val ref = (container?.name ?: "__self") + "." + port.rustFieldName
+
         return if (port.isMultiport) {
             "$ref.iter_mut()"
         } else {
