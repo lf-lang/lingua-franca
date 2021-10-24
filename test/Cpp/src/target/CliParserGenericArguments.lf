@@ -1,0 +1,33 @@
+/**
+* This tests a wide range of possible Arguments for the command line parser
+*
+* @author Maiko Brants
+**/
+target Cpp;
+
+    public preamble {=
+        using unsigned_long = unsigned long;
+        using long_long     = long long;
+        using uns_long_long = unsigned long long;
+        using long_double   = long double;
+    =}
+
+
+main reactor CliParserGenericArguments(
+    int_value:int(10),
+    signed_value:signed(-10),
+    unsigned_value:unsigned(11),
+    long_value:long(-100),
+    unsigned_long_value:{=unsigned_long=}(42),
+    long_long_value:{=long_long=}(-42),
+    ull_value:{=uns_long_long=}(42),
+    bool_value:bool(false),
+    char_value:{=char=}('T'),
+    double_value:double(4.2),
+    long_double_value:{=long_double=}(4.2),
+    float_value:float(10.5)
+){
+    reaction(startup) {=
+        std::cout << "Hello World!\n";
+    =}
+}
