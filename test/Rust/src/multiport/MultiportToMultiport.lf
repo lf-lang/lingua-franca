@@ -1,0 +1,29 @@
+// test a connection multiport to multiport (same width)
+target Rust;
+
+reactor Source {
+    output[4] out: usize;
+    
+    reaction (startup) -> out {=
+        for (i, out) in out.into_iter().enumerate() {
+            ctx.set(out, i)
+        }
+    =}
+}
+
+reactor Sink {
+    input[4] in: usize;
+
+    reaction (in) {=
+        for (i, port) in r#in.into_iter().enumerate() {
+            assert_eq!(Some(i), ctx.get(&port), "Failed for input in[{}]", i);
+        }
+        println!("Success");
+    =}
+}
+
+main reactor MultiportToMultiport {
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.in;
+}
