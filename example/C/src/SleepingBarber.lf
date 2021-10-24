@@ -1,23 +1,28 @@
 /**
+ * This example illustrates the classic problem in concurrent
+ * computing called the "sleeping barber problem," often attributed
+ * to Edsger Dijkstra (see https://en.wikipedia.org/wiki/Sleeping_barber_problem).
+ * Using the logical times of Lingua Franca, many of the potential
+ * problems that can arise do not arise.
+ * 
  * Upon startup, the barber goes to sleep and is woken up by
- * a `cut` message from the first customer. After serving each
- * customer, the barber checks the waiting room for the next 
- * customer. If there is no one waiting, the barber returns 
+ * the arrival of a customer. After serving each customer,
+ * the barber checks the waiting room for the next customer.
+ * If there is no customer waiting, the barber goes back 
  * to sleep. Customers arrive independently from each other
- * and send a `cut` message upon arrival. If the barber is 
- * sleeping, the customer get served right away. Otherwise, the
- * barber either sends a `wait` message to sit in the waiting 
- * room or `full` message if all chairs are full. When receiving
- * a `full` message, a customer leaves and retries later. 
- * Customers leave upon receiving
- * a `done` message from the barber.
+ * at random times. If the barber is sleeping, the customer
+ * gets served right away. Otherwise, if there is room in the
+ * waiting room, the customer waits. If the waiting room is
+ * full, the customer goes away and returns a random amount
+ * of time later. Execution ends when all customers have been
+ * served.
  * 
  * This example is inspired by Savina benchmark by the same,
  * which has a C target implementation here:
  * [https://github.com/lf-lang/lingua-franca/blob/master/benchmark/C/Savina/src/concurrency/SleepingBarber.lf].
  * Unlike the benchmark, this example illustrates a direct
  * implementation that takes advantage of the semantics of
- * Lingua Franca.
+ * Lingua Franca to greatly simplify the problem.
  * 
  * @author Thee Ho
  * @author Edward A. Lee
@@ -27,7 +32,7 @@ target C {
     fast: true
 };
 reactor Barber(
-    cut_time:time(10 min), // (Logical) time spent serving a customer.
+    cut_time:time(10 minutes), // (Logical) time spent serving a customer.
     num_chairs:int(5),
     num_customers:int(10)
 ) {
@@ -55,12 +60,10 @@ reactor Barber(
                 }
             }
             return false;
-        }   
+        }
     =}
     input[num_customers] cut:bool;
     
-    output[num_customers] done:bool;
-    output[num_customers] wait:bool;
     output[num_customers] full:bool;
    
     state customerID:int;
@@ -81,31 +84,33 @@ reactor Barber(
     	self->customerID = -1;
     =}
      
-    reaction(cut) -> done_cutting, wait, full {=
+    reaction(cut) -> done_cutting, full {=
+        char readable_time[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(readable_time, get_elapsed_logical_time());
         for (int i = 0; i < self->num_customers; i++){
             if (cut[i]->is_present){
-                info_print("Customer %d arrives at time %lld.", i, get_elapsed_logical_time());
+                info_print("Customer %d arrives at time %s.", i, readable_time);
         		if (self->sleep){
             		self->sleep = false;
-            		info_print("Barber begins cut.");
+            		info_print("*** Barber begins cut.");
             		schedule(done_cutting, self->cut_time);
             		self->customerID = i;
         		} else if (put_customer(self->chairs, self->num_chairs, i)) {
-                    info_print("Customer waiting in a chair.");
-            		SET(wait[i], true);
+                    info_print("+++ Customer waiting.");
         		} else {
-                    info_print("All chairs are full. Customer is turned away.");
+                    info_print("--- All chairs are full. Customer is turned away.");
             		SET(full[i], true);
         		}
         	}
         }
     =}
     
-    reaction(done_cutting) -> done, done_cutting {=
-        info_print("Barber is done serving customer %d at time %lld.", 
-            self->customerID, get_elapsed_logical_time()
+    reaction(done_cutting) -> done_cutting {=
+        char readable_time[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(readable_time, get_elapsed_logical_time());
+        info_print("Barber is done serving customer %d at time %s.", 
+            self->customerID, readable_time
         );
-        SET(done[self->customerID], true);
         self->customerID = -1;
         self->customers_served++; 
         
@@ -114,9 +119,10 @@ reactor Barber(
         if (id >= 0){
             self->customerID = id;
             schedule(done_cutting, self->cut_time);
+            info_print("*** Barber begins cut for customer %d.", id);
         } else {
             self->sleep = true;
-            info_print("No waiting customers. Barber going to sleep.");
+            info_print("=== No waiting customers. Barber going to sleep.");
         }
     =}
     
@@ -128,10 +134,16 @@ reactor Barber(
 
 reactor Customer(
     bank_index:int(0), 
-    retry_time:time(1 hour) // Maximum between attempts to enter.
+    retry_time:time(1 hour) // Maximum time between attempts to enter.
 ){
-    input done:bool; 
-    input wait:bool;
+    preamble {=
+        // Return a random time uniformly distributed between
+        // 0 and max_time.
+        interval_t random_time(interval_t max_time) {
+            double scale = (double) rand() / RAND_MAX;
+            return (interval_t) (max_time * scale);
+        }
+    =}
     input full:bool;
     
     logical action enter;
@@ -140,31 +152,31 @@ reactor Customer(
     
     reaction(startup) -> enter {=
         // Schedule random customer arrivals
-        srand(0);
-        schedule(enter, ((rand()%1000)/1000.0) * self->retry_time); 
+        schedule(enter, random_time(self->retry_time)); 
     =}
     reaction(enter) -> cut {=
         SET(cut,true); 
-        info_print("Customer %d arrives.", self->bank_index);
-    =}
-    reaction(wait){=
-        info_print("Customer %d is waiting.", self->bank_index);
     =}
     reaction(full) -> enter {=
-        info_print("Customer %d turned away due to full waiting room. Will retry later.", self->bank_index);
-        schedule(enter, ((rand()%1000)/1000.0) * self->retry_time);
-    =}
-    reaction(done) {=
-        info_print("Customer %d is finished and happy.", self->bank_index);
+        schedule(enter, random_time(self->retry_time));
     =}
 }
 
-main reactor (cut_time:time(10 minutes), num_chairs:int(4), num_customers:int(10)){  
-    barber = new Barber(cut_time=cut_time, num_chairs=num_chairs, num_customers=num_customers);
-    customers = new[num_customers] Customer();
+main reactor (
+    cut_time:time(10 minutes), 
+    num_chairs:int(2), 
+    num_customers:int(15),
+    retry_time:time(2 hours)
+){  
+    barber = new Barber(
+        cut_time=cut_time, 
+        num_chairs=num_chairs,
+        num_customers=num_customers
+    );
+    customers = new[num_customers] Customer(
+        retry_time = retry_time
+    );
 
     customers.cut -> barber.cut;
-    barber.done -> customers.done;
-    barber.wait -> customers.wait;
     barber.full -> customers.full;
 }
