@@ -87,8 +87,6 @@ public final class TimeValue implements Comparable<TimeValue> {
         case SECOND:
         case SECONDS:
             return time * 1_000_000_000;
-        case MIN:
-        case MINS:
         case MINUTE:
         case MINUTES:
             return time * 60_000_000_000L;
