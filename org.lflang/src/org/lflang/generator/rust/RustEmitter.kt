@@ -129,7 +129,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    #[inline]
                 |    fn user_assemble(__assembler: &mut $rsRuntime::assembly::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
-                |                     __params: $paramStructName$typeArgs) -> Result<Self, $rsRuntime::AssemblyError> {
+                |                     __params: $paramStructName$typeArgs) -> $rsRuntime::assembly::AssemblyResult<Self> {
                 |        let $ctorParamsDeconstructor = __params;
                 |
                 |        let __impl = {
@@ -150,12 +150,12 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    }
                 |}
                 |
-                |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
+                |impl$typeParams $rsRuntime::assembly::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName$typeArgs;
                 |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new($totalNumReactions - 1);
                 |
-                |    fn assemble(__params: Self::Params, __ctx: $rsRuntime::assembly::AssemblyCtx<Self>) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
+                |    fn assemble(__params: Self::Params, __ctx: $rsRuntime::assembly::AssemblyCtx<Self>) -> $rsRuntime::assembly::AssemblyResult<Self> {
                 |        use $rsRuntime::assembly::TriggerLike;
                 |
                 |        let $ctorParamsDeconstructor = __params;
@@ -178,7 +178,7 @@ ${"             |            "..assembleChildReactors(assembleSelfCall())};
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls()}
 ${"             |            "..syntheticTimerReactions()}
-                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, <Self as $rsRuntime::ReactorInitializer>::MAX_REACTION_ID)
+                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, <Self as $rsRuntime::assembly::ReactorInitializer>::MAX_REACTION_ID)
                 |        }
                 |    }
                 |
