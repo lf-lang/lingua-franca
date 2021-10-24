@@ -152,7 +152,9 @@ data class NestedReactorInstance(
     val reactorLfName: String,
     val args: Map<String, TargetCode>,
     val loc: LocationInfo,
-    val typeArgs: List<TargetCode>
+    val typeArgs: List<TargetCode>,
+    /** If non-null, this is a reactor bank. */
+    val bankWidth: WidthSpec?
 ) {
     /** Sync with [ChildPortReference.rustChildName]. */
     val rustLocalName = lfName.escapeRustIdent()
@@ -569,7 +571,8 @@ object RustModelBuilder {
             args = args,
             reactorLfName = this.reactorClass.name,
             loc = this.locationInfo(),
-            typeArgs = typeParms.map { it.toText() }
+            typeArgs = typeParms.map { it.toText() },
+            bankWidth = this.widthSpec
         )
     }
 }

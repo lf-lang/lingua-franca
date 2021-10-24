@@ -79,7 +79,7 @@ object PortEmitter {
      * Get a list of PortReferences for the given list of variables
      *
      * This checks whether the variable refers to a multiport and generated an instance of
-     * PortReferrence for each port instance in the multiport. If the port is containe in a
+     * PortReference for each port instance in the multiport. If the port is containe in a
      * multiport, the result includes instances PortReference for each pair of bank and multiport
      * instance.
      */

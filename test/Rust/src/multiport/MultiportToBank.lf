@@ -1,0 +1,34 @@
+target Rust;
+
+reactor Source {
+    output[4] out: usize;
+    
+    reaction (startup) -> out {=
+        for (i, p) in out.into_iter().enumerate() {
+            ctx.set(p, i);
+        }
+    =}
+}
+
+reactor Sink(bank_index: usize(0)) {
+    input in: usize;
+    state bank_index(bank_index);
+
+    state asserts_done: u32(0);
+
+    reaction (in) {=
+        assert_eq!(ctx.get(r#in), Some(self.bank_index));
+        self.asserts_done += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.asserts_done, 4);
+        println!("success")
+    =}
+}
+
+main reactor MultiportToBank {
+    source = new Source();
+    sink = new[4] Sink();
+    source.out -> sink.in;
+}
