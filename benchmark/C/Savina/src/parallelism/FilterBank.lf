@@ -21,41 +21,8 @@
  * output will be 0.0. The FIR filters have odd arbitrary coefficients,
  * but those don't matter because the data is all 0.0.
  * 
- * This benchmark is particularly interesting for LF, as it has an interesting
- * structure and highlights a significant advantage compared to Akka. The
- * benchmark implements a "filter bank". Each bank consists of a pipeline of
- * several filters. The banks operate in parallel. The input data stream is
- * split, so that each bank receives a copy of the data value, and the data
- * streams are merged again by summing the results. In principle, this design
- * exposes both data level parallelism due to the separate banks and pipeline
- * parallelism within a bank. However, this LF implementation does not exploit
- * the pipeline parallelism. This would require additional logical actions
- * between the pipeline stages. The effect of this unknown and it might be
- * worthwhile to explore if pipeline parallelism can be exploited by this
- * benchmakr in an efficient way. However, since only the FIR filter perform
- * large computations and most other reactions are small, likely there is not
- * much to gain from implementing a real pipeline.
- *
- * An interesting note can also be made about the structure and complexity of
- * the LF benchmark compared to the Akka implementation. The Akka implementation
- * uses a "Branches" actor that distributes the single input signal to the
- * banks. In LF, this actor is not needed and we simply use a broadcast
- * connection.
-
- * More interesting is how the outputs of the different banks are merged in the
- * Akka implementation. This is done by two actors: "TaggedForward" and
- * "Integrator". "TaggedForward" simply assigns tags to each message which
- * indicate the bank that the message originates from. Essentially this merges
- * the N data streams from the N banks to a single data stream. As the name
- * might suggest, the "Integrate" does not apply an integration filter on the
- * data, but rather collects results and "integrates" them in a vector.
- * Basically the input is 1 value from N banks, and the output is one
- * N-dimensional vector. The integrate vector simply stores all received values
- * in a buffer, and sends out a vector containing values from all banks once
- * messages from all banks have been received. This synchronization mechanism is
- * not needed at all in the LF implementation and makes both the "TaggedForward"
- * and the "Integrate" actors superfluous. The combine reactor simply has a
- * multiport import and thus simultaneously receives values from all N banks.
+ * For more details on this benchmark, see the Cpp version from which it was derived:
+ * https://github.com/lf-lang/lingua-franca/blob/master/benchmark/Cpp/Savina/src/parallelism/FilterBank.lf.
  * 
  * @author Christian Menard
  * @author Hannes Klein
@@ -80,16 +47,29 @@ target C {
 };
 
 /**
+ * Send an output every 1 msec.
+ */
+reactor Producer {
+    output next: bool;
+
+    timer t(0, 1 msec);
+    
+    reaction (t) -> next {=
+        SET(next, true);
+    =}
+}
+
+/**
  * Produce outputs every 1 msec from 0 to maxValue - 1,
  * then start over again at 0.
  */
 reactor Source(maxValue:int(1000)) {
+    input next: bool;
     output value: double;
 
-    timer t(0, 1 msec);
     state current: size_t(0);
     
-    reaction (t) -> value {=
+    reaction (next) -> value {=
         SET(value, self->current);
         // info_print("Source output: %d", self->current);
         self->current = (self->current + 1) % self->maxValue;
@@ -139,6 +119,10 @@ reactor Delay(length: size_t(16383), period:time(1 msec)) {
         if (self->pointer >= self->length - 1) {
             self->pointer = 0;
         }
+    =}
+    
+    reaction(shutdown) {=
+        free(self->buffer);
     =}
 }
 
@@ -199,6 +183,11 @@ reactor FirFilter(bank_index:size_t(0), peek_length:size_t(16384), first:bool(tr
             SET(out, sum);
             // info_print("FIR filter %d,%d outputting %f.", self->bank_index, (self->first) ? 0 : 1, sum);
         }
+    =}
+
+    reaction(shutdown) {=
+        free(self->data);
+        free(self->coefficients);
     =}
 }
 /**
@@ -261,11 +250,13 @@ reactor Sink(print_rate: size_t(100)) {
 ]]] */
 main reactor (columns: size_t(16384), channels: size_t(8)) {
 /// [[[end]]]
+    producer = new Producer();
     source = new Source();
     banks = new[channels] Bank(columns=columns, channels=channels);
     combine = new Combine(channels=channels);
     sink = new Sink(print_rate=100);
-        
+    
+    producer.next -> source.next;
     (source.value)+ -> banks.in;
     banks.out -> combine.inValues;
     combine.out -> sink.in;
