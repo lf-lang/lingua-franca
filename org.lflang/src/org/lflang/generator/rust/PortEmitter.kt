@@ -41,29 +41,29 @@ object PortEmitter : RustEmitterBase() {
     /**
      * Returns the Rust code that declares the given connection.
      */
-    fun Connection.declareConnection(): String {
-        val lhsPorts = leftPorts.iterAllPorts()
+    fun Connection.declareConnection(assembler: String): String {
+        val lhsPorts = leftPorts.iterAllPorts().let {
+            // to implement iterated connection, we just use Iterator::cycle on the LHS
+            if (isIterated) "$it.cycle()" else it
+        }
         val rhsPorts = rightPorts.iterAllPorts()
-
-        val methodName = if (isIterated) "bind_ports_iterated" else "bind_ports_zip"
 
         return """
                 |{ ${locationInfo().lfTextComment()}
                 |    let up = $lhsPorts;
                 |    let down = $rhsPorts;
-                |    __assembler.$methodName(up, down)?;
+                |    $assembler.bind_ports_zip(up, down)?;
                 |}
             """.trimMargin()
     }
 
-    fun declarePortRef(ref: ChildPortReference): String =
-        with(ref) {
-            val self = "&mut __self.$rustFieldName"
-            val child = "&mut $rustChildName.$rustFieldOnChildName"
+    fun ChildPortReference.declarePortRef(assembler: String): String {
+        val self = "&mut __self.$rustFieldName"
+        val child = "&mut $rustChildName.$rustFieldOnChildName"
 
-            if (isInput) "__assembler.bind_ports($self, $child)?;"
-            else "__assembler.bind_ports($child, $self)?;"
-        }
+        return if (isInput) "$assembler.bind_ports($self, $child)?;"
+        else "$assembler.bind_ports($child, $self)?;"
+    }
 
     /**
      * Produce a Rust expression that creates a single iterator

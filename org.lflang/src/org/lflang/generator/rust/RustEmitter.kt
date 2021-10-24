@@ -29,7 +29,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.UnsupportedGeneratorFeatureException
-import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
 import java.nio.file.Files
 
@@ -250,12 +249,11 @@ ${"             |        "..declareChildConnections()}
     }
 
 
-
-    private fun ReactorInfo.declareChildConnections(): String {
-        return connections.joinToString("\n", prefix = "// Declare connections\n") {
-            with(PortEmitter) { it.declareConnection() }
+    private fun ReactorInfo.declareChildConnections(): String = with(PortEmitter) {
+        connections.joinToString("\n", prefix = "// Declare connections\n") {
+            it.declareConnection("__assembler")
         } + "\n" + portReferences.joinToString("\n", prefix = "// Declare port references\n") {
-            PortEmitter.declarePortRef(it)
+            it.declarePortRef("__assembler")
         }
     }
 
