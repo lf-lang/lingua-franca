@@ -198,7 +198,10 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
             val type = "super::${names.wrapperName}${typeArgs.angle()}"
             val params = args.values.joinWithCommas("super::${names.paramStructName}::new(", ")")
 
-            return "__ctx.with_child::<$type, _>(\"$lfName\", $params, |mut __ctx, $rustLocalName| {"
+            return if (bankWidth != null)
+                "__ctx.with_child_bank::<$type, _, _>(\"$lfName\", ${bankWidth.toRustExpr()}, |bank_index| $params, |mut __ctx, $rustLocalName| {"
+            else
+                "__ctx.with_child::<$type, _>(\"$lfName\", $params, |mut __ctx, $rustLocalName| {"
         }
 
         return buildString {

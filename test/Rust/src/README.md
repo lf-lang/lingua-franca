@@ -94,6 +94,8 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `MultiportIn.lf`: support banks of input ports
   - [x] `MultiportOut.lf`: support banks of output ports
   - [x] `MultiportFromHierarchy.lf`: support binding an output bank to an input bank within a composition
+  - [x] `MultiportToBank.lf`: support binding an output multiport to the input of a bank
+  - [x] `MultiportToBank.lf`: support the special `bank_index` parameter
 - [x] generics
   - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
   - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
