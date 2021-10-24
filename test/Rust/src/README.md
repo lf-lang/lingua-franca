@@ -98,15 +98,10 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `MultiportToBank.lf`: support the special `bank_index` parameter
   - [x] `MultiportToMultiport.lf`: test a connection multiport to multiport (same width)
   - [x] `MultiportToMultiport2.lf`: test a sparse connection between multiports (some channels are left disconnected)
-  - [ ] `FullyConnected.lf`: tests iterated connections, has a connection from a bank to itself. Currently failing because Rust cannot understand that we're borrowing distinct ports:
-    ```rust
-    let up = nodes.iter_mut().map(|inst| &mut inst.__out);
-    //       ---------------- first mutable borrow occurs here
-    let down = nodes.iter_mut().flat_map(|inst| inst.__in.iter_mut());
-    //         ^^^^^^^^^^^^^^^^ second mutable borrow occurs here
-    ```
-    I don't see a way to fix this in safe Rust.
-
+  - [x] `FullyConnected.lf`: iterated connection from a bank to a multiport
+  - self connections. These used to cause problems with borrows, and we have to use unsafe code to make this work.
+    - [x] `ConnectionToSelfBank.lf`: connection from a bank to a port of the same reactor
+    - [x] `ConnectionToSelfMultiport.lf`: connection from a multiport to another multiport of the same reactor
 - [x] generics
   - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
   - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
