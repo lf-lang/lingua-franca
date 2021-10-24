@@ -1,4 +1,4 @@
-### The rust code generator
+### The Rust code generator
 
 The runtime is hosted over at https://github.com/lf-lang/reactor-rust
 
