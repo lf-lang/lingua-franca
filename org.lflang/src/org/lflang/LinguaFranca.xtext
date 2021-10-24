@@ -486,7 +486,7 @@ enum TimeUnit:
     USEC='usec' | USECS='usecs' |
     MSEC='msec' | MSECS='msecs' |
     SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' |
-    MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' |
+    MINUTE='minute' | MINUTES='minutes' |
     HOUR='hour' | HOURS='hours' |
     DAY='day' | DAYS='days' |
     WEEK='week' | WEEKS='weeks';
