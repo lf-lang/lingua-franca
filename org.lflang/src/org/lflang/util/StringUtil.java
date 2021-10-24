@@ -22,45 +22,34 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.generator;
+package org.lflang.util;
 
-import org.eclipse.emf.ecore.EObject;
-// import org.jetbrains.annotations.Nullable;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
- * An exception that occurred during code generation. May also
- * wrap another exception.
+ * Utilities to manipulate strings.
+ *
+ * @author Clément Fournier
  */
-public class GenerationException extends RuntimeException { // note that this is an unchecked exception.
+public final class StringUtil {
 
-    /* @Nullable */
-    private final EObject location;
-
-    public GenerationException(String message) {
-        this(null, message, null);
+    private StringUtil() {
+        // utility class
     }
 
-    public GenerationException(/* @Nullable */ EObject location, String message) {
-        this(location, message, null);
+    /**
+     * Convert a string in Camel case to snake case. E.g.
+     * `MinimalReactor` will be converted to `minimal_reactor`.
+     * The string is assumed to be a single camel case identifier
+     * (no whitespace).
+     */
+    public static String camelToSnakeCase(String str) {
+        return Arrays.stream(str.split("(?<![A-Z])(?=[A-Z])"))
+                     .map(it -> it.toLowerCase(Locale.ROOT))
+                     .filter(it -> !it.isEmpty())
+                     .collect(Collectors.joining("_"));
     }
 
-    public GenerationException(String message, Throwable cause) {
-        this(null, message, cause);
-
-    }
-
-    public GenerationException(/* @Nullable */ EObject location, String message, Throwable cause) {
-        super(message, cause);
-        this.location = location;
-    }
-
-    public GenerationException(Throwable cause) {
-        this(null, null, cause);
-    }
-
-    /* @Nullable */
-    public EObject getLocation() {
-        return location;
-    }
 }
-
