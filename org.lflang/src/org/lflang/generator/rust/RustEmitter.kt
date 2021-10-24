@@ -104,10 +104,17 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }
                 |
                 |/// Parameters for the construction of a [$structName]
                 |pub struct ${names.paramStructName}$typeParams {
-                |    pub __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
-${"             |    "..ctorParams.joinWithCommasLn { "pub ${it.lfName.escapeRustIdent()}: ${it.type}" }}
+                |    __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
+${"             |    "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRustIdent()}: ${it.type}" }}
                 |}
                 |
+                |impl$typeParams ${names.paramStructName}$typeArgs {
+                |   pub fn new(
+${"             |       "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRustIdent()}: ${it.type}" }}
+                |   ) -> Self {
+                |       Self { __phantom: std::marker::PhantomData, ${ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }} }
+                |   }
+                |}
                 |
                 |//------------------------//
                 |
@@ -120,7 +127,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |
                 |impl$typeParams $wrapperName$typeArgs {
                 |    #[inline]
-                |    fn user_assemble(__assembler: &mut $rsRuntime::ComponentCreator<Self>,
+                |    fn user_assemble(__assembler: &mut $rsRuntime::assembly::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
                 |                     __params: $paramStructName$typeArgs) -> Result<Self, $rsRuntime::AssemblyError> {
                 |        let $ctorParamsDeconstructor = __params;
@@ -148,24 +155,12 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    type Params = $paramStructName$typeArgs;
                 |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new($totalNumReactions - 1);
                 |
-                |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx<Self>) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
-                |        use $rsRuntime::TriggerLike;
+                |    fn assemble(__params: Self::Params, __ctx: $rsRuntime::assembly::AssemblyCtx<Self>) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
+                |        use $rsRuntime::assembly::TriggerLike;
                 |
-                |        // children reactors   
-${"             |        "..assembleChildReactors()}
-                |
-                |        // assemble self
-                |        let mut __self: Self = __assembler.assemble_self(|cc, id| Self::user_assemble(cc, id, __params))?;
-                |
-${"             |        "..declareReactions()}
-                |
-                |        {
-                |
-${"             |            "..graphDependencyDeclarations()}
-                |
-${"             |            "..declareChildConnections()}
-                |        }
-${"             |        "..nestedInstances.joinToString("\n") { "__assembler.register_reactor(${it.rustLocalName});" }}
+                |        let $ctorParamsDeconstructor = __params;
+                |        let (_, __self) =
+${"             |            "..assembleChildReactors(assembleSelfCall())};
                 |
                 |       Ok(__self)
                 |    }
@@ -198,47 +193,29 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
         }
     }
 
-    private fun ReactorInfo.assembleChildReactors(): String {
-        fun NestedReactorInstance.paramStruct(): String =
-            args.entries.joinWithCommas("super::${names.paramStructName} {  __phantom: std::marker::PhantomData, ", " }") {
-                if (it.key == it.value) it.key.escapeRustIdent()
-                else it.key.escapeRustIdent() + ": " + it.value // do not escape value
+    private fun ReactorInfo.assembleChildReactors(assembleSelf: String): String {
+        fun NestedReactorInstance.childDeclaration(): String {
+            val type = "super::${names.wrapperName}${typeArgs.angle()}"
+            val params = args.values.joinWithCommas("super::${names.paramStructName}::new(", ")")
+
+            return "__ctx.with_child::<$type, _>(\"$lfName\", $params, |mut __ctx, $rustLocalName| {"
+        }
+
+        return buildString {
+            for (inst in nestedInstances) {
+                append(inst.childDeclaration()).append("\n")
             }
 
-        val asTuple = nestedInstances.joinWithCommas("($ctorParamsDeconstructor, ", ")") { it.rustLocalName }
-        val asMutTuple = nestedInstances.joinWithCommas("(__params, ", ")") { "mut ${it.rustLocalName}" }
+            append(assembleSelf).append("\n")
 
-        val declarations = nestedInstances.joinToString("\n") {
-            """
-                ${it.loc.lfTextComment()}
-                let ${it.rustLocalName}: super::${it.names.wrapperName}${it.typeArgs.angle()} = __assembler.assemble_sub("${it.lfName}", ${it.paramStruct()})?;
-            """.trimIndent()
-        }
-
-        // we do this to only bring the arguments in scope
-        // within the block
-        return with(PrependOperator) { """
-            |let $asMutTuple = {
-            |    let $ctorParamsDeconstructor = __params;
-${"         |    "..declarations}
-            |    $asTuple
-            |};
-        """.trimMargin()
+            for (inst in nestedInstances) {
+                append("})")
+            }
+            append("?")
         }
     }
 
-
-    private fun ReactorInfo.declareChildConnections(): String {
-        return connections.joinToString("\n", prefix = "// Declare connections\n") {
-            it.locationInfo().lfTextComment() + "\n" +
-                    PortEmitter.declareConnection(it)
-        } + "\n" + portReferences.joinToString("\n", prefix = "// Declare port references\n") {
-            PortEmitter.declarePortRef(it)
-        }
-    }
-
-    /** Declare reaction IDs in the assemble routine. */
-    private fun ReactorInfo.declareReactions(): String {
+    private fun ReactorInfo.assembleSelfCall(): String {
         val reactionIds = reactions.map { it.invokerId } +
                 timers.map { it.rescheduleReactionId } +
                 timers.map { it.startReactionId }
@@ -248,10 +225,36 @@ ${"         |    "..declarations}
                 timers.map { "Some(\"bootstrap_${it.lfName}\")" }
 
 
-        val pattern = reactionIds.joinToString(prefix = "let [", separator = ",\n     ", postfix = "]")
+        val pattern = reactionIds.joinToString(prefix = "[", separator = ", ", postfix = "]")
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
-        return "$pattern = __assembler.new_reactions(${reactions.size}, $debugLabelArray);"
+        return """
+                |__ctx.do_assembly(
+                |    |cc, id| Self::user_assemble(cc, id, $ctorParamsDeconstructor),
+                |    // number of non-synthetic reactions
+                |    ${reactions.size},
+                |    // reaction debug labels
+                |    $debugLabelArray,
+                |    // dependency declarations
+                |    |__assembler, __self, $pattern| {
+${"             |        "..graphDependencyDeclarations()}
+${"             |        "..declareChildConnections()}
+                |
+                |        Ok(())
+                |    }
+                |)
+            """.trimMargin()
+    }
+
+
+
+    private fun ReactorInfo.declareChildConnections(): String {
+        return connections.joinToString("\n", prefix = "// Declare connections\n") {
+            it.locationInfo().lfTextComment() + "\n" +
+                    PortEmitter.declareConnection(it)
+        } + "\n" + portReferences.joinToString("\n", prefix = "// Declare port references\n") {
+            PortEmitter.declarePortRef(it)
+        }
     }
 
     /** Renders calls to worker functions from within the react_erased function. */
@@ -304,9 +307,9 @@ ${"         |    "..declarations}
             val deps: List<String> = mutableListOf<String>().apply {
                 this += n.triggers.map { trigger -> "__assembler.declare_triggers(__self.${trigger.rustFieldName}.get_id(), ${n.invokerId})?;" }
                 if (n.isStartup)
-                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${n.invokerId})?;"
+                    this += "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::STARTUP, ${n.invokerId})?;"
                 if (n.isShutdown)
-                    this += "__assembler.declare_triggers($rsRuntime::TriggerId::SHUTDOWN, ${n.invokerId})?;"
+                    this += "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortData>().map { port ->
                     // todo how is a bank channel represented in PortData?
@@ -326,7 +329,7 @@ ${"         |    "..declarations}
             listOf(
                 "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
                 // start reactions may "trigger" the timer, otherwise it schedules it
-                "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${it.startReactionId})?;",
+                "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::STARTUP, ${it.startReactionId})?;",
                 "__assembler.effects_timer(${it.startReactionId}, &__self.${it.rustFieldName})?;",
             )
         }.joinLn()
@@ -428,10 +431,9 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |           keep_alive: ${gen.properties.keepAlive}
             |        };
             |        // main params are entirely defaulted
-            |        let main_args = __MainParams {
-            |           __phantom: std::marker::PhantomData,
-${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
-            |        };
+            |        let main_args = __MainParams::new(
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.defaultValue ?: "Default::default()") }}
+            |        );
             |        (options, main_args)
             |    }
             |}
@@ -475,10 +477,9 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |            keep_alive: opts.keep_alive,
             |        };
             |
-            |        let main_args = __MainParams {
-            |           __phantom: std::marker::PhantomData,
-${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.escapeRustIdent() + ": opts." + it.cliParamName }}
-            |        };
+            |        let main_args = __MainParams::new(
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + it.cliParamName }}
+            |        );
             |        (options, main_args)
             |    }
             |
@@ -572,7 +573,10 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
     }
 
 
-    /** Rust pattern that deconstructs a ctor param tuple into individual variables */
+    /**
+     * Rust pattern that deconstructs a ctor param tuple into individual variables.
+     * Note that if all variables are in scope, it may also be used as a constructor.
+     */
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
         get() {
             val fields = ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }
