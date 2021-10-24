@@ -644,20 +644,22 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
      * Produce an instance of the borrowed type ([toBorrowedType]) to inject
      * into a reaction. This conceptually just borrows the field.
      */
-    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode = when (this) {
-        is PortData           -> portBorrow(kind, isMultiport)
-        is ChildPortReference -> portBorrow(kind, isMultiport)
-        is ActionData         -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
-        is TimerData          -> "&self.$rustFieldName"
-    }
+    private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode {
+        fun ReactorComponent.portBorrow(kind: DepKind, isMultiport: Boolean) =
+            when {
+                kind == DepKind.Effects && isMultiport  -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
+                kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
+                isMultiport                             -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
+                else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
+            }
 
-    private fun ReactorComponent.portBorrow(kind: DepKind, isMultiport: Boolean) =
-        when {
-            kind == DepKind.Effects && isMultiport  -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
-            kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
-            isMultiport                             -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
-            else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
+        return when (this) {
+            is PortData           -> portBorrow(kind, isMultiport)
+            is ChildPortReference -> portBorrow(kind, isMultiport)
+            is ActionData         -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
+            is TimerData          -> "&self.$rustFieldName"
         }
+    }
 
     private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
         // Item is both in inputs and outputs.
