@@ -1,3 +1,4 @@
+ // Check multiport output to bank of recipients.
 target Rust;
 
 reactor Source {
@@ -22,8 +23,8 @@ reactor Sink(bank_index: usize(0)) {
     =}
 
     reaction(shutdown) {=
-        assert_eq!(self.asserts_done, 4);
-        println!("success")
+        assert_eq!(self.asserts_done, 1, "should have been triggered once (per instance)");
+        println!("success {}/4", self.bank_index)
     =}
 }
 

@@ -150,6 +150,12 @@ class ReactorNames(
 data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
+    /**
+     * Contains arguments for _all_ parameters.
+     * The special parameter `bank_index` has the value `"bank_index"`.
+     * The map iteration order must be the order in which
+     * parameters are declared.
+     */
     val args: Map<String, TargetCode>,
     val loc: LocationInfo,
     val typeArgs: List<TargetCode>,
@@ -555,9 +561,8 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            val value = byName[ithParam.name]?.let {
-                RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
-            }
+            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces) }
+                ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
                 ?: throw InvalidLfSourceException(
                     "Cannot find value of parameter ${ithParam.name}",
