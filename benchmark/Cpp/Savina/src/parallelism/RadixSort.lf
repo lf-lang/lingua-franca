@@ -17,11 +17,10 @@
  * 011    101    010    101
  * 010    011    111    110
  * 001    001    011    111
- *
- * TODO(Hannes): evaluate the maxValue parameter and create the pipeline accordingly.
  * 
  * @author Hannes Klein
  * @author Felix Wittwer
+ * @author Christian Menard
  */
 
 
@@ -33,24 +32,22 @@ target Cpp {
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
-reactor IntSourceReactor(numValues: int(100000), maxValue: long({=1l << 60=}), seed: long(2048)) {
+reactor IntSourceReactor(numValues: size_t{100000}, maxValue: uint64_t{{=1l << 60=}}, seed: long{2048}) {
     
     public preamble {=
         #include "PseudoRandom.hh"
-        #include "reactor-cpp/logging.hh"
     =}
     
-    state random:{=PseudoRandom=};
-    state numValuesSent:int(0);
+    state random: PseudoRandom;
+    state numValuesSent: size_t{0};
     
-    input inStart:void;
+    input start: void;
     
-    output outNextSortReactor:{=long=};
+    output outValue: uint64_t;
     
-    logical action sendRandomNum:void;
+    logical action sendRandomNum;
     
-    reaction(inStart) -> sendRandomNum {=
-        
+    reaction(start) -> sendRandomNum {=
         // reset local state
         random = PseudoRandom(seed);
         numValuesSent = 0;
@@ -59,139 +56,124 @@ reactor IntSourceReactor(numValues: int(100000), maxValue: long({=1l << 60=}), s
         sendRandomNum.schedule();
     =}
     
-    reaction(sendRandomNum) -> outNextSortReactor, sendRandomNum {=
-        
+    reaction(sendRandomNum) -> outValue, sendRandomNum {=
+        uint64_t value = abs(random.nextLong()) % maxValue;
+        reactor::log::Debug() << value;
+        outValue.set(value);
+        numValuesSent++;
+                
         if(numValuesSent < numValues) {
-             long candidate = abs(random.nextLong()) % maxValue;
-             reactor::log::Debug() << candidate;
-             outNextSortReactor.set(candidate);
-             numValuesSent += 1;
              sendRandomNum.schedule();
         }
     =}
 }
 
 
-reactor SortActor(numValues:int(100000), bank_index:int(0)) {
+reactor SortActor(numValues: size_t{100000}, bank_index: size_t{0}, numBits: size_t{60}) {
     
-    public preamble {=
-        #include <list>
-        #include "reactor-cpp/logging.hh"
-    =}
+    state oneBucket: std::vector<uint64_t>;
+    state valuesSoFar: size_t{0};
+    state radix: uint64_t{{=1ul << bank_index=}};
     
-    state orderingArray:{=std::vector<reactor::ImmutableValuePtr<long>>=};
-    state valuesSoFar:int(0);
-    state radix:{=long=}(-1);
-    state pos:int(0);
-    state sendPos:int(0);
-    
-    input inValue:{=long=};
-    output outValue:{=long=};
-    
-    logical action sendBufferedValues:void;
-    
-    reaction(startup) {=
-        radix = 1l << bank_index;
-        orderingArray = std::vector<reactor::ImmutableValuePtr<long>>(numValues);
-    =}
-    
+    input start: void; 
+    input inValue: uint64_t;
+    output outValue: uint64_t;
+
+    state readPos: size_t{0};    
+    logical action sendBufferedValues;
+
     reaction(inValue) -> outValue, sendBufferedValues {=
+        valuesSoFar++;
         
-        valuesSoFar += 1;
-        long current = *(inValue.get());
-        if((current & radix) == 0) {
-            // number with leading 0 (small) go through
-            outValue.set(current);
+        uint64_t current = *inValue.get();
+        if(current & radix) {
+            // if the digit is one, we put the value to our local bucket
+            oneBucket.push_back(current);
         } else {
-            orderingArray[pos] = (inValue.get());
-            pos += 1;
+            // if the digit is zero, we pipe the value through
+            outValue.set(current);
         }
         
         if(valuesSoFar == numValues) {
-            sendBufferedValues.schedule();
+            if (!oneBucket.empty()) {
+                sendBufferedValues.schedule();
+            }
         }
     =}
     
     reaction(sendBufferedValues) -> outValue, sendBufferedValues {=
-        
-        if(sendPos < pos) {
-            outValue.set(orderingArray[sendPos]);
-            sendPos += 1;
+        if (readPos < oneBucket.size()) {
+            outValue.set(oneBucket[readPos]);
+            readPos++;
             sendBufferedValues.schedule();
-        } else {
-            
-            // reset local state
-            valuesSoFar = 0;
-            pos = 0;
-            sendPos = 0;
         }
+    =}
+        
+    reaction(startup) {=
+        oneBucket.reserve(numValues);
+    =}
+    
+    reaction(start) {=
+         // reset local state
+         valuesSoFar = 0;
+         readPos = 0;
+         oneBucket.clear();
     =}
 }
 
-reactor ValidationReactor(numValues:int(100000)) {
-    
-    private preamble {=
-        #include "reactor-cpp/logging.hh"
-    =}
-    
-    state sumSoFar:double(0.0);
-    state valuesSoFar:int(0);
-    state prevValue:{=long=}(0);
-    state errorValueLong:{=long=}(-1);
+reactor ValidationReactor(numValues: size_t{100000}) {
+
+    state sumSoFar: double{0.0};
+    state valuesSoFar: size_t{0};
+    state prevValue: uint64_t{0};
+    state errorValueLong: {=long=}(-1);
     state errorValueInt:int(-1);
     
-    input inValue:{=long=};
-    output outFinished:void;
+    input inValue: uint64_t
+    output outFinished: void
     
     reaction(inValue) -> outFinished {=
         
-        long value = *inValue.get();
-        valuesSoFar += 1;
-        if(value < prevValue && errorValueLong < 0) {
+        uint64_t value = *inValue.get();
+        
+        if(value < prevValue) {
+            reactor::log::Error() << "ERROR: Value out of place: " << value << " at index " << valuesSoFar;
             errorValueLong = value;
             errorValueInt = valuesSoFar - 1;
         }
+        
+        valuesSoFar++;
         prevValue = value;
         sumSoFar += prevValue;
         
         if(valuesSoFar == numValues) {
-            if(errorValueLong >= 0) {
-                reactor::log::Error() << "ERROR: Value out of place: " << errorValueLong << " at index " << errorValueInt;
-            } else {
-                reactor::log::Info() << "Elements sum: " << sumSoFar;
-            }
+            reactor::log::Info() << "Elements sum: " << sumSoFar;
             
             // reset local state
             sumSoFar = 0.0;
             valuesSoFar = 0;
             prevValue = 0;
-            errorValueLong = -1;
-            errorValueInt = -1;
-            
+
             outFinished.set();
         }
     =}
 }
 
-// FIXME We cannot adjust maxValue here because the number of sort actors below depends on it. The parameter should
-// actually indicate the number of sorters, and than we could calculate the max value from it. But this would require
-// changing the original Savina code ... 
-main reactor (numIterations:int(12), dataSize:int(100000), maxValue: long({=1l << 60=}), seed: long({=2048l=})) {
+main reactor (numIterations: size_t{12}, dataSize: size_t{100000}, maxValue: uint64_t({=1l << 60=}), numBits: size_t{60}, seed: long{2048}) {
     
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);
     runner = new BenchmarkRunner(numIterations=numIterations);
+    sorters = new[numBits] SortActor(numValues=dataSize, numBits=numBits);
     
-    runner.start -> source.inStart;
+    (runner.start)+ -> source.start, sorters.start;
     validator.outFinished -> runner.finished;
+    
+    source.outValue, sorters.outValue -> sorters.inValue, validator.inValue;
     
     reaction(startup) {=
         printBenchmarkInfo("RadixSortBenchmark");
         printArgs("numIterations", numIterations, "dataSize", dataSize, "maxValue", maxValue, "seed", seed);
         printSystemInfo();
     =}
-    
-    sorters = new[60] SortActor(numValues=dataSize);
-
-    source.outNextSortReactor, sorters.outValue -> sorters.inValue, validator.inValue;
 }
