@@ -24,6 +24,9 @@
                 },
                 {
                     "include": "#py-target"
+                },
+                {
+                    "include": "#rs-target"
                 }
             ]
         },
@@ -174,6 +177,22 @@
                 }
             ]
         },
+        "rs-target": {
+            "begin": "(?=^target Rust\\b)",
+            "patterns": [
+                {
+                    "include": "#post-targetspec"
+                },
+                {
+                    "begin": "(\\{=)",
+                    "end": "(=\\})",
+                    "name": "meta.embedded.block.rs",
+                    "patterns": [{
+                        "include": "source.rust"
+                    }]
+                }
+            ]
+        },
         "target-specification": {
             "name": "meta.targetspec.lflang",
             "begin": "(?=^target\\b)",
@@ -184,7 +203,7 @@
                 },
                 {
                     "name": "constant.language.lflang",
-                    "match": "\\b(C|Cpp|Python|TypeScript)\\b"
+                    "match": "\\b(C|Cpp|Python|TypeScript|Rust)\\b"
                 },
                 {
                     "name": "keyword.control.lflang",
