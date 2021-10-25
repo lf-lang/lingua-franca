@@ -161,7 +161,7 @@ public class FedASTUtils {
                 .setBody(generator.generateNetworkInputControlReactionBody(
                         recevingPortID, maxSTP));
         
-        // generator.makeUnordered(reaction);
+        generator.makeUnordered(reaction);
 
         // Insert the reaction
         top.getReactions().add(reaction);
@@ -390,7 +390,7 @@ public class FedASTUtils {
                         receivingPortID, receivingFedID, bankIndex, channelIndex, delay));
         
         // Make the reaction unordered w.r.t. other reactions in the top level.
-        // generator.makeUnordered(reaction);
+        generator.makeUnordered(reaction);
 
         // Insert the newly generated reaction after the generated sender and
         // receiver top-level reactions.
@@ -441,8 +441,8 @@ public class FedASTUtils {
 
         // These reactions do not require any dependency relationship
         // to other reactions in the container.
-        // generator.makeUnordered(networkSenderReaction);
-        // generator.makeUnordered(networkReceiverReaction);
+        generator.makeUnordered(networkSenderReaction);
+        generator.makeUnordered(networkReceiverReaction);
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
