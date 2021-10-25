@@ -31,7 +31,6 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.CommonExtensionsKt;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -42,6 +41,7 @@ import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.util.StringUtil;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -480,7 +480,7 @@ public abstract class TestBase {
             var binaryName = nameOnly;
             if (test.target == Target.Rust) {
                 // rust binaries uses snake_case
-                binaryName = CommonExtensionsKt.camelToSnakeCase(binaryName);
+                binaryName = StringUtil.camelToSnakeCase(binaryName);
             }
             // Adjust binary extension if running on Window
             if (System.getProperty("os.name").startsWith("Windows")) {
@@ -512,6 +512,18 @@ public abstract class TestBase {
             }
         }
         case TS: {
+            var binPath = test.fileConfig.binPath;
+            var binaryName = nameOnly;
+            // Adjust binary extension if running on Window
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                binaryName += ".exe";
+            }
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // If execution script exists, run it.
+                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+            }
+            // If execution script does not exist, run .js directly.
             var dist = test.fileConfig.getSrcGenPath().resolve("dist");
             var file = dist.resolve(nameOnly + ".js");
             if (Files.exists(file)) {

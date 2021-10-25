@@ -57,7 +57,7 @@ class TSGenerator(
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val LIB_PATH = "/lib/TS"
+        const val LIB_PATH = "/lib/ts"
 
         /**
          * Names of the configuration files to check for and copy to the generated
@@ -116,7 +116,7 @@ class TSGenerator(
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
-                "/lib/ts/reactor-ts/src/core/$runtimeFile",
+                "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
 
@@ -124,7 +124,7 @@ class TSGenerator(
          * Check whether configuration files are present in the same directory
          * as the source file. For those that are missing, install a default
          * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from /lib/ts/.
+         * file, copy a default version of it from $LIB_PATH/.
          */
         for (configFile in CONFIG_FILES) {
             val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
@@ -138,7 +138,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("/lib/ts/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
 
