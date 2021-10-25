@@ -404,7 +404,7 @@ terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 
 terminal INT returns ecore::EInt:     ('0'..'9')+;
 terminal NEGINT:                  '-' ('0'..'9')+;
-terminal FLOAT_EXP: INT ('e' | 'E') ('+' | '-')? INT;
+terminal FLOAT_EXP_SUFFIX: INT ('e' | 'E') ('+' | '-')? INT;
 
 terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
@@ -423,7 +423,7 @@ terminal ANY_OTHER: .;
 Kebab: (ID|"physical")('-'ID)*;
 
 SignedFloat:
-    (SignedInt? '.' (INT | FLOAT_EXP));
+    (SignedInt | '-')? '.' (INT | FLOAT_EXP_SUFFIX);
 
 IPV4Addr:
     INT '.' INT '.' INT '.' INT
