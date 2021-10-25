@@ -474,9 +474,6 @@ class CGenerator extends GeneratorBase {
         if (errorsOccurred) return;
         
         if (!isOSCompatible()) return; // Incompatible OS and configuration
-        
-        // Avoid compile errors by removing disconnected network ports    
-        removeDisconnectedNetworkPorts();
 
          // Check for duplicate declerations.
          val names = newLinkedHashSet
@@ -491,6 +488,21 @@ class CGenerator extends GeneratorBase {
                  }
              }
          }
+            
+        // Build the instantiation tree if a main/federated reactor is present.
+        if (this.mainDef !== null) {
+            if (this.main === null) {
+                // Recursively build instances. This is done once because
+                // it is the same for all federates.
+                this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
+                    this.unorderedReactions)
+                this.reactionGraph = new ReactionInstanceGraph(main)
+            }   
+        }
+        
+        // Avoid compile errors by removing disconnected network ports    
+        removeDisconnectedNetworkPorts();
+         
         
         // Create the output directories if they don't yet exist.
         
@@ -615,17 +627,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
-            
-            // Build the instantiation tree if a main reactor is present.
-            if (this.mainDef !== null) {
-                if (this.main === null) {
-                    // Recursively build instances. This is done once because
-                    // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
-                        this.unorderedReactions)
-                    this.reactionGraph = new ReactionInstanceGraph(main)
-                }   
-            }
             
             // Generate code for each reactor.
             generateReactorDefinitionsForFederate(federate);

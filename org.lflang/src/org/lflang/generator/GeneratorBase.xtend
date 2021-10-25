@@ -446,6 +446,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // enable support for them.
             enableSupportForSerialization(context.cancelIndicator);
         }
+        
+        
     }
 
     /**
@@ -1488,9 +1490,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             for (federate: federates) {
                 federate.removeDisconnectedNetworkPorts();
             }
-            
-            // Remove the connections at the top level
-            this.mainDef?.reactorClass.toDefinition.connections.clear()
         }
     }
 
@@ -1610,6 +1609,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // for logical connections.
             replaceFederateConnectionsWithActions()
         }
+            
+        // Remove the connections at the top level
+        mainReactor.connections.clear()
     }
     
     /**
