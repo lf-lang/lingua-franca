@@ -1608,10 +1608,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // The action will be physical for physical connections and logical
             // for logical connections.
             replaceFederateConnectionsWithActions()
+
+            // Remove the connections at the top level
+            mainReactor.connections.clear()
         }
-            
-        // Remove the connections at the top level
-        mainReactor.connections.clear()
     }
     
     /**
