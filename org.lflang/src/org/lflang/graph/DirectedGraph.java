@@ -285,34 +285,4 @@ public class DirectedGraph<T> implements Graph<T> {
     public String toString() {
         return nodes().stream().map(Objects::toString).collect(Collectors.joining(", ", "{", "}"));
     }
-
-    /** 
-     * Return the DOT (GraphViz) representation of the graph. 
-     */
-    @Override
-    public String toDOT() {
-        StringBuilder dotRepresentation = new StringBuilder();
-        
-        // Start the digraph with a left-write rank
-        dotRepresentation.append("digraph {\n");
-        dotRepresentation.append("    rankdir=LF;\n");        
-        
-        Set<T> nodes = nodes();
-        for (T node: nodes) {
-            // Draw the node
-            dotRepresentation.append("    node_" + node.toString().hashCode() + " [label=\""+ node.toString() +"\"]\n");
-            
-            // Draw the edges
-            Set<T> downstreamNodes = getDownstreamAdjacentNodes(node);
-            for (T downstreamNode: downstreamNodes) {
-                dotRepresentation.append("    node_" + node.toString().hashCode() + " -> node_" + downstreamNode.toString() + "\n");
-            }
-        }
-        
-        // Close the digraph
-        dotRepresentation.append("}\n");
-        
-        // Return the DOT representation
-        return dotRepresentation.toString();
-    }
 }
