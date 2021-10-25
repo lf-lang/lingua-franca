@@ -386,7 +386,7 @@ SignedInt:
 ;
 
 Literal:
-    STRING | CHAR_LIT | FLOAT | SignedInt | Boolean;
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean;
 
 /////////// Elementary components
 
@@ -404,7 +404,7 @@ terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 
 terminal INT returns ecore::EInt:     ('0'..'9')+;
 terminal NEGINT:                  '-' ('0'..'9')+;
-terminal FLOAT: '-'? INT? '.' INT (('e' | 'E') ('+' | '-')? INT)?;
+terminal FLOAT_EXP: INT ('e' | 'E') ('+' | '-')? INT;
 
 terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
@@ -421,6 +421,9 @@ terminal ANY_OTHER: .;
 
 
 Kebab: (ID|"physical")('-'ID)*;
+
+SignedFloat:
+    (SignedInt? '.' (INT | FLOAT_EXP));
 
 IPV4Addr:
     INT '.' INT '.' INT '.' INT
@@ -499,7 +502,7 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
