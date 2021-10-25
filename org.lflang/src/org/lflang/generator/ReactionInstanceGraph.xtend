@@ -67,21 +67,21 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     def rebuild() {
         this.clear()
         addNodesAndEdges(main)
-        // Assign a level to each reaction. 
-        // If there are cycles present in the graph, it will be detected here.
-        val leftoverReactions = assignLevels()
-        if (leftoverReactions.nodeCount != 0) {
-            // The validator should have caught cycles, but if there is a bug in some
-            // AST transform such that it introduces cycles, then it is possible to have them
-            // only detected here. An end user should never see this.
-            main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
-            throw new InvalidSourceException("Reactions form a cycle!")
-        }
-        // Traverse the graph again, now starting from the leaves,
-        // to set the chain IDs.
-        assignChainIDs(false)
+            // Assign a level to each reaction. 
+            // If there are cycles present in the graph, it will be detected here.
+            val leftoverReactions = assignLevels()
+            if (leftoverReactions.nodeCount != 0) {
+                // The validator should have caught cycles, but if there is a bug in some
+                // AST transform such that it introduces cycles, then it is possible to have them
+                // only detected here. An end user should never see this.
+                main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
+                throw new InvalidSourceException("Reactions form a cycle!")
+            }
+            // Traverse the graph again, now starting from the leaves,
+            // to set the chain IDs.
+            assignChainIDs(false)
 
-        // Propagate any declared deadline upstream.
+            // Propagate any declared deadline upstream.
         propagateDeadlines()
 
     }
@@ -314,7 +314,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      */
     protected def void addDownstreamReactions(PortInstance port,
         ReactionInstance reaction) {
-        // Reactions in the containing reactor.
+            // Reactions in the containing reactor.
         port.dependentReactions.forEach[this.addEdge(it, reaction)]
         // Reactions in downstream reactors.
         for (downstreamPort : port.dependentPorts) {
@@ -329,7 +329,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * @param reactor The reactor on the basis of which to add nodes and edges.
      */
     protected def void addNodesAndEdges(ReactorInstance reactor) {
-        var ReactionInstance previousOrderedReaction = null
+        var ReactionInstance previousReaction = null
         for (reaction : reactor.reactions) {
             // Add reactions of this reactor.
             this.addNode(reaction)
@@ -350,69 +350,15 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             if (!reaction.isUnordered) {
                 // If there is an earlier reaction in this same reactor, then
                 // create a link in the reaction graph.
-                if (previousOrderedReaction !== null) {
-                    this.addEdge(reaction, previousOrderedReaction)
+                if (previousReaction !== null) {
+                    this.addEdge(reaction, previousReaction)
                 }
-                previousOrderedReaction = reaction;
+                previousReaction = reaction;
             }
         }
         // Recursively add nodes and edges from contained reactors.
         for (child : reactor.children) {
             addNodesAndEdges(child)
         }
-    }
-    
-    /** 
-     * Return the DOT (GraphViz) representation of the graph. 
-     */
-    override String toDOT() {
-        var dotRepresentation = new StringBuilder();
-        var edges = new StringBuilder();
-        
-        // Start the digraph with a left-write rank
-        dotRepresentation.append("digraph {\n");
-        dotRepresentation.append("    rankdir=LF;\n");  
-        dotRepresentation.append("    graph [compound=True, rank=LR, rankdir=LR];\n");
-        dotRepresentation.append("    node [fontname=Times, shape=rectangle];\n");
-        dotRepresentation.append("    edge [fontname=Times];\n");    
-        
-        val nodes = nodes();
-        // Group nodes by levels
-        val groupedNodes = nodes.groupBy[it.level]
-        
-        // For each level
-        for (level : groupedNodes.keySet) {
-            // Create a subgraph
-            dotRepresentation.append("    subgraph cluster_level_" + level + " {\n");
-            dotRepresentation.append("        graph [compound=True, label = \"level " + level + "\"];\n");
-            
-            // Get the nodes at the current level
-            val currentLevelNodes = groupedNodes.get(level)
-            for (node: currentLevelNodes) {
-                // Draw the node
-                val label = node.parent.name + "." + node.reactionIndex;
-                // Need a positive number to name the nodes in GraphViz
-                val labelHashCode = label.hashCode.bitwiseAnd(0xfffffff);
-                dotRepresentation.append("        node_" + labelHashCode  + " [label=\""+ label +"\"];\n");
-                
-                // Draw the edges
-                val downstreamNodes = getDownstreamAdjacentNodes(node);
-                for (downstreamNode: downstreamNodes) {
-                    val downstreamLabel = downstreamNode.parent.name + "." + downstreamNode.reactionIndex;
-                    edges.append("    node_" + labelHashCode + " -> node_" + 
-                        downstreamLabel.hashCode.bitwiseAnd(0xfffffff) + ";\n"
-                    );
-                }
-            }
-            // Close the subgraph
-            dotRepresentation.append("    }\n")
-        }
-        // Add the edges to the definition of the graph at the bottom
-        dotRepresentation.append(edges);
-        // Close the digraph
-        dotRepresentation.append("}\n");
-        
-        // Return the DOT representation
-        return dotRepresentation.toString();
     }
 }
