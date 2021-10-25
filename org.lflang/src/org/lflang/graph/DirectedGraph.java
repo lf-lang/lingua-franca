@@ -292,6 +292,7 @@ public class DirectedGraph<T> implements Graph<T> {
     @Override
     public String toDOT() {
         StringBuilder dotRepresentation = new StringBuilder();
+        StringBuilder edges = new StringBuilder();
         
         // Start the digraph with a left-write rank
         dotRepresentation.append("digraph {\n");
@@ -300,14 +301,19 @@ public class DirectedGraph<T> implements Graph<T> {
         Set<T> nodes = nodes();
         for (T node: nodes) {
             // Draw the node
-            dotRepresentation.append("    node_" + node.toString().hashCode() + " [label=\""+ node.toString() +"\"]\n");
+            dotRepresentation.append("    node_" + (node.toString().hashCode() & 0xfffffff)
+                    + " [label=\""+ node.toString() +"\"]\n");
             
             // Draw the edges
             Set<T> downstreamNodes = getDownstreamAdjacentNodes(node);
             for (T downstreamNode: downstreamNodes) {
-                dotRepresentation.append("    node_" + node.toString().hashCode() + " -> node_" + downstreamNode.toString() + "\n");
+                edges.append("    node_" + (node.toString().hashCode() & 0xfffffff)
+                        + " -> node_" + (downstreamNode.toString().hashCode() & 0xfffffff) + "\n");
             }
         }
+
+        // Add the edges to the definition of the graph at the bottom
+        dotRepresentation.append(edges);
         
         // Close the digraph
         dotRepresentation.append("}\n");
