@@ -96,6 +96,7 @@ import static extension org.lflang.JavaAstUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes {
 
@@ -1486,7 +1487,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * might reference data structures in remote federates and cause compile errors.
      * 
      * @param instance The reactor instance to remove these ports from if any.
-     *  Can be null
+     *  Can be null.
      */
     protected def void removeDisconnectedNetworkPorts(ReactorInstance instance) {
         if (isFederated) {
