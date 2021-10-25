@@ -1484,11 +1484,27 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
      * might reference data structures in remote federates and cause compile errors.
+     * 
+     * @param instance The reactor instance to remove these ports from if any.
+     *  Can be null
      */
-    protected def void removeDisconnectedNetworkPorts() {
+    protected def void removeDisconnectedNetworkPorts(ReactorInstance instance) {
         if (isFederated) {
             for (federate: federates) {
                 federate.removeDisconnectedNetworkPorts();
+                if (instance !== null) {
+                    for (reaction: federate.networkReactions) {
+                        val networkReaction = instance.lookupReactionInstance(reaction)
+                        if (networkReaction !== null) {
+                            for (port: federate.disconnectedNetworkReactionTriggers) {
+                                val disconnectedPortInstance = instance.lookupPortInstance(port);
+                                if (disconnectedPortInstance !== null) {
+                                    networkReaction.removePortInstance(disconnectedPortInstance);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
