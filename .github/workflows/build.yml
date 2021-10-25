@@ -315,7 +315,7 @@ jobs:
       - name: run tests;
         run: |
           python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded iterations=1
- cpp-benchmark-tests:
+  cpp-benchmark-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Java JDK
@@ -334,7 +334,7 @@ jobs:
       - name: Build lfc;
         run: |
           ./gradlew buildLfc
-      - name: run tests;
+      - name: Build Minimal.lf to obtain reactor-cpp;
         run: |
           ./bin/lfc test/Cpp/src/Minimal.lf
       - name: "Set LF_PATH environmental variable"
@@ -342,12 +342,11 @@ jobs:
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: "Set LD_LIBRARY_PATH variable"
         run: |
-          echo "LF_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
       # this tests all benchmarks using the pre-compiled reactor-cpp
       - name: run tests;
         run: |
-          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 extra_args="[--external-runtime-path", "$GITHtest_WORKSPACE/test/Cpp"]
-]"
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 target.params.extra_args="[--external-runtime-path, ${GITHUB_WORKSPACE}/test/Cpp]"
       
 
     
