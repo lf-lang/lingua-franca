@@ -289,7 +289,7 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
 
-  benchmark-tests:
+  c-benchmark-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Java JDK
@@ -314,7 +314,40 @@ jobs:
       # this tests all benchmarks for all lf targets
       - name: run tests;
         run: |
-          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target="glob(lf-*)" iterations=1
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded iterations=1
+ cpp-benchmark-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install python dependencies
+        run: pip3 install -r benchmark/runner/requirements.txt      
+      - name: Build lfc;
+        run: |
+          ./gradlew buildLfc
+      - name: run tests;
+        run: |
+          ./bin/lfc test/Cpp/src/Minimal.lf
+      - name: "Set LF_PATH environmental variable"
+        run: |
+          echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: "Set LD_LIBRARY_PATH variable"
+        run: |
+          echo "LF_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
+      # this tests all benchmarks using the pre-compiled reactor-cpp
+      - name: run tests;
+        run: |
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 extra_args="[--external-runtime-path", "$GITHtest_WORKSPACE/test/Cpp"]
+]"
       
 
     
