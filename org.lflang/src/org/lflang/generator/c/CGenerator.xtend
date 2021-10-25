@@ -497,15 +497,12 @@ class CGenerator extends GeneratorBase {
                 this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
                     this.unorderedReactions)
                 this.reactionGraph = new ReactionInstanceGraph(main)
+                // Avoid compile errors by removing disconnected network ports    
+                removeDisconnectedNetworkPorts(main);
             }   
         }
         
-        // Avoid compile errors by removing disconnected network ports    
-        removeDisconnectedNetworkPorts();
-         
-        
         // Create the output directories if they don't yet exist.
-        
         var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile

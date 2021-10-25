@@ -178,6 +178,25 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 this.definition.deadline, this)
         }
     }
+    
+    /**
+     * Purge 'portInstance' from this reaction
+     */
+    def removePortInstance(PortInstance portInstance) {
+        if (portInstance instanceof MultiportInstance) {
+            for (multiportInstance : portInstance.instances) {
+                this.triggers.removeAll(portInstance);
+                this.sources.removeAll(portInstance);
+                this.effects.removeAll(portInstance);
+                this.reads.removeAll(portInstance);
+
+            }
+        }
+        this.triggers.removeAll(portInstance);
+        this.sources.removeAll(portInstance);
+        this.effects.removeAll(portInstance);
+        this.reads.removeAll(portInstance);
+    }
 
     /** 
      * Indicates the chain this reaction is a part of. It is constructed

@@ -119,7 +119,7 @@ class TSGenerator(
         // FIXME: The following operation must be done after levels are assigned.
         // Removing these ports will cause levels to be asisgned incorrectly.
         // Avoid compile errors by removing disconnected network ports    
-        removeDisconnectedNetworkPorts();
+        removeDisconnectedNetworkPorts(null);
         
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
