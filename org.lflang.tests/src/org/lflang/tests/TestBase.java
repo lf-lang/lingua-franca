@@ -114,10 +114,15 @@ public abstract class TestBase {
         public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
-        public static final String NO_GENERICS_SUPPORT = "Target language does not feature generic types.";
+        public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
+        public static final String DESC_GENERIC = "Run generic tests (threads = 0).";
+        public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
+        public static final String DESC_EXAMPLES = "Validate examples.";
+        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
+        public static final String DESC_MULTIPORT = "Run multiport tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
