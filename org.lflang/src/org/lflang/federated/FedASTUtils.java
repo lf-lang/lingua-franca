@@ -1,5 +1,6 @@
 /*************
  * Copyright (c) 2021, The University of California at Berkeley.
+ * Copyright (c) 2021, The University of Texas at Dallas.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -63,6 +64,7 @@ import org.lflang.lf.Variable;
  * execution.
  * 
  * @author Soroush Bateni {soroush@utdallas.edu}
+ * @author Edward A. Lee {eal@berkeley.edu}
  *
  */
 public class FedASTUtils {
@@ -434,9 +436,9 @@ public class FedASTUtils {
             serializer = SupportedSerializers.valueOf(
                     connection.getSerializer().getType().toUpperCase()
             );
-            // Add it to the list of enabled serializers
-            generator.enabledSerializers.add(serializer);
         }
+        // Add it to the list of enabled serializers
+        generator.enabledSerializers.add(serializer);
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
