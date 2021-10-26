@@ -9,7 +9,9 @@
  * Starting with the Least Significant Bit (LSB), each reactor analyzes their
  * assigned bit position in each incoming number and holds back all numbers where
  * the bit is one, sending through all numbers with a zero in the observed
- * position. This will iteratively sort the numbers, like in this example:
+ * position. Only when a worker has received all has received all the numbers,
+ * it will start sending out the held back numbers where the bit is one.
+ * This will iteratively sort the numbers, like in this example:
  *
  * 111    110    101    001
  * 101    010    001    010
@@ -17,6 +19,30 @@
  * 011    101    010    101
  * 010    011    111    110
  * 001    001    011    111
+ * 
+ * In LF, the holding back of numbers with a 1 introduces a logical (microstep) 
+ * delay. If the bit of a value in the bit position assigned to a worker is 0,
+ * then the worker will forward the value immediately (no delay). If the bit is
+ * one, then the value is stored in a local buffer. Only once a worker has seen
+ * all the numbers, it will start sending out the numbers from its local buffer
+ * one by one in the order of reception (with a micro-step delay in between 
+ * values).
+ * 
+ * This holding back of values seems to be a bottleneck in LF as it increases 
+ * the total number of events that need to be processed. Akka has a similar
+ * problem, but with optimizations like batch-processing the effects can be 
+ * minimized. Also the current implementation introduces a very long chain
+ * of dependent reactions. I (Christian) tried to improve the performance of
+ * this benchmark by introducing actions to break up the dependencies, but,
+ * similar to Filter Bank, the performance only got worse. Since the reactions
+ * are very short, introducing a schedule call per reaction adds a significant
+ * overhead. 
+ * 
+ * Arguably, this benchmark does not qualify as a parallelism benchmark, as 
+ * there is not too much parallelism to exploit. Each reaction just processes
+ * a single value. A better approach for thus benchmark would be to implement
+ * actual pipeline processing, and use complete independent data sets as inputs
+ * instead of just single numbers. 
  * 
  * @author Hannes Klein
  * @author Felix Wittwer
