@@ -36,6 +36,5 @@ targets:
       - "${lf_path}/benchmark/Rust/Savina/src/micro"
     lf_file: "micro/Counting.lf"
     binary: "counting"
-    gen_args: null
     run_args:
       messages: ["--main-count-to", "<value>"]
