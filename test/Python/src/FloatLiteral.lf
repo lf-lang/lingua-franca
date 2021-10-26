@@ -14,5 +14,6 @@ main reactor {
             sys.stderr.write("ERROR: Expected {} but got {}.".format(
                 self.expected, F
             ))
+            exit(1)
     =}
 }

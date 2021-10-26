@@ -11,7 +11,9 @@ main reactor {
         if (std::abs(F - expected) < std::abs(minus_epsilon)) {
             std::cout << "The Faraday constant is roughly " << F << ".\n";
         } else {
-            std::cerr << "ERROR: Expected " << expected << " but got " << F << ".\n";
+            std::cerr << "ERROR: Expected " << expected
+                << " but computed " << F << ".\n";
+            exit(1);
         }
     =}
 }
