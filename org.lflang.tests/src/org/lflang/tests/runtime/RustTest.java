@@ -42,12 +42,6 @@ public class RustTest extends AbstractTest {
 
 
     @Override
-    public void runAsFederated() {
-        printSkipMessage(Message.DESC_AS_FEDERATED, Message.NO_RUST_SUPPORT);
-    }
-
-
-    @Override
     protected void addExtraLfcArgs(Properties args) {
         // Set this environment variable if you develop the crate locally,
         // it's more convenient. You'll have to delete test/Rust/src-gen/*
@@ -58,10 +52,8 @@ public class RustTest extends AbstractTest {
         }
     }
 
-
-    @Test
     @Override
-    public void runGenericTests() {
-        super.runGenericTests();
+    protected boolean supportsGenericTypes() {
+        return true;
     }
 }
