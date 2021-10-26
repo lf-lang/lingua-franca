@@ -82,8 +82,8 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
 
 
     private fun CargoDependencySpec.toToml(): String = mutableMapOf<String, String>().apply {
-        if (version != null) this["version"] = version.removeSurrounding("\"").escapeStringLiteral()
-        if (localPath != null) this["path"] = localPath.removeSurrounding("\"").escapeStringLiteral()
+        if (version != null) this["version"] = version.escapeStringLiteral()
+        if (localPath != null) this["path"] = localPath.escapeStringLiteral()
     }.asIterable().joinWithCommas("{ ", " }", trailing = false) { (k, v) -> "$k = \"$v\"" }
 
 
