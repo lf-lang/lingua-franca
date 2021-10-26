@@ -65,6 +65,9 @@ import org.lflang.generator.ParameterInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.federated.FedFileConfig
 import org.lflang.TargetProperty.CoordinationType
+import org.lflang.federated.serialization.FedNativePythonSerialization
+import org.lflang.federated.PythonGeneratorExtension
+import org.lflang.lf.Delay
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -930,7 +933,8 @@ class PythonGenerator extends CGenerator {
         for (serialization : enabledSerializers) {
             switch (serialization) {
                 case NATIVE: {
-                    // No need to do anything at this point.
+                    val pickler = new FedNativePythonSerialization();
+                    pr(pickler.generatePreambleForSupport.toString);
                 }
                 case PROTO: {
                     // Handle .proto files.
@@ -941,7 +945,8 @@ class PythonGenerator extends CGenerator {
                         if (dotIndex > 0) {
                             rootFilename = name.substring(0, dotIndex)
                         }
-                        pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»
+                        pythonPreamble.append('''
+                            import «rootFilename»_pb2 as «rootFilename»
                         ''')
                     }
                 }
@@ -975,6 +980,115 @@ class PythonGenerator extends CGenerator {
         } else {
             errorReporter.reportError("protoc returns error code " + returnCode)
         }
+    }
+    
+        /**
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
+     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
+     * @param type The type.
+     * @param isPhysical Indicates whether or not the connection is physical
+     * @param serializer The serializer used on the connection.
+     */
+    override generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        int receivingBankIndex,
+        int receivingChannelIndex,
+        InferredType type,
+        boolean isPhysical,
+        SupportedSerializers serializer
+    ) {
+        var result = new StringBuilder();
+        result.append('''
+            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
+            PyGILState_STATE gstate;
+            gstate = PyGILState_Ensure();
+        ''')
+        result.append(PythonGeneratorExtension.generateNetworkReceiverBody(
+            action, sendingPort, receivingPort,
+            receivingPortID,
+            sendingFed,
+            receivingFed,
+            receivingBankIndex,
+            receivingChannelIndex,
+            type,
+            isPhysical,
+            serializer,
+            this
+        ));
+        result.append('''
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
+        ''');
+        return result.toString();
+    }
+    
+        /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The variable reference to the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
+     * @param serializer The serializer used on the connection.
+     */
+    override generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        FederateInstance receivingFed,
+        InferredType type,
+        boolean isPhysical,
+        Delay delay,
+        SupportedSerializers serializer
+    ) { 
+        var result = new StringBuilder();
+        result.append('''
+            // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
+            PyGILState_STATE gstate;
+            gstate = PyGILState_Ensure();
+        ''')
+        result.append(PythonGeneratorExtension.generateNetworkSenderBody(
+            sendingPort,
+            receivingPort,
+            receivingPortID,
+            sendingFed,
+            sendingBankIndex,
+            sendingChannelIndex,
+            receivingFed,
+            type,
+            isPhysical,
+            delay,
+            serializer,
+            this
+        ));
+        result.append('''
+            /* Release the thread. No Python API allowed beyond this point. */
+            PyGILState_Release(gstate);
+        ''');
+        return result.toString();
     }
     
     /**
