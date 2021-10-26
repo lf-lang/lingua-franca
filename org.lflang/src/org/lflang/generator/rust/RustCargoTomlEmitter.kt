@@ -51,12 +51,8 @@ object RustCargoTomlEmitter : RustEmitterBase() {
             |[dependencies]
             |env_logger = "0.9"
             |log = { version = "0.4", features = ["release_max_level_info"] }
-            |assert_matches = {version = "1", optional = true}
-            |clap = {version = "=3.0.0-beta.5", optional = true}
+            |clap = { version = "=3.0.0-beta.5", optional = true }
 ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec) -> name + " = " + spec.toToml() }}
-            |
-            |[dependencies.$runtimeCrateFullName] # the reactor runtime
-            |${gen.runtime.runtimeCrateSpec()}
             |
             |[[bin]]
             |name = "${gen.executableName}"
@@ -82,27 +78,14 @@ ${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec
 
 
     private fun CargoDependencySpec.toToml(): String = mutableMapOf<String, String>().apply {
-        if (version != null) this["version"] = version.escapeStringLiteral()
-        if (localPath != null) this["path"] = localPath.escapeStringLiteral()
-    }.asIterable().joinWithCommas("{ ", " }", trailing = false) { (k, v) -> "$k = \"$v\"" }
+        if (version != null) this["version"] = version.asStringLiteral()
+        if (localPath != null) this["path"] = Paths.get(localPath).toAbsolutePath().toString().asStringLiteral()
+        if (features != null) this["features"] = features.map { it.asStringLiteral() }.joinWithCommas("[", "]")
+        if (gitRepo != null) this["git"] = gitRepo.asStringLiteral()
+        if (rev != null) this["rev"] = rev.asStringLiteral()
+    }.asIterable().joinWithCommas("{ ", " }", trailing = false) { (k, v) -> "$k = $v" }
 
+    private fun String.asStringLiteral() = escapeStringLiteral().withDQuotes()
 
-    private fun RuntimeInfo.runtimeCrateSpec(): String =
-        buildString {
-            if (localPath != null) {
-                val localPath = Paths.get(localPath).toAbsolutePath().toString().escapeStringLiteral()
-
-                appendLine("path = \"$localPath\"")
-            } else {
-                appendLine("git = \"https://github.com/lf-lang/reactor-rust.git\"")
-                if (version != null) {
-                    // Version just checks out a relevant tag, while we're not published to crates.io
-                    // Maybe we'll never need to be published.
-                    appendLine("tag=\"v$version\"")
-                } else {
-                    appendLine("rev=\"$gitRevision\"")
-                }
-            }
-        }
 
 }

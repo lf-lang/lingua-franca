@@ -38,7 +38,6 @@ import org.lflang.TargetProperty.DictionaryType
 import org.lflang.TargetProperty.PrimitiveType
 import org.lflang.TargetProperty.TargetPropertyType
 import org.lflang.TimeValue
-import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType
 import org.lflang.lf.LfPackage
 import org.lflang.lf.Model
 import org.lflang.lf.TimeUnit
@@ -1108,17 +1107,21 @@ class LinguaFrancaValidationTest {
     @Test
     def void checkCargoDependencyProperty() {
          val prop = TargetProperty.CARGO_DEPENDENCIES
-         val knownCorrect = #[ "{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }" ]
+         val knownCorrect = #[ "{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }", "{ dep: { version: \"8.2\", features: [\"foo\"]} }" ]
          knownCorrect.forEach [
             prop.createModel(it).assertNoErrors()
         ]
 
         //                       vvvvvvvvvvv
         prop.createModel("{ dep: {/*empty*/} }")
-            .assertError(LfPackage::eINSTANCE.keyValuePairs, null, "Must specify one of 'version' or 'path'")
+            .assertError(LfPackage::eINSTANCE.keyValuePairs, null, "Must specify one of 'version', 'path', or 'git'")
 
         //                         vvvvvvvvvvv
         prop.createModel("{ dep: { unknown_key: \"\"} }")
             .assertError(LfPackage::eINSTANCE.keyValuePair, null, "Unknown key: 'unknown_key'")
+
+        //                                   vvvv
+        prop.createModel("{ dep: { features: \"\" } }")
+            .assertError(LfPackage::eINSTANCE.element, null, "Expected an array of strings for key 'features'")
     }
  }

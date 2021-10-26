@@ -25,14 +25,17 @@
 package org.lflang.generator.rust;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.lflang.ASTUtils;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.generator.InvalidLfSourceException;
+import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.LfPackage;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
@@ -43,56 +46,146 @@ import org.lflang.validation.LFValidator;
  */
 public class CargoDependencySpec {
 
-    final String version;
-    final String localPath;
+    private final String version;
+    private String gitRepo;
+    private String rev;
+    private final String gitTag;
+    private final String localPath;
+    private final List<String> features;
 
-    private CargoDependencySpec(String version, String localPath) {
+    CargoDependencySpec(String version,
+                        String gitRepo,
+                        String rev,
+                        String gitTag,
+                        String localPath,
+                        List<String> features) {
         this.version = StringUtil.removeQuotes(version);
+        this.gitRepo = gitRepo;
+        this.rev = rev;
+        this.gitTag = gitTag;
         this.localPath = StringUtil.removeQuotes(localPath);
+        this.features = features;
     }
 
-    /** The version. */
+    /** The version. May be null. */
     public String getVersion() {
         return version;
     }
 
-    /** Local path to the crate. */
+    /** Local path to the crate. May be null. */
     public String getLocalPath() {
         return localPath;
     }
 
+    /** Returns the git path. */
+    public String getGitRepo() {
+        return gitRepo;
+    }
+
+    /** Returns the revision number to use with git/localPath. */
+    public String getRev() {
+        return rev;
+    }
+
+    public String getTag() {
+        return gitTag;
+    }
+
+    public void setGitRepo(String gitRepo) {
+        this.gitRepo = gitRepo;
+    }
+
+    public void setRev(String rev) {
+        this.rev = rev;
+    }
+
+    /** Returns the list of features that are enabled on the crate. May be null. */
+    public List<String> getFeatures() {
+        return features;
+    }
+
+    /**
+     * Parse the given element. It must be a JSON map, whose
+     * keys are dependency names, and values are {@link CargoDependencySpec}s.
+     *
+     * @throws InvalidLfSourceException If the element is somehow invalid
+     */
     public static Map<String, CargoDependencySpec> parseAll(Element element) {
         var result = new LinkedHashMap<String, CargoDependencySpec>();
+        if (element.getKeyvalue() == null) {
+            throw new InvalidLfSourceException(element, "Expected key-value pairs");
+        }
         for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
-            result.put(pair.getName(), parseValue(pair.getValue()));
+            result.put(pair.getName(), parseValue(pair));
         }
         return result;
     }
 
-    private static CargoDependencySpec parseValue(Element element) {
+    private static CargoDependencySpec parseValue(KeyValuePair pair) {
+        boolean isRuntimeCrate = pair.getName().equals(RustEmitterBase.runtimeCrateFullName);
+        return parseValue(pair.getValue(), isRuntimeCrate);
+    }
+
+    /**
+     * Parse an element into a CargoDependencySpec. This is used
+     * for values of the {@link TargetProperty#CARGO_DEPENDENCIES}
+     * map.
+     *
+     * @throws InvalidLfSourceException If the element is somehow invalid
+     */
+    private static CargoDependencySpec parseValue(Element element, boolean isRuntimeCrate) {
         if (element.getLiteral() != null) {
-            return new CargoDependencySpec(element.getLiteral(), null);
+            return new CargoDependencySpec(element.getLiteral(), null, null, null, null, null);
         } else if (element.getKeyvalue() != null) {
             String version = null;
             String localPath = null;
+            String gitRepo = null;
+            String rev = null;
+            String tag = null;
+            List<String> features = null;
             for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
                 String name = pair.getName();
+                if ("features".equals(name)) {
+                    Array array = pair.getValue().getArray();
+                    if (array == null) {
+                        throw new InvalidLfSourceException(pair.getValue(),
+                                                           "Expected an array of strings for key '" + name + "'");
+                    }
+                    features = array.getElements().stream()
+                                    .map(ASTUtils::toText)
+                                    .map(StringUtil::removeQuotes)
+                                    .collect(Collectors.toList());
+                    continue;
+                }
                 String literal = pair.getValue().getLiteral();
                 if (literal == null) {
-                    throw new InvalidLfSourceException(pair.getValue(), "Expected string literal for key '" + name + "'");
+                    throw new InvalidLfSourceException(pair.getValue(),
+                                                       "Expected string literal for key '" + name + "'");
                 }
-                if (name.equals("version")) {
+                switch (name) {
+                case "version":
                     version = literal;
-                } else if (name.equals("path")) {
+                    break;
+                case "git":
+                    gitRepo = literal;
+                    break;
+                case "rev":
+                    rev = literal;
+                    break;
+                case "tag":
+                    tag = literal;
+                    break;
+                case "path":
                     localPath = literal;
-                } else {
+                    break;
+                default:
                     throw new InvalidLfSourceException(pair, "Unknown key: '" + name + "'");
                 }
             }
-            if (version != null || localPath != null) {
-                return new CargoDependencySpec(version, localPath);
+            if (isRuntimeCrate || version != null || localPath != null || gitRepo != null) {
+                return new CargoDependencySpec(version, gitRepo, rev, tag, localPath, features);
             } else {
-                throw new InvalidLfSourceException(element.getKeyvalue(), "Must specify one of 'version' or 'path'");
+                throw new InvalidLfSourceException(element.getKeyvalue(), "Must specify one of 'version', 'path', or 'git'");
             }
         }
         throw new InvalidLfSourceException(element, "Expected string or dictionary");
@@ -117,7 +210,7 @@ public class CargoDependencySpec {
         public void check(Element element, String name, LFValidator v) {
             for (KeyValuePair pair : element.getKeyvalue().getPairs()) {
                 try {
-                    parseValue(pair.getValue());
+                    parseValue(pair);
                 } catch (InvalidLfSourceException e) {
                     v.getErrorReporter().reportError(e.getNode(), e.getProblem());
                 }

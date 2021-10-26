@@ -59,9 +59,10 @@ abstract class RustEmitterBase {
         else "Some($this)"
 
 
-    protected companion object {
+    companion object {
         /** Name of the runtime crate that is in its Cargo.toml.*/
         const val runtimeCrateFullName = "reactor_rt"
+        const val runtimeGitUrl = "https://github.com/lf-lang/reactor-rust.git"
 
         /** Qualification prefix to refer to a member of the runtime library crate. */
         const val rsRuntime = "::$runtimeCrateFullName"

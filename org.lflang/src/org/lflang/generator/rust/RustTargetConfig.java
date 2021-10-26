@@ -92,6 +92,9 @@ public final class RustTargetConfig {
         return cargoFeatures;
     }
 
+    /**
+     * Returns a map of cargo dependencies.
+     */
     public Map<String, CargoDependencySpec> getCargoDependencies() {
         return cargoDependencies;
     }
