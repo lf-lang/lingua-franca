@@ -3,7 +3,6 @@ package org.lflang.tests;
 import java.util.EnumSet;
 import java.util.List;
 
-import org.junit.Assume;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
@@ -51,7 +50,7 @@ public abstract class AbstractTest extends TestBase {
     }
 
     /**
-     * Whether to enable {@link #runTestsAboutGenerics()}.
+     * Whether to enable {@link #runTypeParameterTests()}.
      */
     protected boolean supportsGenericTypes() {
         return false;
@@ -60,43 +59,43 @@ public abstract class AbstractTest extends TestBase {
 
     @Test
     public void runExampleTests() {
-        runTestsForTargets("Description: Run example tests.",
+        runTestsForTargets(Message.DESC_EXAMPLE_TESTS,
                 TestCategory.EXAMPLE_TEST::equals, Configurators::noChanges,
                 TestLevel.EXECUTION, false);
     }
 
     @Test
     public void validateExamples() {
-        runTestsForTargets("Description: Validate examples.",
+        runTestsForTargets(Message.DESC_EXAMPLES,
                 TestCategory.EXAMPLE::equals, Configurators::noChanges, TestLevel.VALIDATION,
                 false);
     }
 
     @Test
     public void runGenericTests() {
-        runTestsForTargets("Description: Run generic tests (threads = 0).",
+        runTestsForTargets(Message.DESC_GENERIC,
                            TestCategory.GENERIC::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runTargetSpecificTests() {
-        runTestsForTargets("Description: Run target-specific tests (threads = 0).",
+        runTestsForTargets(Message.DESC_TARGET_SPECIFIC,
                            TestCategory.TARGET::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runMultiportTests() {
-        runTestsForTargets("Description: Run multiport tests (threads = 0).",
+        runTestsForTargets(Message.DESC_MULTIPORT,
                            TestCategory.MULTIPORT::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
-    public void runTestsAboutGenerics() {
-        Assumptions.assumeTrue(supportsGenericTypes(), "Target should support generic types");
-        runTestsForTargets("Description: Run tests about generics.",
+    public void runTypeParameterTests() {
+        Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
+        runTestsForTargets(Message.DESC_TYPE_PARMS,
                            TestCategory.GENERICS::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
@@ -104,7 +103,7 @@ public abstract class AbstractTest extends TestBase {
 
     @Test
     public void runSerializationTests() {
-        runTestsForTargets("Description: Run serialization tests (threads = 0).",
+        runTestsForTargets(Message.DESC_SERIALIZATION,
                            TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
