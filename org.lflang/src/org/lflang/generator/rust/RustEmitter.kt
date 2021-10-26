@@ -356,17 +356,9 @@ ${"             |        "..declareChildConnections()}
             |#![allow(unused_imports)]
             |#![allow(non_snake_case)]
             |
-            |extern crate $runtimeCrateFullName;
-            |#[macro_use]
-            |#[cfg(feature="test-program")]
-            |extern crate assert_matches;
-            |
             |extern crate env_logger;
             |#[macro_use]
             |extern crate log;
-            |
-            |#[cfg(feature="cli")]
-            |extern crate clap;
             |
             |// user dependencies
 ${"         |"..gen.crate.dependencies.keys.joinToString("\n") { "extern crate ${it.replace('-', '_')};" }}

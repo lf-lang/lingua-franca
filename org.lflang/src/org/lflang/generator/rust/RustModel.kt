@@ -39,7 +39,6 @@ private typealias Ident = String
 /** Root model class for the entire generation. */
 data class GenerationInfo(
     val crate: CrateInfo,
-    val runtime: RuntimeInfo,
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
@@ -267,22 +266,11 @@ data class CrateInfo(
     val version: String,
     /** List of names of the credited authors. */
     val authors: List<String>,
-    /** Dependencies of the crate. */
+    /** Dependencies of the crate. Note that this includes an entry for the runtime. */
     val dependencies: Map<String, CargoDependencySpec>,
+    /** Paths to modules that should be copied to the output & linked into `main.rs`. */
     val modulesToIncludeInMain: List<Path>,
-)
-
-/**
- * Info about the runtime crate.
- */
-data class RuntimeInfo(
-    /** The version string. This must correspond to a tag in the runtime repo. */
-    val version: String?,
-    /** Path to the runtime on the local machine. If this is present, it takes priority over the git repo. */
-    val localPath: String?,
-    /** Revision which we test against. */
-    val gitRevision: String,
-
+    /** Features to enable in the build command. */
     val enabledCargoFeatures: Set<String>
 )
 
@@ -436,18 +424,18 @@ object RustModelBuilder {
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
 
+        val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
+        dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
+            computeDefaultRuntimeConfiguration(spec, targetConfig)
+        }
+
         return GenerationInfo(
             crate = CrateInfo(
                 name = mainReactor.lfName.camelToSnakeCase(),
                 version = "1.0.0",
                 authors = listOf(System.getProperty("user.name")),
-                dependencies = targetConfig.rust.cargoDependencies,
+                dependencies = dependencies,
                 modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules,
-            ),
-            runtime = RuntimeInfo(
-                version = targetConfig.runtimeVersion,
-                localPath = targetConfig.externalRuntimePath,
-                gitRevision = runtimeGitRevision,
                 enabledCargoFeatures = targetConfig.rust.cargoFeatures.toSet()
             ),
             reactors = reactorsInfos,
@@ -457,6 +445,41 @@ object RustModelBuilder {
             executableName = mainReactor.lfName.camelToSnakeCase(),
             properties = targetConfig.toRustProperties()
         )
+    }
+
+    /**
+     * Compute the configuration of the runtime crate, possibly
+     * using a user-provided configuration.
+     */
+    private fun computeDefaultRuntimeConfiguration(
+        userSpec: CargoDependencySpec?,
+        targetConfig: TargetConfig,
+    ): CargoDependencySpec {
+
+        val userRtVersion: String? = targetConfig.runtimeVersion
+
+        if (userSpec == null) {
+            // default configuration for the runtime crate
+            return if (targetConfig.externalRuntimePath != null) newCargoSpec(
+                gitTag = userRtVersion?.let { "v$it" },
+                localPath = targetConfig.externalRuntimePath,
+            ) else newCargoSpec(
+                gitRepo = RustEmitterBase.runtimeGitUrl,
+                gitTag = userRtVersion?.let { "v$it" },
+                rev = runtimeGitRevision.takeIf { userRtVersion == null },
+            )
+        } else {
+            if (userSpec.localPath == null && userSpec.gitRepo == null) {
+                // default the location
+                userSpec.gitRepo = RustEmitterBase.runtimeGitUrl
+            }
+            if (userSpec.version == null && userSpec.tag == null && userSpec.rev == null) {
+                // default the version
+                userSpec.rev = runtimeGitRevision
+            }
+
+            return userSpec
+        }
     }
 
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
@@ -658,3 +681,13 @@ val BuildType.cargoProfileName: String
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"
     }
+
+/** Just the constructor of [CargoDependencySpec], but allows using named arguments. */
+fun newCargoSpec(
+    version: String? = null,
+    gitRepo: String? = null,
+    rev: String? = null,
+    gitTag: String? = null,
+    localPath: String? = null,
+    features: List<String>? = null,
+) = CargoDependencySpec(version, gitRepo, rev, gitTag, localPath, features)
