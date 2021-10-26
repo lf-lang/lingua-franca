@@ -63,6 +63,8 @@ import org.lflang.TargetConfig
 import org.lflang.generator.c.CCompiler
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.ReactorInstance
+import org.lflang.federated.FedFileConfig
+import org.lflang.TargetProperty.CoordinationType
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -93,36 +95,53 @@ class PythonGenerator extends CGenerator {
     }
     	
     /** 
-    * Template struct for ports with primitive types and
+    * Generic struct for ports with primitive types and
     * statically allocated arrays in Lingua Franca.
     * This template is defined as
-    *     template <class T>
-    *     struct template_input_output_port_struct {
-    *         T value;
-    *         bool is_present;
-    *         int num_destinations;
-    *     };
+    *   typedef struct {
+    *       PyObject* value;
+    *       bool is_present;
+    *       int num_destinations;
+    *       FEDERATED_CAPSULE_EXTENSION
+    *   } generic_port_instance_struct;
     *
-    * @see xtext/org.lflang.linguafranca/src/lib/CCpp/ccpptarget.h
+    * @see reactor-c-py/lib/pythontarget.h
     */
 	val generic_port_type =  "generic_port_instance_struct"
 
     /** 
-    * Special template struct for ports with dynamically allocated
+    * Generic struct for ports with dynamically allocated
     * array types (a.k.a. token types) in Lingua Franca.
     * This template is defined as
-    *     template <class T>
-    *     struct template_input_output_port_struct {
-    *         T value;
-    *         bool is_present;
-    *         int num_destinations;
-    *         lf_token_t* token;
-    *         int length;
-    *     };
+    *   typedef struct {
+    *       PyObject_HEAD
+    *       PyObject* value;
+    *       bool is_present;
+    *       int num_destinations;
+    *       lf_token_t* token;
+    *       int length;
+    *       FEDERATED_CAPSULE_EXTENSION
+    *   } generic_port_instance_with_token_struct;
     *
-    * @see xtext/org.lflang.linguafranca/src/lib/CCpp/ccpptarget.h
+    * @see reactor-c-py/lib/pythontarget.h
     */
 	val generic_port_type_with_token = "generic_port_instance_with_token_struct"
+    
+    /**
+     * Generic struct for actions.
+     * This template is defined as
+     *   typedef struct {
+     *      trigger_t* trigger;
+     *      PyObject* value;
+     *      bool is_present;
+     *      bool has_value;
+     *      lf_token_t* token;
+     *      FEDERATED_CAPSULE_EXTENSION
+     *   } generic_action_instance_struct;
+     * 
+     * @see reactor-c-py/lib/pythontarget.h
+     */
+    val generic_action_type = "generic_action_instance_struct"
 	
 	override getTargetUndefinedType() '''PyObject*'''
 	
@@ -769,8 +788,9 @@ class PythonGenerator extends CGenerator {
             file.delete
         }
         // Create the necessary directories
-        if (!file.getParentFile().exists())
+        if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
+        }
         writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
@@ -845,6 +865,40 @@ class PythonGenerator extends CGenerator {
         }
 
         pr(CGenerator.defineLogLevel(this))
+        
+        if (isFederated) {
+            // FIXME: Instead of checking
+            // #ifdef FEDERATED, we could
+            // use #if (NUMBER_OF_FEDERATES > 1)
+            // To me, the former is more accurate.
+            pr('''
+                #define FEDERATED
+            ''')
+            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
+                // The coordination is centralized.
+                pr('''
+                    #define FEDERATED_CENTRALIZED
+                ''')                
+            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+                // The coordination is decentralized
+                pr('''
+                    #define FEDERATED_DECENTRALIZED
+                ''')
+            }
+        }
+                        
+        // Handle target parameters.
+        // First, if there are federates, then ensure that threading is enabled.
+        if (isFederated) {
+            for (federate : federates) {
+                // The number of threads needs to be at least one larger than the input ports
+                // to allow the federate to wait on all input ports while allowing an additional
+                // worker thread to process incoming messages.
+                if (targetConfig.threads < federate.networkMessageActions.size + 1) {
+                    targetConfig.threads = federate.networkMessageActions.size + 1;
+                }            
+            }
+        }
 
         includeTargetLanguageHeaders()
 
@@ -930,70 +984,60 @@ class PythonGenerator extends CGenerator {
      * @param federate A federate name, or null to unconditionally generate.
      */
     override generateAuxiliaryStructs(
-        ReactorDecl decl, FederateInstance federate
+        ReactorDecl decl,
+        FederateInstance federate
     ) {
         val reactor = decl.toDefinition
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (input.inferredType.isTokenType) {
-                pr(input, code, '''
-                    typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
-                ''')
+            if (federate === null || federate.containsPort(input as Port)) {
+                if (input.inferredType.isTokenType) {
+                    pr(input, code, '''
+                        typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
+                    ''')
+                } else {
+                    pr(input, code, '''
+                        typedef «generic_port_type» «variableStructType(input, decl)»;
+                    ''')
+                }
+
             }
-            else
-            {
-                pr(input, code, '''
-                   typedef «generic_port_type» «variableStructType(input, decl)»;
-                ''')                
-            }
-            
+
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (output.inferredType.isTokenType) {
-                 pr(output, code, '''
-                    typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
-                 ''')
-            }
-            else
-            {
-                pr(output, code, '''
-                    typedef «generic_port_type» «variableStructType(output, decl)»;
-                ''')
+            if (federate === null || federate.containsPort(output as Port)) {
+                if (output.inferredType.isTokenType) {
+                    pr(output, code, '''
+                        typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
+                    ''')
+                } else {
+                    pr(output, code, '''
+                        typedef «generic_port_type» «variableStructType(output, decl)»;
+                    ''')
+                }
+
             }
         }
         // Finally, handle actions.
-        // The very first item on this struct needs to be
-        // a trigger_t* because the struct will be cast to (trigger_t*)
-        // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            pr(action, code, '''
-                typedef struct {
-                    trigger_t* trigger;
-                    «action.valueDeclaration»
-                    bool is_present;
-                    bool has_value;
-                    lf_token_t* token;
-                } «variableStructType(action, reactor)»;
-            ''')
+            if (federate === null || federate.containsAction(action)) {
+                pr(action, code, '''
+                    typedef «generic_action_type» «variableStructType(action, decl)»;
+                ''')
+            }
+
         }
     }
     
        /**
      * For the specified action, return a declaration for action struct to
-     * contain the value of the action. An action of
-     * type int[10], for example, will result in this:
-     * ```
-     *     int* value;
-     * ```
+     * contain the value of the action.
      * This will return an empty string for an action with no type.
      * @param action The action.
      * @return A string providing the value field of the action struct.
      */
     override valueDeclaration(Action action) {
-        if (action.type === null) {
-            return ''
-        }
         return "PyObject* value;"
     }
     
@@ -1063,38 +1107,26 @@ class PythonGenerator extends CGenerator {
         if (errorsOccurred) return;
 
         var baseFileName = topLevelName
+        // Keep a separate file config for each federate
+        val oldFileConfig = fileConfig;
         for (federate : federates) {
             if (isFederated) {
                 topLevelName = baseFileName + '_' + federate.name
+                fileConfig = new FedFileConfig(fileConfig, federate.name);
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
                 generatePythonFiles(fsa, federate)
-                // The C generator produces all the .c files in a single central folder.
-                // However, we need to create a setup.py for each federate and run
-                // "pip install ." individually to compile and install each module
-                // Here, we move the necessary C files into each federate's folder
-                if (isFederated) {
-//                    val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
-//                    val dstDir = directory + File.separator + "src-gen" + File.separator + filename
-                    var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
-                        "ctarget.h", "core")
-                    
-                    fileConfig.copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
-                    
-                    // Do not compile the Python code here. They will be compiled on remote machines
+                if (targetConfig.noCompile !== true) {
+                    // If there are no federates, compile and install the generated code
+                    pythonCompileCode(context)
                 } else {
-                    if (targetConfig.noCompile !== true) {
-                        // If there are no federates, compile and install the generated code
-                        pythonCompileCode(context)
-                    } else {
-                        printSetupInfo();
-                    }
-                    
-                    printRunInfo();
+                    printSetupInfo();
                 }
+                
+                printRunInfo();
             }
-
+            fileConfig = oldFileConfig;
         }
         // Restore filename
         topLevelName = baseFileName
