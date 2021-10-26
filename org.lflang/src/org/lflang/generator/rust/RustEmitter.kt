@@ -367,20 +367,22 @@ ${"         |"..gen.crate.dependencies.keys.joinToString("\n") { "extern crate $
 ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
             |
             |use $rsRuntime::*;
+            |use log::LevelFilter;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
             |fn main() {
-            |    init_logger();
+            |    let (options, main_args, log_level) = cli::parse();
             |
-            |    let (options, main_args) = cli::parse();
+            |    init_logger(log_level);
             |
             |    SyncScheduler::run_main::<__MainReactor>(options, main_args);
             |}
             |
-            |fn init_logger() {
+            |fn init_logger(level: LevelFilter) {
             |    env_logger::Builder::from_env(env_logger::Env::default())
             |        .format_target(false)
+            |        .filter_level(level)
             |        .init();
             |}
             |
@@ -413,7 +415,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |    use super::*;
             |
             |    /// Fallback implementation which doesn't parse parameters.
-            |    pub fn parse() -> (SchedulerOptions, __MainParams) {
+            |    pub fn parse() -> (SchedulerOptions, __MainParams, ::log::LevelFilter) {
             |        if std::env::args().len() > 1 {
             |           error!("CLI arguments are ignored, as the program was built without the \"cli\" feature.");
             |           error!("In Lingua Franca, use the target property `cargo-features: [\"cli\"]`.");
@@ -422,14 +424,17 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |        let options = SchedulerOptions {
             |           timeout: $defaultTimeOutAsRust,
             |           keep_alive: ${gen.properties.keepAlive},
-            |           threads: ${gen.properties.threads}, // note: zero means "1 per core" 
+            |           threads: ${gen.properties.threads}, // note: zero means "1 per core"
             |        };
 
             |        // main params are entirely defaulted
             |        let main_args = __MainParams::new(
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.defaultValue ?: "Default::default()") }}
             |        );
-            |        (options, main_args)
+            |
+            |        let log_level = ::log::LevelFilter::Error;
+            |
+            |        (options, main_args, log_level)
             |    }
             |}
             |
@@ -438,6 +443,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |    use $rsRuntime::*;
             |    use super::*;
             |    use clap::Parser;
+            |    use std::str::FromStr;
             |
             |
             |    // these aliases are needed because clap interprets literal
@@ -470,12 +476,26 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |        #[clap(long, default_value="${gen.properties.threads}", help_heading=Some("RUNTIME OPTIONS"), value_name("usize"),)]
             |        threads: usize,
             |
+            |        /// Minimum logging level for the runtime. Specifying the log level on the
+            |        /// command-line overrides the environment variable RUST_LOG. Note that release
+            |        /// builds of the runtime are stripped of trace and debug logs, so only up
+            |        /// to info can be enabled then. To trace programs, use a debug build.
+            |        #[clap(long,
+            |           possible_values(&["trace", "debug", "info", "warn", "error", "off"]),
+            |           env = "RUST_LOG",
+            |           hide_env_values = true,
+            |           default_value="error",
+            |           value_name("level"),
+            |           help_heading=Some("RUNTIME OPTIONS"),
+            |        )]
+            |        log_level: String,
+            |
 ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
             |    }
             |
-            |    pub fn parse() -> (SchedulerOptions, __MainParams) {
+            |    pub fn parse() -> (SchedulerOptions, __MainParams, ::log::LevelFilter) {
             |        let opts = Opt::parse();
-            |        
+            |
             |        let options = SchedulerOptions {
             |            timeout: opts.timeout,
             |            keep_alive: opts.keep_alive,
@@ -485,7 +505,10 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |        let main_args = __MainParams::new(
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + it.cliParamName }}
             |        );
-            |        (options, main_args)
+            |
+            |        let log_level = ::log::LevelFilter::from_str(&opts.log_level).unwrap();
+            |
+            |        (options, main_args, log_level)
             |    }
             |
             |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
@@ -732,7 +755,7 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         return with(PrependOperator) {
             """
                 |${loc.lfTextComment()}
-                |fn $workerId(&mut self, 
+                |fn $workerId(&mut self,
                 |$indent#[allow(unused)] ctx: &mut $rsRuntime::ReactionCtx,
 ${"             |$indent"..reactionParams().joinWithCommasLn { it }}) {
 ${"             |    "..body}
@@ -740,7 +763,6 @@ ${"             |    "..body}
             """.trimMargin()
         }
     }
-
 
 
 }
