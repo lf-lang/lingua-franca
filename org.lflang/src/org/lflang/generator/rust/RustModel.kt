@@ -56,7 +56,8 @@ data class RustTargetProperties(
     /** How the timeout looks like as a Rust expression, eg `Duration::from_millis(40)`. */
     val timeout: TargetCode? = null,
     val timeoutLf: TimeValue? = null,
-    val singleFile: Boolean = false
+    val singleFile: Boolean = false,
+    val threads: Int = 0,
 )
 
 /**
@@ -487,7 +488,8 @@ object RustModelBuilder {
             keepAlive = this.keepalive,
             timeout = this.timeout?.toRustTimeExpr(),
             timeoutLf = this.timeout,
-            singleFile = this.singleFileProject
+            singleFile = this.singleFileProject,
+            threads = this.threads,
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
