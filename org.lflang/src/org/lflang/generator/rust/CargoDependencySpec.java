@@ -33,6 +33,7 @@ import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfPackage;
+import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
 /**
@@ -46,16 +47,16 @@ public class CargoDependencySpec {
     final String localPath;
 
     private CargoDependencySpec(String version, String localPath) {
-        this.version = version;
-        this.localPath = localPath;
+        this.version = StringUtil.removeQuotes(version);
+        this.localPath = StringUtil.removeQuotes(localPath);
     }
 
-    /** The version, may have surrounding quotes. */
+    /** The version. */
     public String getVersion() {
         return version;
     }
 
-    /** Local path to the crate, may have surrounding quotes. */
+    /** Local path to the crate. */
     public String getLocalPath() {
         return localPath;
     }
