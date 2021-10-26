@@ -6,6 +6,6 @@ import SomethingWithAPreamble from "lib/SomethingWithAPreamble.lf";
 main reactor {
      r = new SomethingWithAPreamble();
      reaction(startup) -> r.a {=
-         ctx.set(r__a, super::something_with_apreamble::some_fun());
+         ctx.set(r__a, super::something_with_a_preamble::some_fun());
      =}
 }
