@@ -36,5 +36,5 @@ targets:
       - "${lf_path}/benchmark/Rust/Savina/src/micro/"
     lf_file: "micro/PingPong.lf"
     binary: "ping_pong"
-    gen_args:
+    run_args:
       pings: ["--main-count", "<value>"]
