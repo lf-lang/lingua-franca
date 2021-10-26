@@ -54,7 +54,7 @@ fi
 #============================================================================
 
 # Check whether sources are present and exit if they are not.
-if [ ! get_src_dir ]; then
+if [ ! "$(get_src_dir)" ]; then
     fatal_error "Cannot find the Lingua Franca sources."
 fi
 
