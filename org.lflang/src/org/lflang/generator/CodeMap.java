@@ -22,9 +22,9 @@ import org.eclipse.xtext.util.LineAndColumn;
 public class CodeMap {
 
     public static class Correspondence {
-        // This pattern has the markers /* */ that some languages use as line comments. This is not part
-        //  of any serious effort to make it possible to embed the string representation of this in code
-        //  without rendering it invalid. Instead, it is done simply because it is easy.
+        // This pattern has the markers "/* */", which some languages use as line comments. This does not
+        //  represent any serious effort to embed the string representation of this object in generated code
+        //  without introducing a syntax error. Instead, it is done simply because it is easy.
         private static final Pattern PATTERN = Pattern.compile(String.format(
             "/\\*Correspondence: (?<lfRange>%s) \\-> (?<generatedRange>%s) \\(src=(?<path>%s)\\)\\*/",
             Position.removeNamedCapturingGroups(Range.PATTERN),
@@ -37,20 +37,47 @@ public class CodeMap {
         private final Range lfRange;
         private final Range generatedRange;
 
+        /**
+         * Instantiates a Correspondence between
+         * <code>lfRange</code> at <code>path</code> and
+         * <code>generatedRange</code> in the generated file
+         * associated with this Correspondence.
+         * @param path a path to an LF source file
+         * @param lfRange a range in the given LF file
+         * @param generatedRange the range of generated code
+         *                       associated with
+         *                       <code>lfRange</code>
+         */
         public Correspondence(Path path, Range lfRange, Range generatedRange) {
             this.path = path;
             this.lfRange = lfRange;
             this.generatedRange = generatedRange;
         }
 
+        /**
+         * Returns a path to the LF source file described by
+         * this Correspondence.
+         * @return a path to the LF source file described by
+         * this Correspondence
+         */
         public Path getPath() {
             return path;
         }
 
+        /**
+         * Returns a range in an LF source file.
+         * @return a range in an LF source file
+         */
         public Range getLfRange() {
             return lfRange;
         }
 
+        /**
+         * Returns a range in a generated file that
+         * corresponds to a range in an LF file.
+         * @return a range in a generated file that
+         * corresponds to a range in an LF file
+         */
         public Range getGeneratedRange() {
             return generatedRange;
         }
@@ -66,7 +93,9 @@ public class CodeMap {
         /**
          * Returns the Correspondence represented by <code>s
          * </code>.
-         * @param s an arbitrary String
+         * @param s a String that represents a
+         *          Correspondence, formatted like the
+         *          output of Correspondence::toString
          * @return the Correspondence represented by <code>s
          * </code>
          */
@@ -77,7 +106,9 @@ public class CodeMap {
         /**
          * Returns the Correspondence represented by <code>s
          * </code>.
-         * @param s an arbitrary String
+         * @param s a String that represents a
+         *          Correspondence, formatted like the
+         *          output of Correspondence::toString
          * @param relativeTo the offset relative to which
          *                   the offsets given are given
          * @return the Correspondence represented by <code>s

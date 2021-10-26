@@ -173,7 +173,8 @@ class TSGenerator(
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
         }
-        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_MEDIUM) compile(resource, context);
+        // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
+        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_MEDIUM) compile(resource, context)
     }
 
     private fun compile(resource: Resource, context: IGeneratorContext) {

@@ -8,10 +8,22 @@ import java.util.regex.Pattern;
 
 import org.lflang.ErrorReporter;
 
+/**
+ * An error reporting strategy that considers only one line
+ * of validator output at a time.
+ */
 public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
 
     private final Pattern p;
 
+    /**
+     * Instantiates a reporting strategy for lines of
+     * validator output that match <code>p</code>.
+     * @param p a pattern that matches lines that should be
+     *          reported via this strategy. This pattern
+     *          must contain named capturing groups called
+     *          "path", "line", "column", and "message".
+     */
     public PerLineReportingStrategy(Pattern p) {
         for (String groupName : new String[]{"path", "line", "column", "message"}) {
             assert p.pattern().contains(groupName) : String.format(
@@ -26,6 +38,14 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
         validationOutput.lines().forEach(line -> reportErrorLine(line, errorReporter, map));
     }
 
+    /**
+     * Reports the validation message contained in
+     * <code>line</code> if such a message exists.
+     * @param line a line of validator output
+     * @param errorReporter an arbitrary ErrorReporter
+     * @param maps a mapping from generated file paths to
+     *             CodeMaps
+     */
     private void reportErrorLine(String line, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
         Matcher matcher = p.matcher(line);
         if (matcher.matches()) {

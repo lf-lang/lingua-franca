@@ -213,6 +213,13 @@ public class Position implements Comparable<Position> {
         return String.format("(%d, %d)", getZeroBasedLine(), getZeroBasedColumn());
     }
 
+    /**
+     * Returns the Position represented by <code>s</code>.
+     * @param s a String that represents a Position,
+     *          formatted like the output of
+     *          Position::toString.
+     * @return the Position represented by <code>s</code>
+     */
     public static Position fromString(String s) {
         Matcher matcher = PATTERN.matcher(s);
         if (matcher.matches()) {
