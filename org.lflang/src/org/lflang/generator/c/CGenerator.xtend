@@ -56,9 +56,9 @@ import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
 import org.lflang.federated.FedCLauncher
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FedROS2CPPSerialization
+import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.InvalidSourceException
