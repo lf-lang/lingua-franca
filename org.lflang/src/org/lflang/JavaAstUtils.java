@@ -150,13 +150,13 @@ public final class JavaAstUtils {
     }
 
     /**
-     * Represents <code>literal</code> in a form that all
-     * target languages accept.
-     * @param literal a literal
+     * If the given string can be recognized as a floating-point number that has a leading decimal point, 
+     * prepend the string with a zero and return it. Otherwise, return the original string.
+     * @param literal A string might be recognizable as a floating point number with a leading decimal point.
      * @return an equivalent representation of <code>literal
      * </code>
      */
-    public static String simplifiedLiteral(String literal) {
+    public static String addZeroToLeadingDot(String literal) {
         Matcher m = ABBREVIATED_FLOAT.matcher(literal);
         if (m.matches()) return literal.replace(".", "0.");
         return literal;
