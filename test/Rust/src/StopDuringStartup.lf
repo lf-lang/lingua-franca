@@ -12,6 +12,7 @@ main reactor {
     =}
 
     reaction(shutdown) {=
+        assert!(ctx.is_shutdown());
         assert_tag_is!(ctx, (T0, 1));
         println!("success");
     =}
