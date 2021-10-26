@@ -37,23 +37,29 @@ bin/lfc --clean test/C/src/Minimal.lf
 #                                    be used by the compiled binary.
 
 # -f,--federated                     Treat main reactor as federated.
-# bin/lfc -f test/C/src/Minimal.lf # FIXME: does not work
+# FIXME: The following triggers IllegalArgumentException in CGenerator::InteractingContainedReactors
+# bin/lfc -f test/C/src/Minimal.lf
 # bin/lfc --federated test/C/src/Minimal.lf
 
 # -h,--help                          Display this information.
 bin/lfc --help
 
 # -n,--no-compile                    Do not invoke target compiler.
+bin/lfc -n test/C/src/Minimal.lf
+bin/lfc --no-compile test/C/src/Minimal.lf
 
 # -o,--output-path <arg>             Specify the root output directory.
+bin/lfc -o . test/C/src/Minimal.lf
+bin/lfc --output-path . test/C/src/Minimal.lf
 
 #    --runtime-version <arg>         Specify the version of the runtime
 #                                    library used for compiling LF
 #                                    programs.
+bin/lfc --runtime-version 26e6e641916924eae2e83bbf40cbc9b933414310 test/Cpp/src/Minimal.lf
 
 # -t,--threads                       Specify the default number of threads.
-# bin/lfc -t 2 test/C/src/Minimal.lf # FIXME: does not work
-# bin/lfc -threads 2 test/C/src/Minimal.lf
+bin/lfc -t 2 test/C/src/Minimal.lf
+bin/lfc -threads 2 test/C/src/Minimal.lf
 
 #    --target-compiler <arg>         Target compiler to invoke.
 # (Added no-compile to avoid adding dependency.)
