@@ -39,7 +39,7 @@ import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 
 /**
  * Generator for TypeScript target.

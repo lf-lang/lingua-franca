@@ -24,7 +24,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator.python
 
 import java.io.File
 import java.util.ArrayList
@@ -40,7 +40,7 @@ import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.Input
@@ -61,6 +61,8 @@ import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 import org.lflang.TargetConfig
 import org.lflang.generator.c.CCompiler
+import org.lflang.generator.ParameterInstance
+import org.lflang.generator.ReactorInstance
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor

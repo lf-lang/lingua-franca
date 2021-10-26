@@ -38,6 +38,7 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.TimeValue;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
