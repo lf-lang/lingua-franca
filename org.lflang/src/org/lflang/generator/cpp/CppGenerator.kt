@@ -96,7 +96,7 @@ class CppGenerator(
         fileConfig.copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
         fileConfig.copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
 
-        // keep track of all source files we generate
+        // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
         val codeMaps = HashMap<Path, CodeMap>()
 
