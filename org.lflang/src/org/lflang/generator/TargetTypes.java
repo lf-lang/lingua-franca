@@ -197,7 +197,7 @@ public interface TargetTypes {
         } else if (value.getTime() != null) {
             return getTargetTimeExpr(value.getTime());
         } else if (value.getLiteral() != null) {
-            return JavaAstUtils.simplifiedLiteral(value.getLiteral()); // here we don't escape
+            return JavaAstUtils.addZeroToLeadingDot(value.getLiteral()); // here we don't escape
         } else if (value.getCode() != null) {
             return ASTUtils.toText(value.getCode());
         } else {
