@@ -1492,8 +1492,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     protected def void removeDisconnectedNetworkPorts(ReactorInstance instance) {
         if (isFederated) {
             for (federate: federates) {
+                // Remove disconnected network triggers from the AST
                 federate.removeDisconnectedNetworkPorts();
                 if (instance !== null) {
+                    // If passed a reactor instance, also purge the disconnected network triggers
+                    // from the reactor instance graph
                     for (reaction: federate.networkReactions) {
                         val networkReaction = instance.lookupReactionInstance(reaction)
                         if (networkReaction !== null) {
