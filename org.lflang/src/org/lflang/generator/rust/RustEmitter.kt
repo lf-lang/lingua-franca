@@ -421,8 +421,10 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |
             |        let options = SchedulerOptions {
             |           timeout: $defaultTimeOutAsRust,
-            |           keep_alive: ${gen.properties.keepAlive}
+            |           keep_alive: ${gen.properties.keepAlive},
+            |           threads: ${gen.properties.threads}, // note: zero means "1 per core" 
             |        };
+
             |        // main params are entirely defaulted
             |        let main_args = __MainParams::new(
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.defaultValue ?: "Default::default()") }}
@@ -450,14 +452,23 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |        /// Whether to keep the program alive when the event queue is empty.
             |        /// This is only useful when physical actions are used, as they may
             |        /// push new asynchronous events.
-            |        #[clap(long, default_value="${gen.properties.keepAlive}", help_heading=Some("RUNTIME OPTIONS"))]
+            |        #[clap(long, default_value="${gen.properties.keepAlive}", help_heading=Some("RUNTIME OPTIONS"), value_name("bool"),)]
             |        keep_alive: BoolAlias,
             |
             |        /// Timeout for the program. A value of zero means no timeout. The
             |        /// timeout is in logical time, it means, no event past this tag will
-            |        /// be processed.
-            |        #[clap(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration), help_heading=Some("RUNTIME OPTIONS"))]
+            |        /// be processed. Notice that the program may shutdown earlier because
+            |        /// of a call to request_stop.
+            |        #[clap(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration), help_heading=Some("RUNTIME OPTIONS"), value_name("time"),)]
             |        timeout: OptionAlias<Duration>,
+            |
+            |        /// Number of threads to use to execute reactions in parallel. A value
+            |        /// of zero means that the runtime will select a value depending on the
+            |        /// number of cores available on the machine.
+            |        /// This option is **ignored** unless the runtime crate has been built
+            |        /// with the feature `parallel-runtime`.
+            |        #[clap(long, default_value="${gen.properties.threads}", help_heading=Some("RUNTIME OPTIONS"), value_name("usize"),)]
+            |        threads: usize,
             |
 ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
             |    }
@@ -468,6 +479,7 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |        let options = SchedulerOptions {
             |            timeout: opts.timeout,
             |            keep_alive: opts.keep_alive,
+            |            threads: opts.threads,
             |        };
             |
             |        let main_args = __MainParams::new(
@@ -502,7 +514,9 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
             append("required=true, ")
 
         if (isTime) {
-            append("parse(try_from_str = $rsRuntime::try_parse_duration), ")
+            append("parse(try_from_str = $rsRuntime::try_parse_duration), value_name(\"time\"),")
+        } else {
+            append("value_name(\"${type.escapeStringLiteral()}\"),")
         }
 
         appendLine(")]")
