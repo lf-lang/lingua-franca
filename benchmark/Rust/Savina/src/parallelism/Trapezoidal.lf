@@ -10,6 +10,11 @@ target Rust {
     build-type: Release,
     cargo-features: ["cli"],
     rust-include: "support.rs",
+    cargo-dependencies: {
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        }
+    }
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
