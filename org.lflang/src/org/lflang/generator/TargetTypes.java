@@ -139,7 +139,7 @@ public interface TargetTypes {
         if (ASTUtils.isZero(expr) && type != null && type.isTime) {
             return getTargetTimeExpr(0, TimeUnit.NONE);
         }
-        return expr.getLiteral(); // unescaped
+        return JavaAstUtils.addZeroToLeadingDot(expr.getLiteral()); // unescaped
     }
 
     /**
@@ -174,7 +174,7 @@ public interface TargetTypes {
      *
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
-    default String getMissingExpr() {
+    default String getMissingExpr(InferredType type) {
         throw new UnsupportedGeneratorFeatureException("Missing initializers");
     }
 
@@ -234,10 +234,10 @@ public interface TargetTypes {
      * @param type Declared type of the expression (nullable)
      */
     default String getTargetInitializer(Initializer init, Type type) {
-        if (init == null) {
-            return getMissingExpr();
-        }
         InferredType inferredType = JavaAstUtils.getInferredType(type, init);
+        if (init == null) {
+            return getMissingExpr(inferredType);
+        }
         Value single = JavaAstUtils.asSingleValue(init);
         if (single != null) {
             return getTargetExpr(single, inferredType);

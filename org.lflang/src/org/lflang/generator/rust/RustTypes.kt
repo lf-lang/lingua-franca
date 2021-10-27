@@ -84,8 +84,8 @@ object RustTypes : TargetTypes {
 
     }
 
-    override fun getMissingExpr(): String =
-        "Default::default()"
+    override fun getMissingExpr(type: InferredType): String =
+        "<${getTargetType(type)} as Default>::default()"
 }
 
 val RustKeywords = setOf(

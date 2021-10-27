@@ -86,7 +86,7 @@ class CppInstanceGenerator(
                 """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, $params));"""
             }
 
-            val width = inst.widthSpec.toCode()
+            val width = inst.widthSpec.toCppCode()
             return """
                 // initialize instance $name
                 ${name}.reserve($width);

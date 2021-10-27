@@ -549,7 +549,7 @@ class CGenerator extends GeneratorBase {
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
-                    federates.size, 
+                    Math.max(federates.size, 1), 
                     Runtime.getRuntime().availableProcessors()
                 )
             )
@@ -581,13 +581,15 @@ class CGenerator extends GeneratorBase {
                     TargetProperty.updateOne(
                         this.targetConfig, 
                         TargetProperty.CMAKE_INCLUDE.description,
-                        target.config.pairs ?: emptyList
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                     // Update the files
                     TargetProperty.updateOne(
                         this.targetConfig, 
                         TargetProperty.FILES.description,
-                        target.config.pairs ?: emptyList
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                 }
                 

@@ -62,7 +62,7 @@ fun Value?.toCppTime(outerContext: Boolean = false): String =
     else CppTypes.getTargetTimeExpr(this)
 
 /** Get the textual representation of a width in C++ code */
-fun WidthSpec.toCode(): String = terms.joinToString(" + ") {
+fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
     when {
         it.parameter != null -> it.parameter.name
         it.port != null      -> with(it.port) {
