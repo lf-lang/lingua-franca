@@ -1,11 +1,9 @@
 package org.lflang.generator.ts
 
-import org.eclipse.emf.ecore.EObject
 import org.lflang.*
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
-import java.io.File
 import java.util.*
 
 /**

@@ -32,10 +32,8 @@ import java.util.ArrayList
 import java.util.HashSet
 import java.util.List
 import java.util.Set
-import java.util.Map
 
 import org.eclipse.emf.common.util.EList
-import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
