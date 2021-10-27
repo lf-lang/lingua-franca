@@ -114,7 +114,7 @@
             ]
         },
         "c-target": {
-            "begin": "(?=^target C\\b)",
+            "begin": "(?=\\btarget\\s+C\\b)",
             "patterns": [
                 {
                     "include": "#post-targetspec"
@@ -130,7 +130,7 @@
             ]
         },
         "cpp-target": {
-            "begin": "(?=^target Cpp\\b)",
+            "begin": "(?=\\btarget\\s+Cpp\\b)",
             "patterns": [
                 {
                     "include": "#post-targetspec"
@@ -146,7 +146,7 @@
             ]
         },
         "ts-target": {
-            "begin": "(?=^target TypeScript\\b)",
+            "begin": "(?=\\btarget\\s+TypeScript\\b)",
             "patterns": [
                 {
                     "include": "#post-targetspec"
@@ -162,7 +162,7 @@
             ]
         },
         "py-target": {
-            "begin": "(?=^target Python\\b)",
+            "begin": "(?=\\btarget\\s+Python\\b)",
             "patterns": [
                 {
                     "include": "#post-targetspec"
@@ -178,7 +178,7 @@
             ]
         },
         "rs-target": {
-            "begin": "(?=^target Rust\\b)",
+            "begin": "(?=\\btarget\\s+Rust\\b)",
             "patterns": [
                 {
                     "include": "#post-targetspec"
@@ -195,7 +195,7 @@
         },
         "target-specification": {
             "name": "meta.targetspec.lflang",
-            "begin": "(?=^target\\b)",
+            "begin": "(?=\\btarget\\b)",
             "end": ";|(?<=}.*)$|(?<=target[^\\{]*)$",
             "patterns": [
                 {
