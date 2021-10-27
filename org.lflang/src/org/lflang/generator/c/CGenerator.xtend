@@ -72,7 +72,6 @@ import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
-import org.lflang.util.LFCommand
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code

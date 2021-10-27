@@ -175,6 +175,7 @@ public class LFGenerator extends AbstractGenerator {
         }
 
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
+
         if (generator != null) {
             generator.doGenerate(resource, fsa, context);
             generatorErrorsOccurred = generator.errorsOccurred();
