@@ -1500,7 +1500,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     for (reaction: federate.networkReactions) {
                         val networkReaction = instance.lookupReactionInstance(reaction)
                         if (networkReaction !== null) {
-                            for (port: federate.disconnectedNetworkReactionTriggers) {
+                            for (port: federate.remoteNetworkReactionTriggers) {
                                 val disconnectedPortInstance = instance.lookupPortInstance(port);
                                 if (disconnectedPortInstance !== null) {
                                     networkReaction.removePortInstance(disconnectedPortInstance);
