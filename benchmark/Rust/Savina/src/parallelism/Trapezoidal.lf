@@ -21,6 +21,12 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
 reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000)) {
+    // parameters
+    state L(L);
+    state R(R);
+    state N(N);
+    state num_workers(num_workers);
+
     preamble {=
         use crate::support::WorkMessage;
     =}
@@ -28,23 +34,10 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
     state numTermsReceived: u32(0);
     state resultArea: f64(0.0);
 
-    state L(L);
-    state R(R);
-    state N(N);
-    state num_workers(num_workers);
-
-    output outFinished: {= () =};
-
     output[num_workers] outWorkers: WorkMessage;
     input[num_workers] inWorkers: f64;
 
-    logical action sendWorkMessages: {= () =};
-
-    reaction(startup) -> sendWorkMessages {=
-        ctx.schedule(sendWorkMessages, Asap)
-    =}
-
-    reaction(sendWorkMessages) -> outWorkers {=
+    reaction(startup) -> outWorkers {=
         let worker_range = (self.R - self.L) / (self.num_workers as f64);
         let precision = (self.R - self.L) / (self.N as f64);
 

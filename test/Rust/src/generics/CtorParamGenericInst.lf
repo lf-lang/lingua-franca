@@ -5,7 +5,7 @@
 target Rust;
 
 
-reactor Generic2<{= T: Default + Eq + Sync + std::fmt::Debug + 'static =}>(value: T({= Default::default() =})) {
+reactor Generic2<{= T: Default + Eq + Sync + std::fmt::Debug + Send + 'static =}>(value: T({= Default::default() =})) {
     input in: T;
     state v: T(value);
 
@@ -17,7 +17,7 @@ reactor Generic2<{= T: Default + Eq + Sync + std::fmt::Debug + 'static =}>(value
     =}
 }
 
-reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug + Copy + 'static =}>(value: T({= Default::default() =})) {
+reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug + Copy + Send + 'static =}>(value: T({= Default::default() =})) {
     input in: T;
 
     inner = new Generic2<T>(value = value);
