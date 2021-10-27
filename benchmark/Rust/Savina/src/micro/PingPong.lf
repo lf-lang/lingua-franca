@@ -1,3 +1,12 @@
+/**
+ * Copyright (C) 2021 TU Dresden
+ *
+ * Micro-benchmark from the Savina benchmark suite.
+ * See documentation in the C++ version.
+ *
+ * @author Clément Fournier
+ */
+
 target Rust {
     single-file-project: true,
     build-type: Release,
