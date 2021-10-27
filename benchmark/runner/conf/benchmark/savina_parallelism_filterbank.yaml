@@ -27,3 +27,12 @@ targets:
       columns: ["--numColumns", "<value>"]
       simulations: ["--numSimulations", "<value>"]
       channels: ["--numChannels", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism/FilterBank.lf"
+    lf_file: "FilterBank.lf"
+    binary: "FilterBank"
+    gen_args:
+      columns: ["-D", "columns=<value>"]
+      simulations: ["-D", "time_steps=<value>"]
+      channels: ["-D", "channels=<value>"]
