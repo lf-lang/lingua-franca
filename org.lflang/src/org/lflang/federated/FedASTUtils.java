@@ -89,15 +89,17 @@ public class FedASTUtils {
      * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param type The type of the source port (indicating the type of
      *  data being received.
+     * @param networkBufferType The type of buffer used for network
+     *  communication in the target.
      * @return The network action that is created
      */
     private static Action createNetworkAction(
-            Connection connection,
-            FederateInstance destinationFederate,
-            SupportedSerializers serializer,
-            GeneratorBase generator,
-            Type type
-            ) {
+        Connection connection,
+        FederateInstance destinationFederate,
+        SupportedSerializers serializer,
+        Type type,
+        String networkBufferType
+    ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reactor top = (Reactor) destinationFederate.instantiation.eContainer();
 
@@ -108,7 +110,7 @@ public class FedASTUtils {
             action.setType(type);
         } else {
             Type action_type = factory.createType();
-            action_type.setId(generator.getNetworkBufferType());
+            action_type.setId(networkBufferType);
             action.setType(action_type);
         }
         
@@ -232,7 +234,8 @@ public class FedASTUtils {
                 destinationFederate,
                 serializer, 
                 generator, 
-                EcoreUtil.copy(source.getDefinition().getType()));
+                EcoreUtil.copy(source.getDefinition().getType()),
+                generator.getNetworkBufferType());
         
         VarRef triggerRef = factory.createVarRef();
         // Establish references to the action.
