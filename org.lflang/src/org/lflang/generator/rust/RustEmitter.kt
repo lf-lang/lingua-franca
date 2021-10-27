@@ -25,14 +25,13 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
-import org.lflang.generator.LocationInfo
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
+import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.generator.locationInfo
 import org.lflang.generator.rust.RustEmitter.generateRustProject
-import java.nio.file.Paths
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.nio.file.Files
 
 
 /**
@@ -40,16 +39,15 @@ import java.time.format.DateTimeFormatter
  * including its project structure. Its entry point is
  * [generateRustProject].
  */
-object RustEmitter {
-    /** Name of the runtime crate that is in its Cargo.toml.*/
-    private const val runtimeCrateFullName = "reactor_rt"
-
-    /** Qualification prefix to refer to a member of the runtime library crate. */
-    const val rsRuntime = "::$runtimeCrateFullName"
+object RustEmitter : RustEmitterBase() {
 
     fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
-        fileConfig.emit("Cargo.toml") { makeCargoTomlFile(gen) }
+        fileConfig.emit("Cargo.toml") {
+            with(RustCargoTomlEmitter) {
+                makeCargoTomlFile(gen)
+            }
+        }
 
         // if singleFile, this file will contain every module.
         fileConfig.emit("src/main.rs") { makeMainFile(gen) }
@@ -60,6 +58,16 @@ object RustEmitter {
                 fileConfig.emit("src/reactors/${reactor.names.modFileName}.rs") {
                     makeReactorModule(this, reactor)
                 }
+            }
+        }
+
+        // copy user-defined modules
+        for (modPath in gen.crate.modulesToIncludeInMain) {
+            val target = fileConfig.srcGenPath.resolve("src").resolve(modPath.fileName)
+            if (Files.isDirectory(modPath)) {
+                FileConfig.copyDirectory(modPath, target)
+            } else {
+                FileConfig.copyFile(modPath, target)
             }
         }
     }
@@ -114,32 +122,40 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    #[inline]
                 |    fn user_assemble(__assembler: &mut $rsRuntime::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
-                |                     __params: $paramStructName$typeArgs) -> Self {
+                |                     __params: $paramStructName$typeArgs) -> Result<Self, $rsRuntime::AssemblyError> {
                 |        let $ctorParamsDeconstructor = __params;
-                |        Self {
+                |
+                |        let __impl = {
+                |            // declare them all here so that they are visible to the initializers of state vars declared later
+${"             |            "..reactor.stateVars.joinToString("\n") { "let ${it.lfName} = ${it.init};" }}
+                |
+                |            $structName {
+                |                __phantom: std::marker::PhantomData,
+${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName }}
+                |            }
+                |        };
+                |
+                |        Ok(Self {
                 |            __id,
-                |            __impl: $structName {
-                |                __phantom: std::marker::PhantomData,   
-${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + (it.init ?: "Default::default()") }}
-                |            },
+                |            __impl,
 ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldName + ": " + it.initialExpression() }}
-                |        }
+                |        })
                 |    }
                 |}
-                |
-                |use $rsRuntime::*; // after this point there's no user-written code
                 |
                 |impl$typeParams $rsRuntime::ReactorInitializer for $wrapperName$typeArgs {
                 |    type Wrapped = $structName$typeArgs;
                 |    type Params = $paramStructName$typeArgs;
-                |    const MAX_REACTION_ID: LocalReactionId = LocalReactionId::new_const($totalNumReactions - 1);
+                |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new($totalNumReactions - 1);
                 |
-                |    fn assemble(__params: Self::Params, __assembler: &mut AssemblyCtx<Self>) -> Result<Self, AssemblyError> {
+                |    fn assemble(__params: Self::Params, __assembler: &mut $rsRuntime::AssemblyCtx<Self>) -> ::std::result::Result<Self, $rsRuntime::AssemblyError> {
+                |        use $rsRuntime::TriggerLike;
+                |
                 |        // children reactors   
 ${"             |        "..assembleChildReactors()}
                 |
                 |        // assemble self
-                |        let mut __self: Self = __assembler.assemble_self(|cc, id| Self::user_assemble(cc, id, __params));
+                |        let mut __self: Self = __assembler.assemble_self(|cc, id| Self::user_assemble(cc, id, __params))?;
                 |
 ${"             |        "..declareReactions()}
                 |
@@ -156,22 +172,22 @@ ${"             |        "..nestedInstances.joinToString("\n") { "__assembler.re
                 |}
                 |
                 |
-                |impl$typeParams ReactorBehavior for $wrapperName$typeArgs {
+                |impl$typeParams $rsRuntime::ReactorBehavior for $wrapperName$typeArgs {
                 |
                 |    #[inline]
-                |    fn id(&self) -> ReactorId {
+                |    fn id(&self) -> $rsRuntime::ReactorId {
                 |        self.__id
                 |    }
                 |
-                |    fn react_erased(&mut self, ctx: &mut ReactionCtx, rid: LocalReactionId) {
+                |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: $rsRuntime::LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls()}
 ${"             |            "..syntheticTimerReactions()}
-                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, Self::MAX_REACTION_ID)
+                |            _ => panic!("Invalid reaction ID: {} should be < {}", rid, <Self as $rsRuntime::ReactorInitializer>::MAX_REACTION_ID)
                 |        }
                 |    }
                 |
-                |    fn cleanup_tag(&mut self, ctx: &CleanupCtx) {
+                |    fn cleanup_tag(&mut self, ctx: &$rsRuntime::CleanupCtx) {
 ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.joinLn()}
                 |    }
                 |
@@ -227,7 +243,7 @@ ${"         |    "..declarations}
                 timers.map { it.rescheduleReactionId } +
                 timers.map { it.startReactionId }
 
-        val debugLabels = reactions.map { it.debugLabel.toRustOption() } +
+        val debugLabels = reactions.map { it.debugLabel?.withDQuotes().toRustOption() } +
                 timers.map { "Some(\"reschedule_${it.lfName}\")" } +
                 timers.map { "Some(\"bootstrap_${it.lfName}\")" }
 
@@ -292,8 +308,15 @@ ${"         |    "..declarations}
                 if (n.isShutdown)
                     this += "__assembler.declare_triggers($rsRuntime::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
-                this += n.effects.filterIsInstance<PortData>()
-                    .map { port -> "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;" }
+                this += n.effects.filterIsInstance<PortData>().map { port ->
+                    // todo how is a bank channel represented in PortData?
+                    //    reaction(startup) -> out[0]
+                    if (port.isMultiport) {
+                        "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
+                    } else {
+                        "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;"
+                    }
+                }
             }
 
             n.loc.lfTextComment() + "\n" + deps.joinLn()
@@ -304,7 +327,7 @@ ${"         |    "..declarations}
                 "__assembler.declare_triggers(__self.${it.rustFieldName}.get_id(), ${it.rescheduleReactionId})?;",
                 // start reactions may "trigger" the timer, otherwise it schedules it
                 "__assembler.declare_triggers($rsRuntime::TriggerId::STARTUP, ${it.startReactionId})?;",
-                "__assembler.effects_instantaneous(${it.startReactionId}, __self.${it.rustFieldName}.get_id())?;",
+                "__assembler.effects_timer(${it.startReactionId}, &__self.${it.rustFieldName})?;",
             )
         }.joinLn()
 
@@ -328,31 +351,26 @@ ${"         |    "..declarations}
             |#![allow(unused_imports)]
             |#![allow(non_snake_case)]
             |
-            |#[macro_use]
-            |extern crate $runtimeCrateFullName;
-            |#[macro_use]
-            |extern crate assert_matches;
             |extern crate env_logger;
+            |#[macro_use]
+            |extern crate log;
+            |
+            |// user dependencies
+${"         |"..gen.crate.dependencies.keys.joinToString("\n") { "extern crate ${it.replace('-', '_')};" }}
+            |
+            |// user-defined modules
+${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
             |
             |use $rsRuntime::*;
-            |use self::reactors::${mainReactorNames.wrapperName} as _MainReactor;
-            |use self::reactors::${mainReactorNames.paramStructName} as _MainParams;
+            |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
+            |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
             |fn main() {
             |    init_logger();
             |
-            |    // todo CLI parsing
-            |    let options = SchedulerOptions {
-            |       timeout: ${gen.properties.timeout.toRustOption()},
-            |       keep_alive: ${gen.properties.keepAlive}
-            |    };
-            |    // todo main params are entirely defaulted for now.
-            |    let main_args = _MainParams {
-            |       __phantom: std::marker::PhantomData,
-${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
-            |    };
+            |    let (options, main_args) = cli::parse();
             |
-            |    SyncScheduler::run_main::<_MainReactor>(options, main_args);
+            |    SyncScheduler::run_main::<__MainReactor>(options, main_args);
             |}
             |
             |fn init_logger() {
@@ -366,11 +384,126 @@ ${"         |       "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escap
 
         skipLines(2)
 
+        makeCliModule(gen)
+
+        skipLines(2)
+
         if (gen.properties.singleFile) {
             makeSingleFileProject(gen)
         } else {
             this += "mod reactors;\n"
         }
+    }
+
+    private fun Emitter.makeCliModule(gen:GenerationInfo) {
+        val mainReactor = gen.mainReactor
+
+        val defaultTimeOutAsStr = gen.properties.timeoutLf?.toString() ?: "0"
+        val defaultTimeOutAsRust = gen.properties.timeoutLf?.toRustTimeExpr().toRustOption()
+
+        this += """
+            |#[cfg(not(feature="cli"))]
+            |mod cli {
+            |    use $rsRuntime::*;
+            |    use super::*;
+            |
+            |    /// Fallback implementation which doesn't parse parameters.
+            |    pub fn parse() -> (SchedulerOptions, __MainParams) {
+            |        if std::env::args().len() > 1 {
+            |           error!("CLI arguments are ignored, as the program was built without the \"cli\" feature.");
+            |           error!("In Lingua Franca, use the target property `cargo-features: [\"cli\"]`.");
+            |        }
+            |
+            |        let options = SchedulerOptions {
+            |           timeout: $defaultTimeOutAsRust,
+            |           keep_alive: ${gen.properties.keepAlive}
+            |        };
+            |        // main params are entirely defaulted
+            |        let main_args = __MainParams {
+            |           __phantom: std::marker::PhantomData,
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn { it.lfName.escapeRustIdent() + ":" + (it.defaultValue ?: "Default::default()") }}
+            |        };
+            |        (options, main_args)
+            |    }
+            |}
+            |
+            |#[cfg(feature="cli")]
+            |mod cli {
+            |    use $rsRuntime::*;
+            |    use super::*;
+            |    use clap::Parser;
+            |
+            |
+            |    // these aliases are needed because clap interprets literal
+            |    // occurrences of bool and Option.
+            |    type BoolAlias = bool;
+            |    type OptionAlias<T> = Option<T>;
+            |
+            |    #[derive(Debug, Parser)]
+            |    #[clap(name = "${gen.executableName}")]
+            |    struct Opt {
+            |
+            |        /// Whether to keep the program alive when the event queue is empty.
+            |        /// This is only useful when physical actions are used, as they may
+            |        /// push new asynchronous events.
+            |        #[clap(long, default_value="${gen.properties.keepAlive}", help_heading=Some("RUNTIME OPTIONS"))]
+            |        keep_alive: BoolAlias,
+            |
+            |        /// Timeout for the program. A value of zero means no timeout. The
+            |        /// timeout is in logical time, it means, no event past this tag will
+            |        /// be processed.
+            |        #[clap(long, default_value="$defaultTimeOutAsStr", parse(try_from_str = try_parse_duration), help_heading=Some("RUNTIME OPTIONS"))]
+            |        timeout: OptionAlias<Duration>,
+            |
+${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
+            |    }
+            |
+            |    pub fn parse() -> (SchedulerOptions, __MainParams) {
+            |        let opts = Opt::parse();
+            |        
+            |        let options = SchedulerOptions {
+            |            timeout: opts.timeout,
+            |            keep_alive: opts.keep_alive,
+            |        };
+            |
+            |        let main_args = __MainParams {
+            |           __phantom: std::marker::PhantomData,
+${"         |           "..mainReactor.ctorParams.joinWithCommasLn {it.lfName.escapeRustIdent() + ": opts." + it.cliParamName }}
+            |        };
+            |        (options, main_args)
+            |    }
+            |
+            |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
+            |        reactor_rt::try_parse_duration(t).map(|d| {
+            |            if d.is_zero() { None } else { Some(d) }
+            |        })
+            |    }
+            |}
+        """.trimMargin()
+    }
+
+    private val CtorParamInfo.cliParamName get() = "main_" + lfName.camelToSnakeCase()
+
+    private fun CtorParamInfo.toCliParam() = buildString {
+        documentation?.lines()?.map { "///$it" }?.forEach { appendLine(it) }
+        append("#[clap(long, help_heading=Some(\"MAIN REACTOR PARAMETERS\"), ")
+
+        if (isList) // todo this should be supported but test it
+            throw UnsupportedGeneratorFeatureException("main parameters with list types")
+
+        if (defaultValueAsTimeValue != null)
+            append("default_value=\"").append(defaultValueAsTimeValue).append("\", ")
+        else if (defaultValue != null)
+            append("default_value=\"").append(defaultValue.removeSurrounding("\"")).append("\", ")
+        else
+            append("required=true, ")
+
+        if (isTime) {
+            append("parse(try_from_str = $rsRuntime::try_parse_duration), ")
+        }
+
+        appendLine(")]")
+        append(cliParamName).append(": ").append(type)
     }
 
     private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
@@ -429,48 +562,6 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
         }
     }
 
-    private fun Emitter.makeCargoTomlFile(gen: GenerationInfo) {
-        val (crate) = gen
-        this += """
-            |${generatedByComment("#")}
-            |[package]
-            |name = "${crate.name}"
-            |version = "${crate.version}"
-            |authors = [${crate.authors.joinToString(", ") { it.withDQuotes() }}]
-            |edition = "2018"
-            |
-            |[dependencies]
-            |env_logger = "0.9"
-            |assert_matches = "1.5.0" # useful for tests
-            |
-            |[dependencies.$runtimeCrateFullName] # the reactor runtime
-            |${gen.runtime.runtimeCrateSpec()}
-            |
-            |[[bin]]
-            |name = "${gen.executableName}"
-            |path = "src/main.rs"
-            |
-        """.trimMargin()
-    }
-
-
-    private fun RuntimeInfo.runtimeCrateSpec(): String =
-        buildString {
-            if (localPath != null) {
-                val localPath = Paths.get(localPath).toAbsolutePath().toString().escapeStringLiteral()
-
-                appendLine("path = \"$localPath\"")
-            } else {
-                appendLine("git = \"https://github.com/lf-lang/reactor-rust.git\"")
-                if (version != null) {
-                    // Version just checks out a relevant tag, while we're not published to crates.io
-                    // Maybe we'll never need to be published.
-                    appendLine("tag=\"v$version\"")
-                } else {
-                    appendLine("rev=\"$gitRevision\"")
-                }
-            }
-        }
 
     /** Rust pattern that deconstructs a ctor param tuple into individual variables */
     private val ReactorInfo.ctorParamsDeconstructor: TargetCode
@@ -487,35 +578,54 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
 
     /** The owned type of this reactor component (type of the struct field). */
     private fun ReactorComponent.toType(): TargetCode = when (this) {
-        is ActionData         ->
+        is ActionData                      ->
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
-        is PortData           -> "$rsRuntime::Port<$dataType>"
-        is ChildPortReference -> "$rsRuntime::Port<$dataType>"
-        is TimerData          -> "$rsRuntime::Timer"
+        is PortData, is ChildPortReference -> with(this as PortLike) {
+            if (isMultiport) "$rsRuntime::PortBank<$dataType>"
+            else "$rsRuntime::Port<$dataType>"
+        }
+        is TimerData                       -> "$rsRuntime::Timer"
     }
 
     /** Initial expression for the field. */
+
     private fun ReactorComponent.initialExpression(): TargetCode = when (this) {
         is ActionData         -> {
             val delay = minDelay.toRustOption()
             val ctorName = if (isLogical) "new_logical_action" else "new_physical_action"
-            "__assembler.$ctorName(\"$lfName\", $delay)"
+            "__assembler.$ctorName::<$dataType>(\"$lfName\", $delay)"
         }
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
-        is PortData           -> "__assembler.new_port(\"$lfName\", $isInput)"
-        is ChildPortReference -> "__assembler.new_port(\"$childName.$lfName\", $isInput)"
+        is PortData           -> {
+            if (widthSpec != null) {
+                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)?"
+            } else {
+                "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
+            }
+        }
+        is ChildPortReference -> {
+            if (isMultiport) {
+                throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
+            } else {
+                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $isInput)"
+            }
+        }
     }
 
     /** The type of the parameter injected into a reaction for the given dependency. */
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode {
-        fun portRefWrapper(dataType: TargetCode) =
-            if (kind == DepKind.Effects) "$rsRuntime::WritablePort<$dataType>" // note: owned
-            else "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
+        fun portRefWrapper(dataType: TargetCode, isMultiport: Boolean) =
+            when {
+                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
+                kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
+                isMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
+                else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
+            }
 
         return when (this) {
-            is PortData           -> portRefWrapper(dataType)
-            is ChildPortReference -> portRefWrapper(dataType)
+            is PortData           -> portRefWrapper(dataType, isMultiport)
+            is ChildPortReference -> portRefWrapper(dataType, isMultiport)
             is TimerData          -> "&${toType()}"
             is ActionData         -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
@@ -526,21 +636,28 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
      * into a reaction. This conceptually just borrows the field.
      */
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode = when (this) {
-        is PortData, is ChildPortReference ->
-            if (kind == DepKind.Effects) "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)"
-            else "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)"
-        is ActionData                      -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
-        is TimerData                       -> "&self.$rustFieldName"
+        is PortData           -> portBorrow(kind, isMultiport)
+        is ChildPortReference -> portBorrow(kind, isMultiport)
+        is ActionData         -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
+        is TimerData          -> "&self.$rustFieldName"
     }
 
-    private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
-                // Item is both in inputs and outputs.
-                // We must not generate 2 parameters, instead we generate the
-                // one with the most permissions (Effects means &mut).
+    private fun ReactorComponent.portBorrow(kind: DepKind, isMultiport: Boolean) =
+        when {
+            kind == DepKind.Effects && isMultiport  -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
+            kind == DepKind.Effects && !isMultiport -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
+            isMultiport                             -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
+            else                                    -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
+        }
 
-                // eg `reaction(act) -> act` must not generate 2 parameters for act,
-                // we skip the Trigger one and generate the Effects one.
-                depKind != DepKind.Effects && this in n.effects
+    private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
+        // Item is both in inputs and outputs.
+        // We must not generate 2 parameters, instead we generate the
+        // one with the most permissions (Effects means &mut).
+
+        // eg `reaction(act) -> act` must not generate 2 parameters for act,
+        // we skip the Trigger one and generate the Effects one.
+        depKind != DepKind.Effects && this in n.effects
 
     private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
         depKind == DepKind.Effects && (this is PortData || this is ActionData)
@@ -556,11 +673,14 @@ ${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
 
     /** Action that must be taken to cleanup this component within the `cleanup_tag` procedure. */
     private fun ReactorComponent.cleanupAction(): TargetCode? = when (this) {
-        is ActionData                      ->
+        is ActionData         ->
             if (isLogical) "ctx.cleanup_logical_action(&mut self.$rustFieldName);"
             else "ctx.cleanup_physical_action(&mut self.$rustFieldName);"
-        is PortData, is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
-        is TimerData                       -> null
+        is PortLike           ->
+            if (isMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
+            else "ctx.cleanup_port(&mut self.$rustFieldName);"
+        is ChildPortReference -> "ctx.cleanup_port(&mut self.$rustFieldName);"
+        else                  -> null
     }
 
     /** Renders the definition of the worker function generated for this reaction. */
@@ -602,39 +722,3 @@ ${"             |    "..body}
 
 
 }
-
-/**
- * Produce a commented out version of the text of this AST node.
- * This is helpful to figure out how the rust code corresponds to
- * the LF code.
- */
-private fun LocationInfo.lfTextComment() =
-    "// --- ${lfText.joinLines()}"
-
-private val timeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
-
-/** Header comment for generated files. */
-private fun generatedByComment(delim: String) =
-    "$delim-- Generated by LFC @ ${timeFormatter.format(LocalDateTime.now())} --$delim"
-
-/** Convert a nullable value to a rust option. */
-private fun TargetCode?.toRustOption(): TargetCode =
-    if (this == null) "None"
-    else "Some($this)"
-
-/**
- * If this is a rust keyword, escape it for it to be interpreted
- * as an identifier, except if this keyword is a valid rust expression.
- */
-fun String.escapeRustIdent() = RustTypes.escapeIdentifier(this)
-
-
-fun String.escapeStringLiteral() =
-    replace(Regex("[\\\\ \t]")) {
-        when (it.value) {
-            "\\" -> "\\\\"
-            "\t" -> "\\t"
-            "\"" -> "\\\""
-            else -> it.value
-        }
-    }

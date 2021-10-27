@@ -52,7 +52,7 @@ function get_src_dir() {
 
 # If it exists, return a path to the Lingua Franca jar.
 function get_jar_path() {
-    if [ get_src_dir ]; then
+    if [ "$(get_src_dir)" ]; then
         jar_path_pattern="${base}/${lfc_jar_build_path_pattern}"
     else
         jar_path_pattern="${base}/${lfc_jar_release_path_pattern}"

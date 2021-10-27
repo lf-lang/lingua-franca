@@ -24,8 +24,8 @@
 
 package org.lflang.util;
 
-import java.util.Arrays;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +34,12 @@ import java.util.stream.Collectors;
  * @author Clément Fournier
  */
 public final class StringUtil {
+
+    /**
+     * Matches the boundary of a camel-case word. That's a zero-length match.
+     */
+    private static final Pattern CAMEL_WORD_BOUNDARY =
+        Pattern.compile("(?<![A-Z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
 
     private StringUtil() {
         // utility class
@@ -46,10 +52,30 @@ public final class StringUtil {
      * (no whitespace).
      */
     public static String camelToSnakeCase(String str) {
-        return Arrays.stream(str.split("(?<![A-Z])(?=[A-Z])"))
-                     .map(it -> it.toLowerCase(Locale.ROOT))
-                     .filter(it -> !it.isEmpty())
-                     .collect(Collectors.joining("_"));
+        return CAMEL_WORD_BOUNDARY.splitAsStream(str)
+                                  .filter(it -> !it.isEmpty())
+                                  .map(it -> it.toLowerCase(Locale.ROOT))
+                                  .collect(Collectors.joining("_"));
     }
 
+    /**
+     * If the given string is surrounded by single or double
+     * quotes, returns what's inside the quotes. Otherwise
+     * returns the same string.
+     *
+     * <p>Returns null if the parameter is null.
+     */
+    public static String removeQuotes(String str) {
+        if (str == null) {
+            return null;
+        }
+        if (str.length() < 2) {
+            return str;
+        }
+        if (str.startsWith("\"") && str.endsWith("\"")
+            || str.startsWith("'") && str.endsWith("'")) {
+            return str.substring(1, str.length() - 1);
+        }
+        return str;
+    }
 }
