@@ -29,7 +29,6 @@ task copyLDSJar(type: Copy, dependsOn: generateLDSJar) {
 
 clean {
     doLast {
-        delete copyLSJar.outputs
         delete copySWTJars.outputs
         delete copyLDSJar.outputs
         delete 'out' // output of npmInstall - don't want to delete node_modules
