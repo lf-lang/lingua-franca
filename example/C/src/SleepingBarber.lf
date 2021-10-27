@@ -17,19 +17,20 @@
  * of time later. Execution ends when all customers have been
  * served.
  * 
- * This example is inspired by Savina benchmark by the same,
+ * This example is inspired by Savina benchmark by the same name,
  * which has a C target implementation here:
  * [https://github.com/lf-lang/lingua-franca/blob/master/benchmark/C/Savina/src/concurrency/SleepingBarber.lf].
- * Unlike the benchmark, this example illustrates a direct
+ * Like the benchmark, this example illustrates a direct
  * implementation that takes advantage of the semantics of
- * Lingua Franca to greatly simplify the problem.
+ * Lingua Franca to simplify the problem.
  * 
  * @author Thee Ho
  * @author Edward A. Lee
  */
  
 target C {
-    fast: true
+    fast: true,
+    files: ["/lib/C/util/deque.c", "/lib/C/util/deque.h"]
 };
 reactor Barber(
     cut_time:time(10 minutes), // (Logical) time spent serving a customer.
@@ -37,6 +38,8 @@ reactor Barber(
     num_customers:int(10)
 ) {
     preamble {=
+        #include "deque.h"
+
         // Return the customer waiting in the first non-empty
         // chair or -1 if there are no customers waiting.
         // Note that this is not fair. It is not FIFO.
@@ -129,6 +132,46 @@ reactor Barber(
     reaction(shutdown) {=
         info_print("Barber served a total of %d customers.", self->customers_served);
         free(self->chairs);
+    =}
+}
+
+reactor WaitingRoom(capacity:size_t(5), numCustomers:size_t(2000)) {    
+    input receiveCustomer: size_t;
+    
+    output[numCustomers] full: bool;
+    output[numCustomers] wait: bool;
+    
+    input barberNext: bool;
+    output barberEnter: size_t;
+    output barberWait: bool;
+    
+    state queue: deque_t;
+    state barberAsleep: bool(true);
+    
+    reaction (receiveCustomer) -> full, wait, barberEnter {=
+         size_t customer_id = receiveCustomer->value;
+         
+         if (self->queue.size == self->capacity) {
+             SET(full[customer_id], true);
+         } else {
+            if (self->barberAsleep) {
+                self->barberAsleep = false;
+                SET(barberEnter, customer_id);
+            } else {
+                deque_push_back(self->queue, customer_id);
+                SET(wait[customer_id], true);    
+            }
+        }
+    =}
+    
+    reaction (barberNext) -> barberEnter, barberWait {=
+        if (deque_is_empty(self->queue)) {
+            self->barberAsleep = true;
+            SET(barberWait, true);
+        } else {
+            SET(barberEnter, deque_peek_front(self->queue));
+            deque_pop_front(self->queue);
+        }
     =}
 }
 
