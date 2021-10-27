@@ -24,6 +24,8 @@ package org.lflang.tests.compiler;
 
 import java.util.Arrays;
 
+import org.junit.Assume;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.Target;
@@ -43,6 +45,21 @@ public class CodeGenCoverage extends AbstractTest {
     CodeGenCoverage() {
         super(Arrays.asList(Target.values()));
         this.codeCovOnly = true;
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsFederatedExecution() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsGenericTypes() {
+        return true;
     }
 
     @Test
@@ -78,7 +95,7 @@ public class CodeGenCoverage extends AbstractTest {
     @Test
     @Override
     public void runWithFourThreads() {
-        printSkipMessage(Message.DESC_FOUR_THREADS, Message.NOT_FOR_CODE_COV);
+        Assumptions.assumeFalse(true, Message.NOT_FOR_CODE_COV);
     }
 
     @Test
@@ -90,7 +107,7 @@ public class CodeGenCoverage extends AbstractTest {
     @Test
     @Override
     public void runAsFederated() {
-        printSkipMessage(Message.DESC_AS_FEDERATED, Message.NOT_FOR_CODE_COV);
+        Assumptions.assumeFalse(true, Message.NOT_FOR_CODE_COV);
     }
 
     @Test

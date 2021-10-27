@@ -2,6 +2,7 @@ package org.lflang.tests.runtime;
 
 import java.util.EnumSet;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.ASTUtils;
@@ -31,11 +32,7 @@ public class CCppTest extends TestBase {
      */
     @Test
     public void runAsCCpp() {
-        if(isWindows()) {
-            printSkipMessage(Message.DESC_AS_CCPP,
-                             Message.NO_WINDOWS_SUPPORT);
-            return;
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
 
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
         categories.removeAll(EnumSet.of(
