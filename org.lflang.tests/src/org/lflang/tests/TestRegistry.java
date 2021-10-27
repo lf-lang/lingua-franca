@@ -140,8 +140,23 @@ public class TestRegistry {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     public enum TestCategory {
-        CONCURRENT(true), GENERIC(true), MULTIPORT(true), SERIALIZATION(false), TARGET(false),
-        FEDERATED(true), EXAMPLE(false), EXAMPLE_TEST(false);
+        /** Tests about concurrent execution. */
+        CONCURRENT(true),
+        /** Generic tests, ie, tests that all targets are supposed to implement. */
+        GENERIC(true),
+        /** Tests about generics, not to confuse with {@link #GENERIC}. */
+        GENERICS(true),
+        /** Tests about multiports and banks of reactors. */
+        MULTIPORT(true),
+        /** Tests about federated execution. */
+        FEDERATED(true),
+
+        // non-shared tests
+
+        SERIALIZATION(false),
+        TARGET(false),
+        EXAMPLE(false),
+        EXAMPLE_TEST(false);
         
         /**
          * Whether or not we should compare coverage against other targets.
