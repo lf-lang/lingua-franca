@@ -78,10 +78,13 @@ public class FedASTUtils {
     }
     
     /**
-     * Create and return a network action in the 'rightFederate' for the 'connection'.
+     * Create and return a network action in the 'destinationFederate' for the 'connection'.
+     * This network action should be triggered asynchronously whenever a message is
+     * received from the source of the 'connection'. In C, for example, this is done
+     * in federate.c.
      * 
      * @param connection The network connection.
-     * @param rightFederate The destination federate.
+     * @param destinationFederate The destination federate.
      * @param serializer The serializer used on the connection
      * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param type The type of the source port (indicating the type of
@@ -90,13 +93,13 @@ public class FedASTUtils {
      */
     private static Action createNetworkAction(
             Connection connection,
-            FederateInstance rightFederate,
+            FederateInstance destinationFederate,
             SupportedSerializers serializer,
             GeneratorBase generator,
             Type type
             ) {
         LfFactory factory = LfFactory.eINSTANCE;
-        Reactor top = (Reactor) rightFederate.instantiation.eContainer();
+        Reactor top = (Reactor) destinationFederate.instantiation.eContainer();
 
         Action action = factory.createAction();
         // Name the newly created action; set its delay and type.
@@ -126,7 +129,7 @@ public class FedASTUtils {
             action.setOrigin(ActionOrigin.LOGICAL);
         }
 
-        rightFederate.networkMessageActions.add(action);
+        destinationFederate.networkMessageActions.add(action);
 
         // Add the action to the reactor.
         top.getActions().add(action);
@@ -148,10 +151,10 @@ public class FedASTUtils {
      * @param source The source port instance.
      * @param destination The destination port instance.
      * @param connection The network connection.
-     * @param leftFederate The source federate.
+     * @param sourceFederate The source federate.
      * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
      * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
-     * @param rightFederate The destination federate.
+     * @param destinationFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
      * @param generator The GeneratorBase instance used to perform some target-specific actions
@@ -161,10 +164,10 @@ public class FedASTUtils {
     private static void addNetworkReceiverReaction(PortInstance source,
             PortInstance destination,
             Connection connection, 
-            FederateInstance leftFederate,
+            FederateInstance sourceFederate,
             int leftBankIndex,
             int leftChannelIndex,
-            FederateInstance rightFederate,
+            FederateInstance destinationFederate,
             int rightBankIndex,
             int rightChannelIndex,
             GeneratorBase generator,
@@ -187,20 +190,20 @@ public class FedASTUtils {
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
-            rightFederate.inboundP2PConnections.add(leftFederate);
+            destinationFederate.inboundP2PConnections.add(sourceFederate);
         } else {
             // If the connection is logical but coordination
             // is decentralized, we would need
             // to make P2P connections
             if (coordination == CoordinationType.DECENTRALIZED) {
-                rightFederate.inboundP2PConnections.add(leftFederate);               
+                destinationFederate.inboundP2PConnections.add(sourceFederate);
             }
         }
         
         // Record this action in the right federate.
         // The ID of the receiving port (rightPort) is the position
         // of the action in this list.
-        int receivingPortID = rightFederate.networkMessageActions.size();
+        int receivingPortID = destinationFederate.networkMessageActions.size();
         
         // Establish references to the involved ports.
         sourceRef.setContainer(source.parent.getDefinition());
@@ -218,7 +221,7 @@ public class FedASTUtils {
             senderOutputPort.setVariable(source.getDefinition());
             networkReceiverReaction.getTriggers().add(senderOutputPort);
             // Add this trigger to the list of disconnected network reaction triggers
-            rightFederate.remoteNetworkReactionTriggers.add(senderOutputPort);
+            destinationFederate.remoteNetworkReactionTriggers.add(senderOutputPort);
         }
         
         // Add the input port at the receiver federate reactor as an effect
@@ -226,7 +229,7 @@ public class FedASTUtils {
         
         Action action = createNetworkAction(
                 connection, 
-                rightFederate, 
+                destinationFederate,
                 serializer, 
                 generator, 
                 EcoreUtil.copy(source.getDefinition().getType()));
@@ -244,8 +247,8 @@ public class FedASTUtils {
             sourceRef,
             destRef,
             receivingPortID,
-            leftFederate,
-            rightFederate,
+            sourceFederate,
+            destinationFederate,
             rightBankIndex,
             rightChannelIndex,
             JavaAstUtils.getInferredType(action),
@@ -258,7 +261,7 @@ public class FedASTUtils {
         
         // Add the network receiver reaction to the federate instance's list
         // of network reactions
-        rightFederate.networkReactions.add(networkReceiverReaction);
+        destinationFederate.networkReactions.add(networkReceiverReaction);
     }
     
     /**
@@ -481,17 +484,17 @@ public class FedASTUtils {
     /**
      * Add a network sender reaction for a given input port 'source' to
      * source's parent reactor. This reaction will react to the 'source'
-     * and then send a message on the network destined for the rightFederate.
+     * and then send a message on the network destined for the destinationFederate.
      * 
      * @note Used in federated execution
      * 
      * @param source The source port instance.
      * @param destination The destination port instance.
      * @param connection The network connection.
-     * @param leftFederate The source federate.
+     * @param sourceFederate The source federate.
      * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
      * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
-     * @param rightFederate The destination federate.
+     * @param destinationFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
      * @param generator The GeneratorBase instance used to perform some target-specific actions
@@ -502,10 +505,10 @@ public class FedASTUtils {
             PortInstance source,
             PortInstance destination,
             Connection connection, 
-            FederateInstance leftFederate,
+            FederateInstance sourceFederate,
             int leftBankIndex,
             int leftChannelIndex,
-            FederateInstance rightFederate,
+            FederateInstance destinationFederate,
             int rightBankIndex,
             int rightChannelIndex,
             GeneratorBase generator,
@@ -530,20 +533,20 @@ public class FedASTUtils {
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
-            leftFederate.outboundP2PConnections.add(rightFederate);
+            sourceFederate.outboundP2PConnections.add(destinationFederate);
         } else {
             // If the connection is logical but coordination
             // is decentralized, we would need
             // to make P2P connections
             if (coordination == CoordinationType.DECENTRALIZED) {
-                leftFederate.outboundP2PConnections.add(rightFederate);               
+                sourceFederate.outboundP2PConnections.add(destinationFederate);
             }
         }
         
         // Record this action in the right federate.
         // The ID of the receiving port (rightPort) is the position
         // of the action in this list.
-        int receivingPortID = rightFederate.networkMessageActions.size();
+        int receivingPortID = destinationFederate.networkMessageActions.size();
 
 
         // Establish references to the involved ports.
@@ -559,10 +562,10 @@ public class FedASTUtils {
             sourceRef,
             destRef,
             receivingPortID,
-            leftFederate,
+            sourceFederate,
             leftBankIndex,
             leftChannelIndex,
-            rightFederate,
+            destinationFederate,
             InferredType.fromAST(type),
             connection.isPhysical(),
             connection.getDelay(),
@@ -574,7 +577,7 @@ public class FedASTUtils {
         
         // Add the network sender reaction to the federate instance's list
         // of network reactions
-        leftFederate.networkReactions.add(networkSenderReaction);
+        sourceFederate.networkReactions.add(networkSenderReaction);
     }
 
     /**
@@ -689,10 +692,10 @@ public class FedASTUtils {
      * @param source The source port instance.
      * @param destination The destination port instance.
      * @param connection The connection.
-     * @param leftFederate The source federate.
+     * @param sourceFederate The source federate.
      * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
      * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
-     * @param rightFederate The destination federate.
+     * @param destinationFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
      * @param generator The GeneratorBase instance used to perform some target-specific actions
@@ -702,10 +705,10 @@ public class FedASTUtils {
             PortInstance source,
             PortInstance destination,
             Connection connection, 
-            FederateInstance leftFederate,
+            FederateInstance sourceFederate,
             int leftBankIndex,
             int leftChannelIndex,
-            FederateInstance rightFederate,
+            FederateInstance destinationFederate,
             int rightBankIndex,
             int rightChannelIndex,
             GeneratorBase generator,
@@ -726,10 +729,10 @@ public class FedASTUtils {
                 source,
                 destination,
                 connection, 
-                leftFederate, 
+                sourceFederate,
                 leftBankIndex, 
                 leftChannelIndex, 
-                rightFederate, 
+                destinationFederate,
                 rightBankIndex, 
                 rightChannelIndex, 
                 generator, 
@@ -741,16 +744,16 @@ public class FedASTUtils {
             
             // The ID of the receiving port (rightPort) is the position
             // of the action in this list.
-            int receivingPortID = rightFederate.networkMessageActions.size();
+            int receivingPortID = destinationFederate.networkMessageActions.size();
             
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(
                 source,
-                leftFederate,
+                sourceFederate,
                 receivingPortID,
                 leftBankIndex,
                 leftChannelIndex,
-                rightFederate.id,
+                destinationFederate.id,
                 generator,
                 connection.getDelay()
             );
@@ -761,20 +764,20 @@ public class FedASTUtils {
                 destination,
                 receivingPortID,
                 rightBankIndex,
-                rightFederate,
+                destinationFederate,
                 generator
             );
         }        
 
-        // Add the network receiver reaction in the rightFederate
+        // Add the network receiver reaction in the destinationFederate
         addNetworkReceiverReaction(
                 source, 
                 destination, 
                 connection, 
-                leftFederate, 
+                sourceFederate,
                 leftBankIndex, 
                 leftChannelIndex, 
-                rightFederate, 
+                destinationFederate,
                 rightBankIndex, 
                 rightChannelIndex, 
                 generator, 
