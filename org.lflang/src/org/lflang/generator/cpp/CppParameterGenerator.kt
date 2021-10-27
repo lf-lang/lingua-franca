@@ -41,7 +41,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
          */
         private fun Parameter.getInitializerList() = init.map {
             if (isOfTimeType) it.toTime()
-            else it.toCode()
+            else it.toCppCode()
         }
 
         /** Type of the parameter in C++ code */
