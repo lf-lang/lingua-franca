@@ -56,10 +56,9 @@ target C{
       else:
           cog.outl("threads: 0")
     ]]] */
-    threads: 0,
-    files: ["../include/PseudoRandom.h", "../include/deque.h"]
-    
+    threads: 0,    
     /// [[[end]]]
+    files: ["../include/PseudoRandom.h", "../include/deque.h"]
 };
 preamble {=
     #include "PseudoRandom.h"
@@ -67,31 +66,27 @@ preamble {=
     #include <float.h>
     long seed = 123456;
     typedef deque message_queue_t;
-    message_queue_t *message_queues = NULL;
+    typedef struct CreditMessage {
+        size_t recipient;
+        double amount;  
+    } credit_message_t;
+    
 =}
 
 
 reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     preamble {=
         struct pseudo_random *random_gen;
+        message_queue_t *message_queues = NULL;
     =}
 
-    reaction(startup) {=
+    reaction(startup) ->next {=
         if (!message_queues) {
             message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
         }
         random_gen = (struct pseudo_random *) malloc(sizeof(struct pseudo_random));
         init_pseudo_random(random_gen, seed);
-    =}
-
-    input start:bool;
-    
-    output[numAccounts] reset: bool; 
-    output[numAccounts] credit: credit_message_t;
-    
-    logical action next;
-    
-    reaction(start) -> reset, next {=
+        
         printf("Teller: Start a new iteration\n");
         
         // reset local state
@@ -99,9 +94,6 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
 
         // reset all accounts
         int i;
-        for (i = 0; i < self->numAccounts; i++) {
-            SET(reset[i], true);
-        }
             
         // generateWork();
         for (i = 0; i < self->numBankings; i++) {
@@ -117,15 +109,21 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             
             double amount = next_double(random_gen);
             
-            credit_message_t new_msg;
-            new_msg.recipient = dest_account;
-            new_msg.amount = amount;
+            credit_message_t *new_msg = (credit_message_t *) malloc(sizeof(credit_message_t));
+            new_msg->recipient = dest_account;
+            new_msg->amount = amount;
             deque_push_back(&(message_queues[src_account]), new_msg);
         }
                 
         // start execution
         schedule(next, 0);
     =}
+
+
+    output[numAccounts] credit: credit_message_t;
+    
+    logical action next;
+    
     
     reaction(next) -> next, credit {=
         printf("Teller: Sending a new round of credit messages\n");
@@ -135,9 +133,9 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             message_queue_t *queue = &(message_queues[i]);
             if (!deque_is_empty(queue)) {
                 work_found = 1;
-                credit_message_t message = deque_peek_front(queue);  
+                credit_message_t message = *((credit_message_t *) deque_peek_front(queue));  
                 SET(credit[message.recipient], message);
-                deque_pop_front(queue);
+                free(deque_pop_front(queue));
             }
         }
         
@@ -157,19 +155,13 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
 reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:size_t(50000)) {
     
     state balance: double(0);
-    state initialBalance: double(0);
-    input reset: bool; 
     input inCredit: credit_message_t;
    
     input[numAccounts] inDebit: double; 
     output[numAccounts] outDebit: double;
     
     reaction (startup) {=
-        self->initialBalance = DBL_MAX / (self->numAccounts * self->numTransactions);
-    =}
-
-    reaction (reset) {=
-        self->balance = self->initialBalance;
+        self->balance = DBL_MAX / (self->numAccounts * self->numTransactions); // initial balance for each account
     =}
     
     reaction (inCredit) -> outDebit {=
@@ -206,12 +198,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
     
     accounts = new[numAccounts] Account(numAccounts=numAccounts, numTransactions=numTransactions);
     
-    reaction(startup) -> teller.start {=
-        SET(teller.start, true);
-    =}
-    
     teller.credit -> accounts.inCredit;
-    teller.reset -> accounts.reset;
     accounts.outDebit -> interleaved(accounts.inDebit);
 
     reaction(shutdown) {=

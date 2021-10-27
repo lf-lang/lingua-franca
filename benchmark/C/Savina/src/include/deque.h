@@ -4,8 +4,8 @@
  * Supported Operations: deque_push_front, deque_push_back, deque_pop_front, deque_pop_back, deque_peek_front, 
  * deque_peek_back, deque_is_empty, deque_get_size.
  * 
- * To customize the use of the deque, a datatype should be specified for the values stored by changing the typedef
- * statement for value_t.
+ * Value stored in the deque is of type void* to make the use generic. Memory allocation/free should for Value (data stored in deque)
+ * should be handled outside the deque: memory should be dynamically allocated for value before every push and freed after every pop.
  * 
  * author: Arthur Deng
  */
@@ -13,15 +13,7 @@
 #ifndef DEQUE_H
 #define DEQUE_H
 
-// typedef int value_t --- example declaration of an integer deque
-
-// Type declaration specific to Banking.lf starts
-typedef struct CreditMessage {
-    size_t recipient;
-    double amount;  
-} credit_message_t;
-
-typedef credit_message_t value_t;
+typedef void* value_t;
 // Type declaration specific to Banking.lf ends
 
 typedef struct node {
@@ -135,7 +127,7 @@ void deque_push_back(struct deque* d, value_t val) {
 value_t deque_pop_front(struct deque* d) {
     if (d==NULL || d->front == NULL) {
         fprintf(stderr, "Error: popping from empty deque\n");
-        return (value_t) {0, 0};
+        return 0;
     }
     
     value_t value = d->front->value;
@@ -162,7 +154,7 @@ value_t deque_pop_front(struct deque* d) {
 value_t deque_pop_back(struct deque* d) {
     if (d==NULL || d->back == NULL) {
         fprintf(stderr, "Error: popping from empty deque\n");
-        return (value_t) {0, 0};
+        return 0;
     }
     
     value_t value = d->back->value;
@@ -188,7 +180,7 @@ value_t deque_pop_back(struct deque* d) {
 value_t deque_peek_front(struct deque* d) {
     if (d == NULL || d->front == NULL) {
         fprintf(stderr, "Error: peeking empty deque");
-        return (value_t) {0, 0};
+        return 0;
     }
     return d->front->value;
 }
@@ -203,7 +195,7 @@ value_t deque_peek_front(struct deque* d) {
 value_t deque_peek_back(struct deque* d) {
     if (d == NULL || d->back == NULL) {
         fprintf(stderr, "Error: peeking empty deque");
-        return (value_t) {0, 0};
+        return 0;
     }
     return d->back->value;
 }
