@@ -1,0 +1,432 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * In this benchmark, there are four main components: The barber, a waiting
+ * room, a customer factory and the customers. The customer factory controls the
+ * production of new customers and sends them to the waiting room. If the
+ * waiting room is full, then the customers return and try again later. If the
+ * waiting room has empty seats, then the customer enters and waits to be served
+ * by the barber. In the Savina implementation, the waiting room takes the role
+ * of a central manager. If the room is empty, it tells the barber to go sleep.
+ * If a customer comes and the barber sleeps, the waiting room wakes up the
+ * barber and sends the customer in to the barber to be served. When the barber
+ * finishes, the waiting room sends in the next customer. If there are no more
+ * customers, the waiting room tells the barber to sleep again.
+ *
+ * In the Akka implementation production of customers and processing at the
+ * barber happens at certain rates. The workload of the factory and the barber
+ * has a random length and the average workload duration is controlled by the
+ * rate parameters. Depending on the rates selected and the precise runtime
+ * scheduling, the waiting room will have a constantly changing state in an
+ * actor implementation.
+ *
+ * In an LF implementation, the processing time of the workload does not
+ * influence the logical arrival and processing rates. Even with a random
+ * workload, the customer factory and the barber could operate logically
+ * synchronously in LF. To mimic the behaviour of the original Akka
+ * implementation and to have a more realistic setup, this LF implementation
+ * also uses physical actions to provide varying logical (and physical) delays.
+ * This also ensures that the waiting room constantly changes state and fills up
+ * or empties out occasionally. Note that due to the use of physical actions,
+ * simultaneous events are very unlikely (if not impossible since two readings
+ * of the physical clock should always show an increment on common hardware).
+ * With our current runtime, this eliminates all opportunities for letting the
+ * barber and the factory operate in parallel. Since the complexity of
+ * computations involved in this benchmark is low, this isn't a problem for
+ * performance though.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Matthew Chorlian
+ */
+
+target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    files: "../include/PseudoRandom.h"
+};
+
+
+preamble {=
+    
+    #include "PseudoRandom.h"
+
+    size_t busyWait(size_t limit) {
+        size_t test = 0;
+        for(size_t k = 0; k < limit; k++) {
+            // Math.random() is used as workload in the original savina benchmark suite
+            // FIXME: What is equivalent in Cpp complexity-wise? maybe rand()??
+            rand();
+            test++;
+        }
+        return test;
+    }
+
+    //Arthur Deng's deque implementation:
+    
+    typedef struct node {
+        struct node *next;
+        struct node *prev;
+        size_t value;
+    } node;
+    
+    typedef struct deque {
+        struct node* front;
+        struct node* back;
+        size_t size;
+
+    } deque;
+    
+    deque* deque_initialize() {
+        // allocate space for deque
+        deque *p = (deque *) malloc (sizeof(deque));
+        if (p != NULL) {
+            p->front = NULL;
+            p->back = NULL;
+        }
+        return p;
+    }
+    
+    bool deque_is_empty(struct deque* d) {
+        if (d==NULL) {
+            return true;
+        } else if (d->front) {
+            return false;
+        }
+        return true;
+    }
+    
+    
+    node* _deque_create_node(size_t val) {
+    /*
+    * Function:  _deque_create_node
+    * --------------------
+    * allocates memory for new node in deque. Used internally by deque_push_front
+    * and deque_push_back. Memory is freed when node is popped using deque_pop_back
+    * and deque_pop_front.
+    *
+    *  val: value to be stored in the node
+    *
+    *  returns: pointer to the node
+
+    */
+        node *new_node = (struct node *) malloc(sizeof(struct node));
+        new_node->value = val;
+        new_node->next = NULL;
+        new_node->prev = NULL;
+        return new_node;
+    }
+    
+    void deque_push_front(struct deque* d, size_t val) {
+        node *n = _deque_create_node(val);
+        if (d->back == NULL) {
+            d->back = d->front = n;
+            d->size++;
+        } else {
+            d->front->prev = n;
+            n->next = d->front;
+            d->front = d->front->prev;
+            d->size++;
+        }
+    }
+    
+    void deque_push_back(struct deque* d, size_t val) {
+        node *n = _deque_create_node(val);
+        if (d->back == NULL) {
+            d->back = d->front = n;
+            d->size++;
+        } else {
+            d->back->next = n;
+            n->prev = d->back;
+            d->back = d->back->next;
+            d->size++;
+        }
+    }
+
+    size_t deque_pop_front(struct deque* d) {
+        if (d==NULL || d->front == NULL) {
+            fprintf(stderr, "Error: popping from empty deque\n");
+            return (size_t) {0};
+        }
+        
+        size_t value = d->front->value;
+        struct node *temp = d->front; // temporary pointer for freeing up memory
+        
+        if (d->front == d->back) { 
+            // popping last element in deque
+            d->front = d->back = NULL;
+        } else {
+            d->front = d->front->next;
+        }
+        free(temp); // free memory for popped node
+        d->size--;
+        return value;
+    }
+    
+    size_t deque_pop_back(struct deque* d) {
+        if (d==NULL || d->back == NULL) {
+            fprintf(stderr, "Error: popping from empty deque\n");
+            return (size_t) {0};
+        }
+        
+        size_t value = d->back->value;
+        struct node *temp = d->back; // temporary pointer for freeing up memory
+        if (d->front == d->back) { 
+            // popping last element in deque
+            d->front = d->back = NULL;
+        } else {
+            d->back = d->back->prev;
+        }
+        free(temp);
+        d->size--; 
+        return value;
+    }
+    
+    size_t deque_peek_back(struct deque* d) {
+        if (d == NULL || d->back == NULL) {
+            fprintf(stderr, "Error: peeking empty deque");
+            return (size_t) {0};
+        }
+        return d->back->value;
+    }
+    
+    size_t deque_peek_front(struct deque* d) {
+        if (d == NULL || d->front == NULL) {
+            fprintf(stderr, "Error: peeking empty deque");
+            return (size_t) {0};
+        }
+        return d->front->value;
+    }
+
+=}
+
+
+reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {
+    input start: bool;
+    output finished: bool;
+    
+    output sendCustomer: size_t;
+    input[numCustomers] customerDone: bool;
+    input[numCustomers] customerReturned: bool;
+
+    physical action createNextCustomer;
+    physical action sendCustomerAgain: size_t
+    
+    state doneCustomers: size_t(0);
+    state attempts: size_t(0);
+    state next_customer_id: size_t(0);
+    state random: PseudoRandom*;
+    
+    reaction(start) -> createNextCustomer {=
+        // reset state
+        self->doneCustomers = 0;
+        self->attempts = 0;
+        self->next_customer_id = 0;
+        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
+        // start "creating" customers
+        schedule(createNextCustomer, 0);
+    =}
+    
+    reaction (createNextCustomer) -> sendCustomer, createNextCustomer {=
+        // get a random production delay
+        self->random->mValue = self->averageProductionRate;
+        int delay = (nextInt(self->random) + 10);
+        
+        // apply a physical delay
+        busyWait(delay);
+        
+        // send the new customer to the waiting room
+        self->attempts++;
+        SET(sendCustomer, self->next_customer_id);
+        
+        self->next_customer_id++;
+        if (self->next_customer_id < self->numCustomers) {
+            // schedule again
+            schedule(createNextCustomer, 0);
+        }
+    =}
+    
+    reaction (sendCustomerAgain) -> sendCustomer {=
+        size_t customer_id = sendCustomerAgain->value;
+        self->attempts++;
+        SET(sendCustomer, customer_id);
+    =}
+    
+    reaction (customerReturned) -> sendCustomerAgain {=
+        for (size_t i = 0; i < self->numCustomers; i++) {
+            if (customerReturned[i]->is_present) {
+                /*
+                 * The customer returned because the waiting room is full. We
+                 * send the customer back again immediately. Due to the use of a
+                 * physical action, we always introduce a small logical delay,
+                 * which ensures that the program can move forward.
+                 */
+                schedule(sendCustomerAgain, i);                
+            }
+        }
+    =}
+    
+    reaction (customerDone) -> finished {=
+        for (size_t i = 0; i < self->numCustomers; i++) {
+            if (customerDone[i]->is_present) {
+                self->doneCustomers++;
+                if (self->doneCustomers == self->numCustomers) {
+                    SET(finished, true);
+                }
+            }
+        }
+    =}
+}
+
+reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
+    input reset:bool;
+    
+    input receiveCustomer: size_t;
+    
+    output[numCustomers] full: bool;
+    output[numCustomers] wait: bool;
+    
+    input barberNext: bool;
+    output barberEnter: size_t;
+    output barberWait: bool;
+    
+    state queue: deque*;
+    state barberAsleep: bool(true);
+    
+    reaction(reset) {=
+        self->barberAsleep = true;
+        self->queue = (deque *) calloc(self->numCustomers, sizeof(size_t));
+    =}
+    
+    reaction (receiveCustomer) -> full, wait, barberEnter {=
+         size_t customer_id = receiveCustomer->value;
+         
+         //FIXME: get size of queue
+         if (self->queue->size == self->capacity) {
+             SET(full[customer_id], true);
+         } else {
+            if (self->barberAsleep) {
+                self->barberAsleep = false;
+                SET(barberEnter, customer_id);
+            } else {
+                deque_push_back(self->queue, customer_id);
+                SET(wait[customer_id], true);    
+            }
+        }
+    =}
+    
+    reaction (barberNext) -> barberEnter, barberWait {=
+        if (deque_is_empty(self->queue)) {
+            self->barberAsleep = true;
+            SET(barberWait, true);
+        } else {
+            SET(barberEnter, deque_peek_front(self->queue));
+            deque_pop_front(self->queue);
+        }
+    =}
+}
+
+reactor Customer(bank_index:size_t(0)) {
+    input roomFull: bool;
+    input wait: bool;
+    input startCutting: bool;
+    input doneCutting: bool; 
+
+    output returned: bool;
+    output done: bool;
+    
+    reaction (roomFull) -> returned {=
+        SET(returned, true);
+    =}
+    
+    reaction (wait) {=
+    =}
+    
+    reaction (startCutting) {= 
+    =}
+    
+    reaction (doneCutting) -> done {=
+        SET(done, true);
+    =}
+}
+
+reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
+    input reset: bool;
+    input enter: size_t;
+    input wait: bool;
+        
+    output[numCustomers] startCutting: bool;
+    output[numCustomers] doneCutting: bool;
+    output next: bool;
+    
+    physical action done: size_t;
+    
+    state random: PseudoRandom*;
+    
+    reaction (reset) {=
+        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
+    =}
+      
+    reaction (done) -> doneCutting, next {=
+        size_t customer_id = done->value;
+        SET(doneCutting[customer_id], true);
+        SET(next, true);
+    =}
+    
+    reaction (enter) -> startCutting, done {=
+        size_t customer_id = enter->value;
+        SET(startCutting[customer_id], true);
+        
+        // calculate a random delay
+        self->random->mValue = self->averageHaircutRate;
+        int delay = nextInt(self->random) + 10;
+        
+        // do the actual cutting and apply a physical delay
+        busyWait(delay);
+        
+        // Notify the customer 
+        schedule(done, customer_id);
+    =}
+    
+    reaction (wait) {=
+    =}
+}
+
+
+/* [[[cog
+    cog.outl(f'main reactor (waitingRoomSize:size_t({waitingRoomSize}), averageProductionRate:size_t({averageProductionRate}), averageHaircutRate:size_t({averageHaircutRate}), numHaircuts:size_t({numHaircuts}))')
+]]] */
+main reactor (waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), averageHaircutRate:size_t(1000), numHaircuts:size_t(2000))
+/// [[[end]]]
+
+{
+    
+    factory = new CustomerFactory(numCustomers=numHaircuts, averageProductionRate=averageProductionRate);
+    room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
+    barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
+    customers = new[numHaircuts] Customer();
+    
+    reaction(startup) -> factory.start, barber.reset, room.reset {=
+        SET(factory.start, true);
+        SET(barber.reset, true);
+        SET(room.reset, true);
+    =}
+    
+    factory.sendCustomer -> room.receiveCustomer;
+    room.full -> customers.roomFull;
+    room.wait -> customers.wait;
+    room.barberEnter -> barber.enter;
+    room.barberWait -> barber.wait;
+    barber.next -> room.barberNext;
+    barber.startCutting -> customers.startCutting;
+    barber.doneCutting -> customers.doneCutting;
+    customers.done -> factory.customerDone;
+    
+    customers.returned -> factory.customerReturned;
+}

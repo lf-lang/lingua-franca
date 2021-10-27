@@ -9,11 +9,10 @@
  * https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
  * 
  */
-target C {
+target CCpp {
     coordination: decentralized,
     timeout: 10 sec,
-    cmake-include: "include/CMakeListsExtension.txt",
-    compiler: "g++"
+    cmake-include: "include/CMakeListsExtension.txt"
 };
 
 preamble {=

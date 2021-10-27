@@ -24,7 +24,6 @@ targets:
       num_workers: ["-w", "<value>"]
       size: ["-n", "<value>"]
       threshold: ["-t", "<value>"]
-      priorities: ["-p", "<value>"]
       solution_limit: ["-s", "<value>"]
   lf-cpp:
     copy_sources:

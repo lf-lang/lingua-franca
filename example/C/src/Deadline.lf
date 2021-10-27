@@ -40,8 +40,8 @@ reactor Sensor {
     output y:bool;
     
     reaction(startup) -> response {=
-        pthread_t thread_id;
-        pthread_create(&thread_id, NULL, &read_input, response);
+        lf_thread_t thread_id;
+        lf_thread_create(&thread_id, &read_input, response);
         printf("Press Enter to produce a sensor value.\n");     
     =}
 

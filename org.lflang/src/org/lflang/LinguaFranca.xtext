@@ -227,7 +227,7 @@ Instantiation:
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
-    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
     (delay=Delay)?
@@ -251,12 +251,12 @@ Serializer:
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
+    {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
-Array:
+Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
     
 Element:
@@ -405,6 +405,7 @@ terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 terminal INT returns ecore::EInt:     ('0'..'9')+;
 terminal NEGINT:                  '-' ('0'..'9')+;
 
+terminal FLOAT_EXP_SUFFIX: INT ('e' | 'E') ('+' | '-')? INT;
 
 terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
@@ -451,7 +452,7 @@ IPV6Addr:
 
 
 SignedFloat:
-    '-'? INT '.' INT;
+    (SignedInt | '-')? '.' (INT | FLOAT_EXP_SUFFIX);
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
@@ -502,7 +503,7 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 

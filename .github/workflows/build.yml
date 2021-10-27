@@ -2,12 +2,13 @@
 
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+
 on:
+  # Trigger this workflow on push events, but only on master.
   push:
-    branches-ignore:
-      - 'nightly'
+    branches:
+      - master
+  # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
   pull_request:
     branches-ignore:
       - 'nightly'
@@ -36,22 +37,51 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v1 
+        uses: codecov/codecov-action@v2.1.0 
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos 
-          files: $GITHUB_WORKSPACE/org.lflang.tests/build/reports/xml/jacoco
+          file: org.lflang.tests/build/reports/xml/jacoco
           # gcov_prefix: 
           # optional flags: unittests 
           # optional name: codecov-umbrella 
-          # optional fail_ci_if_error: true 
+          fail_ci_if_error: false
           # optional (default = false) 
           verbose: true # optional (default = false)
         if: runner.os == 'Linux'
 
+  standalone-lfc-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 11
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Run standalone lfc tests
+        run: |
+          ./gradlew :org.lflang.lfc:test --stacktrace
+      - name: Test Bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lfc.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test PowerShell script (Windows only)
+        run: |
+          ./gradlew buildLfc
+          bin/lfc.ps1 --help
+        if: ${{ runner.os == 'Windows' }}
+
   c-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
@@ -60,6 +90,8 @@ jobs:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       # - name: Cache protobuf library # Thanks to https://lukasjoswiak.com/github-actions-protobuf/
       #   id: cache-protobuf
       #   uses: actions/cache@v1
@@ -100,16 +132,52 @@ jobs:
 #         if: runner.os == 'Windows'
       - name: Install RTI;
         run: |
-          cd org.lflang/src/lib/core/federated/RTI
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
           mkdir build
           cd build
           cmake ../
           make
           sudo make install
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
-  
+
+  ccpp-tests:
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install Dependencies Ubuntu
+        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+        if: runner.os == 'Linux'
+      - name: Install Dependencies OS X
+        run: |
+          brew install protobuf
+          brew install protobuf-c
+          brew install coreutils
+        if: runner.os == 'macOS'
+      - name: Install RTI;
+        run: |
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
+          mkdir build
+          cd build
+          cmake ../
+          make
+          sudo make install
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Run C tests;
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
+
   cpp-tests:
     strategy:
       matrix:
@@ -158,12 +226,6 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        if: runner.os == 'Windows'
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
@@ -181,7 +243,7 @@ jobs:
   python-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
@@ -202,18 +264,43 @@ jobs:
       - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgArguments: protobuf
+          vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+          vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+          vcpkgTriplet: x64-windows-static
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-  
-  benchmark-tests:
+
+  rust-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [nightly]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          components: clippy
+      - uses: actions/checkout@v2
+      - name: Run Rust tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+
+  c-benchmark-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Java JDK
@@ -224,7 +311,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2      
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Install python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
       - name: Build lfc;
@@ -233,10 +322,42 @@ jobs:
       - name: "Set LF_PATH environmental variable"
         run: |
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-      # this tests all benchmarks for all lf targets
+      # This tests all benchmarks for the C target.
       - name: run tests;
         run: |
-          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target="glob(lf-*)" iterations=1
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded iterations=1
+  cpp-benchmark-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install python dependencies
+        run: pip3 install -r benchmark/runner/requirements.txt      
+      - name: Build lfc;
+        run: |
+          ./gradlew buildLfc
+      - name: Build Minimal.lf to obtain reactor-cpp;
+        run: |
+          ./bin/lfc test/Cpp/src/Minimal.lf
+      - name: "Set LF_PATH environmental variable"
+        run: |
+          echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: "Set LD_LIBRARY_PATH variable"
+        run: |
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
+      # this tests all benchmarks using the pre-compiled reactor-cpp
+      - name: run tests;
+        run: |
+          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 target.params.extra_args="[--external-runtime-path, ${GITHUB_WORKSPACE}/test/Cpp]"
       
 
     
