@@ -716,7 +716,7 @@ public class FedASTUtils {
         if (!connection.isPhysical()) {
             
             // The ID of the receiving port (rightPort) is the position
-            // of the action in this list.
+            // of the networkAction (see below) in this list.
             int receivingPortID = destinationFederate.networkMessageActions.size();
             
             // Add the network output control reaction to the parent
