@@ -136,14 +136,14 @@ public class FedASTUtils {
     /**
      * Add a network receiver reaction for a given input port 'destination' to
      * destination's parent reactor. This reaction will react to a generated
-     * network action (triggered asynchronously, e.g., by federate.c). This
-     * network action will contain the actual message that is sent by the sender
+     * 'networkAction' (triggered asynchronously, e.g., by federate.c). This
+     * 'networkAction' will contain the actual message that is sent by the sender
      * in 'action->value'. This value is forwarded to 'destination' in the network
      * receiver reaction.
      * 
      * @note: Used in federated execution
      * 
-     * 
+     * @param networkAction The network action (also, @see createNetworkAction)
      * @param source The source port instance.
      * @param destination The destination port instance.
      * @param connection The network connection.
@@ -155,7 +155,9 @@ public class FedASTUtils {
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      * @param serializer The serializer used on the connection
      */
-    private static void addNetworkReceiverReaction(PortInstance source,
+    private static void addNetworkReceiverReaction(
+            Action networkAction,
+            PortInstance source,
             PortInstance destination,
             Connection connection, 
             FederateInstance sourceFederate,
@@ -219,29 +221,16 @@ public class FedASTUtils {
         // Add the input port at the receiver federate reactor as an effect
         networkReceiverReaction.getEffects().add(destRef);
         
-        Action action = createNetworkAction(
-                connection, 
-                destinationFederate,
-                serializer,
-                EcoreUtil.copy(source.getDefinition().getType()),
-                generator.getNetworkBufferType());
-
-        // Keep track of this action in the destination federate.
-        destinationFederate.networkMessageActions.add(action);
-
-        // Add the action definition to the parent reactor.
-        parent.getActions().add(action);
-        
         VarRef triggerRef = factory.createVarRef();
         // Establish references to the action.
-        triggerRef.setVariable(action);
+        triggerRef.setVariable(networkAction);
         // Add the action as a trigger to the receiver reaction
         networkReceiverReaction.getTriggers().add(triggerRef);
         
         // Generate code for the network receiver reaction
         networkReceiverReaction.setCode(factory.createCode());
         networkReceiverReaction.getCode().setBody(generator.generateNetworkReceiverBody(
-            action,
+            networkAction,
             sourceRef,
             destRef,
             receivingPortID,
@@ -249,7 +238,7 @@ public class FedASTUtils {
             destinationFederate,
             rightBankIndex,
             rightChannelIndex,
-            JavaAstUtils.getInferredType(action),
+            JavaAstUtils.getInferredType(networkAction),
             connection.isPhysical(),
             serializer
         ));
@@ -751,10 +740,25 @@ public class FedASTUtils {
                 destinationFederate,
                 generator
             );
-        }        
+        }
+
+        // Create the network action (@see createNetworkAction)
+        Action networkAction = createNetworkAction(
+            connection,
+            destinationFederate,
+            serializer,
+            EcoreUtil.copy(source.getDefinition().getType()),
+            generator.getNetworkBufferType());
+
+        // Keep track of this action in the destination federate.
+        destinationFederate.networkMessageActions.add(networkAction);
+
+        // Add the action definition to the parent reactor.
+        ((Reactor)connection.eContainer()).getActions().add(networkAction);
 
         // Add the network receiver reaction in the destinationFederate
         addNetworkReceiverReaction(
+                networkAction,
                 source, 
                 destination, 
                 connection, 
