@@ -3,8 +3,8 @@ name: "Trapezoidal Approximation"
 params:
   pieces: 10000000
   workers: 100
-  left: 1
-  right: 5
+  left: 1.0
+  right: 5.0
 
 # target specific configuration
 targets:

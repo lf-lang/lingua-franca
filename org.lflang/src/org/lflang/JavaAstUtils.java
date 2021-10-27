@@ -25,6 +25,8 @@
 package org.lflang;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.lflang.lf.Action;
 import org.lflang.lf.Parameter;
@@ -38,6 +40,8 @@ import org.lflang.lf.Value;
  * converted from {@link ASTUtils}.
  */
 public final class JavaAstUtils {
+    /* Match an abbreviated form of a float literal. */
+    private static final Pattern ABBREVIATED_FLOAT = Pattern.compile("[+\\-]?\\.\\d+[\\deE+\\-]*");
 
     private JavaAstUtils() {
         // utility class
@@ -145,4 +149,16 @@ public final class JavaAstUtils {
         return getInferredType(p.getType(), null);
     }
 
+    /**
+     * If the given string can be recognized as a floating-point number that has a leading decimal point, 
+     * prepend the string with a zero and return it. Otherwise, return the original string.
+     * @param literal A string might be recognizable as a floating point number with a leading decimal point.
+     * @return an equivalent representation of <code>literal
+     * </code>
+     */
+    public static String addZeroToLeadingDot(String literal) {
+        Matcher m = ABBREVIATED_FLOAT.matcher(literal);
+        if (m.matches()) return literal.replace(".", "0.");
+        return literal;
+    }
 }

@@ -548,7 +548,7 @@ class CGenerator extends GeneratorBase {
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
-                    federates.size, 
+                    Math.max(federates.size, 1), 
                     Runtime.getRuntime().availableProcessors()
                 )
             )

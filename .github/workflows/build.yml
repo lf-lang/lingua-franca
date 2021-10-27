@@ -63,9 +63,20 @@ jobs:
           java-version: 11
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      - name: Run standalone LFC tests
+        with:
+          submodules: true
+      - name: Run standalone lfc tests
         run: |
           ./gradlew :org.lflang.lfc:test --stacktrace
+      - name: Test Bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lfc.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test PowerShell script (Windows only)
+        run: |
+          ./gradlew buildLfc
+          bin/lfc.ps1 --help
+        if: ${{ runner.os == 'Windows' }}
 
   c-tests:
     strategy:
