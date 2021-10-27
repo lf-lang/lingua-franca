@@ -88,8 +88,8 @@ public class FedASTUtils {
      * @param serializer The serializer used on the connection
      * @param type The type of the source port (indicating the type of
      *  data being received).
-     * @param networkBufferType The type of buffer used for network
-     *  communication in the target.
+     * @param networkBufferType The type of the buffer used for network
+     *  communication in the target (e.g., uint8_t* in C).
      * @return The network action that is created
      */
     private static Action createNetworkAction(
