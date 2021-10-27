@@ -3,6 +3,6 @@ prepare: ["mkdir", "src"]
 copy: ["cp", "-r", "${benchmark.targets.lf-rust.copy_sources}", "src"]
 gen: null
 compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-rust.lf_file}"]
-run: ["bash", "-c", "seq ${iterations} | xargs -I{} bin/${benchmark.targets.lf-rust.binary}"]
+run: ["bash", "-c", "seq ${iterations} | xargs -I{} bin/${benchmark.targets.lf-rust.binary} --threads ${threads}"]
 parser:
   _target_: "parser.parse_lf_rust_output"
