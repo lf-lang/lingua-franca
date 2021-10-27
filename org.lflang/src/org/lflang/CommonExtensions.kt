@@ -26,7 +26,7 @@ package org.lflang
 
 import org.lflang.generator.TargetCode
 import org.lflang.util.StringUtil
-import java.util.Locale
+import java.util.*
 
 /**
  * Parse and return an integer from this string, much
@@ -61,9 +61,23 @@ internal fun <T> List<T>.headAndTail() = Pair(first(), tail())
 
 /**
  * Return [this] string surrounded with double quotes.
+ * This escapes the string's content (see [escapeStringLiteral]).
  */
-internal fun String.withDQuotes() = "\"$this\""
+internal fun String.withDQuotes() = "\"${this.escapeStringLiteral()}\""
 
+/**
+ * Return [this] string with some common escapes to place it
+ * into a string literal.
+ */
+fun String.escapeStringLiteral() =
+    replace(Regex("[\\\\ \t\"]")) {
+        when (it.value) {
+            "\\" -> "\\\\"
+            "\t" -> "\\t"
+            "\"" -> "\\\""
+            else -> it.value
+        }
+    }
 
 /**
  * Remove quotation marks (double XOR single quotes)
