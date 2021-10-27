@@ -33,6 +33,9 @@ from subprocess import check_call
 from fnmatch import fnmatch
 from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
+IGNORED_JARS = [
+    'org.apache.ant*'
+]
 IGNORE_NESTED_JARS = [
 ]
 IGNORED_FILES = [
