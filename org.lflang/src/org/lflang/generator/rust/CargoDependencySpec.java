@@ -122,11 +122,10 @@ public class CargoDependencySpec {
     }
 
     private static CargoDependencySpec parseValue(KeyValuePair pair) {
-        /** FIXME: Does not compile in Eclipse.
-        boolean isRuntimeCrate = pair.getName().equals(RustEmitterBase.runtimeCrateFullName);
+        // note that we hardcode the value because RustEmitterBase is a
+        // kotlin class and we can't depend on it to use a constant.
+        boolean isRuntimeCrate = pair.getName().equals("reactor_rt");
         return parseValue(pair.getValue(), isRuntimeCrate);
-        */
-        return null;
     }
 
     /**
