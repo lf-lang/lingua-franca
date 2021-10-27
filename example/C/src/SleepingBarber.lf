@@ -216,6 +216,9 @@ main reactor (
         num_chairs=num_chairs,
         num_customers=num_customers
     );
+    
+    waiting = new WaitingRoom();
+    
     customers = new[num_customers] Customer(
         retry_time = retry_time
     );

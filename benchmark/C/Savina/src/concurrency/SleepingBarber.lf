@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2020 TU Dresden
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
  *
  * In this benchmark, there are four main components: The barber, a waiting
  * room, a customer factory and the customers. The customer factory controls the
