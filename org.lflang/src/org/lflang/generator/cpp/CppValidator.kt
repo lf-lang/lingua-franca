@@ -48,14 +48,14 @@ class CppValidator(
         CLANG_TIDY({ _, _, _ -> }, PerLineReportingStrategy(clangTidyErrorLine), 5) {
             override fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand? {
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${validator.cppStandard}")
-                validator.includes.forEach { args.add("-I${it}") }
+                validator.includes.forEach { args.add("-I$it") }
                 return LFCommand.get("clang-tidy", args, validator.fileConfig.outPath)
             }
         },
         GXX(PerLineReportingStrategy(gxxErrorLine), { _, _, _ -> }, 1) {
             override fun getCommand(validator: CppValidator, generatedFile: Path): LFCommand? {
                 val args: MutableList<String> = mutableListOf("-fsyntax-only", "-Wall", "-std=c++${validator.cppStandard}")
-                validator.includes.forEach { args.add("-I${it}") }
+                validator.includes.forEach { args.add("-I$it") }
                 args.add(generatedFile.toString())
                 return LFCommand.get("g++", args, validator.fileConfig.outPath)
             }
@@ -121,7 +121,6 @@ class CppValidator(
     private fun getValidationStrategies(): List<Pair<CppValidationStrategy, LFCommand>> {
         val commands = mutableListOf<Pair<CppValidationStrategy, LFCommand>>()
         for (generatedFile: Path in codeMaps.keys) {
-            // FIXME: Respond to cancel. Only validate changed files?
             val p = getValidationStrategy(generatedFile)
             val (strategy, command) = p
             if (strategy == null || command == null) continue

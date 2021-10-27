@@ -1,6 +1,7 @@
 package org.lflang.generator;
 
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -217,9 +218,10 @@ public class CodeMap {
     public static CodeMap fromGeneratedCode(String internalGeneratedCode) {
         Map<Path, NavigableMap<Range, Range>> map = new HashMap<>();
         StringBuilder generatedCode = new StringBuilder();
-        String[] lines = internalGeneratedCode.lines().toArray(String[]::new);
-        for (int zeroBasedLine = 0; zeroBasedLine < lines.length; zeroBasedLine++) {
-            generatedCode.append(processGeneratedLine(lines[zeroBasedLine], zeroBasedLine, map)).append('\n');
+        Iterator<String> it = internalGeneratedCode.lines().iterator();
+        int zeroBasedLine = 0;
+        while (it.hasNext()) {
+            generatedCode.append(processGeneratedLine(it.next(), zeroBasedLine++, map)).append('\n');
         }
         return new CodeMap(generatedCode.toString(), map);
     }

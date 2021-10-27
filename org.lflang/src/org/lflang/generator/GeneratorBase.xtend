@@ -1226,7 +1226,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 }
                 message.append(line);
             }
-        } // FIXME: This is apparently copy-pasted from above. This method needs to be refactored.
+        }
         if (message.length > 0) {
             if (severity == IMarker.SEVERITY_ERROR) {
                 errorReporter.reportError(path, lineNumber, message.toString())
