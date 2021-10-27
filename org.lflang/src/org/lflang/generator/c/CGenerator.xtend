@@ -1152,6 +1152,8 @@ class CGenerator extends GeneratorBase {
      * are specific to the OS/underlying hardware, which is detected here automatically.
      */
     def addPlatformFiles(ArrayList<String> coreFiles) {
+        // All platforms use this one.
+        coreFiles.add("platform/lf_tag_64_32.h");
         // Check the operating system
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
