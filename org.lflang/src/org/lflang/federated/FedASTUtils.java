@@ -83,8 +83,7 @@ public class FedASTUtils {
      * @param connection The network connection.
      * @param rightFederate The destination federate.
      * @param serializer The serializer used on the connection
-     * @param generator The GeneratorBase instance used to identify certain
-     *  target properties
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param type The type of the source port (indicating the type of
      *  data being received.
      * @return The network action that is created
@@ -155,8 +154,7 @@ public class FedASTUtils {
      * @param rightFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
-     * @param generator The GeneratorBase instance used to identify certain
-     *  target properties
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      * @param serializer The serializer used on the connection
      */
@@ -279,8 +277,7 @@ public class FedASTUtils {
      * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
-     * @param generator The GeneratorBase instance used to identify certain
-     *  target properties
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      */
     private static void addNetworkInputControlReaction(
             PortInstance source,
@@ -369,9 +366,9 @@ public class FedASTUtils {
      * An STP offset predicate can be nested in contained reactors in
      * the federate.
      * @param port The port to generate the STP list for.
-     * @param generator The instance of GeneratorBase
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param reactor The top-level reactor (not the federate reactor)
-     * @return
+     * @return The maximum STP as a TimeValue
      */
     private static TimeValue findMaxSTP(Variable port,
             FederateInstance instance,
@@ -497,8 +494,7 @@ public class FedASTUtils {
      * @param rightFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
-     * @param generator The GeneratorBase instance used to identify certain
-     *  target properties
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      * @param serializer The serializer used on the connection
      */
@@ -595,8 +591,7 @@ public class FedASTUtils {
      * @param channelIndex The channel index of the sending port, if it is a multiport.
      * @param bankIndex The bank index of the sending federate, if it is a bank.
      * @param receivingFedID The ID of destination federate.
-     * @param generator The GeneratorBase instance used to identify certain
-     *        target properties
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param delay The delay value imposed on the connection using after
      */
     private static void addNetworkOutputControlReaction(
@@ -700,7 +695,7 @@ public class FedASTUtils {
      * @param rightFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
-     * @param generator The generator.
+     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      */
     public static void makeCommunication(
