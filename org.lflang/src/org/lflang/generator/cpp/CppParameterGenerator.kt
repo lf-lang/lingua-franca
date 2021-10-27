@@ -39,7 +39,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
 
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String
-            get() = targetType + CppTypes.getCppInitializerList(init, type)
+            get() = CppTypes.getCppInitializerList(init, type)
 
         /** Get a C++ type that is a const reference to the parameter type */
         val Parameter.constRefType: String

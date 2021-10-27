@@ -70,7 +70,7 @@ fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
                 if ((variable as Port).isMultiport) "(${container.name}.size() * ${container.name}[0]->${variable.name}.size())"
                 else "${container.name}.size()"
             } else {
-                if ((variable as Port).isMultiport) "${name}.size()"
+                if ((variable as Port).isMultiport) "$name.size()"
                 else "1"
             }
         }
@@ -122,18 +122,4 @@ val InferredType.cppType: String
     get() = CppTypes.getTargetType(this)
 
 
-fun CppTypes.getCppInitializerList(init: Initializer?, type: Type?): String {
-    val items = if (init == null) {
-        missingExpr
-    } else {
-        val inferredType = JavaAstUtils.getInferredType(type, init)
-        val single = JavaAstUtils.asSingleValue(init)
-        single?.let { getTargetExpr(it, inferredType) }
-            ?: init.exprs.joinToString {
-                val itemType = if (type?.isTime == true) InferredType.time() else null
-                getTargetExpr(it, itemType)
-            }
-    }
-
-    return if (init?.isBraces == true) "{$items}" else "($items)"
-}
+fun CppTypes.getCppInitializerList(init: Initializer?, type: Type?): String = getTargetInitializer(init, type)

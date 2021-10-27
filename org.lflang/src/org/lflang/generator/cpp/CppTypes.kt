@@ -45,10 +45,10 @@ object CppTypes : TargetTypes {
     override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
     override fun getTargetInitializer(init: Initializer?, type: Type?): String {
+        val inferredType = JavaAstUtils.getInferredType(type, init)
         if (init == null) {
             return missingExpr
         }
-        val inferredType = JavaAstUtils.getInferredType(type, init)
         return init.exprs.singleOrNull()?.let { getTargetExpr(it, inferredType) }
             ?: buildString {
                 // != 1 expr

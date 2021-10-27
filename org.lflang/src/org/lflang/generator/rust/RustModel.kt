@@ -552,7 +552,7 @@ object RustModelBuilder {
                     StateVarInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        init = it.init?.let { init -> RustTypes.getTargetInitializer(init, it.type) }
+                        init = RustTypes.getTargetInitializer(it.init, it.type),
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },

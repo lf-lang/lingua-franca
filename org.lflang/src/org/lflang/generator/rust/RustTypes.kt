@@ -72,10 +72,10 @@ object RustTypes : TargetTypes {
     }
 
     override fun getTargetInitializer(init: Initializer?, type: Type?): String {
+        val inferredType: InferredType = JavaAstUtils.getInferredType(type, init)
         if (init == null) {
             return missingExpr
         }
-        val inferredType: InferredType = JavaAstUtils.getInferredType(type, init)
         return init.exprs.singleOrNull()?.let { getTargetExpr(it, inferredType) }
             ?: if (inferredType.isFixedSizeList)
                 init.exprs.joinToString(", ", "[", "]") { getTargetExpr(it, null) }
@@ -84,9 +84,11 @@ object RustTypes : TargetTypes {
 
     }
 
-    override fun getMissingExpr(type: InferredType): String =
-        "<${getTargetType(type)} as Default>::default()"
+    override fun getMissingExpr(): String =
+        "Default::default()"
+
 }
+
 
 val RustKeywords = setOf(
     // https://doc.rust-lang.org/reference/keywords.html
