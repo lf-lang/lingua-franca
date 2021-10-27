@@ -120,7 +120,7 @@ reactor Teller(numAccounts:size_t(1000), numBankings:size_t(50000)) {
             if (!queue.empty()) {
                 work_found = true;
                 const auto& message = queue.front();  
-                credit[message.recipient].set(message);
+                credit[i].set(message);
                 queue.pop_front();
             }
         }
