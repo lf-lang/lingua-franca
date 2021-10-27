@@ -74,7 +74,7 @@ public class FedASTUtils {
      * @return Empty list or the original list
      */
     public static <E> List<E> safe(List<E> list) {
-        return list == null ? Collections.<E>emptyList() : list;
+        return list == null ? Collections.emptyList() : list;
     }
     
     /**
@@ -86,9 +86,8 @@ public class FedASTUtils {
      * @param connection The network connection.
      * @param destinationFederate The destination federate.
      * @param serializer The serializer used on the connection
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param type The type of the source port (indicating the type of
-     *  data being received.
+     *  data being received).
      * @param networkBufferType The type of buffer used for network
      *  communication in the target.
      * @return The network action that is created
@@ -130,11 +129,6 @@ public class FedASTUtils {
         } else {
             action.setOrigin(ActionOrigin.LOGICAL);
         }
-
-        destinationFederate.networkMessageActions.add(action);
-
-        // Add the action to the reactor.
-        top.getActions().add(action);
         
         return action;
     }
@@ -147,15 +141,13 @@ public class FedASTUtils {
      * in 'action->value'. This value is forwarded to 'destination' in the network
      * receiver reaction.
      * 
-     * @note Used in federated execution
+     * @note: Used in federated execution
      * 
      * 
      * @param source The source port instance.
      * @param destination The destination port instance.
      * @param connection The network connection.
      * @param sourceFederate The source federate.
-     * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
-     * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
      * @param destinationFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
@@ -167,8 +159,6 @@ public class FedASTUtils {
             PortInstance destination,
             Connection connection, 
             FederateInstance sourceFederate,
-            int leftBankIndex,
-            int leftChannelIndex,
             FederateInstance destinationFederate,
             int rightBankIndex,
             int rightChannelIndex,
@@ -232,10 +222,15 @@ public class FedASTUtils {
         Action action = createNetworkAction(
                 connection, 
                 destinationFederate,
-                serializer, 
-                generator, 
+                serializer,
                 EcoreUtil.copy(source.getDefinition().getType()),
                 generator.getNetworkBufferType());
+
+        // Keep track of this action in the destination federate.
+        destinationFederate.networkMessageActions.add(action);
+
+        // Add the action definition to the parent reactor.
+        parent.getActions().add(action);
         
         VarRef triggerRef = factory.createVarRef();
         // Establish references to the action.
@@ -322,7 +317,7 @@ public class FedASTUtils {
         top.getInputs().add(newTriggerForControlReactionInput);
 
         // Create the trigger for the reaction
-        VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
+        VarRef newTriggerForControlReaction = factory.createVarRef();
         newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
         
         // Add the appropriate triggers to the list of triggers of the reaction
@@ -380,35 +375,33 @@ public class FedASTUtils {
             FederateInstance instance,
             GeneratorBase generator, Reactor reactor) {
         // Find a list of STP offsets (if any exists)
-        List<Value> STPList = new LinkedList<Value>();
+        List<Value> STPList = new LinkedList<>();
         
         // First, check if there are any connections to contained reactors that
         // need to be handled
         List<Connection> connectionsWithPort = ASTUtils
-                .allConnections(reactor).stream().filter(c -> {
-                    return c.getLeftPorts().stream().anyMatch((VarRef v) -> {
-                        return v.getVariable().equals(port);
-                    });
-                }).collect(Collectors.toList());
+            .allConnections(reactor).stream().filter(c -> c.getLeftPorts()
+                                                           .stream()
+                                                           .anyMatch((VarRef v) -> v
+                                                               .getVariable().equals(port)))
+            .collect(Collectors.toList());
 
 
         // Find the list of reactions that have the port as trigger or source
         // (could be a variable name)
         List<Reaction> reactionsWithPort = ASTUtils
                 .allReactions(reactor).stream().filter(r -> {
-                    return (// Check the triggers of reaction r first
-                    r.getTriggers().stream().anyMatch(t -> {
-                        if (t instanceof VarRef) {
-                            // Check if the variables match
-                            return ((VarRef) t).getVariable() == port;
-                        } else {
-                            // Not a network port (startup or shutdown)
-                            return false;
-                        }
-                    }) || // Then check the sources of reaction r
-                    r.getSources().stream().anyMatch(s -> {
-                        return s.getVariable() == port;
-                    }));
+                // Check the triggers of reaction r first
+                return r.getTriggers().stream().anyMatch(t -> {
+                    if (t instanceof VarRef) {
+                        // Check if the variables match
+                        return ((VarRef) t).getVariable() == port;
+                    } else {
+                        // Not a network port (startup or shutdown)
+                        return false;
+                    }
+                }) || // Then check the sources of reaction r
+                r.getSources().stream().anyMatch(s -> s.getVariable() == port);
                 }).collect(Collectors.toList());
         
         // Find a list of STP offsets (if any exists)
@@ -421,9 +414,9 @@ public class FedASTUtils {
                 // If not, assume it is zero
                 if (r.getStp() != null) {
                     if (r.getStp().getValue().getParameter() != null) {
-                        List<Instantiation> instantList = new ArrayList<Instantiation>();
+                        List<Instantiation> instantList = new ArrayList<>();
                         instantList.add(instance.instantiation);
-                        STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
+                        STPList.addAll(ASTUtils.initialValue(r.getStp().getValue().getParameter(), instantList));
                     } else {
                         STPList.add(r.getStp().getValue());
                     }
@@ -437,22 +430,18 @@ public class FedASTUtils {
                 // Find the list of reactions that have the port as trigger or
                 // source (could be a variable name)
                 List<Reaction> childReactionsWithPort = ASTUtils
-                        .allReactions(childReactor).stream().filter(r -> {
-                            return (r.getTriggers().stream().anyMatch(t -> {
-                                if (t instanceof VarRef) {
-                                    // Check if the variables match
-                                    return ((VarRef) t)
-                                            .getVariable() == childPort
-                                                    .getVariable();
-                                } else {
-                                    // Not a network port (startup or shutdown)
-                                    return false;
-                                }
-                            }) || r.getSources().stream().anyMatch(s -> {
-                                return s.getVariable() == childPort
-                                        .getVariable();
-                            }));
-                        }).collect(Collectors.toList());
+                    .allReactions(childReactor).stream().filter(r -> r.getTriggers().stream().anyMatch(t -> {
+                        if (t instanceof VarRef) {
+                            // Check if the variables match
+                            return ((VarRef) t)
+                                    .getVariable() == childPort
+                                            .getVariable();
+                        } else {
+                            // Not a network port (startup or shutdown)
+                            return false;
+                        }
+                    }) || r.getSources().stream().anyMatch(s -> s.getVariable() == childPort
+                            .getVariable())).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
                     if (!instance.containsReaction(r)) {
@@ -462,9 +451,9 @@ public class FedASTUtils {
                     // If not, assume it is zero
                     if (r.getStp() != null) {
                         if (r.getStp().getValue() instanceof Parameter) {
-                            List<Instantiation> instantList = new ArrayList<Instantiation>();
+                            List<Instantiation> instantList = new ArrayList<>();
                             instantList.add(childPort.getContainer());
-                            STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
+                            STPList.addAll(ASTUtils.initialValue(r.getStp().getValue().getParameter(), instantList));
                         } else {
                             STPList.add(r.getStp().getValue());
                         }
@@ -498,8 +487,6 @@ public class FedASTUtils {
      * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
      * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
      * @param destinationFederate The destination federate.
-     * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
-     * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
      * @param generator The GeneratorBase instance used to perform some target-specific actions
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      * @param serializer The serializer used on the connection
@@ -512,8 +499,6 @@ public class FedASTUtils {
             int leftBankIndex,
             int leftChannelIndex,
             FederateInstance destinationFederate,
-            int rightBankIndex,
-            int rightChannelIndex,
             GeneratorBase generator,
             CoordinationType coordination,
             SupportedSerializers serializer
@@ -637,9 +622,7 @@ public class FedASTUtils {
             // generated for another federate instance if there are multiple instances
             // of the same reactor that are each distinct federates.
             Optional<Input> optTriggerInput = top.getInputs().stream()
-                    .filter(I -> {
-                        return I.getName().equals(triggerName);
-                    }).findFirst();
+                                                 .filter(I -> I.getName().equals(triggerName)).findFirst();
 
             if (optTriggerInput.isEmpty()) {
                 // If no trigger with the name "outputControlReactionTrigger" is
@@ -736,8 +719,6 @@ public class FedASTUtils {
                 leftBankIndex, 
                 leftChannelIndex, 
                 destinationFederate,
-                rightBankIndex, 
-                rightChannelIndex, 
                 generator, 
                 coordination, 
                 serializer
@@ -778,8 +759,6 @@ public class FedASTUtils {
                 destination, 
                 connection, 
                 sourceFederate,
-                leftBankIndex, 
-                leftChannelIndex, 
                 destinationFederate,
                 rightBankIndex, 
                 rightChannelIndex, 
