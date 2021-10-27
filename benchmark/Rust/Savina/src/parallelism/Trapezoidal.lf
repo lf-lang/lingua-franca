@@ -48,7 +48,7 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
         }
     =}
 
-    reaction(inWorkers) -> outFinished {=
+    reaction(inWorkers) {=
         for inWorker in inWorkers {
             if let Some(v) = ctx.get(&inWorker) {
                 self.numTermsReceived += 1;
