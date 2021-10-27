@@ -39,14 +39,14 @@ public class CodeMap {
 
         /**
          * Instantiates a Correspondence between
-         * <code>lfRange</code> at <code>path</code> and
-         * <code>generatedRange</code> in the generated file
+         * {@code lfRange} at {@code path} and
+         * {@code generatedRange} in the generated file
          * associated with this Correspondence.
          * @param path a path to an LF source file
          * @param lfRange a range in the given LF file
          * @param generatedRange the range of generated code
          *                       associated with
-         *                       <code>lfRange</code>
+         *                       {@code lfRange}
          */
         public Correspondence(Path path, Range lfRange, Range generatedRange) {
             this.path = path;
@@ -91,28 +91,29 @@ public class CodeMap {
         }
 
         /**
-         * Returns the Correspondence represented by <code>s
-         * </code>.
+         * Returns the Correspondence represented by
+         * {@code s}.
          * @param s a String that represents a
          *          Correspondence, formatted like the
-         *          output of Correspondence::toString
-         * @return the Correspondence represented by <code>s
-         * </code>
+         *          output of
+         *          {@code Correspondence::toString}
+         * @return the Correspondence represented by
+         * {@code s}
          */
         public static Correspondence fromString(String s) {
             return fromString(s, Position.ORIGIN);
         }
 
         /**
-         * Returns the Correspondence represented by <code>s
-         * </code>.
+         * Returns the Correspondence represented by
+         * {@code s}.
          * @param s a String that represents a
          *          Correspondence, formatted like the
          *          output of Correspondence::toString
          * @param relativeTo the offset relative to which
          *                   the offsets given are given
-         * @return the Correspondence represented by <code>s
-         * </code>
+         * @return the Correspondence represented by
+         * {@code s}
          */
         public static Correspondence fromString(String s, Position relativeTo) {
             Matcher matcher = PATTERN.matcher(s);
@@ -128,20 +129,19 @@ public class CodeMap {
         }
 
         /**
-         * Returns <code>representation</code>, tagged with
+         * Returns {@code representation}, tagged with
          * a Correspondence to the source code associated
-         * with <code>astNode</code>.
+         * with {@code astNode}.
          * @param astNode an arbitrary AST node
          * @param representation the code generated from
          *                       that AST node
-         * @param verbatim whether <code>representation
-         *                 </code> is copied verbatim from
+         * @param verbatim whether {@code representation}
+         *                 is copied verbatim from the
          *                 part of the source code
-         *                 associated with <code>astNode
-         *                 </code>
-         * @return <code>representation</code>, tagged with
+         *                 associated with {@code astNode}
+         * @return {@code representation}, tagged with
          * a Correspondence to the source code associated
-         * with <code>astNode</code>
+         * with {@code astNode}
          */
         public static String tag(EObject astNode, String representation, boolean verbatim) {
             final INode node = NodeModelUtils.getNode(astNode);
@@ -173,14 +173,13 @@ public class CodeMap {
         /**
          * Make a best-effort attempt to find the index of
          * a near substring whose first line is expected to
-         * be an exact substring of <code>x</code>. Return 0
+         * be an exact substring of {@code s}. Return 0
          * upon failure.
          * @param s an arbitrary string
          * @param imperfectSubstring an approximate
-         *                           substring of <code>s
-         *                           </code>
-         * @return the index of <code>imperfectSubstring
-         * </code> within <code>s</code>
+         *                           substring of {@code s}
+         * @return the index of {@code imperfectSubstring}
+         * within {@code s}
          */
         private static int indexOf(String s, String imperfectSubstring) {
             String firstLine = imperfectSubstring.lines().findFirst().orElse("");
@@ -203,12 +202,12 @@ public class CodeMap {
     /* ------------------------- PUBLIC METHODS -------------------------- */
 
     /**
-     * Instantiates a <code>CodeMap</code> from
-     * <code>internalGeneratedCode</code>.
-     * <code>internalGeneratedCode</code> may be invalid
+     * Instantiates a {@code CodeMap} from
+     * {@code internalGeneratedCode}.
+     * {@code internalGeneratedCode} may be invalid
      * code that is different from the final generated code
      * because it should contain deserializable
-     * representations of <code>Correspondences</code>
+     * representations of {@code Correspondences}.
      * @param internalGeneratedCode code from a code
      *                              generator that contains
      *                              serialized
@@ -246,16 +245,16 @@ public class CodeMap {
     }
 
     /**
-     * Returns the position in <code>lfFile</code>
-     * corresponding to <code>generatedFilePosition</code>
+     * Returns the position in {@code lfFile}
+     * corresponding to {@code generatedFilePosition}
      * if such a position is known, or the zero Position
      * otherwise.
      * @param lfFile the path to an arbitrary Lingua Franca
      *               source file
      * @param generatedFilePosition a position in a
      *                              generated file
-     * @return the position in <code>lfFile</code>
-     * corresponding to <code>generatedFilePosition</code>
+     * @return the position in {@code lfFile}
+     * corresponding to {@code generatedFilePosition}
      */
     public Position adjusted(Path lfFile, Position generatedFilePosition) {
         NavigableMap<Range, Range> mapOfInterest = map.get(lfFile);
@@ -270,16 +269,16 @@ public class CodeMap {
     }
 
     /**
-     * Returns the range in <code>lfFile</code>
-     * corresponding to <code>generatedFileRange</code>
+     * Returns the range in {@code lfFile}
+     * corresponding to {@code generatedFileRange}
      * if such a range is known, or a degenerate Range
      * otherwise.
      * @param lfFile the path to an arbitrary Lingua Franca
      *               source file
      * @param generatedFileRange a position in a
      *                              generated file
-     * @return the range in <code>lfFile</code>
-     * corresponding to <code>generatedFileRange</code>
+     * @return the range in {@code lfFile}
+     * corresponding to {@code generatedFileRange}
      */
     public Range adjusted(Path lfFile, Range generatedFileRange) {
         final Position start = adjusted(lfFile, generatedFileRange.getStartInclusive());
@@ -295,9 +294,9 @@ public class CodeMap {
     }
 
     /**
-     * Removes serialized Correspondences from <code>line
-     * </code> and updates <code>map</code> according to
-     * those Correspondences.
+     * Removes serialized Correspondences from {@code line}
+     * and updates {@code map} according to those
+     * Correspondences.
      * @param line a line of generated code
      * @param zeroBasedLineIndex the index of the given line
      * @param map a map that stores Correspondences

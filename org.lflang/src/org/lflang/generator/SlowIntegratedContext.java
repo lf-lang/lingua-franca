@@ -24,8 +24,7 @@ public class SlowIntegratedContext implements IGeneratorContext {
 
     /**
      * Initializes the context of a generation process whose
-     * cancellation is indicated by <code>cancelIndicator
-     * </code>
+     * cancellation is indicated by {@code cancelIndicator}
      * @param cancelIndicator the cancel indicator of the
      *                        code generation process to
      *                        which this corresponds

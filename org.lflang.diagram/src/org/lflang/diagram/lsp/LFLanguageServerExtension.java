@@ -26,7 +26,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
     /**
      * Handles a request for a complete build of the Lingua
-     * Franca file specified by <code>uri</code>.
+     * Franca file specified by {@code uri}.
      * @param uri the URI of the LF file of interest
      */
     @JsonNotification("generator/build")

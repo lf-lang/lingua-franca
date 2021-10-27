@@ -27,14 +27,14 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /** The document for which this is a diagnostic acceptor. */
     private final EObject parseRoot;
     /** The list of all diagnostics since the last reset. */
-    private List<Diagnostic> diagnostics;
+    private final List<Diagnostic> diagnostics;
 
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Initializes a <code>DiagnosticAcceptor</code> for the
+     * Initializes a {@code DiagnosticAcceptor} for the
      * document whose parse tree root node is
-     * <code>parseRoot</code>.
+     * {@code parseRoot}.
      * @param parseRoot the root of the AST of the document
      *                  for which this is an error reporter
      */
@@ -80,6 +80,10 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error);
     }
 
+    /**
+     * Saves a reference to the language client.
+     * @param client the language client
+     */
     public static void setClient(LanguageClient client) {
         LanguageServerErrorReporter.client = client;
     }
@@ -87,7 +91,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /* -----------------------  PRIVATE METHODS  ------------------------ */
 
     /**
-     * Reports a message of severity <code>severity</code>.
+     * Reports a message of severity {@code severity}.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @return a string that describes the diagnostic
@@ -97,7 +101,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Reports a message of severity <code>severity</code>.
+     * Reports a message of severity {@code severity}.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @param line the zero-based line number associated
@@ -115,7 +119,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Reports a message of severity <code>severity</code>.
+     * Reports a message of severity {@code severity}.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
      * @param startPos the position of the first character
@@ -143,7 +147,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Returns the line at index <code>line</code> in the
+     * Returns the line at index {@code line} in the
      * document for which this is an error reporter.
      * @param line the zero-based line index
      * @return the line located at the given index
@@ -170,6 +174,14 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         client.publishDiagnostics(publishDiagnosticsParams);
     }
 
+    /**
+     * Returns the Range that starts at {@code p0} and ends
+     * at {@code p1}.
+     * @param p0 an arbitrary Position
+     * @param p1 a Position that is greater than {@code p0}
+     * @return the Range that starts at {@code p0} and ends
+     * at {@code p1}
+     */
     private Range toRange(Position p0, Position p1) {
         return new Range(
             new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
