@@ -301,7 +301,7 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     
     reaction(reset) {=
         self->barberAsleep = true;
-        self->queue = (deque *) calloc(self->numCustomers, sizeof(size_t));
+        self->queue = (deque *) calloc(1, sizeof(deque*));
     =}
     
     reaction (receiveCustomer) -> full, wait, barberEnter {=
