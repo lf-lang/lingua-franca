@@ -33,3 +33,14 @@ targets:
       data_size: ["--dataSize", "<value>"]
       max_value: ["--maxValue", "<value>"]
       seed: ["--seed", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/include"
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+    lf_file: "parallelism/RadixSort.lf"
+    binary: "RadixSort"
+    gen_args:
+      data_size: ["-D", "dataSize=<value>"]
+      max_value: ["-D", "maxValue=<value>"]
+      seed: ["-D", "seed=<value>"]
+

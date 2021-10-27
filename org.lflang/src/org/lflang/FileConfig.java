@@ -24,6 +24,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
+
+import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.StandaloneContext;
 import org.lflang.lf.Reactor;
 
@@ -409,7 +411,9 @@ public class FileConfig {
     }
 
     /**
-     * Copy a given directory from 'src' to 'dest'.
+     * Recursively copies the contents of the given 'src'
+     * directory to 'dest'. Existing files of the destination
+     * may be overwritten.
      *
      * @param src The source directory path.
      * @param dest The destination directory path.
@@ -423,12 +427,16 @@ public class FileConfig {
                 // https://www.baeldung.com/java-lambda-exceptions#handling-checked-exceptions.
                 // An alternative would be to create a custom Consumer interface and use that
                 // here.
-                try {
-                    copyFile(source, dest.resolve(src.relativize(source)));
-                } catch (IOException e) {
-                    throw new RuntimeIOException(e);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                if (Files.isRegularFile(source)) { // do not copy directories
+                    try {
+                        Path target = dest.resolve(src.relativize(source));
+                        Files.createDirectories(target.getParent());
+                        copyFile(source, target);
+                    } catch (IOException e) {
+                        throw new RuntimeIOException(e);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             });
         }
@@ -442,11 +450,7 @@ public class FileConfig {
      * @throws IOException if copy fails.
      */
     public static void copyFile(String source, String destination)  throws IOException {
-        try {
-            copyFile(Paths.get(source), Paths.get(destination));
-        } catch (IOException e) {
-            throw e;
-        }
+        copyFile(Paths.get(source), Paths.get(destination));
     }
 
     /**
@@ -457,11 +461,7 @@ public class FileConfig {
      * @throws IOException if copy fails.
      */
     public static void copyFile(Path source, Path destination)  throws IOException {
-        try {
-            Files.copy(source, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw e;
-        }
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
     }
     
     /**

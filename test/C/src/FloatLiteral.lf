@@ -1,0 +1,24 @@
+target C;
+// This test verifies that floating-point literals are handled
+// correctly.
+main reactor {
+    preamble {=
+        #include <math.h>
+    =}
+
+    state N:double(6.0221409e+23)
+    state charge:double(-1.6021766E-19)
+    state minus_epsilon:double(-.01e0)
+    state expected:double(.964853323188E5)
+    reaction(startup) {=
+        double F = - self->N * self->charge;
+        if (fabs(F - self->expected) < fabs(self->minus_epsilon)) {
+            info_print("The Faraday constant is roughly %f.", F);
+        } else {
+            error_print_and_exit(
+                "ERROR: Expected %f but computed %f.",
+                self->expected, F
+            );
+        }
+    =}
+}

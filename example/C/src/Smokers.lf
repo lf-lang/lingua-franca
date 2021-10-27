@@ -118,11 +118,11 @@ reactor Agent {
             info_print("Agent putting tobacco and paper on the table.");
         } else if (choice == 1) {
             SET(tobacco, true);
-            SET(paper, true);
+            SET(matches, true);
             info_print("Agent putting tobacco and matches on the table.");
         } else {
-            SET(tobacco, true);
             SET(paper, true);
+            SET(matches, true);
             info_print("Agent putting paper and matches on the table.");
         }
     =}

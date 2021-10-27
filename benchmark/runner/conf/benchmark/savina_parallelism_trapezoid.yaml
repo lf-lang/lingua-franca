@@ -3,8 +3,8 @@ name: "Trapezoidal Approximation"
 params:
   pieces: 10000000
   workers: 100
-  left: 1
-  right: 5
+  left: 1.0
+  right: 5.0
 
 # target specific configuration
 targets:
@@ -35,3 +35,13 @@ targets:
       left: ["--leftEndPoint", "<value>"]
       right: ["--rightEndPoint", "<value>"]
       workers: ["--numWorkers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism/Trapezoidal.lf"
+    lf_file: "Trapezoidal.lf"
+    binary: "Trapezoidal"
+    gen_args:
+      workers: ["-D", "workers=<value>"]
+      pieces: ["-D", "pieces=<value>"]
+      left: ["-D", "left=<value>"]
+      right: ["-D", "right=<value>"]
