@@ -49,7 +49,7 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    files: "../include/PseudoRandom.h"
+    files: ["/lib/C/util/deque.c", "/lib/C/util/deque.h", "../include/PseudoRandom.h"]
 };
 
 
@@ -67,143 +67,6 @@ preamble {=
         }
         return test;
     }
-
-    //Arthur Deng's deque implementation:
-    
-    typedef struct node {
-        struct node *next;
-        struct node *prev;
-        size_t value;
-    } node;
-    
-    typedef struct deque {
-        struct node* front;
-        struct node* back;
-        size_t size;
-
-    } deque;
-    
-    deque* deque_initialize() {
-        // allocate space for deque
-        deque *p = (deque *) malloc (sizeof(deque));
-        if (p != NULL) {
-            p->front = NULL;
-            p->back = NULL;
-        }
-        return p;
-    }
-    
-    bool deque_is_empty(struct deque* d) {
-        if (d==NULL) {
-            return true;
-        } else if (d->front) {
-            return false;
-        }
-        return true;
-    }
-    
-    
-    node* _deque_create_node(size_t val) {
-    /*
-    * Function:  _deque_create_node
-    * --------------------
-    * allocates memory for new node in deque. Used internally by deque_push_front
-    * and deque_push_back. Memory is freed when node is popped using deque_pop_back
-    * and deque_pop_front.
-    *
-    *  val: value to be stored in the node
-    *
-    *  returns: pointer to the node
-
-    */
-        node *new_node = (struct node *) malloc(sizeof(struct node));
-        new_node->value = val;
-        new_node->next = NULL;
-        new_node->prev = NULL;
-        return new_node;
-    }
-    
-    void deque_push_front(struct deque* d, size_t val) {
-        node *n = _deque_create_node(val);
-        if (d->back == NULL) {
-            d->back = d->front = n;
-            d->size++;
-        } else {
-            d->front->prev = n;
-            n->next = d->front;
-            d->front = d->front->prev;
-            d->size++;
-        }
-    }
-    
-    void deque_push_back(struct deque* d, size_t val) {
-        node *n = _deque_create_node(val);
-        if (d->back == NULL) {
-            d->back = d->front = n;
-            d->size++;
-        } else {
-            d->back->next = n;
-            n->prev = d->back;
-            d->back = d->back->next;
-            d->size++;
-        }
-    }
-
-    size_t deque_pop_front(struct deque* d) {
-        if (d==NULL || d->front == NULL) {
-            fprintf(stderr, "Error: popping from empty deque\n");
-            return (size_t) {0};
-        }
-        
-        size_t value = d->front->value;
-        struct node *temp = d->front; // temporary pointer for freeing up memory
-        
-        if (d->front == d->back) { 
-            // popping last element in deque
-            d->front = d->back = NULL;
-        } else {
-            d->front = d->front->next;
-        }
-        free(temp); // free memory for popped node
-        d->size--;
-        return value;
-    }
-    
-    size_t deque_pop_back(struct deque* d) {
-        if (d==NULL || d->back == NULL) {
-            fprintf(stderr, "Error: popping from empty deque\n");
-            return (size_t) {0};
-        }
-        
-        size_t value = d->back->value;
-        struct node *temp = d->back; // temporary pointer for freeing up memory
-        if (d->front == d->back) { 
-            // popping last element in deque
-            d->front = d->back = NULL;
-        } else {
-            d->back = d->back->prev;
-        }
-        free(temp);
-        d->size--; 
-        return value;
-    }
-    
-    size_t deque_peek_back(struct deque* d) {
-        if (d == NULL || d->back == NULL) {
-            fprintf(stderr, "Error: peeking empty deque");
-            return (size_t) {0};
-        }
-        return d->back->value;
-    }
-    
-    size_t deque_peek_front(struct deque* d) {
-        if (d == NULL || d->front == NULL) {
-            fprintf(stderr, "Error: peeking empty deque");
-            return (size_t) {0};
-        }
-        return d->front->value;
-    }
-
 =}
 
 
@@ -285,6 +148,9 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
 }
 
 reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
+    preamble {=
+        #include "deque.c"
+    =}
     input reset:bool;
     
     input receiveCustomer: size_t;
@@ -296,18 +162,16 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     output barberEnter: size_t;
     output barberWait: bool;
     
-    state queue: deque*;
+    state queue: deque_t;
     state barberAsleep: bool(true);
     
     reaction(reset) {=
         self->barberAsleep = true;
-        self->queue = (deque *) calloc(1, sizeof(deque*));
     =}
     
     reaction (receiveCustomer) -> full, wait, barberEnter {=
          size_t customer_id = receiveCustomer->value;
          
-         //FIXME: get size of queue
          if (self->queue->size == self->capacity) {
              SET(full[customer_id], true);
          } else {
@@ -315,19 +179,19 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
                 self->barberAsleep = false;
                 SET(barberEnter, customer_id);
             } else {
-                deque_push_back(self->queue, customer_id);
+                deque_push_back(&self->queue, customer_id);
                 SET(wait[customer_id], true);    
             }
         }
     =}
     
     reaction (barberNext) -> barberEnter, barberWait {=
-        if (deque_is_empty(self->queue)) {
+        if (deque_is_empty(&self->queue)) {
             self->barberAsleep = true;
             SET(barberWait, true);
         } else {
-            SET(barberEnter, deque_peek_front(self->queue));
-            deque_pop_front(self->queue);
+            SET(barberEnter, deque_peek_front(&self->queue));
+            deque_pop_front(&self->queue);
         }
     =}
 }
