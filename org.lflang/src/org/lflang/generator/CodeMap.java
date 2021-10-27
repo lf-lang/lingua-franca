@@ -145,6 +145,9 @@ public class CodeMap {
          */
         public static String tag(EObject astNode, String representation, boolean verbatim) {
             final INode node = NodeModelUtils.getNode(astNode);
+            // If the EObject originates from an AST transformation, then it does not correspond directly
+            // to any LF code, and it need not be tagged at all.
+            if (node == null) return representation;
             final LineAndColumn oneBasedLfLineAndColumn = NodeModelUtils.getLineAndColumn(node, node.getTotalOffset());
             Position lfStart = Position.fromOneBased(
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
