@@ -110,15 +110,19 @@ public abstract class TestBase {
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
-        public static final String NO_RUST_SUPPORT = "Not supported by reactor-rust.";
-        public static final String NO_TS_SUPPORT = "Not supported by reactor-ts.";
         public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
-        public static final String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
+        public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
+        public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
+        public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
+        public static final String DESC_GENERIC = "Run generic tests (threads = 0).";
+        public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
+        public static final String DESC_EXAMPLES = "Validate examples.";
+        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
+        public static final String DESC_MULTIPORT = "Run multiport tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
@@ -204,7 +208,7 @@ public abstract class TestBase {
      * it should be included in this test run or not.
      * @param configurator A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
-     * @param copy Whether or not to work on copies of tests in the test.
+     * @param copy Whether to work on copies of tests in the test.
      * registry.
      */
     protected void runTestsFor(List<Target> subset,
@@ -278,20 +282,6 @@ public abstract class TestBase {
             throw new RuntimeIOException(e);
         }
         checkAndReportFailures(tests);
-    }
-
-    /**
-     * Print a header that describes a collection of tests, followed by a reason
-     * for skipping the tests.
-     *
-     * @param description A string the describes the collection of tests.
-     * @param reason A string that describes why the tests are not performed.
-     */
-    protected void printSkipMessage(String description, String reason) {
-        for (var target : this.targets) {
-           printTestHeader(target, description);
-           System.out.println("Warning! Skipping because: " + reason);
-        }
     }
 
     /**
@@ -512,6 +502,18 @@ public abstract class TestBase {
             }
         }
         case TS: {
+            var binPath = test.fileConfig.binPath;
+            var binaryName = nameOnly;
+            // Adjust binary extension if running on Window
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                binaryName += ".exe";
+            }
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // If execution script exists, run it.
+                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+            }
+            // If execution script does not exist, run .js directly.
             var dist = test.fileConfig.getSrcGenPath().resolve("dist");
             var file = dist.resolve(nameOnly + ".js");
             if (Files.exists(file)) {
