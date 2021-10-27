@@ -14,9 +14,15 @@
  */
 
 target C {
-    flags: "-lgmp",
-    keepalive: true,
-    threads: 24
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    cmake-include: "PiPrecision.cmake"
 };
 
 preamble {=

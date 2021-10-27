@@ -30,11 +30,6 @@
  * @author Edward A. Lee
  */
 target C {
-    cmake-include: [
-        "sound-extension.cmake",
-        "audio_loop.cmake",
-        "ncurses-extension.cmake", 
-        "mlib-extension.cmake"],
     coordination: decentralized,
     timeout: 10 sec,
     clock-sync: on,
@@ -47,14 +42,11 @@ target C {
     },
     files: [
         "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-        "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h", "/lib/C/util/audio_loop.cmake",
+        "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
         "/lib/C/util/audio_loop_linux.c",
         "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
         "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
-        "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav",
-        "include/ncurses-extension.cmake",
-        "include/sound-extension.cmake",
-        "include/mlib-extension.cmake"]
+        "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
 import PlayWaveform from "PlayWaveform.lf"
 

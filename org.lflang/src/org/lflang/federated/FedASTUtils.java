@@ -35,9 +35,10 @@ import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
+import org.lflang.JavaAstUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
@@ -204,7 +205,7 @@ public class FedASTUtils {
         // Find a list of STP offsets (if any exists)
         if (generator.isFederatedAndDecentralized()) {
             for (Reaction r : safe(reactionsWithPort)) {
-                if (!instance.containsReaction(reactor, r)) {
+                if (!instance.containsReaction(r)) {
                     continue;
                 }
                 // If STP offset is determined, add it
@@ -245,7 +246,7 @@ public class FedASTUtils {
                         }).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
-                    if (!instance.containsReaction(childReactor, r)) {
+                    if (!instance.containsReaction(r)) {
                         continue;
                     }
                     // If STP offset is determined, add it
@@ -425,10 +426,26 @@ public class FedASTUtils {
         // these reactions to appear only in the federate whose bank ID matches.
         generator.setReactionBankIndex(r1, leftBankIndex);
         generator.setReactionBankIndex(r2, rightBankIndex);
+        
+        // Get the serializer
+        var serializer = SupportedSerializers.NATIVE;
+        if (connection.getSerializer() != null) {
+            serializer = SupportedSerializers.valueOf(
+                    connection.getSerializer().getType().toUpperCase()
+            );
+            // Add it to the list of enabled serializers
+            generator.enabledSerializers.add(serializer);
+        }
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
-        action.setType(type);
+        if (serializer == SupportedSerializers.NATIVE) {
+            action.setType(type);
+        } else {
+            Type action_type = factory.createType();
+            action_type.setId(generator.getNetworkBufferType());
+            action.setType(action_type);
+        }
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.isPhysical()) {
@@ -485,9 +502,10 @@ public class FedASTUtils {
             leftBankIndex,
             leftChannelIndex,
             rightFederate,
-            ASTUtils.getInferredType(action),
+            InferredType.fromAST(type),
             connection.isPhysical(),
-            connection.getDelay()
+            connection.getDelay(),
+            serializer
         ));
               
         // Add the sending reaction to the parent.
@@ -530,8 +548,9 @@ public class FedASTUtils {
             rightFederate,
             rightBankIndex,
             rightChannelIndex,
-            ASTUtils.getInferredType(action),
-            connection.isPhysical()
+            JavaAstUtils.getInferredType(action),
+            connection.isPhysical(),
+            serializer
         ));
         
         // Add the receiver reaction to the parent

@@ -27,7 +27,6 @@ package org.lflang.generator.c;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
@@ -65,28 +64,18 @@ class CCmakeGenerator {
      * @param sources A list of .c files to build.
      * @param executableName The name of the output executable.
      * @param errorReporter Used to report errors.
+     * @param CppMode Indicate if the compilation should happen in C++ mode
+     * @param hasMain Indicate if the .lf file has a main reactor or not. If not,
+     *  a library target will be created instead of an executable.
      * @return The content of the CMakeLists.txt.
      */
-    StringBuilder generateCMakeCode(List<String> sources, String executableName, ErrorReporter errorReporter) {
+    StringBuilder generateCMakeCode(
+            List<String> sources, 
+            String executableName, 
+            ErrorReporter errorReporter,
+            boolean CppMode,
+            boolean hasMain) {
         StringBuilder cMakeCode = new StringBuilder();
-        
-        // Resolve path to the cmake include files if any was provided
-        LinkedHashSet<String> resolvedIncludeFiles = new LinkedHashSet<String>();
-        for (String includeFile : targetConfig.cmakeIncludes) { 
-            if (!includeFile.isBlank()) {
-                try {
-                    resolvedIncludeFiles.add(
-                            FileConfig.toUnixString(
-                                    fileConfig.getSrcGenPath().relativize(
-                                            fileConfig.getSrcGenPath().resolve(includeFile)
-                                            )
-                                    )
-                            );
-                } catch (Exception e) {
-                    errorReporter.reportError(e.getMessage());
-                }
-            }
-        }
         
         List<String> additionalSources = new ArrayList<String>();
         for (String file: targetConfig.compileAdditionalSources) {
@@ -94,7 +83,6 @@ class CCmakeGenerator {
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileConfig.toUnixString(relativePath));
         }
-        // additionalSources.addAll(targetConfig.compileLibraries);
         
         cMakeCode.append("cmake_minimum_required(VERSION 3.13)\n");
         cMakeCode.append("project("+executableName+" LANGUAGES C)\n");
@@ -110,6 +98,12 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_CXX_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
+        // Follow the 
+        cMakeCode.append("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
+        cMakeCode.append("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
+        cMakeCode.append("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)\n");
+        cMakeCode.append("endif()\n");
+        
         cMakeCode.append("set(CoreLib core)\n");
         cMakeCode.append("\n");
         
@@ -117,10 +111,20 @@ class CCmakeGenerator {
         cMakeCode.append("# file and assign the file's path to LF_PLATFORM_FILE\n");
         cMakeCode.append("if(${CMAKE_SYSTEM_NAME} STREQUAL \"Linux\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_linux_support.c)\n");
+        if (CppMode) {
+            // Suppress warnings about const char*.
+            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+        }
         cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Darwin\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_macos_support.c)\n");
+        if (CppMode) {
+            // Suppress warnings about const char*.
+            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+        }
         cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Windows\")\n");
         cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_windows_support.c)\n");
+        cMakeCode.append("    set(CMAKE_SYSTEM_VERSION 10.0)\n");
+        cMakeCode.append("    message(\"Using Windows SDK version ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}\")\n");
         cMakeCode.append("else()\n");
         cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported!"+
                 " The C target supports Linux, MacOS and Windows.\")\n");
@@ -133,9 +137,15 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         cMakeCode.append("set(LF_MAIN_TARGET "+executableName+")\n");
-        cMakeCode.append("# Declare a new executable target and list all its sources\n");
-        cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
-                           String.join("\n", additionalSources)+")\n");
+        if (hasMain) {
+            cMakeCode.append("# Declare a new executable target and list all its sources\n");
+            cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
+                               String.join("\n", additionalSources)+")\n");
+        } else {
+            cMakeCode.append("# Declare a new library target and list all its sources\n");
+            cMakeCode.append("add_library( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
+                               String.join("\n", additionalSources)+")\n");
+        }
         cMakeCode.append("\n");
 
         if (targetConfig.threads != 0 || targetConfig.tracing != null) {
@@ -152,34 +162,35 @@ class CCmakeGenerator {
             cMakeCode.append("\n");
         }
         
-        if (targetConfig.compiler != null) {
-            if (targetConfig.compiler.equals("g++") || targetConfig.compiler.equals("CC")) {
-                // Interpret this as the user wanting their .c programs to be treated as
-                // C++ files. 
-                // First enable the CXX language
-                cMakeCode.append("enable_language(CXX)\n");
-                cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
-                // We can't just simply use g++ to compile C code. We use a 
-                // specific CMake flag to set the language of all .c files to C++.
-                for (String source: sources) {
-                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
-                }
-                // Also convert any additional sources
-                for (String source: additionalSources) {
-                    cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
-                }
-                cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+        // Check if CppMode is enabled
+        if (CppMode) {
+            // First enable the CXX language
+            cMakeCode.append("enable_language(CXX)\n");
+            // FIXME: Instead of mixing a C compiler and a C++ compiler, we use a 
+            // CMake flag to set the language of all .c files to C++.
+            // Also convert any additional sources. This is a deprecated functionality 
+            // in clang, but intermingling C compiled code and C++ compiled code seems 
+            // to require a substantial overhaul of the C target code structure. Instead, 
+            // we force the usage of a C++ compiler on everything for now.
+            for (String source: additionalSources) {
+                cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
+            }
+            cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+        }
+        
+        if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
+            if (CppMode) {
+                // Set the CXX compiler to what the user has requested.
+                cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
             } else {
                 cMakeCode.append("set(CMAKE_C_COMPILER "+targetConfig.compiler+")\n");
             }
-            
-            // cMakeCode.append("set(CMAKE_CXX_COMPILER "+targetConfig.compiler+")\n");
         }
         
         // Set the compiler flags
         // We can detect a few common libraries and use the proper target_link_libraries to find them            
         for (String compilerFlag : targetConfig.compilerFlags) {
-            switch(compilerFlag) {
+            switch(compilerFlag.trim()) {
                 case "-lm":
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} m)\n");
                     break;
@@ -194,7 +205,9 @@ class CCmakeGenerator {
                     cMakeCode.append("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})\n");
                     break;
                 case "-O2":
-                    if (targetConfig.compiler.equals("gcc")) {
+                    if (targetConfig.compiler.equals("gcc") || CppMode) {
+                        // Workaround for the pre-added -O2 option in the CGenerator.
+                        // This flag is specific to gcc/g++ and the clang compiler
                         cMakeCode.append("add_compile_options( -O2 )\n");
                         cMakeCode.append("add_link_options( -O2 )\n");
                         break;
@@ -214,9 +227,9 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         // Add the include file
-        for (String includeFile : resolvedIncludeFiles) {
-            cMakeCode.append("include("+includeFile+")\n");
-        }  
+        for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
+            cMakeCode.append("include(\""+includeFile+"\")\n");
+        } 
         
         return cMakeCode;
     }

@@ -48,6 +48,7 @@ import org.junit.jupiter.api.^extension.ExtendWith
 
 import static org.junit.jupiter.api.Assertions.assertNotNull
 import static org.junit.jupiter.api.Assertions.assertTrue
+import static org.junit.jupiter.api.Assertions.fail
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetProperty.UnionType
@@ -361,7 +362,7 @@ class LinguaFrancaValidationTest {
         ''').assertError(LfPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' is already effect of a reaction.")
     }
-	
+
     /**
      * Disallow connection of multiple ports to the same input port.
      */
@@ -388,7 +389,7 @@ class LinguaFrancaValidationTest {
         ''').assertError(LfPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' may only appear once on the right side of a connection.")
     }
-    
+
     /**
      * Detect cycles in the instantiation graph.
      */
@@ -421,9 +422,65 @@ class LinguaFrancaValidationTest {
             }
         ''')
         model.assertError(LfPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
+            null, 'Instantiation is part of a cycle: Intermediate, Contained.')
         model.assertError(LfPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
+            null, 'Instantiation is part of a cycle: Intermediate, Contained.')
+    }
+    
+    /**
+     * Detect causality loop.
+     */
+    @Test
+    def void detectCausalityLoop() {
+        val model = parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x
+                b.y -> a.x
+            }
+            
+        ''')
+        model.assertError(LfPackage::eINSTANCE.reaction,
+            null, 'Reaction triggers involved in cyclic dependency in reactor X: x.')
+        model.assertError(LfPackage::eINSTANCE.reaction,
+            null, 'Reaction effects involved in cyclic dependency in reactor X: y.')
+            
+    }
+    
+    /**
+     * Let cyclic dependencies be broken by "after" clauses.
+     */
+    @Test
+    def void afterBreaksCycle() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 5 msec
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
     }
     
     /**
@@ -841,6 +898,11 @@ class LinguaFrancaValidationTest {
      * name, and the type that it should be.
      */
     val compositeTypeToKnownBad = #{
+        ArrayType.STRING_ARRAY -> #[
+            #["[1 msec]", "[0]", PrimitiveType.STRING],
+            #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
+            #["{bar: baz}", "", ArrayType.STRING_ARRAY]
+        ],
         UnionType.STRING_OR_STRING_ARRAY -> #[
             #["[1 msec]", "[0]", PrimitiveType.STRING],
             #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
@@ -953,8 +1015,7 @@ class LinguaFrancaValidationTest {
             } else if (type instanceof DictionaryType) {
                 return synthesizeExamples(type, correct)
             } else {
-                println("Encountered an unknown type. Aborting test.")
-                assertTrue(false)
+                fail("Encountered an unknown type: " + type)
             }
         }
         return #[]
@@ -965,16 +1026,17 @@ class LinguaFrancaValidationTest {
      * parse it, and return the resulting model.
      */
     def createModel(TargetProperty key, String value) {
+        val target = key.supportedBy.get(0).displayName
         println('''«key»: «value»''')
         return parseWithoutError('''
-                target C {«key»: «value»};
+                target «target» {«key»: «value»};
                 reactor Y {}
                 main reactor {
                     y = new Y() 
                 }
             ''')
     }
-    
+
     /**
      * Perform checks on target properties.
      */
@@ -982,6 +1044,10 @@ class LinguaFrancaValidationTest {
     def void checkTargetProperties() {
         
         for (prop : TargetProperty.options) {
+            if (prop == TargetProperty.CARGO_DEPENDENCIES) {
+                // we test that separately as it has better error messages
+                return
+            }
             println('''Testing target property «prop» which is «prop.type»''')
             println("====")
             println("Known good assignments:")
@@ -1035,5 +1101,27 @@ class LinguaFrancaValidationTest {
             println("====")
         }
         println("Done!")
+    }
+
+
+    @Test
+    def void checkCargoDependencyProperty() {
+         val prop = TargetProperty.CARGO_DEPENDENCIES
+         val knownCorrect = #[ "{}", "{ dep: \"8.2\" }", "{ dep: { version: \"8.2\"} }", "{ dep: { version: \"8.2\", features: [\"foo\"]} }" ]
+         knownCorrect.forEach [
+            prop.createModel(it).assertNoErrors()
+        ]
+
+        //                       vvvvvvvvvvv
+        prop.createModel("{ dep: {/*empty*/} }")
+            .assertError(LfPackage::eINSTANCE.keyValuePairs, null, "Must specify one of 'version', 'path', or 'git'")
+
+        //                         vvvvvvvvvvv
+        prop.createModel("{ dep: { unknown_key: \"\"} }")
+            .assertError(LfPackage::eINSTANCE.keyValuePair, null, "Unknown key: 'unknown_key'")
+
+        //                                   vvvv
+        prop.createModel("{ dep: { features: \"\" } }")
+            .assertError(LfPackage::eINSTANCE.element, null, "Expected an array of strings for key 'features'")
     }
  }

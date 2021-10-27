@@ -32,7 +32,9 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
+import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
@@ -44,14 +46,15 @@ class CppGenerator(
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter) {
+    GeneratorBase(cppFileConfig, errorReporter),
+    TargetTypes by CppTypes {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val libDir = "/lib/Cpp"
+        const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "c56febce6a291d5e2727266bb819a839e3f6c71f"
+        const val defaultRuntimeVersion = "eaa514d4a2a44e6ec57422e1a90481cf15c942fd"
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
@@ -71,7 +74,7 @@ class CppGenerator(
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
-            doCompile()
+            doCompile(context)
         }
     }
 
@@ -83,9 +86,9 @@ class CppGenerator(
 
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
-        copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
+        fileConfig.copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
+        fileConfig.copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
+        fileConfig.copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
@@ -110,9 +113,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r)
+            val generator = CppPreambleGenerator(r.getEResource(), cppFileConfig, scopeProvider)
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
             cppSources.add(sourceFile)
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
@@ -124,7 +127,7 @@ class CppGenerator(
         fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
-    fun doCompile() {
+    fun doCompile(context: IGeneratorContext) {
         val outPath = fileConfig.outPath
 
         val buildPath = outPath.resolve("build").resolve(topLevelName)
@@ -167,11 +170,11 @@ class CppGenerator(
         }
 
         // run cmake
-        val cmakeReturnCode = cmakeCommand.run()
+        val cmakeReturnCode = cmakeCommand.run(context.cancelIndicator)
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeReturnCode = makeCommand.run()
+            val makeReturnCode = makeCommand.run(context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
@@ -221,17 +224,49 @@ class CppGenerator(
 
     override fun generateAfterDelaysWithVariableWidth() = false
 
+    override fun getTarget() = Target.CPP
+}
+
+object CppTypes : TargetTypes {
+
     override fun supportsGenerics() = true
 
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
 
-    override fun getTargetTagIntervalType() = targetUndefinedType
+    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
+    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = TODO()
-    override fun getTargetVariableSizeListType(baseType: String) = TODO()
+    override fun getTargetUndefinedType() = "void"
 
-    override fun getTargetUndefinedType() = TODO()
+    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): String =
+        if (magnitude == 0L) "reactor::Duration::zero()"
+        else magnitude.toString() + unit.cppUnit
 
-    override fun getTarget() = Target.CPP
 }
+/** Get a C++ representation of a LF unit. */
+val TimeUnit.cppUnit
+    get() = when (this) {
+        TimeUnit.NSEC    -> "ns"
+        TimeUnit.NSECS   -> "ns"
+        TimeUnit.USEC    -> "us"
+        TimeUnit.USECS   -> "us"
+        TimeUnit.MSEC    -> "ms"
+        TimeUnit.MSECS   -> "ms"
+        TimeUnit.SEC     -> "s"
+        TimeUnit.SECS    -> "s"
+        TimeUnit.SECOND  -> "s"
+        TimeUnit.SECONDS -> "s"
+        TimeUnit.MIN     -> "min"
+        TimeUnit.MINS    -> "min"
+        TimeUnit.MINUTE  -> "min"
+        TimeUnit.MINUTES -> "min"
+        TimeUnit.HOUR    -> "h"
+        TimeUnit.HOURS   -> "h"
+        TimeUnit.DAY     -> "d"
+        TimeUnit.DAYS    -> "d"
+        TimeUnit.WEEK    -> "d*7"
+        TimeUnit.WEEKS   -> "d*7"
+        TimeUnit.NONE    -> ""
+        else             -> ""
+    }

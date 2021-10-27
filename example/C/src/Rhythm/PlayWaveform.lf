@@ -37,7 +37,9 @@ target C {
             "/lib/C/util/audio_loop_linux.c",
             "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
             "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
-            "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
+            "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"],
+    // Include the cmake support for the audio loop
+    cmake-include: ["/lib/C/util/audio_loop.cmake"]
 }
 preamble {= 
     #include "wave_file_reader.c"
