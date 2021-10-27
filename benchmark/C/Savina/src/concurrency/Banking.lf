@@ -76,7 +76,7 @@ preamble {=
 
 reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     preamble {=
-        struct pseudo_random *random_gen;
+        PseudoRandom *random_gen;
         message_queue_t *message_queues = NULL;
     =}
 
@@ -88,30 +88,24 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
                 message_queues[cnt].size = sizeof(credit_message_t);
             }
         }
-        random_gen = (struct pseudo_random *) malloc(sizeof(struct pseudo_random));
-        init_pseudo_random(random_gen, seed);
+        random_gen = (PseudoRandom *) malloc(sizeof(PseudoRandom));
+        initPseudoRandom(random_gen, seed);
         
         printf("Teller: Start a new iteration\n");
-        
-        // reset local state
-        init_pseudo_random(random_gen, seed);
-
-        // reset all accounts
-        int i;
             
         // generateWork();
-        for (i = 0; i < self->numBankings; i++) {
+        for (int i = 0; i < self->numBankings; i++) {
             // src is lower than dest id to ensure there is never a deadlock
             // Note: this comment stems from the original Akka implementation and 
             // is actually not needed in LF, since cycle free programs cannot deadlock
-            size_t src_account = next_int_exclusive_max(random_gen, (self->numAccounts / 10) * 8);
-            size_t loop_id = next_int_exclusive_max(random_gen, self->numAccounts - src_account);
+            size_t src_account = nextIntEMax(random_gen, (self->numAccounts / 10) * 8);
+            size_t loop_id = nextIntEMax(random_gen, self->numAccounts - src_account);
             if(loop_id == 0) {
                 loop_id += 1;
             }
             size_t dest_account = src_account + loop_id;
             
-            double amount = next_double(random_gen);
+            double amount = nextDouble(random_gen);
             
             credit_message_t new_msg;
             new_msg.recipient = dest_account;
