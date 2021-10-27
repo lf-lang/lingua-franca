@@ -28,6 +28,7 @@ package org.lflang.generator.c;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.xtext.util.CancelIndicator;
@@ -166,13 +167,14 @@ public class CCmakeCompiler extends CCompiler {
             }
             
         }
+        
         return ((cMakeReturnCode == 0) && (makeReturnCode == 0));
     }
     
+    
     /**
-     * Return a command to configure the specified C file
-     * using CMake.
-     * This produces a C-specific configure command.
+     * Return a command to compile the specified C file using CMake.
+     * This produces a C-specific compile command.
      * 
      * @param fileToCompile The C filename without the .c extension.
      * @param noBinary If true, the compiler will create a .o output instead of a binary. 
@@ -185,16 +187,22 @@ public class CCmakeCompiler extends CCompiler {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         
+        List<String> arguments =  new ArrayList<String>();
+        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
+                "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
+                        fileConfig.getOutPath().relativize(
+                                fileConfig.binPath
+                                )
+                        ),
+                FileConfig.toUnixString(fileConfig.getSrcGenPath())
+            ));
+        
+        if (isHostWindows()) {
+            arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
+        }
+        
         LFCommand command = commandFactory.createCommand(
-                "cmake", List.of(
-                        "-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
-                        "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
-                                fileConfig.getOutPath().relativize(
-                                        fileConfig.binPath
-                                        )
-                                ),
-                        FileConfig.toUnixString(fileConfig.getSrcGenPath())
-                    ),
+                "cmake", arguments,
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
@@ -203,6 +211,7 @@ public class CCmakeCompiler extends CCompiler {
         }
         return command;
     }
+    
     
     /**
      * Return a command to build the specified C file using CMake.
