@@ -462,6 +462,29 @@ public enum Target {
         return this.keywords.contains(ident);
     }
 
+    public boolean supportsMultiports() {
+        switch (this) {
+        case C:
+        case CCPP:
+        case CPP:
+        case Python:
+        case Rust:
+            return true;
+        }
+        return false;
+    }
+
+    public boolean supportsParameterizedWidths() {
+        switch (this) {
+        case C:
+        case CCPP:
+        case CPP:
+        case Python:
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
