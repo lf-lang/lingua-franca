@@ -60,11 +60,15 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
                 matcher.group("line"), matcher.group("column")
             );
             final CodeMap map = maps.get(path);
+            final boolean isError = matcher.group("severity").toLowerCase().contains("error");
             if (map == null) {
-                errorReporter.reportError(message);
+                if (isError) {
+                    errorReporter.reportError(message);
+                } else {
+                    errorReporter.reportWarning(message);
+                }
                 return;
             }
-            final boolean isError = matcher.group("severity").toLowerCase().contains("error");
             for (Path srcFile : map.lfSourcePaths()) {
                 // FIXME: Is it desirable for the error to be reported to every single LF file associated
                 //  with the generated file containing the error? Or is it best to be more selective?
