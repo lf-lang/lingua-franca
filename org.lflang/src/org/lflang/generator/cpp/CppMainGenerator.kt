@@ -54,10 +54,10 @@ class CppMainGenerator(
             |using namespace std::chrono_literals;
             |using namespace reactor::operators;
             |
-            |#include "time_parser.hh"
-            |
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
+            |
+            |#include "time_parser.hh"
             |
             |class Timeout : public reactor::Reactor {
             | private:
