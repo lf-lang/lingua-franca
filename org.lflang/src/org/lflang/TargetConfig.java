@@ -24,15 +24,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.generator.rust.CargoDependencySpec;
+import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.TimeUnit;
 
 /** 
@@ -55,11 +60,6 @@ public class TargetConfig {
      * property is to set the command to build on the basis of a Makefile.
      */
     public List<String> buildCommands = new ArrayList<>();
-
-    /**
-     * List of Cargo features to enable (Rust only).
-     */
-    public List<String> cargoFeatures = new ArrayList<>();
 
     /**
      * The mode of clock synchronization to be used in federated programs.
@@ -221,6 +221,9 @@ public class TargetConfig {
      */
     public boolean exportDependencyGraph = false;
 
+
+    /** Rust-specific configuration. */
+    public final RustTargetConfig rust = new RustTargetConfig();
 
     /**
      * Settings related to clock synchronization.

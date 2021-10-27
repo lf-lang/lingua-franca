@@ -107,7 +107,7 @@ public class Main {
         HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
-        THREADS("t", "threads", false, false, "Specify the default number of threads.", true),
+        THREADS("t", "threads", true, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
         RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
         EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true);
