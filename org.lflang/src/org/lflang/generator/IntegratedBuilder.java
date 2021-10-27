@@ -31,7 +31,7 @@ public class IntegratedBuilder {
     //  generator are invoked by Xtext in response to
     //  document edits.
     /**
-     * A <code>ReportMethod</code> is a way of reporting issues.
+     * A {@code ReportMethod} is a way of reporting issues.
      */
     private interface ReportMethod {
         void apply(Path file, Integer line, String message);
@@ -51,8 +51,7 @@ public class IntegratedBuilder {
     /* ------------------------- PUBLIC METHODS -------------------------- */
 
     /**
-     * Generates code from the Lingua Franca file <code>f
-     * </code>.
+     * Generates code from the Lingua Franca file {@code f}.
      * @param uri the URI of a Lingua Franca file
      */
     public void run(URI uri, boolean complete) {
@@ -71,7 +70,7 @@ public class IntegratedBuilder {
     /* ------------------------- PRIVATE METHODS ------------------------- */
 
     /**
-     * Validates the Lingua Franca file <code>f</code>.
+     * Validates the Lingua Franca file {@code f}.
      * @param uri the URI of a Lingua Franca file
      * @param errorReporter the reporter with which to
      *                      report errors
@@ -85,7 +84,7 @@ public class IntegratedBuilder {
     }
 
     /**
-     * Generates code from the contents of <code>f</code>.
+     * Generates code from the contents of {@code f}.
      * @param uri the URI of a Lingua Franca file
      */
     private void doGenerate(URI uri, boolean complete) {
@@ -93,11 +92,9 @@ public class IntegratedBuilder {
     }
 
     /**
-     * Returns the resource corresponding to <code>uri
-     * </code>.
+     * Returns the resource corresponding to {@code uri}.
      * @param uri the URI of a Lingua Franca file
-     * @return the resource corresponding to <code>uri
-     * </code>
+     * @return the resource corresponding to {@code uri}
      */
     private Resource getResource(URI uri) {
         return resourceSetProvider.get().getResource(uri, true);
@@ -105,10 +102,10 @@ public class IntegratedBuilder {
 
     /**
      * Returns the appropriate reporting method for the
-     * given <code>Severity</code>.
-     * @param severity an arbitrary <code>Severity</code>
+     * given {@code Severity}.
+     * @param severity an arbitrary {@code Severity}
      * @return the appropriate reporting method for
-     * <code>severity</code>
+     * {@code severity}
      */
     private ReportMethod getReportMethod(ErrorReporter errorReporter, Severity severity) {
         if (severity == Severity.ERROR) return errorReporter::reportError;

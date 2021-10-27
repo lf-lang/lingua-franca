@@ -613,7 +613,7 @@ class ASTUtils {
      * implementation detail that is internal to the code
      * generator.
      * @param code the AST node to render as a string
-     * @return a textual representation of <code>code</code>
+     * @return a textual representation of {@code code}
      */
     def static String toTaggedText(Code code) {
         // FIXME: Duplicates work already done in

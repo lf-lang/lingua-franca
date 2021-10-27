@@ -18,7 +18,7 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
 
     /**
      * Instantiates a reporting strategy for lines of
-     * validator output that match <code>p</code>.
+     * validator output that match {@code p}.
      * @param p a pattern that matches lines that should be
      *          reported via this strategy. This pattern
      *          must contain named capturing groups called
@@ -41,7 +41,7 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
 
     /**
      * Reports the validation message contained in
-     * <code>line</code> if such a message exists.
+     * {@code line} if such a message exists.
      * @param line a line of validator output
      * @param errorReporter an arbitrary ErrorReporter
      * @param maps a mapping from generated file paths to

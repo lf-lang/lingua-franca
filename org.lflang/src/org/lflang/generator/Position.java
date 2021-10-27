@@ -41,7 +41,7 @@ public class Position implements Comparable<Position> {
      * @param line the zero-based line number
      * @param column the zero-based column number
      * @return a Position describing the position described
-     * by <code>line</code> and <code>column</code>.
+     * by {@code line} and {@code column}.
      */
     public static Position fromZeroBased(int line, int column) {
         return new Position(line, column);
@@ -53,7 +53,7 @@ public class Position implements Comparable<Position> {
      * @param line the one-based line number
      * @param column the one-based column number
      * @return a Position describing the position described
-     * by <code>line</code> and <code>column</code>.
+     * by {@code line} and {@code column}.
      */
     public static Position fromOneBased(int line, int column) {
         return new Position(line - 1, column - 1);
@@ -61,10 +61,10 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the Position that equals the displacement
-     * caused by <code>text</code>.
+     * caused by {@code text}.
      * @param text an arbitrary string
      * @return the Position that equals the displacement
-     * caused by <code>text</code>
+     * caused by {@code text}
      */
     public static Position displacementOf(String text) {
         String[] lines = text.lines().toArray(String[]::new);
@@ -74,12 +74,12 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the Position that describes the same location
-     * in <code>content</code> as <code>offset</code>.
+     * in {@code content} as {@code offset}.
      * @param offset a location, expressed as an offset from
-     *               the beginning of <code>content</code>
+     *               the beginning of {@code content}
      * @param content the content of a document
      * @return the Position that describes the same location
-     * in <code>content</code> as <code>offset</code>
+     * in {@code content} as {@code offset}
      */
     public static Position fromOffset(int offset, String content) {
         int lineNumber = 0;
@@ -112,9 +112,9 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the one-based line number described by this
-     * <code>Position</code>.
+     * {@code Position}.
      * @return the one-based line number described by this
-     * <code>Position</code>
+     * {@code Position}
      */
     public int getOneBasedLine() {
         return line + 1;
@@ -122,9 +122,9 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the one-based column number described by this
-     * <code>Position</code>.
+     * {@code Position}.
      * @return the one-based column number described by this
-     * <code>Position</code>
+     * {@code Position}
      */
     public int getOneBasedColumn() {
         return column + 1;
@@ -132,9 +132,9 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the zero-based line number described by this
-     * <code>Position</code>.
+     * {@code Position}.
      * @return the zero-based line number described by this
-     * <code>Position</code>
+     * {@code Position}
      */
     public int getZeroBasedLine() {
         return line;
@@ -142,26 +142,26 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the zero-based column number described by this
-     * <code>Position</code>.
+     * {@code Position}.
      * @return the zero-based column number described by this
-     * <code>Position</code>
+     * {@code Position}
      */
     public int getZeroBasedColumn() {
         return column;
     }
 
     /**
-     * Returns the offset of this <code>Position</code> from
+     * Returns the offset of this {@code Position} from
      * the beginning of the document whose content is
-     * <code>documentContent</code>. Silently returns an
+     * {@code documentContent}. Silently returns an
      * incorrect but valid offset in the case that this
-     * <code>Position</code> is not contained in
-     * <code>documentContent</code>.
+     * {@code Position} is not contained in
+     * {@code documentContent}.
      * @param documentContent the content of the document
      *                        in which this is a position
-     * @return the offset of this <code>Position</code> from
+     * @return the offset of this {@code Position} from
      * the beginning of the document whose content is
-     * <code>documentContent</code>
+     * {@code documentContent}
      */
     public int getOffset(String documentContent) {
         return documentContent.lines().limit(getZeroBasedLine()).mapToInt(String::length).sum()
@@ -169,22 +169,22 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the sum of this and another <code>Position
-     * </code>. The result has meaning because Positions are
+     * Returns the sum of this and another {@code Position}.
+     * The result has meaning because Positions are
      * relative.
-     * @param other another <code>Position</code>
-     * @return the sum of this and <code>other</code>
+     * @param other another {@code Position}
+     * @return the sum of this and {@code other}
      */
     public Position plus(Position other) {
         return new Position(line + other.line, column + other.column);
     }
 
     /**
-     * Returns the difference of this and another <code>
-     * Position</code>. The result has meaning because
+     * Returns the difference of this and another {@code
+     * Position}. The result has meaning because
      * Positions are relative.
-     * @param other another <code>Position</code>
-     * @return the difference of this and <code>other</code>
+     * @param other another {@code Position}
+     * @return the difference of this and {@code other}
      */
     public Position minus(Position other) {
         return new Position(line - other.line, column - other.column);
@@ -214,11 +214,11 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Returns the Position represented by <code>s</code>.
+     * Returns the Position represented by {@code s}.
      * @param s a String that represents a Position,
      *          formatted like the output of
-     *          Position::toString.
-     * @return the Position represented by <code>s</code>
+     *          {@code Position::toString}.
+     * @return the Position represented by {@code s}
      */
     public static Position fromString(String s) {
         Matcher matcher = PATTERN.matcher(s);
@@ -238,9 +238,9 @@ public class Position implements Comparable<Position> {
 
     /**
      * Removes the names from the named capturing groups
-     * that appear in <code>regex</code>.
+     * that appear in {@code regex}.
      * @param regex an arbitrary regular expression
-     * @return a string representation of <code>regex</code>
+     * @return a string representation of {@code regex}
      * with the names removed from the named capturing
      * groups
      */
