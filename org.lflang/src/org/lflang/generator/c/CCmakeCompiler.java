@@ -28,7 +28,6 @@ package org.lflang.generator.c;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.xtext.util.CancelIndicator;
@@ -108,20 +107,9 @@ public class CCmakeCompiler extends CCompiler {
         // Make sure the build directory exists
         Files.createDirectories(buildPath);
 
-        int cMakeReturnCode = configure(file, noBinary, generator, cancelIndicator);
-        
-        int makeReturnCode = 0;
-
-        if (cMakeReturnCode == 0) {
-            makeReturnCode = build(file, noBinary, generator, cancelIndicator);
-        }
-        return cMakeReturnCode == 0 && makeReturnCode == 0;
-    }
-
-    private int configure(String file, boolean noBinary, GeneratorBase generator, CancelIndicator cancelIndicator) {
         LFCommand compile = compileCmakeCommand(file, noBinary);
         if (compile == null) {
-            return 1;
+            return false;
         }
 
         // Use the user-specified compiler if any
@@ -134,56 +122,58 @@ public class CCmakeCompiler extends CCompiler {
                 compile.replaceEnvironmentVariable("CC", targetConfig.compiler);
             }
         }
-
+        
         int cMakeReturnCode = compile.run(cancelIndicator);
-
-        if (cMakeReturnCode != 0 &&
-            fileConfig.getCompilerMode() == Mode.STANDALONE &&
-            !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+        
+        if (cMakeReturnCode != 0 && 
+                fileConfig.getCompilerMode() == Mode.STANDALONE &&
+                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
         }
-
+        
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 &&
-            fileConfig.getCompilerMode() != Mode.STANDALONE &&
-            !outputContainsKnownCMakeErrors(compile.getErrors().toString())
-        ) {
+        if (compile.getErrors().toString().length() > 0 && 
+                fileConfig.getCompilerMode() != Mode.STANDALONE &&
+                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
-            errorReporter.reportError(compile.getErrors().toString());
         }
-        return cMakeReturnCode;
-    }
+        
+        int makeReturnCode = 0;
 
-    private int build(String file, boolean noBinary, GeneratorBase generator, CancelIndicator cancelIndicator) {
-        LFCommand build = buildCmakeCommand(file, noBinary);
+        if (cMakeReturnCode == 0) {            
+            LFCommand build = buildCmakeCommand(file, noBinary);
+            
+            makeReturnCode = build.run(cancelIndicator);
+            
+            if (makeReturnCode != 0 && 
+                    fileConfig.getCompilerMode() == Mode.STANDALONE &&
+                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+                errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
+            }
+            
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (build.getErrors().toString().length() > 0 && 
+                    fileConfig.getCompilerMode() != Mode.STANDALONE &&
+                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+                generator.reportCommandErrors(build.getErrors().toString());
+            }
+            
 
-        int makeReturnCode = build.run(cancelIndicator);
-
-        if (makeReturnCode != 0 &&
-            fileConfig.getCompilerMode() == Mode.STANDALONE &&
-            !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-            errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
+            if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+                System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
+            }
+            
         }
-
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (build.getErrors().toString().length() > 0 &&
-            fileConfig.getCompilerMode() != Mode.STANDALONE &&
-            !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-            generator.reportCommandErrors(build.getErrors().toString());
-        }
-
-        if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
-            System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
-        }
-        return makeReturnCode;
+        return ((cMakeReturnCode == 0) && (makeReturnCode == 0));
     }
     
     /**
      * Return a command to configure the specified C file
      * using CMake.
      * This produces a C-specific configure command.
+     * 
      * @param fileToCompile The C filename without the .c extension.
      * @param noBinary If true, the compiler will create a .o output instead of a binary. 
      *  If false, the compile command will produce a binary.
@@ -193,24 +183,18 @@ public class CCmakeCompiler extends CCompiler {
             boolean noBinary
     ) {        
         // Set the build directory to be "build"
-        Path buildPath = getBuildPath();
-        
-        List<String> arguments =  new ArrayList<String>();
-        arguments.addAll(List.of("-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
-                "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
-                        fileConfig.getOutPath().relativize(
-                                fileConfig.binPath
-                                )
-                        ),
-                FileConfig.toUnixString(fileConfig.getSrcGenPath())
-            ));
-        
-        if (isHostWindows()) {
-            arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
-        }
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         
         LFCommand command = commandFactory.createCommand(
-                "cmake", arguments,
+                "cmake", List.of(
+                        "-DCMAKE_INSTALL_PREFIX="+FileConfig.toUnixString(fileConfig.getOutPath()),
+                        "-DCMAKE_INSTALL_BINDIR="+FileConfig.toUnixString(
+                                fileConfig.getOutPath().relativize(
+                                        fileConfig.binPath
+                                        )
+                                ),
+                        FileConfig.toUnixString(fileConfig.getSrcGenPath())
+                    ),
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
@@ -221,9 +205,9 @@ public class CCmakeCompiler extends CCompiler {
     }
     
     /**
-     * Return a command to build (compile and link) the
-     * specified C file using CMake.
+     * Return a command to build the specified C file using CMake.
      * This produces a C-specific build command.
+     * 
      * @note It appears that configuration and build cannot happen in one command.
      *  Therefore, this is separated into a compile and a build command. 
      * 
@@ -236,12 +220,12 @@ public class CCmakeCompiler extends CCompiler {
             boolean noBinary
     ) { 
         // Set the build directory to be "build"
-        Path buildPath = getBuildPath();
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
         LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
                         "--build", ".", "--target", "install", "--parallel", cores, "--config",
-                        targetConfig.cmakeBuildType!=null ? targetConfig.cmakeBuildType.toString() : "Release"
+                        ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release")
                     ),
                 buildPath);
         if (command == null) {
@@ -250,10 +234,6 @@ public class CCmakeCompiler extends CCompiler {
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
-    }
-
-    private Path getBuildPath() {
-        return fileConfig.getSrcGenPath().resolve("build");
     }
     
     /**
