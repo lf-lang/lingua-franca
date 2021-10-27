@@ -37,9 +37,8 @@ bin/lfc --clean test/C/src/Minimal.lf
 #                                    be used by the compiled binary.
 
 # -f,--federated                     Treat main reactor as federated.
-# FIXME: The following triggers IllegalArgumentException in CGenerator::InteractingContainedReactors
-# bin/lfc -f test/C/src/Minimal.lf
-# bin/lfc --federated test/C/src/Minimal.lf
+bin/lfc -f test/C/src/Minimal.lf
+bin/lfc --federated test/C/src/Minimal.lf
 
 # -h,--help                          Display this information.
 bin/lfc --help
