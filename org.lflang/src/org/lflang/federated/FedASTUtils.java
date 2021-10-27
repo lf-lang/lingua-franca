@@ -483,14 +483,10 @@ public class FedASTUtils {
     
     /**
      * Add a network sender reaction for a given input port 'source' to
-     * destination's parent reactor. This reaction will react to a generated
-     * network action (triggered asynchronously, e.g., by federate.c). This
-     * network action will contain the actual message that is sent by the sender
-     * in 'action->value'. This value is forwarded to 'destination' in the network
-     * receiver reaction.
+     * source's parent reactor. This reaction will react to the 'source'
+     * and then send a message on the network destined for the rightFederate.
      * 
      * @note Used in federated execution
-     * 
      * 
      * @param source The source port instance.
      * @param destination The destination port instance.
