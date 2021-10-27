@@ -22,10 +22,11 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
      * @param p a pattern that matches lines that should be
      *          reported via this strategy. This pattern
      *          must contain named capturing groups called
-     *          "path", "line", "column", and "message".
+     *          "path", "line", "column", "message", and
+     *          "severity".
      */
     public PerLineReportingStrategy(Pattern p) {
-        for (String groupName : new String[]{"path", "line", "column", "message"}) {
+        for (String groupName : new String[]{"path", "line", "column", "message", "severity"}) {
             assert p.pattern().contains(groupName) : String.format(
                 "Error line patterns must have a named capturing group called %s", groupName
             );
@@ -63,11 +64,16 @@ public class PerLineReportingStrategy implements CommandErrorReportingStrategy {
                 errorReporter.reportError(message);
                 return;
             }
+            final boolean isError = matcher.group("severity").toLowerCase().contains("error");
             for (Path srcFile : map.lfSourcePaths()) {
                 // FIXME: Is it desirable for the error to be reported to every single LF file associated
                 //  with the generated file containing the error? Or is it best to be more selective?
                 Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
-                errorReporter.reportError(srcFile, lfFilePosition.getOneBasedLine(), message);
+                if (isError) {
+                    errorReporter.reportError(srcFile, lfFilePosition.getOneBasedLine(), message);
+                } else {
+                    errorReporter.reportWarning(srcFile, lfFilePosition.getOneBasedLine(), message);
+                }
             }
         }
     }
