@@ -122,8 +122,11 @@ public class CargoDependencySpec {
     }
 
     private static CargoDependencySpec parseValue(KeyValuePair pair) {
+        /** FIXME: Does not compile in Eclipse.
         boolean isRuntimeCrate = pair.getName().equals(RustEmitterBase.runtimeCrateFullName);
         return parseValue(pair.getValue(), isRuntimeCrate);
+        */
+        return null;
     }
 
     /**
