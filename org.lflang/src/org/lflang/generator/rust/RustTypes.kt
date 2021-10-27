@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust
 
+import org.lflang.InferredType
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.TimeUnit
@@ -77,8 +78,8 @@ object RustTypes : TargetTypes {
     override fun getVariableSizeListInitExpression(contents: List<String>, withBraces: Boolean): String =
         contents.joinToString(", ", "vec![", "]")
 
-    override fun getMissingExpr(): String =
-        "Default::default()"
+    override fun getMissingExpr(type: InferredType): String =
+        "<${getTargetType(type)} as Default>::default()"
 }
 
 val RustKeywords = setOf(

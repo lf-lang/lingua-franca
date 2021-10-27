@@ -18,7 +18,7 @@ import org.lflang.lf.Value;
  * utilities to convert LF expressions and types to the target
  * language. Each code generator is expected to use at least one
  * language-specific instance of this interface.
- * 
+ *
  * TODO currently, {@link GeneratorBase} implements this interface,
  *  it should instead contain an instance.
  */
@@ -113,7 +113,7 @@ public interface TargetTypes {
      *
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
-    default String getMissingExpr() {
+    default String getMissingExpr(InferredType type) {
         throw new UnsupportedGeneratorFeatureException("Missing initializers");
     }
 
@@ -180,7 +180,7 @@ public interface TargetTypes {
         } else if (inferredType.isVariableSizeList) {
             return getVariableSizeListInitExpression(targetValues, initWithBraces);
         } else {
-            return getMissingExpr();
+            return getMissingExpr(inferredType);
         }
     }
 
@@ -197,7 +197,7 @@ public interface TargetTypes {
         } else if (value.getTime() != null) {
             return getTargetTimeExpr(value.getTime());
         } else if (value.getLiteral() != null) {
-            return value.getLiteral();// here we don't escape
+            return JavaAstUtils.addZeroToLeadingDot(value.getLiteral()); // here we don't escape
         } else if (value.getCode() != null) {
             return ASTUtils.toText(value.getCode());
         } else {
