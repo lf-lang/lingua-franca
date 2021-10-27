@@ -4,8 +4,8 @@
  * Supported Operations: deque_push_front, deque_push_back, deque_pop_front, deque_pop_back, deque_peek_front, 
  * deque_peek_back, deque_is_empty, deque_get_size.
  * 
- * Value stored in the deque is of type void* to make the use generic. Memory allocation/free should for Value (data stored in deque)
- * should be handled outside the deque: memory should be dynamically allocated for value before every push and freed after every pop.
+ * Value stored in the deque is of type void* to make the use generic. Memory allocation/free is handled internally. Deque initialization requires
+ * information about the size of value to be stored.
  * 
  * author: Arthur Deng
  */
@@ -13,18 +13,16 @@
 #ifndef DEQUE_H
 #define DEQUE_H
 
-typedef void* value_t;
-// Type declaration specific to Banking.lf ends
-
 typedef struct node {
     struct node *next;
     struct node *prev;
-    value_t value;
+    void* value;
 } node;
 
 typedef struct deque {
     struct node* front;
     struct node* back;
+    size_t size;
     int length;
 } deque;
 
@@ -32,15 +30,17 @@ typedef struct deque {
 * Function:  deque_initialize
 * --------------------
 * allocates memory for and intializes the deque.
+* size: size of each data item
 *  returns: pointer to the deque
 */
-deque* deque_initialize() {
+deque* deque_initialize(size_t size) {
     // allocate space for deque
     deque *p = (deque *) malloc (sizeof(deque));
     if (p != NULL) {
         p->front = NULL;
         p->back = NULL;
         p->length = 0;
+        p->size = size;
     }
     return p;
 }
@@ -69,7 +69,7 @@ int deque_is_empty(struct deque* d) {
 *  val: value to be stored in the node
 *  returns: pointer to the node
 */
-node* _deque_create_node(value_t val) {
+node* _deque_create_node(void* val) {
     node *new_node = (struct node *) malloc(sizeof(struct node));
     new_node->value = val;
     new_node->next = NULL;
@@ -85,8 +85,11 @@ node* _deque_create_node(value_t val) {
 *  val: value to be added into the deque
 *  returns: None
 */
-void deque_push_front(struct deque* d, value_t val) {
-    node *n = _deque_create_node(val);
+void deque_push_front(struct deque* d, void* val) {
+	// allocate space on the heap to store val
+	void *val_heap = malloc(d->size);
+	memcpy(val_heap, val, d->size);
+    node *n = _deque_create_node(val_heap);
     if (d->back == NULL) {
         d->back = d->front = n;
     } else {
@@ -105,8 +108,11 @@ void deque_push_front(struct deque* d, value_t val) {
 *  val: value to be added into the deque
 *  returns: None
 */
-void deque_push_back(struct deque* d, value_t val) {
-    node *n = _deque_create_node(val);
+void deque_push_back(struct deque* d, void* val) {
+	// allocate space on the heap to store val
+	void *val_heap = malloc(d->size);
+	memcpy(val_heap, val, d->size);
+    node *n = _deque_create_node(val_heap);
     if (d->back == NULL) {
         d->back = d->front = n;
     } else {
@@ -124,13 +130,13 @@ void deque_push_back(struct deque* d, value_t val) {
 *  d: pointer to the deque
 *  returns: value popped from the front
 */
-value_t deque_pop_front(struct deque* d) {
+void* deque_pop_front(struct deque* d) {
     if (d==NULL || d->front == NULL) {
         fprintf(stderr, "Error: popping from empty deque\n");
         return 0;
     }
     
-    value_t value = d->front->value;
+    void* value = d->front->value;
     struct node *temp = d->front; // temporary pointer for freeing up memory
     
     if (d->front == d->back) { 
@@ -140,6 +146,7 @@ value_t deque_pop_front(struct deque* d) {
         d->front = d->front->next;
     }
     d->length--; // decrement size
+    free(temp->value); // free memory for value
     free(temp); // free memory for popped node
     return value;
 }
@@ -151,13 +158,13 @@ value_t deque_pop_front(struct deque* d) {
 *  d: pointer to the deque
 *  returns: value popped from the back
 */
-value_t deque_pop_back(struct deque* d) {
+void* deque_pop_back(struct deque* d) {
     if (d==NULL || d->back == NULL) {
         fprintf(stderr, "Error: popping from empty deque\n");
         return 0;
     }
     
-    value_t value = d->back->value;
+    void* value = d->back->value;
     struct node *temp = d->back; // temporary pointer for freeing up memory
     if (d->front == d->back) { 
         // popping last element in deque
@@ -166,6 +173,7 @@ value_t deque_pop_back(struct deque* d) {
         d->back = d->back->prev;
     }
     d->length--; // decrement size
+    free(temp->value); // free memory for value
     free(temp); // free memory for popped node
     return value;
 }
@@ -177,7 +185,7 @@ value_t deque_pop_back(struct deque* d) {
 *  d: pointer to the deque
 *  returns: value of the front node
 */
-value_t deque_peek_front(struct deque* d) {
+void* deque_peek_front(struct deque* d) {
     if (d == NULL || d->front == NULL) {
         fprintf(stderr, "Error: peeking empty deque");
         return 0;
@@ -192,7 +200,7 @@ value_t deque_peek_front(struct deque* d) {
 *  d: pointer to the deque
 *  returns: value of the back node
 */
-value_t deque_peek_back(struct deque* d) {
+void* deque_peek_back(struct deque* d) {
     if (d == NULL || d->back == NULL) {
         fprintf(stderr, "Error: peeking empty deque");
         return 0;

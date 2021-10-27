@@ -83,6 +83,10 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     reaction(startup) ->next {=
         if (!message_queues) {
             message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
+            size_t cnt;
+            for (cnt = 0; cnt < self->numAccounts; cnt++) {
+                message_queues[cnt].size = sizeof(credit_message_t);
+            }
         }
         random_gen = (struct pseudo_random *) malloc(sizeof(struct pseudo_random));
         init_pseudo_random(random_gen, seed);
@@ -109,10 +113,10 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             
             double amount = next_double(random_gen);
             
-            credit_message_t *new_msg = (credit_message_t *) malloc(sizeof(credit_message_t));
-            new_msg->recipient = dest_account;
-            new_msg->amount = amount;
-            deque_push_back(&(message_queues[src_account]), new_msg);
+            credit_message_t new_msg;
+            new_msg.recipient = dest_account;
+            new_msg.amount = amount;
+            deque_push_back(&(message_queues[src_account]), &new_msg);
         }
                 
         // start execution
@@ -133,9 +137,9 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             message_queue_t *queue = &(message_queues[i]);
             if (!deque_is_empty(queue)) {
                 work_found = 1;
-                credit_message_t message = *((credit_message_t *) deque_peek_front(queue));  
+                credit_message_t message = *((credit_message_t *) deque_peek_front(queue));
                 SET(credit[message.recipient], message);
-                free(deque_pop_front(queue));
+                deque_pop_front(queue);
             }
         }
         
