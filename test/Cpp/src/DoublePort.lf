@@ -33,9 +33,14 @@ reactor Print {
     input in2:int;
     reaction(in, in2) {=
         auto elapsed_time = get_elapsed_logical_time();
+        if(in.is_present()){
+            reactor::log::Info() << "At tag (" << elapsed_time << ", " << get_logical_time() 
+            << "), received in = " << *in.get();
+        } else if (in2.is_present()){
+            reactor::log::Info() << "At tag (" << elapsed_time << ", " << get_logical_time() 
+            << "), received in2 = " << *in2.get();
+        }
 
-        reactor::log::Info() << "At tag (" << elapsed_time << ", " << get_logical_time() 
-        << "), received in = " << *in2.get() << " and in2 = " << *in2.get();
 
         if ( in.is_present() && in2.is_present()) {
             reactor::log::Error() << "ERROR: invalid logical simultaneity.";
