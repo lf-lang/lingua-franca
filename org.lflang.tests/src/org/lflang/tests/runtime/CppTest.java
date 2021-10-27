@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.AbstractTest;
@@ -77,21 +78,13 @@ public class CppTest extends AbstractTest {
     @Test
     @Override
     public void runWithFourThreads() {
-        printSkipMessage(Message.DESC_FOUR_THREADS,
-                Message.ALWAYS_MULTITHREADED);
+        Assumptions.assumeFalse(true, Message.ALWAYS_MULTITHREADED);
     }
     
     @Test
     @Override
     public void runSerializationTests() {
         super.runSerializationTests();
-    }
-
-    @Test
-    @Override
-    public void runAsFederated() {
-        printSkipMessage(Message.DESC_AS_FEDERATED,
-                Message.NO_CPP_SUPPORT);
     }
 
     @Test

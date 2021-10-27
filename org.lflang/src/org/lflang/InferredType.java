@@ -76,11 +76,11 @@ public class InferredType {
     /**
      * Private constructor
      */
-    private InferredType(Type astType, boolean isTime, boolean isList, boolean isVariableSizeList,
+    private InferredType(Type astType, boolean isTime, boolean isVariableSizeList,
                          boolean isFixedSizeList, Integer listSize) {
         this.astType = astType;
         this.isTime = isTime;
-        this.isList = isList;
+        this.isList = isVariableSizeList || isFixedSizeList;
         this.isVariableSizeList = isVariableSizeList;
         this.isFixedSizeList = isFixedSizeList;
         this.listSize = listSize;
@@ -139,24 +139,24 @@ public class InferredType {
         return new InferredType(
             type,
             type.isTime(),
-            type.getArraySpec() != null,
             type.getArraySpec() != null && type.getArraySpec().isOfVariableLength(),
             type.getArraySpec() != null && !type.getArraySpec().isOfVariableLength(),
-            type.getArraySpec() != null ? type.getArraySpec().getLength() : null);
+            type.getArraySpec() != null ? type.getArraySpec().getLength() : null
+        );
     }
 
     /**
      * Create an undefined inferred type.
      */
     public static InferredType undefined() {
-        return new InferredType(null, false, false, false, false, null);
+        return new InferredType(null, false, false, false, null);
     }
 
     /**
      * Create an inferred type representing time.
      */
     public static InferredType time() {
-        return new InferredType(null, true, false, false, false, null);
+        return new InferredType(null, true, false, false, null);
     }
 
     /**
@@ -168,7 +168,7 @@ public class InferredType {
      * @param size The list size, may be null
      */
     public static InferredType timeList(Integer size) {
-        return new InferredType(null, true, true, size == null, size != null, size);
+        return new InferredType(null, true, size == null, size != null, size);
     }
 
     /**
