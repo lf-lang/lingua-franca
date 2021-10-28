@@ -124,7 +124,7 @@ public class PythonGeneratorExtension {
         var pointerExpression = "";
         switch (serializer) {
             case NATIVE: {
-                var variableToSerialize = sendRef;
+                var variableToSerialize = sendRef+"->value";
                 FedNativePythonSerialization pickler = new FedNativePythonSerialization();
                 lengthExpression = pickler.serializedBufferLength();
                 pointerExpression = pickler.seializedBufferVar();
@@ -132,8 +132,8 @@ public class PythonGeneratorExtension {
                         pickler.generateNetworkSerializerCode(variableToSerialize, null)
                 );
                 result.append("size_t message_length = "+lengthExpression+";\n");
+                result.append("info_print(\"Message length is %d\", message_length);\n");
                 result.append(sendingFunction+"("+commonArgs+", "+pointerExpression+");\n");
-                result.append("Py_XDECREF("+FedSerialization.serializedVarName+");");
                 break;
             }
             case PROTO: {
@@ -189,7 +189,7 @@ public class PythonGeneratorExtension {
         String value = "";
         switch (serializer) {
             case NATIVE: {
-                value = action.getName()+"->value";
+                value = action.getName();
                 FedNativePythonSerialization pickler = new FedNativePythonSerialization();
                 result.append(pickler.generateNetworkDeserializerCode(value, null));
                 result.append("SET("+receiveRef+", "+FedSerialization.deserializedVarName+");\n");

@@ -68,6 +68,7 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.lf.Delay
+import org.lflang.federated.FedPyLauncher
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -1092,6 +1093,25 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
+     * Create a launcher script that executes all the federates and the RTI.
+     * 
+     * @param coreFiles The files from the core directory that must be
+     *  copied to the remote machines.
+     */
+    override createFederatedLauncher(ArrayList<String> coreFiles) {
+        val launcher = new FedPyLauncher(
+            targetConfig,
+            fileConfig,
+            errorReporter
+        );
+        launcher.createLauncher(
+            coreFiles,
+            federates,
+            federationRTIProperties
+        );
+    }
+    
+    /**
      * Generate the aliases for inputs, outputs, and struct type definitions for 
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
@@ -1160,7 +1180,6 @@ class PythonGenerator extends CGenerator {
      *  uniformly across all target languages.
      */
     override includeTargetLanguageHeaders() {
-        pr('''#define MODULE_NAME LinguaFranca«topLevelName»''')
         pr('''#define _LF_GARBAGE_COLLECTED''') 
         if (targetConfig.tracing !== null) {
             var filename = "";
