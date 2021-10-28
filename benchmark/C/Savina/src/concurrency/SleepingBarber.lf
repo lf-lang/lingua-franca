@@ -2,7 +2,7 @@
  * Copyright (C) 2020 TU Dresden and UC Berkeley
  *
  * In this benchmark, there are four main components: The barber, a waiting
- * room, a customer factory and the customers. The customer factory controls the
+ * room, a customer factory, and the customers. The customer factory controls the
  * production of new customers and sends them to the waiting room. If the
  * waiting room is full, then the customers return and try again later. If the
  * waiting room has empty seats, then the customer enters and waits to be served
@@ -23,7 +23,7 @@
  * In an LF implementation, the processing time of the workload does not
  * influence the logical arrival and processing rates. Even with a random
  * workload, the customer factory and the barber could operate logically
- * synchronously in LF. To mimic the behaviour of the original Akka
+ * synchronously in LF. To mimic the behavior of the original Akka
  * implementation and to have a more realistic setup, this LF implementation
  * also uses physical actions to provide varying logical (and physical) delays.
  * This also ensures that the waiting room constantly changes state and fills up
@@ -38,9 +38,11 @@
  * @author Christian Menard
  * @author Hannes Klein
  * @author Matthew Chorlian
+ * @author Edward A. Lee
  */
 
 target C {
+    keepalive: true, // To silence warnings; because of the physical action.
     /* [[[cog
       if (threaded_runtime=="True"):
           cog.outl(f"threads: {threads},")
@@ -49,7 +51,7 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    files: ["/lib/C/util/deque.c", "/lib/C/util/deque.h", "../include/PseudoRandom.h"]
+    files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c", "../include/PseudoRandom.h"]
 };
 
 
@@ -69,11 +71,18 @@ preamble {=
     }
 =}
 
-
-reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {
-    input start: bool;
-    output finished: bool;
-    
+/**
+ * Upon startup or the triggering of the createNextCustomer action,
+ * produce the sendCustomer output, then busy-wait a random amount of
+ * physical time and then schedule another occurrence of the
+ * physical action createNextCustomer. The first customer will be
+ * produced at logical time 0, albeit after some physical time because
+ * of the busy wait.
+ * 
+ * This reactor ignores the customerDone input because it only needs to produce a
+ * new customer if one of the customers is returned.
+ */
+reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {    
     output sendCustomer: size_t;
     input[numCustomers] customerDone: bool;
     input[numCustomers] customerReturned: bool;
@@ -81,25 +90,14 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     physical action createNextCustomer;
     physical action sendCustomerAgain: size_t
     
-    state doneCustomers: size_t(0);
     state attempts: size_t(0);
     state next_customer_id: size_t(0);
-    state random: PseudoRandom*;
+    state random: PseudoRandom;
     
-    reaction(start) -> createNextCustomer {=
-        // reset state
-        self->doneCustomers = 0;
-        self->attempts = 0;
-        self->next_customer_id = 0;
-        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
-        // start "creating" customers
-        schedule(createNextCustomer, 0);
-    =}
-    
-    reaction (createNextCustomer) -> sendCustomer, createNextCustomer {=
+    reaction(startup, createNextCustomer) -> sendCustomer, createNextCustomer {=
         // get a random production delay
-        self->random->mValue = self->averageProductionRate;
-        int delay = (nextInt(self->random) + 10);
+        self->random.mValue = self->averageProductionRate;
+        int delay = (nextInt(&self->random) + 10);
         
         // apply a physical delay
         busyWait(delay);
@@ -134,19 +132,17 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
             }
         }
     =}
-    
-    reaction (customerDone) -> finished {=
-        for (size_t i = 0; i < self->numCustomers; i++) {
-            if (customerDone[i]->is_present) {
-                self->doneCustomers++;
-                if (self->doneCustomers == self->numCustomers) {
-                    SET(finished, true);
-                }
-            }
-        }
-    =}
 }
 
+/**
+ * When a receiveCustomer input arrives, if the barber is asleep,
+ * then wake the barber up and send the customer ID to the barberEnter
+ * output. If the barber is awake and there is room in the queue,
+ * then put the customer ID on the queue and produce a wait output
+ * on the channel corresponding to the customer ID. If the queue
+ * is full, then produce a full output on the channel corresponding
+ * to the customer ID.
+ */
 reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     preamble {=
         #include "deque.c"
@@ -172,14 +168,19 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     reaction (receiveCustomer) -> full, wait, barberEnter {=
          size_t customer_id = receiveCustomer->value;
          
-         if (self->queue->size == self->capacity) {
+         if (deque_size(&self->queue) == self->capacity) {
              SET(full[customer_id], true);
          } else {
             if (self->barberAsleep) {
                 self->barberAsleep = false;
                 SET(barberEnter, customer_id);
             } else {
-                deque_push_back(&self->queue, customer_id);
+                // Note that the customer_id is being cast to a pointer
+                // because the payload of a queue element is a pointer.
+                // As long as we never dereference that pointer, it is OK
+                // to recast it to size_t, assuming void* has at least as
+                // many bits as size_t, which it must.
+                deque_push_back(&self->queue, (void*)customer_id);
                 SET(wait[customer_id], true);    
             }
         }
@@ -190,12 +191,17 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
             self->barberAsleep = true;
             SET(barberWait, true);
         } else {
-            SET(barberEnter, deque_peek_front(&self->queue));
+            SET(barberEnter, (size_t)deque_peek_front(&self->queue));
             deque_pop_front(&self->queue);
         }
     =}
 }
 
+/**
+ * This reactor simply relays a roomFull input to its returned
+ * output and its doneCutting input to its done output.
+ * It ignores the other two inputs.
+ */
 reactor Customer(bank_index:size_t(0)) {
     input roomFull: bool;
     input wait: bool;
@@ -221,7 +227,6 @@ reactor Customer(bank_index:size_t(0)) {
 }
 
 reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
-    input reset: bool;
     input enter: size_t;
     input wait: bool;
         
@@ -231,12 +236,8 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
     
     physical action done: size_t;
     
-    state random: PseudoRandom*;
-    
-    reaction (reset) {=
-        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
-    =}
-      
+    state random: PseudoRandom;
+          
     reaction (done) -> doneCutting, next {=
         size_t customer_id = done->value;
         SET(doneCutting[customer_id], true);
@@ -248,8 +249,8 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
         SET(startCutting[customer_id], true);
         
         // calculate a random delay
-        self->random->mValue = self->averageHaircutRate;
-        int delay = nextInt(self->random) + 10;
+        self->random.mValue = self->averageHaircutRate;
+        int delay = nextInt(&self->random) + 10;
         
         // do the actual cutting and apply a physical delay
         busyWait(delay);
@@ -275,13 +276,7 @@ main reactor (waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), 
     room = new WaitingRoom(capacity=waitingRoomSize, numCustomers=numHaircuts);
     barber = new Barber(averageHaircutRate=averageHaircutRate, numCustomers=numHaircuts)
     customers = new[numHaircuts] Customer();
-    
-    reaction(startup) -> factory.start, barber.reset, room.reset {=
-        SET(factory.start, true);
-        SET(barber.reset, true);
-        SET(room.reset, true);
-    =}
-    
+        
     factory.sendCustomer -> room.receiveCustomer;
     room.full -> customers.roomFull;
     room.wait -> customers.wait;
