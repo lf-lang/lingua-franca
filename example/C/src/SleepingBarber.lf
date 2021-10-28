@@ -20,215 +20,295 @@
  * This example is inspired by Savina benchmark by the same name,
  * which has a C target implementation here:
  * [https://github.com/lf-lang/lingua-franca/blob/master/benchmark/C/Savina/src/concurrency/SleepingBarber.lf].
- * Like the benchmark, this example illustrates a direct
- * implementation that takes advantage of the semantics of
- * Lingua Franca to simplify the problem.
+ * Unlike the benchmark, this example is a direct implementation
+ * of the problem at hand using the features of Lingua Franca.
+ * It resembles the Savina benchmark only in overall structure.
  * 
- * @author Thee Ho
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Matthew Chorlian
  * @author Edward A. Lee
+ * @author Thee Ho
  */
  
 target C {
     fast: true,
-    threads: 1,
+    threads: 0,
     files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c"]
 };
-reactor Barber(
-    cut_time:time(10 minutes), // (Logical) time spent serving a customer.
-    num_chairs:int(5),
-    num_customers:int(10)
-) {
-    preamble {=
-        // Return the customer waiting in the first non-empty
-        // chair or -1 if there are no customers waiting.
-        // Note that this is not fair. It is not FIFO.
-        int get_customer(int chairs[], int num_chairs) {
-            for (int i = 0; i < num_chairs; i++){
-            	int id = chairs[i];
-            	if (id >= 0){
-                    chairs[i] = -1;   
-                    return id;
-                }
-            }
-            return -1;
-        }
-        // Put a customer in the first empty chair, if there is one,
-        // and return true. If there is no empty chair, return false.
-        bool put_customer(int chairs[], int num_chairs, int ID){
-	   		for (int i = 0; i < num_chairs; i++){
-            	if (chairs[i] < 0){
-                    chairs[i] = ID;
-                    return true;
-                }
-            }
-            return false;
-        }
-    =}
-    input[num_customers] cut:bool;
-    
-    output[num_customers] full:bool;
-   
-    state customerID:int;
-    state customers_served:int;
-    state chairs:int[]; // store customerID of waiting customers
-    state sleep:bool;
 
-    logical action done_cutting;
+preamble {=    
+    /**
+     * Return a random time that is uniformly distributed between
+     * 0 and max. This assumes interval_t is a 64-bit integer and
+     * that max is less that (2^63)/RAND_MAX so that RAND_MAX * max
+     * does not overflow.
+     */
+    interval_t random_time(interval_t max) {
+        interval_t maxp = max * ;
+        interval_t result = ((interval_t)rand()) * RAND_MAX) % max;
+        info_print("***** FIXME %d", result);
+        return result;
+    }
+=}
+
+/**
+ * Upon startup or the triggering of the `next` action,
+ * produce the send_customer output, then schedule another occurrence of the
+ * action `next` a random amount of time later.
+ * The first customer will be produced at logical time 0.
+ * The time between new customers is uniformly between 0 and
+ * `max_time_between_customers`.
+ * 
+ * When a `customer_returned` input arrives, schedule a
+ * resending of the same customer a random amount of time later,
+ * where the random number is again uniformly distributed between
+ * 0 and `max_time_between_customers`.
+ * 
+ * This reactor uses the customer_done input to count customers and request
+ * halting the program when all customers have been served.
+ */
+reactor CustomerFactory(
+    num_customers:size_t(20), 
+    max_time_between_customers:time(10 minutes)
+) {    
+    output send_customer: size_t;
+    input[num_customers] customer_done: bool;
+    input[num_customers] customer_returned: bool;
+
+    logical action next; // Next new customer.
+    logical action again:int; // Returning customer. Payload is customer ID.
     
-    reaction(startup) {=
-        self->chairs = calloc(self->num_chairs, sizeof(int));
-        // Mark the chairs empty.
-        for (int i=0; i < self->num_chairs; i++) {
-            self->chairs[i] = -1;
-        }
-        self->customers_served = 0;
-        self->sleep = true;
-    	self->customerID = -1;
-    =}
-     
-    reaction(cut) -> done_cutting, full {=
-        char readable_time[LF_TIME_BUFFER_LENGTH];
-        lf_readable_time(readable_time, get_elapsed_logical_time());
-        for (int i = 0; i < self->num_customers; i++){
-            if (cut[i]->is_present){
-                info_print("Customer %d arrives at time %s.", i, readable_time);
-        		if (self->sleep){
-            		self->sleep = false;
-            		info_print("*** Barber begins cut.");
-            		schedule(done_cutting, self->cut_time);
-            		self->customerID = i;
-        		} else if (put_customer(self->chairs, self->num_chairs, i)) {
-                    info_print("+++ Customer waiting.");
-        		} else {
-                    info_print("--- All chairs are full. Customer is turned away.");
-            		SET(full[i], true);
-        		}
-        	}
-        }
-    =}
+    state done_customers: size_t(0);    // Count of finished customers.
+    state attempts: size_t(0);          // Count of customer attempts.
+    state next_customer_id: size_t(0);  // ID of next new customer.
     
-    reaction(done_cutting) -> done_cutting {=
-        char readable_time[LF_TIME_BUFFER_LENGTH];
-        lf_readable_time(readable_time, get_elapsed_logical_time());
-        info_print("Barber is done serving customer %d at time %s.", 
-            self->customerID, readable_time
-        );
-        self->customerID = -1;
-        self->customers_served++; 
+    reaction(startup, next) -> send_customer, next {=                
+        // send the new customer to the waiting room
+        self->attempts++;
+        SET(send_customer, self->next_customer_id++);
         
-        // Check the waiting room.
-        int id = get_customer(self->chairs, self->num_chairs);
-        if (id >= 0){
-            self->customerID = id;
-            schedule(done_cutting, self->cut_time);
-            info_print("*** Barber begins cut for customer %d.", id);
-        } else {
-            self->sleep = true;
-            info_print("=== No waiting customers. Barber going to sleep.");
+        if (self->next_customer_id < self->num_customers) {
+            // Schedule again.
+            interval_t delay = random_time(max_time_between_customers);
+            schedule(next, delay);
         }
     =}
     
-    reaction(shutdown) {=
-        info_print("Barber served a total of %d customers.", self->customers_served);
-        free(self->chairs);
+    reaction (again) -> send_customer {=
+        size_t customer_id = send_customerAgain->value;
+        self->attempts++;
+        SET(send_customer, customer_id);
+    =}
+    
+    reaction (customer_returned) -> again {=
+        for (int i = 0; i < self->num_customers; i++) {
+            if (customer_returned[i]->is_present) {
+                // The customer returned because the waiting room is full.
+                schedule_int(send_customerAgain, 0, i);                
+                // Schedule again.
+                interval_t delay = random_time(max_time_between_customers);
+                schedule_int(next, delay, i);
+            }
+        }
+    =}
+    
+    reaction (customer_done) {=
+        // Only one customer can be done at any logical tag, so we
+        // only need to count invocations of this reaction.
+        self->done_customers++;
+        if (self->done_customers >= self->num_customers) {
+            request_stop();
+        }
+    =}
+    
+    reaction (shutdown) {=
+        info_print("Finished: %d customers got haircuts in %d attempts.", 
+                self->done_customers, self->attempts
+        };
     =}
 }
 
-reactor WaitingRoom(capacity:size_t(5), numCustomers:size_t(2000)) {    
+/**
+ * When a customer_enters input arrives, if the barber is asleep,
+ * then wake the barber up and send the customer ID to the 
+ * `barber_leaves_with_customer` output. If the barber is
+ * awake and there is room in the queue,
+ * then put the customer ID on the queue and produce a wait output
+ * on the channel corresponding to the customer ID. If the queue
+ * is full, then produce a full output on the channel corresponding
+ * to the customer ID.
+ */
+reactor WaitingRoom(capacity:size_t(1000), num_customers:size_t(2000)) {
     preamble {=
-        #include "deque.h"
+        #include "deque.c"
     =}
-    input receiveCustomer: size_t;
+    input customer_enters: size_t;
     
-    output[numCustomers] full: bool;
-    output[numCustomers] wait: bool;
+    output[num_customers] full: bool;
+    output[num_customers] wait: bool;
     
-    input barberNext: bool;
-    output barberEnter: size_t;
-    output barberWait: bool;
+    input barber_arrives: bool;
+    output barber_leaves_with_customer: size_t;
     
     state queue: deque_t;
-    state barberAsleep: bool(true);
+    state barber_asleep: bool(true);
     
-    reaction(startup) {=
-        deque_initialize(&self->queue);
-    =}
-    
-    reaction (receiveCustomer) -> full, wait, barberEnter {=
-         size_t customer_id = receiveCustomer->value;
+    reaction (customer_enters) -> full, wait, barber_leaves_with_customer {=
+         size_t customer_id = customer_enters->value;
          
-         if (self->queue.size == self->capacity) {
+         if (deque_size(&self->queue) == self->capacity) {
              SET(full[customer_id], true);
          } else {
-            if (self->barberAsleep) {
-                self->barberAsleep = false;
-                SET(barberEnter, customer_id);
+            if (self->barber_asleep) {
+                self->barber_asleep = false;
+                SET(barber_leaves_with_customer, customer_id);
             } else {
-                deque_push_back(& self->queue, customer_id);
+                // Note that the customer_id is being cast to a pointer
+                // because the payload of a queue element is a pointer.
+                // As long as we never dereference that pointer, it is OK
+                // to recast it to size_t, assuming void* has at least as
+                // many bits as size_t, which it must.
+                deque_push_back(&self->queue, (void*)customer_id);
                 SET(wait[customer_id], true);    
             }
         }
     =}
     
-    reaction (barberNext) -> barberEnter, barberWait {=
-        if (deque_is_empty(& self->queue)) {
-            self->barberAsleep = true;
-            SET(barberWait, true);
+    reaction (barber_arrives) -> barber_leaves_with_customer {=
+        if (deque_is_empty(&self->queue)) {
+            self->barber_asleep = true;
         } else {
-            SET(barberEnter, deque_peek_front(& self->queue));
-            deque_pop_front(& self->queue);
+            SET(barber_leaves_with_customer, (size_t)deque_pop_front(&self->queue));
         }
     =}
 }
 
-reactor Customer(
-    bank_index:int(0), 
-    retry_time:time(1 hour) // Maximum time between attempts to enter.
-){
-    preamble {=
-        // Return a random time uniformly distributed between
-        // 0 and max_time.
-        interval_t random_time(interval_t max_time) {
-            double scale = (double) rand() / RAND_MAX;
-            return (interval_t) (max_time * scale);
-        }
-    =}
-    input full:bool;
+/**
+ * This reactor simply relays a roomFull input to its returned
+ * output and its doneCutting input to its done output.
+ * It ignores the other two inputs.
+ */
+reactor Customer(bank_index:size_t(0)) {
+    input roomFull: bool;
+    input wait: bool;
+    input startCutting: bool;
+    input doneCutting: bool; 
+
+    output returned: bool;
+    output done: bool;
     
-    logical action enter;
-    
-    output cut:bool;
-    
-    reaction(startup) -> enter {=
-        // Schedule random customer arrivals
-        schedule(enter, random_time(self->retry_time)); 
+    reaction (roomFull) -> returned {=
+        SET(returned, true);
     =}
-    reaction(enter) -> cut {=
-        SET(cut,true); 
+    
+    reaction (wait) {=
     =}
-    reaction(full) -> enter {=
-        schedule(enter, random_time(self->retry_time));
+    
+    reaction (startCutting) {= 
+    =}
+    
+    reaction (doneCutting) -> done {=
+        SET(done, true);
     =}
 }
 
+/**
+ * Upon receiving an `enter` input (whose value is a customer ID),
+ * send a `startCutting` output to corresponding customer, then
+ * busy wait for some amount of time, and then schedule the physical
+ * action `done`. Upon triggering the `done` action, send a
+ * `doneCutting` output to the corresponding customer and a
+ * `next` output to ask for the next customer.
+ * 
+ * Note that because of the physical action, the logical time
+ * spent cutting hair is determined by the amount of time busy
+ * waiting. This is not at all a Lingua Franca style of design
+ * and introduces an intrinsic handicap compared to an actor
+ * implementation. In particular, downstream reactors cannot
+ * react to startCutting until the busy wait is complete, which
+ * would not be true in an actor design.
+ */
+reactor Barber(
+    averageHaircutRate:size_t(1000), // NOTE: The Savina benchmark calls this
+                                     // an average, but it is not an averate.
+                                     // It specifies a maximum amount of busy-wait
+                                     // work to be done minus 10, oddly,
+                                     // in arbitrary units.
+    num_customers:size_t(2000)
+) {
+    input enter: size_t;
+        
+    output[num_customers] startCutting: bool;
+    output[num_customers] doneCutting: bool;
+    output next: bool;
+    
+    physical action done: size_t;
+    
+    state random: PseudoRandom;
+    
+    reaction(startup) {=
+        // Use the same seed as in the C++ and Akka benchmarks.
+        self->random.mValue = 74755;
+    =}
+          
+    reaction (done) -> doneCutting, next {=
+        size_t customer_id = done->value;
+        SET(doneCutting[customer_id], true);
+        SET(next, true);
+    =}
+    
+    reaction (enter) -> startCutting, done {=
+        size_t customer_id = enter->value;
+        SET(startCutting[customer_id], true);
+        
+        // Calculate a random delay.
+        // The second argument is an upper bound (exclusive).
+        int delay = nextIntEMax(&self->random, self->averageHaircutRate) + 10;
+        
+        // do the actual cutting and apply a physical delay
+        busyWait(delay);
+        
+        // Notify the customer 
+        schedule(done, customer_id);
+    =}
+}
+
+
+/* [[[cog
+    cog.outl(f'main reactor (
+        waitingRoomSize:size_t({waitingRoomSize}),
+        averageProductionRate:size_t({averageProductionRate}),
+        averageHaircutRate:size_t({averageHaircutRate}),
+        numHaircuts:size_t({numHaircuts})
+    )')
+]]] */
 main reactor (
-    cut_time:time(10 minutes), 
-    num_chairs:int(2), 
-    num_customers:int(15),
-    retry_time:time(2 hours)
-){  
-    barber = new Barber(
-        cut_time=cut_time, 
-        num_chairs=num_chairs,
-        num_customers=num_customers
-    );
-    
-    waiting = new WaitingRoom();
-    
-    customers = new[num_customers] Customer(
-        retry_time = retry_time
-    );
+    waitingRoomSize:size_t(10),
+    max_time_between_customers:time(10 minutes),
+    averageHaircutRate:size_t(10),
+    numHaircuts:size_t(20)
+)
+/// [[[end]]]
 
-    customers.cut -> barber.cut;
-    barber.full -> customers.full;
+{
+    
+    factory = new CustomerFactory(
+        num_customers=numHaircuts, 
+        max_time_between_customers=max_time_between_customers
+    );
+    room = new WaitingRoom(capacity=waitingRoomSize, num_customers=numHaircuts);
+    barber = new Barber(averageHaircutRate=averageHaircutRate, num_customers=numHaircuts)
+    customers = new[numHaircuts] Customer();
+        
+    factory.send_customer -> room.customer_enters;
+    room.full -> customers.roomFull;
+    room.wait -> customers.wait;
+    room.barber_leaves_with_customer -> barber.enter;
+    barber.next -> room.barber_arrives;
+    barber.startCutting -> customers.startCutting;
+    barber.doneCutting -> customers.doneCutting;
+    customers.done -> factory.customer_done;
+    
+    customers.returned -> factory.customer_returned;
 }
