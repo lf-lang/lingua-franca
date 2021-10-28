@@ -1,0 +1,31 @@
+/**
+*
+* @author Maiko Brants TU Dresden
+*
+* Test physical connections.
+*
+* Modeled after the C version of this test.
+**/
+target Cpp;
+reactor Source {
+    output out:int;
+    reaction(startup) -> out {=
+        out.set(42);
+    =}
+}
+reactor Destination {
+    input in:int;
+    reaction(in) {=
+        auto time{get_elapsed_physical_time()};
+        reactor::log::Info() << "Received " << *in.get() << " at logical time " << time.count() << ".";
+        if(time.count() <= 0LL) {
+            reactor::log::Error() << "ERROR: Logical time should have been greater than zero.";
+            exit(1);
+        }
+    =}
+}
+main reactor PhysicalConnection {
+    source = new Source();
+    destination = new Destination();
+    source.out ~> destination.in; 
+}
