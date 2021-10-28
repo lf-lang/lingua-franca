@@ -39,10 +39,20 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetConfig
+import org.lflang.TargetProperty.CoordinationType
+import org.lflang.federated.FedFileConfig
 import org.lflang.federated.FederateInstance
+import org.lflang.federated.PythonGeneratorExtension
+import org.lflang.federated.launcher.FedPyLauncher
+import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.ParameterInstance
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.c.CCompiler
 import org.lflang.generator.c.CGenerator
 import org.lflang.lf.Action
+import org.lflang.lf.Delay
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
@@ -59,16 +69,6 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.TargetConfig
-import org.lflang.generator.c.CCompiler
-import org.lflang.generator.ParameterInstance
-import org.lflang.generator.ReactorInstance
-import org.lflang.federated.FedFileConfig
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.federated.serialization.FedNativePythonSerialization
-import org.lflang.federated.PythonGeneratorExtension
-import org.lflang.lf.Delay
-import org.lflang.federated.FedPyLauncher
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -749,14 +749,7 @@ class PythonGenerator extends CGenerator {
        
        «generatePythonReactorClasses(federate)»
        
-       # The main function
-       def main():
-           start()
-       
-       # As is customary in Python programs, the main() function
-       # should only be executed if the main module is active.
-       if __name__=="__main__":
-           main()
+       «PythonMainGenerator.generateCode()»
        '''
     
     /**

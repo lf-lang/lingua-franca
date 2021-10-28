@@ -48,16 +48,17 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedCLauncher
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.FederateInstance
+import org.lflang.federated.launcher.FedCLauncher
+import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
@@ -92,7 +93,6 @@ import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.TargetConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
