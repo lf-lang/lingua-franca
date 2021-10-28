@@ -1,67 +1,67 @@
 /**
  * Copyright (C) 2020 TU Dresden
  * 
+ * For more details on this benchmark, see the Cpp version from which it was derived:
+ * https://github.com/lf-lang/lingua-franca/blob/master/benchmark/Cpp/Savina/src/concurrency/LogisticMap.lf.
+ * 
  * @author Christian Menard
  * @author Hannes Klein
- * @author Matt Chorlian
  */
 
 target C {
-    /* [[[cog
+     /* [[[cog
       if (threaded_runtime=="True"):
-          cog.outl(f"threads: {threads}")
+          cog.outl(f"threads: {threads},")
       else:
-          cog.outl("threads: 0")
+          cog.outl("threads: 0,")
     ]]] */
-    threads: 0
+    threads: 0,
     /// [[[end]]]
-};
+}
 
 reactor RateComputer(bank_index: size_t(0), startRate: double(3.46), rateIncrement: double(0.0025)) {
     
-    state currentRate: double;
-    
-    input reset: bool;
+    state rate: double;
+
     input compute: double;
-    output rate: double;
+    output result: double;
     
-    reaction(reset) {=
-        self->currentRate = self->startRate + (self->bank_index * self->rateIncrement);
+    reaction(startup) {=
+        self->rate = self->startRate + (self->bank_index * self->rateIncrement);
     =}
     
-    reaction(compute) -> rate {=
+    reaction(compute) -> result {=
         double term = compute->value;
-        double result = self->currentRate * term * (1 - term);
-        SET(rate, result);
+        double res = self->rate * term * (1 - term);
+        SET(result, res);
     =}
 }
 
-reactor SeriesWorker(bank_index: size_t(0), termIncrement: double(0.0025)) {
+reactor SeriesWorker(bank_index: size_t(0), termIncrement: double(0.0025), startRate: double(3.46), rateIncrement: double(0.0025)) {
     
     state curTerm: double;
     
-    input reset: bool;
-    input nextTerm: bool;
-    input getTerm: bool;
+    input nextTerm: int;
+    input getTerm: int;
     output term: double;
-    output computeRate: double;
-    input rate: double;
+    
+    computer = new RateComputer(bank_index=bank_index, startRate=startRate, rateIncrement=rateIncrement);
 
-    reaction (reset) {=
-        //reset local state
+    reaction (startup) {=
+        // initialize local state
         self->curTerm = self->bank_index * self->termIncrement;   
     =}
     
-    reaction(nextTerm) -> computeRate {=
-        SET(computeRate, self->curTerm);
+    reaction(nextTerm) -> computer.compute {=
+        SET(computer.compute, self->curTerm);
+    =}
+    
+    reaction(computer.result) {=
+        self->curTerm = computer.result->value;
     =}
     
     reaction(getTerm) -> term {=
         SET(term, self->curTerm);
-    =}
-    
-    reaction(rate) {=
-        self->curTerm = rate->value;
     =}
 }
 
@@ -70,62 +70,46 @@ reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
  
     state currentIteration: size_t(0);
     
-    input start: bool;
-    output finished: bool;
-
-    output nextTerm: bool;
-    output getTerm: bool;
-    input[numSeries] term: double;
+    output nextTerm: int;
+    output getTerm: int;
+    input[numSeries] results: double;
     
     logical action next;
     
-    reaction(start, next) -> getTerm, nextTerm, next {=
+    reaction(startup) -> next {=
+        schedule(next, 0);
+    =}
+    
+    reaction(next) -> getTerm, nextTerm, next {=
         if(self->currentIteration == self->numTerms) {
-            SET(getTerm, true);
+            SET(getTerm, 0);
             return;
         }
 
-        SET(nextTerm, true);
+        SET(nextTerm, 0);
         self->currentIteration++;
         schedule(next, 0);
     =}
     
-    reaction(term) -> finished {=
+    reaction(results) {=
         double terms_sum = 0.0;
-        for (size_t i = 0; i < self->numSeries; ++i) {
-            terms_sum += term[i]->value;
+        for (size_t i = 0; i < results_width; ++i) {
+            terms_sum += results[i]->value;
         }
-        SET(finished, true);
-
-        // reset local state
-        self->currentIteration = 0;
+        printf("Terms sum: %f", terms_sum);
     =}
 }
 
 /* [[[cog
-    cog.outl(f"main reactor (numTerms: size_t({numTerms}), startRate: double({startRate}), numSeries: size_t({numSeries}))")
+  cog.outl(f"main reactor (numTerms: size_t({numTerms}), startRate: double({startRate}), numSeries: size_t({numSeries})) {{")
 ]]] */
-main reactor (numTerms: size_t(25000), startRate: double(3.46), numSeries: size_t(10))
+main reactor (numTerms: size_t(25000), startRate: double(3.46), numSeries: size_t(10)) {
 /// [[[end]]]
-
-{
     
     manager = new Manager(numSeries=numSeries, numTerms=numTerms);
-    
-    reaction(startup) {=
-        
-    =}
-    
-    rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
-    seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
-    
-    //(runner.start)+ -> manager.start, rateComputers.reset, seriesWorkers.reset;
-    //manager.finished -> runner.finished;
+    seriesWorkers = new[numSeries] SeriesWorker(startRate=startRate, rateIncrement=0.0025, termIncrement=0.0025);
     
     (manager.nextTerm)+ -> seriesWorkers.nextTerm;
     (manager.getTerm)+ -> seriesWorkers.getTerm;
-    seriesWorkers.term -> manager.term;
-    
-    seriesWorkers.computeRate -> rateComputers.compute;
-    rateComputers.rate -> seriesWorkers.rate; 
+    seriesWorkers.term -> manager.results;
 }
