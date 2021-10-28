@@ -25,11 +25,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.federated;
+package org.lflang.federated.launcher;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.federated.FederateInstance;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs
@@ -77,6 +78,6 @@ public class FedPyLauncher extends FedLauncher {
     @Override
     protected
     String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
-        return "python3 " + fileConfig.getSrcGenPath().resolve(fileConfig.name)+"_"+federate.name+".py -i $FEDERATION_ID";
+        return "python3 " + fileConfig.getSrcGenPath() + "/" + federate.name + "/" + fileConfig.name+"_"+federate.name+".py -i $FEDERATION_ID";
     }
 }

@@ -23,7 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.federated
+package org.lflang.federated.launcher
 
 import java.io.FileOutputStream
 import java.util.ArrayList
@@ -66,7 +66,7 @@ package class FedLauncher {
      * 
      * @param federate The federate to compile.
      */
-    protected def String compileCommandForFederate(FederateInstance federate) {
+    protected def String compileCommandForFederate(org.lflang.federated.FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to compile the federates.");
     }
     
@@ -77,7 +77,7 @@ package class FedLauncher {
      * 
      * @param federate The federate to execute.
      */
-    protected def String executeCommandForRemoteFederate(FederateInstance federate) {
+    protected def String executeCommandForRemoteFederate(org.lflang.federated.FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 
@@ -88,7 +88,7 @@ package class FedLauncher {
      *
      * @param federate The federate to execute.
      */
-    protected def String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
+    protected def String executeCommandForLocalFederate(FileConfig fileConfig, org.lflang.federated.FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
     
@@ -136,7 +136,7 @@ package class FedLauncher {
      */
     def createLauncher(
         ArrayList<String> coreFiles,
-        List<FederateInstance> federates,
+        List<org.lflang.federated.FederateInstance> federates,
         LinkedHashMap<String, Object> federationRTIProperties
         
     ) {
@@ -157,49 +157,49 @@ package class FedLauncher {
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
         shCode.append('''
-            #!/bin/bash
-            # Launcher for federated «fileConfig.name».lf Lingua Franca program.
-            # Uncomment to specify to behave as close as possible to the POSIX standard.
-            # set -o posix
-            
-            # Enable job control
-            set -m
-            shopt -s huponexit
-            
-            # Set a trap to kill all background jobs on error or control-C
-            # Use two distinct traps so we can see which signal causes this.
-            cleanup() {
-                printf "Killing federate %s.\n" ${pids[*]}
-                # The || true clause means this is not an error if kill fails.
-                kill ${pids[@]} || true
-                printf "#### Killing RTI %s.\n" ${RTI}
-                kill ${RTI} || true
-                exit 1
-            }
-            cleanup_err() {
-                echo "#### Received ERR signal on line $1. Invoking cleanup()."
-                cleanup
-            }
-            cleanup_sigint() {
-                echo "#### Received SIGINT signal on line $1. Invoking cleanup()."
-                cleanup
-            }
-            
-            trap 'cleanup_err $LINENO' ERR
-            trap 'cleanup_sigint $LINENO' SIGINT
-
-            # Create a random 48-byte text ID for this federation.
-            # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
-            FEDERATION_ID=`openssl rand -hex 24`
-            echo "Federate «fileConfig.name» in Federation ID '$FEDERATION_ID'"
-            # Launch the federates:
-        ''')
+			#!/bin/bash
+			# Launcher for federated «fileConfig.name».lf Lingua Franca program.
+			# Uncomment to specify to behave as close as possible to the POSIX standard.
+			# set -o posix
+			
+			# Enable job control
+			set -m
+			shopt -s huponexit
+			
+			# Set a trap to kill all background jobs on error or control-C
+			# Use two distinct traps so we can see which signal causes this.
+			cleanup() {
+			    printf "Killing federate %s.\n" ${pids[*]}
+			    # The || true clause means this is not an error if kill fails.
+			    kill ${pids[@]} || true
+			    printf "#### Killing RTI %s.\n" ${RTI}
+			    kill ${RTI} || true
+			    exit 1
+			}
+			cleanup_err() {
+			    echo "#### Received ERR signal on line $1. Invoking cleanup()."
+			    cleanup
+			}
+			cleanup_sigint() {
+			    echo "#### Received SIGINT signal on line $1. Invoking cleanup()."
+			    cleanup
+			}
+			
+			trap 'cleanup_err $LINENO' ERR
+			trap 'cleanup_sigint $LINENO' SIGINT
+			
+			# Create a random 48-byte text ID for this federation.
+			# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
+			FEDERATION_ID=`openssl rand -hex 24`
+			echo "Federate «fileConfig.name» in Federation ID '$FEDERATION_ID'"
+			# Launch the federates:
+		''')
         val distHeader = '''
-            #!/bin/bash
-            # Distributor for federated «fileConfig.name».lf Lingua Franca program.
-            # Uncomment to specify to behave as close as possible to the POSIX standard.
-            # set -o posix
-        '''
+			#!/bin/bash
+			# Distributor for federated «fileConfig.name».lf Lingua Franca program.
+			# Uncomment to specify to behave as close as possible to the POSIX standard.
+			# set -o posix
+		'''
         val host = federationRTIProperties.get('host')
         var target = host
 
@@ -212,39 +212,39 @@ package class FedLauncher {
         }
         
         var RTILaunchString = '''
-        RTI -i ${FEDERATION_ID} \
-                         -n «federates.size» \
-                         -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                          period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
-                          exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
-                          &
-        '''
+			RTI -i ${FEDERATION_ID} \
+			                 -n «federates.size» \
+			                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+			                 	period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
+			                 	exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
+			                 	&
+			'''
         
         // Launch the RTI in the foreground.
         if (host == 'localhost' || host == '0.0.0.0') {
             // FIXME: the paths below will not work on Windows
             shCode.append( '''
-                echo "#### Launching the runtime infrastructure (RTI)."
-                # First, check if the RTI is on the PATH
-                if ! command -v RTI &> /dev/null
-                then
-                    echo "RTI could not be found."
-                    echo "The source code can be obtained from https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI"
-                    exit
-                fi                
-                # The RTI is started first to allow proper boot-up
-                # before federates will try to connect.
-                # The RTI will be brought back to foreground
-                # to be responsive to user inputs after all federates
-                # are launched.
-                «RTILaunchString»
-                # Store the PID of the RTI
-                RTI=$!
-                # Wait for the RTI to boot up before
-                # starting federates (this could be done by waiting for a specific output
-                # from the RTI, but here we use sleep)
-                sleep 1
-            ''')
+				echo "#### Launching the runtime infrastructure (RTI)."
+				# First, check if the RTI is on the PATH
+				if ! command -v RTI &> /dev/null
+				then
+				    echo "RTI could not be found."
+				    echo "The source code can be obtained from https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI"
+				    exit
+				fi                
+				# The RTI is started first to allow proper boot-up
+				# before federates will try to connect.
+				# The RTI will be brought back to foreground
+				# to be responsive to user inputs after all federates
+				# are launched.
+				«RTILaunchString»
+				# Store the PID of the RTI
+				RTI=$!
+				# Wait for the RTI to boot up before
+				# starting federates (this could be done by waiting for a specific output
+				# from the RTI, but here we use sleep)
+				sleep 1
+			''')
         } else {
             // Start the RTI on the remote machine.
             // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
@@ -267,46 +267,46 @@ package class FedLauncher {
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
             RTILaunchString = '''
-                RTI -i '${FEDERATION_ID}' \
-                                 -n «federates.size» \
-                                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                                  period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
-                                  exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
-                                  &
-            '''
+				RTI -i '${FEDERATION_ID}' \
+				                 -n «federates.size» \
+				                 -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+				                 	period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
+				                 	exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
+				                 	&
+			'''
             
             shCode.append( '''
-                echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
-                # FIXME: Killing this ssh does not kill the remote process.
-                # A double -t -t option to ssh forces creation of a virtual terminal, which
-                # fixes the problem, but then the ssh command does not execute. The remote
-                # federate does not start!
-                ssh «target» 'mkdir -p log; \
-                    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
-                    date >> «logFileName»; \
-                    echo "Executing RTI: «RTILaunchString»" 2>&1 | tee -a «logFileName»; \
-                    # First, check if the RTI is on the PATH
-                    if ! command -v RTI &> /dev/null
-                    then
-                        echo "RTI could not be found."
-                        echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
-                        exit
-                    fi
-                    «RTILaunchString» 2>&1 | tee -a «logFileName»' &
-                # Store the PID of the channel to RTI
-                RTI=$!
-                # Wait for the RTI to boot up before
-                # starting federates (this could be done by waiting for a specific output
-                # from the RTI, but here we use sleep)
-                sleep 1
-            ''')
+				echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
+				# FIXME: Killing this ssh does not kill the remote process.
+				# A double -t -t option to ssh forces creation of a virtual terminal, which
+				# fixes the problem, but then the ssh command does not execute. The remote
+				# federate does not start!
+				ssh «target» 'mkdir -p log; \
+				    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+				    date >> «logFileName»; \
+				    echo "Executing RTI: «RTILaunchString»" 2>&1 | tee -a «logFileName»; \
+				    # First, check if the RTI is on the PATH
+				    if ! command -v RTI &> /dev/null
+				    then
+				        echo "RTI could not be found."
+				        echo "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+				        exit
+				    fi
+				    «RTILaunchString» 2>&1 | tee -a «logFileName»' &
+				# Store the PID of the channel to RTI
+				RTI=$!
+				# Wait for the RTI to boot up before
+				# starting federates (this could be done by waiting for a specific output
+				# from the RTI, but here we use sleep)
+				sleep 1
+			''')
         }
                 
         // Index used for storing pids of federates
         var federateIndex = 0
         for (federate : federates) {
             if (federate.isRemote) {
-                val fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+                val fedFileConfig = new org.lflang.federated.FedFileConfig(fileConfig, federate.name);
                 val fedRelSrcGenPath = fedFileConfig.srcGenBasePath.relativize(fedFileConfig.srcGenPath);
                 if(distCode.length === 0) distCode.append(distHeader+"\n");
                 val logFileName = '''log/«fedFileConfig.name»_«federate.name».log'''
@@ -314,65 +314,65 @@ package class FedLauncher {
                 //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 distCode.append( '''
-                    echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.user»@«federate.host»"
-                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
-                    ssh «federate.user»@«federate.host» '\
-                        mkdir -p «path»/src-gen/«fedRelSrcGenPath»/core «path»/bin «path»/log; \
-                        echo "--------------" >> «path»/«logFileName»; \
-                        date >> «path»/«logFileName»;
-                    '
-                    pushd «fedFileConfig.srcGenPath» > /dev/null
-                    echo "Copying source files to host «federate.user»@«federate.host»"
-                    scp -r * «federate.user»@«federate.host»:«path»/src-gen/«fedRelSrcGenPath»
-                    popd > /dev/null
-                    echo "Compiling on host «federate.user»@«federate.host» using: «compileCommand»"
-                    ssh «federate.user»@«federate.host» 'cd «path»; \
-                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
-                        # Capture the output in the log file and stdout. \
-                        «compileCommand» 2>&1 | tee -a «logFileName»;'
-                ''')
+					echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.user»@«federate.host»"
+					# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
+					ssh «federate.user»@«federate.host» '\
+					    mkdir -p «path»/src-gen/«fedRelSrcGenPath»/core «path»/bin «path»/log; \
+					    echo "--------------" >> «path»/«logFileName»; \
+					    date >> «path»/«logFileName»;
+					'
+					pushd «fedFileConfig.srcGenPath» > /dev/null
+					echo "Copying source files to host «federate.user»@«federate.host»"
+					scp -r * «federate.user»@«federate.host»:«path»/src-gen/«fedRelSrcGenPath»
+					popd > /dev/null
+					echo "Compiling on host «federate.user»@«federate.host» using: «compileCommand»"
+					ssh «federate.user»@«federate.host» 'cd «path»; \
+					    echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
+					    # Capture the output in the log file and stdout. \
+					    «compileCommand» 2>&1 | tee -a «logFileName»;'
+				''')
                 val executeCommand = executeCommandForRemoteFederate(federate);
                 shCode.append( '''
-                    echo "#### Launching the federate «federate.name» on host «federate.user»@«federate.host»"
-                    # FIXME: Killing this ssh does not kill the remote process.
-                    # A double -t -t option to ssh forces creation of a virtual terminal, which
-                    # fixes the problem, but then the ssh command does not execute. The remote
-                    # federate does not start!
-                    ssh «federate.user»@«federate.host» '\
-                        cd «path»; \
-                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
-                        date >> «logFileName»; \
-                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
-                        «executeCommand» 2>&1 | tee -a «logFileName»' &
-                    pids[«federateIndex++»]=$!
-                ''')                
+					echo "#### Launching the federate «federate.name» on host «federate.user»@«federate.host»"
+					# FIXME: Killing this ssh does not kill the remote process.
+					# A double -t -t option to ssh forces creation of a virtual terminal, which
+					# fixes the problem, but then the ssh command does not execute. The remote
+					# federate does not start!
+					ssh «federate.user»@«federate.host» '\
+					    cd «path»; \
+					    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+					    date >> «logFileName»; \
+					    echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+					    «executeCommand» 2>&1 | tee -a «logFileName»' &
+					pids[«federateIndex++»]=$!
+				''')                
             } else {
                 val executeCommand = executeCommandForLocalFederate(fileConfig, federate);
                 shCode.append( '''
-                    echo "#### Launching the federate «federate.name»."
-                    «executeCommand» &
-                    pids[«federateIndex++»]=$!
-                ''')                
+					echo "#### Launching the federate «federate.name»."
+					«executeCommand» &
+					pids[«federateIndex++»]=$!
+				''')                
             }
         }
         if (host == 'localhost' || host == '0.0.0.0') {
             // Local PID managements
             shCode.append( '''
-                echo "#### Bringing the RTI back to foreground so it can receive Control-C."
-                fg %1
-            ''')
+				echo "#### Bringing the RTI back to foreground so it can receive Control-C."
+				fg %1
+			''')
         }
         // Wait for launched processes to finish
         shCode.append( '''
-            echo "RTI has exited. Wait for federates to exit."
-            # Wait for launched processes to finish.
-            # The errors are handled separately via trap.
-            for pid in "${pids[@]}"
-            do
-                wait $pid
-            done
-            echo "All done."
-        ''')
+			echo "RTI has exited. Wait for federates to exit."
+			# Wait for launched processes to finish.
+			# The errors are handled separately via trap.
+			for pid in "${pids[@]}"
+			do
+			    wait $pid
+			done
+			echo "All done."
+		''')
 
         // Write the launcher file.
         // Delete file previously produced, if any.
