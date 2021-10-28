@@ -75,42 +75,41 @@ preamble {=
 
 
 reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
-    preamble {=
-        PseudoRandom *random_gen;
-        message_queue_t *message_queues = NULL;
-    =}
+
+    state message_queues : {=message_queue_t*=};
+    state random_gen : {=PseudoRandom *=};
 
     reaction(startup) ->next {=
-        if (!message_queues) {
-            message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
+        if (!self->message_queues) {
+            self->message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
             size_t cnt;
             for (cnt = 0; cnt < self->numAccounts; cnt++) {
-                message_queues[cnt].size = sizeof(credit_message_t);
+                self->message_queues[cnt].size = sizeof(credit_message_t);
             }
         }
-        random_gen = (PseudoRandom *) malloc(sizeof(PseudoRandom));
-        initPseudoRandom(random_gen, seed);
+        self->random_gen = (PseudoRandom *) malloc(sizeof(PseudoRandom));
+        initPseudoRandom(self->random_gen, seed);
         
-        printf("Teller: Start a new iteration\n");
+        //printf("Teller: Start a new iteration\n");
             
         // generateWork();
         for (int i = 0; i < self->numBankings; i++) {
             // src is lower than dest id to ensure there is never a deadlock
             // Note: this comment stems from the original Akka implementation and 
             // is actually not needed in LF, since cycle free programs cannot deadlock
-            size_t src_account = nextIntEMax(random_gen, (self->numAccounts / 10) * 8);
-            size_t loop_id = nextIntEMax(random_gen, self->numAccounts - src_account);
+            size_t src_account = nextIntEMax(self->random_gen, (self->numAccounts / 10) * 8);
+            size_t loop_id = nextIntEMax(self->random_gen, self->numAccounts - src_account);
             if(loop_id == 0) {
                 loop_id += 1;
             }
             size_t dest_account = src_account + loop_id;
             
-            double amount = nextDouble(random_gen);
+            double amount = nextDouble(self->random_gen) * 1000;
             
             credit_message_t new_msg;
             new_msg.recipient = dest_account;
             new_msg.amount = amount;
-            deque_push_back(&(message_queues[src_account]), &new_msg);
+            deque_push_back(&(self->message_queues[src_account]), &new_msg);
         }
                 
         // start execution
@@ -124,11 +123,11 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     
     
     reaction(next) -> next, credit {=
-        printf("Teller: Sending a new round of credit messages\n");
+        //printf("Teller: Sending a new round of credit messages\n");
         int work_found = 0;
         size_t i;
         for (i = 0; i < self->numAccounts; i++) {
-            message_queue_t *queue = &(message_queues[i]);
+            message_queue_t *queue = &(self->message_queues[i]);
             if (!deque_is_empty(queue)) {
                 work_found = 1;
                 credit_message_t message = *((credit_message_t *) deque_peek_front(queue));
@@ -140,12 +139,13 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
         if (work_found) {
             schedule(next, 0);
         } else {
-            printf("Teller: Finished iteration\n");
+            //printf("Teller: Finished iteration\n");
         }
     =}
     reaction(shutdown) {=
-        free(random_gen);
-        printf("shutdown success\n");
+        free(self->random_gen);
+        free(self->message_queues);
+        //printf("shutdown success\n");
     =}
     
 }
@@ -168,7 +168,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
         self->balance -= message.amount;
         // and sent the recipient a debit message
         SET(outDebit[message.recipient], message.amount);
-        printf("Account %zu credits %f to %zu\n", self->bank_index, message.amount, message.recipient);
+        //printf("Account %zu credits %f to %zu\n", self->bank_index, message.amount, message.recipient);
     =}
     
     reaction (inDebit) {=
@@ -178,7 +178,7 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
                 double amount = inDebit[i]->value;
                 // increase the balance
                 self->balance += amount;
-                printf("Account: %zu received %f\n", self->bank_index, amount);         
+                //printf("Account: %zu received %f\n", self->bank_index, amount);         
             }
         }
     =}
@@ -198,8 +198,4 @@ reactor Account(bank_index:size_t(0), numAccounts:size_t(1000), numTransactions:
     
     teller.credit -> accounts.inCredit;
     accounts.outDebit -> interleaved(accounts.inDebit);
-
-    reaction(shutdown) {=
-        free(message_queues);
-    =}
 }

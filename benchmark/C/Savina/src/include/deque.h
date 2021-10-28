@@ -130,10 +130,9 @@ void deque_push_back(struct deque* d, void* val) {
 *  d: pointer to the deque
 *  returns: value popped from the front
 */
-void* deque_pop_front(struct deque* d) {
+void deque_pop_front(struct deque* d) {
     if (d==NULL || d->front == NULL) {
         fprintf(stderr, "Error: popping from empty deque\n");
-        return 0;
     }
     
     void* value = d->front->value;
@@ -148,7 +147,6 @@ void* deque_pop_front(struct deque* d) {
     d->length--; // decrement size
     free(temp->value); // free memory for value
     free(temp); // free memory for popped node
-    return value;
 }
 
 /*
@@ -158,10 +156,9 @@ void* deque_pop_front(struct deque* d) {
 *  d: pointer to the deque
 *  returns: value popped from the back
 */
-void* deque_pop_back(struct deque* d) {
+void deque_pop_back(struct deque* d) {
     if (d==NULL || d->back == NULL) {
         fprintf(stderr, "Error: popping from empty deque\n");
-        return 0;
     }
     
     void* value = d->back->value;
@@ -175,7 +172,6 @@ void* deque_pop_back(struct deque* d) {
     d->length--; // decrement size
     free(temp->value); // free memory for value
     free(temp); // free memory for popped node
-    return value;
 }
 
 /*
