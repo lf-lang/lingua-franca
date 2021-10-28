@@ -102,7 +102,6 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
         int newSmokerIndex = labs(nextInt(self->random)) % self->numSmokers;
 
         int busyWaitPeriod = nextIntEMax(self->random, 100) + 10;
-        free(gen);
 
         SET(startSmoking[newSmokerIndex], busyWaitPeriod);
         
