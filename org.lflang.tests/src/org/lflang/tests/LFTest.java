@@ -35,9 +35,9 @@ public class LFTest implements Comparable<LFTest> {
     /** Path of the test program relative to the the package root. */
     private final Path relativePath;
 
-    private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    /** Records compilation stdout/stderr. */
+    private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
-    private final ByteArrayOutputStream err = new ByteArrayOutputStream();
 
     /** Specialized object for capturing output streams while executing the test. */
     public final ExecutionLogger execLog = new ExecutionLogger();
@@ -69,14 +69,13 @@ public class LFTest implements Comparable<LFTest> {
 
     /** Stream object for capturing standard output. */
     public OutputStream getStandardOutput() {
-        return out;
+        return compilationLog;
     }
 
     /** Stream object for capturing standard error. */
     public OutputStream getStandardError() {
-        return out;
+        return compilationLog;
     }
-
 
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
@@ -147,10 +146,8 @@ public class LFTest implements Comparable<LFTest> {
             sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
             sb.append("Reason: ").append(this.result.message).append(System.lineSeparator());
             appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
-            appendIfNotEmpty("Compilation error output", this.err.toString(), sb);
-            appendIfNotEmpty("Compilation standard output", this.out.toString(), sb);
-            appendIfNotEmpty("Execution error output", this.execLog.err.toString(), sb);
-            appendIfNotEmpty("Execution standard output", this.execLog.std.toString(), sb);
+            appendIfNotEmpty("Compilation output", this.compilationLog.toString(), sb);
+            appendIfNotEmpty("Execution output", this.execLog.toString(), sb);
             sb.append("+---------------------------------------------------------------------------+\n");
         return sb.toString();
         } else {
@@ -209,17 +206,13 @@ public class LFTest implements Comparable<LFTest> {
      * @author Marten Lohstroh <marten@berkeley.edu>
      *
      */
-    public static class ExecutionLogger {
+    public static final class ExecutionLogger {
 
         /**
-         * String buffer used to record the standard output stream.
+         * String buffer used to record the standard output and error
+         * streams from the input process.
          */
-        final StringBuffer std = new StringBuffer();
-
-        /**
-         * String builder used to record the standard error stream.
-         */
-        final StringBuffer err = new StringBuffer();
+        final StringBuffer buffer = new StringBuffer();
 
         /**
          * Return a thread responsible for recording the standard output stream
@@ -227,7 +220,7 @@ public class LFTest implements Comparable<LFTest> {
          * A separate thread is used so that the activity can preempted.
          */
         public Thread recordStdOut(Process process) {
-            return recordStream(std, process.getInputStream());
+            return recordStream(buffer, process.getInputStream());
         }
 
         /**
@@ -236,7 +229,7 @@ public class LFTest implements Comparable<LFTest> {
          * A separate thread is used so that the activity can preempted.
          */
         public Thread recordStdErr(Process process) {
-            return recordStream(err, process.getErrorStream());
+            return recordStream(buffer, process.getErrorStream());
         }
 
         /**
@@ -259,6 +252,11 @@ public class LFTest implements Comparable<LFTest> {
             });
             t.start();
             return t;
+        }
+
+        @Override
+        public String toString() {
+            return buffer.toString();
         }
     }
 }
