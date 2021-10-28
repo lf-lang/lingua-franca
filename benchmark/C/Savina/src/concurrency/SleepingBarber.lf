@@ -79,8 +79,8 @@ preamble {=
  * produced at logical time 0, albeit after some physical time because
  * of the busy wait.
  * 
- * This reactor ignores the customerDone input because it only needs to produce a
- * new customer if one of the customers is returned.
+ * This reactor uses the customerDone input to count customers and request
+ * halting the program when all customers have been served.
  */
 reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(1000)) {    
     output sendCustomer: size_t;
@@ -90,6 +90,7 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     physical action createNextCustomer;
     physical action sendCustomerAgain: size_t
     
+    state doneCustomers: size_t(0);
     state attempts: size_t(0);
     state next_customer_id: size_t(0);
     state random: PseudoRandom;
@@ -120,7 +121,7 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     =}
     
     reaction (customerReturned) -> sendCustomerAgain {=
-        for (size_t i = 0; i < self->numCustomers; i++) {
+        for (int i = 0; i < self->numCustomers; i++) {
             if (customerReturned[i]->is_present) {
                 /*
                  * The customer returned because the waiting room is full. We
@@ -128,8 +129,17 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
                  * physical action, we always introduce a small logical delay,
                  * which ensures that the program can move forward.
                  */
-                schedule(sendCustomerAgain, i);                
+                schedule_int(sendCustomerAgain, 0, i);                
             }
+        }
+    =}
+    
+    reaction (customerDone) {=
+        // Only one customer can be done at any logical tag, so we
+        // only need to count invocations of this reaction.
+        self->doneCustomers++;
+        if (self->doneCustomers >= self->numCustomers) {
+            request_stop();
         }
     =}
 }
@@ -147,8 +157,6 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     preamble {=
         #include "deque.c"
     =}
-    input reset:bool;
-    
     input receiveCustomer: size_t;
     
     output[numCustomers] full: bool;
@@ -156,12 +164,12 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
     
     input barberNext: bool;
     output barberEnter: size_t;
-    output barberWait: bool;
+    output barberSleep: bool;
     
     state queue: deque_t;
     state barberAsleep: bool(true);
     
-    reaction(reset) {=
+    reaction(startup) {=
         self->barberAsleep = true;
     =}
     
@@ -186,10 +194,10 @@ reactor WaitingRoom(capacity:size_t(1000), numCustomers:size_t(2000)) {
         }
     =}
     
-    reaction (barberNext) -> barberEnter, barberWait {=
+    reaction (barberNext) -> barberEnter, barberSleep {=
         if (deque_is_empty(&self->queue)) {
             self->barberAsleep = true;
-            SET(barberWait, true);
+            SET(barberSleep, true);
         } else {
             SET(barberEnter, (size_t)deque_peek_front(&self->queue));
             deque_pop_front(&self->queue);
@@ -226,9 +234,36 @@ reactor Customer(bank_index:size_t(0)) {
     =}
 }
 
-reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
+/**
+ * Upon receiving an `enter` input (whose value is a customer ID),
+ * send a `startCutting` output to corresponding customer, then
+ * busy wait for some amount of time, and then schedule the physical
+ * action `done`. Upon triggering the `done` action, send a
+ * `doneCutting` output to the corresponding customer and a
+ * `next` output to ask for the next customer.
+ * 
+ * Upon receiving a `sleep` input, this reactor does nothing.
+ * This input is telling the barber that the waiting room is
+ * empty.
+ * 
+ * Note that because of the physical action, the logical time
+ * spent cutting hair is determined by the amount of time busy
+ * waiting. This is not at all a Lingua Franca style of design
+ * and introduces an intrinsic handicap compared to an actor
+ * implementation. In particular, downstream reactors cannot
+ * react to startCutting until the busy wait is complete, which
+ * would not be true in an actor design.
+ */
+reactor Barber(
+    averageHaircutRate:size_t(1000), // NOTE: The Savina benchmark calls this
+                                     // an average, but it is not an averate.
+                                     // It specifies a maximum amount of busy-wait
+                                     // work to be done minus 10, oddly,
+                                     // in arbitrary units.
+    numCustomers:size_t(2000)
+) {
     input enter: size_t;
-    input wait: bool;
+    input sleep: bool;
         
     output[numCustomers] startCutting: bool;
     output[numCustomers] doneCutting: bool;
@@ -237,6 +272,11 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
     physical action done: size_t;
     
     state random: PseudoRandom;
+    
+    reaction(startup) {=
+        // Use the same seed as in the C++ and Akka benchmarks.
+        self->random.mValue = 74755;
+    =}
           
     reaction (done) -> doneCutting, next {=
         size_t customer_id = done->value;
@@ -248,9 +288,9 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
         size_t customer_id = enter->value;
         SET(startCutting[customer_id], true);
         
-        // calculate a random delay
-        self->random.mValue = self->averageHaircutRate;
-        int delay = nextInt(&self->random) + 10;
+        // Calculate a random delay.
+        // The second argument is an upper bound (exclusive).
+        int delay = nextIntEMax(&self->random, self->averageHaircutRate) + 10;
         
         // do the actual cutting and apply a physical delay
         busyWait(delay);
@@ -258,16 +298,23 @@ reactor Barber(averageHaircutRate:size_t(1000), numCustomers:size_t(2000)) {
         // Notify the customer 
         schedule(done, customer_id);
     =}
-    
-    reaction (wait) {=
-    =}
 }
 
 
 /* [[[cog
-    cog.outl(f'main reactor (waitingRoomSize:size_t({waitingRoomSize}), averageProductionRate:size_t({averageProductionRate}), averageHaircutRate:size_t({averageHaircutRate}), numHaircuts:size_t({numHaircuts}))')
+    cog.outl(f'main reactor (
+        waitingRoomSize:size_t({waitingRoomSize}),
+        averageProductionRate:size_t({averageProductionRate}),
+        averageHaircutRate:size_t({averageHaircutRate}),
+        numHaircuts:size_t({numHaircuts})
+    )')
 ]]] */
-main reactor (waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), averageHaircutRate:size_t(1000), numHaircuts:size_t(2000))
+main reactor (
+    waitingRoomSize:size_t(1000),
+    averageProductionRate:size_t(1000),
+    averageHaircutRate:size_t(1000),
+    numHaircuts:size_t(2000)
+)
 /// [[[end]]]
 
 {
@@ -281,7 +328,7 @@ main reactor (waitingRoomSize:size_t(1000), averageProductionRate:size_t(1000), 
     room.full -> customers.roomFull;
     room.wait -> customers.wait;
     room.barberEnter -> barber.enter;
-    room.barberWait -> barber.wait;
+    room.barberSleep -> barber.sleep;
     barber.next -> room.barberNext;
     barber.startCutting -> customers.startCutting;
     barber.doneCutting -> customers.doneCutting;
