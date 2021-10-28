@@ -31,9 +31,9 @@ targets:
       accounts: ["--numAccounts", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/concurrency/Banking.lf"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency"
       - "${lf_path}/benchmark/C/Savina/src/include"
-    lf_file: "Banking.lf"
+    lf_file: "concurrency/Banking.lf"
     binary: "Banking"
     gen_args:
       accounts: ["-D", "numAccounts=<value>"]
