@@ -78,10 +78,9 @@ public class FedASTUtils {
     }
     
     /**
-     * Create and return a network action in the 'destinationFederate' for the 'connection'.
-     * This network action should be triggered asynchronously whenever a message is
-     * received from the source of the 'connection'. In C, for example, this is done
-     * in federate.c.
+     * A network action is a trigger for a network input reaction that is 
+     * responsible for relaying messages to the port that is on the receiving
+     * side of a connection between two reactors that reside in distinct federates.
      * 
      * @param connection The network connection.
      * @param destinationFederate The destination federate.
