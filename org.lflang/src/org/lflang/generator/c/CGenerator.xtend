@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
+import java.nio.file.Path
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -841,6 +842,15 @@ class CGenerator extends GeneratorBase {
             
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
+                if (isFederated) {
+                    var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
+                    var rtiDir = rtiPath.toFile()
+                    if (!rtiDir.exists()) {
+                        rtiDir.mkdirs()
+                        writeRTIDockerFile(rtiPath, rtiDir)
+                        copyRtiFiles(rtiDir, coreFiles)
+                    }
+                }
                 writeDockerFile(topLevelName)
             }
 
@@ -1226,15 +1236,15 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param The root filename (without any extension).
+     * @param the name given to the docker file (without any extension).
      */
-    def writeDockerFile(String filename) {
+    def writeDockerFile(String dockerFileName) {
         if (this.mainDef === null) {
             return
         }
         
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val dockerFile = srcGenPath + File.separator + dockerFileName + '.Dockerfile'
         val contents = new StringBuilder()
         
         // If a dockerfile exists, remove it.
@@ -1264,15 +1274,15 @@ class CGenerator extends GeneratorBase {
         }
 
         pr(contents, '''
-            # Generated docker file for «topLevelName».lf in «srcGenPath».
+            # Generated docker file for «topLevelName» in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM «targetConfig.dockerOptions.from» AS builder
             WORKDIR /lingua-franca/«topLevelName»
             RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
-            COPY src-gen/«topLevelName»/core src-gen/core
-            COPY "src-gen/«topLevelName»/ctarget.h" "src-gen/«topLevelName»/ctarget.c" "src-gen/"
-            COPY "src-gen/«topLevelName»/CMakeLists.txt" \ 
-                 "src-gen/«topLevelName»/«filename».«fileExtension»" "src-gen/"
+            COPY core src-gen/core
+            COPY ctarget.h ctarget.c src-gen/
+            COPY CMakeLists.txt \
+                 «topLevelName».«fileExtension» src-gen/
             «additionalFiles»
             RUN set -ex && \
                 mkdir bin && \
@@ -1281,21 +1291,78 @@ class CGenerator extends GeneratorBase {
             FROM «targetConfig.dockerOptions.from» 
             WORKDIR /lingua-franca
             RUN mkdir bin
-            COPY --from=builder /lingua-franca/«topLevelName»/bin/«filename» ./bin/«filename»
+            COPY --from=builder /lingua-franca/«topLevelName»/bin/«topLevelName» ./bin/«topLevelName»
             
             # Use ENTRYPOINT not CMD so that command-line arguments go through
-            ENTRYPOINT ["./bin/«filename»"]
+            ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        println("Dockerfile written to " + dockerFile)
+        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
             To build the docker image, use:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «fileConfig.getOutPath»
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
             
             #####################################
         ''')
+    }
+
+    /**
+     * Write a Dockerfile for the RTI at rtiDir.
+     * The file will go into src-gen/RTI/rti.Dockerfile.
+     * @param the directory where rti.Dockerfile will be written to.
+     */
+    def writeRTIDockerFile(Path rtiPath, File rtiDir) {
+        val dockerFileName = 'rti.Dockerfile'
+        val dockerFile = rtiDir + File.separator + dockerFileName
+        val contents = new StringBuilder()
+        pr(contents, '''
+            # Generated docker file for RTI in «rtiDir».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            FROM alpine:latest
+            WORKDIR /lingua-franca/RTI
+            COPY core core
+            WORKDIR core/federated/RTI
+            RUN set -ex && apk add --no-cache gcc musl-dev cmake make && \
+                mkdir build && \
+                cd build && \
+                cmake ../ && \
+                make && \
+                make install
+
+            # Use ENTRYPOINT not CMD so that command-line arguments go through
+            ENTRYPOINT ["./build/RTI"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile for RTI written to " + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t rti -f «dockerFile» «rtiDir»
+            
+            #####################################
+        ''')
+    }
+
+    /**
+     * Write a Dockerfile for the RTI at rtiDir.
+     * The file will go into src-gen/RTI/rti.Dockerfile.
+     * @param the directory where rti.Dockerfile is located.
+     * @param the core files used for code generation in the current target.
+     */
+    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
+        var rtiFiles = newArrayList()
+        rtiFiles.addAll(coreFiles)
+
+        // add the RTI files on top of the coreFiles
+        rtiFiles.addAll(
+            "federated/RTI/rti.h",
+            "federated/RTI/rti.c",
+            "federated/RTI/CMakeLists.txt"
+        )
+        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
     }
     
     /**
