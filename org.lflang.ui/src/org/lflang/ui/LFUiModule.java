@@ -4,6 +4,7 @@
 package org.lflang.ui;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.xtext.generator.IShouldGenerate;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -13,4 +14,10 @@ public class LFUiModule extends LFUiModuleImpl {
 	public LFUiModule(AbstractUIPlugin plugin) {
 		super(plugin);
 	}
+	
+    /** The rebuild checker that considers markers by error reporter. */
+	@Override
+    public Class<? extends IShouldGenerate> bindIShouldGenerate() {
+        return EclipseBasedShouldGenerateLF.class;
+    }
 }
