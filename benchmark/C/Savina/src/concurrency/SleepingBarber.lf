@@ -307,12 +307,12 @@ reactor Barber(
 
 
 /* [[[cog
-    cog.outl(f'main reactor (
-        waitingRoomSize:size_t({waitingRoomSize}),
-        averageProductionRate:size_t({averageProductionRate}),
-        averageHaircutRate:size_t({averageHaircutRate}),
-        numHaircuts:size_t({numHaircuts})
-    )')
+    cog.outl(f'main reactor (')
+    cog.outl(f'    waitingRoomSize:size_t({waitingRoomSize}),')
+    cog.outl(f'    averageProductionRate:size_t({averageProductionRate}),')
+    cog.outl(f'    averageHaircutRate:size_t({averageHaircutRate}),')
+    cog.outl(f'    numHaircuts:size_t({numHaircuts})')
+    cog.outl(')')
 ]]] */
 main reactor (
     waitingRoomSize:size_t(1000),
