@@ -549,7 +549,7 @@ class CGenerator extends GeneratorBase {
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
-                    federates.size, 
+                    Math.max(federates.size, 1), 
                     Runtime.getRuntime().availableProcessors()
                 )
             )
@@ -581,13 +581,15 @@ class CGenerator extends GeneratorBase {
                     TargetProperty.updateOne(
                         this.targetConfig, 
                         TargetProperty.CMAKE_INCLUDE.description,
-                        target.config.pairs ?: emptyList
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                     // Update the files
                     TargetProperty.updateOne(
                         this.targetConfig, 
                         TargetProperty.FILES.description,
-                        target.config.pairs ?: emptyList
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                 }
                 
@@ -1163,21 +1165,27 @@ class CGenerator extends GeneratorBase {
      * the compile command (compileAdditionalSources).
      */
     def addPlatformFiles(ArrayList<String> coreFiles) {
-        // If useCmake is set to true, we don't need to add platform files. 
-        // The CMakeLists.txt file will detect and use the appropriate platform 
-        // file based on the platform that cmake is invoked on.
-        // If useCmake is set to false, we have to detect the operating system
-        // here and add the appropriate platform support source file to the compile
-        // command.
-        if (mainDef !== null && !targetConfig.useCmake) {
-            // Check the operating system
-            val OS = System.getProperty("os.name").toLowerCase();
-            // FIXME: allow for cross-compiling
-            // Based on the detected operating system, copy the required files
-            // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
-            // for more detail.
-            if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-                // Mac support
+        // All platforms use this one.
+        coreFiles.add("platform/lf_tag_64_32.h");
+        // Check the operating system
+        val OS = System.getProperty("os.name").toLowerCase();
+        // FIXME: allow for cross-compiling
+        // Based on the detected operating system, copy the required files
+        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
+        // for more detail.
+        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+            // Mac support
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.h")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_macos_support.c")            
+            coreFiles.add("platform/lf_macos_support.h")
+            coreFiles.add("platform/lf_unix_clock_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
+            // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
+            if (mainDef !== null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
                 );
