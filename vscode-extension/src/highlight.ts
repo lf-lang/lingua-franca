@@ -224,10 +224,6 @@ function setDiff(
  * @param begin - The token that causes an increment of nesting depth
  * @param end - The token that causes a decrement of nesting depth. Must
  *     not be equal to begin.
- * @param minDepth - The desired minimum nesting depth of all returned
- *     ranges, relative to the start of the range in which to search
- * @param maxDepth - The desired maximum nesting depth of all returned
- *     ranges, relarive to the start of the range in which to search
  * @param shadowRanges - The ranges which detected matches to `begin`
  *     and `end` may not intersect
  */
@@ -307,13 +303,16 @@ function getReactors(
     document: TextDocument, range: Range
 ): {declaration: Range, body: Range}[] {
     const stdShadow = standardShadow(document);
+    const shadow = stdShadow.concat(getContainedRanges(
+        document, range, '(', ')', stdShadow
+    ));
     const ret: {declaration: Range, body: Range}[] = [];
     for (const reactorDeclaration of getContainedRanges(
-        document, range, 'reactor', '{', stdShadow
+        document, range, 'reactor', '{', shadow
     )) {
         const reactorBody = getContainedRanges(
             document, new Range(reactorDeclaration.end, range.end), '{', '}',
-            stdShadow
+            shadow
         )[0]; // FIXME: Unnecessary computations are performed here.
         ret.push({declaration: reactorDeclaration, body: reactorBody})
     }
