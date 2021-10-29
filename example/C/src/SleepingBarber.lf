@@ -34,6 +34,7 @@
 target C {
     fast: true,
     threads: 0,
+    cmake-include: "/lib/c/reactor-c/util/deque.cmake",
     files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c"]
 };
 
@@ -45,9 +46,7 @@ preamble {=
      * does not overflow.
      */
     interval_t random_time(interval_t max) {
-        interval_t maxp = max * ;
-        interval_t result = ((interval_t)rand()) * RAND_MAX) % max;
-        info_print("***** FIXME %d", result);
+        interval_t result = (((interval_t)rand()) * RAND_MAX) % max;
         return result;
     }
 =}
@@ -90,13 +89,13 @@ reactor CustomerFactory(
         
         if (self->next_customer_id < self->num_customers) {
             // Schedule again.
-            interval_t delay = random_time(max_time_between_customers);
+            interval_t delay = random_time(self->max_time_between_customers);
             schedule(next, delay);
         }
     =}
     
     reaction (again) -> send_customer {=
-        size_t customer_id = send_customerAgain->value;
+        size_t customer_id = again->value;
         self->attempts++;
         SET(send_customer, customer_id);
     =}
@@ -105,10 +104,9 @@ reactor CustomerFactory(
         for (int i = 0; i < self->num_customers; i++) {
             if (customer_returned[i]->is_present) {
                 // The customer returned because the waiting room is full.
-                schedule_int(send_customerAgain, 0, i);                
                 // Schedule again.
-                interval_t delay = random_time(max_time_between_customers);
-                schedule_int(next, delay, i);
+                interval_t delay = random_time(self->max_time_between_customers);
+                schedule_int(again, delay, i);
             }
         }
     =}
@@ -123,9 +121,11 @@ reactor CustomerFactory(
     =}
     
     reaction (shutdown) {=
-        info_print("Finished: %d customers got haircuts in %d attempts.", 
-                self->done_customers, self->attempts
-        };
+        char buffer[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(buffer, get_elapsed_logical_time());
+        info_print("Finished: %d customers got haircuts in %d attempts over %s.", 
+                self->done_customers, self->attempts, buffer
+        );
     =}
 }
 
@@ -141,7 +141,7 @@ reactor CustomerFactory(
  */
 reactor WaitingRoom(capacity:size_t(1000), num_customers:size_t(2000)) {
     preamble {=
-        #include "deque.c"
+        #include "deque.h"
     =}
     input customer_enters: size_t;
     
@@ -149,7 +149,7 @@ reactor WaitingRoom(capacity:size_t(1000), num_customers:size_t(2000)) {
     output[num_customers] wait: bool;
     
     input barber_arrives: bool;
-    output barber_leaves_with_customer: size_t;
+    output barber_leaves_with_customer: int;
     
     state queue: deque_t;
     state barber_asleep: bool(true);
@@ -185,129 +185,130 @@ reactor WaitingRoom(capacity:size_t(1000), num_customers:size_t(2000)) {
 }
 
 /**
- * This reactor simply relays a roomFull input to its returned
- * output and its doneCutting input to its done output.
- * It ignores the other two inputs.
+ * Reactor representing a customer.
+ * This reactor reports on what is happening from the perspective of
+ * a customer. It also relays a `room_full` input to its `returned`
+ * output and its `done_cutting` input to its `done` output.
  */
 reactor Customer(bank_index:size_t(0)) {
-    input roomFull: bool;
+    input room_full: bool;
     input wait: bool;
-    input startCutting: bool;
-    input doneCutting: bool; 
+    input start_cutting: bool;
+    input done_cutting: bool; 
 
     output returned: bool;
     output done: bool;
     
-    reaction (roomFull) -> returned {=
+    reaction (room_full) -> returned {=
+        char buffer[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(buffer, get_elapsed_logical_time());
+        info_print("Customer %d: Turned away at %s. Will try later.",
+                self->bank_index, buffer
+        );
         SET(returned, true);
     =}
     
     reaction (wait) {=
+        char buffer[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(buffer, get_elapsed_logical_time());
+        info_print("Customer %d: Entered waiting room at %s. Waiting.",
+                self->bank_index, buffer
+        );
     =}
     
-    reaction (startCutting) {= 
+    reaction (start_cutting) {= 
+        char buffer[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(buffer, get_elapsed_logical_time());
+        info_print("Customer %d: Started a haircut at %s.",
+                self->bank_index, buffer
+        );
     =}
-    
-    reaction (doneCutting) -> done {=
+   
+    reaction (done_cutting) -> done {=
+        char buffer[LF_TIME_BUFFER_LENGTH];
+        lf_readable_time(buffer, get_elapsed_logical_time());
+        info_print("Customer %d: Finished a haircut at %s.",
+                self->bank_index, buffer
+        );
         SET(done, true);
     =}
 }
 
 /**
  * Upon receiving an `enter` input (whose value is a customer ID),
- * send a `startCutting` output to corresponding customer, then
- * busy wait for some amount of time, and then schedule the physical
- * action `done`. Upon triggering the `done` action, send a
- * `doneCutting` output to the corresponding customer and a
+ * send a `start_cutting` output to corresponding customer, then
+ * then schedule the logical action `done` to trigger a random
+ * amount of time later. Upon triggering the `done` action, send a
+ * `done_cutting` output to the corresponding customer and a
  * `next` output to ask for the next customer.
  * 
- * Note that because of the physical action, the logical time
- * spent cutting hair is determined by the amount of time busy
- * waiting. This is not at all a Lingua Franca style of design
- * and introduces an intrinsic handicap compared to an actor
- * implementation. In particular, downstream reactors cannot
- * react to startCutting until the busy wait is complete, which
- * would not be true in an actor design.
+ * The random time the haircut takes is uniformly distributed between
+ * `min_cut_time` and `max_cut_time`.
  */
 reactor Barber(
-    averageHaircutRate:size_t(1000), // NOTE: The Savina benchmark calls this
-                                     // an average, but it is not an averate.
-                                     // It specifies a maximum amount of busy-wait
-                                     // work to be done minus 10, oddly,
-                                     // in arbitrary units.
-    num_customers:size_t(2000)
+    min_cut_time:time(5 minutes),
+    max_cut_time:time(15 minutes),
+    num_customers:size_t(20)
 ) {
-    input enter: size_t;
+    input enter: int;
         
-    output[num_customers] startCutting: bool;
-    output[num_customers] doneCutting: bool;
+    output[num_customers] start_cutting: bool;
+    output[num_customers] done_cutting: bool;
     output next: bool;
     
-    physical action done: size_t;
-    
-    state random: PseudoRandom;
-    
-    reaction(startup) {=
-        // Use the same seed as in the C++ and Akka benchmarks.
-        self->random.mValue = 74755;
-    =}
+    logical action done: int;
           
-    reaction (done) -> doneCutting, next {=
-        size_t customer_id = done->value;
-        SET(doneCutting[customer_id], true);
+    reaction (done) -> done_cutting, next {=
+        int customer_id = done->value;
+        SET(done_cutting[customer_id], true);
         SET(next, true);
     =}
     
-    reaction (enter) -> startCutting, done {=
-        size_t customer_id = enter->value;
-        SET(startCutting[customer_id], true);
+    reaction (enter) -> start_cutting, done {=        
+        int customer_id = enter->value;
+        SET(start_cutting[customer_id], true);
         
         // Calculate a random delay.
-        // The second argument is an upper bound (exclusive).
-        int delay = nextIntEMax(&self->random, self->averageHaircutRate) + 10;
-        
-        // do the actual cutting and apply a physical delay
-        busyWait(delay);
+        interval_t delay = self->min_cut_time
+                + random_time(self->max_cut_time - self->min_cut_time);
         
         // Notify the customer 
-        schedule(done, customer_id);
+        schedule_int(done, delay, customer_id);
     =}
 }
 
 
-/* [[[cog
-    cog.outl(f'main reactor (
-        waitingRoomSize:size_t({waitingRoomSize}),
-        averageProductionRate:size_t({averageProductionRate}),
-        averageHaircutRate:size_t({averageHaircutRate}),
-        numHaircuts:size_t({numHaircuts})
-    )')
-]]] */
 main reactor (
-    waitingRoomSize:size_t(10),
+    waiting_room_capacity:size_t(7),
     max_time_between_customers:time(10 minutes),
-    averageHaircutRate:size_t(10),
-    numHaircuts:size_t(20)
-)
-/// [[[end]]]
-
-{
+    min_cut_time:time(5 minutes),
+    max_cut_time:time(15 minutes),
+    num_customers:size_t(20)
+) {
     
     factory = new CustomerFactory(
-        num_customers=numHaircuts, 
+        num_customers=num_customers, 
         max_time_between_customers=max_time_between_customers
     );
-    room = new WaitingRoom(capacity=waitingRoomSize, num_customers=numHaircuts);
-    barber = new Barber(averageHaircutRate=averageHaircutRate, num_customers=numHaircuts)
-    customers = new[numHaircuts] Customer();
+    room = new WaitingRoom(
+        capacity=waiting_room_capacity, 
+        num_customers=num_customers
+    );
+    
+    barber = new Barber(
+        min_cut_time=min_cut_time, 
+        max_cut_time=max_cut_time,
+        num_customers=num_customers
+    )
+    customers = new[num_customers] Customer();
         
     factory.send_customer -> room.customer_enters;
-    room.full -> customers.roomFull;
+    room.full -> customers.room_full;
     room.wait -> customers.wait;
     room.barber_leaves_with_customer -> barber.enter;
     barber.next -> room.barber_arrives;
-    barber.startCutting -> customers.startCutting;
-    barber.doneCutting -> customers.doneCutting;
+    barber.start_cutting -> customers.start_cutting;
+    barber.done_cutting -> customers.done_cutting;
     customers.done -> factory.customer_done;
     
     customers.returned -> factory.customer_returned;
