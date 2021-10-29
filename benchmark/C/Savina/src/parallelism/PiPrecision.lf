@@ -183,7 +183,7 @@ reactor Worker(scale:int(5000)) {
         #include <gmp.h>
         void calculateBbpTerm(mpf_t result,int scale, int k) {
             
-            int eightK = 8 * k;
+            unsigned eightK = 8 * k;
             mpf_t sixteen;
             mpf_t four;
             mpf_t two;
