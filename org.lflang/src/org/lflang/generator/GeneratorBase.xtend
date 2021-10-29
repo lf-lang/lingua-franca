@@ -567,7 +567,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     targetDir);
             if (relativeFileName.isNullOrEmpty) {
                 errorReporter.reportError(
-                    "Failed to find file " + filename + "specified in the" +
+                    "Failed to find file " + filename + " specified in the" +
                     " files target property."
                 )
             } else {
