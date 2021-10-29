@@ -1,3 +1,9 @@
+/**
+*
+* @author Maiko Brants TU Dresden
+*
+* Modeled after the C version of this test.
+**/
 target Cpp;
 
 reactor Bar {
