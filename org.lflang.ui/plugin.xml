@@ -490,4 +490,151 @@
 			grammarName="org.lflang.LF">
 		</projectTemplateProvider>
 	</extension>
+ <extension
+       point="org.eclipse.ui.handlers">
+    <handler
+          class="org.lflang.ui.LFExecutableExtensionFactory:org.lflang.ui.actions.CompileActionHandler"
+          commandId="org.lflang.lf.compile">
+    </handler>
+ </extension>
+ <extension
+       point="org.eclipse.ui.menus">
+    <menuContribution
+          locationURI="popup:#TextEditorContext?after=group.edit">
+       <command
+             commandId="org.lflang.lf.compile"
+             icon="icons/lf-compile.png"
+             label="Compile LF Program"
+             mnemonic="C"
+             style="push"
+             tooltip="Trigger LF code generation and compilation">
+          <visibleWhen
+                checkEnabled="false">
+             <reference
+                   definitionId="org.lflang.LF.Editor.opened">
+             </reference>
+          </visibleWhen>
+       </command>
+    </menuContribution>
+      <menuContribution
+            locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?after=additions">
+         <command
+               commandId="org.lflang.lf.compile"
+               helpContextId="Trigger LF code generation and compilation"
+               icon="icons/lf-compile.png"
+               label="Compile LF Program"
+               mnemonic="C"
+               style="push">
+           <visibleWhen
+                  checkEnabled="true">
+               <with
+                     variable="selection">
+                  <iterate
+                        ifEmpty="false"
+                        operator="and">
+                     <adapt
+                           type="org.eclipse.core.resources.IFile">
+                        <test
+                              property="org.eclipse.core.resources.extension"
+                              value="lf">
+                        </test>
+                     </adapt>
+                  </iterate>
+                  <count
+                        value="1">
+                  </count>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+      <menuContribution
+            locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+         <command
+               commandId="org.lflang.lf.compile"
+               helpContextId="Trigger LF code generation and compilation"
+               icon="icons/lf-compile.png"
+               label="Compile LF Program"
+               mnemonic="C"
+               style="push">
+            <visibleWhen
+                  checkEnabled="true">
+               <with
+                     variable="selection">
+                  <iterate
+                        ifEmpty="false"
+                        operator="and">
+                     <adapt
+                           type="org.eclipse.core.resources.IFile">
+                        <test
+                              property="org.eclipse.core.resources.extension"
+                              value="lf">
+                        </test>
+                     </adapt>
+                  </iterate>
+                  <count
+                        value="1">
+                  </count>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+      <menuContribution
+            locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?after=additions">
+         <command
+               commandId="org.lflang.lf.compile"
+               helpContextId="Trigger LF code generation and compilation"
+               icon="icons/lf-compile.png"
+               label="Compile all LF programs"
+               mnemonic="C"
+               style="push">
+            <visibleWhen
+                  checkEnabled="true">
+               <with
+                     variable="selection">
+                  <iterate
+                        ifEmpty="false"
+                        operator="and">
+                     <or>
+                        <adapt
+                              type="org.eclipse.core.resources.IProject">
+                        </adapt>
+                        <adapt
+                              type="org.eclipse.core.resources.IFolder">
+                        </adapt>
+                     </or>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+      <menuContribution
+            locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+         <command
+               commandId="org.lflang.lf.compile"
+               helpContextId="Trigger LF code generation and compilation"
+               icon="icons/lf-compile.png"
+               label="Compile all LF Programs"
+               mnemonic="C"
+               style="push">
+            <visibleWhen
+                  checkEnabled="true">
+               <with
+                     variable="selection">
+                  <iterate
+                        ifEmpty="false"
+                        operator="and">
+                     <or>
+                        <adapt
+                              type="org.eclipse.core.resources.IProject">
+                        </adapt>
+                        <adapt
+                              type="org.eclipse.core.resources.IFolder">
+                        </adapt>
+                     </or>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+ </extension>
 </plugin>
