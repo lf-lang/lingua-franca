@@ -96,9 +96,9 @@ reactor CustomerFactory(numCustomers:size_t(2000), averageProductionRate:size_t(
     state random: PseudoRandom;
     
     reaction(startup, createNextCustomer) -> sendCustomer, createNextCustomer {=
-        // get a random production delay
-        self->random.mValue = self->averageProductionRate;
-        int delay = (nextInt(&self->random) + 10);
+        // Calculate a random delay.
+        // The second argument is an upper bound (exclusive).
+        int delay = nextIntEMax(&self->random, self->averageProductionRate) + 10;
         
         // apply a physical delay
         busyWait(delay);
