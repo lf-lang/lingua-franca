@@ -39,10 +39,6 @@ import org.lflang.lf.Port
  */
 class MultiportInstance extends PortInstance {
 
-    /** The array of instances. */
-    @Accessors(PUBLIC_GETTER)
-    val Set<PortInstance> instances = new LinkedHashSet<PortInstance>()
-
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
@@ -80,17 +76,6 @@ class MultiportInstance extends PortInstance {
             } else {
                 width += term.width
             }
-        }
-        
-        for (var i = 0; i < width; i++) {
-            val instancePort = new PortInstance(definition, parent, i, this)
-            instances.add(instancePort)
-            // Inputs arriving at the instance port trigger the reactions
-            // that depend on the multiport. 
-            instancePort.dependentReactions = this.dependentReactions
-            // Reactions that declare that they may send outputs via
-            // this port are able to send on any of the instances.
-            instancePort.dependsOnReactions = this.dependsOnReactions
         }
     }
 
