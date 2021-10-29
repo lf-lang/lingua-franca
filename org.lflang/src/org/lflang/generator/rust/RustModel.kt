@@ -26,9 +26,12 @@
 package org.lflang.generator.rust
 
 import org.lflang.*
+import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.*
+import org.lflang.generator.cpp.toCppCode
 import org.lflang.lf.*
 import org.lflang.lf.Timer
+import java.nio.file.Path
 import java.util.*
 
 private typealias Ident = String
@@ -36,7 +39,6 @@ private typealias Ident = String
 /** Root model class for the entire generation. */
 data class GenerationInfo(
     val crate: CrateInfo,
-    val runtime: RuntimeInfo,
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
@@ -51,7 +53,9 @@ data class GenerationInfo(
 
 data class RustTargetProperties(
     val keepAlive: Boolean = false,
+    /** How the timeout looks like as a Rust expression, eg `Duration::from_millis(40)`. */
     val timeout: TargetCode? = null,
+    val timeoutLf: TimeValue? = null,
     val singleFile: Boolean = false
 )
 
@@ -164,9 +168,10 @@ data class ChildPortReference(
     /** Name of the child instance. */
     val childName: Ident,
     override val lfName: Ident,
-    val isInput: Boolean,
-    val dataType: TargetCode
-) : ReactorComponent() {
+    override val isInput: Boolean,
+    override val dataType: TargetCode,
+    override val isMultiport: Boolean
+) : ReactorComponent(), PortLike {
     val rustFieldOnChildName: String = "__$lfName"
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
@@ -179,7 +184,11 @@ data class ChildPortReference(
 data class CtorParamInfo(
     val lfName: Ident,
     val type: TargetCode,
-    val defaultValue: TargetCode?
+    val defaultValue: TargetCode?,
+    val isTime: Boolean,
+    val isList: Boolean,
+    val defaultValueAsTimeValue: TimeValue?,
+    val documentation: String?
 )
 
 /** Model class for a state variable. */
@@ -192,11 +201,8 @@ data class StateVarInfo(
     val lfName: String,
     /** Rust static type of the struct field. Must be `Sized`. */
     val type: TargetCode,
-    /**
-     * The field initializer, a Rust expression. If null,
-     * will default to `Default::default()`.
-     */
-    val init: TargetCode?
+    /** The field initializer, a Rust expression. */
+    val init: TargetCode
 )
 
 enum class DepKind { Triggers, Uses, Effects }
@@ -219,7 +225,7 @@ data class ReactionInfo(
 
     /** Location metadata. */
     val loc: LocationInfo,
-
+    /** Label without quotes. */
     val debugLabel: String?
 ) {
 
@@ -252,19 +258,11 @@ data class CrateInfo(
     val version: String,
     /** List of names of the credited authors. */
     val authors: List<String>,
-)
-
-/**
- * Info about the runtime crate.
- */
-data class RuntimeInfo(
-    /** The version string. This must correspond to a tag in the runtime repo. */
-    val version: String?,
-    /** Path to the runtime on the local machine. If this is present, it takes priority over the git repo. */
-    val localPath: String?,
-    /** Revision which we test against. */
-    val gitRevision: String,
-
+    /** Dependencies of the crate. Note that this includes an entry for the runtime. */
+    val dependencies: Map<String, CargoDependencySpec>,
+    /** Paths to modules that should be copied to the output & linked into `main.rs`. */
+    val modulesToIncludeInMain: List<Path>,
+    /** Features to enable in the build command. */
     val enabledCargoFeatures: Set<String>
 )
 
@@ -331,23 +329,35 @@ sealed class ReactorComponent {
     }
 }
 
+interface PortLike {
+    val lfName: Ident
+    val isInput: Boolean
+
+    /** Rust data type of this component */
+    val dataType: TargetCode
+    val isMultiport: Boolean
+}
 
 /**
  * @property dataType A piece of target code
  */
 data class PortData(
     override val lfName: Ident,
-    val isInput: Boolean,
+    override val isInput: Boolean,
     /** Rust data type of this component */
-    val dataType: TargetCode,
-    val isMultiport: Boolean = false
-) : ReactorComponent() {
+    override val dataType: TargetCode,
+    // may be a compile-time constant
+    val widthSpec: TargetCode?,
+) : ReactorComponent(), PortLike {
+    override val isMultiport: Boolean get() = widthSpec != null
+
     companion object {
         fun from(port: Port) =
             PortData(
                 lfName = port.name,
                 isInput = port.isInput,
-                dataType = RustTypes.getTargetType(port.type)
+                dataType = RustTypes.getTargetType(port.type),
+                widthSpec = port.widthSpec?.toCppCode()
             )
     }
 }
@@ -366,7 +376,17 @@ data class TimerData(
     val period: TargetCode,
 ) : ReactorComponent()
 
-private fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
+/** Get the textual representation of a width in Rust code */
+fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
+    when {
+        it.parameter != null -> it.parameter.name
+        it.port != null      -> throw UnsupportedGeneratorFeatureException("Width specs that use a port")
+        it.code != null      -> it.code.toText()
+        else                 -> it.width.toString()
+    }
+}
+
+fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
 private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
 
 private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
@@ -374,6 +394,7 @@ private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
+
 /** Regex to match a simple (C) code block, captures the insides as $1. */
 private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
 
@@ -395,17 +416,19 @@ object RustModelBuilder {
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
 
 
+        val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
+        dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
+            computeDefaultRuntimeConfiguration(spec, targetConfig)
+        }
+
         return GenerationInfo(
             crate = CrateInfo(
                 name = mainReactor.lfName.camelToSnakeCase(),
                 version = "1.0.0",
-                authors = listOf(System.getProperty("user.name"))
-            ),
-            runtime = RuntimeInfo(
-                version = targetConfig.runtimeVersion,
-                localPath = targetConfig.externalRuntimePath,
-                gitRevision = runtimeGitRevision,
-                enabledCargoFeatures = targetConfig.cargoFeatures.toSet()
+                authors = listOf(System.getProperty("user.name")),
+                dependencies = dependencies,
+                modulesToIncludeInMain = targetConfig.rust.rustTopLevelModules,
+                enabledCargoFeatures = targetConfig.rust.cargoFeatures.toSet()
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,
@@ -416,10 +439,46 @@ object RustModelBuilder {
         )
     }
 
+    /**
+     * Compute the configuration of the runtime crate, possibly
+     * using a user-provided configuration.
+     */
+    private fun computeDefaultRuntimeConfiguration(
+        userSpec: CargoDependencySpec?,
+        targetConfig: TargetConfig,
+    ): CargoDependencySpec {
+
+        val userRtVersion: String? = targetConfig.runtimeVersion
+
+        if (userSpec == null) {
+            // default configuration for the runtime crate
+            return if (targetConfig.externalRuntimePath != null) newCargoSpec(
+                gitTag = userRtVersion?.let { "v$it" },
+                localPath = targetConfig.externalRuntimePath,
+            ) else newCargoSpec(
+                gitRepo = RustEmitterBase.runtimeGitUrl,
+                gitTag = userRtVersion?.let { "v$it" },
+                rev = runtimeGitRevision.takeIf { userRtVersion == null },
+            )
+        } else {
+            if (userSpec.localPath == null && userSpec.gitRepo == null) {
+                // default the location
+                userSpec.gitRepo = RustEmitterBase.runtimeGitUrl
+            }
+            if (userSpec.version == null && userSpec.tag == null && userSpec.rev == null) {
+                // default the version
+                userSpec.rev = runtimeGitRevision
+            }
+
+            return userSpec
+        }
+    }
+
     private fun TargetConfig.toRustProperties(): RustTargetProperties =
         RustTargetProperties(
             keepAlive = this.keepalive,
             timeout = this.timeout?.toRustTimeExpr(),
+            timeoutLf = this.timeout,
             singleFile = this.singleFileProject
         )
 
@@ -444,9 +503,12 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
+                                isMultiport = variable.isMultiport
                             )
                         } else {
-                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException("Dependency on $it")
+                            components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
+                                "Dependency on $it"
+                            )
                         }
                     }
 
@@ -499,7 +561,11 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty())
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty()),
+                        documentation = null, // todo
+                        isTime = it.inferredType.isTime,
+                        isList = it.inferredType.isList,
+                        defaultValueAsTimeValue = ASTUtils.getInitialTimeValue(it),
                     )
                 }
             )
@@ -514,7 +580,10 @@ object RustModelBuilder {
                 RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
             }
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
-                ?: throw InvalidLfSourceException("Cannot find value of parameter ${ithParam.name}", this)
+                ?: throw InvalidLfSourceException(
+                    "Cannot find value of parameter ${ithParam.name}",
+                    this
+                )
             ithParam.name to value
         }
 
@@ -587,5 +656,30 @@ private val TypeParm.identifier: String
     get() {
         val targetCode = toText()
         return IDENT_REGEX.find(targetCode.trimStart())?.value
-            ?: throw InvalidLfSourceException("No identifier in type param `$targetCode`", this)
+            ?: throw InvalidLfSourceException(
+                "No identifier in type param `$targetCode`",
+                this
+            )
     }
+
+/**
+ * Returns the name of the profile for Cargo (how it is
+ * declared in `Cargo.toml`).
+ */
+val BuildType.cargoProfileName: String
+    get() = when (this) {
+        BuildType.DEBUG             -> "dev"
+        BuildType.RELEASE           -> "release"
+        BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
+        BuildType.MIN_SIZE_REL      -> "release-with-min-size"
+    }
+
+/** Just the constructor of [CargoDependencySpec], but allows using named arguments. */
+fun newCargoSpec(
+    version: String? = null,
+    gitRepo: String? = null,
+    rev: String? = null,
+    gitTag: String? = null,
+    localPath: String? = null,
+    features: List<String>? = null,
+) = CargoDependencySpec(version, gitRepo, rev, gitTag, localPath, features)

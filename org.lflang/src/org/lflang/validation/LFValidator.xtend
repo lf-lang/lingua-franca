@@ -37,6 +37,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.eclipse.xtend.lib.annotations.Accessors
 
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
@@ -101,6 +102,7 @@ class LFValidator extends BaseLFValidator {
 
     public var info = new ModelInfo()
 
+    @Accessors(PUBLIC_GETTER)
     val ValidatorErrorReporter errorReporter = new ValidatorErrorReporter(getMessageAcceptor(),
         new ValidatorStateAccess())
 
@@ -298,7 +300,7 @@ class LFValidator extends BaseLFValidator {
         if (assignment.lhs.isOfTimeType) {
             if (assignment.rhs.size > 1) {
                  error("Incompatible type.", Literals.ASSIGNMENT__RHS)
-            } else {
+            } else if (assignment.rhs.size > 0) {
                 val v = assignment.rhs.get(0)
                 if (!v.isValidTime) {
                     if (v.parameter === null) {
@@ -342,13 +344,13 @@ class LFValidator extends BaseLFValidator {
 
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (!isCBasedTarget && this.target != Target.CPP && this.target != Target.Python) {
+        if (!this.target.supportsMultiports()) {
             error("Multiports and banks are currently not supported by the given target.",
                 Literals.WIDTH_SPEC__TERMS)
         } else {
             for (term : widthSpec.terms) {
                 if (term.parameter !== null) {
-                    if (!isCBasedTarget && this.target != Target.Python && this.target != Target.CPP) {
+                    if (!this.target.supportsParameterizedWidths()) {
                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else if (term.port !== null) {
