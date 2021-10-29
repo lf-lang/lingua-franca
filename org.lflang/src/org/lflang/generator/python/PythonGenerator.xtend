@@ -197,6 +197,21 @@ class PythonGenerator extends CGenerator {
         ''');
     }
     
+    /**
+     * Print information on how to execute the generated federation.
+     */
+    def printFedRunInfo() {
+        println('''
+        
+        #####################################
+        To run the generated program, run:
+            
+            bash «fileConfig.binPath»/«fileConfig.name»
+        
+        #####################################
+        ''');
+    }
+    
     ////////////////////////////////////////////
     //// Protected methods
     
@@ -1250,10 +1265,15 @@ class PythonGenerator extends CGenerator {
                     printSetupInfo();
                 }
                 
-                printRunInfo();
+                if (!isFederated) {
+                    printRunInfo();
+                }
             }
             fileConfig = oldFileConfig;
         }
+        if (isFederated) {
+            printFedRunInfo();
+        } 
         // Restore filename
         topLevelName = baseFileName
     }
