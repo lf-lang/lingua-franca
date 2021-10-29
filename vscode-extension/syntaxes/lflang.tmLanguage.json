@@ -259,6 +259,10 @@
                 {
                     "name": "keyword.control.lflang",
                     "match": "\\b(reaction|method|STP|deadline|mutation)\\b"
+                },
+                {
+                    "name": "storage.modifier.lflang",
+                    "match": "\\bconst\\b"
                 }
             ]
         },
