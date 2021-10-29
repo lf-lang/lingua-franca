@@ -300,7 +300,7 @@ class LFValidator extends BaseLFValidator {
         if (assignment.lhs.isOfTimeType) {
             if (assignment.rhs.size > 1) {
                  error("Incompatible type.", Literals.ASSIGNMENT__RHS)
-            } else {
+            } else if (assignment.rhs.size > 0) {
                 val v = assignment.rhs.get(0)
                 if (!v.isValidTime) {
                     if (v.parameter === null) {
