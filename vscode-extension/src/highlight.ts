@@ -457,7 +457,9 @@ function applyTokenType(
         )) {
             const values = getContainedRanges(
                 document, parameterList, '(', ')', stdShadow
-            );
+            ).concat(getContainedRanges(
+                document, parameterList, '{', '}', stdShadow
+            ));
             const typeValuePairs = getContainedRanges(
                 document, parameterList, ':', ',', stdShadow.concat(values)
             );
@@ -474,6 +476,9 @@ function applyTokenType(
                     document, typeValuePair, values
                 )) {
                     for (const word of getWords(document, nonValue)) {
+                        // FIXME: Should more safeguards (e.g., checking
+                        // if first char is a letter) be put in place? Or
+                        // should we favor strong rules over such heuristics?
                         let s: String = document.getText(word);
                         if (s.charAt(0).toUpperCase() === s.charAt(0)) {
                             tokensBuilder.push(word, 'class');
