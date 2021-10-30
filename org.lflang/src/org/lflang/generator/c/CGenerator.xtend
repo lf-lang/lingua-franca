@@ -32,6 +32,7 @@ import java.util.Collection
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
+import java.util.List
 import java.util.Set
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -48,6 +49,7 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -92,7 +94,6 @@ import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.TargetConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -3485,24 +3486,16 @@ class CGenerator extends GeneratorBase {
      * Return a string for referencing the struct with the value and is_present
      * fields of the specified port. This is used for establishing the destination of
      * data for a connection between ports.
-     * This will have one of the following forms:
+     * This will have one the following form:
      * 
      * * selfStruct->_lf_portName
-     * * selfStruct->_lf_portName[i]
      * 
      * @param port An instance of a destination input port.
      */
     static def destinationReference(PortInstance port) {
         var destStruct = selfStructName(port.parent)
-
-        // If the destination is in a multiport, find its index.
-        var destinationIndexSpec = ''
-        if (port.multiportIndex >= 0) {
-            destinationIndexSpec = '[' + port.multiportIndex + ']'
-        }
-                
         if (port.isInput) {
-            return '''«destStruct»->_lf_«port.name»«destinationIndexSpec»'''
+            return '''«destStruct»->_lf_«port.name»'''
         } else {
             throw new InvalidSourceException("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
@@ -5272,28 +5265,35 @@ class CGenerator extends GeneratorBase {
      */
     private def connectReactionsToPorts(ReactorInstance instance, FederateInstance federate) {
         for (reaction : instance.reactions) {
+            // First handle the effects that are inputs of contained reactors.
             for (port : reaction.effects.filter(PortInstance)) {
-                if (port.definition instanceof Input && !(port instanceof MultiportInstance)) {
+                if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor.
-                    // It may be deeply contained, however, in which case
-                    // we have to trace back to where the data and is_present
-                    // variables are.
-                    // Skip multiport instances and connect the contained individual ports instead.
-                    var sourcePort = sourcePort(port)
-                    if (reactorBelongsToFederate(sourcePort.parent, federate)) {
-                        val destStructType = variableStructType(
-                            port.definition as TypedVariable,
-                            port.parent.definition.reactorClass
-                        )
+                    val destStructType = variableStructType(
+                        port.definition as TypedVariable,
+                        port.parent.definition.reactorClass
+                    )
+                    if (port instanceof MultiportInstance) {
                         pr('''
-                            // Connect «sourcePort», which gets data from reaction «reaction.reactionIndex»
+                            // Connect «port», which gets data from reaction «reaction.reactionIndex»
                             // of «instance.getFullName», to «port.getFullName».
-                            «destinationReference(port)» = («destStructType»*)«sourceReference(sourcePort)»;
+                            for (int i = 0; i < «port.width», i++) {
+                                «destinationReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
+                            }
+                        ''')
+                    } else {
+                        pr('''
+                            // Connect «port», which gets data from reaction «reaction.reactionIndex»
+                            // of «instance.getFullName», to «port.getFullName».
+                            «destinationReference(port)» = («destStructType»*)«sourceReference(port)»;
                         ''')
                     }
+                    // FIXME: Don't we also to set set the destination reference for more
+                    // deeply contained ports?
                 }
             }
+            // Next handle the sources that are outputs of contained reactors.
             for (port : reaction.sources.filter(PortInstance)) {
                 if (port.definition instanceof Output) {
                     // This reaction is receiving data from an output
@@ -5303,6 +5303,7 @@ class CGenerator extends GeneratorBase {
                         // The port may be deeper in the hierarchy.
                         // Have to check for each instance port if it's a multiport.
                         if (port instanceof MultiportInstance) {
+                            val sourcePorts = sourcePorts(port)
                             for (instancePort : port.instances) {
                                 val eventualPort = sourcePort(instancePort)
                                 val destStructType = variableStructType(
@@ -5326,23 +5327,31 @@ class CGenerator extends GeneratorBase {
                                 }
                             }
                         } else {
-                            val eventualPort = sourcePort(port)
-                            val destStructType = variableStructType(
-                                port.definition as TypedVariable,
-                                port.parent.definition.reactorClass
-                            )
-                            if (!(eventualPort instanceof MultiportInstance)) {
-                                pr('''
-                                    // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
-                                    // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)» = («destStructType»*)«sourceReference(eventualPort)»;
-                                ''')
+                            // The port is not a multiport, so the following list should have
+                            // at most one element.
+                            val eventualPorts = sourcePorts(port)
+                            if (eventualPorts.size >= 1) {
+                                val eventualPort = eventualPorts.get(0)
+                                val destStructType = variableStructType(
+                                    port.definition as TypedVariable,
+                                    port.parent.definition.reactorClass
+                                )
+                                if (!(eventualPort instanceof MultiportInstance)) {
+                                    pr('''
+                                        // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                        // of «instance.getFullName», on its self struct.
+                                        «reactionReference(port)» = («destStructType»*)«sourceReference(eventualPort)»;
+                                    ''')
+                                } else {
+                                    pr('''
+                                        for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
+                                            «reactionReference(port)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
+                                        }
+                                    ''')
+                                }
                             } else {
-                                pr('''
-                                    for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
-                                        «reactionReference(port)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
-                                    }
-                                ''')
+                                // FIXME: Dangling output of contained reactor.
+                                // What should we do here?
                             }
                         }
                     }
@@ -5352,24 +5361,30 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Given a port instance, if it receives its data from a reaction somewhere up or
-     * down in the hierarchy, return the port to which the reaction actually writes.
-     * The returned port will be this same port if the parent's parent's reaction
+     * Given a port instance, if it receives its data from one or more reactions
+     * somewhere up or down in the hierarchy, return the ports to which those reactions
+     * actually write.  If it is a multiport, the returned list may have more than
+     * one port, and those ports may themselves be multiports. The returned list will
+     * contain only this same port if the port's parent's parent's reaction
      * writes directly to this port, but if this port is deeper in the hierarchy,
-     * then this will be a port belonging to highest parent of this port where
-     * the parent is contained by the same reactor whose reaction writes to this
-     * port.  This method is useful to find the name of the items on the self
+     * then the returned list will contain ports belonging to highest parent of this
+     * port where the parent is contained by the same reactor whose reaction writes
+     * to this port.  This method is useful to find the name of the items on the self
      * struct of the reaction's parent that contain the value being sent
      * and its is_present variable.
      * @param port The input port instance.
      */
-    private static def PortInstance sourcePort(PortInstance port) {
+    private static def List<PortInstance> sourcePorts(PortInstance port) {
         // If the port depends on reactions, then this is the port we are looking for.
-        if (port.dependsOnReactions.size > 0) return port
-        if (port.dependsOnPort === null) return port
-        // If we get here, then this port is fed data from another port.
-        // Find the source for that port.
-        return sourcePort(port.dependsOnPort)
+        if (port.dependsOnReactions.size > 0) return List.of(port)
+        if (port.dependsOnPorts.size == 0) return List.of(port)
+        // If we get here, then this port is fed data from other ports.
+        // Find the sources for those port.
+        val result = new ArrayList<PortInstance>;
+        for (dependsOnPort : port.dependsOnPorts) {
+            result.addAll(sourcePorts(dependsOnPort));
+        }
+        return result
     }
 
     /** Generate action variables for a reaction.
