@@ -2,6 +2,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -13,22 +14,21 @@ class CppMainGenerator(
     private val targetConfig: TargetConfig,
     private val fileConfig: CppFileConfig,
 ) {
-
+    // Cxxopts generation
     private fun generateParameterParser(param: Parameter): String {
         with(CppParameterGenerator) {
             with(param) {
                 return if(inferredType.isTime) {
                     """
                         $targetType $name = $defaultValue;
-                        auto opt_$name = app.add_option("--$name", $name, "The $name parameter passed to the main reactor ${main.name}.");
-                        opt_$name->check([](const std::string& val){ return validate_time_string(val); });
-                        opt_$name->type_name("'FLOAT UNIT'");
-                        opt_$name->default_str(time_to_quoted_string($name)); 
+                        options
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_string($name)), "'FLOAT UNIT'");
                     """.trimIndent()
                 } else {
                     """
                         $targetType $name = $defaultValue;
-                        app.add_option("--$name", $name, "The $name parameter passed to the main reactor ${main.name}.");
+                        options
+                            .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(any_to_string($name)), "'$targetType'");
                     """.trimIndent()
                 }
             }
@@ -54,11 +54,10 @@ class CppMainGenerator(
             |using namespace std::chrono_literals;
             |using namespace reactor::operators;
             |
-            |#include "time_parser.hh"
-            |
-            |#include "CLI/CLI11.hpp"
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
+            |
+            |#include "time_parser.hh"
             |
             |class Timeout : public reactor::Reactor {
             | private:
@@ -76,29 +75,35 @@ class CppMainGenerator(
             |};
             |
             |int main(int argc, char **argv) {
-            |  CLI::App app ("${fileConfig.name} Reactor Program");
+            |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
             |
             |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
-            |  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-            |
-            |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"};
-            |  auto opt_timeout = app.add_option ("-o,--timeout", timeout, "Time after which the execution is aborted.");
-            |
-            |  opt_timeout->check([](const std::string& val ){ return validate_time_string(val); });
-            |  opt_timeout->type_name("'FLOAT UNIT'");
-            |  opt_timeout->default_str(time_to_quoted_string(timeout));
-            |
             |  bool fast{${targetConfig.fastMode}};
-            |  app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
-            |
-            |  bool keepalive {${targetConfig.keepalive}};
-            |  app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
-            |
+            |  bool keepalive{${targetConfig.keepalive}};
+            |  reactor::Duration timeout = ${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"};
+            |  
+            |  // the timeout variable needs to be tested beyond fitting the Duration-type 
+            |  options
+            |    .set_width(120)
+            |    .add_options()
+            |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads)->default_value(std::to_string(threads)), "'unsigned'")
+            |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
+            |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive))
+            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast))
+            |      ("help", "Print help");
+            |      
         ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
             |
-            |  app.get_formatter()->column_width(50);
-            |
-            |  CLI11_PARSE(app, argc, argv);
+            |  auto result = options.parse(argc, argv);
+            |  
+            |  // if parameter --help was used, print help
+            |  if (result.count("help"))
+            |  {
+            |       std::cout << options.help({""}) << std::endl;
+            |       exit(0);
+            |   }
+            |   
+            |   // validate time parameters (inferredType.isTime) and the timeout parameter via the validate_time_string(val) function
             |
             |  reactor::Environment e{threads, keepalive, fast};
             |

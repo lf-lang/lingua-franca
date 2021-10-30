@@ -560,7 +560,7 @@ class CGenerator extends GeneratorBase {
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
-                    federates.size, 
+                    Math.max(federates.size, 1), 
                     Runtime.getRuntime().availableProcessors()
                 )
             )
@@ -592,13 +592,15 @@ class CGenerator extends GeneratorBase {
                     TargetProperty.updateOne(
                         this.targetConfig, 
                         TargetProperty.CMAKE_INCLUDE.description,
-                        target.config.pairs ?: emptyList
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                     // Update the files
                     TargetProperty.updateOne(
                         this.targetConfig, 
                         TargetProperty.FILES.description,
-                        target.config.pairs ?: emptyList
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                 }
                 
@@ -1151,6 +1153,8 @@ class CGenerator extends GeneratorBase {
      * are specific to the OS/underlying hardware, which is detected here automatically.
      */
     def addPlatformFiles(ArrayList<String> coreFiles) {
+        // All platforms use this one.
+        coreFiles.add("platform/lf_tag_64_32.h");
         // Check the operating system
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
