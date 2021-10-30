@@ -1157,8 +1157,10 @@ class PythonGenerator extends CGenerator {
         } else {
             // FIXME: Setting ref_counts of the token directly causes memory leak
             '''
-            // Create a token
+            // Create a token (we need to lock the mutex for this).
+            lf_mutex_lock(&mutex);
             lf_token_t* t = create_token(sizeof(PyObject*));
+            lf_mutex_unlock(&mutex);
             t->value = self->_lf_«ref»->value;
             t->length = 1; // Length is 1
             
