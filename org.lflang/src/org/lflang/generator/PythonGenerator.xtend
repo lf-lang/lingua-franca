@@ -1157,12 +1157,12 @@ class PythonGenerator extends CGenerator {
         } else {
             '''
             // Create a token.
-            #ifdef NUMBER_OF_WORKERS
+            #if NUMBER_OF_WORKERS > 0
             // Need to lock the mutex first.
             lf_mutex_lock(&mutex);
             #endif
             lf_token_t* t = create_token(sizeof(PyObject*));
-            #ifdef NUMBER_OF_WORKERS
+            #if NUMBER_OF_WORKERS > 0
             lf_mutex_unlock(&mutex);
             #endif
             t->value = self->_lf_«ref»->value;
