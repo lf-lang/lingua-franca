@@ -44,20 +44,18 @@ function getNext(document: TextDocument): (pos: Position) => Position {
 }
 
 /**
- * Returns a function that maps a position in a document to the position
- * that immediately precedes it.
- * @param document - The document to which positions will correspond
- * @returns - A function that maps a position in a document to the position
- *     that immediately precedes it
+ * Returns whether `r` really, truly contains `other`, not whether `r`
+ * contains `other` according to the seemingly inconsistent
+ * implementation of `Range`.
+ * @param r an arbitrary Range
+ * @param other an arbitrary Position
+ * @returns whether `r` contains `other`
  */
-function getPrev(document: TextDocument): (pos: Position) => Position {
-    return pos => {
-        if (pos.character === 0) {
-            return new Position(pos.line - 1,
-                document.lineAt(pos.line - 1).text.length);
-        }
-        return pos.translate(0, -1);
-    }
+function contains(r: Range, other: Range | Position): boolean {
+    if (other instanceof Position) return !(
+        !r.contains(other) || r.end.isEqual(other)
+    );
+    return contains(r, other.start) && r.contains(other.end);
 }
 
 /**
@@ -69,14 +67,12 @@ function getPrev(document: TextDocument): (pos: Position) => Position {
 function getWords(document: TextDocument, range?: Range): Range[] {
     const ret: Range[] = [];
     const next = getNext(document);
-    const prev = getPrev(document);
-    for (let pos = range.start; range.contains(pos); pos = next(pos)) {
+    for (let pos = range.start; contains(range, pos); pos = next(pos)) {
         let word = document.getWordRangeAtPosition(pos);
-        // The "prev(word.end)" subexpression that follows is another
-        // manifestation of the same weird inconsistency in the API that
-        // haunts this entire document.
-        if (word && range.contains(new Range(word.start, prev(word.end)))) {
+        if (word && contains(range, word)) {
             ret.push(word);
+            // Redundancy with pos=next(pos) is OK because words are always
+            //  separated by at least one character
             pos = word.end;
         }
     }
@@ -91,7 +87,7 @@ function getWords(document: TextDocument, range?: Range): Range[] {
 function wholeDocument(document: TextDocument): Range {
     return new Range(
         new Position(0, 0),
-        document.positionAt(document.getText().length - 1)
+        document.positionAt(document.getText().length)
     );
 }
 
@@ -150,7 +146,7 @@ function getProgrammaticContent(
     const nonLFBlocks = getNonLFBlocks(document);
     var unaffected = nonLFBlocks.comments.concat(nonLFBlocks.strings);
     for (const codeBlock of nonLFBlocks.code) {
-        if (codeBlock.intersection(reactorBody)) {
+        if (contains(reactorBody, codeBlock)) {
             const nestedShadow = getMutuallyExclusiveRanges(
                 document,
                 // FIXME: Use the appropriate shadow patterns for the
@@ -181,7 +177,7 @@ function getMutuallyExclusiveRanges(
     patterns: {comments: string[][], strings: string[][], code: string[][]},
     initialOffset: number,
     finalOffset: number
-):{comments: Range[], strings: Range[], code: Range[]} {
+): {comments: Range[], strings: Range[], code: Range[]} {
     const ret = {comments: [], strings: [], code: []};
     const text = document.getText();
     var currentOffset = initialOffset;
@@ -204,13 +200,13 @@ function getMutuallyExclusiveRanges(
         }
         let endOffset = text.indexOf(
             firstPair[1], firstOffset + firstPair[0].length);
-        endOffset = endOffset === -1 ? text.length - 1
-            : endOffset + firstPair[1].length - 1
+        endOffset = endOffset === -1 ? text.length
+            : endOffset + firstPair[1].length
         ret[firstBlockType].push(new Range(
             document.positionAt(firstOffset),
             document.positionAt(endOffset)
         ));
-        currentOffset = endOffset + 1;
+        currentOffset = endOffset;
     }
 }
 
@@ -231,36 +227,32 @@ function setDiff(
     // believe, and can possibly be improved upon by sorting `shadowRanges`
     // by both start and end. That would permit a binary search...
     const ret: Range[] = [];
-    const next = getNext(document);
-    const prev = getPrev(document);
     let pos = range.start;
-    while (range.contains(pos)) {
+    while (contains(range, pos)) {
         do {
             var passed = true;
             for (let shadow of shadowRanges) {
-                if (shadow.contains(pos)) {
-                    pos = next(shadow.end);
+                if (contains(shadow, pos)) {
+                    pos = shadow.end;
                     passed = false;
                 }
             }
         } while (!passed);
+        if (!contains(range, pos)) return ret;
         let newRange = new Range(pos, range.end);
         do {
             passed = true;
             for (let shadow of shadowRanges) {
-                if (newRange.contains(shadow.start)) {
-                    // The following line depends on the invariant (which is
-                    // maintained!) that in this context, shadow.start cannot
-                    /// be the first character in the document.
-                    newRange = new Range(newRange.start, prev(shadow.start));
+                if (contains(newRange, shadow.start)) {
+                    newRange = newRange.with(...[,], shadow.start);
                     passed = false;
                 }
             }
         } while (!passed);
-        if (range.contains(newRange)) {
+        if (contains(range, newRange) && !newRange.isEmpty) {
             ret.push(newRange);
         }
-        pos = next(newRange.end);
+        pos = newRange.end;
     }
     return ret;
 }
@@ -301,14 +293,14 @@ function setDiff(
         }
     });
     const isInShadowRange = (idx: number) => convertedRanges.some(
-        r => r.start <= idx && idx <= r.end
+        r => r.start <= idx && idx < r.end  // We could do a binary search...
     );
     function indexOf(token: string, fromIndex: number) {
         let current = text.indexOf(token, fromIndex);
         while (isInShadowRange(current) && current != -1) {
             current = text.indexOf(token, current + token.length);
         }
-        if (current == -1 || current > endOffset) return endOffset;
+        if (current == -1 || current >= endOffset) return endOffset;
         return current;
     }
 
@@ -322,10 +314,11 @@ function setDiff(
         } else {
             if (depth) {
                 depth--;
-                if (depth == 0) ret.push(new Range(
-                    rangeStart,
-                    document.positionAt(nextEnd - 1)
-                ));
+                if (depth == 0) {
+                    ret.push(
+                        new Range(rangeStart, document.positionAt(nextEnd))
+                    );
+                }
             }
             current = nextEnd + end.length;
         }
@@ -380,12 +373,9 @@ function applyTokenType(
     tokensBuilder: SemanticTokensBuilder
 ) {
     if (!tokens.length) return;
-    const next = getNext(document);
     for (const range of ranges) {
         const rangeOffset = document.offsetAt(range.start);
-        // New range is created as a hack to work with their API inconsistency
-        const rangeText = document.getText(
-            new Range(range.start, next(range.end)));
+        const rangeText = document.getText(range);
         const regex = new RegExp('\\b' + tokens.join('\\b|\\b') + '\\b', 'g');
         let groups: string[];
         while ((groups = regex.exec(rangeText)) != null) {
