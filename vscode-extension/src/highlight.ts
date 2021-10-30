@@ -18,6 +18,11 @@ const tokenTypes = [
 const tokenModifiers = [
     'declaration', 'readonly'
 ];
+const standardShadowPatterns = {
+    comments: [['/*', '*/'], ['//', '\n'], ['#', '\n']],
+    strings: [['"""', '"""'], ["'''", "'''"], ['"', '"']],
+    code: [['{=', '=}']]
+};
 
 export const legend = new SemanticTokensLegend(tokenTypes, tokenModifiers);
 
@@ -37,6 +42,7 @@ function getNext(document: TextDocument): (pos: Position) => Position {
         return pos.translate(0, 1);
     };
 }
+
 /**
  * Returns a function that maps a position in a document to the position
  * that immediately precedes it.
@@ -118,20 +124,67 @@ function getNonLFBlocks(document: TextDocument): {
 } {
     // TODO implement caching. It is likely that this same function will
     // be called on the same arguments several times consecutively.
-    const ret = {comments: [], strings: [], code: []};
     // FIXME: This is not DRY. These patterns are already in the TextMate
     // grammar. In fact, this problem underscores the fact that the entire
     // function is redundant -- a hack used to circumvent the fact that
     // the VS Code API does not permit access to the labels assigned by
     // the TextMate grammar.
-    const patterns = {
-        comments: [['/*', '*/'], ['//', '\n'], ['#', '\n']],
-        // Order matters in the following array! ''' must precede '
-        strings: [['"""', '"""'], ["'''", "'''"], ["'", "'"], ['"', '"']],
-        code: [['{=', '=}']]
-    };
+    return getMutuallyExclusiveRanges(
+        document,
+        standardShadowPatterns,
+        0,
+        document.getText().length
+    );
+}
+
+/**
+ * Returns the programmatic (i.e., not comments or strings) ranges of
+ * the given reactor body.
+ * @param document an LF document
+ * @param reactorBody the body of a reactor
+ * @returns the programmatic ranges contained in `reactorBody`
+ */
+function getProgrammaticContent(
+    document: TextDocument, reactorBody: Range
+): Range[] {
+    const nonLFBlocks = getNonLFBlocks(document);
+    var unaffected = nonLFBlocks.comments.concat(nonLFBlocks.strings);
+    for (const codeBlock of nonLFBlocks.code) {
+        if (codeBlock.intersection(reactorBody)) {
+            const nestedShadow = getMutuallyExclusiveRanges(
+                document,
+                // FIXME: Use the appropriate shadow patterns for the
+                // current target language.
+                standardShadowPatterns,
+                document.offsetAt(codeBlock.start) + '{='.length,
+                document.offsetAt(codeBlock.end)
+            )
+            unaffected = unaffected.concat(nestedShadow.comments)
+                .concat(nestedShadow.strings);
+
+        }
+    }
+    return setDiff(document, reactorBody, unaffected);
+}
+
+/**
+ * Returns the ranges beginning and ending with the given patterns.
+ * @param document the document from which the ranges are to be found
+ * @param patterns pairs of beginnings and corresponding endings for
+ * each type of range
+ * @param initialOffset the initial offset from which to search
+ * @param finalOffset the offset at which to stop searching
+ * @returns the ranges beginning and ending with the given patterns
+ */
+function getMutuallyExclusiveRanges(
+    document: TextDocument,
+    patterns: {comments: string[][], strings: string[][], code: string[][]},
+    initialOffset: number,
+    finalOffset: number
+):{comments: Range[], strings: Range[], code: Range[]} {
+    const ret = {comments: [], strings: [], code: []};
     const text = document.getText();
-    let currentOffset = 0;
+    var currentOffset = initialOffset;
     while (true) {
         let firstBlockType: string;
         let firstPair: string[];
@@ -146,7 +199,7 @@ function getNonLFBlocks(document: TextDocument): {
                 }
             }
         }
-        if (firstOffset === Infinity) {
+        if (firstOffset >= finalOffset || firstOffset === Infinity) {
             return ret;
         }
         let endOffset = text.indexOf(
@@ -368,8 +421,6 @@ function applyTokenType(
     tokensBuilder: SemanticTokensBuilder
 ) {
     const stdShadow = standardShadow(document);
-    const nonLFBlocks = getNonLFBlocks(document);
-    const whole = wholeDocument(document);
     for (const reactor of getReactors(
         document, wholeDocument(document)
     )) {
@@ -386,12 +437,11 @@ function applyTokenType(
                 }
             }
         }
-        const affectedRanges = setDiff(
-            document, reactor.body,
-            nonLFBlocks.comments.concat(nonLFBlocks.strings)
-        );
         applyTokenType(
-            document, affectedRanges, typeParameters, 'typeParameter', [],
+            document,
+            getProgrammaticContent(document, reactor.body),
+            typeParameters,
+            'typeParameter', [],
             tokensBuilder
         );
     }
@@ -408,7 +458,6 @@ function applyTokenType(
     tokensBuilder: SemanticTokensBuilder
 ): void {
     const stdShadow = standardShadow(document);
-    const nonLFBlocks = getNonLFBlocks(document);
     for (const reactor of getReactors(
         document, wholeDocument(document)
     )) {
@@ -447,12 +496,11 @@ function applyTokenType(
                 }
             }
         }
-        const affectedRanges = setDiff(
-            document, reactor.body,
-            nonLFBlocks.comments.concat(nonLFBlocks.strings)
-        );
         applyTokenType(
-            document, affectedRanges, parameters, 'parameter', ['readonly'],
+            document,
+            getProgrammaticContent(document, reactor.body),
+            parameters,
+            'parameter', ['readonly'],
             tokensBuilder
         );
     }
@@ -470,7 +518,6 @@ function applyTokenType(
 ): void {
     const whole: Range = wholeDocument(document);
     const stdShadow = standardShadow(document);
-    const nonLFBlocks = getNonLFBlocks(document);
     for (const reactor of getReactors(
         document, wholeDocument(document)
     )) {
@@ -495,12 +542,11 @@ function applyTokenType(
                 }
             }
         }
-        const affectedRanges = setDiff(
-            document, reactor.body,
-            nonLFBlocks.comments.concat(nonLFBlocks.strings)
-        );
         applyTokenType( // TODO: Possibly distinguish declaration?
-            document, affectedRanges, variables, 'variable', [],
+            document,
+            getProgrammaticContent(document, reactor.body),
+            variables,
+            'variable', [],
             tokensBuilder
         );
     }
