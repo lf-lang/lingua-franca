@@ -24,22 +24,45 @@
 
 #pragma once
 
+#include "reactor-cpp/reactor-cpp.hh"
+#include <sstream>
+
+std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur);
+#include "CLI/cxxopts.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <regex>
 
-#include "reactor-cpp/reactor-cpp.hh"
 
-std::string time_to_quoted_string(const reactor::Duration& dur) {
+std::string validate_time_string(const std::string& time);
+
+/**
+ * converts a reactor::Duration to a string with nsecs as unit
+ */
+std::string time_to_string(const reactor::Duration& dur) {
   std::stringstream ss;
-  ss << '\'' << dur.count() << " nsecs" << '\'';
+  ss << dur.count() << " nsecs";
   return ss.str();
 }
 
-std::istringstream &operator>>(std::istringstream& in, reactor::Duration& dur) {
+template<typename T>
+std::string any_to_string(const T val){
+    std::stringstream ss;
+    ss << val;
+    return ss.str();
+}
+
+std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
   double value;
   std::string unit;
+
+  const std::string validation_msg = validate_time_string(in.str());
+  if (!validation_msg.empty()) {
+    // throw cxxopts error
+    throw cxxopts::argument_incorrect_type(validation_msg);
+  }
 
   // try to read as double
   in >> value;
@@ -87,6 +110,9 @@ std::istringstream &operator>>(std::istringstream& in, reactor::Duration& dur) {
   return in;
 }
 
+/**
+*   Tests for correct syntax in unit usage for time strings
+**/
 std::string validate_time_string(const std::string& time) {
   auto trimmed = std::regex_replace(time, std::regex("^ +| +$|( ) +"), "$1");
   if (trimmed.size() == 0) {
@@ -121,3 +147,5 @@ std::string validate_time_string(const std::string& time) {
   }
   return "Unexpected error!";
 }
+
+
