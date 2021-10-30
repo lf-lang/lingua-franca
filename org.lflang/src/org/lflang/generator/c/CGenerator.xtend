@@ -5343,6 +5343,7 @@ class CGenerator extends GeneratorBase {
                                         «reactionReference(port)» = («destStructType»*)«sourceReference(eventualPort)»;
                                     ''')
                                 } else {
+                                    // FIXME: Doesn't look right. port is not a multiport.
                                     pr('''
                                         for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
                                             «reactionReference(port)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
