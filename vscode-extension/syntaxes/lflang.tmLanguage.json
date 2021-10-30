@@ -263,6 +263,10 @@
                 {
                     "name": "storage.modifier.lflang",
                     "match": "\\bconst\\b"
+                },
+                {
+                    "name": "entity.name.function.lflang",
+                    "match": "(?<=\\bmethod\\b\\s+)\\w+\\b"
                 }
             ]
         },
@@ -327,22 +331,42 @@
                 {
                     "name": "string.quoted.triple.lflang",
                     "begin": "'''",
-                    "end": "'''"
+                    "end": "'''",
+                    "patterns": [{
+                        "include": "#string-helper"
+                    }]
                 },
                 {
                     "name": "string.quoted.triple.lflang",
                     "begin": "\"\"\"",
-                    "end": "\"\"\""
+                    "end": "\"\"\"",
+                    "patterns": [{
+                        "include": "#string-helper"
+                    }]
                 },
                 {
                     "name": "string.quoted.double.lflang",
                     "begin": "\"",
-                    "end": "(?<=(\\\\.|[^\"\\\\])*)(\"|$)"
+                    "end": "(?<=(\\\\.|[^\"\\\\])*)(\"|$)",
+                    "patterns": [{
+                        "include": "#string-helper"
+                    }]
                 },
                 {
                     "name": "string.quoted.single.lflang",
                     "begin": "'",
-                    "end": "(?<=(\\\\.|[^'\\\\])*)('|$)"
+                    "end": "(?<=(\\\\.|[^'\\\\])*)('|$)",
+                    "patterns": [{
+                        "include": "#string-helper"
+                    }]
+                }
+            ]
+        },
+        "string-helper": {
+            "patterns": [
+                {
+                    "name": "constant.character.escape",
+                    "match": "\\\\\\\\|\\\\n|\\\\r|\\\\t|\\\\\"|\\\\'"
                 }
             ]
         },
