@@ -27,23 +27,6 @@ const standardShadowPatterns = {
 export const legend = new SemanticTokensLegend(tokenTypes, tokenModifiers);
 
 /**
- * Returns a function that maps a position in a document to the position
- * that immediately follows it.
- * @param document - The document to which positions will correspond
- * @returns - A function that maps a position in a document to the position
- *     that immediately follows it
- */
-function getNext(document: TextDocument): (pos: Position) => Position {
-    return pos => {
-        let lineLength = document.lineAt(pos.line).text.length;
-        if (pos.character + 1 > lineLength) {
-            return new Position(pos.line + 1, 0);
-        }
-        return pos.translate(0, 1);
-    };
-}
-
-/**
  * Returns whether `r` really, truly contains `other`, not whether `r`
  * contains `other` according to the seemingly inconsistent
  * implementation of `Range`.
@@ -66,14 +49,21 @@ function contains(r: Range, other: Range | Position): boolean {
  */
 function getWords(document: TextDocument, range?: Range): Range[] {
     const ret: Range[] = [];
-    const next = getNext(document);
-    for (let pos = range.start; contains(range, pos); pos = next(pos)) {
+    let pos = range.start;
+    const getCurrentLineLength = () => document.lineAt(pos.line).text.length;
+    let currentLineLength = getCurrentLineLength();
+    while (contains(range, pos)) {
         let word = document.getWordRangeAtPosition(pos);
         if (word && contains(range, word)) {
             ret.push(word);
             // Redundancy with pos=next(pos) is OK because words are always
             //  separated by at least one character
             pos = word.end;
+        }
+        pos = pos.translate(0, 1);
+        if (pos.character >= currentLineLength) {
+            pos = new Position(pos.line + 1, 0);
+            currentLineLength = getCurrentLineLength();
         }
     }
     return ret;
