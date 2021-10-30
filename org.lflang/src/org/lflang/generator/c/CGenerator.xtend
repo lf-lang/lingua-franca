@@ -1246,7 +1246,7 @@ class CGenerator extends GeneratorBase {
      * (it wouldn't be very useful).
      * @param the name given to the docker file (without any extension).
      */
-    def writeDockerFile(String dockerFileName) {
+    override writeDockerFile(String dockerFileName) {
         if (this.mainDef === null) {
             return
         }
@@ -1354,25 +1354,6 @@ class CGenerator extends GeneratorBase {
         ''')
     }
 
-    /**
-     * Write a Dockerfile for the RTI at rtiDir.
-     * The file will go into src-gen/RTI/rti.Dockerfile.
-     * @param the directory where rti.Dockerfile is located.
-     * @param the core files used for code generation in the current target.
-     */
-    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
-        var rtiFiles = newArrayList()
-        rtiFiles.addAll(coreFiles)
-
-        // add the RTI files on top of the coreFiles
-        rtiFiles.addAll(
-            "federated/RTI/rti.h",
-            "federated/RTI/rti.c",
-            "federated/RTI/CMakeLists.txt"
-        )
-        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
-    }
-    
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      * 

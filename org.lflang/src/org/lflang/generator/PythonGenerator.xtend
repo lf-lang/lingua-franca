@@ -1053,20 +1053,12 @@ class PythonGenerator extends CGenerator {
         targetConfig.noCompile = true;
         targetConfig.useCmake = false; // Force disable the CMake because 
                                        // it interferes with the Python target functionality
-        var dockerOptions = targetConfig.dockerOptions;
-        targetConfig.dockerOptions = null;
         
         super.doGenerate(resource, fsa, context)
         
         targetConfig.noCompile = compileStatus
-        targetConfig.dockerOptions = dockerOptions
 
         if (errorsOccurred) return;
-        
-        // Create docker file.
-        if (targetConfig.dockerOptions !== null) {
-            writeDockerFile(topLevelName)
-        }
         
         var baseFileName = topLevelName
         for (federate : federates) {
@@ -1733,7 +1725,7 @@ class PythonGenerator extends CGenerator {
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM python:alpine
             WORKDIR /lingua-franca/«topLevelName»
-            COPY src-gen/«topLevelName» src-gen
+            COPY . src-gen
             RUN set -ex && apk add --no-cache gcc musl-dev \
              && cd src-gen && python3 setup.py install && cd .. \
              && apk del gcc musl-dev
@@ -1745,7 +1737,7 @@ class PythonGenerator extends CGenerator {
             #####################################
             To build the docker image, use:
                
-                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «fileConfig.getOutPath»
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
             
             #####################################
         ''')
