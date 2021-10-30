@@ -280,66 +280,55 @@ function setDiff(
  * @param shadowRanges - The ranges which detected matches to `begin`
  *     and `end` may not intersect
  */
-function getContainedRanges(
+ function getContainedRanges(
     document: TextDocument,
     range: Range,
     begin: string,
     end: string,
     shadowRanges: Range[] = []
 ): Range[] {
-    const ret = [];
+    const text = document.getText();
+    const endOffset = document.offsetAt(range.end);
+    let ret: Range[] = [];
     let depth = 0;
-    let rangeStart: Position = undefined;
-    const next = getNext(document);
-    const prev = getPrev(document);
-    for (let pos = next(range.start); range.contains(pos); pos = next(pos)) {
-        let candidateBegin: Range;
-        let candidateEnd: Range;
-        try {
-            candidateBegin = new Range( // FIXME: Eliminate + 1 and next(pos)?
-                pos.line, pos.character - begin.length,
-                pos.line, pos.character
-            );
-        } catch (e) { /* Do nothing */ }
-        try {
-            candidateEnd = new Range(
-                pos.line, pos.character,
-                pos.line, pos.character + end.length
-            );
-        } catch (e) { /* Do nothing */ }
-        if (candidateBegin && document.getText(candidateBegin) === begin
-            && shadowRanges.every(
-                shadow => shadow.intersection(
-                    // Here, I must create a new range because the behavior of
-                    // `getText` does not agree with the behavior of
-                    // `intersection` and `contains`. It's an ugly hack, but
-                    // the real, underlying pathology is in the API itself.
-                    new Range(candidateBegin.start, prev(candidateBegin.end))
-                ) === undefined)
-            && (begin !== end || depth == 0)
-        ) {
-            depth++;
-            if (depth === 1) {
-                rangeStart = pos;
-            }
+    let current = document.offsetAt(range.start);
+    let rangeStart: Position;
+
+    const convertedRanges = shadowRanges.map(r => {
+        return {
+            start: document.offsetAt(r.start),
+            end: document.offsetAt(r.end)
         }
-        if (candidateEnd && document.getText(candidateEnd) === end
-            && shadowRanges.every(
-                shadow => shadow.intersection(
-                    new Range(candidateEnd.start, prev(candidateEnd.end))
-                ) === undefined
-        )) {
-            if (depth > 0) {
-                if (depth === 1 && rangeStart) {
-                    ret.push(new Range(rangeStart, prev(pos)));
-                    rangeStart = undefined;
-                }
-                depth--;
-            }
+    });
+    const isInShadowRange = (idx: number) => convertedRanges.some(
+        r => r.start <= idx && idx <= r.end
+    );
+    function indexOf(token: string, fromIndex: number) {
+        let current = text.indexOf(token, fromIndex);
+        while (isInShadowRange(current) && current != -1) {
+            current = text.indexOf(token, current + token.length);
         }
+        if (current == -1 || current > endOffset) return endOffset;
+        return current;
     }
-    if (rangeStart) {
-        ret.push(new Range(rangeStart, range.end));
+
+    while (current < endOffset) {
+        const nextBegin = indexOf(begin, current);
+        const nextEnd = indexOf(end, current);
+        if (nextBegin < nextEnd) {
+            depth++;
+            current = nextBegin + begin.length;
+            if (depth == 1) rangeStart = document.positionAt(current);
+        } else {
+            if (depth) {
+                depth--;
+                if (depth == 0) ret.push(new Range(
+                    rangeStart,
+                    document.positionAt(nextEnd - 1)
+                ));
+            }
+            current = nextEnd + end.length;
+        }
     }
     return ret;
 }
