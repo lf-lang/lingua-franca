@@ -398,15 +398,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val inputPorts = <PortInstance, KPort>newHashMap
 			val outputPorts = <PortInstance, KPort>newHashMap
 			for (input : instance.inputs.reverseView) {
-			    // Add only single ports and multiports (not their contained individual ports).
-			    if (input.isMultiport() || input.multiportIndex < 0) {
-				    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
-			    }
+    		    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
 			}
 			for (output : instance.outputs) {
-                if (output.isMultiport() || output.multiportIndex < 0) {
-				    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
-			    }
+			    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
 			}
 			// Mark ports
 			inputPorts.values.forEach[setProperty(REACTOR_INPUT, true)]
@@ -681,11 +676,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect outputs
 			port = null // create new ports
 			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
-			    // Skip this effect if it is a multiport or a multiport instance other than index 0.
-			    // or contained in a bank with index other than 0.
+			    // Skip this effect if it is contained in a bank with index other than 0.
 			    if (!(effect instanceof PortInstance) 
-			        || ((effect as PortInstance).multiportIndex <= 0
-			           && effect.parent.bankIndex <= 0)
+			        || (effect.parent.bankIndex <= 0)
 			    ) {
                     port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
                         port
@@ -699,25 +692,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     } else if (effect instanceof PortInstance) {
                         var KPort dst = null
                         if (effect.isOutput) {
-                            // If this is a reaction driving a multiport
-                            // output of the container, only show one
-                            // connection, not one for each member of
-                            // the multiport. Also, skip the multiport itself.
-                            if (effect.multiportIndex() == 0) {
-                                dst = parentOutputPorts.get(effect.multiportParent)
-                            } else {
-                                dst = parentOutputPorts.get(effect)
-                            }
+                            dst = parentOutputPorts.get(effect)
                         } else {
-                            // If this is a reaction driving a multiport
-                            // input of a contained reactor, only show one
-                            // connection, not one for each member of
-                            // the multiport. Also, skip the multiport itself.
-                            if (effect.multiportIndex() == 0) {
-                                dst = inputPorts.get(effect.multiportParent.parent, effect.multiportParent)
-                            } else {
-                                dst = inputPorts.get(effect.parent, effect)
-                            }
+                            dst = inputPorts.get(effect.parent, effect)
                         }
                         if (dst !== null) {
                             createDependencyEdge(effect).connect(port, dst)

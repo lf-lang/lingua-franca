@@ -30,11 +30,10 @@ import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.List
-import java.util.Set
 import java.util.Map
+import java.util.Set
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
-import org.lflang.util.CollectionUtil
 import org.lflang.ErrorReporter
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 import org.lflang.lf.Action
@@ -52,6 +51,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 import org.lflang.lf.WidthSpec
+import org.lflang.util.CollectionUtil
 
 import static extension org.lflang.ASTUtils.*
 
@@ -159,13 +159,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     var int depth = 0;
 
-
-    /** Data structure used by nextPort() to keep track of the next available bank. */
-    val nextBankTable = new LinkedHashMap<VarRef,Integer>()
-
-    /** Data structure used by nextPort() to keep track of the next available port. */
-    val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
-
     /**
      * Data structure that maps connections to their connections as they appear
      * in a visualization of the program. For each connection, there is map
@@ -224,30 +217,62 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             val rightPortInstances = listPortInstances(connection.rightPorts)
 
             // Check widths.
-            if (leftPortInstances.size > rightPortInstances.size) {
+            var leftWidth = 0;
+            for (port: leftPortInstances) {
+                leftWidth += port.width;
+            }
+            var rightWidth = 0;
+            for (port: rightPortInstances) {
+                rightWidth += port.width;
+            }
+            if (leftWidth > rightWidth) {
                 reporter.reportWarning(connection, "Source is wider than the destination. Outputs will be lost.")
-            } else if (leftPortInstances.size < rightPortInstances.size && !connection.isIterated) {
+            } else if (leftWidth < rightWidth && !connection.isIterated) {
                 reporter.reportWarning(connection, "Destination is wider than the source. Inputs will be missing.")
             }
 
-            var leftPortIndex = 0
+            // If any of these ports is a multiport, then things can complicated depending
+            // on how they overlap. Keep track of how much of the current left and right
+            // multiports have already been used.
+            var leftPortIndex = 0  // Which port on the left we are looking at.
+            var leftChannel = 0;
+            var rightChannel = 0;
             for (rightPortInstance : rightPortInstances) {
-                if (leftPortIndex < leftPortInstances.size) {
-                    val leftPortInstance = leftPortInstances.get(leftPortIndex)
-                    connectPortInstances(connection, leftPortInstance, rightPortInstance)
+                while (rightChannel < rightPortInstance.width) {
+                    if (leftPortIndex < leftPortInstances.size) {
+                        val leftPortInstance = leftPortInstances.get(leftPortIndex)
+                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
+                    
+                        // Figure out how much of each port we have used (in case it is a multiport).
+                        // First, find the minimum of the two remaining widths.
+                        var connectionWidth = leftPortInstance.width - leftChannel;
+                        if (rightPortInstance.width - rightChannel < connectionWidth) {
+                            connectionWidth = rightPortInstance.width - rightChannel;
+                        }
+                        leftChannel += connectionWidth;
+                        rightChannel += connectionWidth;
+                        if (leftChannel >= leftPortInstance.width) {
+                            leftPortIndex++
+                            if (connection.isIterated && leftPortIndex >= leftPortInstances.size) {
+                                leftPortIndex = 0;
+                            }
+                            leftChannel = 0;
+                        }
+                    } else {
+                        // Something is wrong. We have run out of left ports.
+                        // The validator should have caught this, so we just
+                        // leave the remaining right ports unconnected.
+                        rightChannel = rightPortInstance.width;
+                    }
                 }
-                leftPortIndex++
-                if (connection.isIterated && leftPortIndex >= leftPortInstances.size) {
-                    leftPortIndex = 0
-                }
+                rightChannel = 0;
             }
         }
     }
     
     /**
      * Given a list of port references, as found on either side of a connection,
-     * return a list of the port instances referenced. If the port is a multiport,
-     * the list will contain the individual port instance, not the multiport instance.
+     * return a list of the port instances referenced. These may be multiports.
      * If the port reference has the form `c.x`, where `c` is a bank of reactors,
      * then the list will contain the port instances belonging to each bank member.
      * 
@@ -281,49 +306,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (reactor !== null) {
                 if (reactor.bankMembers !== null) {
                     // Reactor is a bank.
-                    if (!portRef.isInterleaved) {
-                        // Not a cross connection.
-                        for (memberReactor: reactor.bankMembers) {
-                            val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)
-                            if (portInstance instanceof MultiportInstance) {
-                                // Multiport within a bank.
-                                result.addAll(portInstance.instances)
-                            } else {
-                                // Not multiport.
-                                result.add(portInstance)
-                            }
-                        }
-                    } else {
-                        // It is a cross connection.
-                        var width = 1
-                        for (var i = 0; i < width; i++) {
-                            for (memberReactor: reactor.bankMembers) {
-                                val portInstance = memberReactor.lookupPortInstance(portRef.variable as Port)
-                                if (portInstance instanceof MultiportInstance) {
-                                    // Multiport, bank, cross connection.
-                                    // Assume all have the same width.
-                                    // Otherwise, stop collecting ports.
-                                    width = portInstance.getWidth()
-                                    if (i < width) {
-                                        result.add(portInstance.getInstance(i))
-                                    }
-                                } else {
-                                    // Not multiport, bank, cross is irrelevant.
-                                    result.add(portInstance)
-                                }
-                            }
-                        }
+                    for (memberReactor: reactor.bankMembers) {
+                        result.add(memberReactor.lookupPortInstance(portRef.variable as Port))
                     }
                 } else {
                     // Reactor is not a bank.
                     val portInstance = reactor.lookupPortInstance(portRef.variable as Port)
-                    if (portInstance instanceof MultiportInstance) {
-                        // Multiport, not bank.
-                        result.addAll(portInstance.instances)
-                    } else {
-                        // Not bank, not multiport.
-                        result.add(portInstance)
-                    }
+                    result.add(portInstance)
                 }
             }
         }
@@ -342,38 +331,26 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     
     /**
      * Connect the given left port instance to the given right port instance.
-     * These are both assumed to be single ports, not multiports.
+     * These may be multiports.
      * @param connection The connection statement creating this connection.
      * @param srcInstance The source instance (the left port).
      * @param dstInstance The destination instance (the right port).
      */
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
         srcInstance.addDependentPort(dstInstance)
-        if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
-            reporter.reportError(
-                connection,
-                "dstInstance port " + dstInstance.getFullName + " is already connected to " +
-                    dstInstance.dependsOnPort.getFullName
-            )
-            return
-        }
-        dstInstance.dependsOnPort = srcInstance
+        dstInstance.dependsOnPorts.add(srcInstance)
+        // Add a key-value pair to the destinations map corresponding to this connection.
         this.destinations.compute(srcInstance, [key, set| CollectionUtil.plus(set, dstInstance)])
+        // Add the connection to the table giving which connection AST object established the connection.
         this.connectionTable.compute(srcInstance, [key, map| CollectionUtil.plus(map, dstInstance, connection)])
         
-        // The diagram package needs to know, for each single port
-        // or multiport (not the ports within the multiport), which
-        // other single ports or multiports they are connected to.
-        // Record that here.
-
-        var src = srcInstance.multiport ?: srcInstance;
-        var dst = dstInstance.multiport ?: dstInstance;
-
         // The following is support for the diagram visualization.
         // The source may be at a bank index greater than 0.
         // For visualization, this needs to be converted to the source
         // at bank 0, because only that one is rendered.
         // We want the rendering to represent all connections.
+        var src = srcInstance;
+        var dst = dstInstance;
         if (src.isOutput && src.parent.bankIndex > 0) {
             // Replace the source with the corresponding port instance
             // at bank index 0.
@@ -869,32 +846,21 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             )
         }
         // If the port is a multiport, then iterate over its contained ordinary ports instead.
-        if (source instanceof MultiportInstance) {
-            for (port : source.instances) {
-                transitiveClosure(port, destinations)
-            }
-        } else {
-            // The port is not a multiport.
-            // If the port is an input port, then include it in the result.
-            if (source.isInput) {
-                destinations.add(source)
-            }
-            var localDestinations = this.destinations.get(source)
+        // If the port is an input port, then include it in the result.
+        if (source.isInput) {
+            destinations.add(source)
+        }
+        var localDestinations = this.destinations.get(source)
 
-            if (localDestinations !== null) {
-                for (destination : localDestinations) {
-                    if (destination instanceof MultiportInstance) {
-                        destinations.addAll(destination.instances)
-                    } else {
-                        destinations.add(destination)
-                        if (destination.isInput) {
-                            // Destination may have further destinations lower in the hierarchy.
-                            destination.parent.transitiveClosure(destination, destinations)
-                        } else if (destination.parent.parent !== null) {
-                            // Destination may have further destinations higher in the hierarchy.
-                            destination.parent.parent.transitiveClosure(destination, destinations)
-                        }
-                    }
+        if (localDestinations !== null) {
+            for (destination : localDestinations) {
+                destinations.add(destination)
+                if (destination.isInput) {
+                    // Destination may have further destinations lower in the hierarchy.
+                    destination.parent.transitiveClosure(destination, destinations)
+                } else if (destination.parent.parent !== null) {
+                    // Destination may have further destinations higher in the hierarchy.
+                    destination.parent.parent.transitiveClosure(destination, destinations)
                 }
             }
         }

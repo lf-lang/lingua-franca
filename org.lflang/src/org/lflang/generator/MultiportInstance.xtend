@@ -25,9 +25,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.generator
 
-import java.util.LinkedHashSet
-import java.util.Set
-import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ErrorReporter
 import org.lflang.lf.Port
 
@@ -77,31 +74,5 @@ class MultiportInstance extends PortInstance {
                 width += term.width
             }
         }
-    }
-
-    /**
-     * Return the list of ports that this port depends on.
-     * For ordinary ports, there is at most one.
-     * For multiports, there may be more than one.
-     */
-    override dependsOnPorts() {
-        return instances;
-    }
-    
-    /**
-     * Return the specified port instance in this multiport.
-     */
-    def getInstance(int position) {
-        if (position < 0 || position >= instances.size) {
-            throw new InvalidSourceException("Port index out of range.")
-        }
-        return instances.get(position)
-    }
-    
-    /**
-     * Return the width of this port, which is the size of the instances list.
-     */
-    def getWidth() {
-        instances.size
     }
 }

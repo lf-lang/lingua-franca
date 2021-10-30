@@ -136,12 +136,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (effect : definition.effects) {
             if (effect.variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance(effect)
-                if (portInstance instanceof MultiportInstance) {
-                    for (multiportInstance : portInstance.instances) {
-                        this.effects.add(multiportInstance)
-                        multiportInstance.dependsOnReactions.add(this)
-                    }
-                } else if (portInstance !== null) {
+                if (portInstance !== null) {
                     this.effects.add(portInstance)
                     portInstance.dependsOnReactions.add(this)
                 } else {
@@ -153,14 +148,6 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     }
                     for (bankElement : bank.bankMembers) {
                         portInstance = bankElement.lookupPortInstance(effect.variable as Port);
-                        if (portInstance instanceof MultiportInstance) {
-                            for (multiportInstance : portInstance.instances) {
-                                this.effects.add(multiportInstance)
-                                multiportInstance.dependsOnReactions.add(this)
-                            } 
-                        } else if (portInstance === null) {
-                            throw new InvalidSourceException("Unexpected effect. Cannot find port within bank: " + effect.variable.name);
-                        }
                         this.effects.add(portInstance)
                         portInstance.dependsOnReactions.add(this);
                     }

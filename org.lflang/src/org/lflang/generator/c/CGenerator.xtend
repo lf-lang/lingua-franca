@@ -3314,22 +3314,28 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
                     if (output instanceof MultiportInstance) {
-                        var j = 0
-                        for (multiportInstance : output.instances) {
+                        pr(startTimeStep, '''
+                            // Add port «output.getFullName» to array of is_present fields.
+                            { // Scope to avoid collisions with variable names.
+                                int i = «startTimeStepIsPresentCount»;
+                                for (int j = 0; j < «output.width»; j++) {
+                                    _lf_is_present_fields[i++] = &«nameOfSelfStruct»->_lf_«output.name»[j].is_present;
+                                }
+                            }
+                        ''')
+                        if (isFederatedAndDecentralized) {
+                            // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                             pr(startTimeStep, '''
-                                // Add port «output.getFullName» to array of is_present fields.
-                                _lf_is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»[«j»]''', "is_present")»;
-                            ''')
-                            if (isFederatedAndDecentralized) {
-                                // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
-                                pr(startTimeStep, '''
-                                    // Add port «output.getFullName» to array of intended_tag fields.
-                                    _lf_intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»[«j»]''', "intended_tag")»;
+                                // Add port «output.getFullName» to array of intended_tag fields.
+                                { // Scope to avoid collisions with variable names.
+                                    int i = «startTimeStepIsPresentCount»;
+                                    for (int j = 0; j < «output.width»; j++) {
+                                        _lf_intended_tag_fields[i++] = &«nameOfSelfStruct»->_lf_«output.name»[j].intended_tag;
+                                    }
+                                }
                                 ''')
                             }
-                            startTimeStepIsPresentCount++
-                            j++
-                        }
+                        startTimeStepIsPresentCount += output.width;
                     } else {
                         pr(startTimeStep, '''
                             // Add port «output.getFullName» to array of is_present fields.
@@ -3944,19 +3950,21 @@ class CGenerator extends GeneratorBase {
                 // one source, so we can immediately generate the initialization.
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip multiport destinations and instead handle the ports within the multiport.
-                    if (port.isInput && !(port instanceof MultiportInstance)) {
+                    if (port.isInput) {
                         var numDestinations = 0
                         if(!port.dependentReactions.isEmpty) numDestinations = 1
                         numDestinations += port.dependentPorts.size
-                        // If it is a multiport, then the struct port object is a pointer.
-                        // Otherwise, it is the actual port struct.
-                        var portIndex = stackStructOperator // '.'
-                        if (port.multiportIndex >= 0) {
-                            portIndex = '[' + port.multiportIndex + ']->'
+                        if (port instanceof MultiportInstance) {
+                            pr(initializeTriggerObjectsEnd, '''
+                                for (int i = 0; i < «port.width»; i++) {
+                                    «nameOfSelfStruct»->_lf_«port.parent.name».«port.name»[i]->num_destinations = «numDestinations»;
+                                }
+                            ''')
+                        } else {
+                            pr(initializeTriggerObjectsEnd, '''
+                                «nameOfSelfStruct»->_lf_«port.parent.name».«port.name».num_destinations = «numDestinations»;
+                            ''')
                         }
-                        pr(initializeTriggerObjectsEnd, '''
-                            «nameOfSelfStruct»->_lf_«port.parent.name».«port.name»«portIndex»num_destinations = «numDestinations»;
-                        ''')
                     }
                 }
             }
@@ -5145,7 +5153,7 @@ class CGenerator extends GeneratorBase {
                             if (eventualSource instanceof MultiportInstance) {
                                 // Source is a multiport. 
                                 // Number of available channels:
-                                var width = eventualSource.instances.size - sourceChannelCount
+                                var width = eventualSource.width - sourceChannelCount
                                 // If there are no more available channels, there is nothing to do.
                                 if (width > 0) {
                                     if (destination instanceof MultiportInstance) {
@@ -5154,7 +5162,7 @@ class CGenerator extends GeneratorBase {
                                         var destinationChannel = destinationChannelCount.get(destination)
                                         if (destinationChannel === null) {
                                             destinationChannel = 0
-                                            destinationChannelCount.put(destination, 1)
+                                            destinationChannelCount.put(destination, width) // FIXME FIXME: Bug in master? Was 1.
                                         } else {
                                             // Add the width of the source to the index of the destination's
                                             // next available channel. This may be out of bounds for the
@@ -5163,13 +5171,13 @@ class CGenerator extends GeneratorBase {
                                         }
                                         // There will be nothing to do if the destination channel index
                                         // is out of bounds.
-                                        if (destinationChannel < destination.instances.size) {
+                                        if (destinationChannel < destination.width) {
                                             // There is at least one available channel at the destination.
                                             // The number of connections now will be the minimum of the
                                             // source width and the number of remaining channels at the
                                             // destination.
-                                            if (destination.instances.size - destinationChannel < width) {
-                                                width = destination.instances.size - destinationChannel
+                                            if (destination.width - destinationChannel < width) {
+                                                width = destination.width - destinationChannel
                                             }
                                             // Finally, we can generate the code to make the connections.
                                             pr('''
@@ -5217,7 +5225,7 @@ class CGenerator extends GeneratorBase {
                                 }
                                 // There will be nothing to do if the destination channel index
                                 // is out of bounds.
-                                if (destinationChannel < destination.instances.size) {
+                                if (destinationChannel < destination.width) {
                                     pr('''
                                         // Connect «source.getFullName»«comment» to input port «destination.getFullName»
                                         «destinationReference(destination)»[«destinationChannel»]
