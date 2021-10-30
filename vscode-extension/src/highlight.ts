@@ -492,35 +492,28 @@ function applyTokenType(
 ): void {
     const whole: Range = wholeDocument(document);
     const stdShadow = standardShadow(document);
-    for (const reactor of getReactors(
-        document, wholeDocument(document)
-    )) {
-        // The following is inefficient because it searches for all ranges
-        // instead of just the first one. In large documents with many
-        // reactors, this will turn what should be a linearly growing time
-        // cost into a quadratically growing time cost. TODO: fix.
-        const reactorBody: Range = getContainedRanges(
-            document, new Range(reactor.declaration.end, whole.end), '{', '}',
-            stdShadow
-        )[0];
+    for (const reactor of getReactors(document, whole)) {
         // TODO: Highlight the variable throughout
         const variables: string[] = [];
-        for (const lfBlock of setDiff(document, reactorBody, stdShadow)) {
+        const constants: string[] = [];
+        for (const lfBlock of setDiff(document, reactor.body, stdShadow)) {
             const text = document.getText(lfBlock);
-            let matches = text.match(
-                /((?<=(action|timer|state|((input|output)(\[[^\]]*\])?))\s+)(\w+))|((?<=(;|^)\s*)\w+(?=\s*=))/g
+            const variableMatches = text.match(
+                /((?<=(action|timer|state|((mutable\s+input|output)(\[[^\]]*\])?))\s+)(\w+))|((?<=(;|^)\s*)\w+(?=\s*=))/g
             );
-            if (matches) {
-                for (const match of matches) {
-                    variables.push(match);
-                }
-            }
+            const constantMatches = text.match(
+                /(?<=(?<!mutable\s+)input(\[[^\]]*\])?\s+)(\w+)/g
+            );
+            if (variableMatches) variables.push(...variableMatches);
+            if (constantMatches) constants.push(...constantMatches);
         }
-        applyTokenType( // TODO: Possibly distinguish declaration?
-            document,
-            getProgrammaticContent(document, reactor.body),
-            variables,
-            'variable', [],
+        const program = getProgrammaticContent(document, reactor.body)
+        applyTokenType(
+            document, program, variables, 'variable', [], tokensBuilder
+        );
+        applyTokenType(
+            document, program, constants,
+            'variable', ['readonly'],
             tokensBuilder
         );
     }
