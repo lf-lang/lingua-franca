@@ -1,0 +1,31 @@
+/**
+ * Test whether multiport correctly conveys a channel through a single port.
+ * 
+ * @author Edward A. Lee
+ */
+target C;
+import TestInt from "../lib/TestInt.lf"
+
+reactor Source {
+    output[2] out:int;
+    reaction(startup) -> out {=
+        SET(out[0], 1);
+        SET(out[1], 2);
+    =}
+}
+
+reactor Container {
+    output out:int;
+    
+    source = new Source();
+    test = new TestInt(expected = 1);
+    
+    source.out -> test.in, out;
+}
+
+main reactor {
+    container = new Container();
+    test = new TestInt(expected = 2);
+    
+    container.out -> test.in;
+}

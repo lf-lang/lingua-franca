@@ -1,0 +1,15 @@
+/**
+ * Test input to see if it matches an expected in.
+ * 
+ * @author Edward A. Lee
+ */
+target C;
+reactor TestInt(expected:int(0)) {
+    input in:int;
+    reaction(in) {=
+        info_print("Received: %d\n", in->value);
+        if (in->value != self->expected) {
+            error_print_and_exit("Expected %d.", self->expected);
+        }
+    =}
+}
