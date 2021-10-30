@@ -1619,14 +1619,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 val bankIndex = (federate.bankIndex >= 0)? federate.bankIndex : 0
                 val leftFederate = federatesByInstantiation.get(federate.definition).get(bankIndex);
                 for (source : federate.outputs) {
-                    // Skip multiports and process only individual instances.
-                    if (source instanceof MultiportInstance) {
-                        for (containedSource : source.instances) {
-                            replaceConnectionFromSource(containedSource, leftFederate, federate, mainInstance)
-                        }
-                    } else {
-                        replaceConnectionFromSource(source, leftFederate, federate, mainInstance)
-                    }
+                    replaceConnectionFromSource(source, leftFederate, federate, mainInstance)
                 }
             }
         }
@@ -1693,10 +1686,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         connection,
                         leftFederate,
                         federate.bankIndex,
-                        source.index,
+                        -1,  // FIXME: Used to be source.index. Fed won't work with multiports now.
                         rightFederate,
                         destination.parent.bankIndex,
-                        destination.index,
+                        -1,  // FIXME: Used to be destination.index. Fed won't work with multiports now.
                         this,
                         targetConfig.coordination
                     )

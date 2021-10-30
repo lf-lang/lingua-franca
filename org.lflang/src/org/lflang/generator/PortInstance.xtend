@@ -42,16 +42,19 @@ class PortInstance extends TriggerInstance<Port> {
     /** Set of port instances that receive messages from this port. */
     Set<PortInstance> dependentPorts = Set.of();
 
-    /** Port that sends messages to this port, if there is one. */
-    protected PortInstance dependsOnPort = null;
-
-    /** * The index in a multiport array or -1 if this port is not in a multiport array. */
-    protected final int index
-
-    /** * The enclosing MultiportInstance or null if this is not in a multiport. */
-    protected MultiportInstance multiport = null
-
-
+    /** 
+     * Ports that sends messages to this port, if there are any.
+     * For an ordinary port, this set will have size 0 or 1.
+     * For a multiport, it can have a larger size.
+     */
+    protected Set<PortInstance> dependsOnPorts = Set.of();
+    
+    /** 
+     * The width of this port instance.
+     * For an ordinary port, this is 1.
+     * For a multiport, it may be larger than 1.
+     */
+    protected int width = 1
 
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -59,30 +62,21 @@ class PortInstance extends TriggerInstance<Port> {
      *  @param parent The parent.
      */
     new(Port definition, ReactorInstance parent) {
-        this(definition, parent, -1, null)
-    }
-    
-    /** Create a runtime instance from the specified definition
-     *  and with the specified parent that instantiated it and
-     *  the specified index in a multiport array.
-     *  @param instance The Instance statement in the AST.
-     *  @param parent The parent.
-     *  @param index The index, or -1 to specify that this is not
-     *   in a multiport.
-     *  @param multiport The containing multiport, or null if none.
-     */
-    new(Port definition, ReactorInstance parent, int index, MultiportInstance multiport) {
         super(definition, parent)
         
         if (parent === null) {
             throw new NullPointerException('Cannot create a PortInstance with no parent.')
         }
-        this.multiport = multiport
-        this.index = index
     }
 
-    def MultiportInstance getMultiportInstance() { return this.multiport; }
-    def PortInstance getDependsOnPort() { return this.dependsOnPort; }
+    /**
+     * Return the set of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    def Set<PortInstance> getDependsOnPorts() {
+        return this.dependsOnPorts;
+    }
 
     def Set<PortInstance> dependentPorts() {
         return dependentPorts;
@@ -91,50 +85,13 @@ class PortInstance extends TriggerInstance<Port> {
     def void addDependentPort(PortInstance dependent) {
         this.dependentPorts = CollectionUtil.plus(dependentPorts, dependent);
     }
-    
+        
     /**
-     * Return the set of ports that this port depends on.
-     * For ordinary ports, there is at most one.
-     * For multiports, there may be more than one.
+     * Return the width of this port, which in this base class is 1.
      */
-     // overridden by MultiPortInstance
-    def Set<PortInstance> dependsOnPorts() {
-        if (dependsOnPort !== null) {
-            return Set.of(dependsOnPort);
-        } else {
-            return Set.of();
-        }
+    def getWidth() {
+        width
     }
-    
-    /** 
-     * Override the base class to append [index] if this port
-     * is a multiport instance.
-     * @return The full name of this instance.
-     */
-    override String getFullName() {
-        var result = super.getFullName()
-        if (this.index >= 0) {
-            result += "[" + this.index + "]"
-        }
-        result
-    }
-    
-    /**
-     * Return the index of this port in a multiport array or -1 if
-     * this port is not in a multiport array. 
-     * @return The index in a multiport array.
-     */
-    def multiportIndex() {
-        return this.index
-    }
-    
-    /**
-     * Return the multiport parent if this port is an instance
-     * within a multiport, and return null otherwise.
-     */
-     def multiportParent() {
-         return multiport
-     }
     
     /** Return true if the port is an input. */
     def isInput() {
