@@ -1,7 +1,7 @@
 # ContainerizedFederatedHelloWorld
 This is a basic example showing containerized federated execution. 
 
-For more details, see: https://github.com/icyphy/lingua-franca/wiki/
+For more details, see: [Containerized Execution in Lingua Franca](https://github.com/lf-lang/lingua-franca/wiki/Containerized-Execution)
 
 ## Run instructions
 Put HelloWorld.lf in a src directory.
