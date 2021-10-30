@@ -225,6 +225,16 @@
                 {
                     "name": "keyword.control.import.lflang",
                     "match": "\\b(import)\\b|\\b(as)\\b|\\b(from)\\b"
+                },
+                {
+                    "begin": "\\b(?<=import)\\b",
+                    "end": "\\b(?=from)\\b",
+                    "patterns": [
+                        {
+                            "name": "entity.name.type.lflang",
+                            "match": "\\b\\w+\\b"
+                        }
+                    ]
                 }
             ]
         },
