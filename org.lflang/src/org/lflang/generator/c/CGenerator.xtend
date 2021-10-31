@@ -64,7 +64,6 @@ import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.InvalidSourceException
-import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -3052,7 +3051,7 @@ class CGenerator extends GeneratorBase {
                                 
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip multiports and handle the component ports instead.
-                    if (!(port instanceof MultiportInstance)) {
+                    if (!(port.isMultiport())) {
                         // Also skip ports whose parent is not in the federation.
                         // This can happen with reactions in the top-level that have
                         // as an effect a port in a bank.
@@ -3148,7 +3147,7 @@ class CGenerator extends GeneratorBase {
                                             // Destination port «destination.getFullName» itself has no reactions.
                                             «triggerArray»[«destinationCount++»] = NULL;
                                         ''')
-                                    } else if (!(destination instanceof MultiportInstance)) { // Skip multiports.
+                                    } else if (!(destination.isMultiport())) { // Skip multiports.
                                     // Instead, the component ports are handled.
                                         pr(initializeTriggerObjectsEnd, '''
                                             // Point to destination port «destination.getFullName»'s trigger struct.
@@ -3210,7 +3209,7 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
-                        if (input instanceof MultiportInstance) {
+                        if (input.isMultiport()) {
                             pr(startTimeStep, '''
                                 for (int i = 0; i < «input.width»; i++) {
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
@@ -3248,7 +3247,7 @@ class CGenerator extends GeneratorBase {
             )) {
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip any actual multiports if they are listed. Only count the individual ports.
-                    if (port.definition instanceof Input  && !(port instanceof MultiportInstance)) {
+                    if (port.definition instanceof Input  && !(port.isMultiport())) {
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
                         val sourcePort = sourcePort(port)
@@ -3283,7 +3282,7 @@ class CGenerator extends GeneratorBase {
                         portsSeen.add(port as PortInstance)
                         // This reaction is receiving data from the port.
                         if (isTokenType((port.definition as Output).inferredType)) {
-                            if (port instanceof MultiportInstance) {
+                            if (port.isMultiport()) {
                                 pr(startTimeStep, '''
                                     for (int i = 0; i < «port.width»; i++) {
                                         _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
@@ -3314,7 +3313,7 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(child, federate)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
-                    if (output instanceof MultiportInstance) {
+                    if (output.isMultiport()) {
                         pr(startTimeStep, '''
                             // Add port «output.getFullName» to array of is_present fields.
                             { // Scope to avoid collisions with variable names.
@@ -3829,10 +3828,10 @@ class CGenerator extends GeneratorBase {
                     if (trigger instanceof PortInstance) {
                         // If the port is a multiport, then we need to create an entry for each
                         // individual port.
-                        if (trigger instanceof MultiportInstance && trigger.parent !== null && trigger.isOutput) {
+                        if (trigger.isMultiport() && trigger.parent !== null && trigger.isOutput) {
                             // If the width is given as a numeric constant, then add that constant
                             // to the output count. Otherwise, assume it is a reference to one or more parameters.
-                            val width = (trigger as MultiportInstance).width;
+                            val width = trigger.width;
                             val containerName = trigger.parent.name
                             val portStructType = variableStructType(trigger.definition,
                                 trigger.parent.definition.reactorClass)
@@ -3914,7 +3913,7 @@ class CGenerator extends GeneratorBase {
         // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
             if (federate === null || federate.containsPort(output.definition)) {
-                if (output instanceof MultiportInstance) {
+                if (output.isMultiport()) {
                     var j = 0
                     for (multiportInstance : output.instances) {
                         var numDestinations = multiportInstance.numDestinationReactors
@@ -3947,7 +3946,7 @@ class CGenerator extends GeneratorBase {
                         var numDestinations = 0
                         if(!port.dependentReactions.isEmpty) numDestinations = 1
                         numDestinations += port.dependentPorts.size
-                        if (port instanceof MultiportInstance) {
+                        if (port.isMultiport()) {
                             pr(initializeTriggerObjectsEnd, '''
                                 for (int i = 0; i < «port.width»; i++) {
                                     «nameOfSelfStruct»->_lf_«port.parent.name».«port.name»[i]->num_destinations = «numDestinations»;
@@ -4104,7 +4103,7 @@ class CGenerator extends GeneratorBase {
         val initialization = new StringBuilder()
         // The reaction.effects does not contain multiports, but rather the individual
         // ports of the multiport. We handle each multiport only once using this set.
-        val handledMultiports = new LinkedHashSet<MultiportInstance>();
+        val handledMultiports = new LinkedHashSet<PortInstance>();
         for (effect : reaction.effects) {
             if (effect instanceof PortInstance) {
                 // Effect is a port. There are six cases.
@@ -4184,7 +4183,7 @@ class CGenerator extends GeneratorBase {
                         ''')
                     }
                     outputCount += effect.getMultiportInstance().getWidth();
-                } else if (effect.getMultiportInstance() === null && !(effect instanceof MultiportInstance)) {
+                } else if (effect.getMultiportInstance() === null && !(effect.isMultiport())) {
                     // The effect is not a multiport nor a port contained by a multiport.
                     if (effect.parent === reaction.parent) {
                         // The port belongs to the same reactor as the reaction.
@@ -5143,13 +5142,13 @@ class CGenerator extends GeneratorBase {
                             )
                             // There are four cases, depending on whether the source or
                             // destination or both are multiports.
-                            if (eventualSource instanceof MultiportInstance) {
+                            if (eventualSource.isMultiport()) {
                                 // Source is a multiport. 
                                 // Number of available channels:
                                 var width = eventualSource.width - sourceChannelCount
                                 // If there are no more available channels, there is nothing to do.
                                 if (width > 0) {
-                                    if (destination instanceof MultiportInstance) {
+                                    if (destination.isMultiport()) {
                                         // Source and destination are both multiports.
                                         // First, get the first available destination channel.
                                         var destinationChannel = destinationChannelCount.get(destination)
@@ -5203,7 +5202,7 @@ class CGenerator extends GeneratorBase {
                                         // «source.getFullName»«comment» to input port «destination.getFullName».
                                     ''')
                                 }
-                            } else if (destination instanceof MultiportInstance) {
+                            } else if (destination.isMultiport()) {
                                 // Source is a single port, Destination is a multiport.
                                 // First, get the first available destination channel.
                                 var destinationChannel = destinationChannelCount.get(destination)
@@ -5274,7 +5273,7 @@ class CGenerator extends GeneratorBase {
                         port.definition as TypedVariable,
                         port.parent.definition.reactorClass
                     )
-                    if (port instanceof MultiportInstance) {
+                    if (port.isMultiport()) {
                         pr('''
                             // Connect «port», which gets data from reaction «reaction.reactionIndex»
                             // of «instance.getFullName», to «port.getFullName».
@@ -5302,7 +5301,7 @@ class CGenerator extends GeneratorBase {
                     if (reactorBelongsToFederate(port.parent, federate)) {
                         // The port may be deeper in the hierarchy.
                         // Have to check for each instance port if it's a multiport.
-                        if (port instanceof MultiportInstance) {
+                        if (port.isMultiport()) {
                             val sourcePorts = sourcePorts(port)
                             for (instancePort : port.instances) {
                                 val eventualPort = sourcePort(instancePort)
@@ -5310,7 +5309,7 @@ class CGenerator extends GeneratorBase {
                                     instancePort.definition as TypedVariable,
                                     instancePort.parent.definition.reactorClass
                                 )
-                                if (!(eventualPort instanceof MultiportInstance)) {
+                                if (!(eventualPort.isMultiport())) {
                                     pr('''
                                         // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
                                         // of «instance.getFullName», on its self struct.
@@ -5336,7 +5335,7 @@ class CGenerator extends GeneratorBase {
                                     port.definition as TypedVariable,
                                     port.parent.definition.reactorClass
                                 )
-                                if (!(eventualPort instanceof MultiportInstance)) {
+                                if (!(eventualPort.isMultiport())) {
                                     pr('''
                                         // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
                                         // of «instance.getFullName», on its self struct.
@@ -5865,7 +5864,7 @@ class CGenerator extends GeneratorBase {
                         // If the rootType is 'void', we need to avoid generating the code
                         // 'sizeof(void)', which some compilers reject.
                         val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                        if (output instanceof MultiportInstance) {
+                        if (output.isMultiport()) {
                             pr('''
                                 for (int i = 0; i < «output.width»; i++) {
                                     «nameOfSelfStruct»->_lf_«output.name»[i].token = _lf_create_token(«size»);
