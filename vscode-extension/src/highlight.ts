@@ -494,24 +494,21 @@ function applyTokenType(
     const stdShadow = standardShadow(document);
     for (const reactor of getReactors(document, whole)) {
         // TODO: Highlight the variable throughout
-        const variables: string[] = [];
-        const constants: string[] = [];
-        for (const lfBlock of setDiff(document, reactor.body, stdShadow)) {
-            const text = document.getText(lfBlock);
-            const variableMatches = text.match(
-                /((?<=(action|timer|state|((mutable\s+input|output)(\[[^\]]*\])?))\s+)(\w+))|((?<=(;|^)\s*)\w+(?=\s*=))/g
-            );
-            const constantMatches = text.match(
-                /(?<=(?<!mutable\s+)input(\[[^\]]*\])?\s+)(\w+)/g
-            );
-            if (variableMatches) variables.push(...variableMatches);
-            if (constantMatches) constants.push(...constantMatches);
-        }
+        const lfContent: string = setDiff(document, reactor.body, stdShadow)
+            .map(range => document.getText(range))
+            .join('');  // FIXME: '' might not be the best placeholder
+            // for shadowed regions.
+        const variables: string[] = lfContent.match(
+            /((?<=(action|timer|state|((mutable\s+input|output)(\[[^\]]*\])?))\s+)(\w+))|((?<=(;|^|\n)\s*)\w+(?=\s*=))/g
+        );
+        const constants: string[] = lfContent.match(
+            /(?<=(?<!mutable\s+)input(\[[^\]]*\])?\s+)(\w+)/g
+        );
         const program = getProgrammaticContent(document, reactor.body)
-        applyTokenType(
+        if (variables) applyTokenType(
             document, program, variables, 'variable', [], tokensBuilder
         );
-        applyTokenType(
+        if (constants) applyTokenType(
             document, program, constants,
             'variable', ['readonly'],
             tokensBuilder

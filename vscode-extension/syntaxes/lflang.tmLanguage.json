@@ -412,7 +412,7 @@
                 },
                 {
                     "name": "entity.name.type.lflang",
-                    "match": "(?<=\\s*=\\s*new\\s+)\\w+\\b"
+                    "match": "(?<=\\s*=\\s*new\\s*(\\[[^\\]]*\\])?\\s+)\\w+\\b"
                 }
             ]
         },
