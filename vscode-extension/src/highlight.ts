@@ -262,7 +262,7 @@ function setDiff(
  * @param shadowRanges - The ranges which detected matches to `begin`
  *     and `end` may not intersect
  */
- function getContainedRanges(
+function getContainedRanges(
     document: TextDocument,
     range: Range,
     begin: string,
@@ -346,9 +346,7 @@ function getReactors(
 
 /**
  * Associates `tokenType` and `tokenModifiers` with matches to elements
- * of `tokens` that appear in some element of `ranges`. All elements of
- * `tokens` must be words: Punctuation marks, for example, will not be
- * tagged.
+ * of `tokens` that appear in some element of `ranges`.
  * @param document - The document in which to search for tokens
  * @param ranges - The ranges in `document` in which to search for tokens
  * @param tokens - The tokens for which to search
@@ -380,12 +378,12 @@ function applyTokenType(
 }
 
 /**
- * Side effect: Pushes semantic labels associated with type parameters
- * to tokensBuilder.
+ * Pushes semantic labels associated with type parameters to
+ * `tokensBuilder`.
  * @param document - The document to be analyzed for type parameters
  * @param tokensBuilder  - The object that accumulates semantic labels
  */
- function provideTypeParameters(
+function provideTypeParameters(
     document: TextDocument,
     tokensBuilder: SemanticTokensBuilder
 ) {
@@ -417,12 +415,12 @@ function applyTokenType(
 }
 
 /**
- * Side effect: Pushes semantic labels associated with parameters
- * and their associated types and default values to `tokensBuilder`.
+ * Pushes semantic labels associated with parameters and their
+ * associated types and default values to `tokensBuilder`.
  * @param document - The document to be analyzed for parameters
  * @param tokensBuilder  - The object that accumulates semantic labels
  */
- function provideParameters(
+function provideParameters(
     document: TextDocument,
     tokensBuilder: SemanticTokensBuilder
 ): void {
@@ -481,25 +479,23 @@ function applyTokenType(
 }
 
 /**
- * Side effect: Pushes semantic labels associated with variables
- * to tokensBuilder.
+ * Pushes semantic labels associated with variables to `tokensBuilder`.
  * @param document - The document to be analyzed for variables
  * @param tokensBuilder  - The object that accumulates semantic labels
  */
- function provideVariables(
+function provideVariables(
     document: TextDocument,
     tokensBuilder: SemanticTokensBuilder
 ): void {
-    const whole: Range = wholeDocument(document);
     const stdShadow = standardShadow(document);
-    for (const reactor of getReactors(document, whole)) {
+    for (const reactor of getReactors(document, wholeDocument(document))) {
         // TODO: Highlight the variable throughout
         const lfContent: string = setDiff(document, reactor.body, stdShadow)
             .map(range => document.getText(range))
             .join('');  // FIXME: '' might not be the best placeholder
             // for shadowed regions.
         const variables: string[] = lfContent.match(
-            /((?<=(action|timer|state|((mutable\s+input|output)(\[[^\]]*\])?))\s+)(\w+))|((?<=(;|^|\n)\s*)\w+(?=\s*=))/g
+            /((?<=(action|timer|state|((mutable\s+input|output)(\[[^\]]*\])?))\s+)(\w+))/g
         );
         const constants: string[] = lfContent.match(
             /(?<=(?<!mutable\s+)input(\[[^\]]*\])?\s+)(\w+)/g
@@ -511,6 +507,33 @@ function applyTokenType(
         if (constants) applyTokenType(
             document, program, constants,
             'variable', ['readonly'],
+            tokensBuilder
+        );
+    }
+}
+
+/**
+ * Pushes semantic labels associated with the assignment of values to
+ * reactor parameters to `tokensBuilder`.
+ * @param document - The document to be analyzed for parameter
+ * assignments
+ * @param tokensBuilder - The object that accumulates semantic labels
+ */
+function provideParameterAssignments(
+    document: TextDocument,
+    tokensBuilder: SemanticTokensBuilder
+): void {
+    const stdShadow = standardShadow(document);
+    for (const reactor of getReactors(
+        document, wholeDocument(document)
+    )) {
+        applyTokenType(
+            document,
+            getContainedRanges(
+                document, reactor.body, '(', ')', stdShadow
+            ),
+            ['\\w+(?=\\s*=)'],
+            'parameter', [],
             tokensBuilder
         );
     }
@@ -529,9 +552,12 @@ export const semanticTokensProvider: DocumentSemanticTokensProvider = {
         document: TextDocument,
         token: CancellationToken
     ): ProviderResult<SemanticTokens> {
+        // TODO: respond the the cancellation token, _after_ it is no
+        //  longer easier to simply make this script faster instead.
         const tokensBuilder = new SemanticTokensBuilder(legend);
         provideTypeParameters(document, tokensBuilder);
         provideParameters(document, tokensBuilder);
+        provideParameterAssignments(document, tokensBuilder);
         provideVariables(document, tokensBuilder);
         return tokensBuilder.build();
     }
