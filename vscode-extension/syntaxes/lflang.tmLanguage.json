@@ -333,8 +333,16 @@
             ]
         },
         "number": {
-            "name": "constant.numeric.lflang",
-            "match": "(?<!\\w)(\\-?\\d+)(.\\d+)?\\b"
+            "patterns": [
+                {
+                    "name": "constant.numeric.int.lflang",
+                    "match": "((?<![\\w\\d])-)?\\d+\\b(?!\\.)"
+                },
+                {
+                    "name": "constant.numeric.float.lflang",
+                    "match": "((?<![\\w\\d])-)?\\d*\\.\\d+([eE][+\\-]?\\d+)?"
+                }
+            ]
         },
         "string": {
             "patterns": [
