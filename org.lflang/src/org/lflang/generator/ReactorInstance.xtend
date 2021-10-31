@@ -638,7 +638,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             ports = this.outputs
         }
         for (portInstance : ports) {
-            if (portInstance.definition === port) {
+            if (portInstance.getDefinition() === port) {
                 return portInstance
             }
         }
@@ -1004,20 +1004,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Instantiate inputs for this reactor instance
         for (inputDecl : reactorDefinition.allInputs) {
-            if (inputDecl.widthSpec === null) {
-                this.inputs.add(new PortInstance(inputDecl, this))
-            } else {
-                this.inputs.add(new MultiportInstance(inputDecl, this, reporter))
-            }
+            this.inputs.add(new PortInstance(inputDecl, this, reporter));
         }
 
         // Instantiate outputs for this reactor instance
         for (outputDecl : reactorDefinition.allOutputs) {
-            if (outputDecl.widthSpec === null) {
-                this.outputs.add(new PortInstance(outputDecl, this))
-            } else {
-                this.outputs.add(new MultiportInstance(outputDecl, this, reporter))
-            }
+            this.outputs.add(new PortInstance(outputDecl, this, reporter));
         }
 
         // Do not process content (except interface above) if recursive

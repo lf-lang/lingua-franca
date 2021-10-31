@@ -83,7 +83,6 @@ import org.lflang.diagram.synthesis.util.ReactorIcons
 import org.lflang.diagram.synthesis.util.SynthesisErrorReporter
 import org.lflang.diagram.synthesis.util.UtilityExtensions
 import org.lflang.generator.ActionInstance
-import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -1048,7 +1047,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		    label = ""
 		}
 		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
-            if (lfPort instanceof MultiportInstance) {
+            if (lfPort.isMultiport) {
                 // TODO Fix unresolvable references in ReactorInstance
                 label += "[" + lfPort.width + "]"
             }
