@@ -121,7 +121,7 @@
                 },
                 {
                     "begin": "(\\{=)",
-                    "end": "([<>+\\-*/%]?=\\})",
+                    "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.c",
                     "patterns": [{
                         "include": "source.cpp"
@@ -137,7 +137,7 @@
                 },
                 {
                     "begin": "(\\{=)",
-                    "end": "([<>+\\-*/%]?=\\})",
+                    "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.cpp",
                     "patterns": [{
                         "include": "source.cpp"
@@ -153,7 +153,7 @@
                 },
                 {
                     "begin": "(\\{=)",
-                    "end": "([<>+\\-*/%]?=\\})",
+                    "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.ts",
                     "patterns": [{
                         "include": "source.ts"
@@ -169,7 +169,7 @@
                 },
                 {
                     "begin": "(\\{=)",
-                    "end": "([<>+\\-*/%]?=\\})",
+                    "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.py",
                     "patterns": [{
                         "include": "source.python"
@@ -185,7 +185,7 @@
                 },
                 {
                     "begin": "(\\{=)",
-                    "end": "([<>+\\-*/%]?=\\})",
+                    "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.rs",
                     "patterns": [{
                         "include": "source.rust"
