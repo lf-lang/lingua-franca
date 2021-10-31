@@ -275,7 +275,7 @@
                     "match": "\\bconst\\b"
                 },
                 {
-                    "name": "entity.name.function.lflang",
+                    "name": "entity.name.function.member.lflang",
                     "match": "(?<=\\bmethod\\b\\s+)\\w+\\b"
                 }
             ]
@@ -407,7 +407,7 @@
                     "match": "\\b(new)\\b"
                 },
                 {
-                    "name": "variable.other.lflang",
+                    "name": "variable.other.constant.reactorinstance.lflang",
                     "match": "\\b(\\w+)(?=\\s*=\\s*new\\b)"
                 },
                 {
@@ -423,7 +423,7 @@
         "member-access-operator": {
             "patterns": [
                 {
-                    "name": "variable.other.lflang",
+                    "name": "variable.other.constant.reactorinstance.lflang",
                     "match": "(\\b\\w+\\b)(?=((\\.)|(::))\\w+)"
                 },
                 {
