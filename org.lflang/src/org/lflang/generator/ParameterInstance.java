@@ -25,16 +25,18 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import java.util.ArrayList
-import java.util.List
-import org.lflang.InferredType
-import org.lflang.lf.LfFactory
-import org.lflang.lf.Parameter
-import org.lflang.lf.Value
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
-import static extension org.lflang.JavaAstUtils.*
+import org.lflang.InferredType;
+import org.lflang.JavaAstUtils;
+import org.lflang.lf.Assignment;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Value;
 
 /** 
  * Representation of a runtime instance of a parameter.
@@ -53,68 +55,32 @@ class ParameterInstance extends NamedInstance<Parameter> {
      * @param instance The Instance statement in the AST.
      * @param parent The reactor instance this parameter is a part of.
      */
-    new(Parameter definition, ReactorInstance parent) {
-        super(definition, parent)
-        if (parent === null) {
-            throw new InvalidSourceException('Cannot create a ParameterInstance with no parent.')
+    public ParameterInstance(Parameter definition, ReactorInstance parent) {
+        super(definition, parent);
+        if (parent == null) {
+            throw new InvalidSourceException("Cannot create a ParameterInstance with no parent.");
         }
         
-        this.type = definition.inferredType
-        this.init = definition.init
-        
-        // Check for an override.
-        var assignment = parent.definition.parameters.findFirst[it.lhs === definition]
-        
-        while (assignment !== null) {
-            // NOTE: we only allow a reference to single a parameter or 
-            // a list of ordinary values.
-            val ref = assignment.rhs.get(0).parameter
-            if (ref !== null) {
-                // Get the value from the parameter instance, not the parameter
-                // so that overrides like bank_index work.
-                // parent.parent will be non-null or the rhs parameter reference
-                // would not have passed validation. Nevertheless, we check.
-                val parentsParent = parent.parent;
-                if (parentsParent !== null) {
-                    val parameterInstance = parentsParent.parameters.findFirst[it.name.equals(ref.name)]
-                    // Again, this result should be non-null, but we check.
-                    if (parameterInstance !== null) {
-                        this.init = parameterInstance.init
-                    } else {
-                        // Fall back on reference.
-                        this.init = ref.init
-                    }
-                } else {
-                    // Fall back on reference.
-                    this.init = ref.init
-                }
-            } else {
-                this.init = assignment.rhs    
-            }
-            if (parent.parent !== null) {
-                assignment = parent.parent.definition.parameters.findFirst[it.lhs === ref]
-            } else {
-                assignment = null
-            }
-        }
+        this.type = JavaAstUtils.getInferredType(definition);
+        this.init = parent.initialParameterValue(definition);
         
         // If the parent is in a bank and the parameter name is "bank_index", then
         // override the default value provided to make it equal to the bank index.
-        if (parent.bankIndex >= 0 && definition.name.equals("bank_index")) {
-            val value = LfFactory.eINSTANCE.createValue
-            value.literal = "" + parent.bankIndex
-            val list = new ArrayList<Value>(1)
-            list.add(value)
-            this.init = list
+        if (parent.bankIndex >= 0 && getName().equals("bank_index")) {
+            Value value = LfFactory.eINSTANCE.createValue();
+            value.setLiteral("" + parent.bankIndex);
+            List<Value> list = new ArrayList<Value>(1);
+            list.add(value);
+            this.init = list;
         }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
     
-    public List<Value> init
+    public List<Value> init;
     
-    public InferredType type
+    public InferredType type;
     
     /////////////////////////////////////////////
     //// Public Methods
@@ -123,15 +89,28 @@ class ParameterInstance extends NamedInstance<Parameter> {
      * Return the name of this parameter. 
      * @return The name of this parameter.
      */
-    override String getName() {
-        this.definition.name
+    public String getName() {
+        return this.definition.getName();
+    }
+    
+    /**
+     * Return the assignment that overrides this parameter in
+     * the parent's instantiation or null if there is no override.
+     */
+    public Assignment getOverride() {
+        List<Assignment> assignments = parent.definition.getParameters();
+        Optional<Assignment> assignment = assignments.stream().filter(
+            it -> it.getLhs() == definition
+        ).findFirst();
+        return assignment.get();
     }
 	
     /**
      * {@inheritDoc}
      */
-    override ReactorInstance root() {
-        parent.root()
+    @Override
+    public ReactorInstance root() {
+        return parent.root();
     }
 
     /** Return a descriptive string. */
