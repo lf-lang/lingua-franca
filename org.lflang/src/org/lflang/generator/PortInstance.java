@@ -45,7 +45,7 @@ import org.lflang.lf.WidthTerm;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class PortInstance extends TriggerInstance<Port> {
+public class PortInstance extends TriggerInstance<Port> {
 
     /**
      * Create a runtime instance from the specified definition
@@ -212,5 +212,5 @@ class PortInstance extends TriggerInstance<Port> {
      * For an ordinary port, this is 1.
      * For a multiport, it may be larger than 1.
      */
-   s int width = 1;
+    int width = 1;
 }

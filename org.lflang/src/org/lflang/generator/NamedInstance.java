@@ -35,7 +35,7 @@ import org.eclipse.emf.ecore.EObject;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-abstract class NamedInstance<T extends EObject> {
+public abstract class NamedInstance<T extends EObject> {
         
     /**
      * Construct a new instance with the specified definition

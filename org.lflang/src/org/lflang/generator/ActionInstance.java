@@ -38,11 +38,8 @@ import org.lflang.lf.TimeUnit;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class ActionInstance extends TriggerInstance<Action> {
+public class ActionInstance extends TriggerInstance<Action> {
     
-    /** The constant default for a minimum delay. */
-    public static TimeValue DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE);
-        
     /**
      * Create a new timer instance.
      * If the definition is null, then this is a shutdown action.
@@ -80,6 +77,12 @@ class ActionInstance extends TriggerInstance<Action> {
         }
     }
     
+    //////////////////////////////////////////////////////
+    //// Public fields.
+
+    /** The constant default for a minimum delay. */
+    public static TimeValue DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE);
+        
     //////////////////////////////////////////////////////
     //// Public methods.
 

@@ -153,7 +153,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
         // grandparent. Hence, the first argument given to getConnection might
         // be null.
         if (!dependencyBroken(
-                getConnection(reaction.parent.parent, orig, dest))) {
+                getConnection(reaction.getParent().getParent(), orig, dest))) {
             addEdge(dest, orig);
         }
     }
