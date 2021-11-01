@@ -79,7 +79,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
         result_string = mpf_get_str(result_string, &exponent, 10, (size_t)0, self->result);
         
         // compare the result to the known solution
-        size_t result_length = self->scale; // Use the requested scale directly
+        size_t result_length = self->scale + 1; // Use the requested scale directly (plus the leading 3)
         char* solution_pruned = (char*)calloc(result_length, sizeof(char));
         strncpy(solution_pruned, solution, result_length);
         int correct = strncmp(result_string, solution_pruned, result_length);
