@@ -206,9 +206,9 @@ reactor Worker {
 }
 
 /* [[[cog
-    cog.outl(f'main reactor PiPrecision(numWorkers:int({numWorkers}), precision:int({precision}))')
+    cog.outl(f'main reactor PiPrecision(numWorkers:int({numWorkers}), precision:uint32_t({{={precision}ul=}}))')
 ]]] */
-main reactor PiPrecision(numWorkers:int(20), precision:uint32_t({=5000ul=})) 
+main reactor PiPrecision(numWorkers:int(20), precision:uint32_t({=5000ul=}))
 /// [[[end]]]
 {
     
