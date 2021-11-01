@@ -7,7 +7,7 @@ For more details, see: [Containerized Execution in Lingua Franca](https://github
 Put HelloWorld.lf in a src directory.
 Then, run:
 ```bash
-lfc src/HelloWorld.lf
+lfc HelloWorldContainerized.lf
 ```
 
 There would be 3 build messages, 1 for the RTI and 2 for the reactors, indicating where the docker file is generated, as well as the instruction to build the docker file. 
@@ -25,7 +25,7 @@ To build the docker image, use:
 
 If you cannot find the build message for the RTI, try a clean build using:
 ```bash
-lfc --clean src/HelloWorld.lf
+lfc --clean HelloWorld.lf
 ```
 
 Then, use the printed commands to build the 3 docker images. 
@@ -39,13 +39,13 @@ Open 3 terminals, 1 for the RTI and 1 for each reactor.
 
 Run the RTI:
 ```bash
-docker run --rm -it --network=lf --name rti rti -i 1 -n 2
+docker run --rm -it --network=lf --name=rti rti -i 1 -n 2
 ```
 
 Run the two reactors:
 ```bash
-docker run --rm -it --network=lf helloworld_a -i 1
+docker run --rm -it --network=lf helloworldcontainerized_source -i 1
 ```
 ```bash
-docker run --rm -it --network=lf helloworld_b -i 1
+docker run --rm -it --network=lf helloworldcontainerized_print -i 1
 ```

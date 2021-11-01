@@ -1247,19 +1247,18 @@ class CGenerator extends GeneratorBase {
      * @param the name given to the docker file (without any extension).
      */
     override writeDockerFile(String dockerFileName) {
-        if (this.mainDef === null) {
-            return
-        }
-        
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + dockerFileName + '.Dockerfile'
-        val contents = new StringBuilder()
-        
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
             file.delete
         }
+        if (this.mainDef === null) {
+            return
+        }
+        
+        val contents = new StringBuilder()
         // The Docker configuration uses cmake, so config.compiler is ignored here.
         var compileCommand = '''
         cmake -S src-gen -B bin && \

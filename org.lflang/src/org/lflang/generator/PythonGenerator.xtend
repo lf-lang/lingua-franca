@@ -1706,20 +1706,19 @@ class PythonGenerator extends CGenerator {
      * @param The root filename (without any extension).
      */
     override writeDockerFile(String filename) {
-        if (this.mainDef === null) {
-            return
-        }
-        
         var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
-        val contents = new StringBuilder()
-        
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
             file.delete
         }
 
+        if (this.mainDef === null) {
+            return
+        }
+
+        val contents = new StringBuilder()
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
