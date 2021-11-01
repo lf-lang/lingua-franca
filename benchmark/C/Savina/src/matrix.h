@@ -20,14 +20,14 @@ typedef struct matrix_t {
 } matrix_t;
 
 /*
- * Allocate a new double matrix.
+ * Allocate a new double matrix containing only zeros.
  * @param size_x The number of rows in the matrix.
  * @param size_y The number of columns in the matrix.
  */
 matrix_t mat_new_d(size_t size_x, size_t size_y);
 
 /*
- * Allocate a new integer matrix.
+ * Allocate a new integer matrix containing only zeros.
  * @param size_x The number of rows in the matrix.
  * @param size_y The number of columns in the matrix.
  */
