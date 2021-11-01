@@ -7,6 +7,7 @@
  * Allocate a new double matrix containing only zeros.
  * @param size_x The number of rows in the matrix.
  * @param size_y The number of columns in the matrix.
+ * @return The new matrix.
  */
 matrix_t mat_new_d(size_t size_x, size_t size_y) {
     double* data_d = (double*) calloc(size_x * size_y, sizeof(double));
@@ -19,6 +20,7 @@ matrix_t mat_new_d(size_t size_x, size_t size_y) {
  * Allocate a new integer matrix containing only zeros.
  * @param size_x The number of rows in the matrix.
  * @param size_y The number of columns in the matrix.
+ * @return The new matrix.
  */
 matrix_t mat_new_i(size_t size_x, size_t size_y) {
     int* data_i = (int*) calloc(size_x * size_y, sizeof(int));
@@ -48,6 +50,7 @@ void mat_destroy_i(matrix_t matrix) {
  * @param matrix The matrix to be accessed.
  * @param i The row to be accessed.
  * @param j The column to be accessed.
+ * @return A pointer to the requested matrix entry.
  */
 double* mat_at_d(matrix_t matrix, size_t i, size_t j) {
     assert(i < matrix.size_x);
@@ -60,6 +63,7 @@ double* mat_at_d(matrix_t matrix, size_t i, size_t j) {
  * @param matrix The matrix to be accessed.
  * @param i The row to be accessed.
  * @param j The column to be accessed.
+ * @return A pointer to the requested matrix entry.
  */
 int* mat_at_i(matrix_t matrix, size_t i, size_t j) {
     assert(i < matrix.size_x);
