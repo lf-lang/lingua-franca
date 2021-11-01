@@ -141,7 +141,7 @@ class LFUiModuleImpl extends AbstractLFUiModule {
         /**
          * Ensure that all text printed via println() is shown in the Console of the LF IDE.
          */
-        protected def configureConsole() {
+        def configureConsole() {
             if (!consoleInitialized) {
                 val console = new MessageConsole("LF Output", null)
                 ConsolePlugin.getDefault().getConsoleManager().addConsoles(newArrayList(console))
