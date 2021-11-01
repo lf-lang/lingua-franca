@@ -47,7 +47,7 @@ import org.lflang.lf.Value;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class ParameterInstance extends NamedInstance<Parameter> {
+public class ParameterInstance extends NamedInstance<Parameter> {
         
     /** 
      * Create a runtime instance from the specified definition
@@ -114,7 +114,8 @@ class ParameterInstance extends NamedInstance<Parameter> {
     }
 
     /** Return a descriptive string. */
-    override toString() {
-        "ParameterInstance " + getFullName
+    @Override
+    public String toString() {
+        return "ParameterInstance " + getFullName();
     }
 }

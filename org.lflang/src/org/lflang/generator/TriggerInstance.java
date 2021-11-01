@@ -39,7 +39,7 @@ import org.lflang.lf.impl.VariableImpl;
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class TriggerInstance<T extends Variable> extends NamedInstance<T> {
+public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     
     /** Construct a new instance with the specified definition
      *  and parent. E.g., for a action instance, the definition

@@ -115,10 +115,10 @@ public class FedASTUtils {
         Input newTriggerForControlReactionInput = factory.createInput();       
 
         // Set the container and variable according to the network port
-        newPortRef.setContainer(destination.parent.getDefinition());
+        newPortRef.setContainer(destination.getParent().getDefinition());
         newPortRef.setVariable(destination.getDefinition());
         
-        Reactor top = destination.parent.parent.reactorDefinition;
+        Reactor top = destination.getParent().getParent().reactorDefinition;
         
         newTriggerForControlReactionInput.setName(ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
         newTriggerForControlReactionInput.setType(portType);         
@@ -140,7 +140,7 @@ public class FedASTUtils {
                 destination.getDefinition(),
                 instance,
                 generator, 
-                destination.parent.reactorDefinition
+                destination.getParent().reactorDefinition
         );
 
         reaction.getCode()
@@ -305,7 +305,7 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        Reactor top = source.parent.parent.reactorDefinition; // Top-level reactor.
+        Reactor top = source.getParent().getParent().reactorDefinition; // Top-level reactor.
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
@@ -314,7 +314,7 @@ public class FedASTUtils {
         // Add the output from the contained reactor as a source to
         // the reaction to preserve precedence order.
         VarRef newPortRef = factory.createVarRef();
-        newPortRef.setContainer(source.parent.getDefinition());
+        newPortRef.setContainer(source.getParent().getDefinition());
         newPortRef.setVariable(source.getDefinition());
         reaction.getSources().add(newPortRef);
 
@@ -483,9 +483,9 @@ public class FedASTUtils {
         triggerRef.setVariable(action);
 
         // Establish references to the involved ports.
-        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setContainer(source.getParent().getDefinition());
         sourceRef.setVariable(source.getDefinition());
-        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setContainer(destination.getParent().getDefinition());
         destRef.setVariable(destination.getDefinition());
 
         // Add the action to the reactor.
