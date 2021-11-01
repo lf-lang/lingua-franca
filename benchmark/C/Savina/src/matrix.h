@@ -7,6 +7,9 @@
 
 #include <stddef.h>
 
+/*
+ * A matrix containing double or integer entries.
+ */
 typedef struct matrix_t {
     int size_x;
     int size_y;
@@ -17,33 +20,33 @@ typedef struct matrix_t {
 } matrix_t;
 
 /*
- * Allocate a new matrix_t.
+ * Allocate a new double matrix.
  * @param size_x The number of rows in the matrix.
  * @param size_y The number of columns in the matrix.
  */
 matrix_t mat_new_d(size_t size_x, size_t size_y);
 
 /*
- * Allocate a new matrix_t.
+ * Allocate a new integer matrix.
  * @param size_x The number of rows in the matrix.
  * @param size_y The number of columns in the matrix.
  */
 matrix_t mat_new_i(size_t size_x, size_t size_y);
 
 /*
- * Deallocate the given matrix_t.
+ * Deallocate the given double matrix.
  * @param matrix The matrix to deallocate.
  */
 void mat_destroy_d(matrix_t matrix);
 
 /*
- * Deallocate the given matrix_t.
+ * Deallocate the given integer matrix.
  * @param matrix The matrix to deallocate.
  */
 void mat_destroy_i(matrix_t matrix);
 
 /*
- * Return a pointer to entry (i, j) of the given matrix_t.
+ * Return a pointer to entry (i, j) of the given double matrix.
  * @param matrix The matrix to be accessed.
  * @param i The row to be accessed.
  * @param j The column to be accessed.
@@ -51,7 +54,7 @@ void mat_destroy_i(matrix_t matrix);
 double* mat_at_d(matrix_t matrix, size_t i, size_t j);
 
 /*
- * Return a pointer to entry (i, j) of the given matrix_t.
+ * Return a pointer to entry (i, j) of the given integer matrix.
  * @param matrix The matrix to be accessed.
  * @param i The row to be accessed.
  * @param j The column to be accessed.
