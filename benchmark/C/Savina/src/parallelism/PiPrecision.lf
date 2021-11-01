@@ -101,6 +101,7 @@ reactor Manager(numWorkers:int(20), scale:uint32_t({=5000ul=})) {
             }
         }
         
+        //info_print("Result: %s", result_string);
         info_print("Number of terms calculated: %llu", strlen(result_string));
  
         // clean up
