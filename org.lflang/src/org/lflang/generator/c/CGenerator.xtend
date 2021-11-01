@@ -538,6 +538,14 @@ class CGenerator extends GeneratorBase {
                 "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
+
+            var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
+            var rtiDir = rtiPath.toFile()
+            if (!rtiDir.exists()) {
+                rtiDir.mkdirs()
+            }
+            writeRTIDockerFile(rtiPath, rtiDir)
+            copyRtiFiles(rtiDir, coreFiles)
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -844,15 +852,6 @@ class CGenerator extends GeneratorBase {
             
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
-                if (isFederated) {
-                    var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
-                    var rtiDir = rtiPath.toFile()
-                    if (!rtiDir.exists()) {
-                        rtiDir.mkdirs()
-                        writeRTIDockerFile(rtiPath, rtiDir)
-                        copyRtiFiles(rtiDir, coreFiles)
-                    }
-                }
                 writeDockerFile(topLevelName)
             }
 
@@ -1323,6 +1322,15 @@ class CGenerator extends GeneratorBase {
     def writeRTIDockerFile(Path rtiPath, File rtiDir) {
         val dockerFileName = 'rti.Dockerfile'
         val dockerFile = rtiDir + File.separator + dockerFileName
+        var srcGenPath = fileConfig.getSrcGenPath
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+        if (this.mainDef === null) {
+            return
+        }
         val contents = new StringBuilder()
         pr(contents, '''
             # Generated docker file for RTI in «rtiDir».
