@@ -1,5 +1,5 @@
 /**
- * Implementation of the Matrix abstract data type for use in some benchmarks.
+ * Implementation of the matrix data type for use in some benchmarks.
  */
 
 #ifndef MATRIX_H
