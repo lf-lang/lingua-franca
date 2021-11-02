@@ -62,12 +62,15 @@ reactor Manager(numWorkers: size_t{20}, scale: size_t(5000)) {
     
     reaction(done) -> finished {=
         std::stringstream ss;
-        ss.precision(scale);
+        // Set precision to scale plus a little buffer to ensure any extra digits
+        // that we calculated are included in the result
+        ss.precision(scale+100);
         ss << result;
         std::string resultString = ss.str();
         
-        std::string solutionPruned = solution.substr(0, resultString.size());
-        bool correct = resultString.compare(solutionPruned) == 0;
+        // compare scale + 2 charaters (+2 because of the 3.)
+        std::string solutionPruned = solution.substr(0, scale + 2);
+        bool correct = resultString.compare(0, scale+2, solutionPruned) == 0;
 
         reactor::log::Info() << "Result correct: " << std::boolalpha << correct << std::noboolalpha;
         reactor::log::Info() << "Number of terms calculated: " << resultString.size() - 1;

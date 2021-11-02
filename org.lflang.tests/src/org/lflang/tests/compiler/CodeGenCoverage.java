@@ -24,7 +24,6 @@ package org.lflang.tests.compiler;
 
 import java.util.Arrays;
 
-import org.junit.Assume;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 

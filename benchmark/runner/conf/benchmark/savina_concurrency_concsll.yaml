@@ -36,4 +36,4 @@ targets:
       messages_per_worker: ["--numMessagesPerWorker", "<value>"]
       write_percentage: ["--writePercentage", "<value>"]
       size_percentage: ["--sizePercentage", "<value>"]
-      workers: ["--numWorkers=", "<value>"]
+      workers: ["--numWorkers", "<value>"]
