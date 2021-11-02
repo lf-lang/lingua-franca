@@ -249,7 +249,7 @@ public abstract class TestBase {
      */
     private static void redirectOutputs(LFTest test) {
         System.setOut(new PrintStream(test.getOutputStream()));
-        System.setErr(new PrintStream(test.getStandardError()));
+        System.setErr(new PrintStream(test.getOutputStream()));
     }
 
 
