@@ -7,9 +7,9 @@ target Python {
 reactor Source {
     output[2] out;
     reaction(startup) -> out {=
-        for i in range(len(out)):
-            print("Source sending ", i)
-            out[i].set(i)
+        for (idx, port) in enumerate(out):
+            print("Source sending ", idx)
+            port.set(idx)
     =}
 }
 reactor Destination(expected(0)) {

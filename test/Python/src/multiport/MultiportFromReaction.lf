@@ -8,9 +8,9 @@ reactor Destination(width(1)) {
     input[width] _in;
     reaction(_in) {=
         sm = 0;
-        for i in range(len(_in)):
-            if _in[i].is_present:
-                sm += _in[i].value
+        for port in _in:
+            if port.is_present:
+                sm += port.value
         print("Sum of received: ", sm)
         if sm != self.s:
             sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
@@ -22,7 +22,7 @@ reactor Destination(width(1)) {
         if self.s <= 6:
             sys.stderr.write("ERROR: Destination received no input!\n")
             exit(1)
-        print("Success.\n")
+        print("Success.")
     =}
 }
 main reactor MultiportFromReaction {
@@ -30,11 +30,11 @@ main reactor MultiportFromReaction {
     state s(0);
     b = new Destination(width = 4);
     reaction(t) -> b._in {=
-        for i in range(len(b._in)):
-            print("Before SET, b.in[{:d}].is_present has value {:d}".format(i, b._in[i].is_present))
-            b._in[i].set(self.s)
+        for (idx, port) in enumerate(b._in):
+            print("Before SET, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))
+            port.set(self.s)
             self.s += 1
-            print("AFTER set, b.in[{:d}].is_present has value {:d}".format(i, b._in[i].is_present))
-            print("AFTER set, b.in[{:d}].value has value {:d}".format(i, b._in[i].value))
+            print("AFTER set, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))
+            print("AFTER set, b.in[{:d}].value has value {:d}".format(idx, port.value))
     =}
 }
