@@ -333,6 +333,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Set keepalive to true.
      */
     protected def void accommodatePhysicalActionsIfPresent(Resource resource) {
+        if (!target.setsKeepAliveOptionAutomatically) {
+            return; // nothing to do
+        }
+
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
         for (action : resource.allContents.toIterable.filter(Action)) {
@@ -345,7 +349,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     targetConfig.keepalive = true
                     errorReporter.reportWarning(
                         action,
-                        '''Setting «TargetProperty.KEEPALIVE.description» to true because of «action.name».«
+                        '''Setting «TargetProperty.KEEPALIVE.displayName» to true because of «action.name».«
                         » This can be overridden by setting the «TargetProperty.KEEPALIVE.description»«
                         » target property manually.'''
                     );
