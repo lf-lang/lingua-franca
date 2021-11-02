@@ -7,12 +7,21 @@
 
 #include <stddef.h>
 
+/**
+ * Supported types for this matrix implementation.
+ */
+typedef enum {
+    MAT_DOUBLE,
+    MAT_INT
+} _matrix_types;
+
 /*
  * A matrix containing double or integer entries.
  */
 typedef struct matrix_t {
     int size_x;
     int size_y;
+    _matrix_types type;
     union {
         double* data_d;
         int* data_i;
@@ -37,12 +46,14 @@ matrix_t mat_new_i(size_t size_x, size_t size_y);
 
 /*
  * Deallocate the given double matrix.
+ * Will raise an assert error if the matrix is not a double type.
  * @param matrix The matrix to deallocate.
  */
 void mat_destroy_d(matrix_t matrix);
 
 /*
  * Deallocate the given integer matrix.
+ * Will raise an assert error if the matrix is not a double type.
  * @param matrix The matrix to deallocate.
  */
 void mat_destroy_i(matrix_t matrix);
@@ -52,7 +63,8 @@ void mat_destroy_i(matrix_t matrix);
  * @param matrix The matrix to be accessed.
  * @param i The row to be accessed.
  * @param j The column to be accessed.
- * @return A pointer to the requested matrix entry.
+ * @return A pointer to the requested matrix entry, or NULL if 'matrix'
+ *  is of the wrong type.
  */
 double* mat_at_d(matrix_t matrix, size_t i, size_t j);
 
@@ -61,7 +73,8 @@ double* mat_at_d(matrix_t matrix, size_t i, size_t j);
  * @param matrix The matrix to be accessed.
  * @param i The row to be accessed.
  * @param j The column to be accessed.
- * @return A pointer to the requested matrix entry.
+ * @return A pointer to the requested matrix entry, or NULL if 'matrix'
+ *  is of the wrong type.
  */
 int* mat_at_i(matrix_t matrix, size_t i, size_t j);
 
