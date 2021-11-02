@@ -78,28 +78,32 @@ public class FedASTUtils {
     }
     
     /**
-     * A network action is a trigger for a network input reaction that is 
-     * responsible for relaying messages to the port that is on the receiving
-     * side of a connection between two reactors that reside in distinct federates.
+     * Create a "network action" in the reactor that contains the given
+     * connection and return it.
+     *
+     * The purpose of this action is to serve as a trigger for a "network
+     * input reaction" that is responsible for relaying messages to the
+     * port that is on the receiving side of the given connection. The
+     * connection is assumed to be between two reactors that reside in
+     * distinct federates. Hence, the container of the connection is
+     * assumed to be top-level.
      * 
-     * @param connection The network connection.
-     * @param destinationFederate The destination federate.
-     * @param serializer The serializer used on the connection
+     * @param connection A connection between to federates.
+     * @param serializer The serializer used on the connection.
      * @param type The type of the source port (indicating the type of
-     *  data being received).
+     *  data to be received).
      * @param networkBufferType The type of the buffer used for network
      *  communication in the target (e.g., uint8_t* in C).
-     * @return The network action that is created
+     * @return The newly created action.
      */
     private static Action createNetworkAction(
         Connection connection,
-        FederateInstance destinationFederate,
         SupportedSerializers serializer,
         Type type,
         String networkBufferType
     ) {
+        Reactor top = (Reactor) connection.eContainer();
         LfFactory factory = LfFactory.eINSTANCE;
-        Reactor top = (Reactor) destinationFederate.instantiation.eContainer();
 
         Action action = factory.createAction();
         // Name the newly created action; set its delay and type.
@@ -744,7 +748,6 @@ public class FedASTUtils {
         // Create the network action (@see createNetworkAction)
         Action networkAction = createNetworkAction(
             connection,
-            destinationFederate,
             serializer,
             EcoreUtil.copy(source.getDefinition().getType()),
             generator.getNetworkBufferType());
