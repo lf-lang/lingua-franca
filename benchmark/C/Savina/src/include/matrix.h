@@ -78,4 +78,22 @@ double* mat_at_d(matrix_t matrix, size_t i, size_t j);
  */
 int* mat_at_i(matrix_t matrix, size_t i, size_t j);
 
+/*
+ * Set the (i, j) entry of the given double matrix.
+ * @param matrix the matrix to be modified.
+ * @param i The row to be accessed.
+ * @param j The column to be accessed.
+ * @param value The value to be placed in the matrix.
+ */
+void mat_set_d(matrix_t matrix, size_t i, size_t j, double value);
+
+/*
+ * Set the (i, j) entry of the given integer matrix.
+ * @param matrix the matrix to be modified.
+ * @param i The row to be accessed.
+ * @param j The column to be accessed.
+ * @param value The value to be placed in the matrix.
+ */
+void mat_set_i(matrix_t matrix, size_t i, size_t j, int value);
+
 #endif
