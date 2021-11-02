@@ -39,7 +39,7 @@ void mat_destroy_d(matrix_t matrix) {
 
 /*
  * Deallocate the given integer matrix.
- * Will raise an assert error if the matrix is not a double type.
+ * Will raise an assert error if the matrix is not an integer type.
  * @param matrix The matrix to deallocate.
  */
 void mat_destroy_i(matrix_t matrix) {
