@@ -5,7 +5,6 @@ reactor Source(
     bank_index(0)
 ) {
     output out;
-    
     reaction (startup) -> out {=
         out.set(self.bank_index)
     =}
@@ -16,12 +15,12 @@ reactor Sink(width(4)) {
     state received(false);
     
     reaction (_in) {=
-        for i in range(len(_in)):
-            if _in[i].is_present is True:
-                print("Received on channel {:d}: {:d}\n".format(i, _in[i].value))
+        for (idx, port) in enumerate(_in):
+            if port.is_present is True:
+                print("Received on channel {:d}: {:d}".format(idx, port.value))
                 self.received = True
-                if _in[i].value != i:
-                    sys.stderr.write("ERROR: expected {:d}\n".format(i))
+                if port.value != idx:
+                    sys.stderr.write("ERROR: expected {:d}\n".format(idx))
                     exit(1)
     =}
     reaction(shutdown) {=

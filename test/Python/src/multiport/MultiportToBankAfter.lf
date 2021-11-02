@@ -3,13 +3,7 @@ target Python {
     timeout: 2 sec,
     fast: true
 }; 
-reactor Source {
-    output[3] out;
-    reaction(startup) -> out {=
-        for i in range(len(out)):
-            out[i].set(i);
-    =}
-}
+import Source from "MultiportToBank.lf"
 reactor Destination(
     bank_index(0)
 ) {
