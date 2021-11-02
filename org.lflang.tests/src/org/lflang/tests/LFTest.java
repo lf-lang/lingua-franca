@@ -32,17 +32,16 @@ public class LFTest implements Comparable<LFTest> {
     /** Object used to determine where the code generator puts files. */
     public FileConfig fileConfig;
 
-    /** Path of the test program relative to the the package root. */
+    /** Path of the test program relative to the package root. */
     private final Path relativePath;
 
     /** Records compilation stdout/stderr. */
     private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
-
     /** Specialized object for capturing output streams while executing the test. */
     public final ExecutionLogger execLog = new ExecutionLogger();
 
-    /** String builder for collecting issues encountered during test executeion. */
+    /** String builder for collecting issues encountered during test execution. */
     public final StringBuilder issues = new StringBuilder();
 
     /** The target of the test program. */
@@ -67,13 +66,8 @@ public class LFTest implements Comparable<LFTest> {
         this.relativePath = Paths.get(name);
     }
 
-    /** Stream object for capturing standard output. */
-    public OutputStream getStandardOutput() {
-        return compilationLog;
-    }
-
-    /** Stream object for capturing standard error. */
-    public OutputStream getStandardError() {
+    /** Stream object for capturing standard and error output. */
+    public OutputStream getOutputStream() {
         return compilationLog;
     }
 
@@ -115,14 +109,11 @@ public class LFTest implements Comparable<LFTest> {
     }
 
     /**
-     * Report whether or not this test has failed.
+     * Report whether this test has failed.
      * @return True if the test has failed, false otherwise.
      */
     public boolean hasFailed() {
-        if (result == Result.TEST_PASS) {
-            return false;
-        }
-        return true;
+        return result != Result.TEST_PASS;
     }
 
     /**
@@ -135,8 +126,8 @@ public class LFTest implements Comparable<LFTest> {
     }
 
     /**
-     *
-     * @return
+     * Compile a string that contains all collected errors and return it.
+     * @return A string that contains all collected errors.
      */
     public String reportErrors() {
         if (this.hasFailed()) {
@@ -192,7 +183,7 @@ public class LFTest implements Comparable<LFTest> {
          * Private constructor.
          * @param message Description of the test outcome.
          */
-        private Result(String message) {
+        Result(String message) {
             this.message = message;
         }
     }
@@ -217,7 +208,7 @@ public class LFTest implements Comparable<LFTest> {
         /**
          * Return a thread responsible for recording the standard output stream
          * of the given process.
-         * A separate thread is used so that the activity can preempted.
+         * A separate thread is used so that the activity can be preempted.
          */
         public Thread recordStdOut(Process process) {
             return recordStream(buffer, process.getInputStream());
@@ -226,7 +217,7 @@ public class LFTest implements Comparable<LFTest> {
         /**
          * Return a thread responsible for recording the error stream of the
          * given process.
-         * A separate thread is used so that the activity can preempted.
+         * A separate thread is used so that the activity can be preempted.
          */
         public Thread recordStdErr(Process process) {
             return recordStream(buffer, process.getErrorStream());
