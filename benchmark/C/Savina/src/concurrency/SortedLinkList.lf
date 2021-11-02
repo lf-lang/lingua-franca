@@ -1,4 +1,7 @@
+ 
 /**
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
+ *
  * Upon startup, the LinkedList actor initializes a
  * link list with random elements. Upon startup the 
  * Worker actors would send either a `read` or `write`
@@ -7,50 +10,63 @@
  * if they've hit their target requests amount will 
  * send a `finish` message otherwise will continue 
  * to query the LinkList.
+ *
+ * @author Thee Ho
+ * @author Matt Chorlian
  */
 
-/* [[[cog
-# This file is a code generator using the python module cog:
-# See https://nedbatchelder.com/code/cog/
-#
-# All instructions for code  generation are in-lined in comments
-# like this one. With that you can use this file as a normal source file
-# but also to generate code.
-# 
-# To change the generated code in-line within this file run:
-# $ python -m cog -r this-file.lf
-# To generate a new file from this file stripping the generator code in the process run:
-# $ python -m cog -d -o output-file.lf this-file.lf
-#
-# Use the command line option -D to specify generator parameters, for example:
-# $ python -m cog -r -D parameter=100 this-file.lf
-#
-# Generator parameters used in this file:
-# -D num_workers=20
-# 
-]]] */
-// [[[end]]]
-
-/* [[[cog
-  # force existence, type and default values of generator parameters
-  if 'num_workers' in globals():
-    num_workers = int(num_workers)
-  else:
-    globals()['num_workers'] = 20
-  
-  # output the current value of the generator parameters used in the last generation run
-  cog.outl(f'// Generated file with the following parameters:')
-  cog.outl(f'// num_workers = {num_workers}')
-]]] */
-// Generated file with the following parameters:
-// num_workers = 20
-// [[[end]]] 
-
 target C {
-    fast: true,
-    threads: 1,
-    tracing: true
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    files: "../include/PseudoRandom.h"
 };
+
+preamble {=
+    #include "PseudoRandom.h"
+=}
+
+reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
+    input start:bool;
+    input result:bool;
+    
+    state requests_sent:int;
+    logical action request;
+    
+    output read:int;
+    output write:int;
+    output finish:bool;
+    
+    reaction(start)->request{=
+        self->requests_sent = 0;
+        schedule(request,0);
+    =}
+    reaction(request)->read, write{=
+        int coin = rand()%100;
+ 		int val = rand()%1000;
+ 		if (coin <= self->write_percentage){
+            SET(write,val);
+         //   printf("Worker %d sent write request for %d \n", self->instance, val);
+        }else{
+            SET(read,val);
+         //   printf("Worker %d sent read request for %d \n", self->instance, val);
+        }
+        self->requests_sent++;
+	=}
+	
+	reaction(result)->request,finish{=
+        if (self->requests_sent>=self->num_requests){
+            SET(finish,true);
+        }else{
+            schedule(request,0);
+        }
+    =}
+}
 
 reactor LinkedList(num_workers:int(20)){
     preamble {=
@@ -138,51 +154,15 @@ reactor LinkedList(num_workers:int(20)){
     =}
 }
 
-reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
-    input start:bool;
-    input result:bool;
-    
-    state requests_sent:int;
-    logical action request;
-    
-    output read:int;
-    output write:int;
-    output finish:bool;
-    
-    reaction(start)->request{=
-        self->instance = self->bank_index;
-        self->requests_sent = 0;
-        schedule(request,0);
-    =}
-    reaction(request)->read, write{=
-        int coin = rand()%100;
- 		int val = rand()%1000;
- 		if (coin <= self->write_percentage){
-            SET(write,val);
-         //   printf("Worker %d sent write request for %d \n", self->instance, val);
-        }else{
-            SET(read,val);
-         //   printf("Worker %d sent read request for %d \n", self->instance, val);
-        }
-        self->requests_sent++;
-	=}
-	
-	reaction(result)->request,finish{=
-        if (self->requests_sent>=self->num_requests){
-            SET(finish,true);
-        }else{
-            schedule(request,0);
-        }
-    =}
-}
-
-main reactor(num_workers:int(20),num_requests:int(8000),write_percentance:int(10)){
-	/* [[[cog
-  	  cog.outl(f'list = new LinkedList(num_workers={num_workers});')
+/* [[[cog
+  	  cog.outl(f'main reactor(numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
 	]]] */
-	list = new LinkedList(num_workers=num_workers);
-	// [[[end]]]	
-	workers = new[num_workers] Worker(num_requests=num_requests,write_percentage=write_percentance);
+    main reactor(numWorkers:int(20),numMessagesPerWorker:int(8000),writePercentance:int(10), sizePercentage:int(1))
+	// [[[end]]]
+{
+	
+	list = new LinkedList(num_workers=numWorkers);	
+	workers = new[numWorkers] Worker(num_requests=numMessagesPerWorker,write_percentage=writePercentage);
 	
 	workers.read -> list.read;
 	workers.write ->list.write;
@@ -190,7 +170,7 @@ main reactor(num_workers:int(20),num_requests:int(8000),write_percentance:int(10
 	
 	reaction(startup)->list.start, workers.start{=
         SET(list.start,true);
-        for (int i = 0; i<self->num_workers; i++){
+        for (int i = 0; i<self->numWorkers; i++){
         	SET(workers[i].start,true);
         }
     =}
