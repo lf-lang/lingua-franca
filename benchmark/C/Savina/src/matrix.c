@@ -12,8 +12,7 @@
 matrix_t mat_new_d(size_t size_x, size_t size_y) {
     double* data_d = (double*) calloc(size_x * size_y, sizeof(double));
     if (data_d == NULL) exit(EXIT_FAILURE);
-    matrix_t ret = { .size_x = size_x, .size_y = size_y, .data_d = data_d };
-    return ret;
+    return (matrix_t) { .size_x = size_x, .size_y = size_y, .data_d = data_d };
 }
 
 /*
@@ -25,8 +24,7 @@ matrix_t mat_new_d(size_t size_x, size_t size_y) {
 matrix_t mat_new_i(size_t size_x, size_t size_y) {
     int* data_i = (int*) calloc(size_x * size_y, sizeof(int));
     if (data_i == NULL) exit(EXIT_FAILURE);
-    matrix_t ret = { .size_x = size_x, .size_y = size_y, .data_i = data_i };
-    return ret;
+    return (matrix_t) { .size_x = size_x, .size_y = size_y, .data_i = data_i };
 }
 
 /*
