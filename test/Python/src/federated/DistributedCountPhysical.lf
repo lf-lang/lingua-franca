@@ -29,7 +29,7 @@ reactor Print {
     reaction(in_) {=
         elapsed_time = get_elapsed_logical_time()
         print("At time {}, received {}.".format(elapsed_time, in_.value))
-        if in.value != self.c:
+        if in_.value != self.c:
             self.sys.stderr.write("ERROR: Expected to receive {}.\n".format(self.c))        
             self.sys.exit(1)
         if not (elapsed_time > (SEC(1) * self.c) + MSEC(200)):

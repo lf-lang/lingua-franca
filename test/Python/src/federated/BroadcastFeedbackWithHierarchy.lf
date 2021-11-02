@@ -6,7 +6,7 @@ target Python {
 };
 reactor SenderAndReceiver {
     output out;
-    input[2] inp;
+    input[2] in_;
     state received(False);
     
     reaction(startup) -> out {=
@@ -14,27 +14,27 @@ reactor SenderAndReceiver {
     =}
     
     r = new Receiver();
-    inp -> r.inp;
+    in_ -> r.in_;
 }
 reactor Receiver {
     preamble {=
         import sys
     =}
-    input[2] inp;
+    input[2] in_;
     state received(False);
     
-    reaction(inp) {=
-        if inp[0].is_present and inp[1].is_present and inp[0].value == 42 and inp[1].value == 42:
+    reaction(in_) {=
+        if in_[0].is_present and in_[1].is_present and in_[0].value == 42 and in_[1].value == 42:
             print("SUCCESS")
             self.received = True
     =}
     reaction(shutdown) {=
-        if not self->received:
+        if not self.received:
             print("Failed to receive broadcast")
             self.sys.exit(1)
     =}
 }
 federated reactor {
     s = new[2] SenderAndReceiver();
-    (s.out)+ -> s.inp;
+    (s.out)+ -> s.in_;
 }

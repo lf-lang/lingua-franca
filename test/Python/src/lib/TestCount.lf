@@ -14,10 +14,10 @@ reactor TestCount(start(1), stride(1), num_inputs(1)) {
     =}
     state count(start);
     state inputs_received(0);
-    input inp;
-    reaction(inp) {=
-        print("Received {}.".format(inp.value))
-        if inp.value != self.count:
+    input in_;
+    reaction(in_) {=
+        print("Received {}.".format(in_.value))
+        if in_.value != self.count:
             print("Expected {}.".format(self.count))
             self.sys.exit(1)
         self.count += self.stride;
