@@ -572,7 +572,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (entry : reactorInstance.children.reverseView.indexed) {
 			val child = entry.value
 			// Do not render individual reactors in a bank.
-			if (child.getBankMaster() === null) {
+			if (child.getBank() === null) {
 			    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
 			    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
 			    nodes += rNodes

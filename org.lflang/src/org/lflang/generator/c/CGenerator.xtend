@@ -33,7 +33,6 @@ import java.util.Collection
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
-import java.util.List
 import java.util.Set
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -1322,7 +1321,6 @@ class CGenerator extends GeneratorBase {
     def writeRTIDockerFile(Path rtiPath, File rtiDir) {
         val dockerFileName = 'rti.Dockerfile'
         val dockerFile = rtiDir + File.separator + dockerFileName
-        var srcGenPath = fileConfig.getSrcGenPath
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
@@ -3322,32 +3320,48 @@ class CGenerator extends GeneratorBase {
                 reaction.definition
             )) {
                 for (port : reaction.effects.filter(PortInstance)) {
-                    // Skip any actual multiports if they are listed. Only count the individual ports.
-                    if (port.definition instanceof Input  && !(port.isMultiport())) {
+                    if (port.definition instanceof Input && !portsSeen.contains(port)) {
+                        portsSeen.add(port as PortInstance)
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
-                        val sourcePort = sourcePort(port)
-                        if (reactorBelongsToFederate(sourcePort.parent, federate)) {
+                        if (reactorBelongsToFederate(port.parent, federate)) {
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
-                            var multiportIndex = stackStructOperator // '.'
-                            if (sourcePort.multiportIndex >= 0) {
-                                multiportIndex = '[' + sourcePort.multiportIndex + ']->'
-                            }
-                            pr(startTimeStep, '''
-                                // Add port «sourcePort.getFullName» to array of is_present fields.
-                                _lf_is_present_fields[«startTimeStepIsPresentCount»] 
-                                        = &«containerSelfStructName»->_lf_«sourcePort.parent.name».«sourcePort.name»«multiportIndex»is_present;
-                            ''')
-                            if (isFederatedAndDecentralized) {
-                                // Intended_tag is only applicable to ports in federated execution.
+                            if (port.isMultiport) {
                                 pr(startTimeStep, '''
-                                    // Add port «sourcePort.getFullName» to array of is_present fields.
-                                    _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                            = &«containerSelfStructName»->_lf_«sourcePort.parent.name».«sourcePort.name»«multiportIndex»intended_tag;
+                                    // Add port «port.getFullName» to array of is_present fields.
+                                    for (int i = 0; i < «port.width»; i++) {
+                                        _lf_is_present_fields[«startTimeStepIsPresentCount» + i] 
+                                                = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->is_present;
+                                    }
                                 ''')
+                                if (isFederatedAndDecentralized) {
+                                    // Intended_tag is only applicable to ports in federated execution.
+                                    pr(startTimeStep, '''
+                                        // Add port «port.getFullName» to array of is_present fields.
+                                        for (int i = 0; i < «port.width»; i++) {
+                                            _lf_intended_tag_fields[«startTimeStepIsPresentCount» + i] 
+                                                    = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->intended_tag;
+                                        }
+                                    ''')
+                                }
+                                startTimeStepIsPresentCount += port.width;
+                            } else {
+                                pr(startTimeStep, '''
+                                    // Add port «port.getFullName» to array of is_present fields.
+                                    _lf_is_present_fields[«startTimeStepIsPresentCount»] 
+                                            = &«containerSelfStructName»->_lf_«port.parent.name».«port.name».is_present;
+                                ''')
+                                if (isFederatedAndDecentralized) {
+                                    // Intended_tag is only applicable to ports in federated execution.
+                                    pr(startTimeStep, '''
+                                        // Add port «port.getFullName» to array of is_present fields.
+                                        _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                                = &«containerSelfStructName»->_lf_«port.parent.name».«port.name».intended_tag;
+                                    ''')
+                                }
+                                startTimeStepIsPresentCount++
                             }
-                            startTimeStepIsPresentCount++
                         }
                     }
                 }
@@ -3355,26 +3369,27 @@ class CGenerator extends GeneratorBase {
                 // need to have their reference counts decremented.
                 for (port : reaction.sources) {
                     if (port.definition instanceof Output && !portsSeen.contains(port)) {
-                        portsSeen.add(port as PortInstance)
+                        val output = port as PortInstance;
+                        portsSeen.add(output)
                         // This reaction is receiving data from the port.
-                        if (isTokenType((port.definition as Output).inferredType)) {
-                            if (port.isMultiport()) {
+                        if (isTokenType((output.definition as Output).inferredType)) {
+                            if (output.isMultiport()) {
                                 pr(startTimeStep, '''
-                                    for (int i = 0; i < «port.width»; i++) {
+                                    for (int i = 0; i < «output.width»; i++) {
                                         _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
-                                                = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->token;
+                                                = &«containerSelfStructName»->_lf_«output.parent.name».«output.name»[i]->token;
                                         _lf_tokens_with_ref_count[«startTimeStepTokens» + i].status
-                                                = (port_status_t*)&«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->is_present;
+                                                = (port_status_t*)&«containerSelfStructName»->_lf_«output.parent.name».«output.name»[i]->is_present;
                                         _lf_tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                     }
                                 ''')
-                                startTimeStepTokens += port.width
+                                startTimeStepTokens += output.width
                             } else {
                                 pr(startTimeStep, '''
                                     _lf_tokens_with_ref_count[«startTimeStepTokens»].token
-                                            = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»->token;
+                                            = &«containerSelfStructName»->_lf_«output.parent.name».«output.name»->token;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens»].status
-                                            = (port_status_t*)&«containerSelfStructName»->_lf_«port.parent.name».«port.name»->is_present;
+                                            = (port_status_t*)&«containerSelfStructName»->_lf_«output.parent.name».«output.name»->is_present;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                                 ''')
                                 startTimeStepTokens++
@@ -3581,28 +3596,20 @@ class CGenerator extends GeneratorBase {
      * and is_present fields in a self struct that receives data from
      * the specified output port to be used by a reaction.
      * The output port is contained by a contained reactor.
-     * This will have one of the following forms:
+     * This will have the following form:
      * 
      * * selfStruct->_lf_reactorName.portName
-     * * selfStruct->_lf_reactorName.portName[i]
      * 
      * The selfStruct is that of the container of reactor that
-     * contains the port. If the port is in a multiport, then i is
-     * the index of the port within the multiport.
+     * contains the port.
      * 
      * @param port An instance of a destination port.
      */
     static def reactionReference(PortInstance port) {
-         var destStruct = selfStructName(port.parent.parent)
+        var destStruct = selfStructName(port.parent.parent)
 
-        // If the destination is in a multiport, find its index.
-        var destinationIndexSpec = ''
-        if (port.multiportIndex >= 0) {
-            destinationIndexSpec = '[' + port.multiportIndex + ']'
-        }
-                
         if (port.isOutput) {
-            return '''«destStruct»->_lf_«port.parent.name».«port.name»«destinationIndexSpec»'''
+            return '''«destStruct»->_lf_«port.parent.name».«port.name»'''
         } else {
             return '// Nothing to do. Port is an input.'
         }
@@ -3616,11 +3623,9 @@ class CGenerator extends GeneratorBase {
      * 
      * * &selfStruct->_lf_portName
      * * &selfStruct->_lf_parentName.portName
-     * * &selfStruct->_lf_portName[i]
-     * * selfStruct->_lf_parentName.portName[i]
      * 
-     * If the port depends on another port, then this will reference
-     * the eventual upstream port where the data is store. E.g., it is an input that
+     * It is assumed that the specified port is
+     * the eventual upstream port where the data is stored. E.g., it is an input that
      * connected to upstream output, then portName will be the name
      * of the upstream output and the selfStruct will be that of the
      * upstream reactor. If the port is an input port that is written to
@@ -3629,33 +3634,16 @@ class CGenerator extends GeneratorBase {
      * will the name of the port's parent.
      * If the port is an output, then selfStruct will be the parent's
      * selfStruct and the portName will be the name of the port.
-     * If the port is a multiport, then one of the last two forms will
-     * be used, where i is the index of the multiport.
      * 
      * @param port An instance of the port to be referenced.
      */
-    static def sourceReference(PortInstance port) {
-        // If the port depends on another port, find the ultimate source port,
-        // which could be the input port if it is written to by a reaction
-        // or it could be an upstream output port. 
-        var eventualSource = sourcePort(port)
-        
-        // If it is in a multiport, find its index.          
-        var sourceIndexSpec = ''
-        var indirection = '&'
-        if (eventualSource.multiportIndex >= 0) {
-            sourceIndexSpec = '[' + eventualSource.multiportIndex + ']'
-            if (eventualSource.isInput) {
-                indirection = ''
-            }
-        }
-                
-        if (eventualSource.isOutput) {
-            val sourceStruct = selfStructName(eventualSource.parent)
-            return '''«indirection»«sourceStruct»->_lf_«eventualSource.name»«sourceIndexSpec»'''
+    static def sourceReference(PortInstance port) {                
+        if (port.isOutput()) {
+            val sourceStruct = selfStructName(port.parent);
+            return '''«sourceStruct»->_lf_«port.name»'''
         } else {
-            val sourceStruct = selfStructName(eventualSource.parent.parent)
-            return '''«indirection»«sourceStruct»->_lf_«eventualSource.parent.name».«eventualSource.name»«sourceIndexSpec»'''
+            val sourceStruct = selfStructName(port.parent.parent)
+            return '''«sourceStruct»->_lf_«port.parent.name».«port.name»'''
         }
     }
 
@@ -3990,19 +3978,24 @@ class CGenerator extends GeneratorBase {
         for (output : instance.outputs) {
             if (federate === null || federate.containsPort(output.definition)) {
                 if (output.isMultiport()) {
-                    var j = 0
-                    for (multiportInstance : output.instances) {
-                        var numDestinations = multiportInstance.numDestinationReactors
-                        pr(initializeTriggerObjectsEnd, '''
-                            «nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
-                        ''')
-                        j++
+                    // Output multiports may have a different number of destinations for each channel!
+                    // This is pretty horrifically complicated.
+                    val eventualDestinations = output.eventualDestinations();
+                    for (destinations: eventualDestinations) {
+                        for (destination: destinations.destinations) {
+                            pr(initializeTriggerObjectsEnd, '''
+                                for (int i = 0; i < «destination.channelWidth»; i++) {
+                                    «nameOfSelfStruct»->_lf_«output.name»[«destinations.startChannel» + i].num_destinations» = «destinations.destinations.size()»;
+                                }
+                            ''')
+                        }
                     }
                 } else {
                     var numDestinations = output.numDestinationReactors
                     pr(initializeTriggerObjectsEnd, '''
                         «nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»''', "num_destinations")» = «numDestinations»;
                     ''')
+                    
                 }
             }
         }
@@ -4192,15 +4185,15 @@ class CGenerator extends GeneratorBase {
                 // Create the entry in the output_produced array for this port.
                 // If the port is a multiport, then we need to create an entry for each
                 // individual port.
-                if (effect.getMultiportInstance() !== null && !handledMultiports.contains(effect.getMultiportInstance())) {
-                    // The effect is a port within a multiport that has not been handled yet.
-                    handledMultiports.add(effect.getMultiportInstance());
+                if (effect.isMultiport() && !handledMultiports.contains(effect)) {
+                    // The effect is a multiport that has not been handled yet.
+                    handledMultiports.add(effect);
                     var allocate = false
-                    if (!portAllocatedAlready.contains(effect.getMultiportInstance())) {
+                    if (!portAllocatedAlready.contains(effect)) {
                         // Prevent allocating memory more than once for the same port.
                         // It may have been allocated by a previous reaction that also
                         // has this port as an effect.
-                        portAllocatedAlready.add(effect.getMultiportInstance())
+                        portAllocatedAlready.add(effect)
                         allocate = true
                     }
                     // Allocate memory where the data produced by the reaction will be stored
@@ -4217,7 +4210,7 @@ class CGenerator extends GeneratorBase {
                         )
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«effect.name»_width = «effect.getMultiportInstance().width»;
+                                «nameOfSelfStruct»->_lf_«effect.name»_width = «effect.width»;
                                 // Allocate memory to store output of reaction.
                                 «nameOfSelfStruct»->_lf_«effect.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«effect.name»_width,
                                     sizeof(«portStructType»)); 
@@ -4230,7 +4223,7 @@ class CGenerator extends GeneratorBase {
                             ''')
                         }
                         pr(initialization, '''
-                            for (int i = 0; i < «effect.getMultiportInstance().width»; i++) {
+                            for (int i = 0; i < «effect.width»; i++) {
                                 «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
                                         = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.name»[i]''', "is_present")»;
                             }
@@ -4242,7 +4235,7 @@ class CGenerator extends GeneratorBase {
                             effect.parent.definition.reactorClass)
                         if (allocate) {
                             pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width = «effect.getMultiportInstance().width»;
+                                «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width = «effect.width»;
                                 // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
                                 «nameOfSelfStruct»->_lf_«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
                                     * «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width);
@@ -4258,8 +4251,8 @@ class CGenerator extends GeneratorBase {
                             }
                         ''')
                     }
-                    outputCount += effect.getMultiportInstance().getWidth();
-                } else if (effect.getMultiportInstance() === null && !(effect.isMultiport())) {
+                    outputCount += effect.getWidth();
+                } else if (!effect.isMultiport()) {
                     // The effect is not a multiport nor a port contained by a multiport.
                     if (effect.parent === reaction.parent) {
                         // The port belongs to the same reactor as the reaction.
@@ -5168,155 +5161,97 @@ class CGenerator extends GeneratorBase {
         connectInputsToOutputs(main, federate)
     }
 
-    /** Generate assignments of pointers in the "self" struct of a destination
-     *  port's reactor to the appropriate entries in the "self" struct of the
-     *  source reactor.
-     *  @param instance The reactor instance.
-     *  @param federate The federate for which we are generating code or null
-     *   if there is no federation.
+    /**
+     * Generate assignments of pointers in the "self" struct of a destination
+     * port's reactor to the appropriate entries in the "self" struct of the
+     * source reactor.
+     * @param instance The reactor instance.
+     * @param federate The federate for which we are generating code or null
+     *  if there is no federation.
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
         if (!reactorBelongsToFederate(instance, federate)) {
             return;
         }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
-        // For destinations that are multiports, need to count channels
-        // in case there is more than one connection.
-        var destinationChannelCount = new LinkedHashMap<PortInstance,Integer>()
-        for (source : instance.destinations.keySet) {
-            // If the source is an input port, find the ultimate source,
-            // which could be the input port if it is written to by a reaction
-            // or it could be an upstream output port. 
-            var eventualSource = sourcePort(source)
+        // Iterate over all ports in this reactor that are sources of connections given
+        // in this reactor. These may be input ports of the instance or output ports
+        // of contained reactors.
+        for (source : instance.sources) {
+            // Find the sources that send data to this port,
+            // which could be the same port if it is an input port written to by a reaction
+            // or it could be an upstream output port.
+            // If the port is a multiport, then there may be multiple sources covering
+            // the range of channels.
+            val eventualSources = source.eventualSources();
             
-            // We assume here that all connections across federates have been
-            // broken and replaced by reactions handling the communication.
-            // Moreover, if the eventual source is an input and it is NOT
-            // written to by a reaction, then it is dangling, so we skip it.
-            if (reactorBelongsToFederate(eventualSource.parent, federate)
-                && (eventualSource.isOutput
-                || eventualSource.dependsOnReactions.size > 0)
-            ) {
-                val destinations = instance.destinations.get(source)
-                // For multiports, need to count the channels in case there are multiple
-                // destinations.
-                var sourceChannelCount = 0
-                for (destination : destinations) {
-                    // Check to see if the destination reactor belongs to the federate.
-                    if (reactorBelongsToFederate(destination.parent, federate)) {
-                        // If the destination is an output, then skip this step.
-                        // Outputs are handled by finding the transitive closure
-                        // (finding the eventual inputs).
-                        if (destination.isInput) {
-                            var comment = ''
-                            if (source !== eventualSource) {
-                                comment = ''' (eventual source is «eventualSource.getFullName»)'''
-                            }
-                            val destStructType = variableStructType(
-                                destination.definition as TypedVariable,
-                                destination.parent.definition.reactorClass
-                            )
-                            // There are four cases, depending on whether the source or
-                            // destination or both are multiports.
-                            if (eventualSource.isMultiport()) {
-                                // Source is a multiport. 
-                                // Number of available channels:
-                                var width = eventualSource.width - sourceChannelCount
-                                // If there are no more available channels, there is nothing to do.
-                                if (width > 0) {
-                                    if (destination.isMultiport()) {
-                                        // Source and destination are both multiports.
-                                        // First, get the first available destination channel.
-                                        var destinationChannel = destinationChannelCount.get(destination)
-                                        if (destinationChannel === null) {
-                                            destinationChannel = 0
-                                            destinationChannelCount.put(destination, width) // FIXME FIXME: Bug in master? Was 1.
-                                        } else {
-                                            // Add the width of the source to the index of the destination's
-                                            // next available channel. This may be out of bounds for the
-                                            // destination.
-                                            destinationChannelCount.put(destination, destinationChannel + width)
-                                        }
-                                        // There will be nothing to do if the destination channel index
-                                        // is out of bounds.
-                                        if (destinationChannel < destination.width) {
-                                            // There is at least one available channel at the destination.
-                                            // The number of connections now will be the minimum of the
-                                            // source width and the number of remaining channels at the
-                                            // destination.
-                                            if (destination.width - destinationChannel < width) {
-                                                width = destination.width - destinationChannel
-                                            }
-                                            // Finally, we can generate the code to make the connections.
+            for (eventualSource: eventualSources) {
+            
+                val src = eventualSource.portInstance;
+                if (reactorBelongsToFederate(src.parent, federate)) {
+                    // The eventual source is in the federate.
+                    val destinations = src.eventualDestinations
+                    // Multiport connections may be divided up into channel ranges.
+                    for (sourceChannelRange : destinations) {
+                        for (destination : sourceChannelRange.destinations) {
+                            val dst = destination.portInstance;
+                            // Check to see if the destination reactor belongs to the federate.
+                            if (reactorBelongsToFederate(dst.parent, federate)) {
+                                // If the destination is an output, then skip this step.
+                                // Outputs are handled by finding the transitive closure
+                                // (finding the eventual inputs).
+                                if (dst.isInput) {
+                                    var comment = ''
+                                    if (source != src) {
+                                        comment = ''' (eventual source is «src.getFullName»)'''
+                                    }
+                                    val destStructType = variableStructType(
+                                        dst.definition as TypedVariable,
+                                        dst.parent.definition.reactorClass
+                                    )
+                                    // There are four cases, depending on whether the source or
+                                    // destination or both are multiports.
+                                    if (src.isMultiport()) {
+                                        if (dst.isMultiport()) {
+                                            // Source and destination are both multiports.
                                             pr('''
-                                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                                int j = «sourceChannelCount»;
-                                                for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
-                                                    «destinationReference(destination)»[i]
-                                                        = («destStructType»*)«sourceReference(eventualSource)»[j++];
+                                                // Connect «src.getFullName»«comment» to input port «dst.getFullName»
+                                                int j = «sourceChannelRange.startChannel»;
+                                                for (int i = «destination.startChannel»; i < «destination.startChannel» + «destination.channelWidth»; i++) {
+                                                    «destinationReference(dst)»[i]
+                                                        = («destStructType»*)«sourceReference(src)»[j++];
                                                 }
                                             ''')
-                                            sourceChannelCount += width
                                         } else {
+                                            // Source is a multiport, destination is a single port.
                                             pr('''
-                                                // No destination channels available for connection from
-                                                // «source.getFullName»«comment» to input port «destination.getFullName».
+                                                // Connect «src.getFullName»«comment» to input port «dst.getFullName»
+                                                «destinationReference(dst)»
+                                                        = («destStructType»*)«sourceReference(src)»[«sourceChannelRange.startChannel»];
                                             ''')
                                         }
-                                    } else {
-                                        // Source is a multiport, destination is a single port.
+                                    } else if (dst.isMultiport()) {
+                                        // Source is a single port, Destination is a multiport.
                                         pr('''
-                                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                            «destinationReference(destination)»
-                                                    = («destStructType»*)«sourceReference(eventualSource)»[«sourceChannelCount»];
+                                            // Connect «src.getFullName»«comment» to input port «dst.getFullName»
+                                            «destinationReference(dst)»[«destination.startChannel»]
+                                                    = («destStructType»*)«sourceReference(src)»;
                                         ''')
-                                        sourceChannelCount++
+                                    } else {
+                                        // Both ports are single ports.
+                                        pr('''
+                                            // Connect «src.getFullName»«comment» to input port «dst.getFullName»
+                                            «destinationReference(dst)» = («destStructType»*)«sourceReference(src)»;
+                                        ''')
                                     }
-                                } else {
-                                    pr('''
-                                        // No source channels available for connection from
-                                        // «source.getFullName»«comment» to input port «destination.getFullName».
-                                    ''')
                                 }
-                            } else if (destination.isMultiport()) {
-                                // Source is a single port, Destination is a multiport.
-                                // First, get the first available destination channel.
-                                var destinationChannel = destinationChannelCount.get(destination)
-                                if (destinationChannel === null) {
-                                    destinationChannel = 0
-                                    destinationChannelCount.put(destination, 1)
-                                } else {
-                                    // Add the width of the source to the index of the destination's
-                                    // next available channel. This may be out of bounds for the
-                                    // destination.
-                                    destinationChannelCount.put(destination, destinationChannel + 1)
-                                }
-                                // There will be nothing to do if the destination channel index
-                                // is out of bounds.
-                                if (destinationChannel < destination.width) {
-                                    pr('''
-                                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                        «destinationReference(destination)»[«destinationChannel»]
-                                                = («destStructType»*)«sourceReference(eventualSource)»;
-                                    ''')
-                                } else {
-                                    pr('''
-                                        // No destination channels available for connection from
-                                        // «source.getFullName»«comment» to input port «destination.getFullName».
-                                    ''')
-                                }
-                            } else {
-                                // Both ports are single ports.
-                                pr('''
-                                    // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                    «destinationReference(destination)» = («destStructType»*)«sourceReference(eventualSource)»;
-                                ''')
                             }
                         }
                     }
                 }
             }
         }
+        
 
         for (child : instance.children) {
             // In case this is a composite, recurse.
@@ -5375,59 +5310,48 @@ class CGenerator extends GeneratorBase {
                     // of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
                     if (reactorBelongsToFederate(port.parent, federate)) {
+                        val destStructType = variableStructType(
+                            port.definition as TypedVariable,
+                            port.parent.definition.reactorClass
+                        )
                         // The port may be deeper in the hierarchy.
-                        // Have to check for each instance port if it's a multiport.
-                        if (port.isMultiport()) {
-                            val sourcePorts = sourcePorts(port)
-                            for (instancePort : port.instances) {
-                                val eventualPort = sourcePort(instancePort)
-                                val destStructType = variableStructType(
-                                    instancePort.definition as TypedVariable,
-                                    instancePort.parent.definition.reactorClass
-                                )
-                                if (!(eventualPort.isMultiport())) {
-                                    pr('''
-                                        // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
-                                        // of «instance.getFullName», on its self struct.
-                                        «reactionReference(instancePort)» = («destStructType»*)«sourceReference(eventualPort)»;
-                                    ''')
-                                } else {
-                                    pr('''
-                                        // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
-                                        // of «instance.getFullName», on its self struct.
-                                        for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
-                                            «reactionReference(instancePort)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
-                                        }
-                                    ''')
-                                }
-                            }
-                        } else {
-                            // The port is not a multiport, so the following list should have
-                            // at most one element.
-                            val eventualPorts = sourcePorts(port)
-                            if (eventualPorts.size >= 1) {
-                                val eventualPort = eventualPorts.get(0)
-                                val destStructType = variableStructType(
-                                    port.definition as TypedVariable,
-                                    port.parent.definition.reactorClass
-                                )
-                                if (!(eventualPort.isMultiport())) {
-                                    pr('''
-                                        // Record output «eventualPort.getFullName», which triggers reaction «reaction.reactionIndex»
-                                        // of «instance.getFullName», on its self struct.
-                                        «reactionReference(port)» = («destStructType»*)«sourceReference(eventualPort)»;
-                                    ''')
-                                } else {
-                                    // FIXME: Doesn't look right. port is not a multiport.
-                                    pr('''
-                                        for (int i = 0; i < «reactionReference(eventualPort)»_width; i++) {
-                                            «reactionReference(port)»[i] = («destStructType»*)«sourceReference(eventualPort)»[i];
-                                        }
-                                    ''')
-                                }
+                        var portChannelCount = 0;
+                        for (eventualSource: port.eventualSources()) {
+                            val sourcePort = eventualSource.portInstance
+                            if (sourcePort.isMultiport && port.isMultiport) {
+                                // Both source and destination are multiports.
+                                pr('''
+                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                    // of «instance.getFullName», on its self struct.
+                                    for (int i = 0; i < «eventualSource.channelWidth»; i++) {
+                                        «reactionReference(port)»[i + «portChannelCount»] = («destStructType»*)«sourceReference(sourcePort)»[i + «eventualSource.startChannel»];
+                                    }
+                                ''')
+                                portChannelCount += eventualSource.channelWidth;
+                            } else if (sourcePort.isMultiport) {
+                                // Destination is not a multiport, so the channelWidth of the source port should be 1.
+                                pr('''
+                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                    // of «instance.getFullName», on its self struct.
+                                    «reactionReference(port)» = («destStructType»*)«sourceReference(sourcePort)»[«eventualSource.startChannel»];
+                                ''')
+                                portChannelCount++;
+                            } else if (port.isMultiport) {
+                                // Source is not a multiport, but the destination is.
+                                pr('''
+                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                    // of «instance.getFullName», on its self struct.
+                                    «reactionReference(port)»[«portChannelCount»] = («destStructType»*)«sourceReference(sourcePort)»;
+                                ''')
+                                portChannelCount++;
                             } else {
-                                // FIXME: Dangling output of contained reactor.
-                                // What should we do here?
+                                // Neither is a multiport.
+                                pr('''
+                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
+                                    // of «instance.getFullName», on its self struct.
+                                    «reactionReference(port)» = («destStructType»*)«sourceReference(sourcePort)»;
+                                ''')
+                                portChannelCount++;
                             }
                         }
                     }
@@ -5436,33 +5360,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /**
-     * Given a port instance, if it receives its data from one or more reactions
-     * somewhere up or down in the hierarchy, return the ports to which those reactions
-     * actually write.  If it is a multiport, the returned list may have more than
-     * one port, and those ports may themselves be multiports. The returned list will
-     * contain only this same port if the port's parent's parent's reaction
-     * writes directly to this port, but if this port is deeper in the hierarchy,
-     * then the returned list will contain ports belonging to highest parent of this
-     * port where the parent is contained by the same reactor whose reaction writes
-     * to this port.  This method is useful to find the name of the items on the self
-     * struct of the reaction's parent that contain the value being sent
-     * and its is_present variable.
-     * @param port The input port instance.
-     */
-    private static def List<PortInstance> sourcePorts(PortInstance port) {
-        // If the port depends on reactions, then this is the port we are looking for.
-        if (port.dependsOnReactions.size > 0) return List.of(port)
-        if (port.dependsOnPorts.size == 0) return List.of(port)
-        // If we get here, then this port is fed data from other ports.
-        // Find the sources for those port.
-        val result = new ArrayList<PortInstance>;
-        for (dependsOnPort : port.dependsOnPorts) {
-            result.addAll(sourcePorts(dependsOnPort));
-        }
-        return result
-    }
-
     /** Generate action variables for a reaction.
      *  @param builder The string builder into which to write the code.
      *  @param action The action.

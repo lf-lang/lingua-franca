@@ -111,8 +111,8 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
             if (effect instanceof PortInstance) {
                 addEdge(effect, reaction);
                 PortInstance orig = (PortInstance) effect;
-                orig.dependentPorts().forEach(dest -> {
-                    recordDependency(reaction, orig, dest);
+                orig.getDependentPorts().forEach(dest -> {
+                    recordDependency(reaction, orig, dest.getPortInstance());
                 });
             }
         }
@@ -132,7 +132,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
                 addEdge(reaction, source);
                 PortInstance dest = (PortInstance) source;
                 dest.getDependsOnPorts().forEach(orig -> {
-                    recordDependency(reaction, orig, dest);
+                    recordDependency(reaction, orig.getPortInstance(), dest);
                 });
             }
         }

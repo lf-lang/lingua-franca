@@ -1667,16 +1667,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         PortInstance source, FederateInstance leftFederate, ReactorInstance federate, ReactorInstance mainInstance
     ) {
         for (destination : source.dependentPorts) {
-            // assume the destination is a single port instance, not a multiport.
+            val dst = destination.portInstance
+            // Assume the destination is a single port instance, not a multiport.
             // There shouldn't be any outputs in the destination list
             // because these would be outputs of the top level.
             // But if there are, ignore them.
-            if (destination.isInput) {
-                val parentBankIndex = (destination.parent.bankIndex >= 0) ? destination.parent.bankIndex : 0
-                val rightFederate = federatesByInstantiation.get(destination.parent.definition).get(parentBankIndex);
+            if (dst.isInput) {
+                val parentBankIndex = (dst.parent.bankIndex >= 0) ? dst.parent.bankIndex : 0
+                val rightFederate = federatesByInstantiation.get(dst.parent.definition).get(parentBankIndex);
 
                 // Set up dependency information.
-                var connection = mainInstance.getConnection(source, destination)
+                var connection = mainInstance.getConnection(source, dst)
                 if (connection === null) {
                     // This should not happen.
                     errorReporter.reportError(source.definition, "Unexpected error. Cannot find connection for port")
@@ -1710,13 +1711,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
 
                     FedASTUtils.makeCommunication(
                         source,
-                        destination,
+                        dst,
                         connection,
                         leftFederate,
                         federate.bankIndex,
                         -1,  // FIXME: Used to be source.index. Fed won't work with multiports now.
                         rightFederate,
-                        destination.parent.bankIndex,
+                        dst.parent.bankIndex,
                         -1,  // FIXME: Used to be destination.index. Fed won't work with multiports now.
                         this,
                         targetConfig.coordination

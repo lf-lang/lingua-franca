@@ -134,6 +134,30 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public methods.
 
     /**
+     * Returns the size of the bank that this reactor represents or
+     * 0 if this reactor does not represent a bank.
+     */
+    public int bankSize() {
+        if (bankMembers != null) {
+            return bankMembers.size();
+        }
+        return 0;
+    }
+
+    /**
+     * Return the destinations of the specified port.
+     * The result is a set (albeit an ordered set) of ports that are destinations
+     * in connections. This will return null if the source has no destinations.
+     */
+    public Set<PortInstance> destinations(PortInstance source) {
+        Map<PortInstance, Connection> map = connectionTable.get(source);
+        if (map != null) {
+            return map.keySet();
+        }
+        return null;
+    }
+    
+    /**
      * If this reactor is in a bank of reactors, then return
      * the reactor instance defining the bank. Otherwise, return null.
      */
@@ -156,6 +180,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public List<ReactorInstance> getBankMembers() {
         return bankMembers;
     }
+
+    /** 
+     * Return the instance of a child rector created by the specified
+     * definition or null if there is none.
+     * @param definition The definition of the child reactor ("new" statement).
+     */
+    public ReactorInstance getChildReactorInstance(Instantiation definition) {
+        for (ReactorInstance child : this.children) {
+            if (child.definition == definition) {
+                return child;
+            }
+        }
+        return null;
+    }
+
     /**
      * Return the Connection that created the link between the specified source
      * and destination, or null if there is no such link.
@@ -246,6 +285,36 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
         return shutdownTrigger;
+    }
+    
+    /** 
+     * Return the trigger instances (input ports, timers, and actions
+     * that trigger reactions) belonging to this reactor instance.
+     */
+    public Set<TriggerInstance<? extends Variable>> getTriggers() {
+        // FIXME: Cache this.
+        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>();
+        for (ReactionInstance reaction : this.reactions) {
+            triggers.addAll(reaction.triggers);
+        }
+        return triggers;
+    }
+
+    /** 
+     * Return the trigger instances (input ports, timers, and actions
+     * that trigger reactions) together the ports that the reaction reads
+     * but that don't trigger it.
+     * 
+     * @return The trigger instances belonging to this reactor instance.
+     */
+    public Set<TriggerInstance<? extends Variable>> getTriggersAndReads() {
+        // FIXME: Cache this.
+        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>();
+        for (ReactionInstance reaction : this.reactions) {
+            triggers.addAll(reaction.triggers);
+            triggers.addAll(reaction.reads);
+        }
+        return triggers;
     }
     
     /**
@@ -465,6 +534,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /**
+     * Return the set of ports in that are sources in connections in this reactor.
+     * These may be input ports of this reactor or output ports of contained reactors.
+     */
+    public Set<PortInstance> sources() {
+        return connectionTable.keySet();
+    }
+
     /** 
      * Return a descriptive string.
      */
@@ -566,7 +643,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** The shutdown trigger. Null if not used in any reaction. */
     protected TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null;
 
-    /** Table recording which connection created a link between a source and destination. */
+    /** 
+     * Table recording connections and which connection created a link between 
+     * a source and destination. Use a source port as a key to obtain a Map.
+     * The key set of the obtained Map is the set of destination ports.
+     * The value of the obtained Map is the connection that established the
+     * connection.
+     */
     protected Map<PortInstance, Map<PortInstance, Connection>> connectionTable 
             = new LinkedHashMap<PortInstance, Map<PortInstance, Connection>>();
 
@@ -607,20 +690,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /** 
-     * Return the instance of a child rector created by the specified
-     * definition or null if there is none.
-     * @param definition The definition of the child reactor ("new" statement).
-     */
-    protected ReactorInstance getChildReactorInstance(Instantiation definition) {
-        for (ReactorInstance child : this.children) {
-            if (child.definition == definition) {
-                return child;
-            }
-        }
-        return null;
-    }
-
     /**
      * Returns the startup trigger or create a new one if none exists.
      */
@@ -641,36 +710,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
         }
         return shutdownTrigger;
-    }
-    
-    /** 
-     * Return the trigger instances (input ports, timers, and actions
-     * that trigger reactions) belonging to this reactor instance.
-     */
-    protected Set<TriggerInstance<? extends Variable>> getTriggers() {
-        // FIXME: Cache this.
-        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>();
-        for (ReactionInstance reaction : this.reactions) {
-            triggers.addAll(reaction.triggers);
-        }
-        return triggers;
-    }
-
-    /** 
-     * Return the trigger instances (input ports, timers, and actions
-     * that trigger reactions) together the ports that the reaction reads
-     * but that don't trigger it.
-     * 
-     * @return The trigger instances belonging to this reactor instance.
-     */
-    protected Set<TriggerInstance<? extends Variable>> getTriggersAndReads() {
-        // FIXME: Cache this.
-        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>();
-        for (ReactionInstance reaction : this.reactions) {
-            triggers.addAll(reaction.triggers);
-            triggers.addAll(reaction.reads);
-        }
-        return triggers;
     }
     
     /** 
@@ -933,15 +972,25 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * These may be multiports.
      * @param connection The connection statement creating this connection.
      * @param srcInstance The source instance (the left port).
+     * @param srcChannel The starting channel number for the source.
      * @param dstInstance The destination instance (the right port).
+     * @param dstChannel The starting channel number for the destination.
+     * @param width The width of this connection.
      */
     private void connectPortInstances(
             Connection connection, 
-            PortInstance srcInstance, 
-            PortInstance dstInstance
+            PortInstance srcInstance,
+            int srcChannel,
+            PortInstance dstInstance,
+            int dstChannel,
+            int width
     ) {
-        srcInstance.addDependentPort(dstInstance);
-        dstInstance.dependsOnPorts.add(srcInstance);
+        PortInstance.PortChannelRange dstRange = dstInstance.newRange(dstChannel, width);
+        srcInstance.dependentPorts.add(dstRange);
+        
+        PortInstance.PortChannelRange srcRange = srcInstance.newRange(srcChannel, width);
+        dstInstance.dependsOnPorts.add(srcRange);
+        
         // Record the connection in the connection table.
         // Original cryptic xtend code:
         // this.destinations.compute(srcInstance, [key, set| CollectionUtil.plus(set, dstInstance)])
@@ -1037,7 +1086,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 while (rightChannel < rightPortInstance.width) {
                     if (leftPortIndex < leftPortInstances.size()) {
                         PortInstance leftPortInstance = leftPortInstances.get(leftPortIndex);
-                        connectPortInstances(connection, leftPortInstance, rightPortInstance);
                     
                         // Figure out how much of each port we have used (in case it is a multiport).
                         // First, find the minimum of the two remaining widths.
@@ -1045,6 +1093,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         if (rightPortInstance.width - rightChannel < connectionWidth) {
                             connectionWidth = rightPortInstance.width - rightChannel;
                         }
+                        connectPortInstances(
+                                connection, 
+                                leftPortInstance, leftChannel, 
+                                rightPortInstance, rightChannel, 
+                                connectionWidth);
                         leftChannel += connectionWidth;
                         rightChannel += connectionWidth;
                         if (leftChannel >= leftPortInstance.width) {
