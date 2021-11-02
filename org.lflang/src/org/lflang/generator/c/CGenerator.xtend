@@ -587,14 +587,14 @@ class CGenerator extends GeneratorBase {
                     // Update the cmake-include
                     TargetProperty.updateOne(
                         this.targetConfig, 
-                        TargetProperty.CMAKE_INCLUDE.description,
+                        TargetProperty.CMAKE_INCLUDE,
                         target.config.pairs ?: emptyList,
                         errorReporter
                     )
                     // Update the files
                     TargetProperty.updateOne(
                         this.targetConfig, 
-                        TargetProperty.FILES.description,
+                        TargetProperty.FILES,
                         target.config.pairs ?: emptyList,
                         errorReporter
                     )
