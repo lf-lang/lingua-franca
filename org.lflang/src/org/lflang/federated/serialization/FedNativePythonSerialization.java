@@ -94,6 +94,7 @@ public class FedNativePythonSerialization implements FedSerialization {
         deserializerCode.append("PyObject* message_byte_array = "+
                 "PyBytes_FromStringAndSize((char*)"+varName+"->token->value, "+varName+"->token->length);\n");
         // Deserialize using Pickle
+        deserializerCode.append("Py_XINCREF(message_byte_array);\n");
         deserializerCode.append("PyObject* "+deserializedVarName+
                 " = PyObject_CallMethod(global_pickler, \"loads\", \"O\", message_byte_array);\n");
         // Error check
@@ -101,6 +102,9 @@ public class FedNativePythonSerialization implements FedSerialization {
         deserializerCode.append("    if (PyErr_Occurred()) PyErr_Print();\n");
         deserializerCode.append("    error_print_and_exit(\"Could not deserialize "+deserializedVarName+".\");\n");
         deserializerCode.append("}\n");
+        
+        // Decrment the reference count
+        deserializerCode.append("Py_XDECREF(message_byte_array);\n");
         
         return deserializerCode;
     }
