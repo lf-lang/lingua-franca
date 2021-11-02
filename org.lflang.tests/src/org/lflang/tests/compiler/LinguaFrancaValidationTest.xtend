@@ -174,29 +174,6 @@ class LinguaFrancaValidationTest {
     }
     
 
-    @Test
-    def void warnIfThereIsAPhysicalActionButNoExplicitKeepalive() {
-        parseWithoutError('''
-            target C;
-            main reactor {
-                physical action act;
-                reaction(startup) {= /*...*/ =}
-            }
-        ''').assertWarning(LfPackage::eINSTANCE.action, null,
-            "Setting keepalive to true because of key_press. This can be overridden")
-    }
-
-    @Test
-    def void noKeepaliveWarningInRustTarget() {
-        parseWithoutError('''
-            target Rust;
-            main reactor {
-                physical action act;
-                reaction(startup) {= /*...*/ =}
-            }
-        ''').assertNoIssues()
-    }
-
     /**
      * Ensure that "__" is not allowed at the start of an output name.
      */
