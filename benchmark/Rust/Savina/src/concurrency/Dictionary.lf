@@ -24,14 +24,16 @@
  */
 
 target Rust {
-//    build-type: RelWithDebInfo,
-    build-type: Debug,
+    build-type: Release,
     rust-include: [ "dictionary_support.rs" ],
     cargo-features: [ "cli" ],
     cargo-dependencies: {
         rand: {
             version: "0.8",
             features: ["small_rng"],
+        },
+        reactor_rt: {
+            features: ["parallel-runtime"]
         },
     }
 };
@@ -43,11 +45,12 @@ reactor DictionaryImpl(num_workers: usize(20)) {
     preamble {=
         use crate::dictionary_support::*;
         use std::collections::HashMap;
+        use std::convert::TryInto;
     =}
 
     state num_workers(num_workers);
     state data_map: HashMap<u32, u32>;
-    state answers_to_send: Vec<Option<u32>> ({= vec![ None ; num_workers ] =});
+    state answers_to_send: Vec<i32> ({= vec![ -1 ; num_workers ] =});
 
     // Having the action in the dictionary is faster... (this is a c++ comment)
     logical action send_answers: {= () =};
@@ -58,7 +61,7 @@ reactor DictionaryImpl(num_workers: usize(20)) {
     // @label send_answers
     reaction(send_answers) -> response {=
         for i in 0..self.num_workers {
-            if let Some(answer) = (&mut self.answers_to_send[i]).take() {
+             if let Ok(answer) = self.answers_to_send[i].try_into() {
                 ctx.set(response.get(i), answer);
             }
         }
@@ -73,7 +76,7 @@ reactor DictionaryImpl(num_workers: usize(20)) {
                 match msg {
                     Message::Write { key, value } => {
                         self.data_map.insert(*key, *value);
-                        self.answers_to_send[i] = Some(*value);
+                        self.answers_to_send[i] = (*value).try_into().unwrap_or(-1);
                         info!("Worker {} writes {} to key {}", i, value, key);
                     },
                     Message::Read { key } => {
@@ -83,8 +86,8 @@ reactor DictionaryImpl(num_workers: usize(20)) {
 
                         // todo wat? does the savina impl insert a new (key->null) mapping or just return null?
 
-                        let value = self.data_map.get(key).cloned();
-                        self.answers_to_send[i] = value;
+                        let value = self.data_map.entry(*key).or_insert(0);
+                        self.answers_to_send[i] = (*value).try_into().unwrap_or(-1);
                         info!("Worker {} reads key {}; response is {:?}", i, key, value);
                     },
                 }
