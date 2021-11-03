@@ -186,6 +186,11 @@ reactor ChameneosMallReactor(numMeetings:int(200000), numChameneos:int(5)) {
         }        
         schedule(pairChameneos, 0);
     =}
+    
+    reaction(shutdown) {=
+         // clean up local state
+         free(self->messages);
+    =}
 }
 
 reactor ChameneosChameneoReactor(bank_index:int(0), numChameneos:size_t(5)) {
