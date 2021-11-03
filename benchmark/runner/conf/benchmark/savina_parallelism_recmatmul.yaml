@@ -36,3 +36,16 @@ targets:
       block_threshold: ["--blockThreshold", "<value>"]
       priorities: ["--priorities", "<value>"]
       workers: ["--numWorkers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism/MatMul.lf"
+      - "${lf_path}/benchmark/C/Savina/src/lib/matrix.c"
+      - "${lf_path}/benchmark/C/Savina/src/lib/matrix.cmake"
+      - "${lf_path}/benchmark/C/Savina/src/include/matrix.h"
+    lf_file: "MatMul.lf"
+    binary: "MatMul"
+    gen_args:
+      data_length: ["-D", "data_length=<value>"]
+      block_threshold: ["-D", "block_threshold=<value>"]
+      priorities: ["-D", "priorities=<value>"]
+      workers: ["-D", "num_workers=<value>"]
