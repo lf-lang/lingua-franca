@@ -29,7 +29,8 @@
 
 
 target Cpp {
-    build-type : RelWithDebInfo
+    build-type : RelWithDebInfo,
+    logging : warn
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -112,7 +113,7 @@ reactor ChameneosMallReactor(numMeetings:int(200000), numChameneos:int(5)) {
                         waitingChameneoIndex = i;
                     } else {
                         meetings -= 1;
-                        reactor::log::Debug() << "setting up meeting " << meetings << " between: " << waitingChameneoIndex << ", " << i;
+                        reactor::log::Info() << "setting up meeting " << meetings << " between: " << waitingChameneoIndex << ", " << i;
                         outChameneos[waitingChameneoIndex].set(messages[i]);
                         messages[waitingChameneoIndex] = nullptr;
                         messages[i] = nullptr;
