@@ -30,6 +30,14 @@
 
 
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     logging: warn
 }
 
@@ -244,8 +252,11 @@ reactor ChameneosChameneoReactor(bank_index:int(0), numChameneos:size_t(5)) {
     
 }
 
-main reactor (numIterations:int(12), numMeetings:int(200000), numChameneos:size_t(5)) {
-    
+/* [[[cog
+cog.outl(f"main reactor (numMeetings:int({numMeetings}), numChameneos:size_t({numChameneos})) {{")
+]]] */
+main reactor (numMeetings:int(200000), numChameneos:size_t(5)) {
+//[[[end]]]    
     mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=numChameneos);
     
     chameneos = new[numChameneos] ChameneosChameneoReactor(numChameneos=numChameneos);
