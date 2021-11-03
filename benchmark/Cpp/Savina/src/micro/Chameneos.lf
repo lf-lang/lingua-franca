@@ -262,7 +262,7 @@ reactor ChameneosChameneoReactor(bank_index:int(0), numChameneos:size_t(5)) {
 
 
 
-main reactor (numIterations:int(12), numMeetings:int(200000), numChameneos:size_t(5)) {
+main reactor (numIterations:int(12), numMeetings:int(200000), numChameneos:size_t(100)) {
     
     mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=numChameneos);
     runner = new BenchmarkRunner(numIterations=numIterations);
