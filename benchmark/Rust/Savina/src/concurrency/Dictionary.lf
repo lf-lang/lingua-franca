@@ -1,0 +1,152 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This is a relatively simple benchmarks where multiple workers interact
+ * concurrently with a central dictionary. The original Akka implementation does
+ * not make an effort to synchronize and order the incoming requests. It simply
+ * processes requests in the order they are delivered to the dictinary actor by
+ * the runtime. The only synchroniztion applied, is that the workers wait for a
+ * response from the dictionary before sending the next request.
+ * 
+ * In the LF implementation, all components operate synchronously. This means
+ * that at each logical time step all workers send a request to the dictionary.
+ * The dictionary processes the requests in a fixed order which makes the whole
+ * application deterministic.
+ * 
+ * To break the causality loop the dictionary reactor contains a logical action.
+ * This appears to be more efficient than using a logical action within each
+ * worker. In a quick test, the version with logical actions in each worker was
+ * 50% slower compared to the version with only one logical action in the
+ * dictionary.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ */
+
+target Rust {
+//    build-type: RelWithDebInfo,
+    build-type: Debug,
+    rust-include: [ "dictionary_support.rs" ],
+    cargo-features: [ "cli" ],
+    cargo-dependencies: {
+        rand: {
+            version: "0.8",
+            features: ["small_rng"],
+        },
+    }
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor DictionaryImpl(num_workers: usize(20)) {
+
+    preamble {=
+        use crate::dictionary_support::*;
+        use std::collections::HashMap;
+    =}
+
+    state num_workers(num_workers);
+    state data_map: HashMap<u32, u32>;
+    state answers_to_send: Vec<Option<u32>> ({= vec![ None ; num_workers ] =});
+
+    // Having the action in the dictionary is faster... (this is a c++ comment)
+    logical action send_answers: {= () =};
+
+    input[num_workers] request: Message;
+    output[num_workers] response: u32;
+
+    // @label send_answers
+    reaction(send_answers) -> response {=
+        for i in 0..self.num_workers {
+            if let Some(answer) = (&mut self.answers_to_send[i]).take() {
+                ctx.set(response.get(i), answer);
+            }
+        }
+    =}
+    
+    // @label recv_request
+    reaction(request) -> send_answers {=
+        // The order of messages to read is relevant, it effectively
+        // assigns priorities to the workers.
+        for (i, request_i) in request.into_iter().enumerate() {
+            ctx.use_ref_opt(&request_i, |msg| {
+                match msg {
+                    Message::Write { key, value } => {
+                        self.data_map.insert(*key, *value);
+                        self.answers_to_send[i] = Some(*value);
+                        info!("Worker {} writes {} to key {}", i, value, key);
+                    },
+                    Message::Read { key } => {
+                        // read the value. If the key is not yet present, this will add it and initialize the value to 0.
+                        // This does not match 100% the Savina implementation which returns null if the key is not present,
+                        // but should do a similar job.
+
+                        // todo wat? does the savina impl insert a new (key->null) mapping or just return null?
+
+                        let value = self.data_map.get(key).cloned();
+                        self.answers_to_send[i] = value;
+                        info!("Worker {} reads key {}; response is {:?}", i, key, value);
+                    },
+                }
+            });
+        }
+
+        ctx.schedule(send_answers, Asap);
+    =}
+}
+
+reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), write_percentage: u32(10)) {
+
+//    state bank_index(bank_index);
+    state num_messages_per_worker(num_messages_per_worker);
+    state write_percentage(write_percentage);
+
+    preamble {=
+        use crate::dictionary_support::*;
+        use rand::rngs::SmallRng;
+        use rand::Rng;
+        use rand::SeedableRng;
+    =}
+
+    state message_count: usize(0);
+    state random: rand::rngs::SmallRng({= {
+        let seed = bank_index + num_messages_per_worker + (write_percentage as usize);
+        rand::rngs::SmallRng::seed_from_u64(seed as u64)
+    }=});
+
+    timer do_work(0);
+
+    input dict_response: u32;
+    output dict_request: Message;
+
+    // @label recv_answer
+    reaction(do_work, dict_response) -> dict_request {=
+        if log_enabled!(log::Level::Info) {
+            if let Some(resp) = ctx.get(dict_response) {
+                info!("Received {}", resp);
+            }
+        }
+
+        self.message_count += 1;
+        if self.message_count <= self.num_messages_per_worker {
+            let an_int = self.random.gen_range(0..100);
+            let key = self.random.gen();
+            if an_int < self.write_percentage {
+                ctx.set(dict_request, Message::Write { key, value: self.random.gen() });
+            } else {
+                ctx.set(dict_request, Message::Read { key });
+            }
+        }
+    =}
+}
+
+main reactor (numIterations: usize(12), num_messages_per_worker: usize(10000), write_percentage: u32(10), num_workers: usize(20)) {
+
+    runner = new BenchmarkRunner();
+
+    dict = new DictionaryImpl(num_workers=num_workers);
+    workers = new[num_workers] Worker(num_messages_per_worker=num_messages_per_worker, write_percentage=write_percentage);
+
+    dict.response -> workers.dict_response;
+    workers.dict_request -> dict.request;
+}
