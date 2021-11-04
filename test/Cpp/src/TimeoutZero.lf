@@ -1,0 +1,46 @@
+/**
+* A test for the timeout functionality in Lingua Franca.
+* This variant tests timeout at (0,0).
+*
+* @author Maiko Brants TU Dresden
+*
+* Modeled after the C version of this test.
+**/
+target Cpp {
+    timeout: 1 sec
+};
+
+import Sender from "lib/LoopedActionSender.lf"
+
+reactor Consumer {
+    input in:int;
+    state success:bool(false);
+
+    reaction(in) {=
+        auto current{get_elapsed_logical_time()};
+        if(current > 0ms ){
+            reactor::log::Error() << "Received at: " << current <<  ". Failed to enforce timeout.";
+            exit(1);
+        } else {
+            success=true; 
+        }
+    =}
+
+    reaction(shutdown) {=
+        reactor::log::Info() << "Shutdown invoked at " << get_elapsed_logical_time();
+        if((get_elapsed_logical_time() == 0ns ) && (success == true)){
+            reactor::log::Info() << "SUCCESS: successfully enforced timeout.";
+        } else {
+            reactor::log::Error() << "Shutdown invoked at: " << get_elapsed_logical_time() << ". Failed to enforce timeout.";
+            exit(1);
+        }
+
+    =}
+}
+
+main reactor TimeoutZero {
+   consumer = new Consumer();
+   producer = new Sender(break_interval = 1 msec); 
+   
+   producer.out -> consumer.in;
+}
