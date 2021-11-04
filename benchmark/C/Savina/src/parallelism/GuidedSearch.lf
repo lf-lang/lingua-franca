@@ -86,7 +86,7 @@ preamble {=
 reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t(30)) {
 
     state grid: Grid*;
-    state nodesToVisit: std::deque<GridNode*>;
+    state nodesToVisit:std::shared_ptr<std::deque<GridNode*>>;
     state pathWasFound: bool(false);
     
     input start: bool;
@@ -94,20 +94,20 @@ reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t
     
     output[numWorkers] search: WorkMessage;
     input[numWorkers] pathFound: bool;
-    input[numWorkers] moreNodesToVisit: std::deque<GridNode*>;
+    input[numWorkers] moreNodesToVisit:std::shared_ptr<std::deque<GridNode*>>;
     
     logical action next;
     
     reaction (start) -> next {=
         self->grid = new Grid(self->gridSize, self->priorities);
-        self->nodesToVisit = std::deque<GridNode*>();
+        self->nodesToVisit = std::make_shared<std::deque<GridNode*>>();
         srand(123456);
         self->grid->initializeData(); // reset the self->grid
-        self->nodesToVisit.clear();
+        self->nodesToVisit->clear();
         self->pathWasFound = false;
         
         // start execution, first visit the origin node
-        self->nodesToVisit.push_back(self->grid->originNode());
+        self->nodesToVisit->push_back(self->grid->originNode());
         schedule(next, 0);
     =}
     
@@ -119,9 +119,9 @@ reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t
 
         // send nodes from the internal queue to all workers
         size_t workerIndex{0};        
-        while(!self->nodesToVisit.empty() && workerIndex < self->numWorkers) {
-            GridNode* startNode = self->nodesToVisit.front();
-            self->nodesToVisit.pop_front();
+        while(!self->nodesToVisit->empty() && workerIndex < self->numWorkers) {
+            GridNode* startNode = self->nodesToVisit->front();
+            self->nodesToVisit->pop_front();
             SET(search[workerIndex], WorkMessage(startNode, self->grid->targetNode()));
             workerIndex++;
         }
@@ -142,12 +142,16 @@ reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t
         // collect more nodes to visit from all workers and store them in the internal queue
         for (int i=0; i< moreNodesToVisit_width; i++) {
             if (moreNodesToVisit[i]->is_present) {
-                auto nodes = moreNodesToVisit[i]->value;
-                if (!nodes.empty()) {
-                    self->nodesToVisit.insert(self->nodesToVisit.end(), nodes.begin(), nodes.end());
+                const auto& nodes = moreNodesToVisit[i]->value;
+                if (!nodes->empty()) {
+                    self->nodesToVisit->insert(self->nodesToVisit->end(), nodes->begin(), nodes->end());
                 }
             }
         }
+    =}
+    
+    reaction(shutdown) {=
+        delete(self->grid);
     =}
 }
 
@@ -155,7 +159,7 @@ reactor Worker(bank_index: int(0), threshold: size_t(1024)) {
     
     input search: WorkMessage;
     output pathFound: bool;
-    output moreNodesToVisit: std::deque<GridNode*>;
+    output moreNodesToVisit:std::shared_ptr<std::deque<GridNode*>>;
 
     preamble {=
 
@@ -204,7 +208,7 @@ reactor Worker(bank_index: int(0), threshold: size_t(1024)) {
         }
         
         if(!workQueue.empty()) {
-            SET(moreNodesToVisit, std::move(workQueue));
+            SET(moreNodesToVisit, std::make_shared<std::deque<GridNode*>>(workQueue));
         } 
         // Otherwise (if the queue is empty) we have hit a dead end
     =}
