@@ -48,40 +48,6 @@ void mat_destroy_i(matrix_t matrix) {
 }
 
 /*
- * Return a pointer to entry (i, j) of the given double matrix.
- * @param matrix The matrix to be accessed.
- * @param i The row to be accessed.
- * @param j The column to be accessed.
- * @return A pointer to the requested matrix entry, or NULL if 'matrix'
- *  is of the wrong type.
- */
-double* mat_at_d(matrix_t matrix, size_t i, size_t j) {
-    assert(i < matrix.size_x);
-    assert(j < matrix.size_y);
-    if(matrix.type != MAT_DOUBLE) {
-        return NULL;
-    }
-    return &(matrix.data_d[i * matrix.size_y + j]);
-}
-
-/*
- * Return a pointer to entry (i, j) of the given integer matrix. 
- * @param matrix The matrix to be accessed.
- * @param i The row to be accessed.
- * @param j The column to be accessed.
- * @return A pointer to the requested matrix entry, or NULL if 'matrix'
- *  is of the wrong type.
- */
-int* mat_at_i(matrix_t matrix, size_t i, size_t j) {
-    assert(i < matrix.size_x);
-    assert(j < matrix.size_y);
-    if(matrix.type != MAT_INT) {
-        return NULL;
-    }
-    return &(matrix.data_i[i * matrix.size_y + j]);
-}
-
-/*
  * Set the (i, j) entry of the given double matrix.
  * @param matrix the matrix to be modified.
  * @param i The row to be accessed.

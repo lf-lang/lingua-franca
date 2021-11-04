@@ -6,6 +6,7 @@
 #define MATRIX_H
 
 #include <stddef.h>
+#include <assert.h>
 
 /**
  * Supported types for this matrix implementation.
@@ -66,7 +67,12 @@ void mat_destroy_i(matrix_t matrix);
  * @return A pointer to the requested matrix entry, or NULL if 'matrix'
  *  is of the wrong type.
  */
-double* mat_at_d(matrix_t matrix, size_t i, size_t j);
+static inline double* mat_at_d(matrix_t matrix, size_t i, size_t j) {
+    assert(i < matrix.size_x);
+    assert(j < matrix.size_y);
+    assert(matrix.type == MAT_DOUBLE);
+    return &(matrix.data_d[i * matrix.size_y + j]);
+}
 
 /*
  * Return a pointer to entry (i, j) of the given integer matrix.
@@ -76,24 +82,11 @@ double* mat_at_d(matrix_t matrix, size_t i, size_t j);
  * @return A pointer to the requested matrix entry, or NULL if 'matrix'
  *  is of the wrong type.
  */
-int* mat_at_i(matrix_t matrix, size_t i, size_t j);
-
-/*
- * Set the (i, j) entry of the given double matrix.
- * @param matrix the matrix to be modified.
- * @param i The row to be accessed.
- * @param j The column to be accessed.
- * @param value The value to be placed in the matrix.
- */
-void mat_set_d(matrix_t matrix, size_t i, size_t j, double value);
-
-/*
- * Set the (i, j) entry of the given integer matrix.
- * @param matrix the matrix to be modified.
- * @param i The row to be accessed.
- * @param j The column to be accessed.
- * @param value The value to be placed in the matrix.
- */
-void mat_set_i(matrix_t matrix, size_t i, size_t j, int value);
+static inline int* mat_at_i(matrix_t matrix, size_t i, size_t j) {
+    assert(i < matrix.size_x);
+    assert(j < matrix.size_y);
+    assert(matrix.type == MAT_INT);
+    return &(matrix.data_i[i * matrix.size_y + j]);
+}
 
 #endif
