@@ -89,4 +89,30 @@ static inline int* mat_at_i(matrix_t matrix, size_t i, size_t j) {
     return &(matrix.data_i[i * matrix.size_y + j]);
 }
 
+/*
+ * Set the (i, j) entry of the given double matrix.
+ * @param matrix the matrix to be modified.
+ * @param i The row to be accessed.
+ * @param j The column to be accessed.
+ * @param value The value to be placed in the matrix.
+ */
+static inline void mat_set_d(matrix_t matrix, size_t i, size_t j, double value) {
+    // This is safe in debug mode because of the assertions in mat_at_d. It is not safe
+    // when not in debug mode because in that case the assertions are disabled. However,
+    // these functions are called a billion times in the MatMul benchmark. Similar
+    // comments may apply to mat_set_i.
+    *mat_at_d(matrix, i, j) = value;
+}
+
+/*
+ * Set the (i, j) entry of the given integer matrix.
+ * @param matrix the matrix to be modified.
+ * @param i The row to be accessed.
+ * @param j The column to be accessed.
+ * @param value The value to be placed in the matrix.
+ */
+static inline void mat_set_i(matrix_t matrix, size_t i, size_t j, int value) {
+    *mat_at_i(matrix, i, j) = value;
+}
+
 #endif
