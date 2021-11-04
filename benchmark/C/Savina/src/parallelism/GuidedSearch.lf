@@ -81,6 +81,7 @@ preamble {=
     #include <deque>
     #include <list>
     #include <iostream>
+    #include <memory>
 =}
 
 reactor Manager(numWorkers: size_t(20), gridSize: size_t(30), priorities: size_t(30)) {
