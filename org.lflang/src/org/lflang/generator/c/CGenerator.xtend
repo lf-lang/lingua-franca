@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
+import java.nio.file.Path
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -537,6 +538,14 @@ class CGenerator extends GeneratorBase {
                 "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
+
+            var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
+            var rtiDir = rtiPath.toFile()
+            if (!rtiDir.exists()) {
+                rtiDir.mkdirs()
+            }
+            writeRTIDockerFile(rtiPath, rtiDir)
+            copyRtiFiles(rtiDir, coreFiles)
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -579,14 +588,14 @@ class CGenerator extends GeneratorBase {
                     // Update the cmake-include
                     TargetProperty.updateOne(
                         this.targetConfig, 
-                        TargetProperty.CMAKE_INCLUDE.description,
+                        TargetProperty.CMAKE_INCLUDE,
                         target.config.pairs ?: emptyList,
                         errorReporter
                     )
                     // Update the files
                     TargetProperty.updateOne(
                         this.targetConfig, 
-                        TargetProperty.FILES.description,
+                        TargetProperty.FILES,
                         target.config.pairs ?: emptyList,
                         errorReporter
                     )
@@ -1152,6 +1161,8 @@ class CGenerator extends GeneratorBase {
      * are specific to the OS/underlying hardware, which is detected here automatically.
      */
     def addPlatformFiles(ArrayList<String> coreFiles) {
+        // All platforms use this one.
+        coreFiles.add("platform/lf_tag_64_32.h");
         // Check the operating system
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
@@ -1160,13 +1171,6 @@ class CGenerator extends GeneratorBase {
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_macos_support.c")            
-            coreFiles.add("platform/lf_macos_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -1177,12 +1181,6 @@ class CGenerator extends GeneratorBase {
             }
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_windows_support.c")
-            coreFiles.add("platform/lf_windows_support.h")
-            // For 64-bit epoch time
-            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -1193,13 +1191,6 @@ class CGenerator extends GeneratorBase {
             }
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_linux_support.c")
-            coreFiles.add("platform/lf_linux_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -1211,6 +1202,21 @@ class CGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("Platform " + OS + " is not supported")
         }
+
+        coreFiles.addAll(
+             "platform/lf_POSIX_threads_support.c",
+             "platform/lf_C11_threads_support.c",
+             "platform/lf_C11_threads_support.h",
+             "platform/lf_POSIX_threads_support.h",
+             "platform/lf_POSIX_threads_support.c",
+             "platform/lf_unix_clock_support.c",
+             "platform/lf_macos_support.c",
+             "platform/lf_macos_support.h",
+             "platform/lf_windows_support.c",
+             "platform/lf_windows_support.h",
+             "platform/lf_linux_support.c",
+             "platform/lf_linux_support.h"
+         )
     }
     
     /**
@@ -1237,24 +1243,27 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param The root filename (without any extension).
+     * @param the name given to the docker file (without any extension).
      */
-    def writeDockerFile(String filename) {
-        if (this.mainDef === null) {
-            return
-        }
-        
+    override writeDockerFile(String dockerFileName) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
-        val contents = new StringBuilder()
-        
+        val dockerFile = srcGenPath + File.separator + dockerFileName + '.Dockerfile'
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
             file.delete
         }
-        // The Docker configuration uses gcc, so config.compiler is ignored here.
-        var compileCommand = '''gcc «targetConfig.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        if (this.mainDef === null) {
+            return
+        }
+        
+        val contents = new StringBuilder()
+        // The Docker configuration uses cmake, so config.compiler is ignored here.
+        var compileCommand = '''
+        cmake -S src-gen -B bin && \
+        cd bin && \
+        make all
+        '''
         if (!targetConfig.buildCommands.nullOrEmpty) {
             compileCommand = targetConfig.buildCommands.join(' ')
         }
@@ -1262,27 +1271,96 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.fileNames.nullOrEmpty) {
             additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
+        var dockerCompiler = 'gcc'
+        var fileExtension = 'c'
+
+        if (CCppMode) {
+            dockerCompiler = 'g++'
+            fileExtension = 'cpp'
+        }
+
         pr(contents, '''
-            # Generated docker file for «topLevelName».lf in «srcGenPath».
+            # Generated docker file for «topLevelName» in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «targetConfig.dockerOptions.from»
-            WORKDIR /lingua-franca
-            COPY src-gen/core src-gen/core
-            COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
+            FROM «targetConfig.dockerOptions.from» AS builder
+            WORKDIR /lingua-franca/«topLevelName»
+            RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
+            COPY core src-gen/core
+            COPY ctarget.h ctarget.c src-gen/
+            COPY CMakeLists.txt \
+                 «topLevelName».«fileExtension» src-gen/
             «additionalFiles»
             RUN set -ex && \
-                apk add --no-cache gcc musl-dev && \
                 mkdir bin && \
-                «compileCommand» && \
-                apk del gcc musl-dev && \
-                rm -rf src-gen
+                «compileCommand»
+            
+            FROM «targetConfig.dockerOptions.from» 
+            WORKDIR /lingua-franca
+            RUN mkdir bin
+            COPY --from=builder /lingua-franca/«topLevelName»/bin/«topLevelName» ./bin/«topLevelName»
+            
             # Use ENTRYPOINT not CMD so that command-line arguments go through
-            ENTRYPOINT ["./bin/«filename»"]
+            ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        println("Dockerfile written to " + dockerFile)
+        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+            
+            #####################################
+        ''')
     }
-    
+
+    /**
+     * Write a Dockerfile for the RTI at rtiDir.
+     * The file will go into src-gen/RTI/rti.Dockerfile.
+     * @param the directory where rti.Dockerfile will be written to.
+     */
+    def writeRTIDockerFile(Path rtiPath, File rtiDir) {
+        val dockerFileName = 'rti.Dockerfile'
+        val dockerFile = rtiDir + File.separator + dockerFileName
+        var srcGenPath = fileConfig.getSrcGenPath
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+        if (this.mainDef === null) {
+            return
+        }
+        val contents = new StringBuilder()
+        pr(contents, '''
+            # Generated docker file for RTI in «rtiDir».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            FROM alpine:latest
+            WORKDIR /lingua-franca/RTI
+            COPY core core
+            WORKDIR core/federated/RTI
+            RUN set -ex && apk add --no-cache gcc musl-dev cmake make && \
+                mkdir build && \
+                cd build && \
+                cmake ../ && \
+                make && \
+                make install
+
+            # Use ENTRYPOINT not CMD so that command-line arguments go through
+            ENTRYPOINT ["./build/RTI"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile for RTI written to " + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t rti -f «dockerFile» «rtiDir»
+            
+            #####################################
+        ''')
+    }
+
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      * 
@@ -1436,7 +1514,7 @@ class CGenerator extends GeneratorBase {
                     lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
-                            
+
             for (remoteFederate : federate.outboundP2PConnections) {
                 pr('''connect_to_federate(«remoteFederate.id»);''')
             }
