@@ -18,6 +18,14 @@
  */
 
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     build-type : RelWithDebInfo,
     cmake-include: ["../lib/matrix.cmake"],
     files: ["../include/matrix.h", "../lib/matrix.c", "../include/PseudoRandom.h"]
@@ -231,7 +239,12 @@ reactor ApspMatrix(
     input start:matrix_t;
     output[dimension2] finished:bool;
     
-    rows = new[dimension] ApspRow(block_size=block_size, num_nodes=num_nodes, dimension=dimension, verbose=verbose);
+    rows = new[dimension] ApspRow(
+        block_size=block_size, 
+        num_nodes=num_nodes, 
+        dimension=dimension, 
+        dimension2=dimension2, 
+        verbose=verbose);
     
     // broadcast the incoming matrix to all rows
     (start)+ -> rows.start;
@@ -241,13 +254,26 @@ reactor ApspMatrix(
     (rows.to_col)+ -> rows.from_col;
 }
 
+/* [[[cog
+    cog.outl(f'main reactor (
+        num_iterations:size_t({numIterations}), 
+        max_edge_weight:size_t({maxEdgeWeight}),
+        block_size:size_t({blockSize}),
+        num_nodes:size_t({numNodes}),
+        dimension:size_t({dimension}),
+        dimension2:size_t({dimension*dimension}),
+        verbose:bool({verbose})
+        ) {{')
+]]] */
 main reactor (
     num_iterations: size_t(12),
     max_edge_weight: size_t(100),
     block_size: size_t(50),
     num_nodes: size_t(300),
     dimension: size_t(6),
+    dimension2: size_t(36),
     verbose: bool(false)) {
+// [[[end]]]
     
     state graph_data: matrix_t;
     state num_blocks_finished: size_t(0);
@@ -257,6 +283,7 @@ main reactor (
         block_size=block_size,
         num_nodes=num_nodes,
         dimension=dimension,
+        dimension2=dimension2,
         verbose=verbose
     );
       
