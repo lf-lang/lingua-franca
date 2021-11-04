@@ -255,6 +255,7 @@ reactor ApspMatrix(
 }
 
 /* [[[cog
+    dimension = int(numNodes) / int(blockSize)
     dimension2 = int(dimension)*int(dimension)
     cog.outl(f'main reactor (')
     cog.outl(f'    num_iterations:size_t({numIterations}),')
@@ -295,7 +296,7 @@ main reactor (
         
         // Initialize the random state variable
         initPseudoRandom(&self->random, self->num_nodes);
-        
+
         self->graph_data = generate_graph(self->num_nodes, self->max_edge_weight, &self->random);
         // reset local state
         self->num_blocks_finished = 0;
