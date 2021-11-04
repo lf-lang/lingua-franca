@@ -23,13 +23,22 @@
  * To break the causality loop the mall reactor contains a logical
  * action.
  * 
+ * One interesting aspect of the LF implementation is that the mall
+ * will always pair the same chameneos to meet. In the actor implementation,
+ * there is no defined order and the mall will choose different pairs 
+ * in each iteration. In LF, the order is fixed and always the same
+ * two chameneos will meet. In other words, this LF benchmark only
+ * implements one specific behaviour of the many possible behaviours
+ * in actors. 
+ * 
  * @author Hannes Klein
  * @author Felix Wittwer
  */
 
 
 target Cpp {
-    build-type : RelWithDebInfo
+    build-type : RelWithDebInfo,
+    logging : warn
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -112,7 +121,7 @@ reactor ChameneosMallReactor(numMeetings:int(200000), numChameneos:int(5)) {
                         waitingChameneoIndex = i;
                     } else {
                         meetings -= 1;
-                        reactor::log::Debug() << "setting up meeting " << meetings << " between: " << waitingChameneoIndex << ", " << i;
+                        reactor::log::Info() << "setting up meeting " << meetings << " between: " << waitingChameneoIndex << ", " << i;
                         outChameneos[waitingChameneoIndex].set(messages[i]);
                         messages[waitingChameneoIndex] = nullptr;
                         messages[i] = nullptr;
@@ -261,7 +270,7 @@ reactor ChameneosChameneoReactor(bank_index:int(0), numChameneos:size_t(5)) {
 
 
 
-main reactor (numIterations:int(12), numMeetings:int(200000), numChameneos:size_t(5)) {
+main reactor (numIterations:int(12), numMeetings:int(200000), numChameneos:size_t(100)) {
     
     mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=numChameneos);
     runner = new BenchmarkRunner(numIterations=numIterations);
