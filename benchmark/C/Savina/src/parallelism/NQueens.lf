@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2020 TU Dresden
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
  * 
  * This benchmark implements a solution to the N queens problem. In particular,
  * the benchmark implements a recursive search algorithm that finds all possible
@@ -44,6 +44,7 @@ target C{
       else:
           cog.outl("threads: 0")
     ]]] */
+    //logging: debug,
     cmake-include: "../include/deque.cmake",
     files: ["../include/deque.c", "../include/deque.h"]
     
@@ -52,7 +53,6 @@ target C{
 
 preamble {=
     #include "deque.h"
-    
     typedef struct work_item_t {
         size_t *data;
         size_t depth;
@@ -134,15 +134,14 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
         
         // start execution
         work_item_t* item = (work_item_t *) calloc(1, sizeof(struct work_item_t)); // freed when item is passed into Worker (line 191)
+        
         deque_push_back(self->manager_work_queue, item); 
         //next.schedule();
         schedule(next, 0);
-        printf("start done\n");
     =}
 
     reaction(done) {=
         // expected solutions for various problem sizes
-        
         size_t solutions[] = {
             1,
             0,
@@ -179,6 +178,11 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
     =}
     
     reaction (next) -> next, done, do_work {=
+        
+//        DEBUG_PRINT("============================\n"); 
+//        printf("%p\n", do_work);
+//        printf("%p\n", &self->num_solutions);
+//        printf("%p\n", self->manager_work_queue); 
         if (deque_is_empty(self->manager_work_queue)) {
             // we are done if there is no more work
             // done.schedule();
@@ -194,9 +198,6 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
             // and schedule the next iteration
             schedule(next, 0);
         }
-        
-        
-        
     =}
     
     reaction (solutions_found) {=
@@ -241,9 +242,6 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
         size_t *a = do_work->value.data;
         size_t depth = do_work->value.depth;
         
-        //reactor::log::Info() << "Worker " << bank_index << ": received " << a.size() 
-        //                     << " data items; depth=" << depth;
-        
         if(self->size == depth) {
             // It is unclear when exactly this evaluates to true and what this means. 
             // However, this seems to be essential for some sizes, including size=1.
@@ -286,24 +284,26 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
             }
             if (!deque_is_empty(work_queue)) {
                 SET(more_work, work_queue);
-            }
+            } 
         }
         
         free(a); // frees memory of current sequence
     =}
-   
-    
-    // Searches for results recursively and returns the number of found solutions.
-    
 }
 
+
+/* [[[cog
+        cog.outl(f'main reactor (numTransactions:int({numTransactions}), numAccounts:int({numAccounts}))')
+    ]]] */
 main reactor (
     size: size_t(12),
-    threshold: size_t(7),
+    threshold: size_t(4),
     solutionsLimit: size_t(1500000),
     priorities: size_t(10),
     numWorkers: size_t(20)
-) {
+) 
+/// [[[end]]]
+{
     manager = new Manager(num_workers=numWorkers, solutions_limit=solutionsLimit, size=size);
     workers = new[numWorkers] Worker(size=size, threshold=threshold);
 
