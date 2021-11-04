@@ -155,7 +155,7 @@ import static extension org.lflang.JavaAstUtils.*
  * the reaction declares that it is triggered by or uses an input named "x" of type
  * int, the function will contain a line like this:
  * ```
- *     e_x_t* x = self->_lf_x;
+ *     r_x_t* x = self->_lf_x;
  * ```
  * where `r` is the full name of the reactor class and the struct type `r_x_t`
  * will be defined like this:
@@ -3967,39 +3967,6 @@ class CGenerator extends GeneratorBase {
         // Generate trigger objects for the instance.
         generateOffsetAndPeriodInitializations(instance, federate)
 
-        // Next, set the number of destinations,
-        // which is used to initialize reference counts.
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
-        // number of destination ports nor the number of destination reactions.
-        // One of the destination reactors may be the container of this
-        // instance because it may have a reaction to an output of this instance. 
-        for (output : instance.outputs) {
-            if (federate === null || federate.containsPort(output.definition)) {
-                if (output.isMultiport()) {
-                    // Output multiports may have a different number of destinations for each channel!
-                    // This is pretty horrifically complicated.
-                    val eventualDestinations = output.eventualDestinations();
-                    for (destinations: eventualDestinations) {
-                        for (destination: destinations.destinations) {
-                            pr(initializeTriggerObjectsEnd, '''
-                                for (int i = 0; i < «destination.channelWidth»; i++) {
-                                    «nameOfSelfStruct»->_lf_«output.name»[«destinations.startChannel» + i].num_destinations» = «destinations.destinations.size()»;
-                                }
-                            ''')
-                        }
-                    }
-                } else {
-                    var numDestinations = output.numDestinationReactors
-                    pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->«getStackPortMember('''_lf_«output.name»''', "num_destinations")» = «numDestinations»;
-                    ''')
-                    
-                }
-            }
-        }
-        
         // Do the same for inputs of contained reactors that are sent data by reactions
         // of this reactor.
         for (reaction : instance.reactions) {
@@ -5174,85 +5141,19 @@ class CGenerator extends GeneratorBase {
             return;
         }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
-        // Iterate over all ports in this reactor that are sources of connections given
-        // in this reactor. These may be input ports of the instance or output ports
-        // of contained reactors.
-        for (source : instance.sources) {
-            // Find the sources that send data to this port,
-            // which could be the same port if it is an input port written to by a reaction
-            // or it could be an upstream output port.
-            // If the port is a multiport, then there may be multiple sources covering
-            // the range of channels.
-            val eventualSources = source.eventualSources();
-            
-            for (eventualSource: eventualSources) {
-            
-                val src = eventualSource.portInstance;
-                if (reactorBelongsToFederate(src.parent, federate)) {
-                    // The eventual source is in the federate.
-                    val destinations = src.eventualDestinations
-                    // Multiport connections may be divided up into channel ranges.
-                    for (sourceChannelRange : destinations) {
-                        for (destination : sourceChannelRange.destinations) {
-                            val dst = destination.portInstance;
-                            // Check to see if the destination reactor belongs to the federate.
-                            if (reactorBelongsToFederate(dst.parent, federate)) {
-                                // If the destination is an output, then skip this step.
-                                // Outputs are handled by finding the transitive closure
-                                // (finding the eventual inputs).
-                                if (dst.isInput) {
-                                    var comment = ''
-                                    if (source != src) {
-                                        comment = ''' (eventual source is «src.getFullName»)'''
-                                    }
-                                    val destStructType = variableStructType(
-                                        dst.definition as TypedVariable,
-                                        dst.parent.definition.reactorClass
-                                    )
-                                    // There are four cases, depending on whether the source or
-                                    // destination or both are multiports.
-                                    if (src.isMultiport()) {
-                                        if (dst.isMultiport()) {
-                                            // Source and destination are both multiports.
-                                            pr('''
-                                                // Connect «src.getFullName»«comment» to input port «dst.getFullName»
-                                                int j = «sourceChannelRange.startChannel»;
-                                                for (int i = «destination.startChannel»; i < «destination.startChannel» + «destination.channelWidth»; i++) {
-                                                    «destinationReference(dst)»[i]
-                                                        = («destStructType»*)«sourceReference(src)»[j++];
-                                                }
-                                            ''')
-                                        } else {
-                                            // Source is a multiport, destination is a single port.
-                                            pr('''
-                                                // Connect «src.getFullName»«comment» to input port «dst.getFullName»
-                                                «destinationReference(dst)»
-                                                        = («destStructType»*)«sourceReference(src)»[«sourceChannelRange.startChannel»];
-                                            ''')
-                                        }
-                                    } else if (dst.isMultiport()) {
-                                        // Source is a single port, Destination is a multiport.
-                                        pr('''
-                                            // Connect «src.getFullName»«comment» to input port «dst.getFullName»
-                                            «destinationReference(dst)»[«destination.startChannel»]
-                                                    = («destStructType»*)«sourceReference(src)»;
-                                        ''')
-                                    } else {
-                                        // Both ports are single ports.
-                                        pr('''
-                                            // Connect «src.getFullName»«comment» to input port «dst.getFullName»
-                                            «destinationReference(dst)» = («destStructType»*)«sourceReference(src)»;
-                                        ''')
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        // Iterate over all ports of this reactor that have dependent reactions.
+        for (input : instance.inputs) {
+            if (!input.dependentReactions.isEmpty()) {
+                // Input has reactions. Connect it to its eventual source.
+                connectPortToEventualSource(input, federate); 
             }
         }
-        
-
+        for (output : instance.outputs) {
+            if (!output.dependentReactions.isEmpty()) {
+                // Input has reactions. Connect it to its eventual source.
+                connectPortToEventualSource(output, federate); 
+            }
+        }
         for (child : instance.children) {
             // In case this is a composite, recurse.
             connectInputsToOutputs(child, federate)
@@ -5264,6 +5165,72 @@ class CGenerator extends GeneratorBase {
         connectReactionsToPorts(instance, federate)
         
         pr('''// END Connect inputs and outputs for reactor «instance.getFullName».''')
+    }
+    
+    /**
+     * Generate assignments of pointers in the "self" struct of a destination
+     * port's reactor to the appropriate entries in the "self" struct of the
+     * source reactor.
+     * @param instance A port with dependant reactions.
+     * @param federate The federate for which we are generating code or null
+     *  if there is no federation.
+     */
+    private def void connectPortToEventualSource(PortInstance port, FederateInstance federate) {
+        // Find the sources that send data to this port,
+        // which could be the same port if it is an input port written to by a reaction
+        // or it could be an upstream output port.
+        // If the port is a multiport, then there may be multiple sources covering
+        // the range of channels.
+        var startChannel = 0;
+        for (eventualSource: port.eventualSources()) {
+            val src = eventualSource.portInstance;
+            if (src != port && reactorBelongsToFederate(src.parent, federate)) {
+                // The eventual source is different from the port and is in the federate.
+                var comment = " (eventual source is " + src.getFullName + ") ";
+                val destStructType = variableStructType(
+                port.definition as TypedVariable,
+                port.parent.definition.reactorClass
+                )
+                // There are four cases, depending on whether the source or
+                // destination or both are multiports.
+                if (src.isMultiport()) {
+                    if (port.isMultiport()) {
+                        // Source and destination are both multiports.                        
+                        pr('''
+                            // Connect «src.getFullName»«comment» to port «port.getFullName»
+                            int j = «eventualSource.startChannel»;
+                            for (int i = «startChannel»; i < «eventualSource.channelWidth» + «startChannel»; i++) {
+                                «destinationReference(port)»[i] = («destStructType»*)«sourceReference(src)»[j];
+                                «sourceReference(src)»[j++]->num_destinations++;
+                            }
+                        ''')
+                        startChannel += eventualSource.channelWidth;
+                    } else {
+                        // Source is a multiport, destination is a single port.
+                        pr('''
+                            // Connect «src.getFullName»«comment» to port «port.getFullName»
+                            «destinationReference(port)» = («destStructType»*)«sourceReference(src)»[«eventualSource.startChannel»];
+                            «sourceReference(src)»[«eventualSource.startChannel»]->num_destinations++;
+                        ''')
+                    }
+                } else if (port.isMultiport()) {
+                    // Source is a single port, Destination is a multiport.
+                    pr('''
+                        // Connect «src.getFullName»«comment» to port «port.getFullName»
+                        «destinationReference(port)»[«startChannel»] = («destStructType»*)«sourceReference(src)»;
+                        «sourceReference(src)»->num_destinations++;
+                    ''')
+                    startChannel++;
+                } else {
+                    // Both ports are single ports.
+                    pr('''
+                        // Connect «src.getFullName»«comment» to port «port.getFullName»
+                        «destinationReference(port)» = («destStructType»*)«sourceReference(src)»;
+                        «sourceReference(src)»->num_destinations++;
+                    ''')
+                }
+            }
+        }
     }
     
     /**

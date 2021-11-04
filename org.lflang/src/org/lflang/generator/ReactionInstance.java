@@ -75,7 +75,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (trigger instanceof VarRef) {
                 Variable variable = ((VarRef)trigger).getVariable();
                 if (variable instanceof Port) {
-                    PortInstance portInstance = parent.lookupPortInstance((Port)trigger);
+                    PortInstance portInstance = parent.lookupPortInstance((Port)variable);
                     // If the trigger is the port of a contained bank, then the
                     // portInstance will be null and we have to instead search for
                     // each port instance in the bank.
