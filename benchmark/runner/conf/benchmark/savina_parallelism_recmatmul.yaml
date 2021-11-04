@@ -38,11 +38,10 @@ targets:
       workers: ["--numWorkers", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/parallelism/MatMul.lf"
-      - "${lf_path}/benchmark/C/Savina/src/lib/matrix.c"
-      - "${lf_path}/benchmark/C/Savina/src/lib/matrix.cmake"
-      - "${lf_path}/benchmark/C/Savina/src/include/matrix.h"
-    lf_file: "MatMul.lf"
+      - "${lf_path}/benchmark/C/Savina/src/parallelism/"
+      - "${lf_path}/benchmark/C/Savina/src/lib/"
+      - "${lf_path}/benchmark/C/Savina/src/include/"
+    lf_file: "parallelism/MatMul.lf"
     binary: "MatMul"
     gen_args:
       data_length: ["-D", "data_length=<value>"]
