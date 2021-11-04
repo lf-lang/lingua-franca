@@ -71,6 +71,7 @@ reactor ApspFloydWarshallBlock(
 
     state k:size_t(0); // iteration counter
     state reported_finish:bool(false);
+    state local_matrix_block:matrix_t; // Keep track of it to free later.
 
     input[dimension] from_row:matrix_t;
     input[dimension] from_col:matrix_t;
@@ -92,6 +93,7 @@ reactor ApspFloydWarshallBlock(
         
         // start execution
         matrix_t matrix = extract_data_from_matrix(start->value, self->block_size, self->row_offset, self->col_offset);
+        self->local_matrix_block = matrix;
         schedule_copy(notify_neighbors, 0, &matrix, 1);
     =}
     
@@ -188,6 +190,9 @@ reactor ApspFloydWarshallBlock(
        
         // send the result to all neighbors in the next iteration
         schedule_copy(notify_neighbors, 0, &local_matrix, 1);        
+    =}
+    reaction(shutdown) {=    
+        mat_destroy_i(self->local_matrix_block);
     =}
 }
 
@@ -333,5 +338,8 @@ main reactor (
             
             return local_data;
         }
+    =}
+    reaction(shutdown) {=
+        mat_destroy_i(self->graph_data);
     =}
 }
