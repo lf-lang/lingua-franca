@@ -3,7 +3,7 @@
  * 
  * This benchmark implements a parallel all pairs shortest path algorithm. In
  * order to split the workload, the large input matrix of size graphSize x
- * graphSize is split into smaller blocks of size blockSize x blockSize. Each of
+ * graphSize is split into smaller blocks of size block_size x block_size. Each of
  * the worker reactors (ApspFloydWarshallBlock) processes one of these blocks.
  * The worker reactors are organized in the same matrix pattern, replication the
  * structure of the blocks within the large input matrix. Each of the workers
@@ -19,13 +19,14 @@
 
 target C {
     build-type : RelWithDebInfo,
-    cmake-include: "../lib/matrix.cmake",
+    cmake-include: ["../lib/matrix.cmake"],
     files: ["../include/matrix.h", "../lib/matrix.c", "../include/PseudoRandom.h"]
 };
 
 preamble {=
     #include "matrix.h"
     #include "PseudoRandom.h"
+    #include <math.h>
 =}
 
 reactor ApspFloydWarshallBlock(
@@ -44,36 +45,13 @@ reactor ApspFloydWarshallBlock(
             matrix_t local_matrix = mat_new_i(block_size, block_size);
             
             // FIXME memcpy should be much faster here, but on the other hand this is only done during initialization
-            for(size_t i = 0; i < blockSize; i++) {
-                for(size_t j = 0; j < blockSize; j++) {
-                    int* value = mat_at_i(matrix, rowOffset + i, colOffset + j);
+            for(size_t i = 0; i < block_size; i++) {
+                for(size_t j = 0; j < block_size; j++) {
+                    int* value = mat_at_i(matrix, row_offset + i, col_offset + j);
                     mat_set_i(local_matrix, i, j, *value);
                 }
             }
             return local_matrix;
-        }
-        
-        // retrieve the element at the given position from the known data
-        int get_element_at(size_t row, size_t col, void* row_ports, void* col_ports, size_t block_size, int bank_index) {
-
-            size_t dest_row = row / blockSize;
-            size_t dest_col = col / blockSize;
-            
-            size_t local_row = row % blockSize;
-            size_t local_col = col % blockSize;
-            
-            if (dest_row == row_index) {
-                matrix_t data = row_ports[dest_col]->value;
-                int* cell = mat_at_i(data, local_row, local_col);
-                return *cell;
-            } else if (dest_col == bank_index) {
-                matrix_t data = col_ports[dest_row]->value;
-                int* cell = mat_at_i(data, local_row, local_col);
-                return *cell;
-            } else {
-                error_print_and_exit("Error: unexpected target location (%d, %d).", dest_col, dest_row);
-            }
-            
         }
     =}
     
@@ -98,7 +76,7 @@ reactor ApspFloydWarshallBlock(
         // Initialize state variables
         self->num_neighbors = 2 * (self->dimension - 1);
         self->row_offset = self->row_index * self->block_size;
-        self->col_offset = self->bank_index * self->blockSize;
+        self->col_offset = self->bank_index * self->block_size;
         
         // reset local state
         self->k = 0;
@@ -106,7 +84,7 @@ reactor ApspFloydWarshallBlock(
         
         // start execution
         matrix_t matrix = extract_data_from_matrix(start->value, self->block_size, self->row_offset, self->col_offset);
-        schedule_value(notify_neighbors, 0, matrix, sizeof(matrix_t));
+        schedule_copy(notify_neighbors, 0, &matrix, 1);
     =}
     
     reaction(notify_neighbors) -> to_neighbors {=
@@ -121,27 +99,78 @@ reactor ApspFloydWarshallBlock(
         }
         
         // perform computation
-        matrix_t local_matrix = mat_new_i(block_size, block_size);
+        matrix_t local_matrix = mat_new_i(self->block_size, self->block_size);
         
-        for(size_t i = 0; i < blockSize; i++) {
-            for(size_t j = 0; j < blockSize; j++) {
-                int gi = rowOffset + i;
-                int gj = colOffset + j;
+        for(size_t i = 0; i < self->block_size; i++) {
+            for(size_t j = 0; j < self->block_size; j++) {
+                int gi = self->row_offset + i;
+                int gj = self->col_offset + j;
+
+
+                long result_gi = 0;
+                long result_gj = 0;
+                long result_gi_gj = 0;
+
+                size_t dest_row_gi = gi / self->block_size;
+                size_t dest_k = self->k / self->block_size;
+                size_t dest_col_gj = gj / self->block_size;
                 
-                long result = get_element_at(gi, k, from_row, from_col) + getElementAt(k, gj, from_row, from_col, self->block_size, self->bank_index);
-                mat_set_i(matrix, i, j, min(get_element_at(gi, gj, from_row, from_col), result);
+                size_t local_row_gi = gi % self->block_size;
+                size_t local_k = self->k % self->block_size;
+                size_t local_col_gj = gj % self->block_size;
+                
+                if (dest_row_gi == self->row_index) {
+                    matrix_t data = from_row[dest_k]->value;
+                    int* cell = mat_at_i(data, local_row_gi, local_k);
+                    result_gi = *cell;
+                } else if (dest_k == self->bank_index) {
+                    matrix_t data = from_col[dest_row_gi]->value;
+                    int* cell = mat_at_i(data, local_row_gi, local_k);
+                    result_gi = *cell;
+                } else {
+                    error_print_and_exit("Error: unexpected target location (%d, %d).", dest_k, dest_row_gi);
+                }
+                
+                if (dest_k == self->row_index) {
+                    matrix_t data = from_row[dest_col_gj]->value;
+                    int* cell = mat_at_i(data, local_k, local_col_gj);
+                    result_gj = *cell;
+                } else if (dest_col_gj == self->bank_index) {
+                    matrix_t data = from_col[dest_k]->value;
+                    int* cell = mat_at_i(data, local_k, local_col_gj);
+                    result_gj = *cell;
+                } else {
+                    error_print_and_exit("Error: unexpected target location (%d, %d).", dest_col_gj, local_k);
+                }
+                
+                if (dest_row_gi == self->row_index) {
+                    matrix_t data = from_row[dest_col_gj]->value;
+                    int* cell = mat_at_i(data, local_row_gi, local_col_gj);
+                    result_gi_gj = *cell;
+                } else if (dest_col_gj == self->bank_index) {
+                    matrix_t data = from_col[dest_row_gi]->value;
+                    int* cell = mat_at_i(data, local_row_gi, local_col_gj);
+                    result_gi_gj = *cell;
+                } else {
+                    error_print_and_exit("Error: unexpected target location (%d, %d).", dest_col_gj, dest_row_gi);
+                }
+
+
+                long result = result_gi + result_gj;
+                mat_set_i(local_matrix, i, j, MIN(result_gi_gj, result));
             }
         }
        
        // increment iteration count
-       k++;
+       self->k++;
        
-       if(k == graphSize) {
+       if(self->k == self->graph_size) {
             if(self->verbose && self->bank_index == 0 && self->row_index == 0) {
                 // debugging and result checking
-                for(size_t i = 0; i < blockSize; i++) {
-                    for(size_t j = 0; j < blockSize; j++) {
-                        printf("%d ", mat_at_i(matrix, i, j));
+                for(size_t i = 0; i < self->block_size; i++) {
+                    for(size_t j = 0; j < self->block_size; j++) {
+                        int* data =  mat_at_i(local_matrix, i, j);
+                        printf("%d ", *data);
                     }
                     printf("\n");
                 }
@@ -150,7 +179,7 @@ reactor ApspFloydWarshallBlock(
         }
        
         // send the result to all neighbors in the next iteration
-        schedule_value(notify_neighbors, matrix, sizeof(matrix));        
+        schedule_copy(notify_neighbors, 0, &local_matrix, 1);        
     =}
 }
 
@@ -217,6 +246,7 @@ main reactor (
     max_edge_weight: size_t(100),
     block_size: size_t(50),
     num_nodes: size_t(300),
+    dimension: size_t(6),
     verbose: bool(false)) {
     
     state graph_data: matrix_t;
@@ -226,29 +256,29 @@ main reactor (
     matrix = new ApspMatrix(
         block_size=block_size,
         num_nodes=num_nodes,
-        dimension={=numNodes / blockSize=},
+        dimension=dimension,
         verbose=verbose
     );
       
-    reaction(startup) {=
+    reaction(startup) -> matrix.start {=
 //        printBenchmarkInfo("ApspBenchmark");
-//        printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "blockSize", blockSize);
+//        printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", numNodes, "block_size", block_size);
 //        printSystemInfo();
         
         // Initialize the random state variable
         initPseudoRandom(&self->random, self->num_nodes);
         
-        graph_data = generate_graph(self->num_nodes, self->max_edge_weight));
+        self->graph_data = generate_graph(self->num_nodes, self->max_edge_weight, &self->random);
         // reset local state
         self->num_blocks_finished = 0;
 
         // start execution
-        SET(matrix.start, graph_data);
+        SET(matrix.start, self->graph_data);
     =}
 
     reaction (matrix.finished) {=
         for (int i=0; i<matrix.finished_width; i++) {
-            if (matrix.finished[i].is_present) {
+            if (matrix.finished[i]->is_present) {
                 self->num_blocks_finished++;
             }
         }
@@ -256,18 +286,17 @@ main reactor (
         if (self->num_blocks_finished != dimension*dimension) {
             error_print_and_exit("Did not receive the expected number of blocks.");
         }
+        info_print("SUCCESS");
         request_stop();
     =}
 
-    preamble {=  
-        #include "PseudoRandom.hh"
-        
-        matrix_t generate_graph(size_t N, size_t W, PseudoRandom random) {
+    preamble {=        
+        matrix_t generate_graph(size_t N, size_t W, PseudoRandom* random) {
             matrix_t local_data = mat_new_i(N, N);
             
             for(size_t i = 0; i < N; i++) {
                 for(size_t j = i+1; j < N; j++) {
-                    int r = nextIntEMax(&self->random, W) + 1;
+                    int r = nextIntEMax(random, W) + 1;
                     mat_set_i(local_data, i, j, r);
                     mat_set_i(local_data, j, i, r);
                 }
