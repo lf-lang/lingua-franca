@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -110,24 +110,6 @@ public class PortInstance extends TriggerInstance<Port> {
     //// Public methods
 
     /**
-     * Return a list of lists of ports that receive data from this port.
-     * In the returned list, each item represents a range of channels in this port.
-     * The {@code destinations} field of each item lists the eventual ports that
-     * trigger or are used by reactions. These destination ranges all have the same width,
-     * so a destination port may be listed more than once.
-     * The ports listed are only ports that are triggers or sources for reactions,
-     * not relay ports that the data may go through on the way.
-     * @param startRange The channel index for the start of the range of interest.
-     * @param rangeWidth The number of channels to find sources for.
-     */
-    public List<DestinationChannelRanges> eventualDestinations() {
-        if (eventualDestinationRanges == null) {
-            eventualDestinationRanges = eventualDestinations(0, width);
-        }
-        return eventualDestinationRanges;
-    }
-
-    /**
      * Return a list of ports that send data to this port annotated
      * with the channel ranges of each source port. If this is not
      * a multiport, then the list will have only one item and the
@@ -190,26 +172,6 @@ public class PortInstance extends TriggerInstance<Port> {
         return (definition instanceof Output);
     }
     
-    /** 
-     * Return the number of destination reactors for this port instance.
-     * This can be used to initialize reference counting.
-     */
-    public int numDestinationReactors() {
-        // Count the number of destination reactors that receive data from
-        // this output port. Do this by building a set of the containers
-        // of all dependent ports and reactions. The dependentReactions
-        // includes reactions of the container that listen to this port.
-        
-        Set<ReactorInstance> destinationReactors = new LinkedHashSet<ReactorInstance>();
-        for (PortChannelRange destinationPort : eventualDestinations()) {
-            destinationReactors.add(destinationPort.getPortInstance().getParent());
-        }
-        for (ReactionInstance destinationReaction : dependentReactions) {
-            destinationReactors.add(destinationReaction.getParent());
-        }
-        return destinationReactors.size();
-    }
-    
     @Override
     public String toString() {
         return "PortInstance " + getFullName();
@@ -218,78 +180,6 @@ public class PortInstance extends TriggerInstance<Port> {
     //////////////////////////////////////////////////////
     //// Protected methods.
     
-    /**
-     * Return a list of lists of ports that receive data from the specified channels of
-     * this port. The ports returned are annotated with the channel ranges of each destination port.
-     * Every port in each sublist has the same width.
-     * The ports listed are only ports that are triggers or sources for reactions,
-     * not relay ports that the data may go through on the way.
-     * @param startRange The channel index for the start of the range of interest.
-     * @param rangeWidth The number of channels to find sources for.
-     */
-    protected List<DestinationChannelRanges> eventualDestinations(int startRange, int rangeWidth) {
-        List<DestinationChannelRanges> result = null;
-        result = new ArrayList<DestinationChannelRanges>();
-        int channelsToSkip = startRange;
-        int channelsProvided = 0;
-        for (PortChannelRange destinationRange : dependentPorts) {
-            // destinationRange.channelWidth is the number of channels this destination receives.
-            if (destinationRange.channelWidth <= channelsToSkip) {
-                // No useful channels in this port. Skip it.
-                channelsToSkip -= destinationRange.channelWidth;
-                continue;
-            }
-            // If we get here, the destination can receive some channels. How many?
-            int dstStart = channelsToSkip;
-            int dstWidth = destinationRange.channelWidth - dstStart; // Candidate width if we can use them all.
-            if (channelsProvided + dstWidth > rangeWidth) {
-                // Can't use all the destination channels.
-                dstWidth = (channelsProvided + dstWidth) - rangeWidth;
-            }
-            PortInstance dst = destinationRange.getPortInstance();
-            // Keep looking.
-            List<DestinationChannelRanges> downstream = dst.eventualDestinations(dstStart, dstWidth);
-
-            // Find the minimum of widths of downstream and destination ranges.
-            int minWidth = dstWidth;
-            for (DestinationChannelRanges down : downstream) {
-                if (down.channelWidth < minWidth) minWidth = down.channelWidth;
-            }
-            DestinationChannelRanges ranges = newDestinationRange(startRange, minWidth);
-            result.add(ranges);
-            
-            // If this destination has dependent reactions, then include it in the result.
-            // Otherwise, do not include it.
-            if (!dst.dependentReactions.isEmpty()) {
-                // This destination is triggered by or uses the output.
-                ranges.destinations.add(dst.newRange(dstStart, minWidth));
-            }
-            // Add the downstream ranges, ensuring they all have the same widths.
-            for (DestinationChannelRanges down : downstream) {
-                if (minWidth < down.channelWidth) {
-                    // Need a new range.
-                    ranges.destinations.add(down.getPortInstance().newRange(down.startChannel, minWidth));
-                } else {
-                    ranges.destinations.add(down);
-                }
-            }
-            // If the downstream ports were fragmented, make a recursive call to cover the
-            // channels that got left out by reducing minWidth.
-            if (minWidth < dstWidth) {
-                result.addAll(eventualDestinations(startRange + minWidth, rangeWidth - minWidth));
-            }
-            
-            channelsProvided += minWidth;
-            // No need to skip any more channels.
-            channelsToSkip = 0;
-            if (channelsProvided >= rangeWidth) {
-                // Done.
-                break;
-            }
-        }
-        return result;
-    }
-
     /**
      * Return a list of ports that send data to the specified channels of
      * this port. The ports returned are annotated  with the channel
@@ -343,13 +233,13 @@ public class PortInstance extends TriggerInstance<Port> {
     }
 
     /**
-     * Create a DestinationChannelRanges representing a subset of the channels of this port.
+     * Create a SendingChannelRange representing a subset of the channels of this port.
      * @param startChannel The lower end of the channel range.
      * @param channelWidth The width of the range.
      * @return A new instance of PortChannelRange.
      */
-    protected DestinationChannelRanges newDestinationRange(int startChannel, int channelWidth) {
-        return new DestinationChannelRanges(startChannel, channelWidth);
+    protected SendingChannelRange newDestinationRange(int startChannel, int channelWidth) {
+        return new SendingChannelRange(startChannel, channelWidth);
     }
 
     /**
@@ -365,7 +255,18 @@ public class PortInstance extends TriggerInstance<Port> {
     //////////////////////////////////////////////////////
     //// Protected fields.
 
-    /** Downstream ports that are connected directly to this port. */
+    /** 
+     * Downstream ports that are connected directly to this port.
+     * These are listed in the order they appear in connections.
+     * If this port is input port, then the connections are those
+     * in the parent reactor of this port (inside connections).
+     * If the port is an output port, then the connections are those
+     * in the parent's parent (outside connections).
+     * The sum of the widths of the dependent ports is required to
+     * be an integer multiple N of the width of this port (this is checked
+     * by the validator). Each channel of this port will be broadcast
+     * to N recipients.
+     */
     List<PortChannelRange> dependentPorts = new ArrayList<PortChannelRange>();
 
     /** 
@@ -390,7 +291,7 @@ public class PortInstance extends TriggerInstance<Port> {
     //// Private fields.
     
     /** Cached list of destination ports with channel ranges. */
-    private List<DestinationChannelRanges> eventualDestinationRanges;
+    private List<SendingChannelRange> eventualDestinationRanges;
 
     /** Cached list of source ports with channel ranges. */
     private List<PortChannelRange> eventualSourceRanges;
@@ -399,12 +300,16 @@ public class PortInstance extends TriggerInstance<Port> {
     //// Inner classes.
 
     /**
-     * Class representing a range of output channels that feed some
+     * Class representing a range of channels of this port that broadcast to some
      * number of destination ports' channels. All ranges have the same
      * width, but not necessarily the same start index.
+     * This class extends its base class with a list destination channel ranges,
+     * all of which have the same width as this channel range.
+     * It also includes a field representing the number of destination
+     * reactors.
      */
-    public class DestinationChannelRanges extends PortChannelRange {
-        public DestinationChannelRanges(int startChannel, int channelWidth) {
+    public class SendingChannelRange extends PortChannelRange {
+        public SendingChannelRange(int startChannel, int channelWidth) {
             super(startChannel, channelWidth);
             
             if (PortInstance.this.isMultiport) {
@@ -414,6 +319,7 @@ public class PortInstance extends TriggerInstance<Port> {
             }
         }
         public List<PortChannelRange> destinations;
+        public int numberOfDestinationReactors;
     }
     
     /**
@@ -423,7 +329,7 @@ public class PortInstance extends TriggerInstance<Port> {
      */
     public class PortChannelRange {
         public PortChannelRange(int startChannel, int channelWidth) {
-            if (startChannel < 0 || startChannel >= width || channelWidth < 0 || startChannel + channelWidth >= width) {
+            if (startChannel < 0 || startChannel >= width || channelWidth < 0 || startChannel + channelWidth > width) {
                 throw new RuntimeException("Invalid range of port channels.");
             }
             this.startChannel = startChannel;
