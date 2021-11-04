@@ -2,7 +2,7 @@
 name: "Recursive Matrix Multiplication"
 params:
   workers: 20
-  data_length: 1023
+  data_length: 1024
   block_threshold: 16384
   priorities: 10
 
