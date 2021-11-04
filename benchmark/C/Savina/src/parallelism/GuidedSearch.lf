@@ -178,19 +178,19 @@ reactor Worker(bank_index: int(0), threshold: size_t(1024)) {
         char current_node_str_rep[100];
         char target_node_str_rep[100];
         info_print("Worker %d: search path from %s to %s.", self->bank_index, currentNode->toString(current_node_str_rep, 100), targetNode->toString(target_node_str_rep, 100));
-        auto workQueue = std::deque<GridNode*>();
+        auto workQueue = std::make_shared<std::deque<GridNode*>>();
         
-        workQueue.push_back(currentNode);
+        workQueue->push_back(currentNode);
         
         // start the search, but visit at most threshold nodes
         size_t nodesProcessed{0};
-        while(!workQueue.empty() && nodesProcessed < self->threshold) {
+        while(!workQueue->empty() && nodesProcessed < self->threshold) {
             
             nodesProcessed++;
             busyWait();
             
-            GridNode* loopNode = workQueue.front();
-            workQueue.pop_front();
+            GridNode* loopNode = workQueue->front();
+            workQueue->pop_front();
             size_t numNeighbors = loopNode->numNeighbors();
             
             for (size_t i{0}; i < numNeighbors; i++) {
@@ -201,14 +201,14 @@ reactor Worker(bank_index: int(0), threshold: size_t(1024)) {
                         SET(pathFound, true);
                         return;
                     } else {
-                        workQueue.push_back(loopNeighbor);
+                        workQueue->push_back(loopNeighbor);
                     }
                 }
             }
         }
         
-        if(!workQueue.empty()) {
-            SET(moreNodesToVisit, std::make_shared<std::deque<GridNode*>>(workQueue));
+        if(!workQueue->empty()) {
+            SET(moreNodesToVisit, workQueue);
         } 
         // Otherwise (if the queue is empty) we have hit a dead end
     =}
