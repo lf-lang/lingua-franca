@@ -212,6 +212,9 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
     reaction (done) {=
         check_if_valid(self->C, self->data_length);
         work_stack_free(self->work_stack);
+        mat_destroy_d(self->A);
+        mat_destroy_d(self->B);
+        mat_destroy_d(self->C);
         request_stop();
     =}
 }
