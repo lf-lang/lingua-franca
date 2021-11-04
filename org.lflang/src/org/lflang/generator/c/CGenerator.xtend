@@ -3124,13 +3124,10 @@ class CGenerator extends GeneratorBase {
                 }
                                 
                 for (port : reaction.effects.filter(PortInstance)) {
-                    // Skip multiports and handle the component ports instead.
-                    if (!(port.isMultiport())) {
-                        // Also skip ports whose parent is not in the federation.
+                        // Skip ports whose parent is not in the federation.
                         // This can happen with reactions in the top-level that have
                         // as an effect a port in a bank.
                         if (federate === null || federate.contains(port.parent)) {
-                            // Port is not within a multiport.
                             // The port to which the reaction writes may have dependent
                             // reactions in the container. If so, we list that port here.
                             var portsWithDependentReactions = new LinkedHashSet<PortInstance>()
@@ -3166,6 +3163,7 @@ class CGenerator extends GeneratorBase {
                             } else {
                                 // The port is the input port of a contained reactor,
                                 // use that reactor instance to compute the transitive closure.
+                                // The port will be included in the returned set because it is an input.
                                 destinationPorts = port.parent.transitiveClosure(port)
                             }
 
@@ -3221,8 +3219,8 @@ class CGenerator extends GeneratorBase {
                                             // Destination port «destination.getFullName» itself has no reactions.
                                             «triggerArray»[«destinationCount++»] = NULL;
                                         ''')
-                                    } else if (!(destination.isMultiport())) { // Skip multiports.
-                                    // Instead, the component ports are handled.
+                                    } else {
+                                        // Instead, the component ports are handled.
                                         pr(initializeTriggerObjectsEnd, '''
                                             // Point to destination port «destination.getFullName»'s trigger struct.
                                             «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
@@ -3262,7 +3260,6 @@ class CGenerator extends GeneratorBase {
                         // may be a bank (it can't be an instance of a bank), so an empty placeholder
                         // will be needed for each member of the bank that is not in the federate.
                         portCount++
-                    }
                 }
             }
             // Increment reaction count even if it is not in the federate for consistency.
@@ -3966,37 +3963,6 @@ class CGenerator extends GeneratorBase {
 
         // Generate trigger objects for the instance.
         generateOffsetAndPeriodInitializations(instance, federate)
-
-        // Do the same for inputs of contained reactors that are sent data by reactions
-        // of this reactor.
-        for (reaction : instance.reactions) {
-            if (federate === null || federate.containsReaction(
-                reaction.definition
-            )) {
-                // Handle reactions that produce outputs sent to inputs
-                // of contained reactors.  An input port can have only
-                // one source, so we can immediately generate the initialization.
-                for (port : reaction.effects.filter(PortInstance)) {
-                    // Skip multiport destinations and instead handle the ports within the multiport.
-                    if (port.isInput) {
-                        var numDestinations = 0
-                        if(!port.dependentReactions.isEmpty) numDestinations = 1
-                        numDestinations += port.dependentPorts.size
-                        if (port.isMultiport()) {
-                            pr(initializeTriggerObjectsEnd, '''
-                                for (int i = 0; i < «port.width»; i++) {
-                                    «nameOfSelfStruct»->_lf_«port.parent.name».«port.name»[i]->num_destinations = «numDestinations»;
-                                }
-                            ''')
-                        } else {
-                            pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«port.parent.name».«port.name».num_destinations = «numDestinations»;
-                            ''')
-                        }
-                    }
-                }
-            }
-        }
 
         // Next, initialize actions by creating a lf_token_t in the self struct.
         // This has the information required to allocate memory for the action payload.
@@ -5186,7 +5152,6 @@ class CGenerator extends GeneratorBase {
             val src = eventualSource.portInstance;
             if (src != port && reactorBelongsToFederate(src.parent, federate)) {
                 // The eventual source is different from the port and is in the federate.
-                var comment = " (eventual source is " + src.getFullName + ") ";
                 val destStructType = variableStructType(
                 port.definition as TypedVariable,
                 port.parent.definition.reactorClass
@@ -5197,18 +5162,20 @@ class CGenerator extends GeneratorBase {
                     if (port.isMultiport()) {
                         // Source and destination are both multiports.                        
                         pr('''
-                            // Connect «src.getFullName»«comment» to port «port.getFullName»
+                            // Connect «src.getFullName» to port «port.getFullName»
                             int j = «eventualSource.startChannel»;
                             for (int i = «startChannel»; i < «eventualSource.channelWidth» + «startChannel»; i++) {
                                 «destinationReference(port)»[i] = («destStructType»*)«sourceReference(src)»[j];
                                 «sourceReference(src)»[j++]->num_destinations++;
                             }
                         ''')
+                        // FIXME: num_destinations needs to be the number of destination *reactors*.
+                        // This code will make it equal to the number of destination ports with reactions.
                         startChannel += eventualSource.channelWidth;
                     } else {
                         // Source is a multiport, destination is a single port.
                         pr('''
-                            // Connect «src.getFullName»«comment» to port «port.getFullName»
+                            // Connect «src.getFullName» to port «port.getFullName»
                             «destinationReference(port)» = («destStructType»*)«sourceReference(src)»[«eventualSource.startChannel»];
                             «sourceReference(src)»[«eventualSource.startChannel»]->num_destinations++;
                         ''')
@@ -5216,17 +5183,17 @@ class CGenerator extends GeneratorBase {
                 } else if (port.isMultiport()) {
                     // Source is a single port, Destination is a multiport.
                     pr('''
-                        // Connect «src.getFullName»«comment» to port «port.getFullName»
-                        «destinationReference(port)»[«startChannel»] = («destStructType»*)«sourceReference(src)»;
-                        «sourceReference(src)»->num_destinations++;
+                        // Connect «src.getFullName» to port «port.getFullName»
+                        «destinationReference(port)»[«startChannel»] = («destStructType»*)&«sourceReference(src)»;
+                        «sourceReference(src)».num_destinations++;
                     ''')
                     startChannel++;
                 } else {
                     // Both ports are single ports.
                     pr('''
-                        // Connect «src.getFullName»«comment» to port «port.getFullName»
-                        «destinationReference(port)» = («destStructType»*)«sourceReference(src)»;
-                        «sourceReference(src)»->num_destinations++;
+                        // Connect «src.getFullName» to port «port.getFullName»
+                        «destinationReference(port)» = («destStructType»*)&«sourceReference(src)»;
+                        «sourceReference(src)».num_destinations++;
                     ''')
                 }
             }
