@@ -1,14 +1,13 @@
- 
 /**
  * Copyright (C) 2020 TU Dresden and UC Berkeley
  *
  * Upon startup, the LinkedList actor initializes a
- * link list with random elements. Upon startup the 
+ * linked list with random elements. Upon startup the
  * Worker actors would send either a `read` or `write`
- * request to the LinkList, which respond by sending
- * a `result` signal. When Worker receive this signal,
- * if they've hit their target requests amount will 
- * send a `finish` message otherwise will continue 
+ * request to the LinkedList, which responds by sending
+ * a `result` signal. When Workers receive this signal,
+ * if they've hit their target requests amount they will
+ * send a `finish` message; otherwise, they will continue
  * to query the LinkList.
  *
  * @author Thee Ho
@@ -31,7 +30,7 @@ preamble {=
     #include "PseudoRandom.h"
 =}
 
-reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
+reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)) {
     input start:bool;
     input result:bool;
     
@@ -42,80 +41,84 @@ reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)){
     output write:int;
     output finish:bool;
     
-    reaction(start)->request{=
+    reaction(start) -> request {=
         self->requests_sent = 0;
-        schedule(request,0);
+        schedule(request, 0);
     =}
-    reaction(request)->read, write{=
-        int coin = rand()%100;
- 		int val = rand()%1000;
- 		if (coin <= self->write_percentage){
-            SET(write,val);
+
+    reaction(request) -> read, write {=
+        int coin = rand() % 100;
+        int val = rand() % 1000;
+        if (coin <= self->write_percentage) {
+            SET(write, val);
          //   printf("Worker %d sent write request for %d \n", self->instance, val);
-        }else{
-            SET(read,val);
+        } else {
+            SET(read, val);
          //   printf("Worker %d sent read request for %d \n", self->instance, val);
         }
         self->requests_sent++;
-	=}
-	
-	reaction(result)->request,finish{=
-        if (self->requests_sent>=self->num_requests){
-            SET(finish,true);
-        }else{
-            schedule(request,0);
+    =}
+    
+    reaction(result) -> request, finish {=
+        if (self->requests_sent >= self->num_requests) {
+            SET(finish, true);
+        } else {
+            schedule(request, 0);
         }
     =}
 }
 
-reactor LinkedList(num_workers:int(20)){
+reactor LinkedList(num_workers:int(20)) {
     preamble {=
         typedef struct listnode {
             int val;
-            struct listnode * next;
+            struct listnode *next;
         } linklist;
-        void insert (linklist **head, int val){
+
+        void insert(linklist **head, int val) {
             linklist * node = NULL;
             node = (linklist *) malloc(sizeof(linklist));
             node->val = val;
             node-> next = NULL;
             
-            if (*head == NULL || (*head)->val > val){
+            if (*head == NULL || (*head)->val > val) {
                 node->next = *head;
                 *head = node;
-          		return;
+                return;
             }
             linklist * curr = *head;
             while (curr->next != NULL && curr->next->val <= val) {
-                if(curr->next->val == val){
+                if (curr->next->val == val) {
                     return;
                 }
-        		curr = curr->next;
-    		}
-    		linklist * temp = curr->next;
-    		curr->next = node;
+                curr = curr->next;
+            }
+            linklist *temp = curr->next;
+            curr->next = node;
             curr->next->next = temp;
             return;
         }
-        bool lookup (linklist *head, int val){
-            linklist * curr = head;
-            while (curr != NULL){
-                if (curr->val == val){
+
+        bool lookup(linklist *head, int val) {
+            linklist *curr = head;
+            while (curr != NULL) {
+                if (curr->val == val) {
                     return true;
                 }
                 curr = curr->next;
             }
             return false;
         }
-        void printlist(linklist * head) {
-   			linklist * current = head;
 
-    		while (current != NULL) {
-        		printf("%d ", current->val);
-        		current = current->next;
-    		}
-    		printf("\n");
-		}
+        void printlist(linklist *head) {
+            linklist * current = head;
+
+            while (current != NULL) {
+                printf("%d ", current->val);
+                current = current->next;
+            }
+            printf("\n");
+        }
     =}
     
     input[num_workers] read:int;
@@ -123,56 +126,56 @@ reactor LinkedList(num_workers:int(20)){
     input start:bool;
     
     state list:{=linklist*=};
-  
+    
     output[num_workers] result:bool;
     
-    reaction(start){=
+    reaction(start) {=
         // initialize linked list with random elements
         self->list = (linklist*) NULL;
-        for (int i = 0; i < 10; i ++){
-            insert(&(self->list),rand()%1000);
+        for (int i = 0; i < 10; i++) {
+            insert(&(self->list), rand() % 1000);
         }
     =}
-    reaction(write)->result{=
-    	for (int i = 0; i < self->num_workers; i++){
-            if(write[i]->is_present){
-                insert(&(self->list),write[i]->value);
+
+    reaction(write) -> result {=
+        for (int i = 0; i < self->num_workers; i++) {
+            if (write[i]->is_present) {
+                insert(&(self->list), write[i]->value);
             //    printf("List content after insert: ");
             //    printlist(self->list);
-                SET(result[i],true);
+                SET(result[i], true);
             }
         }
-	=}
-	reaction(read)->result{=
-		for (int i = 0; i < self->num_workers; i++){
-            if(read[i]->is_present){
-                bool found = lookup(self->list,read[i]->value);
+    =}
+
+    reaction(read) -> result {=
+        for (int i = 0; i < self->num_workers; i++) {
+            if (read[i]->is_present) {
+                bool found = lookup(self->list, read[i]->value);
             //    printf("Result of looking up %d: %d \n",read[i]->value, found);
-                SET(result[i],true);
+                SET(result[i], true);
             }
         }
     =}
 }
 
 /* [[[cog
-  	  cog.outl(f'main reactor(numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
-	]]] */
-    main reactor(numWorkers:int(20),numMessagesPerWorker:int(8000),writePercentance:int(10), sizePercentage:int(1))
-	// [[[end]]]
+      cog.outl(f'main reactor(numWorkers:int({numWorkers}),numMessagesPerWorker:int({numMessagesPerWorker}),writePercentage:int({writePercentage}), sizePercentage:int({sizePercentage}))')
+    ]]] */
+main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1))
+    // [[[end]]]
 {
-	
-	list = new LinkedList(num_workers=numWorkers);	
-	workers = new[numWorkers] Worker(num_requests=numMessagesPerWorker,write_percentage=writePercentage);
-	
-	workers.read -> list.read;
-	workers.write ->list.write;
-	list.result -> workers.result;
-	
-	reaction(startup)->list.start, workers.start{=
-        SET(list.start,true);
-        for (int i = 0; i<self->numWorkers; i++){
-        	SET(workers[i].start,true);
+    list = new LinkedList(num_workers=numWorkers);
+    workers = new[numWorkers] Worker(num_requests=numMessagesPerWorker, write_percentage=writePercentage);
+    
+    workers.read -> list.read;
+    workers.write -> list.write;
+    list.result -> workers.result;
+    
+    reaction(startup) -> list.start, workers.start {=
+        SET(list.start, true);
+        for (int i = 0; i < self->numWorkers; i++) {
+            SET(workers[i].start, true);
         }
     =}
-}    
-    
+}
