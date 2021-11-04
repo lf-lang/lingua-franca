@@ -1,5 +1,4 @@
 /**
-*
 * A test for the timeout functionality in Lingua Franca.
 *
 * @author Maiko Brants TU Dresden
@@ -20,8 +19,8 @@ reactor Consumer {
         if(current > 11ms ){
             reactor::log::Error() << "Received at: " << current.count() << ". Failed to enforce timeout.";
             exit(1);
-        } else {
-            success{true}; // Successfully invoked the reaction at (timeout, 0)
+        } else if(current == 11ms) {
+            success=true; 
         }
     =}
 
