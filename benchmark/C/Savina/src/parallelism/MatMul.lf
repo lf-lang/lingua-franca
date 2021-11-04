@@ -7,6 +7,14 @@
  */
 
 target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
     /*[[[cog
     cog.outl('cmake-include: "matrix.cmake",')
     cog.outl('files: ["matrix.c", "matrix.h"]')
