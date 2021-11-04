@@ -109,7 +109,7 @@ reactor ApspFloydWarshallBlock(
         }
         
         // perform computation
-        matrix_t local_matrix = mat_new_i(self->block_size, self->block_size);
+        matrix_t local_matrix = mat_new_i(self->block_size, self->block_size); // FIXME: Not freed
         
         for(size_t i = 0; i < self->block_size; i++) {
             for(size_t j = 0; j < self->block_size; j++) {
