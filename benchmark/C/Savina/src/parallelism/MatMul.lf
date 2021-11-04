@@ -263,8 +263,10 @@ reactor Worker(threshold: size_t(16384), data_length: size_t(1024)) {
             for (size_t i = wi.srC; i < end_r; ++i) {
                 for (size_t j = wi.scC; j < end_c; ++j) {
                     for (size_t k = 0; k < wi.dim; ++k) {
-                        mat_set_d(self->C, i, j, (*mat_at_d(self->A, i, wi.scA + k)
-                            * *mat_at_d(self->B, wi.srB + k, j)));
+                        *mat_at_d(self->C, i, j) += (
+                            (*mat_at_d(self->A, i, wi.scA + k))
+                            * (*mat_at_d(self->B, wi.srB + k, j))
+                        );
                     }
                 }
             }
