@@ -255,7 +255,7 @@ reactor ApspMatrix(
 }
 
 /* [[[cog
-    dimension = int(numNodes) / int(blockSize)
+    dimension = int(numNodes)//int(blockSize)
     dimension2 = int(dimension)*int(dimension)
     cog.outl(f'main reactor (')
     cog.outl(f'    num_iterations:size_t({numIterations}),')
