@@ -6,7 +6,7 @@
 size_t Grid::calcPriority(const GridNode* gridNode) const {
     int distDiff = std::max(gridSize - gridNode->i, std::max(gridSize - gridNode->j, gridSize - gridNode->k));
     int priorityUnit = distDiff / 8; // 8 represents a hardcoded priority granularity (same as in the akka version)
-    int resultPriority = abs(priorities - priorityUnit);
+    int resultPriority = abs((double)(priorities - priorityUnit));
     return resultPriority;
 }
 
