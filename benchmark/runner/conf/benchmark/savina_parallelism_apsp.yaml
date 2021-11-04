@@ -4,6 +4,8 @@ params:
   num_workers: 300
   block_size: 50
   max_edge_weight: 100
+  num_iterations: 12
+  dimension: 6
 
 # target specific configuration
 targets:
@@ -34,3 +36,16 @@ targets:
       num_workers: ["--numNodes", "<value>"]
       block_size: ["--blockSize", "<value>"]
       max_edge_weight: ["--maxEdgeWeight", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+      - "${lf_path}/benchmark/C/Savina/src/lib"
+      - "${lf_path}/benchmark/C/Savina/src/include"
+    lf_file: "parallelism/Apsp.lf"
+    binary: "Apsp"
+    gen_args:
+      num_iterations: ["-D", "numIterations=<value>"]
+      num_workers: ["-D", "numNodes=<value>"]
+      block_size: ["-D", "blockSize=<value>"]
+      max_edge_weight: ["-D", "maxEdgeWeight=<value>"]
+      dimension: ["-D", "dimension=<value>"]
