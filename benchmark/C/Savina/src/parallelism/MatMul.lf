@@ -15,12 +15,8 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    /*[[[cog
-    cog.outl('cmake-include: "matrix.cmake",')
-    cog.outl('files: ["matrix.c", "matrix.h"]')
-    ]]] */
-    cmake-include: "../lib/matrix.cmake"
-    /// [[[end]]]
+    cmake-include: "../lib/matrix.cmake",
+    files: ["../lib/matrix.c", "../include/matrix.h"]
 };
 
 preamble {=
