@@ -23,6 +23,14 @@
  * To break the causality loop the mall reactor contains a logical
  * action.
  * 
+ * One interesting aspect of the LF implementation is that the mall
+ * will always pair the same chameneos to meet. In the actor implementation,
+ * there is no defined order and the mall will choose different pairs 
+ * in each iteration. In LF, the order is fixed and always the same
+ * two chameneos will meet. In other words, this LF benchmark only
+ * implements one specific behaviour of the many possible behaviours
+ * in actors.
+ * 
  * @author Hannes Klein
  * @author Felix Wittwer
  * @author Marten Lohstroh
