@@ -1,0 +1,62 @@
+target C {
+    logging: debug
+};
+
+//import PrintBool from "lib/Printer.lf";
+import TimedStep from "lib/Timer.lf";
+
+main reactor After {
+    timer next(1sec, 1sec);
+    timer Tbase(250msec, 250msec);
+    
+    preamble {=
+    	#include <stdio.h>
+    =}
+        
+	reaction(startup) {=
+        printf("Starting in mode One\n");
+    =}
+    
+    reaction(Tbase) {=
+        printf("Tbase\n");
+    =}
+    
+    initial mode One {
+        producer = new TimedStep(offset=0, period=750msec, message="Produced in One\n");
+        consumer = new PrintBool(prefix="Consumed in One: ");
+        producer.step -> consumer.boolean after 500msec;
+		
+		reaction(next) consumer.fwd -> Two {=
+            printf("Transitioning to mode Two (reset)\n");
+            SET_MODE(Two);
+		=}
+    }
+    mode Two {
+        producer2 = new TimedStep(offset=0, period=750msec, message="Produced in Two\n");
+        consumer2 = new PrintBool(prefix="Consumed in Two: ");
+        producer2.step -> consumer2.boolean after 500msec;
+		
+		reaction(next) consumer2.fwd -> One continue {=
+            printf("Transitioning to mode One (continue)\n");
+            SET_MODE(One);
+		=}
+    }
+    
+    reaction(Tbase) {=
+        printf("---\n");
+    =}
+}
+
+reactor PrintBool(prefix:string("")) {
+    input boolean:bool;
+    output fwd:bool;
+    
+    preamble {=
+        #include <stdio.h>
+    =}
+    
+    reaction(boolean) -> fwd {=
+        printf("%s%s\n", self->prefix, boolean->value ? "true" : "false");
+        SET(fwd, boolean);
+    =}
+}

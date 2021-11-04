@@ -99,14 +99,14 @@ class ASTUtils {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
         val oldConnections = new ArrayList<Connection>()
-        val newConnections = new LinkedHashMap<Reactor, List<Connection>>()
-        val delayInstances = new LinkedHashMap<Reactor, List<Instantiation>>()
+        val newConnections = new LinkedHashMap<EObject, List<Connection>>()
+        val delayInstances = new LinkedHashMap<EObject, List<Instantiation>>()
         
         // Iterate over the connections in the tree.
         for (container : resource.allContents.toIterable.filter(Reactor)) {
-            for (connection : container.connections) {
+            for (connection : container.allContainedConnections) {
                 if (connection.delay !== null) {
-                    val parent = connection.eContainer as Reactor
+                    val parent = connection.eContainer
                     // Assume all the types are the same, so just use the first on the right.
                     val type = (connection.rightPorts.get(0).variable as Port).type
                     val delayClass = getDelayClass(type, generator)
@@ -135,16 +135,30 @@ class ASTUtils {
         }
         // Remove old connections; insert new ones.
         oldConnections.forEach [ connection |
-            (connection.eContainer as Reactor).connections.remove(connection)
+            val container = connection.eContainer
+            if (container instanceof Reactor) {
+                container.connections.remove(connection)
+            } else if (container instanceof Mode) {
+                container.connections.remove(connection)
+            }
         ]
-        newConnections.forEach [ reactor, connections |
-            reactor.connections.addAll(connections)
+        newConnections.forEach [ container, connections |
+            if (container instanceof Reactor) {
+                container.connections.addAll(connections)
+            } else if (container instanceof Mode) {
+                container.connections.addAll(connections)
+            }
         ]
         // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach [ reactor, instantiations |
+        delayInstances.forEach [ container, instantiations |
             instantiations.forEach [ instantiation |
-                instantiation.name = reactor.getUniqueIdentifier("delay");
-                reactor.instantiations.add(instantiation)
+                if (container instanceof Reactor) {
+                    instantiation.name = container.getUniqueIdentifier("delay");
+                    container.instantiations.add(instantiation);
+                } else if (container instanceof Mode) {
+                    instantiation.name = (container.eContainer as Reactor).getUniqueIdentifier("delay");
+                    container.instantiations.add(instantiation);
+                }
             ]
         ]
     }
@@ -474,6 +488,19 @@ class ASTUtils {
         for (base : definition.superClasses?:emptyList) {
             result.addAll(base.toDefinition.allConnections)
         }
+        result.addAll(allContainedConnections(definition))
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its contained connections,
+     * which excludes connections of base classes that it extends.
+     * This also includes connections in modes, returning a flattened
+     * view over all modes.
+     * @param definition Reactor class definition.
+     */
+    def static List<Connection> allContainedConnections(Reactor definition) {
+        val result = new ArrayList<Connection>()
         result.addAll(definition.connections)
         for (mode : definition.allModes) {
             result.addAll(mode.connections)
