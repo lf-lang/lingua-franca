@@ -255,15 +255,16 @@ reactor ApspMatrix(
 }
 
 /* [[[cog
-    cog.outl(f'main reactor (
-        num_iterations:size_t({numIterations}), 
-        max_edge_weight:size_t({maxEdgeWeight}),
-        block_size:size_t({blockSize}),
-        num_nodes:size_t({numNodes}),
-        dimension:size_t({dimension}),
-        dimension2:size_t({dimension*dimension}),
-        verbose:bool({verbose})
-        ) {{')
+    dimension2 = int(dimension)*int(dimension)
+    cog.outl(f'main reactor (')
+    cog.outl(f'    num_iterations:size_t({numIterations}),')
+    cog.outl(f'    max_edge_weight:size_t({maxEdgeWeight}),')
+    cog.outl(f'    block_size:size_t({blockSize}),')
+    cog.outl(f'    num_nodes:size_t({numNodes}),')
+    cog.outl(f'    dimension:size_t({dimension}),')
+    cog.outl(f'    dimension2:size_t({dimension2}),')
+    cog.outl(f'    verbose:bool(false)')
+    cog.outl(') {')
 ]]] */
 main reactor (
     num_iterations: size_t(12),
