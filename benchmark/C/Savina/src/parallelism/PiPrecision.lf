@@ -163,8 +163,6 @@ reactor Worker {
         mpf_t one;
         void calculateBbpTerm(mpf_t result, uint32_t k) {
             
-            instant_t time1, time2;
-            time1 = get_physical_time();
             uint32_t eightK = 8ul * k;
             mpf_t term;
             mpf_t intermediate;
