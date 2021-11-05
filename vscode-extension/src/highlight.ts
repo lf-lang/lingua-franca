@@ -46,29 +46,32 @@ function contains(r: Range, other: Range | Position): boolean {
  * words.
  * @param document - The document from which to extract tokens
  * @param range - The range of the document in which to search
+ * @param shadow - The regions of the document to ignore
  */
-function getWords(document: TextDocument, range?: Range): Range[] {
-    const ret: Range[] = [];
-    let pos = range.start;
-    const getCurrentLineLength = () => document.lineAt(pos.line).text.length;
-    let currentLineLength = getCurrentLineLength();
-    while (contains(range, pos)) {
-        let word = document.getWordRangeAtPosition(pos);
-        if (word && contains(range, word)) {
-            ret.push(word);
-            // Redundancy with pos=next(pos) is OK because words are always
-            //  separated by at least one character
-            pos = word.end;
+function getWords(document: TextDocument, range: Range, shadow: Range[]): Range[] {
+    function getWords(range?: Range): Range[] {
+        const ret: Range[] = [];
+        let pos = range.start;
+        const getCurrentLineLength = () => document.lineAt(pos.line).text.length;
+        let currentLineLength = getCurrentLineLength();
+        while (contains(range, pos)) {
+            let word = document.getWordRangeAtPosition(pos);
+            if (word && contains(range, word)) {
+                ret.push(word);
+                // Redundancy with pos=next(pos) is OK because words are always
+                //  separated by at least one character
+                pos = word.end;
+            }
+            pos = pos.translate(0, 1);
+            if (pos.character >= currentLineLength) {
+                pos = new Position(pos.line + 1, 0);
+                currentLineLength = getCurrentLineLength();
+            }
         }
-        pos = pos.translate(0, 1);
-        if (pos.character >= currentLineLength) {
-            pos = new Position(pos.line + 1, 0);
-            currentLineLength = getCurrentLineLength();
-        }
+        return ret;
     }
-    return ret;
+    return [].concat(...setDiff(document, range, shadow).map(getWords));
 }
-
 /**
  * Returns a Range containing the entirety of a given TextDocument.
  * @param document - A TextDocument
@@ -399,7 +402,7 @@ function provideTypeParameters(
         )) {
             const lfRanges = setDiff(document, typeParameterGroup, stdShadow);
             for (const lfRange of lfRanges) {
-                for (const word of getWords(document, lfRange)) {
+                for (const word of getWords(document, lfRange, stdShadow)) {
                     tokensBuilder.push(word, 'typeParameter');
                     typeParameters.push(document.getText(word));
                 }
@@ -445,7 +448,7 @@ function provideParameters(
             for (const nonTypeValuePair of setDiff(
                 document, parameterList, typeValuePairs
             )) {
-                for (const word of getWords(document, nonTypeValuePair)) {
+                for (const word of getWords(document, nonTypeValuePair, stdShadow)) {
                     parameters.push(document.getText(word));
                     tokensBuilder.push(word, 'parameter', ['readonly']);
                 }
@@ -454,7 +457,7 @@ function provideParameters(
                 for (const nonValue of setDiff(
                     document, typeValuePair, values
                 )) {
-                    for (const word of getWords(document, nonValue)) {
+                    for (const word of getWords(document, nonValue, stdShadow)) {
                         // FIXME: Should more safeguards (e.g., checking
                         // if first char is a letter) be put in place? Or
                         // should we favor strong rules over such heuristics?
