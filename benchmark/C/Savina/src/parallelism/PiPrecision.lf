@@ -157,17 +157,22 @@ reactor Worker {
     
     preamble {=
         #include <gmp.h>
-        mpf_t sixteen;
-        mpf_t four;
-        mpf_t two;
-        mpf_t one;
         void calculateBbpTerm(mpf_t result, uint32_t k) {
             
             uint32_t eightK = 8ul * k;
             mpf_t term;
             mpf_t intermediate;
+            mpf_t sixteen;
+            mpf_t four;
+            mpf_t two;
+            mpf_t one;
+            
             mpf_init_set_ui(term, 0ul);
             mpf_init_set_ui(intermediate, 0ul);
+            mpf_init_set_ui(sixteen, 16ul);
+            mpf_init_set_ui(four, 4ul);
+            mpf_init_set_ui(two, 2ul);
+            mpf_init_set_ui(one, 1ul);
             
 
             mpf_div_ui(term, four, (eightK + 1ul));
@@ -189,23 +194,12 @@ reactor Worker {
     input doWork:uint32_t;
     output response:mpf_t;
     
-    reaction(startup) {=
-        mpf_init_set_ui(sixteen, 16ul);
-        mpf_init_set_ui(four, 4ul);
-        mpf_init_set_ui(two, 2ul);
-        mpf_init_set_ui(one, 1ul);
-    =}
-    
     reaction(doWork) -> response {=
         mpf_t result;
         mpf_init(result);
         calculateBbpTerm(result, doWork->value);
         mpf_swap(response->value, result);
         SET_PRESENT(response);
-    =}
-    
-    reaction(shutdown) {=
-        // mpf_clears(one, two, four, sixteen, NULL); FIXME: This causes a "double free or corruption" error
     =}
 }
 
