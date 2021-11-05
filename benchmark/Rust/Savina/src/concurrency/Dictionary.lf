@@ -52,6 +52,8 @@ reactor DictionaryImpl(num_workers: usize(20)) {
     state data_map: HashMap<u32, u32>;
     state answers_to_send: Vec<i32> ({= vec![ -1 ; num_workers ] =});
 
+    state num_requests_served: u32(0);
+
     // Having the action in the dictionary is faster... (this is a c++ comment)
     logical action send_answers: {= () =};
 
@@ -73,10 +75,11 @@ reactor DictionaryImpl(num_workers: usize(20)) {
         // assigns priorities to the workers.
         for (i, request_i) in request.into_iter().enumerate() {
             ctx.use_ref_opt(&request_i, |msg| {
+                self.num_requests_served += 1;
                 match msg {
                     Message::Write { key, value } => {
                         self.data_map.insert(*key, *value);
-                        self.answers_to_send[i] = (*value).try_into().unwrap_or(-1);
+                        self.answers_to_send[i] = (*value).try_into().unwrap_or(0);
                         info!("Worker {} writes {} to key {}", i, value, key);
                     },
                     Message::Read { key } => {
@@ -87,7 +90,7 @@ reactor DictionaryImpl(num_workers: usize(20)) {
                         // todo wat? does the savina impl insert a new (key->null) mapping or just return null?
 
                         let value = self.data_map.entry(*key).or_insert(0);
-                        self.answers_to_send[i] = (*value).try_into().unwrap_or(-1);
+                        self.answers_to_send[i] = (*value).try_into().unwrap_or(0);
                         info!("Worker {} reads key {}; response is {:?}", i, key, value);
                     },
                 }
@@ -96,11 +99,15 @@ reactor DictionaryImpl(num_workers: usize(20)) {
 
         ctx.schedule(send_answers, Asap);
     =}
+
+//    reaction(shutdown) {=
+//        info!("Served {} requests", self.num_requests_served);
+//    =}
 }
 
 reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), write_percentage: u32(10)) {
 
-//    state bank_index(bank_index);
+    state bank_index(bank_index);
     state num_messages_per_worker(num_messages_per_worker);
     state write_percentage(write_percentage);
 
@@ -132,8 +139,8 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
 
         self.message_count += 1;
         if self.message_count <= self.num_messages_per_worker {
-            let an_int = self.random.gen_range(0..100);
             let key = self.random.gen();
+            let an_int = self.random.gen_range(0..100);
             if an_int < self.write_percentage {
                 ctx.set(dict_request, Message::Write { key, value: self.random.gen() });
             } else {
@@ -141,6 +148,11 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
             }
         }
     =}
+//
+//
+//    reaction(shutdown) {=
+//        println!("Worker {} sent {} requests", self.bank_index, self.message_count);
+//    =}
 }
 
 main reactor (num_messages_per_worker: usize(10000), write_percentage: u32(10), num_workers: usize(20)) {
