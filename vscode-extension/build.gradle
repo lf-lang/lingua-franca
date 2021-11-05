@@ -77,6 +77,8 @@ task installExtension(type: Exec, dependsOn: generateVSCodeExtension) {
 }
 
 task startCode(type:Exec, dependsOn: installExtension) {
+    group = 'Build'
+    description = 'Build the language and diagram server and install the VS Code extension.'
     if (System.properties['os.name'].toLowerCase().contains('windows')) {
         commandLine 'code.cmd'
     } else {
