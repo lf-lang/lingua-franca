@@ -37,4 +37,4 @@ targets:
     binary: "Big"
     gen_args:
       messages: ["-D", "numPingsPerReactor=<value>"]
-      actors: ["-D", "numReactorss=<value>"]
+      actors: ["-D", "numReactors=<value>"]
