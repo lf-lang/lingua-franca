@@ -178,14 +178,7 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
     =}
     
     reaction (next) -> next, done, do_work {=
-        //FIXME: When the benchmark is run, the 20 (= number of Workers) warning messages of freeing already freed token (see below) 
-        // is printed every time this reaction happens. 
-        //"WARNING: Token being freed that has already been freed: 0x60000011c510"
-        
-//        DEBUG_PRINT("============================\n"); 
-//        printf("%p\n", do_work);
-//        printf("%p\n", &self->num_solutions);
-//        printf("%p\n", self->manager_work_queue);
+       
 
         if (deque_is_empty(self->manager_work_queue)) {
             // we are done if there is no more work
