@@ -143,7 +143,7 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
     =}
 }
 
-main reactor (numIterations: usize(12), num_messages_per_worker: usize(10000), write_percentage: u32(10), num_workers: usize(20)) {
+main reactor (num_messages_per_worker: usize(10000), write_percentage: u32(10), num_workers: usize(20)) {
 
     runner = new BenchmarkRunner();
 
