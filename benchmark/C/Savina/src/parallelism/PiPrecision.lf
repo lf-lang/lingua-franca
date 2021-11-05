@@ -22,7 +22,8 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    cmake-include: "PiPrecision.cmake"
+    cmake-include: "PiPrecision.cmake",
+    build-type : RelWithDebInfo
 };
 
 preamble {=
@@ -156,23 +157,21 @@ reactor Worker {
     
     preamble {=
         #include <gmp.h>
+        mpf_t sixteen;
+        mpf_t four;
+        mpf_t two;
+        mpf_t one;
         void calculateBbpTerm(mpf_t result, uint32_t k) {
             
+            instant_t time1, time2;
+            time1 = get_physical_time();
             uint32_t eightK = 8ul * k;
-            mpf_t sixteen;
-            mpf_t four;
-            mpf_t two;
-            mpf_t one;
             mpf_t term;
             mpf_t intermediate;
-            
-            mpf_init_set_ui(sixteen, 16ul);
-            mpf_init_set_ui(four, 4ul);
-            mpf_init_set_ui(two, 2ul);
-            mpf_init_set_ui(one, 1ul);
             mpf_init_set_ui(term, 0ul);
             mpf_init_set_ui(intermediate, 0ul);
             
+
             mpf_div_ui(term, four, (eightK + 1ul));
             mpf_div_ui(intermediate, two, (eightK + 4ul));
             mpf_sub(term, term, intermediate);
@@ -181,13 +180,9 @@ reactor Worker {
             mpf_div_ui(intermediate, one, (eightK + 6ul)); 
             mpf_sub(term, term, intermediate);
             
-            mpf_pow_ui(sixteen, sixteen, k);
-            mpf_div(result, term, sixteen);
+
+            mpf_div_2exp(result, term, 4 * k);
             
-            mpf_clear(sixteen);
-            mpf_clear(four);
-            mpf_clear(two);
-            mpf_clear(one);
             mpf_clear(intermediate);
             mpf_clear(term);
         }
@@ -196,12 +191,23 @@ reactor Worker {
     input doWork:uint32_t;
     output response:mpf_t;
     
+    reaction(startup) {=
+        mpf_init_set_ui(sixteen, 16ul);
+        mpf_init_set_ui(four, 4ul);
+        mpf_init_set_ui(two, 2ul);
+        mpf_init_set_ui(one, 1ul);
+    =}
+    
     reaction(doWork) -> response {=
         mpf_t result;
         mpf_init(result);
         calculateBbpTerm(result, doWork->value);
         mpf_swap(response->value, result);
         SET_PRESENT(response);
+    =}
+    
+    reaction(shutdown) {=
+        // mpf_clears(one, two, four, sixteen, NULL); FIXME: This causes a "double free or corruption" error
     =}
 }
 
