@@ -120,6 +120,9 @@ public class EclipseErrorReporter implements ErrorReporter {
 
             try {
                 IMarker marker = iResource.createMarker(IMarker.PROBLEM);
+                
+                // Mark as LF compilation marker to be able to remove marker at next compile run
+                marker.setAttribute(this.getClass().getName(), true);
 
                 marker.setAttribute(IMarker.MESSAGE, message);
                 marker.setAttribute(IMarker.LINE_NUMBER,
@@ -233,10 +236,14 @@ public class EclipseErrorReporter implements ErrorReporter {
     public void clearMarkers() {
         try {
             IResource resource = fileConfig.getIResource(fileConfig.srcFile);
-            // First argument can be null to delete all markers.
-            // But will that delete xtext markers too?
-            resource.deleteMarkers(IMarker.PROBLEM, true,
-                    IResource.DEPTH_INFINITE);
+            IMarker[] markers = resource.findMarkers(null, true, IResource.DEPTH_INFINITE);
+            
+            for (IMarker marker : markers) {
+                // Only remove those markers created by the LF compilation
+                if (marker.getAttribute(this.getClass().getName(), false)) {
+                    marker.delete();
+                }
+            }
         } catch (Exception e) {
             // Ignore, but print a warning
             reportWarning("Deleting markers in the IDE failed: $e");

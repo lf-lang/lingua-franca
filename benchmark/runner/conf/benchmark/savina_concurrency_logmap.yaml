@@ -31,3 +31,12 @@ targets:
       terms: ["--numTerms", "<value>"]
       start_rate: ["--startRate", "<value>"]
       series: ["--numSeries", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/LogisticMap.lf"
+    lf_file: "LogisticMap.lf"
+    binary: "LogisticMap"
+    gen_args:
+      terms: ["-D", "numTerms=<value>"]
+      start_rate: ["-D", "startRate=<value>"]
+      series: ["-D", "numSeries=<value>"]

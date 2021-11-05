@@ -1059,7 +1059,7 @@ class PythonGenerator extends CGenerator {
         targetConfig.noCompile = compileStatus
 
         if (errorsOccurred) return;
-
+        
         var baseFileName = topLevelName
         for (federate : federates) {
             if (isFederated) {
@@ -1092,7 +1092,6 @@ class PythonGenerator extends CGenerator {
                     printRunInfo();
                 }
             }
-
         }
         // Restore filename
         topLevelName = baseFileName
@@ -1155,10 +1154,16 @@ class PythonGenerator extends CGenerator {
             }
             '''
         } else {
-            // FIXME: Setting ref_counts of the token directly causes memory leak
             '''
-            // Create a token
+            // Create a token.
+            #if NUMBER_OF_WORKERS > 0
+            // Need to lock the mutex first.
+            lf_mutex_lock(&mutex);
+            #endif
             lf_token_t* t = create_token(sizeof(PyObject*));
+            #if NUMBER_OF_WORKERS > 0
+            lf_mutex_unlock(&mutex);
+            #endif
             t->value = self->_lf_«ref»->value;
             t->length = 1; // Length is 1
             
@@ -1697,6 +1702,50 @@ class PythonGenerator extends CGenerator {
             pyObjectDescriptor.append("O")            
             pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         }
+    }
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * The file will go into src-gen/filename.Dockerfile.
+     * If there is no main reactor, then no Dockerfile will be generated
+     * (it wouldn't be very useful).
+     * @param The root filename (without any extension).
+     */
+    override writeDockerFile(String filename) {
+        var srcGenPath = fileConfig.getSrcGenPath
+        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+
+        if (this.mainDef === null) {
+            return
+        }
+
+        val contents = new StringBuilder()
+        pr(contents, '''
+            # Generated docker file for «topLevelName».lf in «srcGenPath».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            FROM python:alpine
+            WORKDIR /lingua-franca/«topLevelName»
+            COPY . src-gen
+            RUN set -ex && apk add --no-cache gcc musl-dev \
+             && cd src-gen && python3 setup.py install && cd .. \
+             && apk del gcc musl-dev
+            ENTRYPOINT ["python3", "src-gen/«filename».py"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile written to " + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+            
+            #####################################
+        ''')
     }
     
     /**
