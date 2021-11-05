@@ -116,6 +116,14 @@ reactor Worker {
     input doWork: size_t;
     output response: mpf_class;
     
+    private preamble {=
+        // constants used for omputations 
+        const mpf_class sixteen(16, precision);
+        const mpf_class four(4, precision);
+        const mpf_class two(2, precision);
+        const mpf_class one(1, precision);
+    =}
+    
     reaction(doWork) -> response {=
         size_t term = *doWork.get();
         mpf_class result = calculateBbpTerm(term);
@@ -124,18 +132,12 @@ reactor Worker {
     
     const method calculateBbpTerm(k: size_t): mpf_class {=
         size_t eightK = 8 * k;
-        mpf_class sixteen(16, precision);
-        mpf_class four(4, precision);
-        mpf_class two(2, precision);
-        mpf_class one(1, precision);
         mpf_class term(0, precision);
         term = four / (eightK + 1);
         term = term - (two / (eightK + 4));
         term = term - (one / (eightK + 5));
         term = term - (one / (eightK + 6));
-        mpf_class sixteenpow(sixteen, precision);
-        mpf_pow_ui(sixteenpow.get_mpf_t(), sixteenpow.get_mpf_t(), k);
-        term = term / sixteenpow;
+        mpf_div_2exp(term.get_mpf_t(), term.get_mpf_t(), 4*k);
         
         return term;
     =}
