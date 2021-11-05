@@ -217,11 +217,12 @@ function setDiff(
     // believe, and can possibly be improved upon by sorting `shadowRanges`
     // by both start and end. That would permit a binary search...
     const ret: Range[] = [];
+    const nonEmptyShadow = shadowRanges.filter((range) => !range.isEmpty);
     let pos = range.start;
     while (contains(range, pos)) {
         do {
             var passed = true;
-            for (let shadow of shadowRanges) {
+            for (let shadow of nonEmptyShadow) {
                 if (contains(shadow, pos)) {
                     pos = shadow.end;
                     passed = false;
@@ -232,7 +233,7 @@ function setDiff(
         let newRange = new Range(pos, range.end);
         do {
             passed = true;
-            for (let shadow of shadowRanges) {
+            for (let shadow of nonEmptyShadow) {
                 if (contains(newRange, shadow.start)) {
                     newRange = newRange.with(...[,], shadow.start);
                     passed = false;
