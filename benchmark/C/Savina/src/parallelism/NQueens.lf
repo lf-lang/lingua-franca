@@ -44,7 +44,7 @@ target C{
       else:
           cog.outl("threads: 0")
     ]]] */
-    //logging: debug,
+    logging: warn,
     cmake-include: "../include/deque.cmake",
     files: ["../include/deque.c", "../include/deque.h"]
     
@@ -213,7 +213,7 @@ reactor Manager(num_workers: size_t(20), solutions_limit: size_t(1500000), size:
         }
         if (s > 0) {
             self->num_solutions += s;
-            printf(" Found %zu solutions; Total solutions %zu\n", s, self->num_solutions);
+            info_print(" Found %zu solutions; Total solutions %zu\n", s, self->num_solutions);
         }
     =}
     
