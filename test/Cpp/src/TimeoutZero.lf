@@ -7,7 +7,7 @@
 * Modeled after the C version of this test.
 **/
 target Cpp {
-    timeout: 1 sec
+    timeout: 0 sec
 };
 
 import Sender from "lib/LoopedActionSender.lf"
