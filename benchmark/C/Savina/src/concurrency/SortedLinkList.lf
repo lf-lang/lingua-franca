@@ -5,7 +5,7 @@
  * linked list with random elements. Upon startup the
  * Worker actors would send either a `read` or `write`
  * request to the LinkedList, which responds by sending
- * a `result` signal. When Workers receive this signal,
+ * a `response` signal. When Workers receive this signal,
  * if they've hit their target requests amount they will
  * send a `finish` message; otherwise, they will continue
  * to query the LinkList.
@@ -28,42 +28,56 @@ target C {
 
 preamble {=
     #include "PseudoRandom.h"
+
+    typedef enum {
+        WRITE,
+        SIZE,
+        CONTAINS
+    } access_type;
+    
+    typedef struct message_t {
+        access_type type;
+        int value;
+    } message_t;
 =}
 
-reactor Worker(instance:int(0), num_requests:int(10), write_percentage:int(10)) {
-    input start:bool;
-    input result:bool;
+reactor Worker(
+    bank_index:int(0),
+    num_requests:int(10),
+    write_percentage:int(10),
+    size_percentage:int(1)
+) {
+    input response:int;
     
-    state requests_sent:int;
-    logical action request;
+    state random: PseudoRandom;
+    state requests_sent:int(0);
     
-    output read:int;
-    output write:int;
+    output request:message_t;
     output finish:bool;
     
-    reaction(start) -> request {=
-        self->requests_sent = 0;
-        schedule(request, 0);
+    reaction(startup) {=
+        initPseudoRandom(
+            &self->random,
+            self->bank_index + self->num_requests + self->size_percentage
+        );
     =}
 
-    reaction(request) -> read, write {=
-        int coin = rand() % 100;
-        int val = rand() % 1000;
-        if (coin <= self->write_percentage) {
-            SET(write, val);
-         //   printf("Worker %d sent write request for %d \n", self->instance, val);
-        } else {
-            SET(read, val);
-         //   printf("Worker %d sent read request for %d \n", self->instance, val);
-        }
-        self->requests_sent++;
-    =}
-    
-    reaction(result) -> request, finish {=
+    reaction(response, startup) -> request, finish {=
         if (self->requests_sent >= self->num_requests) {
             SET(finish, true);
         } else {
-            schedule(request, 0);
+            int coin = nextInt(&self->random) % 100;
+            int val = nextInt(&self->random) % 1000;
+            message_t message;
+            if (coin <= self->write_percentage) {
+                message = (message_t) { .type=WRITE, .value=val };
+            //   printf("Worker %d sent write request for %d \n", self->instance, val);
+            } else {
+                message = (message_t) { .type=CONTAINS, .value=val };
+            //   printf("Worker %d sent read request for %d \n", self->instance, val);
+            }
+            SET(request, message);
+            self->requests_sent++;
         }
     =}
 }
@@ -76,17 +90,17 @@ reactor LinkedList(num_workers:int(20)) {
         } linklist;
 
         void insert(linklist **head, int val) {
-            linklist * node = NULL;
+            linklist *node = NULL;
             node = (linklist *) malloc(sizeof(linklist));
             node->val = val;
-            node-> next = NULL;
+            node->next = NULL;
             
             if (*head == NULL || (*head)->val > val) {
                 node->next = *head;
                 *head = node;
                 return;
             }
-            linklist * curr = *head;
+            linklist *curr = *head;
             while (curr->next != NULL && curr->next->val <= val) {
                 if (curr->next->val == val) {
                     return;
@@ -95,7 +109,7 @@ reactor LinkedList(num_workers:int(20)) {
             }
             linklist *temp = curr->next;
             curr->next = node;
-            curr->next->next = temp;
+            node->next = temp;
             return;
         }
 
@@ -121,41 +135,55 @@ reactor LinkedList(num_workers:int(20)) {
         }
     =}
     
-    input[num_workers] read:int;
-    input[num_workers] write:int;
-    input start:bool;
+    input[num_workers] requests:message_t;
     
     state list:{=linklist*=};
+    state responses_to_send:int[];
+
+    logical action send_responses;
     
-    output[num_workers] result:bool;
+    output[num_workers] responses:int;
     
-    reaction(start) {=
+    reaction(startup) {=
         // initialize linked list with random elements
+        self->responses_to_send = malloc(self->num_workers * sizeof(int));
         self->list = (linklist*) NULL;
         for (int i = 0; i < 10; i++) {
             insert(&(self->list), rand() % 1000);
         }
     =}
 
-    reaction(write) -> result {=
+    reaction(send_responses) -> responses {=
         for (int i = 0; i < self->num_workers; i++) {
-            if (write[i]->is_present) {
-                insert(&(self->list), write[i]->value);
-            //    printf("List content after insert: ");
-            //    printlist(self->list);
-                SET(result[i], true);
-            }
+            SET(responses[i], self->responses_to_send[i]);
+            LOG_PRINT("Reply to worker %d with %d", self->responses_to_send[i]);
         }
     =}
 
-    reaction(read) -> result {=
+    reaction(requests) -> send_responses {=
         for (int i = 0; i < self->num_workers; i++) {
-            if (read[i]->is_present) {
-                bool found = lookup(self->list, read[i]->value);
-            //    printf("Result of looking up %d: %d \n",read[i]->value, found);
-                SET(result[i], true);
+            switch (requests[i]->value.type) {
+                case WRITE:
+                    insert(&(self->list), requests[i]->value.value);
+                //    printf("List content after insert: ");
+                //    printlist(self->list);
+                    self->responses_to_send[i] = requests[i]->value.value;
+                    break;
+                case SIZE:
+                    break; // TODO: Implement
+                case CONTAINS:
+                    self->responses_to_send[i] = lookup(
+                        self->list,
+                        requests[i]->value.value
+                    );
+                    break;
             }
         }
+        schedule(send_responses, 0);
+    =}
+
+    reaction (shutdown) {=
+        free(self->responses_to_send);
     =}
 }
 
@@ -166,16 +194,12 @@ main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage
     // [[[end]]]
 {
     list = new LinkedList(num_workers=numWorkers);
-    workers = new[numWorkers] Worker(num_requests=numMessagesPerWorker, write_percentage=writePercentage);
+    workers = new[numWorkers] Worker(
+        num_requests=numMessagesPerWorker,
+        write_percentage=writePercentage,
+        size_percentage=sizePercentage
+    );
     
-    workers.read -> list.read;
-    workers.write -> list.write;
-    list.result -> workers.result;
-    
-    reaction(startup) -> list.start, workers.start {=
-        SET(list.start, true);
-        for (int i = 0; i < self->numWorkers; i++) {
-            SET(workers[i].start, true);
-        }
-    =}
+    workers.request -> list.requests;
+    list.responses -> workers.response;
 }
