@@ -216,7 +216,11 @@ class FederateInstance {
       * List of triggers of network reactions that belong to remote federates.
       * These might need to be removed before code generation to avoid unnecessary compile
       * errors, since they might reference structures that are not present in
-      * the current federate.
+      * the current federate. Even though it is impossible for a trigger that is on a remote
+      * federate to trigger a reaction on this federate, these triggers need to be here
+      * to ensure that dependency analysis between reactions is done correctly.
+      * Without these triggers, the reaction precedence graph is broken and
+      * dependencies not properly represented.
       */
      public List<VarRef> disconnectedNetworkReactionTriggers = new ArrayList<VarRef>();
 
