@@ -27,8 +27,6 @@ target C {
 };
 
 preamble {=
-    #include "PseudoRandom.h"
-
     typedef enum {
         WRITE,
         SIZE,
@@ -41,57 +39,161 @@ preamble {=
     } message_t;
 =}
 
-reactor Worker(
-    bank_index:int(0),
-    num_requests:int(10),
-    write_percentage:int(10),
-    size_percentage:int(1)
-) {
-    input response:int;
+reactor Manager(numWorkers: size_t(20)) {
+    // The C++ version of this benchmark requires this reactor for communication with
+    // the benchmark runner. In this C version, it is less important.
     
-    state random: PseudoRandom;
-    state requests_sent:int(0);
-    
-    output request:message_t;
-    output finish:bool;
-    
-    reaction(startup) {=
-        initPseudoRandom(
-            &self->random,
-            self->bank_index + self->num_requests + self->size_percentage
-        );
-    =}
+    state num_workers_terminated: size_t(0);
 
-    reaction(response, startup) -> request, finish {=
-        if (self->requests_sent >= self->num_requests) {
-            SET(finish, true);
-        } else {
-            int coin = nextInt(&self->random) % 100;
-            int val = nextInt(&self->random) % 1000;
-            message_t message;
-            if (coin <= self->write_percentage) {
-                message = (message_t) { .type=WRITE, .value=val };
-            //   printf("Worker %d sent write request for %d \n", self->instance, val);
-            } else {
-                message = (message_t) { .type=CONTAINS, .value=val };
-            //   printf("Worker %d sent read request for %d \n", self->instance, val);
+    output finished: bool;
+    
+    input[numWorkers] workers_finished: bool;
+
+    logical action finish;
+
+    reaction(finish) -> finished {=
+        SET(finished, true);
+    =}
+    
+    reaction(workers_finished) -> finish {=
+        for (size_t i = 0; i < self->numWorkers; ++i) {
+            if (workers_finished[i]->is_present) {
+                self->num_workers_terminated += 1;
+                
+                if (self->num_workers_terminated == self->numWorkers) {
+                    schedule(finish, 0);
+                }
             }
-            SET(request, message);
-            self->requests_sent++;
         }
     =}
 }
 
-reactor LinkedList(num_workers:int(20)) {
+reactor Worker(
+    bank_index: int(0),
+    num_requests: int(8000),
+    write_percentage: int(10),
+    size_percentage: int(1)
+) {
+
+    preamble {=
+        #include "PseudoRandom.h"
+    =}
+
+    input response: int;
+    
+    state requests_sent: int(0);
+    state random: PseudoRandom;
+
+    output finished: bool;
+    
+    output request: message_t;
+    
+    reaction(startup) {=
+        initPseudoRandom(
+            &self->random,
+            self->bank_index
+                + self->num_requests
+                + self->write_percentage
+                + self->size_percentage
+        );
+    =}
+
+    reaction(startup, response) -> request, finished {=
+        if (self->requests_sent < self->num_requests) {
+            int coin = nextIntEMax(&self->random, 100);
+            message_t message;
+            if (coin < self->write_percentage) {
+                message = (message_t) { .type=WRITE, .value=nextInt(&self->random) };
+            } else if (coin < (self->write_percentage + self->size_percentage)) {
+                message = (message_t) { .type=SIZE, .value=-1 };
+            } else {
+                message = (message_t) { .type=CONTAINS, .value=nextInt(&self->random) };
+            }
+            SET(request, message);
+            self->requests_sent++;
+        } else {
+            SET(finished, true);
+        }
+    =}
+}
+
+reactor LinkedList(num_workers: int(20)) {
+    
+    state data_list: {=linklist_t*=};
+    state responses_to_send: int[];
+
+    logical action send_responses;
+    
+    input print_result: bool;
+    input[num_workers] requests: message_t;
+    output[num_workers] responses: int;
+    
+    reaction(startup) {=
+        self->responses_to_send = (int*) malloc(self->num_workers * sizeof(int));
+        self->data_list = (linklist_t*) NULL;
+    =}
+
+    reaction(print_result) {=
+        // check result
+        info_print("List Size = %d", list_size(self->data_list));
+        // no need to reset local state
+    =}
+
+    reaction(send_responses) -> responses {=
+        for (size_t i = 0; i < self->num_workers; i++) {
+            SET(responses[i], self->responses_to_send[i]);
+            LOG_PRINT("Reply to worker %d with %d", self->responses_to_send[i]);
+        }
+    =}
+
+    reaction(requests) -> send_responses {=
+        schedule(send_responses, 0);
+
+        for (size_t i = 0; i < self->num_workers; i++) {
+            int value = requests[i]->value.value;
+            switch (requests[i]->value.type) {
+                case CONTAINS:
+                    self->responses_to_send[i] = list_contains(self->data_list, value);
+                    LOG_PRINT(
+                        "Worker %ld checks if %d is contained in the list",
+                        i, value
+                    );
+                    break;
+                case WRITE:
+                    list_add(&(self->data_list), value);
+                    self->responses_to_send[i] = value;
+                    LOG_PRINT("Worker %ld writes %d", i, value);
+                    break;
+                case SIZE:
+                    self->responses_to_send[i] = list_size(self->data_list);
+                    LOG_PRINT("Worker %ld reads the list size", i);
+                    break;
+            }
+        }
+    =}
+
+    reaction (shutdown) {=
+        free(self->responses_to_send);
+    =}
+
     preamble {=
         typedef struct listnode {
             int val;
             struct listnode *next;
-        } linklist;
+        } linklist_t;
 
-        void insert(linklist **head, int val) {
-            linklist *node = NULL;
-            node = (linklist *) malloc(sizeof(linklist));
+        void list_free(linklist_t *head) {
+            linklist_t *current = head;
+            while (current != NULL) {
+                linklist_t *next = current->next;
+                free(current);
+                current = next;
+            }
+        }
+
+        void list_add(linklist_t **head, int val) {
+            linklist_t *node = NULL;
+            node = (linklist_t *) malloc(sizeof(linklist_t));
             node->val = val;
             node->next = NULL;
             
@@ -100,21 +202,16 @@ reactor LinkedList(num_workers:int(20)) {
                 *head = node;
                 return;
             }
-            linklist *curr = *head;
-            while (curr->next != NULL && curr->next->val <= val) {
-                if (curr->next->val == val) {
-                    return;
-                }
-                curr = curr->next;
-            }
-            linklist *temp = curr->next;
+            linklist_t *curr = *head;
+            while (curr->next != NULL && curr->next->val <= val) curr = curr->next;
+            linklist_t *temp = curr->next;
             curr->next = node;
             node->next = temp;
             return;
         }
 
-        bool lookup(linklist *head, int val) {
-            linklist *curr = head;
+        bool list_contains(linklist_t *head, int val) {
+            linklist_t *curr = head;
             while (curr != NULL) {
                 if (curr->val == val) {
                     return true;
@@ -124,66 +221,14 @@ reactor LinkedList(num_workers:int(20)) {
             return false;
         }
 
-        void printlist(linklist *head) {
-            linklist * current = head;
-
-            while (current != NULL) {
-                printf("%d ", current->val);
-                current = current->next;
+        int list_size(linklist_t *head) {
+            int r = 0;
+            while (head != NULL) {
+                head = head->next;
+                r++;
             }
-            printf("\n");
+            return r;
         }
-    =}
-    
-    input[num_workers] requests:message_t;
-    
-    state list:{=linklist*=};
-    state responses_to_send:int[];
-
-    logical action send_responses;
-    
-    output[num_workers] responses:int;
-    
-    reaction(startup) {=
-        // initialize linked list with random elements
-        self->responses_to_send = malloc(self->num_workers * sizeof(int));
-        self->list = (linklist*) NULL;
-        for (int i = 0; i < 10; i++) {
-            insert(&(self->list), rand() % 1000);
-        }
-    =}
-
-    reaction(send_responses) -> responses {=
-        for (int i = 0; i < self->num_workers; i++) {
-            SET(responses[i], self->responses_to_send[i]);
-            LOG_PRINT("Reply to worker %d with %d", self->responses_to_send[i]);
-        }
-    =}
-
-    reaction(requests) -> send_responses {=
-        for (int i = 0; i < self->num_workers; i++) {
-            switch (requests[i]->value.type) {
-                case WRITE:
-                    insert(&(self->list), requests[i]->value.value);
-                //    printf("List content after insert: ");
-                //    printlist(self->list);
-                    self->responses_to_send[i] = requests[i]->value.value;
-                    break;
-                case SIZE:
-                    break; // TODO: Implement
-                case CONTAINS:
-                    self->responses_to_send[i] = lookup(
-                        self->list,
-                        requests[i]->value.value
-                    );
-                    break;
-            }
-        }
-        schedule(send_responses, 0);
-    =}
-
-    reaction (shutdown) {=
-        free(self->responses_to_send);
     =}
 }
 
@@ -193,13 +238,17 @@ reactor LinkedList(num_workers:int(20)) {
 main reactor(numWorkers:int(20), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1))
     // [[[end]]]
 {
-    list = new LinkedList(num_workers=numWorkers);
+    manager = new Manager(numWorkers=numWorkers);
     workers = new[numWorkers] Worker(
         num_requests=numMessagesPerWorker,
         write_percentage=writePercentage,
         size_percentage=sizePercentage
     );
+    sorted_list = new LinkedList(num_workers=numWorkers);
+
+    manager.finished -> sorted_list.print_result;
     
-    workers.request -> list.requests;
-    list.responses -> workers.response;
+    workers.request -> sorted_list.requests;
+    sorted_list.responses -> workers.response;
+    workers.finished -> manager.workers_finished;
 }
