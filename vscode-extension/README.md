@@ -4,7 +4,14 @@
 The extension is built and installed by the Gradle task "startCode":
 > ./gradlew startCode
 
-If this does not work, please ensure that you have Python 3 installed.
+The installation process requires that the following are true:
+* Python 3 (`python3`) is installed. (Currently, the workaround if Python is invoked by `python` instead of `python3` on your machine is to edit `org.lflang.lds/pom.xml` to specify `python` in place of `python3`.)
+* VS Code (`code`) is installed.
+* Maven (`mvn`) is installed.
+* You have deleted the untracked directories `org.lflang/src-gen` and `org.lflang/xtend-gen`, which
+may contain generated code from a different branch.
+
+This build process begins and ends with Gradle tasks, but it also depends on Tycho for collecting dependencies and a Python script for creating a fat jar with those dependencies.
 
 ## Development Build
 For development purposes, it is possible to manually perform an incremental build simply by bypassing Maven and Gradle entirely and instead running the Python script `org.lflang.lds/uf.py`. This script will re-compile Java and Kotlin files and add them to the fat jar using the `jar` command with the `-uf` flag.
