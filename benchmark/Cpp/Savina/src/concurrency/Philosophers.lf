@@ -3,7 +3,7 @@
  * 
  * This benchmark implements a "solution" to the philosophers problem.
  * This LF implementation stays close to the original Akka implementation
- * in the Savina suite. However, it is not a particular good solution as
+ * in the Savina suite. However, it is not a particularly good solution as
  * it relies on busy waiting. The Philosophers bombard the Arbitrator
  * with "hungry" messages until they are allowed to eat. In an actor
  * implementation, this leads to millions of messages being sent.
@@ -20,7 +20,7 @@
  * model the time a philosopher needs to eat and think. But for this simple
  * benchmark, it is more efficient to have a single action in the arbitrator
  * only to break the loop. The idea is to process all hungry requests within
- * one tag and to store the replies in a state variable. Thena logical action
+ * one tag and to store the replies in a state variable. Then, a logical action
  * is scheduled and the corresponding reaction will send the eat and denied
  * messages to each Philosopher.
  * 
