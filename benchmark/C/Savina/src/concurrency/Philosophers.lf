@@ -12,7 +12,7 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    fast: true,
+    logging: warn
 };
 
 reactor Philosopher(
@@ -172,10 +172,11 @@ reactor Arbitrator(num_philosophers:int(20)) {
     =}
 }
 
-main reactor Philosophers(
-    num_philosophers:int(5),
-    count:int(2) 
-) {    
+/* [[[cog
+  cog.outl(f"main reactor Philosophers(num_philosophers:int({numPhilosophers}), count:int({numEatingRounds})) {{")
+]]] */
+main reactor Philosophers(num_philosophers:int(20), count:int(10000)) {
+/// [[[end]]]   
     arbitrator = new Arbitrator(num_philosophers = num_philosophers);
     philosophers = new[num_philosophers] Philosopher(count=count);
     

@@ -27,3 +27,11 @@ targets:
     run_args:
       philosophers: ["--numPhilosophers", "<value>"]
       eating_rounds: ["--numEatingRounds", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/Philosophers.lf"
+    lf_file: "Philosophers.lf"
+    binary: "Philosophers"
+    gen_args:
+      philosophers: ["-D", "numPhilosophers=<value>"]
+      eating_rounds: ["-D", "numEatingRounds=<value>"]
