@@ -479,6 +479,11 @@ object RustModelBuilder {
                 userSpec.rev = runtimeGitRevision
             }
 
+            // override location
+            if (targetConfig.externalRuntimePath != null) {
+                userSpec.localPath = targetConfig.externalRuntimePath
+            }
+
             return userSpec
         }
     }

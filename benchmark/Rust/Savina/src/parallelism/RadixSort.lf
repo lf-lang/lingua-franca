@@ -19,7 +19,7 @@ target Rust {
             features: ["small_rng"],
         },
         reactor_rt: {
-            features: ["parallel-runtime"]
+            features: ["parallel-runtime", "graph-dump"]
         },
     }
 };
@@ -60,7 +60,7 @@ reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60
 reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usize(60)) {
 
     state num_values(num_values);
-    state oneBucket: Vec<u64>;
+    state oneBucket: Vec<u64>({= Vec::with_capacity(num_values) =});
     state valuesSoFar: usize(0);
     state radix: u64 ({= 1u64 << bank_index =});
     state bank_index(bank_index);
@@ -70,10 +70,6 @@ reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usi
 
     state readPos: usize(0);
     logical action sendBufferedValues;
-
-    reaction(startup) {=
-        self.oneBucket.reserve(self.num_values);
-    =}
 
     // @label recv
     reaction(inValue) -> outValue, sendBufferedValues {=
