@@ -21,8 +21,8 @@ targets:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
-    lf_file: "concurrency/Philosopher.lf"
-    binary: "Philosopher"
+    lf_file: "concurrency/Philosophers.lf"
+    binary: "Philosophers"
     gen_args: null
     run_args:
       philosophers: ["--numPhilosophers", "<value>"]
