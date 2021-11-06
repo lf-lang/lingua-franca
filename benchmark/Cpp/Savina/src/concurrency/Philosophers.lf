@@ -1,9 +1,28 @@
 /**
  * Copyright (C) 2020 TU Dresden
  * 
- * This implementation stays close to the Savina implementation
- * with Akka. There is no notion of time and there is no delay
- * or work done when a philosopher is thinking or eating.
+ * This benchmark implements a "solution" to the philosophers problem.
+ * This LF implementation stays close to the original Akka implementation
+ * in the Savina suite. However, it is not a particular good solution as
+ * it relies on busy waiting. The Philosophers bombard the Arbitrator
+ * with "hungry" messages until they are allowed to eat. In an actor
+ * implementation, this leads to millions of messages being sent.
+ * Due to the synchronous semantics of LF, this effect is mitigated.
+ * Since we know all hungry philosophers at each tag, we can compute a
+ * schedule and let as many philosophers eat as possible. Philosophers
+ * will try again if they are denied, but they will only send a request 
+ * once per tag and hence the total number of denied messages is much lower 
+ * than in Akka.
+ *   
+ * Due to the bidrectional interaction between the Arbitrator and the 
+ * Philosophers, there is a cycle in the dependency graph. Normally we
+ * would break the cycle by using actions in the Philosophers as this would
+ * model the time a philosopher needs to eat and think. But for this simple
+ * benchmark, it is more efficient to have a single action in the arbitrator
+ * only to break the loop. The idea is to process all hungry requests within
+ * one tag and to store the replies in a state variable. Thena logical action
+ * is scheduled and the corresponding reaction will send the eat and denied
+ * messages to each Philosopher.
  * 
  * @author Hannes Klein
  * @author Christian Menard
