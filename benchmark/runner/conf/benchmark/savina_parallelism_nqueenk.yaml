@@ -38,3 +38,15 @@ targets:
       priorities: ["--priorities", "<value>"]
       solution_limit: ["--solutionsLimit", "<value>"]
       num_workers: ["--numWorkers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+      - "${lf_path}/benchmark/C/Savina/src/include"
+    lf_file: "parallelism/NQueens.lf"
+    binary: "NQueens"
+    gen_args:
+      size: ["-D", "size=<value>"]
+      threshold: ["-D", "threshold=<value>"]
+      priorities: ["-D", "priorities=<value>"]
+      solution_limit: ["-D", "solutionsLimit=<value>"]
+      num_workers: ["-D", "numWorkers=<value>"]

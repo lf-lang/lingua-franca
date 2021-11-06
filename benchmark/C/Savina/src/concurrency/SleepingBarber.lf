@@ -62,8 +62,8 @@ preamble {=
     size_t busyWait(size_t limit) {
         size_t test = 0;
         for(size_t k = 0; k < limit; k++) {
-            // Math.random() is used as workload in the original savina benchmark suite
-            // FIXME: What is equivalent in Cpp complexity-wise? maybe rand()??
+            // The Java Math.random() is used as workload in the original Akka Savina benchmark suite.
+            // NOTE: Here, we assume that the C library rand() function is roughly equivalent.
             rand();
             test++;
         }

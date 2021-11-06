@@ -29,3 +29,12 @@ targets:
     run_args:
       messages: ["--numPingsPerReactor", "<value>"]
       actors: ["--numReactors", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/micro"
+      - "${lf_path}/benchmark/C/Savina/src/include"
+    lf_file: "micro/Big.lf"
+    binary: "Big"
+    gen_args:
+      messages: ["-D", "numPingsPerReactor=<value>"]
+      actors: ["-D", "numReactors=<value>"]
