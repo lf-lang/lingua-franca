@@ -117,6 +117,18 @@
             "begin": "(?=\\btarget\\s+C\\b)",
             "patterns": [
                 {
+                    "begin": "(?<=(input|output|action|state).*:)",
+                    "end": "[\\(;\\n]",
+                    "patterns": [
+                        {
+                            "include": "source.cpp"
+                        },
+                        {
+                            "include": "#type"
+                        }
+                    ]
+                },
+                {
                     "include": "#post-targetspec"
                 },
                 {
@@ -132,6 +144,18 @@
         "cpp-target": {
             "begin": "(?=\\btarget\\s+C?Cpp\\b)",
             "patterns": [
+                {
+                    "begin": "(?<=(input|output|action|state).*:)",
+                    "end": "[\\(;\\n]",
+                    "patterns": [
+                        {
+                            "include": "source.cpp"
+                        },
+                        {
+                            "include": "#type"
+                        }
+                    ]
+                },
                 {
                     "include": "#post-targetspec"
                 },
@@ -180,6 +204,10 @@
         "rs-target": {
             "begin": "(?=\\btarget\\s+Rust\\b)",
             "patterns": [
+                {
+                    "name": "entity.name.type.lflang",
+                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w+)\\b)"
+                },
                 {
                     "include": "#post-targetspec"
                 },
@@ -328,7 +356,7 @@
                 },
                 {
                     "name": "storage.type.lflang",
-                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w*)\\b)"
+                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w+)\\b)"
                 }
             ]
         },
