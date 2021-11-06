@@ -1,0 +1,182 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This implementation stays close to the Savina implementation
+ * with Akka. There is no notion of time and there is no delay
+ * or work done when a philosopher is thinking or eating.
+ * 
+ * @author Hannes Klein
+ * @author Christian Menard
+ */
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    logging: warn
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor Arbitrator(numPhilosophers:size_t(20)) {
+    
+    public preamble {=
+        enum class Reply {
+            INVALID = 0,
+            EAT = 1,
+            DENIED = 2,
+        };
+    =}
+    
+    state replies: std::vector<Reply>;
+    state forks: std::vector<bool>;
+    state numFinishedPhilosophers: size_t{0};
+    state arbitration_id: size_t{0};
+    state numRetries: size_t{0};
+    
+    input start: void;
+    output allFinished: void;
+    
+    input[numPhilosophers] hungry: void;
+    input[numPhilosophers] done: void;
+    input[numPhilosophers] finished: size_t;
+    output[numPhilosophers] eat: void;
+    output[numPhilosophers] denied: void;
+    
+    logical action sendReplies;
+    
+    reaction(startup) {=
+        forks.resize(numPhilosophers, false);
+        replies.resize(numPhilosophers, Reply::INVALID);
+    =}
+    
+    reaction(start) {=
+        // reset state
+        numFinishedPhilosophers = 0;
+        numRetries = 0;
+        arbitration_id = 0;
+        std::fill(forks.begin(), forks.end(), false);
+        std::fill(replies.begin(), replies.end(), Reply::INVALID);        
+    =}
+    
+    reaction(sendReplies) -> eat, denied {=
+        for(size_t i = 0; i < numPhilosophers; i++) {
+            if (replies[i] == Reply::EAT) {
+                eat[i].set();
+            } else if (replies[i] == Reply::DENIED) {
+                denied[i].set();
+            }
+        }
+        std::fill(replies.begin(), replies.end(), Reply::INVALID);
+    =}
+    
+    reaction (done) {=
+        for(size_t i{0}; i < numPhilosophers; i++) {
+            if (done[i].is_present()) {
+                forks[i] = false;
+                forks[(i + 1) % numPhilosophers] = false;
+            }
+        }
+    =}
+    
+    reaction(hungry) -> sendReplies {=
+        for(size_t i{0}; i < numPhilosophers; i++) {
+            size_t j = (i + arbitration_id) % numPhilosophers;
+            
+            if(hungry[j].is_present()) {
+                bool leftFork = forks[j];
+                bool rightFork = forks[(j + 1) % numPhilosophers];     
+                 
+                if(leftFork || rightFork) {
+                    // someone else has access to the fork
+                    replies[j] = Reply::DENIED;
+                } else {
+                    forks[j] = true;
+                    forks[(j + 1) % numPhilosophers] = true;
+                    replies[j] = Reply::EAT;
+                }       
+            }
+        }
+        arbitration_id = (arbitration_id + 1) % numPhilosophers;
+        sendReplies.schedule();
+    =}
+    
+    reaction (finished) -> allFinished {=
+        for(const auto& f : finished) {
+            if (f.is_present()) {
+                numRetries += *f.get();
+                numFinishedPhilosophers++;
+                if(numPhilosophers == numFinishedPhilosophers) {
+                    std::cout << "Total retires: " << numRetries << '\n';
+                    allFinished.set();
+                }
+            }
+        }
+    =}
+}
+
+reactor Philosopher(bank_index: size_t{0}, rounds:size_t(10000)) {
+    
+    state numDenied: size_t(0); // count failed tries
+    state numEaten: size_t(0); // count successful tries
+    
+    input start: void
+    input eat: void;
+    input denied: void;
+    output hungry: void;
+    output done: void;
+    output finished: size_t;
+    
+    logical action requestToEat: void;
+    logical action finish: void;
+    
+    reaction (start) -> hungry {=
+        numEaten = 0;
+        numDenied = 0;
+        reactor::log::Info() << "Hello! I am Philosopher " << bank_index << " and I am hungry!";
+        hungry.set();
+    =}
+    
+    reaction (eat) -> hungry, done, finished {=
+        // do eating
+        reactor::log::Info() << "Philosopher " << bank_index << " is eating :)";    
+        numEaten++;
+        done.set();
+
+        if (numEaten == rounds) {
+            // now I am really finished
+            finished.set(numDenied);
+        } else {
+            // I am hungry again!
+            hungry.set();
+        }
+    =}
+    
+    reaction (denied) -> hungry {=
+        // do thinking
+        reactor::log::Info() << "Philosopher " << bank_index << " got denied :( and is now thinking";
+        numDenied++;
+        // I am hungry again!
+        hungry.set();
+    =}
+}
+
+main reactor (numIterations:size_t(12), numEatingRounds:size_t(10000), numPhilosophers:size_t(20)) {
+    
+    arbitrator = new Arbitrator(numPhilosophers=numPhilosophers);
+    philosophers = new[numPhilosophers] Philosopher(rounds=numEatingRounds);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    reaction(startup) {=
+        printBenchmarkInfo("PhilosopherReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", numPhilosophers);
+        printSystemInfo();
+    =}
+    
+    (runner.start)+ -> arbitrator.start, philosophers.start;
+    arbitrator.allFinished -> runner.finished;
+    
+    arbitrator.eat -> philosophers.eat;
+    arbitrator.denied -> philosophers.denied;
+    philosophers.hungry -> arbitrator.hungry;
+    philosophers.done -> arbitrator.done;
+    philosophers.finished -> arbitrator.finished;
+}
