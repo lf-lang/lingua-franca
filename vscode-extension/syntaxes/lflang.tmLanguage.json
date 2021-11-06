@@ -120,7 +120,7 @@
                     "include": "#post-targetspec"
                 },
                 {
-                    "begin": "(\\{=)",
+                    "begin": "\\{=(?!=\\})",
                     "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.c",
                     "patterns": [{
@@ -136,7 +136,7 @@
                     "include": "#post-targetspec"
                 },
                 {
-                    "begin": "(\\{=)",
+                    "begin": "\\{=(?!=\\})",
                     "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.cpp",
                     "patterns": [{
@@ -152,7 +152,7 @@
                     "include": "#post-targetspec"
                 },
                 {
-                    "begin": "(\\{=)",
+                    "begin": "\\{=(?!=\\})",
                     "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.ts",
                     "patterns": [{
@@ -168,7 +168,7 @@
                     "include": "#post-targetspec"
                 },
                 {
-                    "begin": "(\\{=)",
+                    "begin": "\\{=(?!=\\})",
                     "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.py",
                     "patterns": [{
@@ -184,7 +184,7 @@
                     "include": "#post-targetspec"
                 },
                 {
-                    "begin": "(\\{=)",
+                    "begin": "\\{=(?!=\\})",
                     "end": "([<>]?[<>+\\-*/%&\\^|]?=\\})",
                     "name": "meta.embedded.block.rs",
                     "patterns": [{
