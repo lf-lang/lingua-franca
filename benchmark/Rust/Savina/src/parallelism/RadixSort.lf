@@ -1,0 +1,159 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * See C++ benchmark for documentation.
+ *
+ * @author Hannes Klein
+ * @author Felix Wittwer
+ * @author Christian Menard
+ * @author Clément Fournier
+ */
+
+
+target Rust {
+    build-type: Debug,
+    cargo-features: [ "cli" ],
+    cargo-dependencies: {
+        rand: {
+            version: "0.8",
+            features: ["small_rng"],
+        },
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        },
+    }
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60 =}), seed: u64(2048)) {
+
+    preamble {=
+       use rand::rngs::SmallRng;
+       use rand::Rng;
+       use rand::SeedableRng;
+    =}
+
+    state random: rand::rngs::SmallRng({= rand::rngs::SmallRng::seed_from_u64(seed) =});
+    state num_sent_values: usize(0);
+    state num_values(num_values);
+    state max_value(max_value);
+
+    output outValue: u64;
+
+    logical action sendRandomNum;
+
+    // @label gen_random
+    reaction(startup, sendRandomNum) -> outValue, sendRandomNum {=
+        let value = self.random.gen_range(0..self.max_value);
+        ctx.set(outValue, value);
+        self.num_sent_values += 1;
+
+        if self.num_sent_values < self.num_values {
+            ctx.schedule(sendRandomNum, Asap);
+        }
+    =}
+}
+
+
+reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usize(60)) {
+
+    state num_values(num_values);
+    state oneBucket: Vec<u64>;
+    state valuesSoFar: usize(0);
+    state radix: u64 ({= 1u64 << bank_index =});
+    state bank_index(bank_index);
+
+    input inValue: u64;
+    output outValue: u64;
+
+    state readPos: usize(0);
+    logical action sendBufferedValues;
+
+    reaction(startup) {=
+        self.oneBucket.reserve(self.num_values);
+    =}
+
+    // @label recv
+    reaction(inValue) -> outValue, sendBufferedValues {=
+
+        self.valuesSoFar += 1;
+
+        let current = ctx.get(inValue).unwrap();
+
+        debug!("Sorter[{}] receives {}", self.bank_index, current);
+
+        if (current & self.radix) == 1 {
+            debug!("Sorter[{}]: buffering", self.bank_index);
+            // if the digit is one, we put the value to our local bucket
+            self.oneBucket.push(current);
+        } else {
+            // if the digit is zero, we pipe the value through
+            debug!("Sorter[{}]: piping through", self.bank_index);
+            ctx.set(outValue, current);
+        }
+
+        if self.valuesSoFar == self.num_values {
+           debug!("Sorter[{}]: sending", self.bank_index);
+           ctx.schedule(sendBufferedValues, Asap);
+        }
+    =}
+
+    // @label send
+    reaction(sendBufferedValues) -> outValue, sendBufferedValues {=
+        if self.readPos < self.oneBucket.len() {
+            ctx.set(outValue, self.oneBucket[self.readPos]);
+            ctx.schedule(sendBufferedValues, Asap); // loop
+            self.readPos += 1;
+        } else {
+            debug!("Sorter[{}]: done sending {} values", self.bank_index, self.oneBucket.len());
+        }
+    =}
+
+}
+
+reactor ValidationReactor(num_values: usize(100000)) {
+
+    state sumSoFar: f64(0.0);
+    state num_values(num_values);
+    state valuesSoFar: usize(0);
+    state prevValue: u64(0);
+    state errorValueLong: Option<u64>;
+
+    input inValue: u64
+
+    reaction(inValue) {=
+
+        let value = ctx.get(inValue).unwrap();
+        debug!("ValidationReactor receives {}", value);
+
+        if value < self.prevValue {
+            error!("Value out of place: {} at index {}", value, self.valuesSoFar);
+            self.errorValueLong = Some(value);
+            // self.errorValueInt = valuesSoFar - 1;
+        }
+
+        self.valuesSoFar += 1;
+        self.prevValue = value;
+        self.sumSoFar += self.prevValue as f64;
+
+        if self.valuesSoFar == self.num_values {
+            debug!("Final sum {}", self.sumSoFar);
+        } else {
+            debug!("Running sum {}", self.sumSoFar);
+        }
+    =}
+}
+
+//                                                        vvvv == 1u64 << 60
+main reactor (num_values: usize(100000), max_value: u64({= 1152921504606846976 =}), num_bits: usize(60), seed: u64(2048)) {
+
+    source = new IntSourceReactor(num_values=num_values, max_value=max_value, seed=seed);
+    validator = new ValidationReactor(num_values=num_values);
+    runner = new BenchmarkRunner();
+    sorters = new[num_bits] SortActor(num_values=num_values, num_bits=num_bits);
+
+    // each sorter is connected to the next
+    source.outValue, sorters.outValue -> sorters.inValue, validator.inValue;
+}
