@@ -121,7 +121,7 @@ class TSGenerator(
         //  See https://github.com/lf-lang/lingua-franca/discussions/608
         //  For now, avoid compile errors by removing disconnected network ports before
         //  assigning levels.
-        removeDisconnectedNetworkPorts(null);
+        removeRemoteFederateConnectionPorts(null);
         
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
