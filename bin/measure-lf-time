@@ -146,7 +146,7 @@ for (( i=0; i<$entries; i++ )); do \
         echo "$benchmark" &> "logs/${name_with_spaces//[[:blank:]]/}-`date +"date-%m-%d-%Y-time-%H-%M-%S"`.log"
     fi
 
-                # Print the headers
+    # Print the headers
     awk 'BEGIN {printf "%-40s %-15s %-15s %-15s %-15s\n", "Benchmark (in nsecs)", "Average", "Minimum", "Maximum", "Median"}'
 
     results=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" |
