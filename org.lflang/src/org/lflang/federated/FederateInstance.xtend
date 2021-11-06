@@ -33,6 +33,11 @@ import java.util.List
 import java.util.Set
 import org.lflang.ErrorReporter
 import org.lflang.TimeValue
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.PortInstance
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Delay
@@ -47,11 +52,6 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ActionInstance
-import org.lflang.generator.PortInstance
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -222,7 +222,7 @@ class FederateInstance {
       * Without these triggers, the reaction precedence graph is broken and
       * dependencies not properly represented.
       */
-     public List<VarRef> disconnectedNetworkReactionTriggers = new ArrayList<VarRef>();
+     public List<VarRef> remoteNetworkReactionTriggers = new ArrayList<VarRef>();
 
     /////////////////////////////////////////////
     //// Public Methods
@@ -351,13 +351,13 @@ class FederateInstance {
     }
         
     /** 
-     * Return true if the specified reaction is not defined in the top-level reactor,
-     * or if the top-level reactor is not federated,
-     * or if it is and the reaction should be included in the code generated for this
-     * federate. This means that if the reaction is triggered by or
-     * sends data to a port of a contained reactor, then that reactor
+     * Return true if the specified reaction should be included in the code generated for this
+     * federate at the top-level. This means that if the reaction is triggered by or
+     * sends data to a port of a contained reactor, then that reaction
      * is in the federate. Otherwise, return false.
-     * This will also return false if the reaction is not a reaction of the specified reactor,
+     * 
+     * As a convenience measure, also return true if the reaction is not defined in the top-level 
+     * (federated) reactor, or if the top-level reactor is not federated.
      *
      * @param reaction The reaction.
      */
@@ -383,75 +383,80 @@ class FederateInstance {
         if (excludeReactions !== null) {
             return !excludeReactions.contains(reaction)
         }
-        excludeReactions = new LinkedHashSet<Reaction>
         
+        indexExcludedTopLevelReactions(reactor);
+       
+        return !excludeReactions.contains(reaction)
+    }
+    
+    /**
+     * Build an index of reactions at the top-level (in the
+     * federatedReactor) that don't belong to this federate
+     * instance. This index is put in the excludeReactions
+     * class variable.
+     * 
+     * @param federatedReactor The top-level federated reactor
+     */
+    private def indexExcludedTopLevelReactions(Reactor federatedReactor) {
+        var inFederate = false
+        if (excludeReactions !== null) {
+            throw new IllegalStateException("The index for excluded reactions at the top level is already built.")
+        }
+
+        excludeReactions = new LinkedHashSet<Reaction>
+
         // Construct the set of excluded reactions for this federate.
-        for (react : reactor.allReactions) {
-            // If this reaction is a network reaction that belongs to this federate, we
-            // don't need to perform this analysis.
-            if (!networkReactions.contains(react)) {
-                // If the reaction is triggered by an output of a contained
-                // reactor or has the output in its sources and the trigger/source
-                // is not in the federate,
-                // or the reaction sends to an input of a contained reactor that is not
-                // in the federate, then do not generate code for the reaction.
-                // If the reaction mixes ports across federates, then report
-                // an error and do not generate code.
-                var referencesFederate = false;
-                var inFederate = true;            
-                for (TriggerRef trigger : react.triggers ?: emptyList) {
-                    if (trigger instanceof VarRef) {
-                        if (trigger.variable instanceof Output) {
-                            // The trigger is an output port of a contained reactor.
-                            if (trigger.container === this.instantiation) {
-                                referencesFederate = true;
-                            } else {
-                                if (referencesFederate) {
-                                    errorReporter.reportError(react, 
-                                    "Reaction mixes triggers and effects from" +
-                                    " different federates. This is not permitted")
-                                }
-                                inFederate = false;
-                            }
-                        }
-                    }
-                }
-                for (VarRef source : react.sources ?: emptyList) {
-                        if (source.variable instanceof Output) {
-                            // The trigger is an output port of a contained reactor.
-                            if (source.container === this.instantiation) {
-                                referencesFederate = true;
-                            } else {
-                                if (referencesFederate) {
-                                    errorReporter.reportError(react, 
-                                    "Reaction mixes triggers and effects from" +
-                                    " different federates. This is not permitted")
-                                }
-                                inFederate = false;
-                            }
-                        }
-                }
-                for (effect : react.effects ?: emptyList) {
-                    if (effect.variable instanceof Input) {
-                        // It is the input of a contained reactor.
-                        if (effect.container === this.instantiation) {
-                            referencesFederate = true;
-                        } else {
-                            if (referencesFederate) {
-                                errorReporter.reportError(react,
-                                    "Reaction mixes triggers and effects from" + 
-                                    " different federates. This is not permitted")
-                            }
-                            inFederate = false;
-                        }
-                    }
-                }
-                if (!inFederate) {
-                    excludeReactions.add(react)
-                }
+        // If a reaction is a network reaction that belongs to this federate, we
+        // don't need to perform this analysis.
+        for (react : federatedReactor.allReactions.filter[reaction|!networkReactions.contains(reaction)]) {
+            // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react 
+            // signature that are ports that reference federates.
+            // We then later check that all these VarRefs reference this federate. If not, we will add this
+            // react to the list of reactions that have to be excluded (note that mixing VarRefs from
+            // different federates is not allowed).
+            var allVarRefsReferencingFederates = new ArrayList<VarRef>();
+            // Add all the triggers that are outputs
+            allVarRefsReferencingFederates.addAll(
+                react.triggers.filter[it instanceof VarRef].map[it as VarRef].filter[it.variable instanceof Output].toList
+            )
+            // Add all the sources that are outputs
+            allVarRefsReferencingFederates.addAll(
+                react.sources.filter[it.variable instanceof Output].toList
+            )
+            // Add all the effects that are inputs
+            allVarRefsReferencingFederates.addAll(
+                react.effects.filter[it.variable instanceof Input].toList
+            );
+            inFederate = containsAllVarRefs(allVarRefsReferencingFederates)
+            if (!inFederate) {
+                excludeReactions.add(react)
             }
         }
-        return !excludeReactions.contains(reaction)
+    }
+    
+    /**
+     * Return true if all members of 'varRefs' belong to this federate.
+     * 
+     * As a convenience measure, if some members of 'varRefs' are from 
+     * different federates, also report an error.
+     * 
+     * @param varRefs A collection of VarRefs
+     */
+    private def containsAllVarRefs(Iterable<VarRef> varRefs) {
+        var referencesFederate = false;
+        var inFederate = true;
+        for (varRef : varRefs) {
+            if (varRef.container === this.instantiation) {
+                referencesFederate = true;
+            } else {
+                if (referencesFederate) {
+                    errorReporter.reportError(varRef, "Mixed triggers and effects from" +
+                        " different federates. This is not permitted")
+                }
+                inFederate = false;
+            }
+        }
+        return inFederate;
     }
     
     /** 
@@ -554,7 +559,7 @@ class FederateInstance {
      */
     def removeDisconnectedNetworkPorts() {
         for (reaction: networkReactions) {
-            reaction.getTriggers().removeAll(disconnectedNetworkReactionTriggers)
+            reaction.getTriggers().removeAll(remoteNetworkReactionTriggers)
         }
     }
     
