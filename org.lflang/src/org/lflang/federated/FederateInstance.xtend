@@ -555,9 +555,9 @@ class FederateInstance {
     }
     
     /**
-     * Remove disconnected network ports from network reactions.
+     * Remove triggers in this federate's network reactions that are defined in remote federates.
      */
-    def removeDisconnectedNetworkPorts() {
+    def removeRemoteFederateConnectionPorts() {
         for (reaction: networkReactions) {
             reaction.getTriggers().removeAll(remoteNetworkReactionTriggers)
         }

@@ -1512,7 +1512,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     
     
     /**
-     * Remove disconnected network ports in federates, if any.
+     * Remove triggers in each federates' network reactions that are defined in remote federates.
      * 
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
@@ -1521,11 +1521,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @param instance The reactor instance to remove these ports from if any.
      *  Can be null.
      */
-    protected def void removeDisconnectedNetworkPorts(ReactorInstance instance) {
+    protected def void removeRemoteFederateConnectionPorts(ReactorInstance instance) {
         if (isFederated) {
             for (federate: federates) {
                 // Remove disconnected network triggers from the AST
-                federate.removeDisconnectedNetworkPorts();
+                federate.removeRemoteFederateConnectionPorts();
                 if (instance !== null) {
                     // If passed a reactor instance, also purge the disconnected network triggers
                     // from the reactor instance graph

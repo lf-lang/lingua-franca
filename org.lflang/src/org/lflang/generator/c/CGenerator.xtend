@@ -499,7 +499,7 @@ class CGenerator extends GeneratorBase {
                     this.unorderedReactions)
                 this.reactionGraph = new ReactionInstanceGraph(main)
                 // Avoid compile errors by removing disconnected network ports    
-                removeDisconnectedNetworkPorts(main);
+                removeRemoteFederateConnectionPorts(main);
             }   
         }
         
