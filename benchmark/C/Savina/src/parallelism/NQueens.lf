@@ -40,15 +40,15 @@
 target C{
     /* [[[cog
       if (threaded_runtime=="True"):
-          cog.outl(f"threads: {threads}")
+          cog.outl(f"threads: {threads},")
       else:
-          cog.outl("threads: 0")
+          cog.outl("threads: 0,")
     ]]] */
-    logging: warn,
-    cmake-include: "../include/deque.cmake",
-    files: ["../include/deque.c", "../include/deque.h"]
-    
     /// [[[end]]]
+    logging: warn,
+    cmake-include: "/lib/c/reactor-c/util/deque.cmake",
+    files: ["/lib/c/reactor-c/util/deque.h", "/lib/c/reactor-c/util/deque.c"]
+    
 };
 
 preamble {=
@@ -295,7 +295,13 @@ reactor Worker(bank_index: size_t(0), size: size_t(12), threshold: size_t(4)) {
 
 
 /* [[[cog
-        cog.outl(f'main reactor (numTransactions:int({numTransactions}), numAccounts:int({numAccounts}))')
+        cog.outl('main reactor (')
+        cog.outl(f'size:size_t({size}),')
+        cog.outl(f'threshold:size_t({threshold}),')
+        cog.outl(f'solutionsLimit:size_t({solutionsLimit}),')
+        cog.outl(f'priorities:size_t({priorities}),')
+        cog.outl(f'numWorkers:size_t({numWorkers})')
+        cog.outl(')')
     ]]] */
 main reactor (
     size: size_t(12),
