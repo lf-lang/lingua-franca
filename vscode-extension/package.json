@@ -40,7 +40,7 @@
                 "extensions": [
                     ".lf"
                 ],
-                "configuration": "./lflang.configuration.json"
+                "configuration": "./language-configuration.json"
             }
         ],
         "grammars": [
