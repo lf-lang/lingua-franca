@@ -130,7 +130,7 @@
             ]
         },
         "cpp-target": {
-            "begin": "(?=\\btarget\\s+Cpp\\b)",
+            "begin": "(?=\\btarget\\s+C?Cpp\\b)",
             "patterns": [
                 {
                     "include": "#post-targetspec"
@@ -203,7 +203,7 @@
                 },
                 {
                     "name": "constant.language.lflang",
-                    "match": "\\b(C|Cpp|Python|TypeScript|Rust)\\b"
+                    "match": "\\b(C|C?Cpp|Python|TypeScript|Rust)\\b"
                 },
                 {
                     "name": "keyword.control.lflang",
