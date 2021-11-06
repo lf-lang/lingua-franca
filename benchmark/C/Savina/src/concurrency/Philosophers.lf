@@ -1,4 +1,8 @@
 /**
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
+ * 
+ * For more details on this benchmark, see the Cpp version from which it was derived:
+ * https://github.com/lf-lang/lingua-franca/blob/master/benchmark/Cpp/Savina/src/concurrency/Philosophers.lf.
  * 
  * @author Christian Menard
  * @author Edward A. Lee
