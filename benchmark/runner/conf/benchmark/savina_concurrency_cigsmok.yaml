@@ -33,3 +33,12 @@ targets:
     gen_args:
       rounds: ["-D", "numRounds=<value>"]
       smokers: ["-D", "numSmokers=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Rust/Savina/src/concurrency"
+    lf_file: "concurrency/CigaretteSmoker.lf"
+    binary: "cigarette_smoker"
+    run_args:
+      rounds: ["--main-num-rounds", "<value>"]
+      smokers: ["--main-num-smokers", "<value>"]

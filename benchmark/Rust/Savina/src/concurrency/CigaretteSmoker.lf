@@ -1,0 +1,93 @@
+/*
+ * Copyright (C) 2020 TU Dresden
+ *
+ * See C++ benchmark for documentation.
+ *
+ * @author Christian Menard 
+ * @author Hannes Klein
+ * @author Clément Fournier
+ */
+
+target Rust {
+    build-type : RelWithDebInfo,
+    cargo-features: [ "cli" ],
+    cargo-dependencies: {
+        rand: {
+            version: "0.8",
+            features: ["small_rng"],
+        },
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        },
+    },
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor ArbiterReactor(num_rounds: usize(1000), num_smokers: usize(200)) {
+    
+    preamble {=
+        use rand::rngs::SmallRng;
+        use rand::Rng;
+        use rand::SeedableRng;
+    =}
+
+    state num_smokers(num_smokers);
+    state num_rounds(num_rounds);
+    state roundsSoFar: usize(0);
+    state random: rand::rngs::SmallRng({= {
+        let seed = num_rounds * num_smokers;
+        rand::rngs::SmallRng::seed_from_u64(seed as u64)
+    }=});
+    
+    output[num_smokers] startSmoking: usize;
+    
+    logical action chooseSmoker;
+    
+    reaction(startup) -> chooseSmoker {=
+        ctx.schedule(chooseSmoker, Asap);
+    =}
+    
+    reaction(chooseSmoker) -> startSmoking, chooseSmoker {=
+        // assume resources grabbed instantaneously and choose a random smoker to start smoking
+        let new_smoker_index = self.random.gen_range(0..self.num_smokers);
+        let busy_wait_period = self.random.gen_range(10usize..1010);
+        ctx.set(startSmoking.get(new_smoker_index), busy_wait_period);
+
+        // no need to wait for feedback from the smoker, as it starts smoking (logically) instantaneously
+        // We can immediately schedule the next round
+
+        self.roundsSoFar += 1;
+        debug!("rounds={}", self.roundsSoFar);
+        if self.roundsSoFar < self.num_rounds {
+            // trigger the next round
+            ctx.schedule(chooseSmoker, Asap);
+        }
+    =}
+}
+
+reactor SmokerReactor {
+     
+    input startSmoking: usize;
+    preamble {=
+        use rand::Rng;
+    =}
+
+    
+    reaction(startSmoking) {=
+        let limit = ctx.get(startSmoking).unwrap();
+        for _ in 0..limit {
+            rand::thread_rng().gen::<i32>();
+        }
+    =}
+}
+
+main reactor (num_rounds: usize(1000), num_smokers: usize(200)) {
+    
+    arbiter = new ArbiterReactor(num_rounds=num_rounds, num_smokers=num_smokers);
+    runner = new BenchmarkRunner();
+
+    smokers = new[num_smokers] SmokerReactor();
+    
+    arbiter.startSmoking -> smokers.startSmoking;
+}
