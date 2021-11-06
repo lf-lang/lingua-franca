@@ -13,76 +13,75 @@ reactor Camera {
 }
 
 reactor BrakingAssistant {
-    input frame: void;
+  input frame: void;
 	output trigger_brake: void;
-
 	
 	state counter: int(0);
 
 	reaction(frame) -> trigger_brake {=
-        // processing takes some time
+    // processing takes some time
  		std::this_thread::sleep_for(10ms);
  		
-        if (counter % 10 == 0) {
-            std::cout << "[automatic] Send the brake signal - " << get_physical_time() << std::endl;
-            trigger_brake.set();
-        }
-      	counter++;  
-    =}
+    if (counter % 10 == 0) {
+      std::cout << "[automatic] Send the brake signal - " << get_physical_time() << std::endl;
+      trigger_brake.set();
+    }
+    counter++;
+  =}
 }
 
 reactor BrakePedal {
-    physical action pedal;
-    output trigger_brake: void;
-    
-    state thread: std::thread;
-    
-    reaction(startup) -> pedal {=
-        this->thread = std::thread([&] () {
-            // press the brake pedal roughly every second
-			while (true) {
-				std::this_thread::sleep_for(1005ms);
-				std::cout << "[manual] Pressing the break pedal - " << get_physical_time() << std::endl;
-				pedal.schedule(0ms);
-			}
-        });
-    =}
-    
-    reaction(pedal) -> trigger_brake {=
-		std::cout << "[manual] Send the brake signal - " << get_physical_time() << std::endl;
-		trigger_brake.set();
-    =}
-    
-    reaction(shutdown) {=
-        thread.join();
-    =}
+  physical action pedal;
+  output trigger_brake: void;
+
+  state thread: std::thread;
+
+  reaction(startup) -> pedal {=
+    this->thread = std::thread([&] () {
+      // press the brake pedal roughly every second
+      while (true) {
+        std::this_thread::sleep_for(1005ms);
+        std::cout << "[manual] Pressing the break pedal - " << get_physical_time() << std::endl;
+        pedal.schedule(0ms);
+      }
+    });
+  =}
+
+  reaction(pedal) -> trigger_brake {=
+    std::cout << "[manual] Send the brake signal - " << get_physical_time() << std::endl;
+    trigger_brake.set();
+  =}
+
+  reaction(shutdown) {=
+    thread.join();
+  =}
 }
 
 reactor Brake {
-    public preamble {=
-        #include <thread>
-    =}
+  public preamble {=
+      #include <thread>
+  =}
 
 	input brake_assistant: void;
 	input brake_pedal: void;
 	
 	reaction(brake_pedal) {=
-        std::cout << "[system] Brake triggered - " << get_physical_time() << std::endl;
-        std::cout << "[system] source: manual" << std::endl;
-    =} deadline (3msecs) {=
-        std::cout << "\033[1;31m[error]\033[0m Deadline on manual braking violated - " << get_physical_time() << std::endl;
-    =}
+    std::cout << "[system] Brake triggered - " << get_physical_time() << std::endl;
+    std::cout << "[system] source: manual" << std::endl;
+  =} deadline (3msecs) {=
+    std::cout << "\033[1;31m[error]\033[0m Deadline on manual braking violated - " << get_physical_time() << std::endl;
+  =}
 	
 	reaction(brake_assistant) {=
-        std::cout << "[system] Brake triggered - " << get_physical_time() << std::endl;
-        std::cout << "[system] source: assistant" << std::endl;
-    =} deadline (15msecs) {=
-        std::cout << "\033[1;31m[error]\033[0m Deadline on automatic braking violated - " << get_physical_time() << std::endl;
-    =}
+    std::cout << "[system] Brake triggered - " << get_physical_time() << std::endl;
+    std::cout << "[system] source: assistant" << std::endl;
+  =} deadline (15msecs) {=
+    std::cout << "\033[1;31m[error]\033[0m Deadline on automatic braking violated - " << get_physical_time() << std::endl;
+  =}
 }
 
 main reactor {
-    camera = new Camera();
+  camera = new Camera();
 	assistant = new BrakingAssistant();
 	pedal = new BrakePedal();
 	brake = new Brake();
