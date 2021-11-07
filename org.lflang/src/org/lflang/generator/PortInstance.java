@@ -338,6 +338,11 @@ public class PortInstance extends TriggerInstance<Port> {
      * ranges of each source port.
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
+     * 
+     * If this port is an output port that has dependent reactions
+     * and no upstream ports, then a singleton list containing
+     * this port with its full range is returned.
+     * 
      * @param startRange The channel index for the start of the range of interest.
      * @param rangeWidth The number of channels to find sources for.
      */
@@ -347,6 +352,12 @@ public class PortInstance extends TriggerInstance<Port> {
             result = new ArrayList<PortChannelRange>(1);
         } else {
             result = new ArrayList<PortChannelRange>();
+        }
+        if (isOutput() 
+                && !dependentReactions.isEmpty() 
+                && dependsOnPorts.isEmpty()
+        ) {
+            result.add(newRange(startRange, rangeWidth));
         }
         int channelsToSkip = startRange;
         int channelsProvided = 0;

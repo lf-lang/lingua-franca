@@ -84,11 +84,23 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         portInstance.dependentReactions.add(this);
                         this.triggers.add(portInstance);
                     } else if (((VarRef)trigger).getContainer() != null) {
-                        ReactorInstance bankInstance 
+                        // Port belongs to a contained reactor or bank.
+                        ReactorInstance containedReactor 
                                 = parent.lookupReactorInstance(((VarRef)trigger).getContainer());
-                        if (bankInstance != null && bankInstance.bankMembers != null) {
-                            for (ReactorInstance bankMember : bankInstance.bankMembers) {
-                                portInstance = bankMember.lookupPortInstance((Port)variable);
+                        if (containedReactor != null) {
+                            if (containedReactor.bankMembers != null) {
+                                // Contained reactor is a bank. Connect to all bank members.
+                                for (ReactorInstance bankMember : containedReactor.bankMembers) {
+                                    portInstance = bankMember.lookupPortInstance((Port)variable);
+                                    if (portInstance != null) {
+                                        this.sources.add(portInstance);
+                                        portInstance.dependentReactions.add(this);
+                                        this.triggers.add(portInstance);
+                                    }
+                                }
+                            } else {
+                                // Contained reactor is not a bank.
+                                portInstance = containedReactor.lookupPortInstance((Port)variable);
                                 if (portInstance != null) {
                                     this.sources.add(portInstance);
                                     portInstance.dependentReactions.add(this);
