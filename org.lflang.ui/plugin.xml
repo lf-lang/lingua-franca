@@ -496,6 +496,15 @@
           class="org.lflang.ui.LFExecutableExtensionFactory:org.lflang.ui.actions.CompileActionHandler"
           commandId="org.lflang.lf.compile">
     </handler>
+    <handler
+          class="org.lflang.ui.LFExecutableExtensionFactory:org.lflang.ui.actions.CompileActionHandler"
+          commandId="org.lflang.lf.compile.toolbar">
+       <enabledWhen>
+          <reference
+                definitionId="org.lflang.LF.Editor.opened">
+          </reference>
+       </enabledWhen>
+    </handler>
  </extension>
  <extension
        point="org.eclipse.ui.menus">
@@ -635,6 +644,21 @@
                </with>
             </visibleWhen>
          </command>
+      </menuContribution>
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar
+               id="org.lflang.lf.ui.toolbar"
+               label="LF Toolbar">
+            <command
+                  commandId="org.lflang.lf.compile.toolbar"
+                  icon="icons/lf-compile.png"
+                  label="Compile LF Program"
+                  mnemonic="C"
+                  style="push"
+                  tooltip="Trigger LF code generation and compilation in the active editor">
+            </command>
+         </toolbar>
       </menuContribution>
  </extension>
 </plugin>
