@@ -248,8 +248,8 @@ public abstract class TestBase {
      * @param test The test to redirect outputs to.
      */
     private static void redirectOutputs(LFTest test) {
-        System.setOut(new PrintStream(test.out));
-        System.setErr(new PrintStream(test.err));
+        System.setOut(new PrintStream(test.getOutputStream()));
+        System.setErr(new PrintStream(test.getOutputStream()));
     }
 
 
