@@ -5257,14 +5257,14 @@ class CGenerator extends GeneratorBase {
                             // Connect «port», which gets data from reaction «reaction.reactionIndex»
                             // of «instance.getFullName», to «port.getFullName».
                             for (int i = 0; i < «port.width», i++) {
-                                «destinationReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
+                                «destinationReference(port)»[i] = («destStructType»*)&«sourceReference(port)»[i];
                             }
                         ''')
                     } else {
                         pr('''
                             // Connect «port», which gets data from reaction «reaction.reactionIndex»
                             // of «instance.getFullName», to «port.getFullName».
-                            «destinationReference(port)» = («destStructType»*)«sourceReference(port)»;
+                            «destinationReference(port)» = («destStructType»*)&«sourceReference(port)»;
                         ''')
                     }
                     // FIXME: Don't we also to set set the destination reference for more
