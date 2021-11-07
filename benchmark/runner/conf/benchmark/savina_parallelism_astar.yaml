@@ -5,6 +5,7 @@ params:
   grid_size: 30
   priorities: 30
   threshold: 2014
+  num_iterations: 12
 
 # target specific configuration
 targets:
@@ -28,3 +29,14 @@ targets:
       grid_size: ["--gridSize", "<value>"]
       priorities: ["--priorities", "<value>"]
       num_workers: ["--numWorkers", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/parallelism"
+    lf_file: "parallelism/GuidedSearch.lf"
+    binary: "GuidedSearch"
+    gen_args:
+      threshold: ["-D", "threshold=<value>"]
+      grid_size: ["-D", "gridSize=<value>"]
+      priorities: ["-D", "priorities=<value>"]
+      num_workers: ["-D", "numWorkers=<value>"]
+      num_iterations: ["-D", "numIterations=<value>"]
