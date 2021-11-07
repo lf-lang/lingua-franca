@@ -63,7 +63,6 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
-import org.lflang.generator.InvalidSourceException
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -5153,8 +5152,9 @@ class CGenerator extends GeneratorBase {
             }
         }
         for (output : instance.outputs) {
-            if (!output.dependentReactions.isEmpty()) {
-                // Output has reactions. Connect it to its eventual source.
+            if (!output.dependentReactions.isEmpty() && output.dependsOnPorts.isEmpty()) {
+                // Output has reactions and no upstream ports.
+                // Connect it to its eventual source.
                 connectPortToEventualSource(output, federate); 
             }
         }
