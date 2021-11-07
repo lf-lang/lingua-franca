@@ -116,10 +116,10 @@ public class PortInstance extends TriggerInstance<Port> {
      * to a list of destination ports that receive data from the range of
      * this port. Each destination port is annotated with the channel
      * range on which it receives data.
-     * The ports listed are only ports that are written to by reactions,
+     * The ports listed are only ports that are sources for reactions,
      * not relay ports that the data may go through on the way.
      * 
-     * If this port is an output port that has dependent reactions,
+     * If this port itself has dependent reactions,
      * that this port will be included as a destination in all items
      * on the returned list.
      * 
@@ -158,17 +158,17 @@ public class PortInstance extends TriggerInstance<Port> {
             }
             
             destinationPorts = container.transitiveClosure(this);
-            
-            // If this port has dependent reactions, then add an entry for this port.
-            if (dependentReactions.size() > 0) {
-                SendingChannelRange thisPort = new SendingChannelRange(0, width);
-                thisPort.destinations.add(new PortChannelRange(0, width));
-                result.add(thisPort);
-            }
         } else {
             // For an input, obtain the destination ports from the parent of this port.
             // The port will be included in the returned set because it is an input.
             destinationPorts = parent.transitiveClosure(this);
+        }
+        
+        // If this port has dependent reactions, then add an entry for this port.
+        if (dependentReactions.size() > 0) {
+            SendingChannelRange thisPort = new SendingChannelRange(0, width);
+            thisPort.destinations.add(new PortChannelRange(0, width));
+            result.add(thisPort);
         }
 
         for (PortInstance destinationPort: destinationPorts) {
@@ -473,18 +473,19 @@ public class PortInstance extends TriggerInstance<Port> {
         }
 
         public int getNumberOfDestinationReactors() {
-            if (numberOfDestinationReactors < 0) {
+            if (_numberOfDestinationReactors < 0) {
                 // Has not been calculate before. Calculate now.
                 Set<ReactorInstance> destinations = new HashSet<ReactorInstance>();
                 for (PortChannelRange destination : this.destinations) {
                     destinations.add(destination.getPortInstance().getParent());
                 }
+                _numberOfDestinationReactors = destinations.size();
             }
-            return numberOfDestinationReactors;
+            return _numberOfDestinationReactors;
         }
 
         public List<PortChannelRange> destinations;
-        private int numberOfDestinationReactors = -1;
+        private int _numberOfDestinationReactors = -1; // Never access this directly.
     }
     
     /**
