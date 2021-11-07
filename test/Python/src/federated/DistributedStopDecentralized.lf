@@ -6,7 +6,7 @@
  
   // reason for failing: get_microstep() and compare_tags() are not not supported in python target
  
-target C {
+target Python {
     coordination: decentralized
 };
 
@@ -16,5 +16,5 @@ federated reactor DistributedStopDecentralized {
     sender = new Sender();
     receiver = new Receiver();
     
-    sender.out -> receiver.in;
+    sender.out -> receiver.in_;
 }

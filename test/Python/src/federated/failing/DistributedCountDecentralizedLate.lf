@@ -12,7 +12,7 @@ target Python {
 
 import Count from "../lib/Count.lf";
 
-// reason for failing: get_current_tag(), get_microstop(), compare_tags() and in_.intended_tag are not supported in python target
+// reason for failing: in_.intended_tag are not supported in python target
 
 reactor Print {
     preamble {=
