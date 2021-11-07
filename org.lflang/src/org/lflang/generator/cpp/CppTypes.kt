@@ -25,9 +25,11 @@
 package org.lflang.generator.cpp
 
 import org.lflang.InferredType
-import org.lflang.JavaAstUtils
 import org.lflang.generator.TargetTypes
-import org.lflang.lf.*
+import org.lflang.lf.BraceExpr
+import org.lflang.lf.Initializer
+import org.lflang.lf.ParamRef
+import org.lflang.lf.TimeUnit
 
 /**
  * Implementation of [TargetTypes] for C++.
@@ -44,8 +46,8 @@ object CppTypes : TargetTypes {
     override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
     override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
-    override fun getTargetInitializer(init: Initializer?, type: Type?): String {
-        return getCppInitializerWithTypePrefix(init, type)
+    override fun getTargetInitializer(init: Initializer?, inferredType: InferredType): String {
+        return getCppInitializerWithTypePrefix(init, inferredType)
     }
 
     override fun getTargetBraceExpr(expr: BraceExpr, type: InferredType?): String {
@@ -69,12 +71,11 @@ object CppTypes : TargetTypes {
 
 }
 
-fun CppTypes.getCppInitializerWithTypePrefix(init: Initializer?, type: Type?): String =
+fun CppTypes.getCppInitializerWithTypePrefix(init: Initializer?, type: InferredType): String =
     if (init == null) missingExpr
-    else getTargetType(JavaAstUtils.getInferredType(type, init)) + getCppInitializerWithoutTypePrefix(init, type)
+    else getTargetType(type) + getCppInitializerWithoutTypePrefix(init, type)
 
-fun CppTypes.getCppInitializerWithoutTypePrefix(init: Initializer?, type: Type?): String {
-    val inferredType = JavaAstUtils.getInferredType(type, init)
+fun CppTypes.getCppInitializerWithoutTypePrefix(init: Initializer?, inferredType: InferredType?): String {
     if (init == null) {
         return missingExpr
     }

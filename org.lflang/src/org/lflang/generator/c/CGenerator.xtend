@@ -4463,31 +4463,20 @@ class CGenerator extends GeneratorBase {
     }
 
     override String getTargetTimeExpr(long magnitude, TimeUnit unit) {
-        if (unit != TimeUnit.NONE) {
-            return unit.name() + '(' + magnitude + ')'
-        } else {
-            return magnitude.toString()
-        }
+        return CTypes.INSTANCE.getTargetTimeExpr(magnitude, unit)
     }
-    
+
+    override String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {
+        return CTypes.INSTANCE.getTargetInitializerWithNotExactlyOneValue(init, type)
+    }
+
     protected def getInitializer(Initializer init, InferredType t, ReactorInstance parent) {
-        if (init === null)
-            return "{}"
-
-        var list = new LinkedList<String>();
-
-        for (i : init.exprs) {
-            if (i instanceof ParamRef) {
-                list.add(parent.selfStructName + "->" + i.parameter.name)
-            } else {
-                list.add(i.targetValue)
+        val customExprMaker = new CTypes() {
+            override String getTargetParamRef(ParamRef expr, InferredType t) {
+                return parent.selfStructName + "->" + expr.parameter.name
             }
         }
-        
-        if (list.size == 1)
-            return list.get(0)
-        else
-            return list.join('{', ', ', '}', [it])
+        return customExprMaker.getTargetInitializer(init, t)
     }
     
     /** 

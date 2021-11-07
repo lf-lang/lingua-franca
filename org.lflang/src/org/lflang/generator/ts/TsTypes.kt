@@ -68,14 +68,10 @@ object TsTypes : TargetTypes {
     override fun getTargetParamRef(expr: ParamRef, type: InferredType?): String =
         "this.${expr.parameter.name}.get()"
 
-    override fun getTargetInitializer(init: Initializer?, type: Type?): String {
-        if (init != null && init.exprs.singleOrNull() == null) {
-            // support initializing lists with a(1,2,3) syntax
-            val componentType = InferredType.fromAST(type).componentType
-            return init.exprs.joinToString(", ", "[", "]") { getTargetExpr(it, componentType) }
+    override fun getTargetInitializerWithNotExactlyOneValue(init: Initializer, type: InferredType): String =
+        init.exprs.joinToString(", ", "[", "]") {
+            getTargetExpr(it, type.componentType)
         }
-        return super.getTargetInitializer(init, type)
-    }
 
     /**
      * Returns a type for the state variable. Note that this is TS-specific

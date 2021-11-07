@@ -246,13 +246,28 @@ public interface TargetTypes {
      */
     default String getTargetInitializer(Initializer init, Type type) {
         InferredType inferredType = JavaAstUtils.getInferredType(type, init);
+        return getTargetInitializer(init, inferredType);
+    }
+
+    default String getTargetInitializer(Initializer init, InferredType inferredType) {
         if (init == null) {
             return getMissingExpr();
         }
         Value single = JavaAstUtils.asSingleValue(init);
-        if (single != null) {
-            return getTargetExpr(single, inferredType);
-        }
+        return single != null ? getTargetExpr(single, inferredType)
+                              : getTargetInitializerWithNotExactlyOneValue(init, inferredType);
+    }
+
+    /**
+     * Returns the representation of the given initializer if
+     * it has not exactly one value. This is an internal implementation
+     * detail of {@link #getTargetInitializer(Initializer, Type)},
+     * used to support the syntax {@code a(1,2,3)}.
+     *
+     * @param init Initializer, non-null
+     * @param type Inferred type, non-null
+     */
+    default String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {
         // override this method to give semantics to this
         throw new UnsupportedGeneratorFeatureException(init, "Initializers with != 1 value");
     }

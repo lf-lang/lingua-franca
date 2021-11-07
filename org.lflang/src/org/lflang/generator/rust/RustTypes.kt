@@ -71,18 +71,11 @@ object RustTypes : TargetTypes {
         TimeUnit.SECOND, TimeUnit.SECONDS -> "Duration::from_secs($magnitude)"
     }
 
-    override fun getTargetInitializer(init: Initializer?, type: Type?): String {
-        val inferredType: InferredType = JavaAstUtils.getInferredType(type, init)
-        if (init == null) {
-            return missingExpr
-        }
-        return init.exprs.singleOrNull()?.let { getTargetExpr(it, inferredType) }
-            ?: if (inferredType.isFixedSizeList)
-                init.exprs.joinToString(", ", "[", "]") { getTargetExpr(it, null) }
-            else
-                init.exprs.joinToString(", ", "vec![", "].into()") { getTargetExpr(it, null) }
-
-    }
+    override fun getTargetInitializerWithNotExactlyOneValue(init: Initializer, type: InferredType): String =
+        if (type.isFixedSizeList)
+            init.exprs.joinToString(", ", "[", "]") { getTargetExpr(it, type.componentType) }
+        else
+            init.exprs.joinToString(", ", "vec![", "].into()") { getTargetExpr(it, type.componentType) }
 
     override fun getMissingExpr(): String =
         "Default::default()"

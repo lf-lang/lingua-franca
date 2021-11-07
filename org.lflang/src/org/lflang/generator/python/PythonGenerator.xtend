@@ -227,8 +227,28 @@ class PythonGenerator extends CGenerator {
 
     /** Returns the python initializer corresponding to the given LF init list. */
     def String getPythonInitializer(Initializer init) {
-        return getTargetInitializer(init, null)
+        return getTargetInitializer(init, InferredType.undefined())
     }
+
+    override String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {
+        if (init.exprs.isEmpty) return "()"
+        else return init.exprs.join("(", ", ", ")", [getTargetExpr(it, type.componentType)])
+    }
+
+    override String getTargetInitializer(Initializer init, InferredType type) {
+        if (init.isParens) {
+            // tuple expr, but only if size != 1 or trailing comma
+            if (init.exprs.isEmpty) {
+                return "()"
+            } else if (init.exprs.size == 1 && !init.isTrailingComma) {
+                return getTargetExpr(init.asSingleValue, type)
+            } else {
+                return init.exprs.join("(", ", ", ",)", [getTargetExpr(it, type.componentType)])
+            }
+        }
+        return super.getTargetInitializer(init, type)
+    }
+
 
     /**
      * Generate parameters and their respective initialization code for a reaction function
