@@ -122,4 +122,3 @@ val InferredType.cppType: String
     get() = CppTypes.getTargetType(this)
 
 
-fun CppTypes.getCppInitializerList(init: Initializer?, type: Type?): String = getTargetInitializer(init, type)

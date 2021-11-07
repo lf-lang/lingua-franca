@@ -24,7 +24,7 @@ reactor Foo(x:int(0),
 	state period2 = z;	// Implicit type time
 
     state timeListState: time[] = {1 msec, 2 msec}; // Vector of time values
-    state intArrayState: int[] = {1, 2}; // Array of int values
+    state intArrayState: int[] = {1, 2}; // Vector of int values
 
 	state times: std::vector<std::vector<{=reactor::Duration=}>>{q, g}; // a list of lists
 	reaction(tick) {=

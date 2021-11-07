@@ -53,7 +53,6 @@ class CppInstanceGenerator(
 
     private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
         val rhs = this.parameters.firstOrNull { it.lhs === param }?.rhs ?: param.init
-        println(param.name + " : " + CppTypes.getTargetType(param.inferredType) + " = " + rhs)
 
         return if (isBankInstantiation && param.name == "bank_index") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId

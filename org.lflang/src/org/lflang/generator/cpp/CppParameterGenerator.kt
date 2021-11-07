@@ -25,7 +25,6 @@
 package org.lflang.generator.cpp
 
 import org.lflang.inferredType
-import org.lflang.isOfTimeType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
@@ -39,7 +38,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
 
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String
-            get() = CppTypes.getCppInitializerList(init, type)
+            get() = CppTypes.getCppInitializerWithTypePrefix(init, type)
 
         /** Get a C++ type that is a const reference to the parameter type */
         val Parameter.constRefType: String

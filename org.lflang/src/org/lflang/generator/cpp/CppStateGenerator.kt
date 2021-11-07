@@ -32,9 +32,7 @@ import org.lflang.lf.StateVar
 class CppStateGenerator(private val reactor: Reactor) {
 
     private fun generateInitializer(state: StateVar): String =
-        state.name + CppTypes.getCppInitializerList(state.init, state.type).let {
-            if (!it.startsWith("(")) "($it)" else it
-        }
+        state.name + CppTypes.getCppInitializerWithoutTypePrefix(state.init, state.type)
 
     /** Get all state declarations */
     fun generateDeclarations() =

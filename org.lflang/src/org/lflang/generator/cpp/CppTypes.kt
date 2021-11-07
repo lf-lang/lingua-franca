@@ -45,28 +45,20 @@ object CppTypes : TargetTypes {
     override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
     override fun getTargetInitializer(init: Initializer?, type: Type?): String {
-        val inferredType = JavaAstUtils.getInferredType(type, init)
-        if (init == null) {
-            return missingExpr
-        }
-        return init.exprs.singleOrNull()?.let { getTargetExpr(it, inferredType) }
-            ?: buildString {
-                // != 1 expr
-                this.append(getTargetType(type))
-                val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-                init.exprs.joinTo(this, ", ", prefix, postfix) { getTargetExpr(it, inferredType?.componentType) }
-            }
+        return getCppInitializerWithTypePrefix(init, type)
     }
 
     override fun getTargetBraceExpr(expr: BraceExpr, type: InferredType?): String {
         val braceInitializer = super.getTargetBraceExpr(expr, type)
         return if (type?.isList == true) {
+            // prefix the {...} with std::vector<_>
             if (type.isTime)
                 getTargetVariableSizeListType(targetTimeType) + braceInitializer
             else
                 getTargetVariableSizeListType(type.baseType()) + braceInitializer
-        } else
+        } else {
             braceInitializer
+        }
     }
 
     override fun getTargetUndefinedType() = "void"
@@ -75,6 +67,33 @@ object CppTypes : TargetTypes {
         if (magnitude == 0L) "reactor::Duration::zero()"
         else magnitude.toString() + unit.cppUnit
 
+}
+
+fun CppTypes.getCppInitializerWithTypePrefix(init: Initializer?, type: Type?): String =
+    if (init == null) missingExpr
+    else getTargetType(JavaAstUtils.getInferredType(type, init)) + getCppInitializerWithoutTypePrefix(init, type)
+
+fun CppTypes.getCppInitializerWithoutTypePrefix(init: Initializer?, type: Type?): String {
+    val inferredType = JavaAstUtils.getInferredType(type, init)
+    if (init == null) {
+        return missingExpr
+    }
+    val singleExpr = init.exprs.singleOrNull()
+    return if (init.isAssign && singleExpr is BraceExpr)
+        singleExpr.items.joinToString(", ", "{", "}") {
+            getTargetExpr(it, inferredType?.componentType)
+        }
+    else buildString {
+        if (init.isAssign) {
+            val expr = init.exprs.single()
+            append("(").append(getTargetExpr(expr, inferredType)).append(")")
+        } else {
+            val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+            init.exprs.joinTo(this, ", ", prefix, postfix) {
+                getTargetExpr(it, inferredType?.componentType)
+            }
+        }
+    }
 }
 
 /**
