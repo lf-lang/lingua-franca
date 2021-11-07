@@ -1,4 +1,4 @@
-package org.lflang.federated;
+package org.lflang.federated.serialization;
 
 /**
  * The supported serializers.
