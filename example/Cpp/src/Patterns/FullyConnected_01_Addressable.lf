@@ -16,20 +16,20 @@ target Cpp {
 reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
     input[num_nodes] in: size_t
     output[num_nodes] out: size_t
-    
+
     reaction (startup) -> out{=
-     	std::cout << "Hello from node " << bank_index << "!\n";
-     	// send my ID only to my right neighbour
-     	out[(bank_index + 1) % num_nodes].set(bank_index);    
+        std::cout << "Hello from node " << bank_index << "!\n";
+        // send my ID only to my right neighbour
+        out[(bank_index + 1) % num_nodes].set(bank_index);
     =}
-    
+
     reaction (in) {=
         std::cout << "Node " << bank_index << " received messages from ";
-     	for (auto& port : in) {
+        for (auto& port : in) {
             if (port.is_present()) {
                 std::cout << *port.get() << ", ";
             }
-        }   
+        }
         std::cout << '\n';
     =}
 }
@@ -38,3 +38,4 @@ main reactor(num_nodes: size_t(4)) {
     nodes = new[num_nodes] Node(num_nodes=num_nodes);
     nodes.out -> interleaved(nodes.in);
 }
+
