@@ -57,7 +57,7 @@ import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Literal
-import org.lflang.lf.ListExpr
+import org.lflang.lf.BracketExpr
 import org.lflang.lf.Model
 import org.lflang.lf.MulExpr
 import org.lflang.lf.Output
@@ -768,7 +768,8 @@ class ASTUtils {
             Literal: v.literal
             AddExpr: "(" + v.left.toText + " " + v.op + " " + v.right.toText  + ")"
             MulExpr: "(" + v.left.toText + " " + v.op + " " + v.right.toText  + ")"
-            ListExpr: v.items.join(',', '[', ']', [ it.toText ])
+            BracketExpr: v.items.isEmpty() ? "[]" : v.items.join('[', ',', ']', [ it.toText ])
+            BraceExpr: v.items.isEmpty() ? "{}" : v.items.join('{', ',', '}', [ it.toText ])
             TupleExpr:
                 if (v.items.isEmpty) "()"
                 else {
@@ -1096,7 +1097,7 @@ class ASTUtils {
     def static List<Value> initializerAsList(Initializer init) {
         return if (init.isAssign) {
             val list = init.asSingleValue
-            if (list instanceof ListExpr) list.items
+            if (list instanceof BracketExpr) list.items
             else null
         } else {
             init.exprs

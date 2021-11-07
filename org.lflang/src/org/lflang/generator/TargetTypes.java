@@ -33,10 +33,11 @@ import org.lflang.JavaAstUtils;
 import org.lflang.Target;
 import org.lflang.TimeValue;
 import org.lflang.lf.AddExpr;
+import org.lflang.lf.BraceExpr;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Initializer;
-import org.lflang.lf.ListExpr;
+import org.lflang.lf.BracketExpr;
 import org.lflang.lf.Literal;
 import org.lflang.lf.MulExpr;
 import org.lflang.lf.ParamRef;
@@ -154,14 +155,24 @@ public interface TargetTypes {
     /**
      * Returns an expression in the target language that is the translation
      * of the given list expression. To support list expressions, a target
-     * must also register this capability in {@link Target#supportsLfListLiterals()}.
+     * must also register this capability in {@link Target#supportsLfBracketListExpressions()}.
      *
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
-    default String getTargetListExpr(ListExpr expr, InferredType type) {
-        throw new UnsupportedGeneratorFeatureException("Tuple expressions lists");
+    default String getTargetBracketExpr(BracketExpr expr, InferredType type) {
+        throw new UnsupportedGeneratorFeatureException("Bracket-delimited list expressions");
     }
 
+    /**
+     * Returns an expression in the target language that is the translation
+     * of the given list expression. To support list expressions, a target
+     * must also register this capability in {@link Target#supportsLfBraceListExpressions()}.
+     *
+     * @throws UnsupportedGeneratorFeatureException If the target does not support this
+     */
+    default String getTargetBraceExpr(BraceExpr expr, InferredType type) {
+        throw new UnsupportedGeneratorFeatureException("Brace-delimited list expressions");
+    }
 
     /**
      * Returns the expression that is used to replace a
@@ -266,8 +277,10 @@ public interface TargetTypes {
             }
         } else if (value instanceof TupleExpr) {
             return getTargetTupleExpr((TupleExpr) value, type);
-        } else if (value instanceof ListExpr) {
-            return getTargetListExpr((ListExpr) value, type);
+        } else if (value instanceof BracketExpr) {
+            return getTargetBracketExpr((BracketExpr) value, type);
+        } else if (value instanceof BraceExpr) {
+            return getTargetBraceExpr((BraceExpr) value, type);
         } else if (value instanceof MulExpr) {
             MulExpr e = (MulExpr) value;
             return getTargetExpr(e.getLeft(), null)

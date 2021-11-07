@@ -409,18 +409,26 @@ public enum Target {
     }
 
     /**
-     * Returns true if the target supports list literals in LF syntax.
-     * If not, list literals produce validator errors.
+     * Returns true if the target supports bracketed list literals in LF syntax.
+     * If not, they produce validator errors.
      */
-    public boolean supportsLfListLiterals() {
+    public boolean supportsLfBracketListExpressions() {
         return this == Python;
+    }
+
+    /**
+     * Returns true if the target supports braced list literals in LF syntax.
+     * If not, they produce validator errors.
+     */
+    public boolean supportsLfBraceListExpressions() {
+        return this == C || this == CCPP || this == CPP;
     }
 
     /**
      * Returns true if the target supports tuple literals in LF syntax.
      * If not, they produce validator errors.
      *
-     * <p>Tuple literals use the production {@link org.lflang.lf.ParenthesizedExpr},
+     * <p>Tuple literals use the production {@link org.lflang.lf.TupleExpr},
      * they're only interpreted as a tuple if they match:
      * <ul>
      * <li>The empty tuple: {@code ()}

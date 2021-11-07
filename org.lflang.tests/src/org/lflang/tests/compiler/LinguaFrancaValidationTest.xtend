@@ -674,9 +674,23 @@ class LinguaFrancaValidationTest {
             reactor Contained {
                 state x: int[]([1, 2]);
                 state y: int[] = [1, 2];
+                state y: int[] = {1, 2}; // fine
             }
-        ''').assertError(LfPackage::eINSTANCE.listExpr,
-            null, 'Target C does not support list literals.')
+        ''').assertError(LfPackage::eINSTANCE.bracketExpr,
+            null, 'Target C does not support this expression form.')
+    }
+
+    @Test
+    def void forbidArrayInitializersInPython() {
+        parseWithoutError('''
+            target Python;
+            reactor Contained {
+                state x: int[]([1, 2]);
+                state y: int[] = [1, 2];
+                state y: int[] = {1, 2}; // wrong
+            }
+        ''').assertError(LfPackage::eINSTANCE.braceExpr,
+            null, 'Target C does not support this expression form.')
     }
 
 

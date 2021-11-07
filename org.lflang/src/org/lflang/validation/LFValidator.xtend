@@ -49,6 +49,8 @@ import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.AddExpr
 import org.lflang.lf.Assignment
+import org.lflang.lf.BracketExpr
+import org.lflang.lf.BraceExpr
 import org.lflang.lf.Connection
 import org.lflang.lf.CodeExpr
 import org.lflang.lf.Deadline
@@ -64,7 +66,6 @@ import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
 import org.lflang.lf.LfPackage.Literals
 import org.lflang.lf.Literal
-import org.lflang.lf.ListExpr
 import org.lflang.lf.Model
 import org.lflang.lf.MulExpr
 import org.lflang.lf.NamedHost
@@ -375,9 +376,16 @@ class LFValidator extends BaseLFValidator {
     }
 
     @Check(FAST)
-    def checkListExpr(ListExpr list) {
-        if (!target.supportsLfListLiterals()) {
-            error("Target " + target + " does not support list literals.", Literals.LIST_EXPR__ITEMS)
+    def checkBracketExpr(BracketExpr list) {
+        if (!target.supportsLfBracketListExpressions()) {
+            error("Target " + target + " does not support this expression form.", Literals.BRACKET_EXPR__ITEMS)
+        }
+    }
+
+    @Check(FAST)
+    def checkBraceExpr(BraceExpr list) {
+        if (!target.supportsLfBraceListExpressions()) {
+            error("Target " + target + " does not support this expression form.", Literals.BRACE_EXPR__ITEMS)
         }
     }
 
@@ -1284,7 +1292,7 @@ class LFValidator extends BaseLFValidator {
                  // list of times
                  val exprs = if (init.isAssign) {
                      val list = init.asSingleValue
-                     if (list instanceof ListExpr) list.items
+                     if (list instanceof BracketExpr) list.items
                      else if (list instanceof CodeExpr) return  // cannot check it
                      else {
                         error("Expected a list of time values.", feature)

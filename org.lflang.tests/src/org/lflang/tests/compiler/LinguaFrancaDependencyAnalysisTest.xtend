@@ -109,7 +109,7 @@ class LinguaFrancaDependencyAnalysisTest {
             new ReactionInstanceGraph(instance)
             Assertions.fail("No cycle detected")
         } catch(InvalidSourceException e) {
-            Assertions.assertTrue(e.message != null && e.message.contains("Reactions form a cycle!"),
+            Assertions.assertTrue(e.message !== null && e.message.contains("Reactions form a cycle!"),
                                   "Should be a message about cycles: " + e.message)
         }
     }

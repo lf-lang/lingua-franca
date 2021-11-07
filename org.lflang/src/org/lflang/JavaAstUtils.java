@@ -166,7 +166,7 @@ public final class JavaAstUtils {
      */
     public static boolean isList(Initializer init) {
         return (init.isBraces() || init.isParens()) && init.getExprs().size() != 1;
-        // || init.isAssign && init.asSingleValue instanceof ListExpr
+        // || init.isAssign && init.asSingleValue instanceof BracketExpr
     }
 
     /**

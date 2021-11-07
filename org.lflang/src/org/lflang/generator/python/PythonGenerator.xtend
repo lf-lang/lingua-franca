@@ -54,7 +54,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
-import org.lflang.lf.ListExpr
+import org.lflang.lf.BracketExpr
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -229,7 +229,7 @@ class PythonGenerator extends CGenerator {
         // if it is a parameter.
         return if (v instanceof ParamRef) {
             "self." + v.parameter.name;
-        } else if (v instanceof ListExpr) {
+        } else if (v instanceof BracketExpr) {
             if (v.items.isEmpty) "[]"
             else v.items.join("[", ", ",  "]", [it.pythonTargetValue])
         } else if (v instanceof TupleExpr) {

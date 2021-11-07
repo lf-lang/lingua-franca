@@ -304,7 +304,8 @@ Atom returns Value:
       ParamRef
     | Time
     | {Literal} literal=Literal
-    | ListExpr
+    | BracketExpr
+    | BraceExpr
     | TupleExpr
     | {CodeExpr} code=Code
 ;
@@ -395,10 +396,16 @@ SignedInt:
     INT | NEGINT
 ;
 
-// List literals support even empty lists, and a trailing comma.
+// corresponds to a python list
+BracketExpr:
+    {BracketExpr} '[' ( items+=Expr (',' items+=Expr)* ','? )? ']'
+;
 
-ListExpr:
-    {ListExpr} '[' ( items+=Expr (',' items+=Expr)* ','? )? ']'
+// corresponds to an array initializer for C/C++. For Python,
+// we may improve this production to parse dictionaries. A "dictionary"
+// production would also help with Rust struct initializers.
+BraceExpr:
+    {BraceExpr} '{' ( items+=Expr (',' items+=Expr)* ','? )? '}'
 ;
 
 Literal:
