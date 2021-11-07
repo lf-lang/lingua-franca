@@ -58,6 +58,17 @@ object CppTypes : TargetTypes {
             }
     }
 
+    override fun getTargetBraceExpr(expr: BraceExpr, type: InferredType?): String {
+        val braceInitializer = super.getTargetBraceExpr(expr, type)
+        return if (type?.isList == true) {
+            if (type.isTime)
+                getTargetVariableSizeListType(targetTimeType) + braceInitializer
+            else
+                getTargetVariableSizeListType(type.baseType()) + braceInitializer
+        } else
+            braceInitializer
+    }
+
     override fun getTargetUndefinedType() = "void"
 
     override fun getTargetTimeExpr(magnitude: Long, unit: TimeUnit): String =
