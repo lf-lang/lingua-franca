@@ -54,7 +54,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.Input
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
-import org.lflang.lf.BracketExpr
+import org.lflang.lf.Literal
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -63,8 +63,6 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.TriggerRef
-import org.lflang.lf.TupleExpr
-import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
@@ -214,55 +212,22 @@ class PythonGenerator extends CGenerator {
     
     ////////////////////////////////////////////
     //// Protected methods
-    
-     /**
-     * Override to convert some C types to their
-     * Python equivalent.
-     * Examples:
-     * true/false -> True/False
-     * @param v A value
-     * @return A value string in the target language
-     */
-    protected def String getPythonTargetValue(Value v) {
-        // Parameters in Python are always prepended with a 'self.'
-        // predicate. Therefore, we need to append the returned value
-        // if it is a parameter.
-        return if (v instanceof ParamRef) {
-            "self." + v.parameter.name;
-        } else if (v instanceof BracketExpr) {
-            if (v.items.isEmpty) "[]"
-            else v.items.join("[", ", ",  "]", [it.pythonTargetValue])
-        } else if (v instanceof TupleExpr) {
-            if (v.items.isEmpty) "()"
-            else return v.items.join("(", ", ", ",)", [it.pythonTargetValue])
-        } else {
-            switch(v.toText) {
-                case "false": "False"
-                case "true": "True"
-                default: super.getTargetValue(v)
-            }
+
+    override String getTargetParamRef(ParamRef expr, InferredType type) {
+        return "self." + expr.parameter.name
+    }
+
+    override String getTargetLiteral(Literal expr, InferredType type) {
+        switch(expr.toText) {
+            case "false": "False"
+            case "true": "True"
+            default: super.getTargetLiteral(expr, type)
         }
     }
 
     /** Returns the python initializer corresponding to the given LF init list. */
     def String getPythonInitializer(Initializer init) {
-          return if (init === null) {
-              "None"
-          } else if (init.isParens && (init.exprs.size != 1 || init.isTrailingComma)) {
-
-              // corresponds to a tuple:
-              //   state foo(1,2) # tuple w/ 2 components
-              //   state foo(1,)  # tuple w/ 1 component
-              //   state foo()    # tuple w/ 0 component
-
-              if (init.exprs.isEmpty) "()"
-              else init.exprs.join("(", ", ", ",)", [it.pythonTargetValue])
-
-          } else if ((init.isAssign || init.isParens) && init.exprs.size == 1) {
-              init.asSingleValue.getPythonTargetValue
-          } else {
-              throw new AssertionError("invalid expression form: " + init)
-          }
+        return getTargetInitializer(init, null)
     }
 
     /**

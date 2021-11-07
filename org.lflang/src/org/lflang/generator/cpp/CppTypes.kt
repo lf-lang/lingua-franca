@@ -54,10 +54,9 @@ object CppTypes : TargetTypes {
                 // != 1 expr
                 this.append(getTargetType(type))
                 val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-                init.exprs.joinTo(this, ", ", prefix, postfix) { getTargetExpr(it, null) }
+                init.exprs.joinTo(this, ", ", prefix, postfix) { getTargetExpr(it, inferredType?.componentType) }
             }
     }
-
 
     override fun getTargetUndefinedType() = "void"
 

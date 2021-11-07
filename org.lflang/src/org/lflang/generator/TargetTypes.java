@@ -26,6 +26,7 @@
 package org.lflang.generator;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
@@ -112,12 +113,7 @@ public interface TargetTypes {
      * to a time value ({@link #getTargetTimeType()}), with the given
      * magnitude and unit. The unit may not be null (use {@link TimeUnit#NONE}).
      */
-    default String getTargetTimeExpr(long magnitude, TimeUnit unit) {
-        // todo make non-default when we reuse this for all generators,
-        //  all targets should support this.
-        Objects.requireNonNull(unit);
-        throw new AssertionError("Unimplemented"); // todo make non-default
-    }
+    String getTargetTimeExpr(long magnitude, TimeUnit unit);
 
     /**
      * Returns an expression in the target language that is the translation
@@ -145,33 +141,39 @@ public interface TargetTypes {
      * Returns an expression in the target language that is the translation
      * of the given tuple expression. To support tuple expressions, a target
      * must also register this capability in {@link Target#supportsLfTupleLiterals()}.
-     *
-     * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
     default String getTargetTupleExpr(TupleExpr expr, InferredType type) {
-        throw new UnsupportedGeneratorFeatureException("Tuple expressions lists");
+        if (expr.getItems().isEmpty()) {
+            return "()";
+        }
+        InferredType compType = type == null ? null : type.getComponentType();
+        return expr.getItems().stream()
+                   .map(it -> getTargetExpr(it, compType))
+                   .collect(Collectors.joining(", ", "(", ",)"));
     }
 
     /**
      * Returns an expression in the target language that is the translation
      * of the given list expression. To support list expressions, a target
      * must also register this capability in {@link Target#supportsLfBracketListExpressions()}.
-     *
-     * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
     default String getTargetBracketExpr(BracketExpr expr, InferredType type) {
-        throw new UnsupportedGeneratorFeatureException("Bracket-delimited list expressions");
+        InferredType compType = type == null ? null : type.getComponentType();
+        return expr.getItems().stream()
+                   .map(it -> getTargetExpr(it, compType))
+                   .collect(Collectors.joining(", ", "[", "]"));
     }
 
     /**
      * Returns an expression in the target language that is the translation
      * of the given list expression. To support list expressions, a target
      * must also register this capability in {@link Target#supportsLfBraceListExpressions()}.
-     *
-     * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
     default String getTargetBraceExpr(BraceExpr expr, InferredType type) {
-        throw new UnsupportedGeneratorFeatureException("Brace-delimited list expressions");
+        InferredType compType = type == null ? null : type.getComponentType();
+        return expr.getItems().stream()
+                   .map(it -> getTargetExpr(it, compType))
+                   .collect(Collectors.joining(", ", "{", "}"));
     }
 
     /**
