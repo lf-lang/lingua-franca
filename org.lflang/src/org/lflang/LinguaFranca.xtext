@@ -344,7 +344,7 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   time?='time' (arraySpec=ArraySpec)? 
+   time?='time' (stars+='*')* (arraySpec=ArraySpec)?
    | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)? 
    | code=Code
 ;

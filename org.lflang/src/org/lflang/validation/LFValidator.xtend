@@ -1142,12 +1142,9 @@ class LFValidator extends BaseLFValidator {
     @Check(FAST)
     def checkState(StateVar stateVar) {
         checkName(stateVar.name, Literals.STATE_VAR__NAME)
+        typeCheck(stateVar.init, stateVar.inferredType, Literals.STATE_VAR__INIT)
 
-        if (stateVar.isOfTimeType) {
-            // If the state is declared to be a time,
-            // make sure that it is initialized correctly.
-            checkValueIsTime(stateVar.init, Literals.STATE_VAR__INIT)
-        } else if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
+        if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
@@ -1306,11 +1303,7 @@ class LFValidator extends BaseLFValidator {
                     checkValueIsTime(component, feature)
                  }
             } else {
-                if (init.exprs.size != 1) {
-                    error("Expected exactly one time value.", feature)
-                } else {
-                    checkValueIsTime(init.asSingleValue, feature)
-                }
+                checkValueIsTime(init, feature)
             }
         }
     }
