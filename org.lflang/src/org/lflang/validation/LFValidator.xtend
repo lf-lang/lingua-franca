@@ -1293,6 +1293,7 @@ class LFValidator extends BaseLFValidator {
                  val exprs = if (init.isAssign) {
                      val list = init.asSingleValue
                      if (list instanceof BracketExpr) list.items
+                     if (list instanceof BraceExpr) list.items
                      else if (list instanceof CodeExpr) return  // cannot check it
                      else {
                         error("Expected a list of time values.", feature)

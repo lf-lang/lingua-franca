@@ -35,7 +35,6 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import org.eclipse.emf.common.CommonPlugin
 import org.eclipse.emf.ecore.EObject
@@ -87,6 +86,7 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.Timer
+import org.lflang.lf.TimeUnit
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
@@ -898,7 +898,7 @@ class CGenerator extends GeneratorBase {
         compileThreadPool.shutdown();
         
         // Wait for all compile threads to finish (FIXME: Can block forever)
-        compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        compileThreadPool.awaitTermination(Long.MAX_VALUE, java.util.concurrent.TimeUnit.NANOSECONDS);
         
         // Restore the base filename.
         topLevelName = baseFilename
@@ -1381,7 +1381,7 @@ class CGenerator extends GeneratorBase {
             // Insert the #defines at the beginning
             code.insert(0, '''
                 #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.timeInTargetLanguage»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.targetTimeExpr»
                 #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
                 #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
             ''')
@@ -1433,7 +1433,7 @@ class CGenerator extends GeneratorBase {
                         val stp = param.init.asSingleValue?.getTimeValue
                         if (stp !== null) {                        
                             pr('''
-                                set_stp_offset(«stp.timeInTargetLanguage»);
+                                set_stp_offset(«stp.targetTimeExpr»);
                             ''')
                         }
                     }
@@ -3464,8 +3464,8 @@ class CGenerator extends GeneratorBase {
             var trigger = triggerInstance.definition
             var triggerStructName = triggerStructName(triggerInstance)
             if (trigger instanceof Timer && !triggerInstance.isStartup) {
-                val offset = timeInTargetLanguage((triggerInstance as TimerInstance).offset)
-                val period = timeInTargetLanguage((triggerInstance as TimerInstance).period)
+                val offset = (triggerInstance as TimerInstance).offset.targetTimeExpr
+                val period = (triggerInstance as TimerInstance).period.targetTimeExpr
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
@@ -3478,9 +3478,9 @@ class CGenerator extends GeneratorBase {
                     var minDelay = (triggerInstance as ActionInstance).minDelay
                     var minSpacing = (triggerInstance as ActionInstance).minSpacing
                     pr(initializeTriggerObjects, '''
-                        «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
+                        «triggerStructName».offset = «minDelay.targetTimeExpr»;
                         «IF minSpacing !== null»
-                            «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                            «triggerStructName».period = «minSpacing.targetTimeExpr»;
                         «ELSE»
                             «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
                         «ENDIF»
@@ -4094,7 +4094,7 @@ class CGenerator extends GeneratorBase {
                     var deadline = reaction.declaredDeadline.maxDelay
                     val reactionStructName = '''«selfStructName(reaction.parent)»->_lf__reaction_«reactionCount»'''
                     pr(initializeTriggerObjects, '''
-                        «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
+                        «reactionStructName».deadline = «deadline.targetTimeExpr»;
                     ''')
                 }
             }
@@ -4134,7 +4134,7 @@ class CGenerator extends GeneratorBase {
                             parameter cooridiation-options with a value like {advance-message-interval: 10 msec}"''')
                 }
                 pr(initializeTriggerObjects, '''
-                    _fed.min_delay_from_physical_action_to_federate_output = «minDelay.timeInTargetLanguage»;
+                    _fed.min_delay_from_physical_action_to_federate_output = «minDelay.targetTimeExpr»;
                 ''')
             }
         }
@@ -4461,6 +4461,14 @@ class CGenerator extends GeneratorBase {
         }
         return result.toString
     }
+
+    override String getTargetTimeExpr(long magnitude, TimeUnit unit) {
+        if (unit != TimeUnit.NONE) {
+            return unit.name() + '(' + magnitude + ')'
+        } else {
+            return magnitude.toString()
+        }
+    }
     
     protected def getInitializer(Initializer init, InferredType t, ReactorInstance parent) {
         if (init === null)
@@ -4471,8 +4479,6 @@ class CGenerator extends GeneratorBase {
         for (i : init.exprs) {
             if (i instanceof ParamRef) {
                 list.add(parent.selfStructName + "->" + i.parameter.name)
-            } else if (t.isTime) {
-                list.add(i.targetTime)
             } else {
                 list.add(i.targetValue)
             }
@@ -4735,7 +4741,7 @@ class CGenerator extends GeneratorBase {
         var String next_destination_name = '''"federate «receivingFed.id»"'''
         
         // Get the delay literal
-        var String additionalDelayString = delay?.timeInTargetLanguage ?: "NEVER";
+        var String additionalDelayString = delay?.targetTimeExpr ?: "NEVER";
 
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE"
@@ -4850,7 +4856,7 @@ class CGenerator extends GeneratorBase {
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
-                max_STP = «maxSTP.timeInTargetLanguage»;
+                max_STP = «maxSTP.targetTimeExpr»;
             ''')  
         }
         
@@ -4886,7 +4892,7 @@ class CGenerator extends GeneratorBase {
         var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
-        var String additionalDelayString = delay?.timeInTargetLanguage ?: "NEVER"
+        var String additionalDelayString = delay?.targetTimeExpr ?: "NEVER"
         
         result.append('''
             // If the output port has not been SET for the current logical time,
@@ -4999,7 +5005,7 @@ class CGenerator extends GeneratorBase {
         pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
         
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
-            pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
+            pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.targetTimeExpr)
         }
         
         includeTargetLanguageSourceFiles()

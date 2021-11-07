@@ -46,6 +46,8 @@ import org.lflang.lf.ActionOrigin
 import org.lflang.lf.ArraySpec
 import org.lflang.lf.AddExpr
 import org.lflang.lf.Assignment
+import org.lflang.lf.BraceExpr
+import org.lflang.lf.BracketExpr
 import org.lflang.lf.Code
 import org.lflang.lf.CodeExpr
 import org.lflang.lf.Connection
@@ -57,7 +59,6 @@ import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Literal
-import org.lflang.lf.BracketExpr
 import org.lflang.lf.Model
 import org.lflang.lf.MulExpr
 import org.lflang.lf.Output
@@ -768,8 +769,8 @@ class ASTUtils {
             Literal: v.literal
             AddExpr: "(" + v.left.toText + " " + v.op + " " + v.right.toText  + ")"
             MulExpr: "(" + v.left.toText + " " + v.op + " " + v.right.toText  + ")"
-            BracketExpr: v.items.isEmpty() ? "[]" : v.items.join('[', ',', ']', [ it.toText ])
-            BraceExpr: v.items.isEmpty() ? "{}" : v.items.join('{', ',', '}', [ it.toText ])
+            BracketExpr: v.items.isEmpty() ? "[]" : v.items.join('[', ', ', ']', [ it.toText ])
+            BraceExpr: v.items.isEmpty() ? "{}" : v.items.join('{', ', ', '}', [ it.toText ])
             TupleExpr:
                 if (v.items.isEmpty) "()"
                 else {

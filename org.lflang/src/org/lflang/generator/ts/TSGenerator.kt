@@ -39,6 +39,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.TargetTypes
 
 /**
  * Generator for TypeScript target.
@@ -53,7 +54,8 @@ class TSGenerator(
     private val tsFileConfig: TSFileConfig,
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
-) : GeneratorBase(tsFileConfig, errorReporter) {
+) : GeneratorBase(tsFileConfig, errorReporter),
+    TargetTypes by TsTypes {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -342,22 +344,8 @@ class TSGenerator(
         }
     }
 
-    /** Given a representation of time that may possibly include units,
-     *  return a string that TypeScript can recognize as a value.
-     *  @param value Literal that represents a time value.
-     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
-     */
-    override fun timeInTargetLanguage(value: TimeValue): String {
-        return if (value.unit != TimeUnit.NONE) {
-            "TimeValue.${value.unit}(${value.time})"
-        } else {
-            // The value must be zero.
-            "TimeValue.zero()"
-        }
-    }
-
     override fun getTargetType(s: StateVar): String {
-        val type = super.getTargetType(s)
+        val type = super<GeneratorBase>.getTargetType(s)
         return if (s.init == null) {
             "$type | undefined"
         } else {
@@ -497,30 +485,6 @@ class TSGenerator(
 
     override fun generateDelayGeneric(): String {
         return "T extends Present"
-    }
-
-    override fun supportsGenerics(): Boolean {
-        return true
-    }
-
-    override fun getTargetTimeType(): String {
-        return "TimeValue"
-    }
-
-    override fun getTargetTagType(): String {
-        return "TimeValue"
-    }
-
-    override fun getTargetUndefinedType(): String {
-        return "Present"
-    }
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array($size)<$baseType>"
-    }
-
-    override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {

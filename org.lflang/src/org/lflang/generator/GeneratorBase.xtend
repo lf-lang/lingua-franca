@@ -80,7 +80,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
@@ -727,28 +726,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         if (reactionBankIndices.get(reaction) === null) return -1
         return reactionBankIndices.get(reaction)
     }
-    
-    /**
-     * Given a representation of time that may possibly include units, return
-     * a string that the target language can recognize as a value. In this base
-     * class, if units are given, e.g. "msec", then we convert the units to upper
-     * case and return an expression of the form "MSEC(value)". Particular target
-     * generators will need to either define functions or macros for each possible
-     * time unit or override this method to return something acceptable to the
-     * target language.
-     * @param time A TimeValue that represents a time.
-     * @return A string, such as "MSEC(100)" for 100 milliseconds.
-     */
-    def String timeInTargetLanguage(TimeValue time) {
-        if (time !== null) {
-            if (time.unit != TimeUnit.NONE) {
-                return time.unit.name() + '(' + time.time + ')'
-            } else {
-                return time.time.toString()
-            }
-        }
-        return "0" // FIXME: do this or throw exception?
-    }
 
     /**
      * Run the custom build command specified with the "build" parameter.
@@ -1354,8 +1331,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         return init?.exprs.map[i|
             if (i instanceof ParamRef) {
                 i.parameter.targetReference
-            } else if (type.isTime) {
-                i.targetTime
             } else {
                 i.targetValue
             }
@@ -1462,7 +1437,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return An RTI-compatible (ie. C target) time string
      */
     protected def getRTITime(Delay d) {
-        return d.value.targetTime
+        return d.value.targetValue
     }
     
     
@@ -1791,23 +1766,14 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return A time string in the target language
      */
     protected def getTargetTime(Time t) {
-        val value = new TimeValue(t.interval, t.unit)
-        return value.timeInTargetLanguage
+        return t.targetValue
     }
 
     /**
-     * Get textual representation of a value in the target language.
-     * 
-     * If the value evaluates to 0, it is interpreted as a normal value.
-     * 
-     * @param v A time AST node
-     * @return A time string in the target language
+     * Returns the textual representation of a value in the target language.
      */
     protected def getTargetValue(Value v) {
-        if (v instanceof Time) {
-            return v.targetTime
-        }
-        return v.toText
+        return getTargetExpr(v, null)
     }
 
     /**
@@ -1819,7 +1785,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return A time string in the target language
      */
     protected def String getTargetTime(Value v) {
-        v.timeValue.timeInTargetLanguage
+        v.timeValue.targetTimeExpr
     }
 
     protected def String getTargetTime(Delay d) {
