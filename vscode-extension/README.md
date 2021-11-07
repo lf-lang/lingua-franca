@@ -8,6 +8,7 @@ The installation process requires that the following are true:
 * Python 3 (`python3`) is installed. (Currently, the workaround if Python is invoked by `python` instead of `python3` on your machine is to edit `org.lflang.lds/pom.xml` to specify `python` in place of `python3`.)
 * VS Code (`code`) is installed.
 * Maven (`mvn`) is installed.
+* Java 11 is your default JDK (specified by the JAVA\_HOME environment variable)
 * You have deleted the untracked directories `org.lflang/src-gen` and `org.lflang/xtend-gen`, which
 may contain generated code from a different branch.
 
