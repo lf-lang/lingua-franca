@@ -4470,6 +4470,10 @@ class CGenerator extends GeneratorBase {
         return CTypes.INSTANCE.getTargetInitializerWithNotExactlyOneValue(init, type)
     }
 
+    override String getMissingExpr(InferredType type) {
+        return "0"
+    }
+
     protected def getInitializer(Initializer init, InferredType t, ReactorInstance parent) {
         val customExprMaker = new CTypes() {
             override String getTargetParamRef(ParamRef expr, InferredType t) {

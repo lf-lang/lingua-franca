@@ -82,6 +82,11 @@ public class CTypes implements TargetTypes {
     }
 
     @Override
+    public String getMissingExpr(InferredType type) {
+        return "0";
+    }
+
+    @Override
     public String getTargetInitializerWithNotExactlyOneValue(Initializer init, InferredType type) {
         return init.getExprs().stream()
                    .map(it -> getTargetExpr(it, type.getComponentType()))

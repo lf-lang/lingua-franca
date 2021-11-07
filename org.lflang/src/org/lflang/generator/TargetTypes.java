@@ -25,7 +25,6 @@
 
 package org.lflang.generator;
 
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
@@ -185,7 +184,7 @@ public interface TargetTypes {
      *
      * @throws UnsupportedGeneratorFeatureException If the target does not support this
      */
-    default String getMissingExpr() {
+    default String getMissingExpr(InferredType type) {
         throw new UnsupportedGeneratorFeatureException("Missing initializers");
     }
 
@@ -251,7 +250,7 @@ public interface TargetTypes {
 
     default String getTargetInitializer(Initializer init, InferredType inferredType) {
         if (init == null) {
-            return getMissingExpr();
+            return getMissingExpr(inferredType);
         }
         Value single = JavaAstUtils.asSingleValue(init);
         return single != null ? getTargetExpr(single, inferredType)

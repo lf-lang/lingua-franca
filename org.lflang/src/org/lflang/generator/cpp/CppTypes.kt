@@ -72,12 +72,12 @@ object CppTypes : TargetTypes {
 }
 
 fun CppTypes.getCppInitializerWithTypePrefix(init: Initializer?, type: InferredType): String =
-    if (init == null) missingExpr
+    if (init == null) getMissingExpr(type)
     else getTargetType(type) + getCppInitializerWithoutTypePrefix(init, type)
 
 fun CppTypes.getCppInitializerWithoutTypePrefix(init: Initializer?, inferredType: InferredType?): String {
     if (init == null) {
-        return missingExpr
+        return getMissingExpr(inferredType)
     }
     val singleExpr = init.exprs.singleOrNull()
     return if (init.isAssign && singleExpr is BraceExpr)

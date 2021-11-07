@@ -25,12 +25,10 @@
 package org.lflang.generator.rust
 
 import org.lflang.InferredType
-import org.lflang.JavaAstUtils
 import org.lflang.generator.TargetCode
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Initializer
 import org.lflang.lf.TimeUnit
-import org.lflang.lf.Type
 
 object RustTypes : TargetTypes {
 
@@ -77,7 +75,7 @@ object RustTypes : TargetTypes {
         else
             init.exprs.joinToString(", ", "vec![", "].into()") { getTargetExpr(it, type.componentType) }
 
-    override fun getMissingExpr(): String =
+    override fun getMissingExpr(type: InferredType): String =
         "Default::default()"
 
 }

@@ -235,6 +235,10 @@ class PythonGenerator extends CGenerator {
         else return init.exprs.join("(", ", ", ")", [getTargetExpr(it, type.componentType)])
     }
 
+    override String getMissingExpr(InferredType type) {
+        return "None"
+    }
+
     override String getTargetInitializer(Initializer init, InferredType type) {
         if (init.isParens) {
             // tuple expr, but only if size != 1 or trailing comma
