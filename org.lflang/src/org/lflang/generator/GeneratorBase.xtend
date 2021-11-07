@@ -62,7 +62,7 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -98,6 +98,7 @@ import static extension org.lflang.JavaAstUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes {
 
@@ -335,6 +336,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Set keepalive to true.
      */
     protected def void accommodatePhysicalActionsIfPresent(Resource resource) {
+        if (!target.setsKeepAliveOptionAutomatically) {
+            return; // nothing to do
+        }
+
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
         for (action : resource.allContents.toIterable.filter(Action)) {
@@ -347,7 +352,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     targetConfig.keepalive = true
                     errorReporter.reportWarning(
                         action,
-                        '''Setting «TargetProperty.KEEPALIVE.description» to true because of «action.name».«
+                        '''Setting «TargetProperty.KEEPALIVE.displayName» to true because of «action.name».«
                         » This can be overridden by setting the «TargetProperty.KEEPALIVE.description»«
                         » target property manually.'''
                     );
@@ -448,6 +453,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // enable support for them.
             enableSupportForSerialization(context.cancelIndicator);
         }
+        
+        
     }
 
     /**
@@ -569,7 +576,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                     targetDir);
             if (relativeFileName.isNullOrEmpty) {
                 errorReporter.reportError(
-                    "Failed to find file " + filename + "specified in the" +
+                    "Failed to find file " + filename + " specified in the" +
                     " files target property."
                 )
             } else {
@@ -953,6 +960,34 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         }
         return false
     }
+
+    /**
+     * Copy the core files needed to build the RTI within a container.
+     *
+     * @param the directory where rti.Dockerfile is located.
+     * @param the core files used for code generation in the current target.
+     */
+    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
+        var rtiFiles = newArrayList()
+        rtiFiles.addAll(coreFiles)
+
+        // add the RTI files on top of the coreFiles
+        rtiFiles.addAll(
+            "federated/RTI/rti.h",
+            "federated/RTI/rti.c",
+            "federated/RTI/CMakeLists.txt"
+        )
+        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
+    }
+
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * @param the name given to the docker file (without any extension).
+     */
+    def writeDockerFile(String dockerFileName) {
+        throw new UnsupportedOperationException("This target does not support docker file generation.")
+    }
+    
 
     /**
      * Parsed error message from a compiler is returned here.
@@ -1429,6 +1464,42 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     protected def getRTITime(Delay d) {
         return d.value.targetTime
     }
+    
+    
+    
+    /**
+     * Remove triggers in each federates' network reactions that are defined in remote federates.
+     * 
+     * This must be done in code generators after the dependency graphs
+     * are built and levels are assigned. Otherwise, these disconnected ports
+     * might reference data structures in remote federates and cause compile errors.
+     * 
+     * @param instance The reactor instance to remove these ports from if any.
+     *  Can be null.
+     */
+    protected def void removeRemoteFederateConnectionPorts(ReactorInstance instance) {
+        if (isFederated) {
+            for (federate: federates) {
+                // Remove disconnected network triggers from the AST
+                federate.removeRemoteFederateConnectionPorts();
+                if (instance !== null) {
+                    // If passed a reactor instance, also purge the disconnected network triggers
+                    // from the reactor instance graph
+                    for (reaction: federate.networkReactions) {
+                        val networkReaction = instance.lookupReactionInstance(reaction)
+                        if (networkReaction !== null) {
+                            for (port: federate.remoteNetworkReactionTriggers) {
+                                val disconnectedPortInstance = instance.lookupPortInstance(port);
+                                if (disconnectedPortInstance !== null) {
+                                    networkReaction.removePortInstance(disconnectedPortInstance);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
@@ -1545,6 +1616,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // The action will be physical for physical connections and logical
             // for logical connections.
             replaceFederateConnectionsWithActions()
+
+            // Remove the connections at the top level
+            mainReactor.connections.clear()
         }
     }
     
@@ -1586,8 +1660,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 }
             }
         }
-        // Remove all connections for the main reactor.
-        mainReactor.connections.clear()
     }
     
     /**

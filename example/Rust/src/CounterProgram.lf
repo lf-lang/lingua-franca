@@ -11,11 +11,12 @@ target Rust {
 
 reactor Counter(stride: u32(1), period: time(1 sec)) {
     state count: u32(0);
+    state stride(stride);
     timer t(0, period);
     output out: u32;
     reaction(t) -> out {=
         ctx.set(out, self.count);
-        self.count += params.stride;
+        self.count += self.stride;
     =}
 }
 reactor Printer {

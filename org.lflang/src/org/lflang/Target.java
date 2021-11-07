@@ -491,6 +491,10 @@ public enum Target {
         return this.keywords.contains(ident);
     }
 
+    /**
+     * Return true if the target supports multiports and banks
+     * of reactors.
+     */
     public boolean supportsMultiports() {
         switch (this) {
         case C:
@@ -503,6 +507,12 @@ public enum Target {
         return false;
     }
 
+
+    /**
+     * Return true if the target supports widths of banks and
+     * multiports that depend on reactor parameters (not only
+     * on constants).
+     */
     public boolean supportsParameterizedWidths() {
         switch (this) {
         case C:
@@ -512,6 +522,15 @@ public enum Target {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Return true if the keepalive option is set automatically
+     * for this target if physical actions are detected in the
+     * program (and keepalive was not explicitly unset by the user).
+     */
+    public boolean setsKeepAliveOptionAutomatically() {
+        return this != Rust;
     }
 
     /**

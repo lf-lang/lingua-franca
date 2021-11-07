@@ -164,9 +164,6 @@ class LinguaFrancaValidationTest {
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
-    /**
-     * 
-     */
     @Test
     def void disallowMainWithDifferentNameThanFile() {
         parseWithoutError('''
@@ -176,6 +173,7 @@ class LinguaFrancaValidationTest {
             "Name of main reactor must match the file name (or be omitted)")
     }
     
+
     /**
      * Ensure that "__" is not allowed at the start of an output name.
      */
