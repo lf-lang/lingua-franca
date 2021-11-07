@@ -153,7 +153,7 @@ class PythonGenerator extends CGenerator {
         To compile and install the generated code, do:
             
             cd «fileConfig.srcGenPath»«File.separator»
-            python3 -m pip install --ignore-installed --force-reinstall --no-binary :all: --user .
+            python3 -m pip install --force-reinstall .
         ''');
     }
     
@@ -793,7 +793,7 @@ class PythonGenerator extends CGenerator {
         // if we found the compile command, we will also find the install command
         val installCmd = commandFactory.createCommand(
             '''python3''',
-            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."],
+            #["-m", "pip", "install", "--force-reinstall", "."],
             fileConfig.srcGenPath)
                
         if (installCmd === null) {
