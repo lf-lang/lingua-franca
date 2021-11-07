@@ -27,3 +27,11 @@ targets:
     run_args:
       meetings: ["--numMeetings", "<value>"]
       chameneos: ["--numChameneos", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/micro/Chameneos.lf"
+    lf_file: "Chameneos.lf"
+    binary: "Chameneos"
+    gen_args:
+      meetings: ["-D", "numMeetings=<value>"]
+      chameneos: ["-D", "numChameneos=<value>"]

@@ -9,18 +9,18 @@ target Cpp {
 
 public preamble {=
     struct Pos {
-      size_t col;
-      size_t row;  
+        size_t col;
+        size_t row;
     };
-    
+
     std::ostream& operator<<(std::ostream& os, const Pos& pos);
 =}
 
-private preamble {=    
+private preamble {=
     std::ostream& operator<<(std::ostream& os, const Pos& pos) {
-    	os << '(' << pos.col << ',' << pos.row << ')';
-    	return os;
-	}
+        os << '(' << pos.col << ',' << pos.row << ')';
+        return os;
+    }
 =}
 
 reactor Node(bank_index: size_t(0), row_index: size_t(0), num_rows: size_t(4), num_cols:size_t(4)) {
@@ -28,15 +28,15 @@ reactor Node(bank_index: size_t(0), row_index: size_t(0), num_rows: size_t(4), n
     input[num_rows] fromCol: Pos
 
     output toRowAndCol: Pos
-    
+
     state pos: Pos{bank_index, row_index}
-    
+
     reaction (startup) -> toRowAndCol {=
         std::cout << "Hello from " << pos << '\n';
         // send my position to everyone else in my row and column
         toRowAndCol.set(pos);
     =}
-    
+
     reaction (fromRow) {=
         std::cout << pos << " received row messages from: ";
         for (auto& port : fromRow) {
@@ -46,7 +46,7 @@ reactor Node(bank_index: size_t(0), row_index: size_t(0), num_rows: size_t(4), n
         }
         std::cout << '\n';
     =}
-    
+
     reaction (fromCol) {=
         std::cout << pos << " received col messages from: ";
         for (auto& port : fromCol) {
@@ -60,10 +60,10 @@ reactor Node(bank_index: size_t(0), row_index: size_t(0), num_rows: size_t(4), n
 
 reactor Row(bank_index: size_t(0), num_rows:size_t(4), num_cols:size_t(4)) {
     nodes = new[num_cols] Node(row_index=bank_index, num_rows=num_rows, num_cols=num_cols)
-    
+
     input[{=num_rows * num_cols=}] fromCol: Pos
     output[num_cols] toCol: Pos
-    
+
     (nodes.toRowAndCol)+ -> nodes.fromRow
     nodes.toRowAndCol -> toCol 
     fromCol -> interleaved(nodes.fromCol)
@@ -73,3 +73,4 @@ main reactor (num_rows:size_t(4), num_cols:size_t(4)) {
     rows = new[num_rows] Row(num_rows=num_rows, num_cols=num_cols)
     (rows.toCol)+ -> rows.fromCol;
 }
+
