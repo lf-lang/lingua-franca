@@ -117,7 +117,7 @@ class TSReactorGenerator(
         val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
         val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
         val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions)
+        val actionGenerator = TSActionGenerator(reactor.actions)
         val portGenerator = TSPortGenerator(tsGenerator, reactor.inputs, reactor.outputs)
 
         val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate)

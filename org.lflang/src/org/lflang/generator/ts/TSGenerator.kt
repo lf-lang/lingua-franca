@@ -353,10 +353,6 @@ class TSGenerator(
         }
     }
 
-    override fun getTargetReference(param: Parameter): String {
-        return "this.${param.name}.get()"
-    }
-
     /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote

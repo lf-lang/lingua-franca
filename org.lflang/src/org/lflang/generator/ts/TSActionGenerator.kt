@@ -1,5 +1,6 @@
 package org.lflang.generator.ts
 
+import org.lflang.InferredType
 import org.lflang.lf.Action
 import org.lflang.lf.ParamRef
 import org.lflang.lf.Type
@@ -9,13 +10,9 @@ import java.util.*
 /**
  * Generator for actions in TypeScript target.
  */
-class TSActionGenerator (
-    // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
+class TSActionGenerator(
     private val actions: List<Action>
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
-    private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     /**
      * Return a TS type for the specified action.
@@ -24,19 +21,16 @@ class TSActionGenerator (
      * @param action The action
      * @return The TS type.
      */
-    private fun getActionType(action: Action): String {
+    private fun getActionType(action: Action): String =
         // Special handling for the networkMessage action created by
         // FedASTUtils.makeCommunication(), by assigning TypeScript
         // Buffer type for the action. Action<Buffer> is used as
         // FederatePortAction in federation.ts.
         if (action.name == "networkMessage") {
-            return "Buffer"
-        } else if (action.type != null) {
-            return action.type.getTargetType()
+            "Buffer"
         } else {
-            return "Present"
+            TsTypes.getTargetType(action.type)
         }
-    }
 
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
@@ -64,7 +58,7 @@ class TSActionGenerator (
                 if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    actionArgs += ", " + action.minDelay.getTargetValue()
+                    actionArgs += ", " + TsTypes.getTargetExpr(action.minDelay, InferredType.time())
                 }
                 actionInstantiations.add(
                     "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")

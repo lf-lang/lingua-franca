@@ -24,7 +24,10 @@
 
 package org.lflang.generator.ts
 
+import org.lflang.InferredType
 import org.lflang.generator.TargetTypes
+import org.lflang.lf.ParamRef
+import org.lflang.lf.Parameter
 import org.lflang.lf.TimeUnit
 
 /**
@@ -62,4 +65,6 @@ object TsTypes : TargetTypes {
         // The value must be zero.
         else "TimeValue.zero()"
 
+    override fun getTargetParamRef(expr: ParamRef, type: InferredType?): String =
+        "this.${expr.parameter.name}.get()"
 }
