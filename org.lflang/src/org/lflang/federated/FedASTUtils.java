@@ -77,206 +77,27 @@ public class FedASTUtils {
      * @return Empty list or the original list
      */
     public static <E> List<E> safe(List<E> list) {
-        return list == null ? Collections.emptyList() : list;
-    }
-    
-    /**
-     * Create a "network action" in the reactor that contains the given
-     * connection and return it.
-     *
-     * The purpose of this action is to serve as a trigger for a "network
-     * input reaction" that is responsible for relaying messages to the
-     * port that is on the receiving side of the given connection. The
-     * connection is assumed to be between two reactors that reside in
-     * distinct federates. Hence, the container of the connection is
-     * assumed to be top-level.
-     * 
-     * @param connection A connection between to federates.
-     * @param serializer The serializer used on the connection.
-     * @param type The type of the source port (indicating the type of
-     *  data to be received).
-     * @param networkBufferType The type of the buffer used for network
-     *  communication in the target (e.g., uint8_t* in C).
-     * @return The newly created action.
-     */
-    private static Action createNetworkAction(
-        Connection connection,
-        SupportedSerializers serializer,
-        Type type,
-        String networkBufferType
-    ) {
-        Reactor top = (Reactor) connection.eContainer();
-        LfFactory factory = LfFactory.eINSTANCE;
-
-        Action action = factory.createAction();
-        // Name the newly created action; set its delay and type.
-        action.setName(ASTUtils.getUniqueIdentifier(top, "networkMessage"));
-        if (serializer == SupportedSerializers.NATIVE) {
-            action.setType(type);
-        } else {
-            Type action_type = factory.createType();
-            action_type.setId(networkBufferType);
-            action.setType(action_type);
-        }
-        
-        // The connection is 'physical' if it uses the ~> notation.
-        if (connection.isPhysical()) {
-            action.setOrigin(ActionOrigin.PHYSICAL);
-            // Messages sent on physical connections do not
-            // carry a timestamp, or a delay. The delay
-            // provided using after is enforced by setting
-            // the minDelay.
-            if (connection.getDelay() != null) {
-                action.setMinDelay(factory.createValue());
-                action.getMinDelay().setTime(factory.createTime());
-                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
-                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
-            }
-        } else {
-            action.setOrigin(ActionOrigin.LOGICAL);
-        }
-        
-        return action;
+        return list == null ? Collections.<E>emptyList() : list;
     }
 
     /**
-     * Add a network receiver reaction for a given input port 'destination' to
-     * destination's parent reactor. This reaction will react to a generated
-     * 'networkAction' (triggered asynchronously, e.g., by federate.c). This
-     * 'networkAction' will contain the actual message that is sent by the sender
-     * in 'action->value'. This value is forwarded to 'destination' in the network
-     * receiver reaction.
-     * 
-     * @note: Used in federated execution
-     * 
-     * @param networkAction The network action (also, @see createNetworkAction)
-     * @param source The source port instance.
-     * @param destination The destination port instance.
-     * @param connection The network connection.
-     * @param sourceFederate The source federate.
-     * @param destinationFederate The destination federate.
-     * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
-     * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
-     * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-     * @param serializer The serializer used on the connection
-     */
-    private static void addNetworkReceiverReaction(
-            Action networkAction,
-            PortInstance source,
-            PortInstance destination,
-            Connection connection, 
-            FederateInstance sourceFederate,
-            FederateInstance destinationFederate,
-            int rightBankIndex,
-            int rightChannelIndex,
-            GeneratorBase generator,
-            CoordinationType coordination,
-            SupportedSerializers serializer
-    ) {
-        LfFactory factory = LfFactory.eINSTANCE;
-        VarRef sourceRef = factory.createVarRef();
-        VarRef destRef = factory.createVarRef();
-        Reactor parent = (Reactor)connection.eContainer();
-        Reaction networkReceiverReaction = factory.createReaction();
-
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        generator.makeUnordered(networkReceiverReaction);
-        
-        // If the sender or receiver is in a bank of reactors, then we want
-        // these reactions to appear only in the federate whose bank ID matches.
-        generator.setReactionBankIndex(networkReceiverReaction, rightBankIndex);
-        
-        // The connection is 'physical' if it uses the ~> notation.
-        if (connection.isPhysical()) {
-            destinationFederate.inboundP2PConnections.add(sourceFederate);
-        } else {
-            // If the connection is logical but coordination
-            // is decentralized, we would need
-            // to make P2P connections
-            if (coordination == CoordinationType.DECENTRALIZED) {
-                destinationFederate.inboundP2PConnections.add(sourceFederate);
-            }
-        }
-        
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        int receivingPortID = destinationFederate.networkMessageActions.size();
-        
-        // Establish references to the involved ports.
-        sourceRef.setContainer(source.parent.getDefinition());
-        sourceRef.setVariable(source.getDefinition());
-        destRef.setContainer(destination.parent.getDefinition());
-        destRef.setVariable(destination.getDefinition());
-        
-        if (!connection.isPhysical()) {            
-            // If the connection is not physical,
-            // add the original output port of the source federate
-            // as a trigger to keep the overall dependency structure. 
-            // This is useful when assigning levels.
-            VarRef senderOutputPort = factory.createVarRef();
-            senderOutputPort.setContainer(source.parent.getDefinition());
-            senderOutputPort.setVariable(source.getDefinition());
-            networkReceiverReaction.getTriggers().add(senderOutputPort);
-            // Add this trigger to the list of disconnected network reaction triggers
-            destinationFederate.remoteNetworkReactionTriggers.add(senderOutputPort);
-        }
-        
-        // Add the input port at the receiver federate reactor as an effect
-        networkReceiverReaction.getEffects().add(destRef);
-        
-        VarRef triggerRef = factory.createVarRef();
-        // Establish references to the action.
-        triggerRef.setVariable(networkAction);
-        // Add the action as a trigger to the receiver reaction
-        networkReceiverReaction.getTriggers().add(triggerRef);
-        
-        // Generate code for the network receiver reaction
-        networkReceiverReaction.setCode(factory.createCode());
-        networkReceiverReaction.getCode().setBody(generator.generateNetworkReceiverBody(
-            networkAction,
-            sourceRef,
-            destRef,
-            receivingPortID,
-            sourceFederate,
-            destinationFederate,
-            rightBankIndex,
-            rightChannelIndex,
-            JavaAstUtils.getInferredType(networkAction),
-            connection.isPhysical(),
-            serializer
-        ));
-        
-        // Add the receiver reaction to the parent
-        parent.getReactions().add(networkReceiverReaction);
-        
-        // Add the network receiver reaction to the federate instance's list
-        // of network reactions
-        destinationFederate.networkReactions.add(networkReceiverReaction);
-    }
-    
-    /**
-     * Add a network control reaction for a given input port 'destination' to
-     * destination's parent reactor. This reaction will block for
+     * Add a network control reaction for a given input port "portRef" to the
+     * reaction queue of the federated reactor. This reaction will block for
      * any valid logical time until it is known whether the trigger for the
      * action corresponding to the given port is present or absent.
      * 
      * @note Used in federated execution
-     *
-     * @param source The output port of the source federate reactor.
-     *  Added as a trigger to the network control reaction to preserve the 
-     *  overall dependency structure of the program across federates.
-     * @param destination The input port of the destination federate reactor.
-     * @param recevingPortID The ID of the receiving port
+     * 
+     * @param portRef The network input port
+     * @param receivingPortID The ID of the receiving port
      * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
+     * @param parent The federated reactor
+     * @param generator The GeneratorBase instance used to identify certain
+     *  target properties
      */
     private static void addNetworkInputControlReaction(
-            PortInstance source,
             PortInstance destination,
             int recevingPortID,
             int bankIndex,
@@ -285,8 +106,7 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        VarRef sourceRef = factory.createVarRef();
-        VarRef destRef = factory.createVarRef();
+        VarRef newPortRef = factory.createVarRef();
         Type portType = EcoreUtil.copy(destination.getDefinition().getType());
         
         // If the sender or receiver is in a bank of reactors, then we want
@@ -298,10 +118,8 @@ public class FedASTUtils {
         Input newTriggerForControlReactionInput = factory.createInput();       
 
         // Set the container and variable according to the network port
-        destRef.setContainer(destination.parent.getDefinition());
-        destRef.setVariable(destination.getDefinition());
-        sourceRef.setContainer(source.parent.getDefinition());
-        sourceRef.setVariable(source.getDefinition());
+        newPortRef.setContainer(destination.parent.getDefinition());
+        newPortRef.setVariable(destination.getDefinition());
         
         Reactor top = destination.parent.parent.reactorDefinition;
         
@@ -312,23 +130,13 @@ public class FedASTUtils {
         top.getInputs().add(newTriggerForControlReactionInput);
 
         // Create the trigger for the reaction
-        VarRef newTriggerForControlReaction = factory.createVarRef();
+        VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
         newTriggerForControlReaction.setVariable(newTriggerForControlReactionInput);
         
-        // Add the appropriate triggers to the list of triggers of the reaction
+        // Add the trigger to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
-        
-        // Add the original output port of the source federate
-        // as a trigger to keep the overall dependency structure. 
-        // This is useful when assigning levels.
-        reaction.getTriggers().add(sourceRef);
-        // Add this trigger to the list of disconnected network reaction triggers
-        instance.remoteNetworkReactionTriggers.add(sourceRef);
-        
-        // Add the destination port as an effect of the reaction
-        reaction.getEffects().add(destRef);
-        
-        // Generate code for the network input control reaction
+        // Add the network port as an effect of the reaction
+        reaction.getEffects().add(newPortRef);
         reaction.setCode(factory.createCode());
 
         TimeValue maxSTP = findMaxSTP(
@@ -350,53 +158,51 @@ public class FedASTUtils {
         // Add the trigger for this reaction to the list of triggers, used to actually
         // trigger the reaction at the beginning of each logical time.
         instance.networkInputControlReactionsTriggers.add(newTriggerForControlReactionInput);
-        
-        // Add the network input control reaction to the federate instance's list
-        // of network reactions
-        instance.networkReactions.add(reaction);
     }
 
     /**
-     * Find the maximum STP offset for the given 'port'.
+     * Find the maximum STP offset for the given port.
      * 
      * An STP offset predicate can be nested in contained reactors in
      * the federate.
      * @param port The port to generate the STP list for.
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
+     * @param generator The instance of GeneratorBase
      * @param reactor The top-level reactor (not the federate reactor)
-     * @return The maximum STP as a TimeValue
+     * @return
      */
     private static TimeValue findMaxSTP(Variable port,
             FederateInstance instance,
             GeneratorBase generator, Reactor reactor) {
         // Find a list of STP offsets (if any exists)
-        List<Value> STPList = new LinkedList<>();
+        List<Value> STPList = new LinkedList<Value>();
         
         // First, check if there are any connections to contained reactors that
         // need to be handled
         List<Connection> connectionsWithPort = ASTUtils
-            .allConnections(reactor).stream().filter(c -> c.getLeftPorts()
-                                                           .stream()
-                                                           .anyMatch((VarRef v) -> v
-                                                               .getVariable().equals(port)))
-            .collect(Collectors.toList());
+                .allConnections(reactor).stream().filter(c -> {
+                    return c.getLeftPorts().stream().anyMatch((VarRef v) -> {
+                        return v.getVariable().equals(port);
+                    });
+                }).collect(Collectors.toList());
 
 
         // Find the list of reactions that have the port as trigger or source
         // (could be a variable name)
         List<Reaction> reactionsWithPort = ASTUtils
                 .allReactions(reactor).stream().filter(r -> {
-                // Check the triggers of reaction r first
-                return r.getTriggers().stream().anyMatch(t -> {
-                    if (t instanceof VarRef) {
-                        // Check if the variables match
-                        return ((VarRef) t).getVariable() == port;
-                    } else {
-                        // Not a network port (startup or shutdown)
-                        return false;
-                    }
-                }) || // Then check the sources of reaction r
-                r.getSources().stream().anyMatch(s -> s.getVariable() == port);
+                    return (// Check the triggers of reaction r first
+                    r.getTriggers().stream().anyMatch(t -> {
+                        if (t instanceof VarRef) {
+                            // Check if the variables match
+                            return ((VarRef) t).getVariable() == port;
+                        } else {
+                            // Not a network port (startup or shutdown)
+                            return false;
+                        }
+                    }) || // Then check the sources of reaction r
+                    r.getSources().stream().anyMatch(s -> {
+                        return s.getVariable() == port;
+                    }));
                 }).collect(Collectors.toList());
         
         // Find a list of STP offsets (if any exists)
@@ -409,9 +215,9 @@ public class FedASTUtils {
                 // If not, assume it is zero
                 if (r.getStp() != null) {
                     if (r.getStp().getValue().getParameter() != null) {
-                        List<Instantiation> instantList = new ArrayList<>();
+                        List<Instantiation> instantList = new ArrayList<Instantiation>();
                         instantList.add(instance.instantiation);
-                        STPList.addAll(ASTUtils.initialValue(r.getStp().getValue().getParameter(), instantList));
+                        STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
                     } else {
                         STPList.add(r.getStp().getValue());
                     }
@@ -425,18 +231,22 @@ public class FedASTUtils {
                 // Find the list of reactions that have the port as trigger or
                 // source (could be a variable name)
                 List<Reaction> childReactionsWithPort = ASTUtils
-                    .allReactions(childReactor).stream().filter(r -> r.getTriggers().stream().anyMatch(t -> {
-                        if (t instanceof VarRef) {
-                            // Check if the variables match
-                            return ((VarRef) t)
-                                    .getVariable() == childPort
-                                            .getVariable();
-                        } else {
-                            // Not a network port (startup or shutdown)
-                            return false;
-                        }
-                    }) || r.getSources().stream().anyMatch(s -> s.getVariable() == childPort
-                            .getVariable())).collect(Collectors.toList());
+                        .allReactions(childReactor).stream().filter(r -> {
+                            return (r.getTriggers().stream().anyMatch(t -> {
+                                if (t instanceof VarRef) {
+                                    // Check if the variables match
+                                    return ((VarRef) t)
+                                            .getVariable() == childPort
+                                                    .getVariable();
+                                } else {
+                                    // Not a network port (startup or shutdown)
+                                    return false;
+                                }
+                            }) || r.getSources().stream().anyMatch(s -> {
+                                return s.getVariable() == childPort
+                                        .getVariable();
+                            }));
+                        }).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
                     if (!instance.containsReaction(r)) {
@@ -446,9 +256,9 @@ public class FedASTUtils {
                     // If not, assume it is zero
                     if (r.getStp() != null) {
                         if (r.getStp().getValue() instanceof Parameter) {
-                            List<Instantiation> instantList = new ArrayList<>();
+                            List<Instantiation> instantList = new ArrayList<Instantiation>();
                             instantList.add(childPort.getContainer());
-                            STPList.addAll(ASTUtils.initialValue(r.getStp().getValue().getParameter(), instantList));
+                            STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
                         } else {
                             STPList.add(r.getStp().getValue());
                         }
@@ -467,117 +277,23 @@ public class FedASTUtils {
         
         return maxSTP;
     }
-    
-    /**
-     * Add a network sender reaction for a given input port 'source' to
-     * source's parent reactor. This reaction will react to the 'source'
-     * and then send a message on the network destined for the destinationFederate.
-     * 
-     * @note Used in federated execution
-     * 
-     * @param source The source port instance.
-     * @param destination The destination port instance.
-     * @param connection The network connection.
-     * @param sourceFederate The source federate.
-     * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
-     * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
-     * @param destinationFederate The destination federate.
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
-     * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
-     * @param serializer The serializer used on the connection
-     */
-    private static void addNetworkSenderReaction(
-            PortInstance source,
-            PortInstance destination,
-            Connection connection, 
-            FederateInstance sourceFederate,
-            int leftBankIndex,
-            int leftChannelIndex,
-            FederateInstance destinationFederate,
-            GeneratorBase generator,
-            CoordinationType coordination,
-            SupportedSerializers serializer
-    ) {
-        LfFactory factory = LfFactory.eINSTANCE;
-        // Assume all the types are the same, so just use the first on the right.
-        Type type = EcoreUtil.copy(source.getDefinition().getType());
-        VarRef sourceRef = factory.createVarRef();
-        VarRef destRef = factory.createVarRef();
-        Reactor parent = (Reactor)connection.eContainer();
-        Reaction networkSenderReaction = factory.createReaction();
-
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        generator.makeUnordered(networkSenderReaction);
-        
-        // If the sender or receiver is in a bank of reactors, then we want
-        // these reactions to appear only in the federate whose bank ID matches.
-        generator.setReactionBankIndex(networkSenderReaction, leftBankIndex);
-        
-        // The connection is 'physical' if it uses the ~> notation.
-        if (connection.isPhysical()) {
-            sourceFederate.outboundP2PConnections.add(destinationFederate);
-        } else {
-            // If the connection is logical but coordination
-            // is decentralized, we would need
-            // to make P2P connections
-            if (coordination == CoordinationType.DECENTRALIZED) {
-                sourceFederate.outboundP2PConnections.add(destinationFederate);
-            }
-        }
-        
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        int receivingPortID = destinationFederate.networkMessageActions.size();
-
-
-        // Establish references to the involved ports.
-        sourceRef.setContainer(source.parent.getDefinition());
-        sourceRef.setVariable(source.getDefinition());
-        destRef.setContainer(destination.parent.getDefinition());
-        destRef.setVariable(destination.getDefinition());
-        
-        // Configure the sending reaction.
-        networkSenderReaction.getTriggers().add(sourceRef);
-        networkSenderReaction.setCode(factory.createCode());
-        networkSenderReaction.getCode().setBody(generator.generateNetworkSenderBody(
-            sourceRef,
-            destRef,
-            receivingPortID,
-            sourceFederate,
-            leftBankIndex,
-            leftChannelIndex,
-            destinationFederate,
-            InferredType.fromAST(type),
-            connection.isPhysical(),
-            connection.getDelay(),
-            serializer
-        ));
-              
-        // Add the sending reaction to the parent.
-        parent.getReactions().add(networkSenderReaction);
-        
-        // Add the network sender reaction to the federate instance's list
-        // of network reactions
-        sourceFederate.networkReactions.add(networkSenderReaction);
-    }
 
     /**
-     * Add a network control reaction for a given output port 'source' to 
-     * source's parent reactor. This reaction will send a port absent
+     * Add a network control reaction for a given output port "portRef" to the
+     * reactions of the container reactor. This reaction will send a port absent
      * message if the status of the output port is absent.
      * 
      * @note Used in federated execution
      * 
-     * @param source The output port of the source federate
+     * @param portRef The output port
      * @param instance The federate instance is used to keep track of all
-     *  network reactions and some relevant triggers
+     *        network input ports globally
      * @param receivingPortID The ID of the receiving port
      * @param channelIndex The channel index of the sending port, if it is a multiport.
      * @param bankIndex The bank index of the sending federate, if it is a bank.
      * @param receivingFedID The ID of destination federate.
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
+     * @param generator The GeneratorBase instance used to identify certain
+     *        target properties
      * @param delay The delay value imposed on the connection using after
      */
     private static void addNetworkOutputControlReaction(
@@ -617,7 +333,9 @@ public class FedASTUtils {
             // generated for another federate instance if there are multiple instances
             // of the same reactor that are each distinct federates.
             Optional<Input> optTriggerInput = top.getInputs().stream()
-                                                 .filter(I -> I.getName().equals(triggerName)).findFirst();
+                    .filter(I -> {
+                        return I.getName().equals(triggerName);
+                    }).findFirst();
 
             if (optTriggerInput.isEmpty()) {
                 // If no trigger with the name "outputControlReactionTrigger" is
@@ -662,10 +380,6 @@ public class FedASTUtils {
         // Insert the newly generated reaction after the generated sender and
         // receiver top-level reactions.
         top.getReactions().add(reaction);
-        
-        // Add the network output control reaction to the federate instance's list
-        // of network reactions
-        instance.networkReactions.add(reaction);
     }
     
     /** 
@@ -673,28 +387,49 @@ public class FedASTUtils {
      * @param source The source port instance.
      * @param destination The destination port instance.
      * @param connection The connection.
-     * @param sourceFederate The source federate.
+     * @param leftFederate The source federate.
      * @param leftBankIndex The left bank index or -1 if the left reactor is not in a bank.
      * @param leftChannelIndex The left channel index or -1 if the left port is not a multiport.
-     * @param destinationFederate The destination federate.
+     * @param rightFederate The destination federate.
      * @param rightBankIndex The right bank index or -1 if the right reactor is not in a bank.
      * @param rightChannelIndex The right channel index or -1 if the right port is not a multiport.
-     * @param generator The GeneratorBase instance used to perform some target-specific actions
+     * @param generator The generator.
      * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
      */
     public static void makeCommunication(
             PortInstance source,
             PortInstance destination,
             Connection connection, 
-            FederateInstance sourceFederate,
+            FederateInstance leftFederate,
             int leftBankIndex,
             int leftChannelIndex,
-            FederateInstance destinationFederate,
+            FederateInstance rightFederate,
             int rightBankIndex,
             int rightChannelIndex,
             GeneratorBase generator,
             CoordinationType coordination
-    ) {        
+    ) {
+        LfFactory factory = LfFactory.eINSTANCE;
+        // Assume all the types are the same, so just use the first on the right.
+        Type type = EcoreUtil.copy(source.getDefinition().getType());
+        Action action = factory.createAction();
+        VarRef triggerRef = factory.createVarRef();
+        VarRef sourceRef = factory.createVarRef();
+        VarRef destRef = factory.createVarRef();
+        Reactor parent = (Reactor)connection.eContainer();
+        Reaction r1 = factory.createReaction();
+        Reaction r2 = factory.createReaction();
+        
+        // These reactions do not require any dependency relationship
+        // to other reactions in the container.
+        generator.makeUnordered(r1);
+        generator.makeUnordered(r2);
+        
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(r1, leftBankIndex);
+        generator.setReactionBankIndex(r2, rightBankIndex);
+        
         // Get the serializer
         var serializer = SupportedSerializers.NATIVE;
         if (connection.getSerializer() != null) {
@@ -704,76 +439,124 @@ public class FedASTUtils {
         }
         // Add it to the list of enabled serializers
         generator.enabledSerializers.add(serializer);
+
+        // Name the newly created action; set its delay and type.
+        action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
+        if (serializer == SupportedSerializers.NATIVE) {
+            action.setType(type);
+        } else {
+            Type action_type = factory.createType();
+            action_type.setId(generator.getNetworkBufferType());
+            action.setType(action_type);
+        }
         
-        // Add the sender reaction.
-        addNetworkSenderReaction(
-                source,
-                destination,
-                connection, 
-                sourceFederate,
-                leftBankIndex, 
-                leftChannelIndex, 
-                destinationFederate,
-                generator, 
-                coordination, 
-                serializer
-        );
+        // The connection is 'physical' if it uses the ~> notation.
+        if (connection.isPhysical()) {
+            leftFederate.outboundP2PConnections.add(rightFederate);
+            rightFederate.inboundP2PConnections.add(leftFederate);
+            action.setOrigin(ActionOrigin.PHYSICAL);
+            // Messages sent on physical connections do not
+            // carry a timestamp, or a delay. The delay
+            // provided using after is enforced by setting
+            // the minDelay.
+            if (connection.getDelay() != null) {
+                action.setMinDelay(factory.createValue());
+                action.getMinDelay().setTime(factory.createTime());
+                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
+                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
+            }
+        } else {
+            // If the connection is logical but coordination
+            // is decentralized, we would need
+            // to make P2P connections
+            if (coordination == CoordinationType.DECENTRALIZED) {
+                leftFederate.outboundP2PConnections.add(rightFederate);
+                rightFederate.inboundP2PConnections.add(leftFederate);               
+            }            
+            action.setOrigin(ActionOrigin.LOGICAL);
+        }
         
-        if (!connection.isPhysical()) {
-            
-            // The ID of the receiving port (rightPort) is the position
-            // of the networkAction (see below) in this list.
-            int receivingPortID = destinationFederate.networkMessageActions.size();
-            
+        // Record this action in the right federate.
+        // The ID of the receiving port (rightPort) is the position
+        // of the action in this list.
+        int receivingPortID = rightFederate.networkMessageActions.size();
+        rightFederate.networkMessageActions.add(action);
+
+        // Establish references to the action.
+        triggerRef.setVariable(action);
+
+        // Establish references to the involved ports.
+        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setVariable(source.getDefinition());
+        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setVariable(destination.getDefinition());
+
+        // Add the action to the reactor.
+        parent.getActions().add(action);
+        
+        // Configure the sending reaction.
+        r1.getTriggers().add(sourceRef);
+        r1.setCode(factory.createCode());
+        r1.getCode().setBody(generator.generateNetworkSenderBody(
+            sourceRef,
+            destRef,
+            receivingPortID,
+            leftFederate,
+            leftBankIndex,
+            leftChannelIndex,
+            rightFederate,
+            InferredType.fromAST(type),
+            connection.isPhysical(),
+            connection.getDelay(),
+            serializer
+        ));
+              
+        // Add the sending reaction to the parent.
+        parent.getReactions().add(r1);
+        
+        if (!connection.isPhysical()) {           
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(
                 source,
-                sourceFederate,
+                leftFederate,
                 receivingPortID,
                 leftBankIndex,
                 leftChannelIndex,
-                destinationFederate.id,
+                rightFederate.id,
                 generator,
                 connection.getDelay()
             );
             
             // Add the network input control reaction to the parent
             FedASTUtils.addNetworkInputControlReaction(
-                source,
                 destination,
                 receivingPortID,
                 rightBankIndex,
-                destinationFederate,
+                rightFederate,
                 generator
             );
-        }
+        }        
 
-        // Create the network action (@see createNetworkAction)
-        Action networkAction = createNetworkAction(
-            connection,
-            serializer,
-            EcoreUtil.copy(source.getDefinition().getType()),
-            generator.getNetworkBufferType());
 
-        // Keep track of this action in the destination federate.
-        destinationFederate.networkMessageActions.add(networkAction);
-
-        // Add the action definition to the parent reactor.
-        ((Reactor)connection.eContainer()).getActions().add(networkAction);
-
-        // Add the network receiver reaction in the destinationFederate
-        addNetworkReceiverReaction(
-                networkAction,
-                source, 
-                destination, 
-                connection, 
-                sourceFederate,
-                destinationFederate,
-                rightBankIndex, 
-                rightChannelIndex, 
-                generator, 
-                coordination,
-                serializer
-         );
+        // Configure the receiving reaction.
+        r2.getTriggers().add(triggerRef);
+        r2.getEffects().add(destRef);
+        r2.setCode(factory.createCode());
+        r2.getCode().setBody(generator.generateNetworkReceiverBody(
+            action,
+            sourceRef,
+            destRef,
+            receivingPortID,
+            leftFederate,
+            rightFederate,
+            rightBankIndex,
+            rightChannelIndex,
+            JavaAstUtils.getInferredType(action),
+            connection.isPhysical(),
+            serializer
+        ));
+        
+        // Add the receiver reaction to the parent
+        parent.getReactions().add(r2);
     }
 }
