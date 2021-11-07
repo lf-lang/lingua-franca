@@ -29,7 +29,7 @@ package org.lflang.generator.c
 import java.io.File
 import java.nio.file.Path
 import java.util.ArrayList
-import java.util.Collection
+import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -197,9 +197,12 @@ import static extension org.lflang.JavaAstUtils.*
  *   that is a boolean indicating whether the output has been set.
  *   This field is reset to false at the start of every time
  *   step. There is also a field `num_destinations` whose value matches the
- *   number of downstream reactions that use this variable. This field must be
+ *   number of downstream reactors that use this variable. This field must be
  *   set when connections are made or changed. It is used to initialize
  *   reference counts for dynamically allocated message payloads.
+ *   The reference count is decremented in each destination reactor at the
+ *   conclusion of each time step, and when it drops to zero, the memory
+ *   is freed.
  * 
  * * Inputs: For each input named `in` of type T, there is a field named `_lf_in`
  *   that is a pointer struct with a value field of type T. The struct pointed
@@ -3082,49 +3085,11 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsReaction(
                 reaction.definition
             )) {
-                var Collection<PortInstance> destinationPorts = null
-
+                // The reaction is in the federate.
                 var portCount = 0
-                // Record the number of reactions that this reaction depends on.
-                // This is used for optimization. When that number is 1, the reaction can
-                // be executed immediately when its triggering reaction has completed.
-                var dominatingReaction = this.reactionGraph.findSingleDominatingReaction(reaction)
-                // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
-                while (dominatingReaction !== null 
-                    && (federate !== null && 
-                        !federate.containsReaction(
-                            dominatingReaction.definition
-                            )
-                        )
-                ) {
-                    dominatingReaction = this.reactionGraph.findSingleDominatingReaction(dominatingReaction);
-                }
-                if (dominatingReaction !== null
-                    && (federate !== null 
-                        && federate.containsReaction(
-                            dominatingReaction.definition
-                            )
-                        )
-                ) {
-                    val upstreamReaction =
-                        '''«selfStructName(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.reactionIndex»'''
-                    pr(initializeTriggerObjectsEnd, '''
-                        // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
-                        «selfStruct»->_lf__reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
-                    ''')
-                } else {
-                    pr(initializeTriggerObjectsEnd, '''
-                        // Reaction «reactionCount» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
-                        «selfStruct»->_lf__reaction_«reactionCount».last_enabling_reaction = NULL;
-                    ''')
-                }
-                if (targetConfig.logLevel >= LogLevel.LOG) {
-                    pr(initializeTriggerObjectsEnd, '''
-                        // Reaction «reactionCount» of «reactorInstance.getFullName»'s name.
-                        «selfStruct»->_lf__reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
-                    ''')
-                }
-                                
+                
+                optimizeForSingleDominatingReaction(reaction, reactionCount, federate);
+                                                
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip ports whose parent is not in the federation.
                     // This can happen with reactions in the top-level that have
@@ -3208,6 +3173,55 @@ class CGenerator extends GeneratorBase {
             }
             // Increment reaction count even if it is not in the federate for consistency.
             reactionCount++
+        }
+    }
+    
+    /**
+     * Set the last_enabling_reaction field of the reaction struct to point
+     * to the single dominating upstream reaction, if there is one, or to be
+     * NULL if not.
+     * 
+     * @param reaction The reaction.
+     * @param reactionNumber The reaction number within the parent.
+     * @param federate The federate or null for a non-federation.
+     */
+    def optimizeForSingleDominatingReaction (
+        ReactionInstance reaction,
+        int reactionNumber, 
+        FederateInstance federate
+    ) {
+        val reactorInstance = reaction.parent;
+        val selfStruct = selfStructName(reactorInstance)
+        
+        // Record the number of reactions that this reaction depends on.
+        // This is used for optimization. When that number is 1, the reaction can
+        // be executed immediately when its triggering reaction has completed.
+        var dominatingReaction = this.reactionGraph.findSingleDominatingReaction(reaction)
+        
+        // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
+        while (dominatingReaction !== null 
+                && (federate !== null && !federate.containsReaction(dominatingReaction.definition))
+        ) {
+            dominatingReaction = this.reactionGraph.findSingleDominatingReaction(dominatingReaction);
+        }
+        if (dominatingReaction !== null &&
+            (federate !== null && federate.containsReaction(dominatingReaction.definition))) {
+            val upstreamReaction = '''«selfStructName(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.reactionIndex»'''
+            pr(initializeTriggerObjectsEnd, '''
+                // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
+                «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = &(«upstreamReaction»);
+            ''')
+        } else {
+            pr(initializeTriggerObjectsEnd, '''
+                // Reaction «reactionNumber» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
+                «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = NULL;
+            ''')
+        }
+        if (targetConfig.logLevel >= LogLevel.LOG) {
+            pr(initializeTriggerObjectsEnd, '''
+                // Reaction «reactionNumber» of «reactorInstance.getFullName»'s name.
+                «selfStruct»->_lf__reaction_«reactionNumber».name = "«reactorInstance.fullName» reaction «reactionNumber»";
+            ''')
         }
     }
     
@@ -3907,6 +3921,9 @@ class CGenerator extends GeneratorBase {
 
         // Generate trigger objects for the instance.
         generateOffsetAndPeriodInitializations(instance, federate)
+        
+        // Initialize the num_destinations fields of port structs on the self struct.
+        generateNumDestinations(instance, federate)
 
         // Next, initialize actions by creating a lf_token_t in the self struct.
         // This has the information required to allocate memory for the action payload.
@@ -4016,6 +4033,84 @@ class CGenerator extends GeneratorBase {
         // so that it can deallocate any memory.
         generateStartTimeStep(instance, federate)
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    /**
+     * Set the num_destinations field of port structs on the self struct
+     * equal to the total number of destination reactors. This is used
+     * to initialize reference counts in dynamically allocated tokens
+     * sent to other reactors.
+     * @param reactor The reactor instance.
+     * @param federate The federate instance.
+     */
+    private def void generateNumDestinations(ReactorInstance reactor, FederateInstance federate) {
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance.
+        for (output : reactor.outputs) {
+            if (federate === null || federate.containsPort(output.definition)) {
+                for (sendingRange : output.eventualDestinations) {
+                    // Syntax is slightly difference for a multiport output vs. single port.
+                    // For a single port, there should be only one sendingRange.
+                    if (output.isMultiport()) {
+                        val start = sendingRange.startChannel;
+                        val end = sendingRange.startChannel + sendingRange.channelWidth;
+                        pr(initializeTriggerObjectsEnd, '''
+                            for (int i = «start»; i < «end»; i++) {
+                                «sourceReference(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                            }
+                        ''')
+                    } else {
+                        pr(initializeTriggerObjectsEnd, '''
+                            «sourceReference(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                        ''')
+                    }
+                }
+            }
+        }
+        
+        // Do the same for inputs of contained reactors that are sent data by reactions
+        // of this reactor.  Since a port may be written to by multiple reactions,
+        // ensure that this is done only once.
+        val portsHandled = new HashSet<PortInstance>();
+        for (reaction : reactor.reactions) {
+            if (federate === null || federate.containsReaction(reaction.definition)) {
+                
+                // Handle reactions that produce outputs sent to inputs
+                // of contained reactors.  An input port can have only
+                // one source, so we can immediately generate the initialization.
+                for (port : reaction.effects.filter(PortInstance)) {
+                    
+                    if (port.isInput && !portsHandled.contains(port)) {
+                        // Port is an input of a contained reactor that gets data from a reaction of this reactor.
+                        
+                        portsHandled.add(port);
+                        
+                        // The input port may iself have multiple destinations.
+                        for (sendingRange : port.eventualDestinations) {
+                        
+                            // Syntax is slightly difference for a multiport output vs. single port.
+                            if (port.isMultiport()) {
+                                val start = sendingRange.startChannel;
+                                val end = sendingRange.startChannel + sendingRange.channelWidth;
+                                pr(initializeTriggerObjectsEnd, '''
+                                    for (int i = «start»; i < «end»; i++) {
+                                        «sourceReference(port)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                    }
+                                ''')
+                            } else {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    «sourceReference(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                ''')
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -5110,20 +5205,16 @@ class CGenerator extends GeneratorBase {
                             { // To scope variable j
                                 int j = «eventualSource.startChannel»;
                                 for (int i = «startChannel»; i < «eventualSource.channelWidth» + «startChannel»; i++) {
-                                    «destinationReference(port)»[i] = («destStructType»*)&«sourceReference(src)»[j];
-                                    «sourceReference(src)»[j++].num_destinations++;
+                                    «destinationReference(port)»[i] = («destStructType»*)&«sourceReference(src)»[j++];
                                 }
                             }
                         ''')
-                        // FIXME: num_destinations needs to be the number of destination *reactors*.
-                        // This code will make it equal to the number of destination ports with reactions.
                         startChannel += eventualSource.channelWidth;
                     } else {
                         // Source is a multiport, destination is a single port.
                         pr('''
                             // Connect «src.getFullName» to port «port.getFullName»
                             «destinationReference(port)» = («destStructType»*)&«sourceReference(src)»[«eventualSource.startChannel»];
-                            «sourceReference(src)»[«eventualSource.startChannel»].num_destinations++;
                         ''')
                     }
                 } else if (port.isMultiport()) {
@@ -5131,7 +5222,6 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         // Connect «src.getFullName» to port «port.getFullName»
                         «destinationReference(port)»[«startChannel»] = («destStructType»*)&«sourceReference(src)»;
-                        «sourceReference(src)».num_destinations++;
                     ''')
                     startChannel++;
                 } else {
@@ -5139,7 +5229,6 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         // Connect «src.getFullName» to port «port.getFullName»
                         «destinationReference(port)» = («destStructType»*)&«sourceReference(src)»;
-                        «sourceReference(src)».num_destinations++;
                     ''')
                 }
             }
