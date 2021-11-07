@@ -17,6 +17,7 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 import com.google.inject.Inject;
