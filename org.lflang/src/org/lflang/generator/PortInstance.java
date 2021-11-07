@@ -358,11 +358,11 @@ public class PortInstance extends TriggerInstance<Port> {
                 continue;
             }
             // If we get here, the source can provide some channels. How many?
-            int srcStart = channelsToSkip;
-            int srcWidth = sourceRange.channelWidth - srcStart; // Candidate width if we can use them all.
+            int srcStart = sourceRange.startChannel + channelsToSkip;
+            int srcWidth = sourceRange.channelWidth - channelsToSkip; // Candidate width if we can use them all.
             if (channelsProvided + srcWidth > rangeWidth) {
                 // Can't use all the source channels.
-                srcWidth = (channelsProvided + srcWidth) - rangeWidth;
+                srcWidth = rangeWidth - channelsProvided;
             }
             PortInstance src = sourceRange.getPortInstance();
             // If this source depends on reactions, then include it in the result.
