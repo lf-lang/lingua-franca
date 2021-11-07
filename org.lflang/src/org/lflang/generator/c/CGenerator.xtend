@@ -3531,19 +3531,18 @@ class CGenerator extends GeneratorBase {
      * Return a string for referencing the struct with the value and is_present
      * fields of the specified port. This is used for establishing the destination of
      * data for a connection between ports.
-     * This will have one the following form:
+     * This will have the following form:
      * 
      * * selfStruct->_lf_portName
      * 
      * @param port An instance of a destination input port.
      */
     static def destinationReference(PortInstance port) {
+        // Note that if the port is an output, then it must
+        // have dependent reactions, otherwise it would not
+        // be a destination.
         var destStruct = selfStructName(port.parent)
-        if (port.isInput) {
-            return '''«destStruct»->_lf_«port.name»'''
-        } else {
-            throw new InvalidSourceException("INTERNAL ERROR: destinationReference() should only be called on input ports.")
-        }        
+        return '''«destStruct»->_lf_«port.name»'''
     }
  
     /**
@@ -5155,7 +5154,7 @@ class CGenerator extends GeneratorBase {
         }
         for (output : instance.outputs) {
             if (!output.dependentReactions.isEmpty()) {
-                // Input has reactions. Connect it to its eventual source.
+                // Output has reactions. Connect it to its eventual source.
                 connectPortToEventualSource(output, federate); 
             }
         }
@@ -5293,7 +5292,7 @@ class CGenerator extends GeneratorBase {
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
                                     // of «instance.getFullName», on its self struct.
                                     for (int i = 0; i < «eventualSource.channelWidth»; i++) {
-                                        «reactionReference(port)»[i + «portChannelCount»] = («destStructType»*)«sourceReference(sourcePort)»[i + «eventualSource.startChannel»];
+                                        «reactionReference(port)»[i + «portChannelCount»] = («destStructType»*)&«sourceReference(sourcePort)»[i + «eventualSource.startChannel»];
                                     }
                                 ''')
                                 portChannelCount += eventualSource.channelWidth;
@@ -5302,7 +5301,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
                                     // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)» = («destStructType»*)«sourceReference(sourcePort)»[«eventualSource.startChannel»];
+                                    «reactionReference(port)» = («destStructType»*)&«sourceReference(sourcePort)»[«eventualSource.startChannel»];
                                 ''')
                                 portChannelCount++;
                             } else if (port.isMultiport) {
@@ -5310,7 +5309,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
                                     // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)»[«portChannelCount»] = («destStructType»*)«sourceReference(sourcePort)»;
+                                    «reactionReference(port)»[«portChannelCount»] = («destStructType»*)&«sourceReference(sourcePort)»;
                                 ''')
                                 portChannelCount++;
                             } else {
@@ -5318,7 +5317,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.reactionIndex»
                                     // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)» = («destStructType»*)«sourceReference(sourcePort)»;
+                                    «reactionReference(port)» = («destStructType»*)&«sourceReference(sourcePort)»;
                                 ''')
                                 portChannelCount++;
                             }
