@@ -3,10 +3,7 @@ package org.lflang.generator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.InferredType
-import org.lflang.lf.LfFactory
-import org.lflang.lf.Parameter
-import org.lflang.lf.StateVar
-import org.lflang.lf.Value
+import org.lflang.lf.*
 import org.lflang.toPath
 import org.lflang.toTextTokenBased
 import org.lflang.toUnixString
@@ -17,6 +14,25 @@ fun TargetTypes.getTargetInitializer(sv: StateVar): TargetCode =
 
 fun TargetTypes.getTargetInitializer(sv: Parameter): TargetCode =
     this.getTargetInitializer(sv.init, sv.type)
+
+/**
+ * Returns the target code for the initial value of a parameter
+ * for the given instantiation. The value is defaulted to the
+ * default value for the parameter.
+ */
+fun TargetTypes.getTargetInitializer(sv: Parameter, inst: Instantiation): TargetCode {
+    val delegated = object : TargetTypes by this {
+        override fun getTargetParamRef(expr: ParamRef, type: InferredType?): String {
+            val init = inst.parameters.firstOrNull { it.lhs == expr.parameter }?.rhs
+                ?: expr.parameter.init
+                ?: throw InvalidLfSourceException(inst, "No value for parameter ${sv.name}")
+
+            return super.getTargetInitializer(init, sv.type)
+        }
+    }
+    return delegated.getTargetInitializer(sv)
+}
+
 
 fun TargetTypes.getTargetTimeExpr(v: Value): TargetCode =
     this.getTargetExpr(v, InferredType.time())

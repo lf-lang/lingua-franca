@@ -23,35 +23,15 @@ class TSConstructorGenerator(
     private val reactor: Reactor,
     private val federate: FederateInstance
 ) {
-    private fun getInitializerList(param: Parameter): List<String> =
-        tsGenerator.getInitializerListW(param)
-
-    private fun Parameter.getTargetType(): String = TsTypes.getTargetType(this.inferredType)
-
-    // Initializer functions
-    private fun getTargetInitializerHelper(
-        param: Parameter,
-        list: List<String>
-    ): String {
-        return if (list.size == 0) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
-    }
-
-    private fun getTargetInitializer(param: Parameter): String {
-        return getTargetInitializerHelper(param, getInitializerList(param))
-    }
 
     private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
+        val type = TsTypes.getTargetType(p.inferredType)
+        val init = TsTypes.getTargetInitializer(p.init, p.type)
+        return "${p.name}: $type = $init"
     }
 
     private fun generateConstructorArguments(reactor: Reactor): String {
-        val arguments = LinkedList<String>()
+        val arguments = mutableListOf<String>()
         if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
@@ -74,7 +54,7 @@ class TSConstructorGenerator(
         return arguments.joinToString(", \n")
     }
 
-    private fun federationRTIProperties(): LinkedHashMap<String, Any> {
+    private fun federationRTIProperties(): Map<String, Any> {
         return tsGenerator.federationRTIPropertiesW()
     }
 
@@ -99,36 +79,27 @@ class TSConstructorGenerator(
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String {
-        var fedPortID = 0;
-        val connectionInstantiations = LinkedList<String>()
-        for (nAction in networkMessageActions) {
-            val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-                """
-            connectionInstantiations.add(registration)
-            fedPortID++
+    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String =
+        networkMessageActions.withIndex().joinToString("\n") { (fedPortID, nAction) ->
+            "this.registerFederatePortAction($fedPortID, this.${nAction.name});"
         }
-        return connectionInstantiations.joinToString("\n")
-    }
 
     // Generate code for registering Fed IDs that are connected to
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
     // between federates during the initialization with the RTI.
-    fun generateFederateConfigurations(): String {
-        val federateConfigurations = LinkedList<String>()
-        if (reactor.isFederated) {
-            for ((key, _) in federate.dependsOn) {
-                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
-                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
-            }
-            for ((key, _) in federate.sendsTo) {
-                federateConfigurations.add("this.addDownstreamFederate(${key.id});")
+    fun generateFederateConfigurations(): String =
+        buildString {
+            if (reactor.isFederated) {
+                for ((key, _) in federate.dependsOn) {
+                    // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
+                    this.appendLine("this.addUpstreamFederate(${key.id}, BigInt(0));")
+                }
+                for ((key, _) in federate.sendsTo) {
+                    this.appendLine("this.addDownstreamFederate(${key.id});")
+                }
             }
         }
-        return federateConfigurations.joinToString("\n")
-    }
 
     fun generateConstructor(
         instances: TSInstanceGenerator,

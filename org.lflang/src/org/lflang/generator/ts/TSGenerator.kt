@@ -86,11 +86,6 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    // todo(clément): get rid of those
-    fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state.init, state.inferredType)
-    fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param.init, param.inferredType)
-    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> = getInitializerList(param, i)
-
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -164,7 +159,7 @@ class TSGenerator(
                 targetConfig.protoFiles)
             tsCode.append(preambleGenerator.generatePreamble())
 
-            val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
+            val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
             val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
             tsCode.append(parameterCode)
 

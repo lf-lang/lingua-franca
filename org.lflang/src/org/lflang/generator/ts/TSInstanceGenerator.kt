@@ -1,8 +1,8 @@
 package org.lflang.generator.ts
 
 import org.lflang.federated.FederateInstance
+import org.lflang.generator.getTargetInitializer
 import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.toDefinition
 import org.lflang.toText
@@ -11,10 +11,7 @@ import java.util.*
 /**
  * Generator for child reactor instantiations in TypeScript target.
  */
-class TSInstanceGenerator (
-    // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
-    private val tsReactorGenerator: TSReactorGenerator,
+class TSInstanceGenerator(
     reactor: Reactor,
     federate: FederateInstance
 ) {
@@ -32,13 +29,6 @@ class TSInstanceGenerator (
         }
     }
 
-    private fun getInitializerList(param: Parameter, i: Instantiation): List<String> =
-        tsGenerator.getInitializerListW(param, i)
-
-    private fun getTargetInitializer(param: Parameter, i: Instantiation): String {
-        return tsReactorGenerator.getTargetInitializerHelper(param, getInitializerList(param, i))
-    }
-
     fun generateClassProperties(): String {
         val childReactorClassProperties = LinkedList<String>()
         for (childReactor in childReactors) {
@@ -52,7 +42,7 @@ class TSInstanceGenerator (
     fun generateInstantiations(): String {
         val childReactorInstantiations = LinkedList<String>()
         for (childReactor in childReactors) {
-            val childReactorArguments = StringJoiner(", ");
+            val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")
 
             // Iterate through parameters in the order they appear in the
@@ -60,7 +50,7 @@ class TSInstanceGenerator (
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
-                childReactorArguments.add(getTargetInitializer(parameter, childReactor))
+                childReactorArguments.add(TsTypes.getTargetInitializer(parameter, childReactor))
             }
 
             childReactorInstantiations.add(

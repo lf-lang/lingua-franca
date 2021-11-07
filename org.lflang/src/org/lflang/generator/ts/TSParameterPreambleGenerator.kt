@@ -46,7 +46,6 @@ import java.util.StringJoiner
  */
 
 class TSParameterPreambleGenerator(
-    private val tsGenerator: TSGenerator,
     private val fileConfig: FileConfig,
     private val targetConfig: TargetConfig,
     private val reactors: MutableList<Reactor>
