@@ -2,8 +2,14 @@ package org.lflang.generator
 
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.lflang.*
-import org.lflang.lf.*
+import org.lflang.InferredType
+import org.lflang.lf.LfFactory
+import org.lflang.lf.Parameter
+import org.lflang.lf.StateVar
+import org.lflang.lf.Value
+import org.lflang.toPath
+import org.lflang.toTextTokenBased
+import org.lflang.toUnixString
 
 
 fun TargetTypes.getTargetInitializer(sv: StateVar): TargetCode =
@@ -14,6 +20,10 @@ fun TargetTypes.getTargetInitializer(sv: Parameter): TargetCode =
 
 fun TargetTypes.getTargetTimeExpr(v: Value): TargetCode =
     this.getTargetExpr(v, InferredType.time())
+
+/** If this is null, returns the literal 0. */
+fun Value?.orZero(): Value =
+    this ?: LfFactory.eINSTANCE.createLiteral().apply { literal = "0" }
 
 /** A transparent type alias to document when a string contains target code. */
 typealias TargetCode = String

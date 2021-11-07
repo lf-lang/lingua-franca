@@ -86,11 +86,7 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = getTargetValue(v)
-    fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
-    fun getTargetTypeW(state: StateVar): String = getTargetType(state)
-    fun getTargetTypeW(t: Type): String = getTargetType(t)
-
+    // todo(clément): get rid of those
     fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state.init, state.inferredType)
     fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param.init, param.inferredType)
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> = getInitializerList(param, i)
@@ -329,29 +325,6 @@ class TSGenerator(
 //        }
     }
 
-    /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        return if (action.type != null) {
-            getTargetType(action.type)
-        } else {
-            "Present"
-        }
-    }
-
-    override fun getTargetType(s: StateVar): String {
-        val type = super<GeneratorBase>.getTargetType(s)
-        return if (s.init == null) {
-            "$type | undefined"
-        } else {
-            type
-        }
-    }
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -472,11 +445,11 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"
+        return "actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getTargetType(action.type)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
+        return "${generateVarRef(port)} = ${action.name} as ${getTargetType(action.type)};"
     }
 
     override fun generateDelayGeneric(): String {

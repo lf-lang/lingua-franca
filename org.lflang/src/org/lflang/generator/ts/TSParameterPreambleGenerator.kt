@@ -29,6 +29,7 @@ import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
+import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.lf.TimeUnit
@@ -50,7 +51,7 @@ class TSParameterPreambleGenerator(
     private val targetConfig: TargetConfig,
     private val reactors: MutableList<Reactor>
 ) {
-    private fun getTargetType(p: Parameter): String = tsGenerator.getTargetTypeW(p)
+    private fun getTargetType(p: Parameter): String = TsTypes.getTargetType(p.inferredType)
 
     private fun getTimeoutTimeValue(): String {
         return if (targetConfig.timeout != null) {
@@ -85,7 +86,8 @@ class TSParameterPreambleGenerator(
     private fun assignCustomCLArgs(mainParameters: HashSet<Parameter>): String {
         val code = StringJoiner("\n")
         for (parameter in mainParameters) {
-            code.add("""
+            code.add(
+                """
                 |let __CL${parameter.name}: ${getTargetType(parameter)} | undefined = undefined;
                 |if (__processedCLArgs.${parameter.name} !== undefined) {
                 |    if (__processedCLArgs.${parameter.name} !== null) {
@@ -95,7 +97,8 @@ class TSParameterPreambleGenerator(
                 |        throw new Error("Custom '${parameter.name}' command line argument is malformed.");
                 |    }
                 |}
-                """)
+                """
+            )
         }
         return code.toString()
     }
@@ -111,11 +114,13 @@ class TSParameterPreambleGenerator(
             // to cause the generation of variables with a "__" prefix
             // because they could collide with other variables.
             // So prefix variables created here with __CL
-            code.add("""
+            code.add(
+                """
                 |if (__processedCLArgs.${parameter.name} !== undefined && __processedCLArgs.${parameter.name} !== null
                 |    && !__noStart) {
                 |    Log.global.info("'${parameter.name}' property overridden by command line argument.");
-                |}""")
+                |}"""
+            )
         }
         return code.toString()
     }
@@ -157,20 +162,24 @@ class TSParameterPreambleGenerator(
             if (customArgType != null) {
                 clTypeExtension.add(parameter.name + ": " + paramType)
                 if (customTypeLabel != null) {
-                    customArgs.add(with(PrependOperator) {"""
+                    customArgs.add(with(PrependOperator) {
+                        """
                     |{
                     |    name: '${parameter.name}',
                     |    type: ${customArgType},
                     |    typeLabel: "{underline ${customTypeLabel}}",
                     |    description: 'Custom argument. Refer to ${fileConfig.srcFile} for documentation.'
-                    |}""".trimMargin()})
+                    |}""".trimMargin()
+                    })
                 } else {
-                    customArgs.add(with(PrependOperator) {"""
+                    customArgs.add(with(PrependOperator) {
+                        """
                     |{
                     |    name: '${parameter.name}',
                     |    type: ${customArgType},
                     |    description: 'Custom argument. Refer to ${fileConfig.srcFile} for documentation.'
-                    |}""".trimMargin()})
+                    |}""".trimMargin()
+                    })
                 }
             }
         }
@@ -178,7 +187,8 @@ class TSParameterPreambleGenerator(
         val customArgsList = "[\n$customArgs]"
         val clTypeExtensionDef = "{$clTypeExtension}"
 
-        val codeText = with(PrependOperator) {"""
+        val codeText = with(PrependOperator) {
+            """
             |// ************* App Parameters
             |let __timeout: TimeValue | undefined = ${getTimeoutTimeValue()};
             |let __keepAlive: boolean = ${targetConfig.keepalive};

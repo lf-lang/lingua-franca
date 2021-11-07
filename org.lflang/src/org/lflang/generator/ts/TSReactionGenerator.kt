@@ -3,6 +3,9 @@ package org.lflang.generator.ts
 import org.lflang.ErrorReporter
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.getTargetTimeExpr
+import org.lflang.generator.orZero
+import org.lflang.inferredType
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
@@ -22,45 +25,12 @@ class TSReactionGenerator(
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
-    private val reactor : Reactor,
+    private val reactor: Reactor,
     private val federate: FederateInstance
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
-    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-    private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
-    private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     private fun VarRef.generateVarRef(): String = tsGenerator.generateVarRef(this)
 
-    /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        if (action.type != null) {
-            return action.type.getTargetType()
-        } else {
-            return "Present"
-        }
-    }
-
-    /**
-     * Return a TS type for the specified port.
-     * If the type has not been specified, return
-     * "Present" which is the base type for ports.
-     * @param port The port
-     * @return The TS type.
-     */
-    private fun getPortType(port: Port): String {
-        if (port.type != null) {
-            return port.type.getTargetType()
-        } else {
-            return "Present"
-        }
-    }
 
     private fun generateArg(v: VarRef): String {
         return if (v.container != null) {
@@ -76,13 +46,7 @@ class TSReactionGenerator(
         reactEpilogue: String,
         reactSignature: StringJoiner
     ): String {
-        var deadlineArgs = ""
-        val delay = reaction.deadline.delay
-        if (delay is ParamRef) {
-            deadlineArgs += "this.${delay.parameter.name}.get()"
-        } else {
-            deadlineArgs += delay.getTargetValue()
-        }
+        val deadlineArgs = TsTypes.getTargetTimeExpr(reaction.deadline.delay.orZero())
 
         return with(PrependOperator) {
             """
@@ -140,14 +104,21 @@ class TSReactionGenerator(
         ${" |            "..reactEpilogue}            
             |            // =============== END react epilogue
             |        }
-        ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
+        ${
+                " |    "..if (reaction.deadline != null) generateDeadlineHandler(
+                    reaction,
+                    reactPrologue,
+                    reactEpilogue,
+                    reactSignature
+                ) else "}"
+            }
             |);
         """.trimMargin()
         }
     }
 
     // TODO(hokeun): Decompose this function further.
-    private fun generateSingleReaction(reactor : Reactor, reaction: Reaction): String {
+    private fun generateSingleReaction(reactor: Reactor, reaction: Reaction): String {
         // Determine signature of the react function
         val reactSignature = StringJoiner(", ")
         reactSignature.add("this")
@@ -222,12 +193,12 @@ class TSReactionGenerator(
                 } else if (trigOrSource.variable is Timer) {
                     reactSignatureElementType = "__Tag"
                 } else if (trigOrSource.variable is Action) {
-                    reactSignatureElementType = getActionType(trigOrSource.variable as Action)
+                    reactSignatureElementType = TsTypes.getTargetType((trigOrSource.variable as Action).inferredType)
                 } else if (trigOrSource.variable is Port) {
-                    reactSignatureElementType = getPortType(trigOrSource.variable as Port)
+                    reactSignatureElementType = TsTypes.getTargetType((trigOrSource.variable as Port).inferredType)
                 }
 
-                reactSignature.add("${generateArg(trigOrSource)}: Read<${reactSignatureElementType}>")
+                reactSignature.add("${generateArg(trigOrSource)}: Read<$reactSignatureElementType>")
                 reactFunctArgs.add("this.${trigOrSource.generateVarRef()}")
                 if (trigOrSource.container == null) {
                     reactPrologue.add("let ${trigOrSource.variable.name} = ${generateArg(trigOrSource)}.get();")
@@ -253,23 +224,25 @@ class TSReactionGenerator(
             var reactSignatureElement = generateArg(effect)
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
-            } else if (effect.variable is Action){
-                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
+            } else if (effect.variable is Action) {
+                reactSignatureElement += ": Sched<" + TsTypes.getTargetType((effect.variable as Action).inferredType) + ">"
                 schedActionSet.add(effect.variable as Action)
-            } else if (effect.variable is Port){
-                reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+            } else if (effect.variable is Port) {
+                reactSignatureElement += ": ReadWrite<" + TsTypes.getTargetType((effect.variable as Port).inferredType) + ">"
                 if (effect.container == null) {
-                    reactEpilogue.add(with(PrependOperator) {"""
+                    reactEpilogue.add(with(PrependOperator) {
+                        """
                         |if (${effect.variable.name} !== undefined) {
                         |    __${effect.variable.name}.set(${effect.variable.name});
-                        |}""".trimMargin()})
+                        |}""".trimMargin()
+                    })
                 }
             }
 
             reactSignature.add(reactSignatureElement)
 
             functArg = "this." + effect.generateVarRef()
-            if (effect.variable is Action){
+            if (effect.variable is Action) {
                 reactFunctArgs.add("this.schedulable($functArg)")
             } else if (effect.variable is Port) {
                 reactFunctArgs.add("this.writable($functArg)")
@@ -303,7 +276,7 @@ class TSReactionGenerator(
         for (param in reactor.parameters) {
 
             // Underscores are added to parameter names to prevent conflict with prologue
-            reactSignature.add("__${param.name}: __Parameter<${param.getTargetType()}>")
+            reactSignature.add("__${param.name}: __Parameter<${TsTypes.getTargetType(param.inferredType)}>")
             reactFunctArgs.add("this.${param.name}")
 
             reactPrologue.add("let ${param.name} = __${param.name}.get();")
@@ -312,14 +285,16 @@ class TSReactionGenerator(
         // Add state to the react function
         for (state in reactor.stateVars) {
             // Underscores are added to state names to prevent conflict with prologue
-            reactSignature.add("__${state.name}: __State<${state.getTargetType()}>")
+            reactSignature.add("__${state.name}: __State<${TsTypes.getTargetType(state)}>")
             reactFunctArgs.add("this.${state.name}")
 
             reactPrologue.add("let ${state.name} = __${state.name}.get();")
-            reactEpilogue.add(with(PrependOperator) {"""
+            reactEpilogue.add(with(PrependOperator) {
+                """
                     |if (${state.name} !== undefined) {
                     |    __${state.name}.set(${state.name});
-                    |}""".trimMargin()})
+                    |}""".trimMargin()
+            })
         }
 
         // Initialize objects to enable hierarchical references.
@@ -328,10 +303,12 @@ class TSReactionGenerator(
             for (variable in entry.value) {
                 initializer.add("${variable.name}: __${entry.key.name}_${variable.name}.get()")
                 if (variable is Input) {
-                    reactEpilogue.add(with(PrependOperator) {"""
+                    reactEpilogue.add(with(PrependOperator) {
+                        """
                                 |if (${entry.key.name}.${variable.name} !== undefined) {
                                 |    __${entry.key.name}_${variable.name}.set(${entry.key.name}.${variable.name})
-                                |}""".trimMargin()})
+                                |}""".trimMargin()
+                    })
                 }
             }
             reactPrologue.add("let ${entry.key.name} = {${initializer}}")
@@ -360,7 +337,8 @@ class TSReactionGenerator(
                 // Do not add reactions created by generateNetworkOutputControlReactionBody
                 // or generateNetworkInputControlReactionBody.
                 if (reaction.code.toText().contains("generateNetworkOutputControlReactionBody")
-                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
+                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")
+                ) {
                     continue;
                 }
                 if (federate.containsReaction(reaction)) {

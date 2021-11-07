@@ -26,8 +26,10 @@ package org.lflang.generator.ts
 
 import org.lflang.InferredType
 import org.lflang.generator.TargetTypes
+import org.lflang.inferredType
 import org.lflang.lf.ParamRef
 import org.lflang.lf.Parameter
+import org.lflang.lf.StateVar
 import org.lflang.lf.TimeUnit
 
 /**
@@ -67,4 +69,18 @@ object TsTypes : TargetTypes {
 
     override fun getTargetParamRef(expr: ParamRef, type: InferredType?): String =
         "this.${expr.parameter.name}.get()"
+
+
+    /**
+     * Returns a type for the state variable. Note that this is TS-specific
+     * and not equivalent to `s.type.targetType`.
+     */
+    fun getTargetType(s: StateVar): String {
+        val type = getTargetType(s.inferredType)
+        return if (s.init == null) {
+            "$type | undefined"
+        } else {
+            type
+        }
+    }
 }

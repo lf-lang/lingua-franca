@@ -3,6 +3,7 @@ package org.lflang.generator.ts
 import org.lflang.ErrorReporter
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -16,20 +17,22 @@ import java.util.*
  * and code to register reactions. This generator also generates federate port action
  * registrations.
  */
-class TSConstructorGenerator (
+class TSConstructorGenerator(
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
-    private val reactor : Reactor,
+    private val reactor: Reactor,
     private val federate: FederateInstance
 ) {
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
 
-    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+    private fun Parameter.getTargetType(): String = TsTypes.getTargetType(this.inferredType)
 
     // Initializer functions
-    private fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
+    private fun getTargetInitializerHelper(
+        param: Parameter,
+        list: List<String>
+    ): String {
         return if (list.size == 0) {
             errorReporter.reportError(param, "Parameters must have a default value!")
         } else if (list.size == 1) {
@@ -38,9 +41,11 @@ class TSConstructorGenerator (
             list.joinToString(", ", "[", "]")
         }
     }
+
     private fun getTargetInitializer(param: Parameter): String {
         return getTargetInitializerHelper(param, getInitializerList(param))
     }
+
     private fun initializeParameter(p: Parameter): String {
         return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
     }

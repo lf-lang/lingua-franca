@@ -1,23 +1,20 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.PrependOperator
+import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import java.util.*
 
 /**
  * Generate parameters for TypeScript target.
  */
-class TSParameterGenerator (
-    // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
+class TSParameterGenerator(
     private val parameters: List<Parameter>
- ) {
-    private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
+) {
 
     fun generateClassProperties(): String {
         val paramClassProperties = LinkedList<String>()
         for (param in parameters) {
-            paramClassProperties.add("${param.name}: __Parameter<${param.getTargetType()}>;")
+            paramClassProperties.add("${param.name}: __Parameter<${TsTypes.getTargetType(param.inferredType)}>;")
         }
         return paramClassProperties.joinToString("\n")
     }

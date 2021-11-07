@@ -1,22 +1,19 @@
 package org.lflang.generator.ts;
 
-import org.lflang.generator.PrependOperator
+import org.lflang.generator.getTargetTimeExpr
+import org.lflang.generator.orZero
 import org.lflang.lf.Timer
-import org.lflang.lf.Value
 import java.util.*
 
 /**
  * Generator timers for TypeScript target.
  */
 class TSTimerGenerator (
-    // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
     private val timers: List<Timer>
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
 
     fun generateClassProperties(): String {
-        val timerClassProperties = LinkedList<String>()
+        val timerClassProperties = mutableListOf<String>()
         for (timer in timers) {
             timerClassProperties.add("${timer.name}: __Timer;")
         }
@@ -24,10 +21,10 @@ class TSTimerGenerator (
     }
 
     fun generateInstantiations(): String {
-        val timerInstantiations = LinkedList<String>()
+        val timerInstantiations = mutableListOf<String>()
         for (timer in timers) {
-            val timerPeriod: String = timer.period?.getTargetValue() ?: "0"
-            val timerOffset: String = timer.offset?.getTargetValue() ?: "0"
+            val timerPeriod: String = TsTypes.getTargetTimeExpr(timer.period.orZero())
+            val timerOffset: String = TsTypes.getTargetTimeExpr(timer.offset.orZero())
 
             timerInstantiations.add("this.${timer.name} = new __Timer(this, $timerOffset, $timerPeriod);")
         }
