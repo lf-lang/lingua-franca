@@ -1318,48 +1318,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     }
 
     /**
-     * Create a list of state initializers in target code.
-     * 
-     * @param state The state variable to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def List<String> getInitializerList(Initializer init, InferredType type) {
-        if (init === null) {
-            return null
-        }
-
-        return init?.exprs.map[i|
-            if (i instanceof ParamRef) {
-                i.parameter.targetReference
-            } else {
-                i.targetValue
-            }
-        ]
-    }
-
-    /**
-     * Create a list of parameter initializers in target code in the context
-     * of an reactor instantiation.
-     *
-     * This respects the parameter assignments given in the reactor
-     * instantiation and falls back to the reactors default initializers
-     * if no value is assigned to it.
-     *
-     * @param param The parameter to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def getInitializerList(Parameter param, Instantiation i) {
-        if (i === null || param === null) {
-            return null
-        }
-
-        val assignments = i.parameters.filter[p|p.lhs === param]
-        val actualValue = assignments.size === 0 ? param.init : assignments.get(0).rhs
-
-        return getInitializerList(actualValue, param.inferredType)
-    }
-
-    /**
      * Generate target code for a parameter reference.
      * 
      * @param param The parameter to generate code for
