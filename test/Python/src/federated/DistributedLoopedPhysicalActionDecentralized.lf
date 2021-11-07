@@ -5,9 +5,8 @@
  * @author Soroush Bateni
  */
 
-// reason for failing: get_current_tag() is not supported in python target
 
-target C {
+target Python {
     timeout: 1 sec,
     coordination: decentralized
 };
@@ -18,5 +17,5 @@ federated reactor {
     sender = new Sender();
     receiver = new Receiver();
     
-    sender.out -> receiver.in;
+    sender.out -> receiver.in_;
 }
