@@ -690,7 +690,7 @@ class LinguaFrancaValidationTest {
                 state y: int[] = {1, 2}; // wrong
             }
         ''').assertError(LfPackage::eINSTANCE.braceExpr,
-            null, 'Target C does not support this expression form.')
+            null, 'Target Python does not support this expression form.')
     }
 
 
