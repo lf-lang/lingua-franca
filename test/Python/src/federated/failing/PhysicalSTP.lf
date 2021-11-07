@@ -2,6 +2,9 @@
  * This is a test that detects STP violations according to the
  * physical time of message arrival.
  */
+
+// reason for failing: in_.physical_time_of_arrival and self.STP_offset_param are not supported in python target
+
 target Python {
     timeout: 1900 msec,
     coordination: decentralized
