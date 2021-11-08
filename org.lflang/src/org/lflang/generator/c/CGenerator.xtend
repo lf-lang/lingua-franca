@@ -990,6 +990,8 @@ class CGenerator extends GeneratorBase {
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
                 _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+		_lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+		_lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
 
