@@ -56,11 +56,11 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.xtend.lib.annotations.Data
-import org.lflang.TimeValue
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment
 import org.lflang.diagram.synthesis.util.UtilityExtensions
 import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 
@@ -290,6 +290,19 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				suppressSelectability
 			]
 		}
+
+        // optional reaction level
+        val hasLevel = SHOW_REACTION_LEVEL.booleanValue
+        if (hasLevel) {
+            // Force calculation of levels for reactions.
+            // FIXME: This is expensive!
+            // new ReactionInstanceGraph(reaction.root)
+            contentContainer.addText("level: " + Integer.toString(reaction.level as int)) => [
+                fontBold = false
+                noSelectionStyle
+                suppressSelectability
+            ]
+        }
 
 		// optional code content
 		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.code.body.nullOrEmpty
