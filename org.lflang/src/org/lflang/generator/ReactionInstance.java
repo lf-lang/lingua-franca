@@ -69,12 +69,19 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         this.reactionIndex = index;
         this.isUnordered = isUnordered;
         
+        // If the reaction has no port triggers or sources, then
+        // we can immediately assign it a level.
+        // We also record it in the root reactor instance
+        // so that other reactions can be assigned levels as well.
+        boolean dependsOnPorts = false;
+        
         // Identify the dependencies for this reaction.
         // First handle the triggers.
         for (TriggerRef trigger : definition.getTriggers()) {
             if (trigger instanceof VarRef) {
                 Variable variable = ((VarRef)trigger).getVariable();
                 if (variable instanceof Port) {
+                    dependsOnPorts = true;
                     PortInstance portInstance = parent.lookupPortInstance((Port)variable);
                     // If the trigger is the port of a contained bank, then the
                     // portInstance will be null and we have to instead search for
@@ -131,6 +138,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         for (VarRef source : definition.getSources()) {
             Variable variable = source.getVariable();
             if (variable instanceof Port) {
+                dependsOnPorts = true;
                 var portInstance = parent.lookupPortInstance((Port)variable);
                 // If the trigger is the port of a contained bank, then the
                 // portInstance will be null and we have to instead search for
@@ -153,6 +161,20 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     }
                 }
             }
+        }
+        
+        // Assign a level if possible and record with the root.
+        if (!dependsOnPorts) {
+            if (isUnordered) {
+                level = 0;
+            } else {
+                level = index;
+            }
+            ReactorInstance root = root();
+            if (root.reactionsWithNoPortDependencies == null) {
+                root.reactionsWithNoPortDependencies = new LinkedHashSet<ReactionInstance>();
+            }
+            root.reactionsWithNoPortDependencies.add(this);
         }
 
         // Finally, handle the effects.
