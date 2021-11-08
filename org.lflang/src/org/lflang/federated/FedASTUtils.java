@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -458,6 +459,7 @@ public class FedASTUtils {
 
         return STPList.stream()
                       .map(JavaAstUtils::getTimeValue)
+                      .filter(Objects::nonNull)
                       .reduce(TimeValue.ZERO, TimeValue::max);
     }
 
