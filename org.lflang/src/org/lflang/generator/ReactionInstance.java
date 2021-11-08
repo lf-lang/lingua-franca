@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -148,14 +149,26 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     this.reads.add(portInstance);
                     portInstance.dependentReactions.add(this);
                 } else if (source.getContainer() != null) {
-                    ReactorInstance bankInstance = parent.lookupReactorInstance(source.getContainer());
-                    if (bankInstance != null && bankInstance.bankMembers != null) {
-                        for (ReactorInstance bankMember : bankInstance.bankMembers) {
-                            portInstance = bankMember.lookupPortInstance((Port)variable);
+                    ReactorInstance containedReactor
+                            = parent.lookupReactorInstance(source.getContainer());
+                    if (containedReactor != null) {
+                        if (containedReactor.bankMembers != null) {
+                            // Contained reactor is a bank. Connect to all members.
+                            for (ReactorInstance bankMember : containedReactor.bankMembers) {
+                                portInstance = bankMember.lookupPortInstance((Port)variable);
+                                if (portInstance != null) {
+                                    this.sources.add(portInstance);
+                                    portInstance.dependentReactions.add(this);
+                                    this.reads.add(portInstance);
+                                }
+                            }
+                        } else {
+                            // The trigger is a port of a contained reactor that is not a bank.
+                            portInstance = containedReactor.lookupPortInstance((Port)variable);
                             if (portInstance != null) {
                                 this.sources.add(portInstance);
                                 portInstance.dependentReactions.add(this);
-                                this.reads.add(portInstance);
+                                this.triggers.add(portInstance);
                             }
                         }
                     }
@@ -163,18 +176,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             }
         }
         
-        // Assign a level if possible and record with the root.
+        // Initialize the root's readyReactions queue, which it uses
+        // to compute levels.
         if (!dependsOnPorts) {
-            if (isUnordered) {
+            if (isUnordered || index == 0) {
                 level = 0;
-            } else {
-                level = index;
             }
-            ReactorInstance root = root();
-            if (root.reactionsWithNoPortDependencies == null) {
-                root.reactionsWithNoPortDependencies = new LinkedHashSet<ReactionInstance>();
-            }
-            root.reactionsWithNoPortDependencies.add(this);
+            root().reactionsWithLevels.add(this);
         }
 
         // Finally, handle the effects.
@@ -250,7 +258,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * The level in the dependence graph. -1 indicates that the level
      * has not yet been assigned.
      */
-    public long level = -1L;
+    public int level = -1;
 
     /**
      * Index of order of occurrence within the reactor definition.
@@ -293,6 +301,82 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     //// Public methods.
 
     /**
+     * Return the set of immediate downstream reactions, which are reactions
+     * that receive data produced produced by this reaction plus
+     * at most one reaction in the same reactor whose definition
+     * lexically follows this one (unless this reaction is unordered).
+     */
+    public Set<ReactionInstance> dependentReactions() {
+        // Cache the result.
+        if (dependentReactionsCache != null) return dependentReactionsCache;
+        dependentReactionsCache = new LinkedHashSet<ReactionInstance>();
+        
+        // First, add the next lexical reaction, if appropriate.
+        if (!isUnordered && parent.reactions.size() > reactionIndex + 1) {
+            // Find the next reaction in the parent's reaction list.
+            dependentReactionsCache.add(parent.reactions.get(reactionIndex + 1));
+        }
+        
+        // Next, add reactions that get data from this one via a port.
+        for (TriggerInstance<? extends Variable> effect : effects) {
+            if (effect instanceof PortInstance) {
+                for (PortInstance.SendingChannelRange senderRange
+                        : ((PortInstance)effect).eventualDestinations()) {
+                    for (PortInstance.PortChannelRange destinationRange
+                            : senderRange.destinations) {
+                        dependentReactionsCache.addAll(
+                                destinationRange.getPortInstance().dependentReactions);
+                    }
+                }
+                // Also add any reactions that depend on this port.
+                dependentReactionsCache.addAll(((PortInstance)effect).dependentReactions);
+            }
+        }
+        return dependentReactionsCache;
+    }
+    
+    /**
+     * Return the set of immediate upstream reactions, which are reactions
+     * that send data to this one plus at most one reaction in the same
+     * reactor whose definition immediately precedes the definition of this one
+     * (unless this reaction is unordered).
+     */
+    public Set<ReactionInstance> dependsOnReactions() {
+        // Cache the result.
+        if (dependsOnReactionsCache != null) return dependsOnReactionsCache;
+        dependsOnReactionsCache = new LinkedHashSet<ReactionInstance>();
+        
+        // First, add the previous lexical reaction, if appropriate.
+        if (!isUnordered && reactionIndex > 0) {
+            // Find the previous reaction in the parent's reaction list.
+            dependsOnReactionsCache.add(parent.reactions.get(reactionIndex - 1));
+        }
+        
+        // Next, add reactions that send data to this one.
+        for (TriggerInstance<? extends Variable> source : sources) {
+            if (source instanceof PortInstance) {
+                for (PortInstance.PortChannelRange senderRange
+                        : ((PortInstance)source).eventualSources()) {
+                    dependsOnReactionsCache.addAll(senderRange.getPortInstance().dependsOnReactions);
+                }
+            }
+        }
+        return dependsOnReactionsCache;
+    }
+
+    /**
+     * Return the single dominating reaction if this reaction has one, or
+     * null otherwise.
+     */
+    public ReactionInstance findSingleDominatingReaction() {
+        if (dependsOnReactions().size() == 1) {
+            Iterator<ReactionInstance> upstream = dependsOnReactionsCache.iterator();
+            return upstream.next();
+        }
+        return null;
+    }
+
+    /**
      * Return the name of this reaction, which is 'reaction_n',
      * where n is replaced by the reactionIndex. 
      * @return The name of this reaction.
@@ -317,4 +401,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public String toString() {
         return getName() + " of " + parent.getFullName();
     }
+
+    //////////////////////////////////////////////////////
+    //// Private variables.
+
+    /** Cache of the set of downstream reactions. */
+    private Set<ReactionInstance> dependentReactionsCache;
+
+    /** Cache of the set of upstream reactions. */
+    private Set<ReactionInstance> dependsOnReactionsCache;
 }
