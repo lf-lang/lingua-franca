@@ -30,6 +30,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.lflang.lf.Action;
+import org.lflang.lf.BraceExpr;
+import org.lflang.lf.BracketExpr;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.ParamRef;
 import org.lflang.lf.Parameter;
@@ -204,7 +206,77 @@ public final class JavaAstUtils {
      */
     public static String addZeroToLeadingDot(String literal) {
         Matcher m = ABBREVIATED_FLOAT.matcher(literal);
-        if (m.matches()) return literal.replace(".", "0.");
+        if (m.matches()) {
+            return literal.replace(".", "0.");
+        }
         return literal;
     }
+
+    /**
+     * Assuming that the given value denotes a valid time,
+     * return a time value.
+     */
+    public static TimeValue getTimeValue(Value v) {
+        if (v instanceof ParamRef) {
+            return getDefaultAsTimeValue(((ParamRef) v).getParameter());
+        } else if (v instanceof Time) {
+            return toTimeValue((Time) v);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * If the parameter is of time type, return its default value.
+     * Otherwise, return null.
+     */
+    public static TimeValue getDefaultAsTimeValue(Parameter p) {
+        if (isOfTimeType(p)) {
+            var init = asSingleValue(p.getInit());
+            if (init != null) {
+                return getTimeValue(init);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return whether the given state variable is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(StateVar state) {
+        InferredType t = getInferredType(state);
+        return t.isTime && !t.isList;
+    }
+
+    /**
+     * Return whether the given parameter is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(Parameter param) {
+        InferredType t = getInferredType(param);
+        return t.isTime && !t.isList;
+    }
+
+    /**
+     * Given an initializer that is known to be of a list type
+     * (because of a type annotation), return the components of
+     * the list. Return null if the initializer is not a list.
+     */
+    public static List<Value> initializerAsList(Initializer init) {
+        if (init.isAssign()) {
+            var list = asSingleValue(init);
+            if (list instanceof BracketExpr) {
+                return ((BracketExpr) list).getItems();
+            } else if (list instanceof BraceExpr) {
+                return ((BraceExpr) list).getItems();
+            } else {
+                return null;
+            }
+        } else {
+            return init.getExprs();
+        }
+    }
+
+
 }

@@ -455,16 +455,10 @@ public class FedASTUtils {
                 }
             }
         }
-        
-        TimeValue maxSTP = new TimeValue(0, TimeUnit.NONE);
-        for (Value value : safe(STPList)) {
-            TimeValue tValue = ASTUtils.getTimeValue(value);
-            if(maxSTP.isEarlierThan(tValue)) {
-                maxSTP = tValue;
-            }
-        }
-        
-        return maxSTP;
+
+        return STPList.stream()
+                      .map(JavaAstUtils::getTimeValue)
+                      .reduce(TimeValue.ZERO, TimeValue::max);
     }
 
     private static void addStp(List<Value> STPList, Reaction r, Instantiation instant) {

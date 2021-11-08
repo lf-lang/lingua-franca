@@ -158,7 +158,7 @@ public class ModelInfo {
         // Visit all deadlines in the model; detect possible overflow.
         for (var deadline : filter(toIterable(model.eAllContents()), Deadline.class)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (isTooLarge(ASTUtils.getTimeValue(deadline.getDelay()))) {
+            if (isTooLarge(JavaAstUtils.getTimeValue(deadline.getDelay()))) {
                 this.overflowingDeadlines.add(deadline);
             }
 
@@ -192,7 +192,7 @@ public class ModelInfo {
         var overflow = false;
 
         // Determine whether the parameter's default value overflows or not.
-        if (isTooLarge(ASTUtils.getInitialTimeValue(current))) {
+        if (isTooLarge(JavaAstUtils.getDefaultAsTimeValue(current))) {
             this.overflowingParameters.add(current);
             overflow = true;
         }
@@ -214,7 +214,7 @@ public class ModelInfo {
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(ASTUtils.getTimeValue(init))) {
+                            if (isTooLarge(JavaAstUtils.getTimeValue(init))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }
