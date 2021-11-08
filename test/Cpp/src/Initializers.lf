@@ -12,8 +12,15 @@ reactor Foo(
     state s0: int = 2 - 2 - 2;          state s1: int(2 - 2 - 2);
     state s2: std::string = "a";    state s3: char(2 + 'a');
 
+    state s4: Point{1, 2};
+    state s4p: Point = {1, 2};
+
     private preamble{=
 #include <assert.h>
+    =}
+
+    public preamble {=
+struct Point { int x; int y; };
     =}
 
     reaction(startup) {=
@@ -26,6 +33,8 @@ reactor Foo(
         assert(s1 == -2);
         assert(s2 == "a");
         assert(s3 == 'c');
+        assert(s4 == (Point {1, 2}));
+        assert(s4p == (Point {1, 2}));
 
         std::cerr << "Success\n";
     =}

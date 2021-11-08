@@ -47,20 +47,7 @@ object CppTypes : TargetTypes {
     override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
 
     override fun getTargetInitializer(init: Initializer?, inferredType: InferredType): String {
-        return getCppInitializerWithTypePrefix(init, inferredType)
-    }
-
-    override fun getTargetBraceExpr(expr: BraceExpr, type: InferredType?): String {
-        val braceInitializer = super.getTargetBraceExpr(expr, type)
-        return if (type?.isList == true) {
-            // prefix the {...} with std::vector<_>
-            if (type.isTime)
-                getTargetVariableSizeListType(targetTimeType) + braceInitializer
-            else
-                getTargetVariableSizeListType(type.baseType()) + braceInitializer
-        } else {
-            braceInitializer
-        }
+        return getCppStandaloneInitializer(init, inferredType)
     }
 
     override fun getTargetUndefinedType() = "void"
@@ -71,11 +58,10 @@ object CppTypes : TargetTypes {
 
 }
 
-fun CppTypes.getCppInitializerWithTypePrefix(init: Initializer?, type: InferredType): String =
-    if (init == null) getMissingExpr(type)
-    else getTargetType(type) + getCppInitializerWithoutTypePrefix(init, type)
-
-fun CppTypes.getCppInitializerWithoutTypePrefix(init: Initializer?, inferredType: InferredType?): String {
+/**
+ * Returns the initializer list used in direct initialization in ctor definition.
+ */
+fun CppTypes.getCppInitializerList(init: Initializer?, inferredType: InferredType?): String {
     if (init == null) {
         return getMissingExpr(inferredType)
     }
@@ -96,6 +82,25 @@ fun CppTypes.getCppInitializerWithoutTypePrefix(init: Initializer?, inferredType
         }
     }
 }
+
+fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: InferredType?): String {
+    if (init == null) {
+        return getMissingExpr(inferredType)
+    }
+
+    return buildString {
+        if (init.exprs.size == 1) { // also the case for = assignment
+            append(getTargetExpr(init.exprs.single(), inferredType))
+        } else {
+            append(getTargetType(inferredType)) // treat as ctor call
+            val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+            init.exprs.joinTo(this, ", ", prefix, postfix) {
+                getTargetExpr(it, inferredType?.componentType)
+            }
+        }
+    }
+}
+
 
 /**
  * This object generates types in the context of the outer class,

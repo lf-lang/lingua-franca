@@ -13,18 +13,24 @@ fun TargetTypes.getTargetInitializer(sv: Parameter): TargetCode =
     this.getTargetInitializer(sv.init, sv.type)
 
 /**
- * Returns the target code for the actual value of a parameter
- * for the given instantiation. The value is defaulted to the
- * default value for the parameter if there is no explicit
- * assignment.
+ * Returns the target code for the [getActualValue] of the
+ * param for this instantiation.
  */
 fun TargetTypes.getTargetInitializer(param: Parameter, inst: Instantiation): TargetCode {
-    val init = inst.parameters.firstOrNull { it.lhs == param }?.rhs
-        ?: param.init
-        ?: throw InvalidLfSourceException(inst, "No value for parameter ${param.name}")
-
+    val init = inst.getActualValue(param)
     return getTargetInitializer(init, param.inferredType)
 }
+
+/**
+ * Returns the actual value of a parameter for the given instantiation.
+ * The value is defaulted to the default value for the parameter if
+ * there is no explicit assignment. If there is no default value, the
+ * source code is invalid (param is required)
+ */
+fun Instantiation.getActualValue(param: Parameter): Initializer =
+    parameters.firstOrNull { it.lhs == param }?.rhs
+        ?: param.init
+        ?: throw InvalidLfSourceException(this, "No value for parameter ${param.name}")
 
 
 fun TargetTypes.getTargetTimeExpr(v: Value): TargetCode =
