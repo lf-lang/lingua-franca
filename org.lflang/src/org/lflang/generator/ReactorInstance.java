@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -132,6 +133,63 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     //////////////////////////////////////////////////////
     //// Public methods.
+    
+    /**
+     * Assign levels to all reactions within the same root as this
+     * reactor.
+     */
+    public void assignLevels() {
+        if (root() != this) {
+            root().assignLevels();
+        } else {
+            // This operation is expensive, so we do not perform it if
+            // it has already been performed. This will need a mechanism
+            // to force recomputation if this class ever supports mutations.
+            if (levelsAssignedAlready) return;
+            levelsAssignedAlready = true;
+            
+            if (reactionsWithNoPortDependencies == null
+                    || reactionsWithNoPortDependencies.isEmpty()) {
+                // FIXME: What if there are in fact no reactions at all?
+                reporter.reportError(definition, 
+                        "There are no reactions outside of causality cycles.");
+            }
+            
+            Set<ReactionInstance> completed = new HashSet<ReactionInstance>();
+            
+            for (ReactionInstance reaction : reactionsWithNoPortDependencies) {
+                completed.add(reaction);
+                assignDownstreamLevels(reaction, completed);
+            }
+        }
+    }
+    
+    // FIXME: Move and document.
+    private void assignDownstreamLevels(ReactionInstance reaction, Set<ReactionInstance> completed) {
+        // FIXME: This needs use a new downstreamReactions function in ReactionInstance.
+        for (TriggerInstance<? extends Variable> effect : reaction.effects) {
+            if (effect instanceof PortInstance) {
+                for (PortInstance.SendingChannelRange senderRange
+                        : ((PortInstance)effect).eventualDestinations()) {
+                    for (PortInstance.PortChannelRange destinationRange : senderRange.destinations) {
+                        for (ReactionInstance downstream 
+                                : destinationRange.getPortInstance().dependentReactions) {
+                            if (completed.contains(downstream)) {
+                                reporter.reportError(definition, 
+                                        "Found a cycle including at least " + downstream);
+                                return;
+                            }
+                            if (downstream.level <= reaction.level) {
+                                downstream.level = reaction.level + 1;
+                            }
+                            // FIXME: Need to figure out how to mark this completed.
+                            // Probably need for ReactionInstance to have an upstreamReactions function.
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Returns the size of the bank that this reactor represents or
@@ -606,15 +664,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Protected fields.
 
     /**
-     * The LF syntax does not currently support declaring reactions unordered,
-     * but unordered reactions are created in the AST transformations handling
-     * federated communication and after delays. Unordered reactions can execute
-     * in any order and concurrently even though they are in the same reactor.
-     * FIXME: Remove this when the language provides syntax.
-     */
-    protected Set<Reaction> unorderedReactions = new LinkedHashSet<Reaction>();
-
-    /**
      * If this reactor is in a bank of reactors, then this member
      * refers to the reactor instance defining the bank.
      */
@@ -634,15 +683,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected int bankIndex = -1;
 
-    /** The generator that created this reactor instance. */
-    protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
-
-    /** The startup trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> startupTrigger = null;
-
-    /** The shutdown trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null;
-
     /** 
      * Table recording connections and which connection created a link between 
      * a source and destination. Use a source port as a key to obtain a Map.
@@ -652,6 +692,31 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected Map<PortInstance, Map<PortInstance, Connection>> connectionTable 
             = new LinkedHashMap<PortInstance, Map<PortInstance, Connection>>();
+    
+    /**
+     * For a root reactor instance only, this will be a set of reactions
+     * that have no dependencies on ports and have therefore already been
+     * assigned levels.
+     */
+    protected Set<ReactionInstance> reactionsWithNoPortDependencies = null;
+
+    /** The generator that created this reactor instance. */
+    protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
+
+    /** The startup trigger. Null if not used in any reaction. */
+    protected TriggerInstance<BuiltinTriggerVariable> startupTrigger = null;
+
+    /** The shutdown trigger. Null if not used in any reaction. */
+    protected TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null;
+
+    /**
+     * The LF syntax does not currently support declaring reactions unordered,
+     * but unordered reactions are created in the AST transformations handling
+     * federated communication and after delays. Unordered reactions can execute
+     * in any order and concurrently even though they are in the same reactor.
+     * FIXME: Remove this when the language provides syntax.
+     */
+    protected Set<Reaction> unorderedReactions = new LinkedHashSet<Reaction>();
 
     /** The nested list of instantiations that created this reactor instance. */
     protected List<Instantiation> _instantiations;
@@ -1180,4 +1245,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private Map<Connection, Map<PortInstance, Set<PortInstance>>> connections 
             = new LinkedHashMap<Connection, Map<PortInstance, Set<PortInstance>>>();
+
+    /**
+     * Indicator that levels have already been assigned.
+     */
+    private boolean levelsAssignedAlready = false;
 }
