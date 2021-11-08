@@ -294,9 +294,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         // optional reaction level
         val hasLevel = SHOW_REACTION_LEVEL.booleanValue
         if (hasLevel) {
-            // Force calculation of levels for reactions.
-            // FIXME: This is expensive!
-            // new ReactionInstanceGraph(reaction.root)
+            // Force calculation of levels for reactions. This calculation
+            // will only be done once. Note that if this fails due to a causality loop,
+            // then some reactions will have level -1.s
+            reaction.root().assignLevels();
             contentContainer.addText("level: " + Integer.toString(reaction.level as int)) => [
                 fontBold = false
                 noSelectionStyle
