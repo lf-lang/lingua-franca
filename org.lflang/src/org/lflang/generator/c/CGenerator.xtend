@@ -326,12 +326,6 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to go at the end of the _lf_initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
-    /**
-     * A representation of the dependencies between reactions as they are
-     * inferred from the main reactor instance.
-     */
-    var ReactionInstanceGraph reactionGraph
-
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
 
@@ -634,7 +628,7 @@ class CGenerator extends GeneratorBase {
                     // it is the same for all federates.
                     this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
                         this.unorderedReactions)
-                    this.reactionGraph = new ReactionInstanceGraph(main)
+                    this.main.assignLevels();
                 }   
             }
             
@@ -3195,13 +3189,13 @@ class CGenerator extends GeneratorBase {
         // Record the number of reactions that this reaction depends on.
         // This is used for optimization. When that number is 1, the reaction can
         // be executed immediately when its triggering reaction has completed.
-        var dominatingReaction = this.reactionGraph.findSingleDominatingReaction(reaction)
+        var dominatingReaction = reaction.findSingleDominatingReaction();
         
         // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
         while (dominatingReaction !== null 
                 && (federate !== null && !federate.containsReaction(dominatingReaction.definition))
         ) {
-            dominatingReaction = this.reactionGraph.findSingleDominatingReaction(dominatingReaction);
+            dominatingReaction = dominatingReaction.findSingleDominatingReaction();
         }
         if (dominatingReaction !== null &&
             (federate !== null && federate.containsReaction(dominatingReaction.definition))) {

@@ -26,8 +26,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -136,61 +137,60 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     /**
      * Assign levels to all reactions within the same root as this
-     * reactor.
+     * reactor. The level of a reaction r is equal to the length of the
+     * longest chain of reactions that must have the opportunity to
+     * execute before r at each logical tag. This fails and returns
+     * false if a causality cycle exists.
+     * 
+     * This method uses a variant of Kahn's algorithm, which is linear
+     * in V + E, where V is the number of vertices (reactions) and E
+     * is the number of edges (dependencies between reactions).
+     * 
+     * @return True if successful and false if a causality cycle exists.
      */
-    public void assignLevels() {
+    public boolean assignLevels() {
         if (root() != this) {
-            root().assignLevels();
+            return root().assignLevels();
         } else {
-            // This operation is expensive, so we do not perform it if
-            // it has already been performed. This will need a mechanism
-            // to force recomputation if this class ever supports mutations.
-            if (levelsAssignedAlready) return;
-            levelsAssignedAlready = true;
+            // This operation is relatively expensive, so we cache the result.
+            // This will need a mechanism to force recomputation if
+            // this class ever supports mutations (e.g. in a Java target).
+            if (levelsAssignedAlready > 0) return true;
             
-            if (reactionsWithNoPortDependencies == null
-                    || reactionsWithNoPortDependencies.isEmpty()) {
-                // FIXME: What if there are in fact no reactions at all?
-                reporter.reportError(definition, 
-                        "There are no reactions outside of causality cycles.");
-            }
-            
-            Set<ReactionInstance> completed = new HashSet<ReactionInstance>();
-            
-            for (ReactionInstance reaction : reactionsWithNoPortDependencies) {
-                completed.add(reaction);
-                assignDownstreamLevels(reaction, completed);
-            }
-        }
-    }
-    
-    // FIXME: Move and document.
-    private void assignDownstreamLevels(ReactionInstance reaction, Set<ReactionInstance> completed) {
-        // FIXME: This needs use a new downstreamReactions function in ReactionInstance.
-        for (TriggerInstance<? extends Variable> effect : reaction.effects) {
-            if (effect instanceof PortInstance) {
-                for (PortInstance.SendingChannelRange senderRange
-                        : ((PortInstance)effect).eventualDestinations()) {
-                    for (PortInstance.PortChannelRange destinationRange : senderRange.destinations) {
-                        for (ReactionInstance downstream 
-                                : destinationRange.getPortInstance().dependentReactions) {
-                            if (completed.contains(downstream)) {
-                                reporter.reportError(definition, 
-                                        "Found a cycle including at least " + downstream);
-                                return;
-                            }
-                            if (downstream.level <= reaction.level) {
-                                downstream.level = reaction.level + 1;
-                            }
-                            // FIXME: Need to figure out how to mark this completed.
-                            // Probably need for ReactionInstance to have an upstreamReactions function.
+            int count = 0;
+            while (!reactionsWithLevels.isEmpty()) {
+                ReactionInstance reaction = reactionsWithLevels.poll();
+                count++;
+                // Check downstream reactions to see whether they can get levels assigned.
+                for (ReactionInstance downstream : reaction.dependentReactions()) {
+                    // Check whether all upstream of downstream have levels.
+                    int candidateLevel = reaction.level + 1;
+                    for (ReactionInstance upstream : downstream.dependsOnReactions()) {
+                        if (upstream.level < 0) {
+                            // downstream reaction is not ready to get a level.
+                            candidateLevel = -1;
+                            break;
+                        } else if (candidateLevel < upstream.level + 1) {
+                            candidateLevel = upstream.level + 1;
                         }
+                    }
+                    if (candidateLevel > 0) {
+                        // Can assign a level to downstream.
+                        downstream.level = candidateLevel;
+                        reactionsWithLevels.add(downstream);
                     }
                 }
             }
+            if (count < root().totalNumberOfReactions()) {
+                reporter.reportError(definition, "Reactions form a causality cycle!");
+                levelsAssignedAlready = 0;
+                return false;
+            }
+            levelsAssignedAlready = 1;
+            return true;
         }
     }
-
+        
     /**
      * Returns the size of the bank that this reactor represents or
      * 0 if this reactor does not represent a bank.
@@ -607,6 +607,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public String toString() {
         return "ReactorInstance " + getFullName();
     }
+    
+    /**
+     * Return the total number of reactions in this reactor
+     * and all its contained reactors.
+     */
+    public int totalNumberOfReactions() {
+        if (totalNumberOfReactionsCache >= 0) return totalNumberOfReactionsCache;
+        totalNumberOfReactionsCache = reactions.size();
+        for (ReactorInstance containedReactor : children) {
+            totalNumberOfReactionsCache += containedReactor.totalNumberOfReactions();
+        }
+        return totalNumberOfReactionsCache;
+    }
 
     /** 
      * Return the set of all ports that receive data from the 
@@ -694,11 +707,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             = new LinkedHashMap<PortInstance, Map<PortInstance, Connection>>();
     
     /**
-     * For a root reactor instance only, this will be a set of reactions
-     * that have no dependencies on ports and have therefore already been
-     * assigned levels.
+     * For a root reactor instance only, this will be a queue of reactions
+     * that either have been assigned an initial level or are ready to be
+     * assigned levels. During construction of a top-level ReactorInstance,
+     * this queue will be populated with reactions anywhere in the hierarchy
+     * that have been assigned level 0 during construction because they have
+     * no dependencies on other reactions.
      */
-    protected Set<ReactionInstance> reactionsWithNoPortDependencies = null;
+    protected Deque<ReactionInstance> reactionsWithLevels = new ArrayDeque<ReactionInstance>();
 
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
@@ -1247,7 +1263,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             = new LinkedHashMap<Connection, Map<PortInstance, Set<PortInstance>>>();
 
     /**
-     * Indicator that levels have already been assigned.
+     * Indicator of whether levels have already been assigned.
+     * This has value 0 if no attempt has been made, 1 if levels have been
+     * succesfully assigned, and -1 if a causality loop has prevented levels
+     * from being assigned.
      */
-    private boolean levelsAssignedAlready = false;
+    private int levelsAssignedAlready = 0;
+    
+    /**
+     * Cached version of the total number of reactions within
+     * this reactor and its contained reactors.
+     */
+    private int totalNumberOfReactionsCache = -1;
 }
