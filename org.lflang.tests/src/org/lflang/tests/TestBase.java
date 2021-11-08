@@ -267,8 +267,12 @@ public abstract class TestBase {
         Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
         TestBase runner;
         try {
+            Constructor<?>[] ctors = testClass.getConstructors();
+            if (ctors.length == 0) {
+                throw new IllegalStateException("No public constructor in " + testClass);
+            }
             @SuppressWarnings("unchecked")
-            Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) testClass.getConstructors()[0];
+            Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) ctors[0];
             runner = constructor.newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException(e);
