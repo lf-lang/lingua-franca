@@ -1,0 +1,15 @@
+target Cpp;
+
+reactor Foo<T> (bar:T(0)) {
+
+  reaction (startup) {=
+    if (bar != 0) {
+      std::cerr << "ERROR: Expected bar=0 but got bar=" << bar << '\n';
+      exit(1);
+    }
+  =}
+}
+
+main reactor {
+  foo = new Foo<int>() // bar takes a default value
+}

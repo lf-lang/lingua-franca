@@ -59,7 +59,7 @@ class CppInstanceGenerator(
             // to the parameter named "bank_index"
             """__lf_idx"""
         } else {
-            CppTypes.getTargetInitializer(rhs, param.type)
+            CppTypes.getCppInitializerWithoutTypePrefix(rhs, param.inferredType)
         }
     }
 
