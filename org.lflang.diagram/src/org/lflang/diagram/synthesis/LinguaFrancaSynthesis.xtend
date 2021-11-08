@@ -162,6 +162,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static val SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", true).setCategory(APPEARANCE)
     public static val SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
+    public static val SynthesisOption SHOW_REACTION_LEVEL = SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
@@ -185,6 +186,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_PORT_NAMES,
 			SHOW_MULTIPORT_WIDTH,
 			SHOW_REACTION_CODE,
+            SHOW_REACTION_LEVEL,
 			SHOW_REACTION_ORDER_EDGES,
 			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
