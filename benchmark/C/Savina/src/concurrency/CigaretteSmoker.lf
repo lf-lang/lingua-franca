@@ -79,7 +79,7 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     =}
     
     state roundsSoFar: size_t(0);
-    state random: PseudoRandom*;
+    state random: PseudoRandom;
     
     output[numSmokers] startSmoking: size_t;
     
@@ -88,8 +88,7 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     
     reaction(startup) -> chooseSmoker {=
         // Initialize the random state variable
-        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
-        self->random->mValue = self->numRounds * self->numSmokers;
+        self->random.mValue = self->numRounds * self->numSmokers;
         // reset local state
         self->roundsSoFar = 0;
         
@@ -99,9 +98,9 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
     
     reaction(chooseSmoker) -> startSmoking, chooseSmoker, stop {=
         // assume resources grabbed instantaneously and choose a random smoker to start smoking
-        int newSmokerIndex = labs(nextInt(self->random)) % self->numSmokers;
+        int newSmokerIndex = nextIntEMax(&self->random, self->numSmokers);
 
-        int busyWaitPeriod = nextIntEMax(self->random, 100) + 10;
+        int busyWaitPeriod = nextIntEMax(&self->random, 100) + 10;
 
         SET(startSmoking[newSmokerIndex], busyWaitPeriod);
         
@@ -115,10 +114,6 @@ reactor ArbiterReactor(numRounds:size_t(1000), numSmokers:size_t(200)) {
             // trigger the next round
             schedule(chooseSmoker, 0);
         }
-    =}
-
-    reaction(shutdown) {=
-        free(self->random);
     =}
     
 }
