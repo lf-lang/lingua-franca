@@ -164,14 +164,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 // Check downstream reactions to see whether they can get levels assigned.
                 for (ReactionInstance downstream : reaction.dependentReactions()) {
                     // Check whether all upstream of downstream have levels.
-                    int candidateLevel = reaction.level + 1;
+                    long candidateLevel = reaction.level + 1L;
                     for (ReactionInstance upstream : downstream.dependsOnReactions()) {
-                        if (upstream.level < 0) {
+                        if (upstream.level < 0L) {
                             // downstream reaction is not ready to get a level.
-                            candidateLevel = -1;
+                            candidateLevel = -1L;
                             break;
-                        } else if (candidateLevel < upstream.level + 1) {
-                            candidateLevel = upstream.level + 1;
+                        } else if (candidateLevel < upstream.level + 1L) {
+                            candidateLevel = upstream.level + 1L;
                         }
                     }
                     if (candidateLevel > 0) {
@@ -805,7 +805,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         List<ReactionInstance> result
     ) {
         for (ReactionInstance reaction : reactor.reactions) {
-            if (reaction.level < 0) {
+            if (reaction.level < 0L) {
                 result.add(reaction);
             }
         }

@@ -180,7 +180,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // to compute levels.
         if (!dependsOnPorts) {
             if (isUnordered || index == 0) {
-                level = 0;
+                level = 0L;
             }
             root().reactionsWithLevels.add(this);
         }
@@ -228,9 +228,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Indicates the chain this reaction is a part of. It is constructed
      * through a bit-wise or among all upstream chains. Each fork in the
      * dependency graph setting a new, unused bit to true in order to
-     * disambiguate it from parallel chains.
+     * disambiguate it from parallel chains. Note that zero results in
+     * no overlap with any other reaction, which means the reaction can
+     * execute in parallel with any other reaction. The default is 1L.
+     * If left at the default, parallel execution will be based purely
+     * on levels.
      */
-    public long chainID = 0L;
+    public long chainID = 1L;
 
     /**
      * The ports or actions that this reaction may write to.
@@ -258,7 +262,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * The level in the dependence graph. -1 indicates that the level
      * has not yet been assigned.
      */
-    public int level = -1;
+    public long level = -1L;
 
     /**
      * Index of order of occurrence within the reactor definition.

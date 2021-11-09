@@ -3096,13 +3096,23 @@ class CGenerator extends GeneratorBase {
                             var numberOfTriggerTObjects = range.destinations.size();
                                                         
                             // Record this array size in reaction's reaction_t triggered_sizes array.
-                            pr(initializeTriggerObjectsEnd, '''
-                                // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
-                                // downstream reactions through port «port.getFullName».
-                                for (int i = «portCount»; i < «portCount» + «range.channelWidth»; i++) {
-                                    «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[i] = «numberOfTriggerTObjects»;
-                                }
-                            ''')
+                            // Eliminate the for loop for the case where range.channelWidth == 1,
+                            // a common situation on multiport to bank messaging.
+                            if (range.channelWidth == 1) {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
+                                    // downstream reactions through port «port.getFullName»[«portCount»].
+                                    «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
+                                ''')
+                            } else {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
+                                    // downstream reactions through port «port.getFullName».
+                                    for (int i = «portCount»; i < «portCount + range.channelWidth»; i++) {
+                                        «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[i] = «numberOfTriggerTObjects»;
+                                    }
+                                ''')
+                            }
 
                             // Next, malloc the memory for the trigger array and record its location.
                             // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
@@ -3113,14 +3123,25 @@ class CGenerator extends GeneratorBase {
                                 bankIndex = '_' + reactorInstance.bankIndex + '_'
                             }
                             val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
-                            pr(initializeTriggerObjectsEnd, '''
-                                // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
-                                // array of trigger pointers for downstream reactions through port «port.getFullName»
-                                trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
-                                for (int i = «portCount»; i < «portCount» + «range.channelWidth»; i++) {
-                                    «selfStruct»->_lf__reaction_«reactionCount».triggers[i] = «triggerArray»;
-                                }
-                            ''')
+                            // Eliminate the for loop for the case where range.channelWidth == 1,
+                            // a common situation on multiport to bank messaging.
+                            if (range.channelWidth == 1) {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
+                                    // array of trigger pointers for downstream reactions through port «port.getFullName»[«portCount»]
+                                    trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                                    «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
+                                ''')
+                            } else {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
+                                    // array of trigger pointers for downstream reactions through port «port.getFullName»
+                                    trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                                    for (int i = «portCount»; i < «portCount + range.channelWidth»; i++) {
+                                        «selfStruct»->_lf__reaction_«reactionCount».triggers[i] = «triggerArray»;
+                                    }
+                                ''')
+                            }
 
                             // Next, initialize the newly created array.
                             var destinationCount = 0;
@@ -4050,11 +4071,19 @@ class CGenerator extends GeneratorBase {
                     if (output.isMultiport()) {
                         val start = sendingRange.startChannel;
                         val end = sendingRange.startChannel + sendingRange.channelWidth;
-                        pr(initializeTriggerObjectsEnd, '''
-                            for (int i = «start»; i < «end»; i++) {
-                                «sourceReference(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
-                            }
-                        ''')
+                        // Eliminate the for loop for the case where range.channelWidth == 1,
+                        // a common situation on multiport to bank messaging.
+                        if (sendingRange.channelWidth == 1) {
+                            pr(initializeTriggerObjectsEnd, '''
+                                «sourceReference(output)»[«start»].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                            ''')
+                        } else {
+                            pr(initializeTriggerObjectsEnd, '''
+                                for (int i = «start»; i < «end»; i++) {
+                                    «sourceReference(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                                }
+                            ''')
+                        }
                     } else {
                         pr(initializeTriggerObjectsEnd, '''
                             «sourceReference(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
