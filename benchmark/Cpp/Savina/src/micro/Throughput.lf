@@ -51,11 +51,8 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
         
         void performComputation(const double theta) {
             const double sint = sin(theta);
-            const double res = sint * sint;
-            // defeat dead code elimination
-            if(res <= 0) {
-                throw "Benchmark exited with unrealistic res value.";
-            }
+            // volatile to defeat dead code elimination
+            const volatile double res = sint * sint;
         }
     =}
 }
