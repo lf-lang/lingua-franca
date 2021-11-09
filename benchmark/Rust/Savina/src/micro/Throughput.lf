@@ -1,0 +1,127 @@
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+    cargo-dependencies: {
+        volatile: {
+            version: "0.4",
+        },
+    }
+};
+
+import BenchmarkRunner from "../BenchmarkRunner2.lf";
+
+reactor ThroughputReactor(total_messages:usize(10000)) {
+    input inReset: {= () =};
+    input inMessage: {= () =};
+    output outFinished: {= () =};
+    
+    state total_messages(total_messages);
+    state messages_processed:usize(0);
+    
+    reaction(inReset) {=
+        self.messages_processed = 0;
+    =}
+    
+    reaction(inMessage) -> outFinished {=
+        self.messages_processed += 1;
+        perform_computation(37.2);
+        
+        if self.messages_processed == self.total_messages {
+            ctx.set(outFinished, ());
+        }
+    =}
+    
+    preamble {=  
+        use volatile::Volatile;
+              
+        pub fn perform_computation(theta: f64) {
+            let sint = theta.sin();
+            let res = sint * sint;
+            
+            // defeat dead code elimination
+            let v = Volatile::new(&res);
+            let _ = v.read();
+        }
+    =}
+}
+
+reactor ThroughputProducer(total_messages:usize(10000), num_consumer:usize(60)) {
+    state total_messages(total_messages);
+    state num_consumer(num_consumer);
+    
+    state messages_sent:usize(0);
+    state next_consumer:usize(0);
+    state num_consumer_finished:usize(0);
+    
+    input inStart:{=()=};
+    output outFinished:{=()=};
+    
+    output[num_consumer] outMessage: {= () =};
+    input[num_consumer] inFinished: {= () =};
+    output[num_consumer] outReset: {= () =};
+    
+    logical action sendNextMessage;
+    
+    reaction(inStart) -> outReset, sendNextMessage {=    
+        // reset local state
+        self.messages_sent = 0;
+        self.next_consumer = 0;
+        self.num_consumer_finished = 0;
+        for reset in outReset {
+            ctx.set(reset, ());
+        }
+        
+        // start execution
+        ctx.schedule(sendNextMessage, Asap);
+    =}
+    
+    reaction(sendNextMessage) -> outMessage, sendNextMessage {=
+        if self.messages_sent != self.total_messages {
+            for message in outMessage {
+                ctx.set(message, ());
+            }
+            self.messages_sent += 1;
+            
+            if self.messages_sent < self.total_messages {
+                ctx.schedule(sendNextMessage, Asap);
+            }
+        };
+    =}
+    
+    reaction(inFinished) -> outFinished {= 
+        for finished in inFinished {
+            if ctx.is_present(&finished) {
+                self.num_consumer_finished += 1;
+            }
+        }
+
+        if self.num_consumer_finished == self.num_consumer {
+            ctx.set(outFinished, ());
+        }
+    =}
+}
+
+main reactor (num_iterations:usize(12), num_messages_per_reactor:usize(10000), num_workers:usize(60)) {
+    
+    producer = new ThroughputProducer(total_messages=num_messages_per_reactor, num_consumer=num_workers);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
+    
+    runner.start -> producer.inStart;
+    producer.outFinished -> runner.finished;
+    
+    reaction(startup) {=
+        print_benchmark_info("ThroughputBenchmark");
+        // printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", numWorkers);
+        print_system_info();
+    =}
+    
+    worker = new[num_workers] ThroughputReactor(total_messages=num_messages_per_reactor);
+    
+    producer.outMessage -> worker.inMessage;
+    producer.outReset -> worker.inReset;
+    worker.outFinished -> producer.inFinished;
+    
+    preamble {=
+        use crate::reactors::benchmark_runner::{print_benchmark_info, print_system_info};
+    =}
+}
