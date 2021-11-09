@@ -69,8 +69,8 @@ reactor Pong(expected(1000000)) {
 }
 
 main reactor PingPong {
-    ping = new Ping(count = 100000);
-    pong = new Pong(expected = 100000);
+    ping = new Ping(count = 10000);
+    pong = new Pong(expected = 10000);
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }
