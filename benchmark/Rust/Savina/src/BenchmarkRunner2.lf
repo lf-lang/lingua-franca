@@ -1,0 +1,88 @@
+target Rust;
+
+reactor BenchmarkRunner(num_iterations:usize(12)) {
+    output start: {= () =}
+    input finished: {= () =}
+    
+    logical action nextIteration;
+    logical action done;
+    
+    state num_iterations(num_iterations);
+    // Number of iterations already executed
+    state count:usize(0);
+    // Start time for runtime measurement.
+    state start_time: {=  reactor_rt::Instant =}({= Instant::now() =});
+    // Runtime measurements.
+    state measured_times: {= Vec<reactor_rt::Duration> =};
+    
+    reaction(startup) -> nextIteration {=
+        self.measured_times = vec![Duration::ZERO; self.num_iterations];
+        // Start the first iteration.  
+        ctx.schedule(nextIteration, Asap);  
+    =}
+    
+    reaction(nextIteration) -> start {=
+        self.start_time = ctx.get_physical_time();
+        self.count += 1;
+        ctx.set(start, ());
+    =}
+    
+    reaction(finished) -> nextIteration, done {=
+        let end_time = ctx.get_physical_time();
+        let duration = end_time.duration_since(self.start_time);
+        self.measured_times[self.count - 1] = duration;
+        
+        println!("Iteration {} - {} ms", self.count, duration.as_micros() as f64 / 1000.0);
+        
+        if self.count < self.num_iterations {
+            ctx.schedule(nextIteration, Asap);
+        } else {
+            ctx.schedule(done, Asap);
+        }
+    =}
+    
+    reaction(done) {=
+        let mut measured_micros: Vec<u128> = self.measured_times
+            .iter()
+            .map(|d| d.as_micros())
+            .collect();
+        measured_micros.sort_unstable();
+        let measured_millis: Vec<f64> = measured_micros.iter().map(|d| *d as f64 / 1000.0).collect();
+        
+        if let (Some(best), Some(worst)) = (measured_millis.iter().nth(0), measured_millis.iter().last()) {
+            println!("\nExecution - Summary:");
+            println!("Best Time: {}", best);
+            println!("Worst Time: {}", worst);
+            println!("Median: {}", median(&measured_millis));   
+        } else {
+            panic!("Error: no measurements recorded!");
+        }
+        
+        // TODO: this is C++ => find out what the Rust equivalent is
+        // environment()->sync_shutdown();
+    =}
+    
+    preamble {=
+        fn median(exec_times: &[f64]) -> f64 {
+            if exec_times.is_empty() {
+                0.0
+            } else {
+                let size = exec_times.len();
+                let middle = size / 2;
+                if size % 2 == 1 {
+                    exec_times[middle]
+                } else {
+                    (exec_times[middle-1] + exec_times[middle]) / 2.0
+                }      
+            }          
+        }
+        
+        pub fn print_benchmark_info(benchmark_id: &str) {
+            println!("Benchmark: {}", benchmark_id);
+        }
+        
+        pub fn print_system_info() {
+            // TODO
+        }
+    =}
+}

@@ -1,0 +1,153 @@
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+};
+
+import BenchmarkRunner from "../BenchmarkRunner2.lf";
+
+reactor ThreadRingReactor {
+    output out_next_reactor: {= PingMessage =};
+    input in_prev_reactor: {= PingMessage =};
+    input start: {= PingMessage =};
+    output finished: {= () =};
+
+    preamble {=
+        #[derive(Copy, Clone)]
+        pub struct PingMessage {
+            pings_left: usize,
+        }
+
+        impl PingMessage {
+            pub const fn new(pings_left: usize) -> Self {
+                PingMessage {
+                    pings_left,
+                }
+            }
+
+            pub const fn has_next(&self) -> bool {
+                self.pings_left > 0
+            }
+
+            pub const fn pings_left(&self) -> usize {
+                self.pings_left
+            }
+
+            pub const fn next(&self) -> Self {
+                PingMessage::new(self.pings_left - 1)
+            }
+        }
+    =}
+
+    reaction(in_prev_reactor) -> out_next_reactor, finished {=
+        if let Some(ip_reactor) = ctx.get(in_prev_reactor) {
+            if ip_reactor.has_next() {
+                ctx.set(out_next_reactor, ip_reactor.next());
+            } else {
+                ctx.set(finished, ());
+                debug!("Finished with count {}", ip_reactor.pings_left());
+            }
+        }
+    =}
+
+    reaction(start) -> out_next_reactor, finished {=
+        if let Some(s) = ctx.get(start) {
+            if s.has_next() {
+                ctx.set(out_next_reactor, s.next());
+                debug!("Starting with count {}", s.pings_left());
+            } else {
+                ctx.set(finished, ());
+            }
+        }
+    =}
+}
+
+reactor ThreadRingReactorLoopOpener {
+    output out_next_reactor: {= PingMessage =};
+    input in_prev_reactor: {= PingMessage =};
+    input start: {= PingMessage =};
+    output finished: {= () =};
+
+    logical action send_to_next_reactor: {= PingMessage =};
+
+    reaction(send_to_next_reactor) -> out_next_reactor {=
+        if let Some(stn_reactor) = ctx.get(send_to_next_reactor) {
+            ctx.set(out_next_reactor, stn_reactor);
+        }
+    =}
+
+    reaction(in_prev_reactor) -> send_to_next_reactor, finished {=
+        if let Some(ip_reactor) = ctx.get(in_prev_reactor) {
+            if ip_reactor.has_next() {
+                ctx.schedule_with_v(send_to_next_reactor, Some(ip_reactor.next()), Asap);
+            } else {
+                ctx.set(finished, ());
+                debug!("Finished with count {}", ip_reactor.pings_left());
+            }
+        }
+    =}
+
+    reaction(start) -> send_to_next_reactor, finished {=
+        if let Some(s) = ctx.get(start) {
+            if s.has_next() {
+                ctx.schedule_with_v(send_to_next_reactor, Some(s.next()), Asap);
+            } else {
+                ctx.set(finished, ());
+            }
+        }
+    =}
+
+    preamble {=
+        use crate::reactors::thread_ring_reactor::PingMessage;
+    =}
+}
+
+reactor Initializer(num_reactors:usize(100), num_pings:usize(100000)) {
+    state num_pings(num_pings);
+
+    input in_start: {= () =};
+    output out_finished: {= () =};
+
+    // benchmark internal start and finish
+    input[num_reactors] in_finished: {= () =};
+    output out_start: {= PingMessage =};
+
+    reaction(in_start) -> out_start {=
+        ctx.set(out_start, PingMessage::new(self.num_pings));
+    =}
+
+    reaction(in_finished) -> out_finished {=
+        ctx.set(out_finished, ());
+    =}
+
+    preamble {=
+        use crate::reactors::thread_ring_reactor::PingMessage;
+    =}
+}
+
+main reactor (num_iterations:usize(12), num_pings:usize(100000), num_reactors:usize(99)) {
+
+    init = new Initializer(num_reactors={=num_reactors + 1=}, num_pings=num_pings);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
+
+    runner.start -> init.in_start;
+    init.out_finished -> runner.finished;
+
+    reaction(startup) {=
+        print_benchmark_info("ThreadRingBenchmark");
+        // printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", numReactors);
+        print_system_info();
+    =}
+
+    loopOpener = new ThreadRingReactorLoopOpener();
+
+    workers = new[num_reactors] ThreadRingReactor();
+
+    loopOpener.out_next_reactor, workers.out_next_reactor -> workers.in_prev_reactor, loopOpener.in_prev_reactor;
+
+    init.out_start -> loopOpener.start;
+    loopOpener.finished, workers.finished -> init.in_finished;
+
+    preamble {=
+        use crate::reactors::benchmark_runner::{print_system_info, print_benchmark_info};
+    =}
+}
