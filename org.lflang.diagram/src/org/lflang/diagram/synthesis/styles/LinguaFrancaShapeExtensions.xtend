@@ -298,7 +298,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             // will only be done once. Note that if this fails due to a causality loop,
             // then some reactions will have level -1.s
             reaction.root().assignLevels();
-            contentContainer.addText("level: " + Integer.toString(reaction.level as int)) => [
+            contentContainer.addText("level: " + Long.toString(reaction.level)) => [
                 fontBold = false
                 noSelectionStyle
                 suppressSelectability
