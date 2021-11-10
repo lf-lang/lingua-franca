@@ -166,6 +166,8 @@ fun Element.toText(): String =
 fun Delay.toText(): String =
     parameter?.name ?: "$interval $unit"
 
+fun Time.toTimeValue(): TimeValue = TimeValue(interval.toLong(), TimeUnit.fromName(this.unit))
+
 
 /**
  * Return a string of the form either "name" or "container.name" depending

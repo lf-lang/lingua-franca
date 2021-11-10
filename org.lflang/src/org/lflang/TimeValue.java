@@ -29,7 +29,7 @@ package org.lflang;
  * Represents an amount of time (a duration).
  *
  * @author Marten Lohstroh <marten@berkeley.edu>
- * @author Clément Fournier, TU Dresden, INSA Rennes
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public final class TimeValue implements Comparable<TimeValue> {
 
@@ -109,6 +109,22 @@ public final class TimeValue implements Comparable<TimeValue> {
     @Override
     public int compareTo(TimeValue o) {
         return Long.compare(this.toNanoSeconds(), o.toNanoSeconds());
+    }
+
+    /**
+     * Return the magnitude of this value, as expressed in the
+     * {@linkplain #getUnit() unit} of this value.
+     */
+    public long getMagnitude() {
+        return time;
+    }
+
+    /**
+     * Units associated with this time value. May be null,
+     * but only if the magnitude is zero.
+     */
+    public TimeUnit getUnit() {
+        return unit;
     }
 
     /**
