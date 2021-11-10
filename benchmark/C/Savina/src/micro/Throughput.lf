@@ -73,15 +73,9 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
         #include <math.h>
 
         void performComputation(double theta) {
-            for (int i = 0; i < 1000; i++) {
-            double sint = sin(theta + i/1000.0);
-            double res = sint * sint;
-            // defeat dead code elimination
-            if(res <= 0) {
-                printf("Benchmark exited with unrealistic res value.");
-            }
-            
-            }
+            double sint = sin(theta + i);
+            // volatile to defeat dead code elimination
+            volatile double res = sint * sint;
         }
     =}
     
@@ -112,10 +106,9 @@ reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
 /* [[[cog
 cog.outl(f'main reactor (numMessagesPerReactor:int({numMessagesPerReactor}), numWorkers:int({numWorkers}))')
 ]]] */
-main reactor (numMessagesPerReactor:int(10000), numWorkers:int(6)) 
+main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60)) 
 // [[[end]]]
 {
-    
     producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
     
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
