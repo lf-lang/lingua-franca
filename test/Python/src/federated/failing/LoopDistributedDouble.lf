@@ -8,16 +8,14 @@
 // reason for failing: current tag struct not supported in the python target
 
 target Python {
-    flags: "-Wall",
     coordination: centralized,
-    coordination-options: {advance-message-interval: 100 msec}, 
     threads: 2,
     timeout: 5 sec
 }
 preamble {=
     #include <unistd.h> // Defines sleep()
-    bool stop = false;
-    // Thread to trigger an action once every second.
+    stop = False
+    # Thread to trigger an action once every second.
     void* ping(void* actionref) {
         while(!stop) {
             info_print("Scheduling action.");
@@ -28,16 +26,16 @@ preamble {=
     }
 =}
 
-reactor Looper(incr:int(1), delay:time(0 msec)) {
-    input in:int;
-    input in2:int;
-    output out:int;
-    output out2:int;
+reactor Looper(incr(1), delay(0 msec)) {
+    input in_;
+    input in2;
+    output out;
+    output out2;
     physical action a(delay);
-    state count:int(0);
+    state count(0);
     timer t(0, 1 sec);
     reaction(startup) -> a {=
-        // Start the thread that listens for Enter or Return.
+        # Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         info_print("Starting thread.");
         lf_thread_create(&thread_id, &ping, a);        

@@ -5,11 +5,11 @@
 target C {
     threads: 2,
     files: [
-        "/lib/C/util/sensor_simulator.c", 
-        "/lib/C/util/sensor_simulator.h",
+        "/lib/c/reactor-c/util/sensor_simulator.c", 
+        "/lib/c/reactor-c/util/sensor_simulator.h",
     ],
     cmake-include: [
-        "/lib/C/util/sensor_simulator.cmake", 
+        "/lib/c/reactor-c/util/sensor_simulator.cmake", 
         "include/ncurses-extension.cmake"
     ] 
 };
