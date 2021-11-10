@@ -23,29 +23,34 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.federated;
+package org.lflang.federated.launcher;
+
+import java.io.File;
+import java.io.IOException;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.federated.FedFileConfig;
+import org.lflang.federated.FederateInstance;
+import org.lflang.generator.c.CCompiler;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs
- * that are written in TypeScript.
+ * that are written in C.
  * 
  * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Hokeun Kim <hokeunkim@berkeley.edu>
  */
-public class FedTSLauncher extends FedLauncher {
+public class FedCLauncher extends FedLauncher {
 
     /**
      * Create an instance of FedCLauncher.
-     *
+     * 
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
-    public FedTSLauncher(
+    public FedCLauncher(
             TargetConfig targetConfig, 
             FileConfig fileConfig,
             ErrorReporter errorReporter
@@ -54,7 +59,41 @@ public class FedTSLauncher extends FedLauncher {
     }
     
     /**
-     * Return the command that will execute a local federate, assuming that the current
+     * Return the compile command for a federate.
+     * 
+     * @param federate The federate to compile.
+     * @throws IOException 
+     */
+    @Override
+    protected
+    String compileCommandForFederate(FederateInstance federate) {
+        FedFileConfig fedFileConfig = null;
+        TargetConfig localTargetConfig = targetConfig;
+        try {
+            fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+        } catch (IOException e) {
+            errorReporter.reportError("Failed to create file config for federate "+federate.name);
+            return "";
+        }
+        
+        String commandToReturn = "";
+        // FIXME: Hack to add platform support only for linux systems. 
+        // We need to fix the CMake build command for remote federates.
+        String linuxPlatformSupport = "core" + File.separator + "platform" + File.separator + "lf_linux_support.c";
+        if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
+            localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
+        }
+        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter);
+        commandToReturn = String.join(" ", 
+                cCompiler.compileCCommand(
+                        fileConfig.name+"_"+federate.name, 
+                        false
+                    ).toString());
+        return commandToReturn;
+    }
+    
+    /**
+     * Return the command that will execute a remote federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
      * 
@@ -62,9 +101,20 @@ public class FedTSLauncher extends FedLauncher {
      */
     @Override
     protected
+    String executeCommandForRemoteFederate(FederateInstance federate) {
+        return "bin/"+fileConfig.name+"_"+federate.name+" -i '$FEDERATION_ID'";
+    }
+
+    /**
+     * Return the command that will execute a local federate, assuming that the current
+     * directory is the top-level project folder. This is used to create a launcher script
+     * for federates.
+     *
+     * @param federate The federate to execute.
+     */
+    @Override
+    protected
     String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
-        String jsFilename = fileConfig.name + "_" + federate.name + ".js";
-        return "node "+fileConfig.getSrcGenPath().resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
-        //return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
+        return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
     }
 }
