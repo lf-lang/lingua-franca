@@ -32,14 +32,14 @@ target C {
     // These are commented out here because this file is only compiled to a .o file
     // and is not linked, so including these flags results in a warning.
     // flags: ["-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
-    files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
-            "/lib/C/util/audio_loop_linux.c",
+    files: ["/lib/c/reactor-c/util/wave_file_reader.c", "/lib/c/reactor-c/util/wave_file_reader.h",
+            "/lib/c/reactor-c/util/audio_loop_mac.c", "/lib/c/reactor-c/util/audio_loop.h",
+            "/lib/c/reactor-c/util/audio_loop_linux.c",
             "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
             "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"],
     // Include the cmake support for the audio loop
-    cmake-include: ["/lib/C/util/audio_loop.cmake"]
+    cmake-include: ["/lib/c/reactor-c/util/audio_loop.cmake"]
 }
 preamble {= 
     #include "wave_file_reader.c"
