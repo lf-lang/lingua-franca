@@ -56,11 +56,11 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedCLauncher
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FedROS2CPPSerialization
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.launcher.FedCLauncher
+import org.lflang.federated.serialization.FedROS2CPPSerialization
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.ParameterInstance
@@ -485,9 +485,22 @@ class CGenerator extends GeneratorBase {
                  }
              }
          }
-        
+            
+        // Build the instantiation tree if a main reactor is present.
+        if (this.mainDef !== null) {
+            if (this.main === null) {
+                // Recursively build instances. This is done once because
+                // it is the same for all federates.
+                this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
+                    this.unorderedReactions)
+                this.main.assignLevels();
+                // Avoid compile errors by removing disconnected network ports.
+                // This must be done after assigning levels.  
+                removeRemoteFederateConnectionPorts(main);
+            }   
+        }
+
         // Create the output directories if they don't yet exist.
-        
         var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
@@ -534,14 +547,16 @@ class CGenerator extends GeneratorBase {
                 "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
-
-            var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
-            var rtiDir = rtiPath.toFile()
-            if (!rtiDir.exists()) {
-                rtiDir.mkdirs()
+            
+            if (targetConfig.dockerOptions !== null) {
+                var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
+                var rtiDir = rtiPath.toFile()
+                if (!rtiDir.exists()) {
+                    rtiDir.mkdirs()
+                }
+                writeRTIDockerFile(rtiPath, rtiDir)
+                copyRtiFiles(rtiDir, coreFiles)
             }
-            writeRTIDockerFile(rtiPath, rtiDir)
-            copyRtiFiles(rtiDir, coreFiles)
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -619,17 +634,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
-            
-            // Build the instantiation tree if a main reactor is present.
-            if (this.mainDef !== null) {
-                if (this.main === null) {
-                    // Recursively build instances. This is done once because
-                    // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
-                        this.unorderedReactions)
-                    this.main.assignLevels();
-                }   
-            }
             
             // Generate code for each reactor.
             generateReactorDefinitionsForFederate(federate);
@@ -3254,8 +3258,11 @@ class CGenerator extends GeneratorBase {
         ) {
             dominatingReaction = dominatingReaction.findSingleDominatingReaction();
         }
-        if (dominatingReaction !== null &&
-            (federate !== null && federate.containsReaction(dominatingReaction.definition))) {
+        if (dominatingReaction !== null 
+                && (federate !== null 
+                    && federate.containsReaction(dominatingReaction.definition)
+                    && federate.contains(dominatingReaction.parent)
+                )) {
             val upstreamReaction = '''«selfStructName(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.reactionIndex»'''
             pr(initializeTriggerObjectsEnd, '''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.

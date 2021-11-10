@@ -415,6 +415,17 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
     
     /**
+     * Purge 'portInstance' from this reaction, removing it from the list
+     * of triggers, sources, effects, and reads.
+     */
+    public void removePortInstance(PortInstance portInstance) {
+        this.triggers.remove(portInstance);
+        this.sources.remove(portInstance);
+        this.effects.remove(portInstance);
+        this.reads.remove(portInstance);
+    }
+    
+    /**
      * {@inheritDoc}
      */
     @Override

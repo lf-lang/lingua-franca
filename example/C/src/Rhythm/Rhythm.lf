@@ -32,16 +32,16 @@ target C {
     threads: 2,
     tracing: true,
     files: [
-        "/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
-        "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-        "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
-        "/lib/C/util/audio_loop_linux.c",
+        "/lib/c/reactor-c/util/sensor_simulator.c", "/lib/c/reactor-c/util/sensor_simulator.h",
+        "/lib/c/reactor-c/util/wave_file_reader.c", "/lib/c/reactor-c/util/wave_file_reader.h",
+        "/lib/c/reactor-c/util/audio_loop_mac.c", "/lib/c/reactor-c/util/audio_loop.h",
+        "/lib/c/reactor-c/util/audio_loop_linux.c",
         "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
         "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
         "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"],
     // Include cmake support for some needed functionality
     cmake-include: [
-        "/lib/C/util/sensor_simulator.cmake", // Enable support for the sensor simulator
+        "/lib/c/reactor-c/util/sensor_simulator.cmake", // Enable support for the sensor simulator
         "include/ncurses-extension.cmake", // Enable support for ncurses
         "include/mlib-extension.cmake"] // Enable support for the math lib
 };

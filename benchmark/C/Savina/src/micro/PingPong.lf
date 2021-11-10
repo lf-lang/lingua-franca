@@ -55,6 +55,7 @@ reactor Pong(expected:int(10000000)) {
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
+        // info_print("Received %d", receive->value);
         SET(send, receive->value);   
     =}
     reaction(shutdown) {=

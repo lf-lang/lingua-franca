@@ -62,7 +62,7 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -96,6 +96,7 @@ import static extension org.lflang.JavaAstUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes {
 
@@ -450,6 +451,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // enable support for them.
             enableSupportForSerialization(context.cancelIndicator);
         }
+        
+        
     }
 
     /**
@@ -1505,6 +1508,42 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             return time.time.toString()
         }
     }
+    
+    
+    
+    /**
+     * Remove triggers in each federates' network reactions that are defined in remote federates.
+     * 
+     * This must be done in code generators after the dependency graphs
+     * are built and levels are assigned. Otherwise, these disconnected ports
+     * might reference data structures in remote federates and cause compile errors.
+     * 
+     * @param instance The reactor instance to remove these ports from if any.
+     *  Can be null.
+     */
+    protected def void removeRemoteFederateConnectionPorts(ReactorInstance instance) {
+        if (isFederated) {
+            for (federate: federates) {
+                // Remove disconnected network triggers from the AST
+                federate.removeRemoteFederateConnectionPorts();
+                if (instance !== null) {
+                    // If passed a reactor instance, also purge the disconnected network triggers
+                    // from the reactor instance graph
+                    for (reaction: federate.networkReactions) {
+                        val networkReaction = instance.lookupReactionInstance(reaction)
+                        if (networkReaction !== null) {
+                            for (port: federate.remoteNetworkReactionTriggers) {
+                                val disconnectedPortInstance = instance.lookupPortInstance(port);
+                                if (disconnectedPortInstance !== null) {
+                                    networkReaction.removePortInstance(disconnectedPortInstance);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
@@ -1621,6 +1660,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // The action will be physical for physical connections and logical
             // for logical connections.
             replaceFederateConnectionsWithActions()
+
+            // Remove the connections at the top level
+            mainReactor.connections.clear()
         }
     }
     
@@ -1655,8 +1697,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 }
             }
         }
-        // Remove all connections for the main reactor.
-        mainReactor.connections.clear()
     }
     
     /**

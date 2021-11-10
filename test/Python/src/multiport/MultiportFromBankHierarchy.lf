@@ -3,7 +3,8 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+};
+import Destination from "MultiportFromBank.lf"
 reactor Source(
     bank_index(0)
 ) {
@@ -17,27 +18,6 @@ reactor Container {
     s = new[3] Source();
     s.out -> out;
 }
-reactor Destination {
-    input[3] _in;
-    state received(0);
-    reaction(_in) {=
-        for i in range(len(_in)):
-            print("Destination channel " + str(i) + " received " + str(_in[i].value));
-            if i != _in[i].value:
-                sys.stderr.write("ERROR: Expected "+ str(i) + ".\n")
-                exit(1)
-
-        self.received = True
-    =}
-    reaction(shutdown) {=
-        if self.received is not True:
-            sys.stderr.write("ERROR: Destination received no input!\n")
-            exit(1)
-
-        print("Success.")
-    =}
-}
-
 main reactor MultiportFromBankHierarchy {
     a = new Container();
     b = new Destination();
