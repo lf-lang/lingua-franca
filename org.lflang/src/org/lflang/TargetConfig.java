@@ -250,7 +250,7 @@ public class TargetConfig {
          * to it as an argument on the command-line).
          * The default is 5 milliseconds.
          */
-        public TimeValue period = new TimeValue(5, TimeUnit.MSEC);
+        public TimeValue period = new TimeValue(5, TimeUnit.MILLI);
 
         /**
          * Indicate the number of exchanges to be had per each clock synchronization round.

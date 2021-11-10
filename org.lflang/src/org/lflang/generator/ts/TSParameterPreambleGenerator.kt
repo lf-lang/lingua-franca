@@ -31,7 +31,7 @@ import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.lf.TimeUnit
+import org.lflang.TimeUnit
 import java.util.StringJoiner
 
 /**
@@ -61,7 +61,7 @@ class TSParameterPreambleGenerator(
     }
 
     private fun timeInTargetLanguage(value: TimeValue): String {
-        return if (value.unit != TimeUnit.NONE) {
+        return if (value.unit != null) {
             "TimeValue.${value.unit}(${value.time})"
         } else {
             // The value must be zero.
