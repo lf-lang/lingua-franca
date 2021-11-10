@@ -1,5 +1,5 @@
 # @package benchmark
-name: "Fork Join (throuput)"
+name: "Fork Join (throughput)"
 params:
   messages: 10000
   actors: 60

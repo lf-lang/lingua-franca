@@ -21,9 +21,17 @@ targets:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
       - "${lf_path}/benchmark/Cpp/Savina/src/concurrency"
-    lf_file: "concurrency/Philosopher.lf"
-    binary: "Philosopher"
+    lf_file: "concurrency/Philosophers.lf"
+    binary: "Philosophers"
     gen_args: null
     run_args:
       philosophers: ["--numPhilosophers", "<value>"]
       eating_rounds: ["--numEatingRounds", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/Philosophers.lf"
+    lf_file: "Philosophers.lf"
+    binary: "Philosophers"
+    gen_args:
+      philosophers: ["-D", "numPhilosophers=<value>"]
+      eating_rounds: ["-D", "numEatingRounds=<value>"]

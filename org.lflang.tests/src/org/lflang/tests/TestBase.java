@@ -248,8 +248,8 @@ public abstract class TestBase {
      * @param test The test to redirect outputs to.
      */
     private static void redirectOutputs(LFTest test) {
-        System.setOut(new PrintStream(test.out));
-        System.setErr(new PrintStream(test.err));
+        System.setOut(new PrintStream(test.getOutputStream()));
+        System.setErr(new PrintStream(test.getOutputStream()));
     }
 
 
@@ -490,8 +490,15 @@ public abstract class TestBase {
             }
         }
         case Python: {
+            var binPath = test.fileConfig.binPath;
+            var binaryName = nameOnly;
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // If execution script exists, run it.
+                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+            }
             var srcGen = test.fileConfig.getSrcGenPath();
-            var fullPath = srcGen.resolve(nameOnly + ".py");
+            fullPath = srcGen.resolve(nameOnly + ".py");
             if (Files.exists(fullPath)) {
                 return new ProcessBuilder("python3", fullPath.getFileName().toString())
                     .directory(srcGen.toFile());

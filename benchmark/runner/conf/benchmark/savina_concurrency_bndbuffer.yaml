@@ -1,5 +1,5 @@
 # @package benchmark
-name: "Producer-Consumer with Bounded Buffer"
+name: "Producer Consumer (bounded)"
 params:
   buffer_size: 50
   consumers: 40
