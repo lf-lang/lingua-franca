@@ -3,6 +3,7 @@ package org.lflang.tests;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,126 +19,40 @@ import org.lflang.generator.StandaloneContext;
  *
  */
 public class LFTest implements Comparable<LFTest> {
-    
-    /**
-     * Inner class for capturing streams during execution of a test, capable of
-     * recording output streams up until the moment that a test is interrupted
-     * upon timing out.
-     * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
-     *
-     */
-    public static class ExecutionLogger {
 
-        /**
-         * String buffer used to record the standard output stream.
-         */
-        final StringBuffer std = new StringBuffer();
-
-        /**
-         * String builder used to record the standard error stream.
-         */
-        final StringBuffer err = new StringBuffer();
-
-        /**
-         * Return a thread responsible for recording the standard output stream
-         * of the given process.
-         * A separate thread is used so that the activity can preempted.
-         */
-        public Thread recordStdOut(Process process) {
-            return recordStream(std, process.getInputStream());
-        }
-        
-        /**
-         * Return a thread responsible for recording the error stream of the
-         * given process.
-         * A separate thread is used so that the activity can preempted.
-         */
-        public Thread recordStdErr(Process process) {
-            return recordStream(err, process.getErrorStream());
-        }
-
-        /**
-         * Return a thread responsible for recording the given stream.
-         *
-         * @param builder     The builder to append to.
-         * @param inputStream The stream to read from.
-         */
-        private Thread recordStream(StringBuffer builder, InputStream inputStream) {
-            Thread t = new Thread(() -> {
-                try (Reader reader = new InputStreamReader(inputStream)) {
-                    int len;
-                    char[] buf = new char[1024];
-                    while ((len = reader.read(buf)) > 0) {
-                        builder.append(buf, 0, len);
-                    }
-                } catch (Exception e) {
-                    builder.append("[truncated...]\n");
-                }
-            });
-            t.start();
-            return t;
-        }
-    }
-    
-    /**
-     * The path to the test.
-     */
+    /** The path to the test. */
     public final Path srcFile;
 
-    /**
-     * The name of the test.
-     */
+    /** The name of the test. */
     public final String name;
-    
-    /**
-     * The result of the test.
-     * @see Result
-     */
+
+    /** The result of the test. */
     public Result result = Result.UNKNOWN;
-    
-    /**
-     * Object used to determine where the code generator puts files.
-     */
+
+    /** Object used to determine where the code generator puts files. */
     public FileConfig fileConfig;
-    
-    /**
-     * Path of the test program relative to the the package root.
-     */
+
+    /** Path of the test program relative to the package root. */
     private final Path relativePath;
 
-    /**
-     * Stream object for capturing standard output.
-     */
-    public ByteArrayOutputStream out = new ByteArrayOutputStream();
+    /** Records compilation stdout/stderr. */
+    private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
-    /**
-     * Stream object for capturing standard error output.
-     */
-    public ByteArrayOutputStream err = new ByteArrayOutputStream();
+    /** Specialized object for capturing output streams while executing the test. */
+    public final ExecutionLogger execLog = new ExecutionLogger();
 
-    /**
-     * Specialized object for capturing output streams while executing the test.
-     */
-    public ExecutionLogger execLog = new ExecutionLogger();
+    /** String builder for collecting issues encountered during test execution. */
+    public final StringBuilder issues = new StringBuilder();
 
-    /**
-     * String builder for collecting issues encountered during test executeion.
-     */
-    public StringBuilder issues = new StringBuilder();
-
-    /**
-     * The target of the test program.
-     */
+    /** The target of the test program. */
     public final Target target;
 
-    /**
-     * The path of the package root of the test program.
-     */
+    /** The path of the package root of the test program. */
     public final Path packageRoot;
 
     /**
      * Create a new test.
+     *
      * @param target The target of the test program.
      * @param srcFile The path to the file of the test program.
      * @param packageRoot The path of the package root of the test program.
@@ -150,7 +65,12 @@ public class LFTest implements Comparable<LFTest> {
         this.name = packageRoot.relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
     }
-    
+
+    /** Stream object for capturing standard and error output. */
+    public OutputStream getOutputStream() {
+        return compilationLog;
+    }
+
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
      * tree set) based on their path (relative to the root of the test directory).
@@ -166,10 +86,7 @@ public class LFTest implements Comparable<LFTest> {
      */
     @Override
     public boolean equals(Object o) {
-        if (o instanceof LFTest && ((LFTest) o).name.equals(this.name)) {
-            return true;
-        }
-        return false;
+        return o instanceof LFTest && ((LFTest) o).name.equals(this.name);
     }
 
     /**
@@ -192,14 +109,11 @@ public class LFTest implements Comparable<LFTest> {
     }
 
     /**
-     * Report whether or not this test has failed.
+     * Report whether this test has failed.
      * @return True if the test has failed, false otherwise.
      */
     public boolean hasFailed() {
-        if (result == Result.TEST_PASS) {
-            return false;
-        }
-        return true;
+        return result != Result.TEST_PASS;
     }
 
     /**
@@ -212,8 +126,8 @@ public class LFTest implements Comparable<LFTest> {
     }
 
     /**
-     *
-     * @return
+     * Compile a string that contains all collected errors and return it.
+     * @return A string that contains all collected errors.
      */
     public String reportErrors() {
         if (this.hasFailed()) {
@@ -223,10 +137,8 @@ public class LFTest implements Comparable<LFTest> {
             sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
             sb.append("Reason: ").append(this.result.message).append(System.lineSeparator());
             appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
-            appendIfNotEmpty("Compilation error output", this.err.toString(), sb);
-            appendIfNotEmpty("Compilation standard output", this.out.toString(), sb);
-            appendIfNotEmpty("Execution error output", this.execLog.err.toString(), sb);
-            appendIfNotEmpty("Execution standard output", this.execLog.std.toString(), sb);
+            appendIfNotEmpty("Compilation output", this.compilationLog.toString(), sb);
+            appendIfNotEmpty("Execution output", this.execLog.toString(), sb);
             sb.append("+---------------------------------------------------------------------------+\n");
         return sb.toString();
         } else {
@@ -271,8 +183,71 @@ public class LFTest implements Comparable<LFTest> {
          * Private constructor.
          * @param message Description of the test outcome.
          */
-        private Result(String message) {
+        Result(String message) {
             this.message = message;
+        }
+    }
+
+
+    /**
+     * Inner class for capturing streams during execution of a test, capable of
+     * recording output streams up until the moment that a test is interrupted
+     * upon timing out.
+     *
+     * @author Marten Lohstroh <marten@berkeley.edu>
+     *
+     */
+    public static final class ExecutionLogger {
+
+        /**
+         * String buffer used to record the standard output and error
+         * streams from the input process.
+         */
+        final StringBuffer buffer = new StringBuffer();
+
+        /**
+         * Return a thread responsible for recording the standard output stream
+         * of the given process.
+         * A separate thread is used so that the activity can be preempted.
+         */
+        public Thread recordStdOut(Process process) {
+            return recordStream(buffer, process.getInputStream());
+        }
+
+        /**
+         * Return a thread responsible for recording the error stream of the
+         * given process.
+         * A separate thread is used so that the activity can be preempted.
+         */
+        public Thread recordStdErr(Process process) {
+            return recordStream(buffer, process.getErrorStream());
+        }
+
+        /**
+         * Return a thread responsible for recording the given stream.
+         *
+         * @param builder     The builder to append to.
+         * @param inputStream The stream to read from.
+         */
+        private Thread recordStream(StringBuffer builder, InputStream inputStream) {
+            Thread t = new Thread(() -> {
+                try (Reader reader = new InputStreamReader(inputStream)) {
+                    int len;
+                    char[] buf = new char[1024];
+                    while ((len = reader.read(buf)) > 0) {
+                        builder.append(buf, 0, len);
+                    }
+                } catch (Exception e) {
+                    builder.append("[truncated...]\n");
+                }
+            });
+            t.start();
+            return t;
+        }
+
+        @Override
+        public String toString() {
+            return buffer.toString();
         }
     }
 }

@@ -47,43 +47,43 @@ public preamble {=
 
     #include "rclcpp/rclcpp.hpp"
     #include "std_msgs/msg/string.hpp"
-
 =}
 
 reactor MessageGenerator {
     public preamble {=
         class MinimalPublisher : public rclcpp::Node {
             public:
-                MinimalPublisher()
-                : Node("minimal_publisher")
-                {
+                MinimalPublisher() : Node("minimal_publisher") {
                     publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
                 }
-            
+
                 rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-        };        
+        };
     =}
+
     state minimal_publisher:{=std::shared_ptr<MinimalPublisher>=};
     state i:int(0);
     timer t(0, 500 msec);
+
     reaction(startup) {=
         std::cout << "Executing startup." << std::endl;
         this->minimal_publisher = std::make_shared<MinimalPublisher>();
     =}
-    reaction(t) {=        
+
+    reaction(t) {=
         auto message = std_msgs::msg::String();
         std::cout << "Executing timer reaction." << std::endl;
         message.data = "Hello, world! " + std::to_string(this->i++);
         RCLCPP_INFO(this->minimal_publisher->get_logger(),
-                    "Sender publishing: '%s'", message.data.c_str());
+                  "Sender publishing: '%s'", message.data.c_str());
         this->minimal_publisher->publisher_->publish(message);
         rclcpp::spin_some(this->minimal_publisher);
         std::cout << "Done executing timer reaction." << std::endl;
     =}
-    
+
     reaction(shutdown) {=
         std::cout << "Executing shutdown reaction." << std::endl;
-    	rclcpp::shutdown();
+        rclcpp::shutdown();
     =}
 }
 
@@ -92,15 +92,16 @@ reactor MessageReceiver {
         class MinimalSubscriber : public rclcpp::Node {
             public:
                 MinimalSubscriber(reactor::PhysicalAction<std::string>& physical_action, const reactor::Reactor& r)
-                : Node("minimal_subscriber"), physical_action_(physical_action), reactor_(r) {
+                    : Node("minimal_subscriber"), physical_action_(physical_action), reactor_(r) {
                     subscription_ = this->create_subscription<std_msgs::msg::String>(
-                      "topic", 10, std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1)
+                          "topic", 10, std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1)
                     );
                 }
 
             private:
                 reactor::PhysicalAction<std::string>& physical_action_;
                 const reactor::Reactor& reactor_;
+
                 void topic_callback(const std_msgs::msg::String::SharedPtr msg) const {
                     RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg->data.c_str());
                     std::cout << "At physical time (" << reactor_.get_elapsed_physical_time() 
@@ -108,35 +109,33 @@ reactor MessageReceiver {
                               << msg->data << " and length " << msg->data.length()
                               << "." << std::endl;
                     physical_action_.schedule(msg->data);
-                    // std::cout << "Done calling schedule_value." << std::endl;
                 }
+
                 rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
         };
     =}
+
     physical action ros_message_a:std::string;
+    timer t(0, 500 msec);
     state minimal_subscriber:{=std::shared_ptr<MinimalSubscriber>=};
+
     reaction(startup) ->  ros_message_a {=
-        // std::cout << "Executing startup." << std::endl;
         char *argv[] = {(char*)"BasicROSPub", NULL};
         rclcpp::init(1, argv);
         this->minimal_subscriber = std::make_shared<MinimalSubscriber>(ros_message_a, *this);
     =}
-    
+
     reaction(ros_message_a){=
         std::cout << "Physical action triggered." << std::endl;
         std::cout << "Received: " << *(ros_message_a.get()) << std::endl;
     =}
 
-    
-    timer t(0, 500 msec);
-    reaction(t) {=       
+    reaction(t) {=
         rclcpp::spin_some(this->minimal_subscriber);
-        // std::cout << "Timer triggered." << std::endl;
     =}
-    
+
     reaction(shutdown) {=
-        // std::cout << "Executing shutdown reaction." << std::endl;
-    	rclcpp::shutdown();
+        rclcpp::shutdown();
     =}
 }
 
@@ -144,3 +143,4 @@ main reactor {
     sender = new MessageGenerator();
     receiver = new MessageReceiver();
 }
+
