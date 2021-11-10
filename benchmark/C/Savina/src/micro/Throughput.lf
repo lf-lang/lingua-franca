@@ -91,15 +91,12 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
  */
 reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
     
-    output[numConsumer] outMessage:bool;
+    output outMessage:bool;
     
     timer t(0, 1 nsec);
         
     reaction(t) -> outMessage {=
-        
-        for(int i = 0; i < self->numConsumer; i++) {
-            SET(outMessage[i], true);
-        }
+        SET(outMessage, true);
     =}
 }
 
@@ -113,5 +110,5 @@ main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60))
     
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
 
-    producer.outMessage -> worker.inMessage;    
+    (producer.outMessage)+ -> worker.inMessage;    
 }
