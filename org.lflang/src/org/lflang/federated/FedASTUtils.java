@@ -456,7 +456,7 @@ public class FedASTUtils {
             }
         }
         
-        TimeValue maxSTP = new TimeValue();
+        TimeValue maxSTP = TimeValue.ZERO;
         for (Value value : safe(STPList)) {
             TimeValue tValue = ASTUtils.getTimeValue(value);
             if(maxSTP.isEarlierThan(tValue)) {
