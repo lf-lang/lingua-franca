@@ -8,8 +8,8 @@ reactor Source(width(1)) {
     state s(0);
     output[width] out;
     reaction(t) -> out {=
-        for i in range(len(out)):
-            out[i].set(self.s)
+        for port in out:
+            port.set(self.s)
             self.s += 1
     =}
 }
@@ -17,9 +17,9 @@ main reactor {
     state s(6);
     reaction(b.out) {=
         sm = 0
-        for i in range(len(b.out)):
-            if b.out[i].is_present:
-                sm += b.out[i].value
+        for port in b.out:
+            if port.is_present:
+                sm += port.value
         print("Sum of received: ", sm)
         if sm != self.s:
             sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))

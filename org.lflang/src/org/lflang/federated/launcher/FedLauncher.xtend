@@ -23,7 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.federated
+package org.lflang.federated.launcher
 
 import java.io.FileOutputStream
 import java.util.ArrayList
@@ -41,17 +41,17 @@ import org.lflang.TargetProperty.ClockSyncMode
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
 package class FedLauncher {
-    
+
     protected var TargetConfig targetConfig;
     protected var FileConfig fileConfig;
     protected var ErrorReporter errorReporter;
-    
+
     /**
      * @param targetConfig The current target configuration.
      * @param fileConfig The current file configuration.
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
-    new (
+    new(
         TargetConfig targetConfig,
         FileConfig fileConfig,
         ErrorReporter errorReporter
@@ -60,16 +60,16 @@ package class FedLauncher {
         this.fileConfig = fileConfig;
         this.errorReporter = errorReporter;
     }
-    
+
     /**
      * Return the compile command for a federate.
      * 
      * @param federate The federate to compile.
      */
-    protected def String compileCommandForFederate(FederateInstance federate) {
+    protected def String compileCommandForFederate(org.lflang.federated.FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to compile the federates.");
     }
-    
+
     /**
      * Return the command that will execute a remote federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
@@ -77,7 +77,7 @@ package class FedLauncher {
      * 
      * @param federate The federate to execute.
      */
-    protected def String executeCommandForRemoteFederate(FederateInstance federate) {
+    protected def String executeCommandForRemoteFederate(org.lflang.federated.FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 
@@ -85,13 +85,14 @@ package class FedLauncher {
      * Return the command that will execute a local federate, assuming that the current
      * directory is the top-level project folder. This is used to create a launcher script
      * for federates.
-     *
+     * 
      * @param federate The federate to execute.
      */
-    protected def String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
+    protected def String executeCommandForLocalFederate(FileConfig fileConfig,
+        org.lflang.federated.FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
-    
+
     /**
      * Create the launcher shell scripts. This will create one or two files
      * in the output path (bin directory). The first has name equal to
@@ -136,9 +137,8 @@ package class FedLauncher {
      */
     def createLauncher(
         ArrayList<String> coreFiles,
-        List<FederateInstance> federates,
+        List<org.lflang.federated.FederateInstance> federates,
         LinkedHashMap<String, Object> federationRTIProperties
-        
     ) {
         // NOTE: It might be good to use screen when invoking the RTI
         // or federates remotely so you can detach and the process keeps running.
@@ -151,9 +151,7 @@ package class FedLauncher {
         // on the machine that runs the RTI.  The command I tried
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
-        
-        //var outPath = binGenPath
-
+        // var outPath = binGenPath
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
         shCode.append('''
@@ -187,7 +185,7 @@ package class FedLauncher {
             
             trap 'cleanup_err $LINENO' ERR
             trap 'cleanup_sigint $LINENO' SIGINT
-
+            
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
@@ -210,16 +208,16 @@ package class FedLauncher {
         if (user !== null) {
             target = user + '@' + host
         }
-        
+
         var RTILaunchString = '''
-        RTI -i ${FEDERATION_ID} \
-                         -n «federates.size» \
-                         -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                          period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
-                          exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
-                          &
-        '''
-        
+            RTI -i ${FEDERATION_ID} \
+                             -n «federates.size» \
+                             -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
+                                 period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
+                                 exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
+                                 &
+            '''
+
         // Launch the RTI in the foreground.
         if (host == 'localhost' || host == '0.0.0.0') {
             // FIXME: the paths below will not work on Windows
@@ -249,8 +247,8 @@ package class FedLauncher {
             // Start the RTI on the remote machine.
             // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
             // Copy the source code onto the remote machine and compile it there.
-            if (distCode.length === 0) distCode.append(distHeader+"\n");
-            
+            if(distCode.length === 0) distCode.append(distHeader + "\n");
+
             val logFileName = '''log/«fileConfig.name»_RTI.log'''
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -270,11 +268,11 @@ package class FedLauncher {
                 RTI -i '${FEDERATION_ID}' \
                                  -n «federates.size» \
                                  -c «targetConfig.clockSync.toString()» «IF targetConfig.clockSync == ClockSyncMode.ON» \
-                                  period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
-                                  exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
-                                  &
+                                     period «targetConfig.clockSyncOptions.period.toNanoSeconds» «ENDIF» \
+                                     exchanges-per-interval «targetConfig.clockSyncOptions.trials» \
+                                     &
             '''
-            
+
             shCode.append( '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 # FIXME: Killing this ssh does not kill the remote process.
@@ -301,17 +299,17 @@ package class FedLauncher {
                 sleep 1
             ''')
         }
-                
+
         // Index used for storing pids of federates
         var federateIndex = 0
         for (federate : federates) {
             if (federate.isRemote) {
-                val fedFileConfig = new FedFileConfig(fileConfig, federate.name);
+                val fedFileConfig = new org.lflang.federated.FedFileConfig(fileConfig, federate.name);
                 val fedRelSrcGenPath = fedFileConfig.srcGenBasePath.relativize(fedFileConfig.srcGenPath);
-                if(distCode.length === 0) distCode.append(distHeader+"\n");
+                if(distCode.length === 0) distCode.append(distHeader + "\n");
                 val logFileName = '''log/«fedFileConfig.name»_«federate.name».log'''
                 val compileCommand = compileCommandForFederate(federate);
-                //'''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
+                // '''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 distCode.append( '''
                     echo "Making directory «path» and subdirectories src-gen, bin, and log on host «federate.user»@«federate.host»"
@@ -345,14 +343,14 @@ package class FedLauncher {
                         echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                         «executeCommand» 2>&1 | tee -a «logFileName»' &
                     pids[«federateIndex++»]=$!
-                ''')                
+                ''')
             } else {
                 val executeCommand = executeCommandForLocalFederate(fileConfig, federate);
                 shCode.append( '''
                     echo "#### Launching the federate «federate.name»."
                     «executeCommand» &
                     pids[«federateIndex++»]=$!
-                ''')                
+                ''')
             }
         }
         if (host == 'localhost' || host == '0.0.0.0') {
@@ -380,14 +378,14 @@ package class FedLauncher {
         if (file.exists) {
             file.delete
         }
-                
+
         var fOut = new FileOutputStream(file)
         fOut.write(shCode.toString().getBytes())
         fOut.close()
         if (!file.setExecutable(true, false)) {
             errorReporter.reportWarning("Unable to make launcher script executable.")
         }
-        
+
         // Write the distributor file.
         // Delete the file even if it does not get generated.
         file = fileConfig.binPath.resolve(fileConfig.name + '_distribute.sh').toFile
