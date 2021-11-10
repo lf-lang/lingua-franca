@@ -73,7 +73,7 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
         #include <math.h>
 
         void performComputation(double theta) {
-            double sint = sin(theta + i);
+            double sint = sin(theta);
             // volatile to defeat dead code elimination
             volatile double res = sint * sint;
         }
