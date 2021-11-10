@@ -66,7 +66,6 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
-import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
@@ -277,7 +276,7 @@ import static extension org.lflang.JavaAstUtils.*
  * the sizes of these inner arrays. The num_outputs field of the
  * reaction_i struct gives the length of the triggered_sizes and
  * (outer) triggers arrays. The num_outputs field is equal to the
- * total number of single ports and multiport channels that the reaction
+ * total number of single ports and multiport ranges of channels that the reaction
  * writes to.
  * 
  * ## Runtime Tables
@@ -3082,7 +3081,15 @@ class CGenerator extends GeneratorBase {
                 var portCount = 0
                 
                 optimizeForSingleDominatingReaction(reaction, reactionCount, federate);
-                                                
+                               
+                // Insert a string name to facilitate debugging.                 
+                if (targetConfig.logLevel >= LogLevel.LOG) {
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName»'s name.
+                        «selfStruct»->_lf__reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
+                    ''')
+                }
+                
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip ports whose parent is not in the federation.
                     // This can happen with reactions in the top-level that have
@@ -3125,6 +3132,7 @@ class CGenerator extends GeneratorBase {
                             val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
                             // Eliminate the for loop for the case where range.channelWidth == 1,
                             // a common situation on multiport to bank messaging.
+                            // Also, the variable triggerArray has different types for these two forms.
                             if (range.channelWidth == 1) {
                                 pr(initializeTriggerObjectsEnd, '''
                                     // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
@@ -3133,12 +3141,15 @@ class CGenerator extends GeneratorBase {
                                     «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
                                 ''')
                             } else {
+                                // FIXME malloc is not properly freed in destructor (subarrays not freed).
+                                // Fix this by having a global list of malloc'd objects.
                                 pr(initializeTriggerObjectsEnd, '''
                                     // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
-                                    // array of trigger pointers for downstream reactions through port «port.getFullName»
-                                    trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                                    // array of trigger pointer arrays for downstream reactions through port «port.getFullName»
+                                    trigger_t*** «triggerArray» = (trigger_t***)malloc(«range.channelWidth» * sizeof(trigger_t**));
                                     for (int i = «portCount»; i < «portCount + range.channelWidth»; i++) {
-                                        «selfStruct»->_lf__reaction_«reactionCount».triggers[i] = «triggerArray»;
+                                        «triggerArray»[i - «portCount»] = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                                        «selfStruct»->_lf__reaction_«reactionCount».triggers[i] = «triggerArray»[i - «portCount»];
                                     }
                                 ''')
                             }
@@ -3157,25 +3168,50 @@ class CGenerator extends GeneratorBase {
                                         }
                                     }
                                     if (belongs) {
-                                        pr(initializeTriggerObjectsEnd, '''
-                                            // Port «port.getFullName» has reactions in its parent's parent.
-                                            // Point to the trigger struct for those reactions.
-                                            «triggerArray»[«destinationCount++»] = &«triggerStructName(
-                                                destination, 
-                                                destination.parent.parent
-                                            )»;
-                                        ''')
+                                        // The variable triggerArray has different types for these two forms.
+                                        if (range.channelWidth == 1) {
+                                            pr(initializeTriggerObjectsEnd, '''
+                                                // Port «port.getFullName» has reactions in its parent's parent.
+                                                // Point to the trigger struct for those reactions.
+                                                «triggerArray»[«destinationCount»] = &«triggerStructName(
+                                                    destination, 
+                                                    destination.parent.parent
+                                                )»;
+                                            ''')
+                                        } else {
+                                            pr(initializeTriggerObjectsEnd, '''
+                                                // Port «port.getFullName» has reactions in its parent's parent.
+                                                // Point to the trigger struct for those reactions.
+                                                for (int i = 0; i < «range.channelWidth»; i++) {
+                                                    «triggerArray»[i][«destinationCount»] = &«triggerStructName(
+                                                        destination, 
+                                                        destination.parent.parent
+                                                    )»;
+                                                }
+                                            ''')
+                                        }
                                     }
                                 } else {
                                     // Destination is an input port.
-                                    pr(initializeTriggerObjectsEnd, '''
-                                        // Point to destination port «destination.getFullName»'s trigger struct.
-                                        «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
-                                    ''')
+                                    // The variable triggerArray has different types for these two forms.
+                                    if (range.channelWidth == 1) {
+                                        pr(initializeTriggerObjectsEnd, '''
+                                            // Point to destination port «destination.getFullName»'s trigger struct.
+                                            «triggerArray»[«destinationCount»] = &«triggerStructName(destination)»;
+                                        ''')
+                                    } else {
+                                        pr(initializeTriggerObjectsEnd, '''
+                                            // Point to destination port «destination.getFullName»'s trigger struct.
+                                            for (int i = 0; i < «range.channelWidth»; i++) {
+                                                «triggerArray»[i][«destinationCount»] = &«triggerStructName(destination)»;
+                                            }
+                                        ''')
+                                    }
                                 }
+                                destinationCount++;
                             }
                             
-                            portCount += range.channelWidth;
+                            portCount++;
                         }
                     } else {
                         // Count the port even if it is not contained in the federate because effect
@@ -3229,12 +3265,6 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjectsEnd, '''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
                 «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = NULL;
-            ''')
-        }
-        if (targetConfig.logLevel >= LogLevel.LOG) {
-            pr(initializeTriggerObjectsEnd, '''
-                // Reaction «reactionNumber» of «reactorInstance.getFullName»'s name.
-                «selfStruct»->_lf__reaction_«reactionNumber».name = "«reactorInstance.fullName» reaction «reactionNumber»";
             ''')
         }
     }
@@ -4119,7 +4149,7 @@ class CGenerator extends GeneratorBase {
                                 val end = sendingRange.startChannel + sendingRange.channelWidth;
                                 pr(initializeTriggerObjectsEnd, '''
                                     for (int i = «start»; i < «end»; i++) {
-                                        «sourceReference(port)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                        «sourceReference(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                                     }
                                 ''')
                             } else {
@@ -5279,8 +5309,8 @@ class CGenerator extends GeneratorBase {
                         pr('''
                             // Connect «port», which gets data from reaction «reaction.reactionIndex»
                             // of «instance.getFullName», to «port.getFullName».
-                            for (int i = 0; i < «port.width», i++) {
-                                «destinationReference(port)»[i] = («destStructType»*)&«sourceReference(port)»[i];
+                            for (int i = 0; i < «port.width»; i++) {
+                                «destinationReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
                             }
                         ''')
                     } else {

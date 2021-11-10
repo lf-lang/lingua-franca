@@ -29,6 +29,7 @@ package org.lflang.generator;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1066,10 +1067,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             int dstChannel,
             int width
     ) {
-        PortInstance.PortChannelRange dstRange = dstInstance.newRange(dstChannel, width);
+        PortInstance.Range dstRange = dstInstance.newRange(dstChannel, width);
         srcInstance.dependentPorts.add(dstRange);
         
-        PortInstance.PortChannelRange srcRange = srcInstance.newRange(srcChannel, width);
+        PortInstance.Range srcRange = srcInstance.newRange(srcChannel, width);
         dstInstance.dependsOnPorts.add(srcRange);
         
         // Record the connection in the connection table.
@@ -1132,22 +1133,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * to support multiport-to-multiport, multiport-to-bank,
      * and bank-to-multiport communication.  The principle being followed is:
      * in each connection statement, for each port instance on the left,
-     * as obtained by the nextPort() function, connect to the next available
-     * port on the right, as obtained by the nextPort() function.
+     * connect to the next available port on the right.
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<PortInstance> leftPortInstances = listPortInstances(connection.getLeftPorts());
-            List<PortInstance> rightPortInstances = listPortInstances(connection.getRightPorts());
+            List<PortInstance.Range> leftRanges = listPortInstances(connection.getLeftPorts());
+            List<PortInstance.Range> rightRanges = listPortInstances(connection.getRightPorts());
 
-            // Check widths.
+            // Check widths.  FIXME: This duplicates validator checks!
             int leftWidth = 0;
-            for (PortInstance port: leftPortInstances) {
-                leftWidth += port.width;
+            for (PortInstance.Range range: leftRanges) {
+                leftWidth += range.channelWidth;
             }
             int rightWidth = 0;
-            for (PortInstance port: rightPortInstances) {
-                rightWidth += port.width;
+            for (PortInstance.Range range: rightRanges) {
+                rightWidth += range.channelWidth;
             }
             if (leftWidth > rightWidth) {
                 reporter.reportWarning(connection, 
@@ -1160,49 +1160,46 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // If any of these ports is a multiport, then things can complicated depending
             // on how they overlap. Keep track of how much of the current left and right
             // multiports have already been used.
-            int leftPortIndex = 0;  // Which port on the left we are looking at.
-            int leftChannel = 0;
-            int rightChannel = 0;
-            for (PortInstance rightPortInstance : rightPortInstances) {
-                while (rightChannel < rightPortInstance.width) {
-                    if (leftPortIndex < leftPortInstances.size()) {
-                        PortInstance leftPortInstance = leftPortInstances.get(leftPortIndex);
-                    
-                        // Figure out how much of each port we have used (in case it is a multiport).
-                        // First, find the minimum of the two remaining widths.
-                        int connectionWidth = leftPortInstance.width - leftChannel;
-                        if (rightPortInstance.width - rightChannel < connectionWidth) {
-                            connectionWidth = rightPortInstance.width - rightChannel;
+            Iterator<PortInstance.Range> leftIterator = leftRanges.iterator();
+            PortInstance.Range leftRange = leftIterator.next();
+            
+            int leftUsedChannels = 0;
+            for (PortInstance.Range rightRange : rightRanges) {
+                int rightUsedChannels = 0;
+                while (rightUsedChannels < rightRange.channelWidth && leftRange != null) {
+                    // Figure out how much of each port we have used (in case it is a multiport).
+                    // This is the minimum of the two remaining widths.
+                    int connectionWidth = leftRange.channelWidth - leftUsedChannels;
+                    if (rightRange.channelWidth - rightUsedChannels < connectionWidth) {
+                        connectionWidth = rightRange.channelWidth - rightUsedChannels;
+                    }
+                    connectPortInstances(
+                            connection, 
+                            leftRange.getPortInstance(), leftRange.startChannel + leftUsedChannels, 
+                            rightRange.getPortInstance(), rightRange.startChannel + rightUsedChannels, 
+                            connectionWidth);
+                    leftUsedChannels += connectionWidth;
+                    rightUsedChannels += connectionWidth;
+                    if (leftUsedChannels >= leftRange.channelWidth) {
+                        if (leftIterator.hasNext()) {
+                            leftRange = leftIterator.next();
+                        } else if (connection.isIterated()) {
+                            leftIterator = leftRanges.iterator();
+                            leftRange = leftIterator.next();
+                        } else {
+                            leftRange = null;
                         }
-                        connectPortInstances(
-                                connection, 
-                                leftPortInstance, leftChannel, 
-                                rightPortInstance, rightChannel, 
-                                connectionWidth);
-                        leftChannel += connectionWidth;
-                        rightChannel += connectionWidth;
-                        if (leftChannel >= leftPortInstance.width) {
-                            leftPortIndex++;
-                            if (connection.isIterated() && leftPortIndex >= leftPortInstances.size()) {
-                                leftPortIndex = 0;
-                            }
-                            leftChannel = 0;
-                        }
-                    } else {
-                        // Something is wrong. We have run out of left ports.
-                        // The validator should have caught this, so we just
-                        // leave the remaining right ports unconnected.
-                        rightChannel = rightPortInstance.width;
+                        leftUsedChannels = 0;
                     }
                 }
-                rightChannel = 0;
             }
         }
     }
     
     /**
      * Given a list of port references, as found on either side of a connection,
-     * return a list of the port instances referenced. These may be multiports.
+     * return a list of the port instances referenced. These may be multiports,
+     * so the returned list includes ranges of channels.
      * If the port reference has the form `c.x`, where `c` is a bank of reactors,
      * then the list will contain the port instances belonging to each bank member.
      * 
@@ -1215,8 +1212,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * then bank members. E.g., if `b` and `m` have width 2, it returns
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`.
      */
-    private List<PortInstance> listPortInstances(List<VarRef> references) {
-        List<PortInstance> result = new ArrayList<PortInstance>();
+    private List<PortInstance.Range> listPortInstances(List<VarRef> references) {
+        List<PortInstance.Range> result = new ArrayList<PortInstance.Range>();
         for (VarRef portRef : references) {
             // Simple error checking first.
             if (!(portRef.getVariable() instanceof Port)) {
@@ -1231,18 +1228,40 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (portRef.getContainer() != null) {
                 reactor = getChildReactorInstance(portRef.getContainer());
             }
-            // The reactor be null only if there is an error in the code.
+            // The reactor can be null only if there is an error in the code.
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
                 if (reactor.bankMembers != null) {
                     // Reactor is a bank.
-                    for (ReactorInstance memberReactor: reactor.bankMembers) {
-                        result.add(memberReactor.lookupPortInstance((Port) portRef.getVariable()));
+                    // Only here does the "interleaved" annotation matter.
+                    if (!portRef.isInterleaved()) {
+                        // Port is not interleaved, so iterate first over bank members, then channels.
+                        for (ReactorInstance memberReactor: reactor.bankMembers) {
+                            PortInstance portInstance = memberReactor.lookupPortInstance(
+                                    (Port) portRef.getVariable());
+                            result.add(portInstance.newRange(0, portInstance.width));
+                        }
+                    } else {
+                        // Port is interleaved, so iterate first over channels, then bank members.
+                        // Need to return a list of width-one ranges.
+                        // NOTE: Here, we get multiplicative complexity (bank width times port width).
+                        // We assume all ports in each bank have the same width.
+                        // First, get an array of bank members so as to not have to look up each time.
+                        List<PortInstance> bankPorts = new ArrayList<PortInstance>();
+                        for (ReactorInstance b : reactor.bankMembers) {
+                            bankPorts.add(b.lookupPortInstance((Port) portRef.getVariable()));
+                        }
+                        for (int i = 0; i < bankPorts.get(0).width; i++) {
+                            for (PortInstance p : bankPorts) {
+                                result.add(p.newRange(i, 1));
+                            }
+                        }
                     }
                 } else {
                     // Reactor is not a bank.
                     PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
-                    result.add(portInstance);
+                    PortInstance.Range range = portInstance.newRange(0, portInstance.width);
+                    result.add(range);
                 }
             }
         }
