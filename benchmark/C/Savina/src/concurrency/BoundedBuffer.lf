@@ -41,8 +41,7 @@ preamble {=
         double res = curTerm;
         
         //FIXME: segfaulting here
-        PseudoRandom random = malloc(sizeof(struct PseudoRandom));
-        random->mValue = malloc(sizeof(long));
+        PseudoRandom* random = malloc(sizeof(struct PseudoRandom));
         random->mValue = cost;
 
         if(cost > 0) {
@@ -57,7 +56,6 @@ preamble {=
         
         //free
         free(random);
-        free(random->mValue);
         return res;
     }
 =}
@@ -71,8 +69,7 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
         #include "deque.c"
     =}
     
-    //FIXME: need to cog this
-    state adjustedBuffersize: size_t(10);
+    state adjustedBuffersize: size_t(0);
     state pendingData: deque_t;
     state numTerminatedProducers: size_t(0);
     state producerTerminated: {=bool[]=};
@@ -90,8 +87,9 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
     
     reaction(startup) -> producerCommand {=
         // reset local state
+        self->adjustedBuffersize = self->bufferSize - self->numProducers;
         self->numTerminatedProducers = 0;
-        self->producerTerminated[self->numProducers];
+        self->producerTerminated = malloc(self->numProducers * sizeof(bool));
         for (int i = 0; i < self->numProducers; i++) {
             self->producerTerminated[i] = false;
         }
@@ -145,6 +143,10 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
             }
         }
     =}           
+
+    reaction(shutdown) {=
+        free(self->producerTerminated);
+    =}
         
 }
 
@@ -204,16 +206,29 @@ reactor ConsumerReactor(bank_index: size_t(0), consCost: size_t(25)) {
     =}
 }
 
-// FIXME: cog this
-main reactor (
-    numIterations: size_t(12),
+
+/* [[[cog
+  	  cog.outl(f'main reactor (
+    bufferSize: size_t({bufferSize}),
+    prodCost: size_t({prodCost}),
+    consCost: size_t({consCost}),
+    numItemsPerProducer: size_t({numItemsPerProducer}),
+    numConsumers: size_t({numConsumers}),
+    numProducers: size_t({numProducers})
+)')
+	]]] */
+    main reactor (
     bufferSize: size_t(50),
     prodCost: size_t(25),
     consCost: size_t(25),
     numItemsPerProducer: size_t(1000),
     numConsumers: size_t(40),
     numProducers: size_t(40)
-) {
+)
+	// [[[end]]]
+
+ {
+
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
     producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
     consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
