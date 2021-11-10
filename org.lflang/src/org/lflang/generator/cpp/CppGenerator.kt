@@ -34,7 +34,6 @@ import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
@@ -253,11 +252,11 @@ val TimeUnit.cppUnit
         TimeUnit.USECS   -> "us"
         TimeUnit.MSEC    -> "ms"
         TimeUnit.MSECS   -> "ms"
-        TimeUnit.SEC     -> "s"
+        TimeUnit.SECOND  -> "s"
         TimeUnit.SECS    -> "s"
         TimeUnit.SECOND  -> "s"
         TimeUnit.SECONDS -> "s"
-        TimeUnit.MIN     -> "min"
+        TimeUnit.MINUTE  -> "min"
         TimeUnit.MINS    -> "min"
         TimeUnit.MINUTE  -> "min"
         TimeUnit.MINUTES -> "min"

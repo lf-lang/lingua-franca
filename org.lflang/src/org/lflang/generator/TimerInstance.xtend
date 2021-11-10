@@ -41,9 +41,9 @@ import static extension org.lflang.ASTUtils.*
 class TimerInstance extends TriggerInstance<Timer> {
     
     /** The global default for offset. */
-    public static val DEFAULT_OFFSET = new TimeValue()
+    public static val DEFAULT_OFFSET = TimeValue.ZERO
     /** The global default for period. */
-    public static val DEFAULT_PERIOD = new TimeValue()
+    public static val DEFAULT_PERIOD = TimeValue.ZERO
     
     @Accessors(PUBLIC_GETTER)
 	protected TimeValue offset = DEFAULT_OFFSET

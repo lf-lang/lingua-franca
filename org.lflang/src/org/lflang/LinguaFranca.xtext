@@ -263,7 +263,7 @@ Element:
     keyvalue=KeyValuePairs 
     | array=Array
     | literal=Literal 
-    | (time=INT unit=TimeUnit) 
+    | (time=INT unit=TimeUnit)
     | id=Path;
 
 ///////// Pieces
@@ -401,13 +401,13 @@ terminal WS: (' '|'\t'|'\r'|'\n')+;
 terminal TRUE:  'true' | 'True';
 terminal FALSE: 'false' | 'False';
 
-terminal NSEC: 'nsec' | 'nsecs';
-terminal USEC: 'usec' | 'usecs';
-terminal MSEC: 'msec' | 'msecs';
-terminal SEC: 'sec' | 'secs' | 'second' | 'seconds';
+terminal NSEC: 'ns' | 'nsec' | 'nsecs';
+terminal USEC: 'us' | 'usec' | 'usecs';
+terminal MSEC: 'ms' | 'msec' | 'msecs';
+terminal SEC: 's' | 'sec' | 'secs' | 'second' | 'seconds';
 terminal MIN: 'min' | 'mins' | 'minute' | 'minutes';
-terminal HOUR: 'hour' | 'hours';
-terminal DAY: 'day' | 'days';
+terminal HOUR: 'h' | 'hour' | 'hours';
+terminal DAY: 'd' | 'day' | 'days';
 terminal WEEK: 'week' | 'weeks';
 
 terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;

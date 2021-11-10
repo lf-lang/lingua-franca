@@ -224,7 +224,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * Inferred deadline. Defaults to the maximum long value.
      */
-    public var deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC)
+    public var deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO)
 
     /**
      * The level in the dependence graph. -1 indicates that the level

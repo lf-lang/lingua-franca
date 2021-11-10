@@ -1501,7 +1501,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             return d.toText
         }
 
-        time = new TimeValue(d.interval, d.unit)
+        time = new TimeValue(d.interval,  TimeUnit.fromName(d.unit))
 
         if (time.unit !== null) {
             return time.unit.name() + '(' + time.time + ')'
@@ -1835,7 +1835,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return A time string in the target language
      */
     protected def getTargetTime(Time t) {
-        val value = new TimeValue(t.interval, t.unit)
+        val value = new TimeValue(t.interval, TimeUnit.fromName(t.unit))
         return value.timeInTargetLanguage
     }
 
@@ -1866,7 +1866,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         if (v.time !== null) {
             return v.time.targetTime
         } else if (v.isZero) {
-            val value = new TimeValue()
+            val value = TimeValue.ZERO
             return value.timeInTargetLanguage
         }
         return v.toText
@@ -1876,7 +1876,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         if (d.parameter !== null) {
             return d.toText
         } else {
-            return new TimeValue(d.interval, d.unit).timeInTargetLanguage
+            return new TimeValue(d.interval,  TimeUnit.fromName(d.unit)).timeInTargetLanguage
         }
     }
 

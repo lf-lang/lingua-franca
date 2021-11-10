@@ -41,7 +41,7 @@ import static extension org.lflang.ASTUtils.*
 class ActionInstance extends TriggerInstance<Action> {
     
     /** The constant default for a minimum delay. */
-    public static val DEFAULT_MIN_DELAY = new TimeValue()
+    public static val DEFAULT_MIN_DELAY = TimeValue.ZERO
     
     @Accessors(PUBLIC_GETTER)
     TimeValue minDelay = DEFAULT_MIN_DELAY

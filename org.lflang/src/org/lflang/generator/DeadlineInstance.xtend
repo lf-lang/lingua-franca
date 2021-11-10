@@ -46,7 +46,7 @@ class DeadlineInstance {
      * The delay D associated with this deadline. If physical time T < logical
      * time t + D, the deadline is met, otherwise, it is violated.
 	 */
-	public TimeValue maxDelay = new TimeValue()
+	public TimeValue maxDelay = TimeValue.ZERO
 	
 	/**
 	 * Create a new deadline instance associated with the given reaction

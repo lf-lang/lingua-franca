@@ -726,7 +726,7 @@ class ASTUtils {
      * @param e The element to be rendered as a time value.
      */
     def static toTimeValue(Element e) {
-        return new TimeValue(e.time, e.unit)
+        return new TimeValue(e.time, TimeUnit.fromName(e.unit))
     }
     
     /**
@@ -1067,12 +1067,12 @@ class ASTUtils {
         if (p !== null && p.isOfTimeType) {
             val init = p.init.get(0)
             if (init.time !== null) {
-                return new TimeValue(init.time.interval, init.time.unit)
+                return new TimeValue(init.time.interval, TimeUnit.fromName(init.time.unit))
             } else if (init.parameter !== null) {
                 // Parameter value refers to another parameter.
                 return getInitialTimeValue(init.parameter) 
             } else {
-                return new TimeValue()
+                return TimeValue.ZERO
             }
         }
         return null
@@ -1087,9 +1087,9 @@ class ASTUtils {
         if (v.parameter !== null) {
             return ASTUtils.getInitialTimeValue(v.parameter)
         } else if (v.time !== null) {
-            return new TimeValue(v.time.interval, v.time.unit)
+            return new TimeValue(v.time.interval, TimeUnit.fromName(v.time.unit))
         } else {
-            return new TimeValue()
+            return TimeValue.ZERO
         }
     }
         

@@ -29,13 +29,19 @@ package org.lflang;
  * Represents an amount of time (a duration).
  *
  * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Clément Fournier, TU Dresden, INSA Rennes
  */
 public final class TimeValue implements Comparable<TimeValue> {
 
     /**
      * The maximum value of this type. This is approximately equal to 292 years.
      */
-    public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NSEC);
+    public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
+    /**
+     * A time value equal to zero.
+     */
+    public static final TimeValue ZERO = new TimeValue(0, null);
+
 
     /**
      * Primitive numerical representation of this time value,
@@ -44,7 +50,7 @@ public final class TimeValue implements Comparable<TimeValue> {
     public final long time;
 
     /**
-     * Units associated with this time value.
+     * Units associated with this time value. May be null.
      */
     public final TimeUnit unit;
 
@@ -56,25 +62,9 @@ public final class TimeValue implements Comparable<TimeValue> {
     public static final long MAX_LONG_DEADLINE = Long.decode("0x7FFFFFFFFFFF");
 
     /**
-     * Create a new time value equal to zero.
-     */
-    public TimeValue() {
-        this.time = 0;
-        this.unit = null;
-    }
-    
-    public TimeValue(long time, String unit) {
-        this.time = 0;
-        if (time == 0) {
-            this.unit = null;
-        } else {
-            this.unit = TimeUnit.fromString(unit);
-        }
-    }
-    
-    /**
-     * Create a new time value. Throws an exception time is non-zero and no
-     * units are given.
+     * Create a new time value.
+     *
+     * @throws IllegalArgumentException If time is non-zero and the unit is null
      */
     public TimeValue(long time, TimeUnit unit) {
         if (unit == null && time != 0) {
@@ -89,15 +79,15 @@ public final class TimeValue implements Comparable<TimeValue> {
             return time; // == 0, see constructor.
         }
         switch (unit) {
-        case NSEC:
+        case NANO:
             return time;
-        case USEC:
+        case MICRO:
             return time * 1000;
-        case MSEC:
+        case MILLI:
             return time * 1_000_000;
-        case SEC:
+        case SECOND:
             return time * 1_000_000_000;
-        case MIN:
+        case MINUTE:
             return time * 60_000_000_000L;
         case HOUR:
             return time * 3_600_000_000_000L;
@@ -118,9 +108,6 @@ public final class TimeValue implements Comparable<TimeValue> {
 
     @Override
     public int compareTo(TimeValue o) {
-        if (o == null) { 
-            throw new NullPointerException("Can't compare against null timevalue");
-        }
         return Long.compare(this.toNanoSeconds(), o.toNanoSeconds());
     }
 
