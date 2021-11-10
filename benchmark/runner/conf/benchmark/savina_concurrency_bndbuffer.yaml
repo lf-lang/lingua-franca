@@ -47,9 +47,10 @@ targets:
       consumers: ["--numConsumers", "<value>"]
   lf-c:
     copy_sources:
-      - "${lf_path}/benchmark/C/Savina/src/concurrency/ProdCons.lf"
-    lf_file: "ProdCons.lf"
-    binary: "ProdCons"
+      - "${lf_path}/benchmark/C/Savina/src/concurrency/"
+      - "${lf_path}/benchmark/C/Savina/src/include/"
+    lf_file: "concurrency/BoundedBuffer.lf"
+    binary: "BoundedBuffer"
     gen_args:
       producers: ["-D", "numProducers=<value>"]
       consumers: ["-D", "numConsumers=<value>"]
