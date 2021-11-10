@@ -48,5 +48,5 @@ targets:
       size: ["-D", "size=<value>"]
       threshold: ["-D", "threshold=<value>"]
       priorities: ["-D", "priorities=<value>"]
-      solutions_limit: ["-D", "solutionsLimit=<value>"]
+      solution_limit: ["-D", "solutionsLimit=<value>"]
       num_workers: ["-D", "numWorkers=<value>"]

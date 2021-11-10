@@ -49,17 +49,18 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedCLauncher
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FedROS2CPPSerialization
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.launcher.FedCLauncher
+import org.lflang.federated.serialization.FedROS2CPPSerialization
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.InvalidSourceException
@@ -93,7 +94,6 @@ import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.TargetConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -489,9 +489,21 @@ class CGenerator extends GeneratorBase {
                  }
              }
          }
+            
+        // Build the instantiation tree if a main/federated reactor is present.
+        if (this.mainDef !== null) {
+            if (this.main === null) {
+                // Recursively build instances. This is done once because
+                // it is the same for all federates.
+                this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
+                    this.unorderedReactions)
+                this.reactionGraph = new ReactionInstanceGraph(main)
+                // Avoid compile errors by removing disconnected network ports    
+                removeRemoteFederateConnectionPorts(main);
+            }   
+        }
         
         // Create the output directories if they don't yet exist.
-        
         var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
@@ -538,14 +550,16 @@ class CGenerator extends GeneratorBase {
                 "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
-
-            var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
-            var rtiDir = rtiPath.toFile()
-            if (!rtiDir.exists()) {
-                rtiDir.mkdirs()
+            
+            if (targetConfig.dockerOptions !== null) {
+                var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
+                var rtiDir = rtiPath.toFile()
+                if (!rtiDir.exists()) {
+                    rtiDir.mkdirs()
+                }
+                writeRTIDockerFile(rtiPath, rtiDir)
+                copyRtiFiles(rtiDir, coreFiles)
             }
-            writeRTIDockerFile(rtiPath, rtiDir)
-            copyRtiFiles(rtiDir, coreFiles)
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -623,17 +637,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the header files
             copyTargetHeaderFile()
-            
-            // Build the instantiation tree if a main reactor is present.
-            if (this.mainDef !== null) {
-                if (this.main === null) {
-                    // Recursively build instances. This is done once because
-                    // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
-                        this.unorderedReactions)
-                    this.reactionGraph = new ReactionInstanceGraph(main)
-                }   
-            }
             
             // Generate code for each reactor.
             generateReactorDefinitionsForFederate(federate);
@@ -1322,7 +1325,6 @@ class CGenerator extends GeneratorBase {
     def writeRTIDockerFile(Path rtiPath, File rtiDir) {
         val dockerFileName = 'rti.Dockerfile'
         val dockerFile = rtiDir + File.separator + dockerFileName
-        var srcGenPath = fileConfig.getSrcGenPath
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
@@ -3104,6 +3106,7 @@ class CGenerator extends GeneratorBase {
                         && federate.containsReaction(
                             dominatingReaction.definition
                             )
+                        && federate.contains(dominatingReaction.parent)
                         )
                 ) {
                     val upstreamReaction =
