@@ -159,13 +159,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     var int depth = 0;
 
-
-    /** Data structure used by nextPort() to keep track of the next available bank. */
-    val nextBankTable = new LinkedHashMap<VarRef,Integer>()
-
-    /** Data structure used by nextPort() to keep track of the next available port. */
-    val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
-
     /**
      * Data structure that maps connections to their connections as they appear
      * in a visualization of the program. For each connection, there is map

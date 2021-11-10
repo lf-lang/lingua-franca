@@ -31,7 +31,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
-import org.lflang.federated.FedTSLauncher
+import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
@@ -39,7 +39,7 @@ import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 
 /**
  * Generator for TypeScript target.
@@ -115,6 +115,14 @@ class TSGenerator(
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
+        
+        // FIXME: The following operation must be done after levels are assigned.
+        //  Removing these ports before that will cause incorrect levels to be assigned.
+        //  See https://github.com/lf-lang/lingua-franca/discussions/608
+        //  For now, avoid compile errors by removing disconnected network ports before
+        //  assigning levels.
+        removeRemoteFederateConnectionPorts(null);
+        
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
