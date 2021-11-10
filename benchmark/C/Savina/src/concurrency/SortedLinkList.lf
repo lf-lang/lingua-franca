@@ -129,6 +129,7 @@ reactor LinkedList(num_workers: int(20)) {
     output[num_workers] responses: int;
     
     reaction(startup) {=
+        self->data_list = SortedLinkedList<int>(0);
         self->responses_to_send = (int*) malloc(self->num_workers * sizeof(int));
     =}
 

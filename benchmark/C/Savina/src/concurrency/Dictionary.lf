@@ -97,7 +97,8 @@ reactor DictionaryImpl(numWorkers: size_t(20)) {
     
     reaction(startup) {=
         // in C: initialize local state
-        self->answersToSend.resize(self->numWorkers, -1);
+        self->dataMap = std::map<int, int>();
+        self->answersToSend = std::vector<int>(self->numWorkers, -1);
     =}
     
     reaction(sendAnswers) -> response {=
@@ -129,7 +130,7 @@ reactor DictionaryImpl(numWorkers: size_t(20)) {
                     self->answersToSend[i] = value;
                 }
                 //FIXME: free the message here?
-                free(msg);
+                //free(msg);
             }
         }
 
@@ -163,18 +164,17 @@ reactor Worker(bank_index: size_t(0), numMessagesPerWorker: size_t(10000), write
         self->messageCount += 1;
         if(self->messageCount <= self->numMessagesPerWorker) {
             int anInt = static_cast<int>(random()) % 100;
-            Message *msg = (Message*) malloc(sizeof(struct Message));
+            SET_NEW(dictRequest);
+            Message* msg = dictRequest->value;
 
             if(anInt < self->writePercentage) {
                 msg->type = AccessType::Write;
                 msg->key = static_cast<int>(random());
                 msg->value = static_cast<int>(random());
-                SET(dictRequest, msg);
             } else {
                 msg->type = AccessType::Read;
                 msg->key = static_cast<int>(random());
                 msg->value = 0;
-                SET(dictRequest, msg);
             }
         } else {
             SET(finished, true);
