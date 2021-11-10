@@ -56,7 +56,7 @@ class CppGenerator(
         const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "eaa514d4a2a44e6ec57422e1a90481cf15c942fd"
+        const val defaultRuntimeVersion = "007143225dbc198a5fee233ce125c3584a9541d8"
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
