@@ -8,8 +8,8 @@ reactor Source(width(1)) {
     output[width] out;
     state s(0);
     reaction(t) -> out {=
-        for i in range(len(out)):
-            out[i].set(self.s)
+        for port in out:
+            port.set(self.s)
             self.s += 1
     =}
 }
@@ -18,9 +18,9 @@ reactor Destination(width(1)) {
     input[width] _in;
     reaction(_in) {=
         sm = 0
-        for i in range(len(_in)):
-            if _in[i].is_present is True:
-                sm += _in[i].value         
+        for port in _in:
+            if port.is_present:
+                sm += port.value         
 
         print("Sum of received: ", sm)
         if sm != self.s:
