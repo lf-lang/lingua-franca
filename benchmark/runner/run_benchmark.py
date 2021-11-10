@@ -58,7 +58,7 @@ def main(cfg):
     else:
         target_validation_name = target_name
 
-    if target_name not in benchmark["targets"]:
+    if target_validation_name not in benchmark["targets"]:
         log.warning(f"target {target_name} is not supported by the benchmark {benchmark_name}")
         return
 

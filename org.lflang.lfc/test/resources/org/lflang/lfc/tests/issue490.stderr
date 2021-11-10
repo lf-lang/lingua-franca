@@ -1,0 +1,28 @@
+lfc: error: Name of main reactor must match the file name (or be omitted).
+--> %%%PATH.lf%%%:4:14
+  |
+3 | target Python;
+4 | main reactor R(p(3)) {
+  |              ^ Name of main reactor must match the file name (or be omitted).
+  |
+5 |   state liss(2, 3);
+
+lfc: error: missing '{=' at '{'
+--> %%%PATH.lf%%%:6:22
+  |
+5 |   state liss(2, 3);
+6 |   reaction (startup) {
+  |                      ^ missing '{=' at '{'
+  |
+7 |     print(self.liss)
+
+lfc: error: mismatched input '<EOF>' expecting '=}'
+ --> %%%PATH.lf%%%:9:2
+   |
+ 8 | }
+   | >>>>>>>>>>>>>>
+ 9 | }
+10 | 
+   | < mismatched input '<EOF>' expecting '=}'
+11 | 
+

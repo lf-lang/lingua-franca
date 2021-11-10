@@ -31,6 +31,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
+import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.PrependOperator
@@ -38,7 +39,7 @@ import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 
 /**
  * Generator for TypeScript target.
@@ -57,7 +58,7 @@ class TSGenerator(
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
-        const val LIB_PATH = "/lib/TS"
+        const val LIB_PATH = "/lib/ts"
 
         /**
          * Names of the configuration files to check for and copy to the generated
@@ -114,11 +115,18 @@ class TSGenerator(
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         }
-
+        
+        // FIXME: The following operation must be done after levels are assigned.
+        //  Removing these ports before that will cause incorrect levels to be assigned.
+        //  See https://github.com/lf-lang/lingua-franca/discussions/608
+        //  For now, avoid compile errors by removing disconnected network ports before
+        //  assigning levels.
+        removeRemoteFederateConnectionPorts(null);
+        
         fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
-                "/lib/TS/reactor-ts/src/core/$runtimeFile",
+                "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
                 tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
         }
 
@@ -126,7 +134,7 @@ class TSGenerator(
          * Check whether configuration files are present in the same directory
          * as the source file. For those that are missing, install a default
          * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from /lib/TS/.
+         * file, copy a default version of it from $LIB_PATH/.
          */
         for (configFile in CONFIG_FILES) {
             val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
@@ -140,7 +148,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                fileConfig.copyFileFromClassPath("/lib/TS/$configFile", configFileDest)
+                fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
 
@@ -291,6 +299,17 @@ class TSGenerator(
             }
         } else {
             errorReporter.reportError("Type checking failed.")
+        }
+
+        if (isFederated) {
+            // Create bin directory for the script.
+            if (!Files.exists(fileConfig.binPath)) {
+                Files.createDirectories(fileConfig.binPath)
+            }
+            // Generate script for launching federation
+            val launcher = FedTSLauncher(targetConfig, fileConfig, errorReporter)
+            val coreFiles = ArrayList<String>()
+            launcher.createLauncher(coreFiles, federates, federationRTIPropertiesW())
         }
 
         // TODO(hokeun): Modify this to make this work with standalone RTI.
@@ -494,20 +513,16 @@ class TSGenerator(
         return "TimeValue"
     }
 
-    override fun getTargetTagIntervalType(): String {
-        return this.targetUndefinedType
-    }
-
     override fun getTargetUndefinedType(): String {
         return "Present"
     }
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array(${size})<${baseType}>"
+        return "Array($size)<$baseType>"
     }
 
     override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<${baseType}>"
+        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {

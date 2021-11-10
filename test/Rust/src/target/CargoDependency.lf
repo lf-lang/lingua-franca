@@ -1,0 +1,17 @@
+// This tests the ability to depend on crates with carg
+// if this compiles it's fine
+target Rust {
+    cargo-dependencies: {
+        rand: "0.8",
+        regex: {
+            version: "1",
+        },
+    }
+};
+
+main reactor {
+     reaction(startup) {=
+        use rand::rngs::StdRng;
+        use regex::*;
+     =}
+}

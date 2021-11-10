@@ -183,6 +183,7 @@ class TSParameterPreambleGenerator(
             |let __timeout: TimeValue | undefined = ${getTimeoutTimeValue()};
             |let __keepAlive: boolean = ${targetConfig.keepalive};
             |let __fast: boolean = ${targetConfig.fastMode};
+            |let __federationID: string = 'Unidentified Federation'
             |
             |let __noStart = false; // If set to true, don't start the app.
             |
@@ -211,6 +212,16 @@ class TSParameterPreambleGenerator(
             |    } else {
             |        Log.global.error(__clUsage);
             |        throw new Error("'fast' command line argument is malformed.");
+            |    }
+            |}
+            |
+            |// federationID Parameter
+            |if (__processedCLArgs.id !== undefined) {
+            |    if (__processedCLArgs.id !== null) {
+            |        __federationID = __processedCLArgs.id;
+            |    } else {
+            |        Log.global.error(__clUsage);
+            |        throw new Error("'id (federationID)' command line argument is malformed.");
             |    }
             |}
             |
@@ -263,6 +274,10 @@ class TSParameterPreambleGenerator(
             |if (__processedCLArgs.fast !== undefined && __processedCLArgs.fast !== null
             |    && !__noStart) {
             |    Log.global.info("'fast' property overridden by command line argument.");
+            |}
+            |if (__processedCLArgs.id !== undefined && __processedCLArgs.id !== null
+            |    && !__noStart) {
+            |    Log.global.info("'id (federationID)' property overridden by command line argument.");
             |}
             |if (__processedCLArgs.keepalive !== undefined && __processedCLArgs.keepalive !== null
             |    && !__noStart) {

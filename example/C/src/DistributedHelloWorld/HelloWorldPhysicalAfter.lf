@@ -17,7 +17,7 @@ import MessageGenerator from "HelloWorld.lf"
 import PrintMessage from "HelloWorld.lf"
 
 federated reactor HelloWorldPhysicalAfter {
-    source = new MessageGenerator(root = "Hello World");
+    source = new MessageGenerator(prefix = "Hello World");
     print = new PrintMessage() at localhost;
     source.message ~> print.message after 10 msec;
 }

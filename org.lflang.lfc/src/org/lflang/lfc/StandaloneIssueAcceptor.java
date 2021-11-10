@@ -27,11 +27,6 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
     }
 
 
-    void reset() {
-        collector.reset();
-    }
-
-
     void accept(LfIssue lfIssue) {
         collector.accept(lfIssue);
     }
@@ -46,6 +41,8 @@ public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
             severity,
             diagnostic.getLine(),
             diagnostic.getColumn(),
+            diagnostic.getLineEnd(),
+            diagnostic.getColumnEnd(),
             diagnostic.getLength(),
             getPath(diagnostic)
         );

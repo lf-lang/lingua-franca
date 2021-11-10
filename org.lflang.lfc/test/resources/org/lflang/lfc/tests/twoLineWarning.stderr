@@ -1,0 +1,9 @@
+lfc: error: Reactor must be named.
+--> %%%PATH.lf%%%:3:2
+  |
+2 |
+  | >>>>>>>>>>>>>>
+3 |  reactor {
+4 |      }
+  | <<<<<< Reactor must be named.
+5 |

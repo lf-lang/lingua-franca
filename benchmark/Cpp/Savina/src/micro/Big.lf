@@ -1,15 +1,25 @@
 /**
- * Micro-benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- * 
- * A benchmark that implements a many-to-many message
- * passing scenario. Several processes are spawned, each of which
- * sends a ping message to the others, and responds with a pong
- * message to any ping message it receives. The benchmark is pa-
- * rameterized by the number of processes.
+ * A benchmark that implements a many-to-many message passing scenario. Several
+ * workers are created, each of which sends a ping message to one other worker.
+ * To which worker the ping message is sent is decided randomly. The worker
+ * who receives the ping message replies with a pong. Uppon receiving the pong,
+ * the worker sends the next ping message.
+ *
+ * In LF, the challenging aspect about this benchmark is its sparse activity.
+ * While each worker is connected to all other workers, it will only send a
+ * message to precisely one of them for each tag. Since we need to ensure that
+ * input ports have a single writer, each worker has to create multiport inputs,
+ * where each port instance corresponds to one potential source of ping or pong
+ * messages. In order to determine from which worker we received a ping or pong
+ * message, we need to iterate over all ports and check `if_present()`. However,
+ * this becomes very expensive for a large number of workers. For 120 workers we
+ * send a total of 120 pings and 120 pongs per iteration, but we need to check
+ * up to 14400 ping ports and 14400 pong ports in each iteration. Obviously this
+ * introduces a large overhead.
  *
  * @author Hannes Klein
  * @author Felix Wittwer
+ * @author Christian Menard
  */
 
 
@@ -27,31 +37,29 @@ public preamble {=
     };
 =}
 
-reactor SinkReactor(numWorkers:size_t(10)) {
+// Despite the name, this only collects "finished" messages from all workers
+// and lets the benchmark runner know when all the workers finished
+reactor Sink(numWorkers:size_t(10)) {
     // number of exit messages received
-    state numMessages:int(0);
+    state numMessages: size_t(0);
     
-    input inStart:void;
-    output outFinished:void;
+    input start: void;
+    output finished: void;
     
-    input[numWorkers] inBig:void;
-    // only one output needed to send start msg to all reactors
-    output outBig:void;
+    input[numWorkers] workerFinished :void;
     
-    reaction(inStart) -> outBig {=
+    reaction(start) {=
         // reset state
         numMessages = 0;
-        
-        outBig.set();
     =}
     
-    reaction(inBig) -> outFinished {=
+    reaction(workerFinished) -> finished {=
         // collect all exit messages
-        for(int i = 0; i < inBig.size(); i++) {
-            if(inBig[i].is_present()) {
+        for(const auto& port : workerFinished) {
+            if(port.is_present()) {
                 numMessages += 1;
                 if(numMessages == numWorkers) {
-                    outFinished.set();
+                    finished.set();
                     return;
                 }
             }
@@ -59,93 +67,78 @@ reactor SinkReactor(numWorkers:size_t(10)) {
     =}
 }
 
-reactor BigReactor(bank_index:int(0), numMessages:int(20000), numWorkers:size_t(10)) {
+reactor Worker(bank_index: size_t(0), numMessages: size_t(20000), numWorkers:size_t(10)) {
     
     public preamble {=
         #include "PseudoRandom.hh"
     =}
     
-    state numPings:int(0);
-    state random:PseudoRandom;
-    state pongsToSend:{=std::vector<int>=};
-    state receivedPong:bool;
-    state sendNextPingTo:int(-1);
+    state numPings: size_t{0};
+    state random: PseudoRandom;
+    state expPong: size_t{{=SIZE_MAX=}}
     
-    input inSink:void;
-    output outSink:void;
+    input[numWorkers] inPing: void;
+    input[numWorkers] inPong: void;
+    output[numWorkers] outPing: void;
+    output[numWorkers] outPong: void;
     
-    logical action send:void; //send both pings and pongs
+    input start: void;
+    output finished:void;
     
-    input[numWorkers] inBig:{=MsgType=};
-    output[numWorkers] outBig:{=MsgType=};
+    logical action next;
     
-    reaction(send) -> outSink, outBig, send {=
-        //send ping
-        if(numPings < numMessages && receivedPong) {
-            if(sendNextPingTo == -1) {
-                sendNextPingTo = random.nextInt(numWorkers);
-            }
-            // We can only send a new ping message to reactor sendNextPingTo if
-            // we did not already send a pong message to that exact same reactor. 
-            if(find(pongsToSend.begin(), pongsToSend.end(), sendNextPingTo) ==  pongsToSend.end()) {
-                // Send ping now.
-                outBig[sendNextPingTo].set(PingMsg);
-                sendNextPingTo = -1;
-                receivedPong = false;
-                numPings += 1;
-                if(numPings == numMessages) {
-                    //send exit msg one time
-                    outSink.set();
-                }
-            } else {
-                // Send ping later
-                send.schedule();
-            }
-        }
-        
-        // Send pongs.
-        for(int i: pongsToSend) {
-            outBig[i].set(PongMsg);
-        }
-        pongsToSend.clear();
+    // send ping
+    reaction (next) -> outPing {=
+        numPings++;
+        auto to = random.nextInt(numWorkers);
+        expPong = to;
+        outPing[to].set();
     =}
     
-    reaction(inBig) -> send {=
-        // list incoming pings
-        for(int i = 0; i < inBig.size(); i++) {
-            if(inBig[i].is_present()) {
-                if(*(inBig[i].get()) == PingMsg) {
-                    pongsToSend.push_back(i);
-                } else {
-                    // message type == PongMsg
-                    receivedPong = true;
+    // reply with pong
+    reaction(inPing) -> outPong {=
+        for(size_t i{0}; i < numWorkers; i++) {
+            if (inPing[i].is_present()) { 
+                outPong[i].set();
+            }
+        }
+    =}
+    
+    // receive pong and send next ping
+    reaction (inPong) -> next, finished {=
+        for(size_t i{0}; i < numWorkers; i++) {
+            if (inPong[i].is_present()) {
+                if (i != expPong) {
+                    reactor::log::Error() << "Expected pong from " << expPong 
+                                          << " but received pong from " << i;
                 }
             }
         }
         
-        send.schedule();
+        // send next ping
+        if (numPings == numMessages) {
+            finished.set();
+        } else {
+            next.schedule();
+        }
     =}
     
-    reaction(inSink) -> send {=
-        // reset local state
+    reaction (start) -> next {=
+        // reset state
         numPings = 0;
+        expPong = SIZE_MAX;
         random = PseudoRandom(bank_index);
-        pongsToSend.clear();
-        pongsToSend.reserve(numWorkers);
-        receivedPong = true;
-        sendNextPingTo = -1;
         
         // start execution
-        send.schedule();
+        next.schedule();
     =}
 }
 
-main reactor (numIterations:int(12), numPingsPerReactor:int(20000), numReactors:size_t(120)) {
-    sink = new SinkReactor(numWorkers=numReactors);
+main reactor (numIterations:size_t(12), numPingsPerReactor:size_t(20000), numReactors:size_t(120)) {
+
     runner = new BenchmarkRunner(numIterations=numIterations);
-    
-    runner.start -> sink.inStart;
-    sink.outFinished -> runner.finished;
+    sink = new Sink(numWorkers=numReactors);
+    worker = new[numReactors] Worker(numMessages=numPingsPerReactor, numWorkers=numReactors);
     
     reaction(startup) {=
         printBenchmarkInfo("BigReactorLFCppBenchmark");
@@ -153,11 +146,11 @@ main reactor (numIterations:int(12), numPingsPerReactor:int(20000), numReactors:
         printSystemInfo();
     =}
     
-    bigs = new[numReactors] BigReactor(numMessages=numPingsPerReactor, numWorkers=numReactors);
+        
+    (runner.start)+ -> sink.start, worker.start;
+    worker.finished -> sink.workerFinished;
+    sink.finished -> runner.finished;
     
-    // connect sink
-    (sink.outBig)+ -> bigs.inSink;
-    bigs.outSink -> sink.inBig;
-    
-    bigs.outBig -> interleaved(bigs.inBig);
+    worker.outPing -> interleaved(worker.inPing);    
+    worker.outPong -> interleaved(worker.inPong);
 }

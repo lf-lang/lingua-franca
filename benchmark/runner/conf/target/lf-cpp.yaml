@@ -4,6 +4,7 @@ copy: ["cp", "-r", "${benchmark.targets.lf-cpp.copy_sources}", "src"]
 gen: null
 compile: ["${lf_path}/bin/lfc",
           "--runtime-version", "${target.params.runtime_version}",
+          "${target.params.extra_args}",
           "src/${benchmark.targets.lf-cpp.lf_file}"]
 run: ["bin/${benchmark.targets.lf-cpp.binary}",
       "--threads", "${threads}",
@@ -14,3 +15,4 @@ parser:
 
 params:
   runtime_version: "master"
+  extra_args: []

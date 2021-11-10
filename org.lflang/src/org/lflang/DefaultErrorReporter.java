@@ -54,9 +54,4 @@ public class DefaultErrorReporter implements ErrorReporter {
     public boolean getErrorsOccurred() {
         return errorsOccurred;
     }
-
-    @Override
-    public void reset() {
-        errorsOccurred = false;
-    }
 }

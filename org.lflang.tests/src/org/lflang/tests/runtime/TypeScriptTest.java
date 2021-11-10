@@ -1,22 +1,23 @@
 package org.lflang.tests.runtime;
 
-import org.lflang.Target;
 import org.junit.jupiter.api.Test;
+import org.lflang.Target;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests for the TypeScript target.
  * 
  * Even though all tests are implemented in the base class, we override them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking on the name of the test method and selecting
- * "Run As -> JUnit Test" from the pop-up menu.
+ * here so that each test can be easily invoked individually from IDEs with
+ * JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-
-public class TypeScriptTest extends TestBase {
+public class TypeScriptTest extends AbstractTest {
     TypeScriptTest() {
-        this.target = Target.TS;
+        super(Target.TS);
     }
     
     @Test
@@ -43,14 +44,6 @@ public class TypeScriptTest extends TestBase {
         super.runSerializationTests();
     }
     
-    @Test
-    @Override
-    public void runAsFederated() {
-        System.out.println("FIXME");
-        //super.runNonFederatedTestsAsFederated();
-    }
-    
-        
     @Test
     @Override
     public void runConcurrentTests() {

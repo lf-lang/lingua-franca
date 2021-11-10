@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.inferredType
 import org.lflang.isInitialized
 import org.lflang.isOfTimeType
 import org.lflang.lf.Reactor
@@ -41,7 +42,7 @@ class CppStateGenerator(private val reactor: Reactor) {
         when {
             it.parameter != null -> it.parameter.name
             state.isOfTimeType   -> it.toTime()
-            else                 -> it.toCode()
+            else                 -> it.toCppCode()
         }
     }
 
@@ -54,7 +55,7 @@ class CppStateGenerator(private val reactor: Reactor) {
 
     /** Get all state declarations */
     fun generateDeclarations() =
-        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.targetType} ${it.name};" }
+        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.inferredType.cppType} ${it.name};" }
 
     /** Get all timer initializers */
     fun generateInitializers(): String = reactor.stateVars.filter { it.isInitialized }

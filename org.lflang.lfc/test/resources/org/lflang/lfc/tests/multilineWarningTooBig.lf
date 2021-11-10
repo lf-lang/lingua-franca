@@ -1,0 +1,13 @@
+target Cpp;
+
+// leading
+reactor {
+    // included 1
+    // excluded
+    // excluded
+    // excluded
+    // excluded
+    // excluded
+    // included 2
+}
+// trailing

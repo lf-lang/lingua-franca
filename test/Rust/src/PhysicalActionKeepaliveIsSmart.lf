@@ -1,0 +1,25 @@
+// Tests that the scheduler ends up shutting down if there are
+// no live Sender that can send messages back to the scheduler.
+target Rust {
+    keepalive: true
+};
+
+main reactor {
+
+    physical action act: u32;
+
+    reaction(startup) -> act {=
+        std::thread::spawn(|| {
+            std::thread::sleep(delay!(1 sec));
+            // this is a regular thread which doesn't have a reference to the scheduler
+        });
+    =}
+
+    reaction(shutdown) {=
+        assert!(
+          ctx.get_elapsed_logical_time() < Duration::from_millis(500),
+          "Should shutdown before the other thread catches up"
+        );
+        println!("success");
+    =}
+}

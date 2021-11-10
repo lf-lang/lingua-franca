@@ -67,22 +67,21 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     def rebuild() {
         this.clear()
         addNodesAndEdges(main)
-            // Assign a level to each reaction. 
-            // If there are cycles present in the graph, it will be detected here.
-            val leftoverReactions = assignLevels()
-            if (leftoverReactions !== null) {
-                // The validator should have caught cycles, but if there is a bug in some
-                // AST transform such that it introduces cycles, then it is possible to have them
-                // only detected here. An end user should never see this.
-                main.reporter.reportError("Reactions form a cycle!");
-                System.err.println(leftoverReactions.toString());
-                throw new Exception("Reactions form a cycle!")
-            }
-            // Traverse the graph again, now starting from the leaves,
-            // to set the chain IDs.
-            assignChainIDs(true)
+        // Assign a level to each reaction. 
+        // If there are cycles present in the graph, it will be detected here.
+        val leftoverReactions = assignLevels()
+        if (leftoverReactions.nodeCount != 0) {
+            // The validator should have caught cycles, but if there is a bug in some
+            // AST transform such that it introduces cycles, then it is possible to have them
+            // only detected here. An end user should never see this.
+            main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
+            throw new InvalidSourceException("Reactions form a cycle!")
+        }
+        // Traverse the graph again, now starting from the leaves,
+        // to set the chain IDs.
+        assignChainIDs(false)
 
-            // Propagate any declared deadline upstream.
+        // Propagate any declared deadline upstream.
         propagateDeadlines()
 
     }
@@ -128,13 +127,12 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * Rather than establishing a total order, we establish a partial order.
      * In this order, the level of each reaction is the least upper bound of
      * the levels of the reactions it depends on.
-     * If any cycles are present in the dependency graph, then a graph
+     *
+     * @return If any cycles are present in the dependency graph, then a graph
      * containing the nodes in the cycle is returned. Otherwise, null is
      * returned.
-     * @return true if the assignment was successful, false if it was not, 
-     * meaning the graph has at least one cycle in it.
      */
-    protected def DirectedGraph<ReactionInstance> assignLevels() {
+    private def DirectedGraph<ReactionInstance> assignLevels() {
         val graph = this.copy
         var start = new ArrayList(graph.rootNodes)
         
@@ -174,11 +172,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         }
         // If, after all of this, there are still any nodes left, 
         // then the graph must be cyclic.
-        if (graph.nodeCount != 0) {
-            return graph
-        }
-
-        return null as DirectedGraph<ReactionInstance>;
+        return graph
     }
     
     /**
@@ -206,7 +200,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             }    
         } else {
             for (node: this.nodes) {
-            node.chainID = 1
+                node.chainID = 1
             }    
         }
     }
@@ -320,7 +314,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      */
     protected def void addDownstreamReactions(PortInstance port,
         ReactionInstance reaction) {
-            // Reactions in the containing reactor.
+        // Reactions in the containing reactor.
         port.dependentReactions.forEach[this.addEdge(it, reaction)]
         // Reactions in downstream reactors.
         for (downstreamPort : port.dependentPorts) {

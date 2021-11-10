@@ -9,7 +9,7 @@ coverage:
       default:
         enabled: true
         target: auto # auto % coverage target
-        threshold: 5%  # allow for 5% reduction of coverage without failing
+        threshold: 10%  # allow for 10% reduction of coverage without failing
 
     # do not run coverage on patch nor changes
     patch: no

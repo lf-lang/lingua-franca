@@ -51,7 +51,7 @@ public class StandaloneErrorReporter implements ErrorReporter {
     }
 
     private String reportSimpleFileCtx(String message, Severity severity, Integer line, Path path) {
-        LfIssue issue = new LfIssue(message, severity, line, null, null, path);
+        LfIssue issue = new LfIssue(message, severity, line, 1, line, 1, 0, path);
         issueAcceptor.accept(issue);
         // Return a string that can be inserted into the generated code.
         return message;
@@ -97,11 +97,5 @@ public class StandaloneErrorReporter implements ErrorReporter {
     @Override
     public boolean getErrorsOccurred() {
         return issueAcceptor.getErrorsOccurred();
-    }
-
-
-    @Override
-    public void reset() {
-        issueAcceptor.reset();
     }
 }

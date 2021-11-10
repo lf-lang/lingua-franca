@@ -26,28 +26,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
-import java.util.EnumSet;
-
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.lflang.ASTUtils;
+
 import org.lflang.Target;
-import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.AbstractTest;
 
 /**
  * Collection of tests for the C target.
- * <p>
- * Even though all tests are implemented in the base class, we @Override public void them
- * here so that each test can be easily invoked individually from the Eclipse.
- * This is done by right-clicking anywhere in the header or body of the test
- * method and selecting "Run As -> JUnit Test" from the pop-up menu.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * Tests that are implemented in the base class are still overridden so that
+ * each test can be easily invoked individually from IDEs with JUnit support
+ * like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and
+ * then clicking "Run".*
+ * @author Marten Lohstroh <marten@berkeley.edu>
  */
-public class CTest extends ThreadedBase {
+public class CTest extends AbstractTest {
 
     public CTest() {
-        this.target = Target.C;
+        super(Target.C);
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsFederatedExecution() {
+        return true;
     }
 
     @Test
@@ -58,8 +67,8 @@ public class CTest extends ThreadedBase {
 
     @Test
     @Override
-    public void compileExamples() {
-        super.compileExamples();
+    public void validateExamples() {
+        super.validateExamples();
     }
 
     @Test
@@ -71,10 +80,7 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runTargetSpecificTests() {
-        if(isWindows()) {
-            printTestHeader("Warning: Skipping C target-specific tests on Windows.");
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runTargetSpecificTests();
     }
 
@@ -93,11 +99,7 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runSerializationTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printTestHeader("Warning: Skipping serialization tests on Windows.");
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runSerializationTests();
     }
 
@@ -105,11 +107,7 @@ public class CTest extends ThreadedBase {
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printTestHeader("Warning: Skipping federated tests on Windows.");
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runAsFederated();
     }
 
@@ -122,40 +120,8 @@ public class CTest extends ThreadedBase {
     @Test
     @Override
     public void runFederatedTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) {
-            printTestHeader("Warning: Skipping federated tests on Windows.");
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
     }
-    
-    /** Static description of test that runs C tests as CCpp. */
-    public static final String RUN_AS_CCPP_DESC = "Description: Running C tests as CCpp.";
-    
-    /**
-     * Run C tests with the target CCpp.
-     */
-    @Test
-    public void runAsCCpp() {
-        if(isWindows()) {
-            printTestHeader("Warning: Skipping CCpp tests on Windows.");
-            return; 
-        }
-        printTestHeader(RUN_AS_CCPP_DESC);
 
-        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        
-        categories.removeAll(EnumSet.of(
-                // Don't need to test examples.
-                // If any of them uses CCpp, it will
-                // be tested when compileExamples is
-                // run.
-                TestCategory.EXAMPLE));
-
-        runTestsAndPrintResults(target,
-                                categories::contains,
-                                it -> ASTUtils.changeTargetName(it.fileConfig.resource, "CCpp"),
-                                true);
-    }
 }
