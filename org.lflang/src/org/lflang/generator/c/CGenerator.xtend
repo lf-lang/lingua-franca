@@ -532,7 +532,8 @@ class CGenerator extends GeneratorBase {
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
-            coreFiles.add("reactor_threaded.c")
+            coreFiles.add("threaded/scheduler.c")
+            coreFiles.add("threaded/reactor_threaded.c")
         }
         
         addPlatformFiles(coreFiles);
@@ -4958,7 +4959,7 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
+    /** Generate #include of pqueue.c and either reactor.c or threaded/reactor_threaded.c
      *  depending on whether threads are specified in target directive.
      *  As a side effect, this populates the runCommand and compileCommand
      *  private variables if such commands are specified in the target directive.
@@ -5084,7 +5085,7 @@ class CGenerator extends GeneratorBase {
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
         if (targetConfig.threads > 0) {
-            pr("#include \"core/reactor_threaded.c\"")
+            pr("#include \"core/threaded/reactor_threaded.c\"")
         } else {
             pr("#include \"core/reactor.c\"")
         }
