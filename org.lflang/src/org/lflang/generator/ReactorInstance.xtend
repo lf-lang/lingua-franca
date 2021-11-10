@@ -29,11 +29,12 @@ package org.lflang.generator
 import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import java.util.Map
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
+import org.lflang.util.CollectionUtil
 import org.lflang.ErrorReporter
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 import org.lflang.lf.Action
@@ -65,7 +66,110 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
-    
+    /** The action instances belonging to this reactor instance. */
+    public val List<ActionInstance>  actions = new ArrayList()
+
+    /**
+     * The contained reactor instances, in order of declaration.
+     * For banks of reactors, this includes both the bank definition
+     * Reactor (which has bankIndex == -2) followed by each of the
+     * bank members (which have bankIndex >= 0).
+     */
+    public val List<ReactorInstance> children = new ArrayList()
+
+    /** A map from sources to destinations as specified by the connections
+     *  of this reactor instance. Note that this is redundant, because the same
+     *  information is available in the port instances of this reactor and its
+     *  children, but it is sometimes convenient to have it collected here.
+     */
+    public val Map<PortInstance, Set<PortInstance>> destinations = new LinkedHashMap();
+
+    /** The input port instances belonging to this reactor instance. */
+    public val List<PortInstance> inputs = new ArrayList()
+
+    /** The output port instances belonging to this reactor instance. */
+    public val List<PortInstance> outputs = new ArrayList()
+
+    /** The parameters of this instance. */
+    public val List<ParameterInstance> parameters = new ArrayList()
+
+    /** List of reaction instances for this reactor instance. */
+    public val List<ReactionInstance> reactions = new ArrayList();
+
+    /** The timer instances belonging to this reactor instance. */
+    public val List<TimerInstance> timers = new ArrayList()
+
+    /** The reactor definition in the AST. */
+    public final Reactor reactorDefinition
+
+    public final boolean recursive
+
+    /**
+     * The LF syntax does not currently support declaring reactions unordered,
+     * but unordered reactions are created in the AST transformations handling
+     * federated communication and after delays. Unordered reactions can execute
+     * in any order and concurrently even though they are in the same reactor.
+     * FIXME: Remove this when the language provides syntax.
+     */
+    protected var Set<Reaction> unorderedReactions = new LinkedHashSet()
+
+    /**
+     * If this reactor is in a bank of reactors, then this member
+     * refers to the reactor instance defining the bank.
+     */
+    @Accessors(PUBLIC_GETTER)
+    protected ReactorInstance bank = null
+
+    /**
+     * If this reactor instance is a placeholder for a bank of reactors,
+     * as created by the new[width] ReactorClass() syntax, then this
+     * list will be non-null and will contain the reactor instances in
+     * the bank.
+     */
+    protected List<ReactorInstance> bankMembers = null
+
+    /**
+     * If this reactor is in a bank of reactors, its index, otherwise, -1
+     * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
+     */
+    @Accessors(PUBLIC_GETTER)
+    protected int bankIndex = -1
+
+    /** The generator that created this reactor instance. */
+    protected ErrorReporter reporter // FIXME: This accumulates a lot of redundant references
+
+    /** The startup trigger. Null if not used in any reaction. */
+    @Accessors(PUBLIC_GETTER)
+    protected var TriggerInstance<BuiltinTriggerVariable> startupTrigger = null
+
+    /** The startup trigger. Null if not used in any reaction. */
+    @Accessors(PUBLIC_GETTER)
+    protected var TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null
+
+
+    /** Table recording which connection created a link between a source and destination. */
+    var Map<PortInstance, Map<PortInstance, Connection>>  connectionTable = new LinkedHashMap()
+
+    /** The nested list of instantiations that created this reactor instance. */
+    var List<Instantiation> _instantiations;
+
+    /**
+     * The depth in the hierarchy of this reactor instance.
+     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
+     */
+    var int depth = 0;
+
+    /**
+     * Data structure that maps connections to their connections as they appear
+     * in a visualization of the program. For each connection, there is map
+     * from source ports (single ports and multiports) on the left side of the
+     * connection to a set of destination ports (single ports and multiports)
+     * on the right side of the connection. The ports contained by the multiports
+     * are not represented.
+     */
+    @Accessors(PUBLIC_GETTER)
+    val Map<Connection, Map<PortInstance, Set<PortInstance>>> connections = new LinkedHashMap()
+
     /**
      * Create a new instantiation hierarchy that starts with the given top-level reactor.
      * @param reactor The top-level reactor.
@@ -95,12 +199,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
         this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions)
     }
-    
-    /** The reactor definition in the AST. */
-    public final Reactor reactorDefinition
-    
-    public final boolean recursive
-        
+
+
     /**
      * Populate destinations map and the connectivity information in the port instances.
      * Note that this can only happen _after_ the children and port instances have been created.
@@ -122,7 +222,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             } else if (leftPortInstances.size < rightPortInstances.size && !connection.isIterated) {
                 reporter.reportWarning(connection, "Destination is wider than the source. Inputs will be missing.")
             }
-            
+
             var leftPortIndex = 0
             for (rightPortInstance : rightPortInstances) {
                 if (leftPortIndex < leftPortInstances.size) {
@@ -146,15 +246,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * 
      * If a given port reference `b.m`, where `b` is a bank and `m` is a multiport,
      * is unqualified, this function iterates over bank members first, then ports.
-     * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`. 
+     * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`.
      * 
      * If a given port reference has the form `interleaved(b.m)`, where `b` is a
      * bank and `m` is a multiport, this function iterates over ports first,
      * then bank members. E.g., if `b` and `m` have width 2, it returns
-     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. 
+     * `[b0.m0, b1.m0, b0.m1, b1.m1]`.
      */
     private def List<PortInstance> listPortInstances(List<VarRef> references) {
-        val result = new LinkedList<PortInstance>();
+        val result = new ArrayList<PortInstance>();
         for (portRef : references) {
             // Simple error checking first.
             if (!(portRef.variable instanceof Port)) {
@@ -241,7 +341,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param dstInstance The destination instance (the right port).
      */
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
-        srcInstance.dependentPorts.add(dstInstance)
+        srcInstance.addDependentPort(dstInstance)
         if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
             reporter.reportError(
                 connection,
@@ -251,29 +351,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             return
         }
         dstInstance.dependsOnPort = srcInstance
-        var dstInstances = this.destinations.get(srcInstance)
-        if (dstInstances === null) {
-            dstInstances = new LinkedHashSet<PortInstance>()
-            this.destinations.put(srcInstance, dstInstances)
-        }
-        dstInstances.add(dstInstance)
-        
-        var destTable = connectionTable.get(srcInstance)
-        if (destTable === null) {
-            destTable = new LinkedHashMap<PortInstance,Connection>()
-            connectionTable.put(srcInstance, destTable)
-        }
-        destTable.put(dstInstance, connection)
+        this.destinations.compute(srcInstance, [key, set| CollectionUtil.plus(set, dstInstance)])
+        this.connectionTable.compute(srcInstance, [key, map| CollectionUtil.plus(map, dstInstance, connection)])
         
         // The diagram package needs to know, for each single port
         // or multiport (not the ports within the multiport), which
         // other single ports or multiports they are connected to.
         // Record that here.
-        var src = srcInstance.multiport as PortInstance;
-        if (src === null) src = srcInstance; // Not in a multiport.
-        
-        var dst = dstInstance.multiport as PortInstance;
-        if (dst === null) dst = dstInstance; // Not in a multiport.
+
+        var src = srcInstance.multiport ?: srcInstance;
+        var dst = dstInstance.multiport ?: dstInstance;
 
         // The following is support for the diagram visualization.
         // The source may be at a bank index greater than 0.
@@ -287,17 +374,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             val name = src.name
             src = newParent.outputs.findFirst [ it.name.equals(name) ]
         }
-
-        var links = connections.get(connection);
-        if (links === null) {
-            links = new LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>();
-            connections.put(connection, links);
-        }
-        var destinations = links.get(src);
-        if (destinations === null) {
-            destinations = new LinkedHashSet<PortInstance>();
-            links.put(src, destinations);
-        }
         // The destination may be at a bank index greater than 0.
         // For visualization, this needs to be converted to the destination
         // at bank 0, because only that one is rendered.
@@ -309,7 +385,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             val name = dst.name
             dst = newParent.inputs.findFirst [ it.name.equals(name) ]
         }
-        destinations.add(dst);
+
+        val src2 = src
+        val dst2 = dst
+        this.connections.compute(connection, [_, links| {
+            CollectionUtil.compute(links, src2, [_2, destinations| CollectionUtil.plus(destinations, dst2)])
+        }])
     }
     
     /**
@@ -338,41 +419,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return super.uniqueID
     }
 
-    // ////////////////////////////////////////////////////
-    // // Public fields.
-    
-    /** The action instances belonging to this reactor instance. */
-    public val actions = new LinkedList<ActionInstance>
-    
-    /** 
-     * The contained reactor instances, in order of declaration.
-     * For banks of reactors, this includes both the bank definition
-     * Reactor (which has bankIndex == -2) followed by each of the
-     * bank members (which have bankIndex >= 0).
-     */
-    public val LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
-
-    /** A map from sources to destinations as specified by the connections
-     *  of this reactor instance. Note that this is redundant, because the same
-     *  information is available in the port instances of this reactor and its
-     *  children, but it is sometimes convenient to have it collected here.
-     */
-    public val LinkedHashMap<PortInstance, LinkedHashSet<PortInstance>> destinations = new LinkedHashMap();
-
-    /** The input port instances belonging to this reactor instance. */
-    public val inputs = new LinkedList<PortInstance>
-
-    /** The output port instances belonging to this reactor instance. */
-    public val outputs = new LinkedList<PortInstance>
-
-    /** The parameters of this instance. */
-    public val parameters = new LinkedList<ParameterInstance>
-
-    /** List of reaction instances for this reactor instance. */
-    public val reactions = new LinkedList<ReactionInstance>();
-
-    /** The timer instances belonging to this reactor instance. */
-    public val timers = new LinkedList<TimerInstance>
 
     // ////////////////////////////////////////////////////
     // // Public methods.
@@ -488,7 +534,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def List<Instantiation> instantiations() {
         if (_instantiations === null) {
-            _instantiations = new LinkedList<Instantiation>();
+            _instantiations = new ArrayList();
             if (definition !== null) {
                 _instantiations.add(definition);
                 if (parent !== null) {
@@ -601,7 +647,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def PortInstance lookupPortInstance(Port port) {
         // Search one of the inputs and outputs sets.
-        var LinkedList<PortInstance> ports = null
+        var List<PortInstance> ports = null
         if (port instanceof Input) {
             ports = this.inputs
         } else if (port instanceof Output) {
@@ -764,48 +810,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     //////////////////////////////////////////////////////
     //// Protected fields.
-    
-    /**
-     * The LF syntax does not currently support declaring reactions unordered,
-     * but unordered reactions are created in the AST transformations handling
-     * federated communication and after delays. Unordered reactions can execute
-     * in any order and concurrently even though they are in the same reactor.
-     * FIXME: Remove this when the language provides syntax.
-     */
-    protected var Set<Reaction> unorderedReactions = new LinkedHashSet()
-
-    /**
-     * If this reactor is in a bank of reactors, then this member
-     * refers to the reactor instance defining the bank.
-     */
-    protected ReactorInstance bank = null
-    def ReactorInstance getBank() { return this.bank; }
-    
-    /** 
-     * If this reactor instance is a placeholder for a bank of reactors,
-     * as created by the new[width] ReactorClass() syntax, then this
-     * list will be non-null and will contain the reactor instances in 
-     * the bank.
-     */
-    protected List<ReactorInstance> bankMembers = null
-    
-    /** 
-     * If this reactor is in a bank of reactors, its index, otherwise, -1
-     * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
-     */
-    @Accessors(PUBLIC_GETTER)
-    protected int bankIndex = -1
-
-    /** The generator that created this reactor instance. */
-    protected ErrorReporter reporter // FIXME: This accumulates a lot of redundant references
-    
-    /** The startup trigger. Null if not used in any reaction. */
-    @Accessors(PUBLIC_GETTER)
-    protected var TriggerInstance<BuiltinTriggerVariable> startupTrigger = null
-    
-    /** The startup trigger. Null if not used in any reaction. */
-    @Accessors(PUBLIC_GETTER)
-    protected var TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null
 
     // ////////////////////////////////////////////////////
     // // Protected methods
@@ -852,7 +856,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.
         if (source.parent !== this && source.parent.parent !== this) {
-            throw new Exception(
+            throw new InvalidSourceException(
                 "Internal error: port " + source + " does not belong to " +
                     this + " nor any of its children."
             )
@@ -895,9 +899,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  @param result The list to add reactions to.
      *  @return The list of reactions without levels.
      */
-    protected def LinkedList<ReactionInstance> reactionsWithoutLevels(
+    protected def List<ReactionInstance> reactionsWithoutLevels(
         ReactorInstance reactor,
-        LinkedList<ReactionInstance> result
+        List<ReactionInstance> result
     ) {
         for (reaction : reactor.reactions) {
             if (reaction.level < 0) {
@@ -1075,7 +1079,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
 
             establishPortConnections()
-        
+
             // Create the reaction instances in this reactor instance.
             // This also establishes all the implied dependencies.
             // Note that this can only happen _after_ the children, 
@@ -1084,30 +1088,4 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    ////////////////////////////////////////
-    //// Private variables
-    
-    /** Table recording which connection created a link between a source and destination. */
-    var LinkedHashMap<PortInstance,LinkedHashMap<PortInstance,Connection>> connectionTable
-            = new LinkedHashMap<PortInstance,LinkedHashMap<PortInstance,Connection>>()
-    
-    /** The nested list of instantiations that created this reactor instance. */
-    var List<Instantiation> _instantiations;
-    
-    /** 
-     * The depth in the hierarchy of this reactor instance.
-     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
-     */
-    var int depth = 0;
-
-    /** 
-     * Data structure that maps connections to their connections as they appear
-     * in a visualization of the program. For each connection, there is map
-     * from source ports (single ports and multiports) on the left side of the
-     * connection to a set of destination ports (single ports and multiports)
-     * on the right side of the connection. The ports contained by the multiports
-     * are not represented.
-     */
-    @Accessors(PUBLIC_GETTER)
-    val connections = new LinkedHashMap<Connection,LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>>()
 }

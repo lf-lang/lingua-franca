@@ -65,7 +65,7 @@ class ActionInstance extends TriggerInstance<Action> {
     new(Action definition, ReactorInstance parent) {
         super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create an ActionInstance with no parent.')
+            throw new InvalidSourceException('Cannot create an ActionInstance with no parent.')
         }
         if (definition !== null) {
             if (definition.minDelay !== null) {

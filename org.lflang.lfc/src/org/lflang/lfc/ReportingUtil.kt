@@ -34,6 +34,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
+import java.util.Collections.nCopies
+import kotlin.collections.ArrayList
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.system.exitProcess
@@ -83,6 +85,8 @@ data class LfIssue(
     val severity: Severity,
     val line: Int?,
     val column: Int?,
+    val endLine: Int?,
+    val endColumn: Int?,
     val length: Int?,
     val file: Path?
 ) : Comparable<LfIssue> {
@@ -124,10 +128,6 @@ class IssueCollector {
     val errors: List<LfIssue> get() = map[Severity.ERROR].orEmpty().sorted()
     /** Sorted list of all issues.*/
     val allIssues: List<LfIssue> get() = map.values.flatten().sorted()
-
-    fun reset() {
-        map.clear()
-    }
 }
 
 
@@ -149,11 +149,11 @@ class ReportingBackend constructor(
      * messages when printing a code snippet from the file
      * in which the error originated.
      */
-    private val numLinesAround: Int,
+    private val numLinesAround: Int = 2,
 ) {
     /** Secondary constructor with default arguments and marked with @Inject */
     @Inject
-    constructor(io: Io) : this(io, AnsiColors(true), 2)
+    constructor(io: Io) : this(io, AnsiColors(true))
 
     /** *Absolute* path to lines. */
     private val fileCache = mutableMapOf<Path, List<String>?>()
@@ -163,7 +163,10 @@ class ReportingBackend constructor(
         if (path == null) null
         else fileCache.computeIfAbsent(path.toAbsolutePath()) {
             try {
-                Files.readAllLines(it, StandardCharsets.UTF_8)
+                Files.readAllLines(it, StandardCharsets.UTF_8) +
+                        // Add a bunch of fake empty lines at the end to avoid IndexOutOfBoundsException
+                        // with errors that hit EOF.
+                        nCopies(5, "")
             } catch (e: IOException) {
                 null
             }
@@ -209,7 +212,7 @@ class ReportingBackend constructor(
 
         val header = severity.name.toLowerCase(Locale.ROOT)
 
-        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + "\n"
+        var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + System.lineSeparator()
         val snippet: String? = filePath?.let { formatIssue(issue, filePath) }
 
         if (snippet == null) {
@@ -240,11 +243,11 @@ class ReportingBackend constructor(
     }
 
     private fun getBuilder(issue: LfIssue, lines: List<String>, displayPath: String): MessageTextBuilder {
-        val zeroL = issue.line!! - 1
-        val firstL = max(0, zeroL - numLinesAround + 1)
-        val lastL = min(lines.size, zeroL + numLinesAround)
-        val strings: List<String> = lines.subList(firstL, lastL)
-        return MessageTextBuilder(strings, firstL, zeroL - firstL, displayPath, issue)
+        val firstL = (issue.line!! - numLinesAround).coerceIn(0..lines.size)
+        val lastL = (issue.endLine!! - 1 + numLinesAround).coerceIn(0..lines.size)
+        val lineRange: List<String> = lines.subList(firstL, lastL)
+        val errorIdxInLineRange = issue.line - 1 - firstL
+        return MessageTextBuilder(lineRange, firstL, errorIdxInLineRange, displayPath, issue)
     }
 
     /** Renders a single issue. */
@@ -259,24 +262,40 @@ class ReportingBackend constructor(
     ) {
 
         init {
-            assert(0 <= errorIdx && errorIdx < lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
+            assert(errorIdx in 0..lines.size) { "Weird indices --- first=$first, errorIdx=$errorIdx, lines=$lines" }
         }
 
         fun build(): String {
             // the padding to apply to line numbers
             val pad = 2 + widthOfLargestLineNum()
-            val withLineNums: MutableList<String> =
+            val withLineNums: ArrayList<String> =
                 lines.indices.mapTo(ArrayList()) { numberedLine(it, pad) }
 
-            withLineNums.add(errorIdx + 1, makeErrorLine(pad))
-            withLineNums.add(errorIdx + 2, emptyGutter(pad)) // skip a line
+            if (issue.line!! == issue.endLine!!) {
+                // single line warning
+                withLineNums.add(errorIdx + 1, makeErrorLine(pad))
+                withLineNums.add(errorIdx + 2, emptyGutter(pad)) // skip a line
+            } else {
+                // multiline
+                val spanInLines = issue.endLine - issue.line
+
+                withLineNums.add(errorIdx, makeMultilineFence(pad, forward = true))
+                withLineNums.add(errorIdx + spanInLines + 2, makeMultilineFence(pad, forward = false, message = issue.message))
+
+                if (spanInLines >= 3) {
+                    // too big, remove some lines
+                    withLineNums.subList(errorIdx + 3, errorIdx + spanInLines ).clear()
+                    // replace with an ellipsis
+                    withLineNums.add(errorIdx + 3, emptyGutter(pad) + " ...")
+                }
+            }
 
             // skip a line at the beginning
             // add it at the end to not move other indices
             withLineNums.add(0, emptyGutter(pad))
             withLineNums.add(0, makeHeaderLine(pad))
 
-            return withLineNums.joinToString("\n")
+            return withLineNums.joinToString(System.lineSeparator())
         }
 
         private fun widthOfLargestLineNum() = (lines.size + first).toString().length
@@ -292,13 +311,30 @@ class ReportingBackend constructor(
             return "$prefix $fileDisplayName:${issue.line}:${issue.column}"
         }
 
+        private fun makeMultilineFence(pad: Int, forward: Boolean, message: String? = null): String {
+            val char = if (forward) '>' else '<'
+            val fenceWidth =
+                if (!forward && issue.endColumn != null) {
+                    (issue.endColumn - 1).coerceIn(1..FENCE_WIDTH)
+                } else {
+                    FENCE_WIDTH
+                }
+
+            val fence = buildString {
+                append(' ')
+                repeatChar(char, fenceWidth)
+                if (message != null)
+                    append(' ').append(message)
+            }
+            // gutter has its own ANSI stuff so only fence gets severityColors
+            return emptyGutter(pad) + colors.severityColors(fence, issue.severity)
+        }
+
         private fun makeErrorLine(pad: Int): String {
             val line = lines[errorIdx]
+
             // tabs are replaced with spaces to align messages properly
             fun makeOffset(startIdx: Int, length: Int): Int {
-                // note: this is needed because when the issue spans several lines,
-                // startIdx+length may be greater than the line length.
-                // todo implement real way to format multiline issues
                 val endIndex = min(line.length, startIdx + length)
                 val numTabs = line.substring(startIdx, endIndex).count { it == '\t' }
                 return numTabs * (TAB_REPLACEMENT.length - 1)
@@ -307,9 +343,9 @@ class ReportingBackend constructor(
             val tabOffset = makeOffset(0, issue.column!!) // offset up to marker
             val tabSpanOffset = makeOffset(issue.column - 1, issue.length!!) // offset within marker
 
-            val realLen = min(line.length, issue.column + issue.length)
-
-            val caretLine = with(issue) { buildCaretLine(message.trim(), column!! + tabOffset, realLen + tabSpanOffset) }
+            val caretLine = with(issue) {
+                buildCaretLine(message.trim(), column!! + tabOffset, length!! + tabSpanOffset)
+            }
             // gutter has its own ANSI stuff so only caretLine gets severityColors
             return emptyGutter(pad) + colors.severityColors(caretLine, issue.severity)
         }
@@ -324,11 +360,11 @@ class ReportingBackend constructor(
 
         private fun formatLineNum(str: String) = colors.cyanAndBold(str)
 
-        private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
-            fun StringBuilder.repeatChar(c: Char, n: Int) {
-                repeat(n) { append(c) }
-            }
+        fun StringBuilder.repeatChar(c: Char, n: Int) {
+            repeat(n) { append(c) }
+        }
 
+        private fun buildCaretLine(message: String, column: Int, rangeLen: Int): String {
             return buildString {
                 repeatChar(' ', column)
                 repeatChar('^', max(rangeLen, 1))
@@ -339,6 +375,7 @@ class ReportingBackend constructor(
 
     companion object {
         const val TAB_REPLACEMENT = "    "
+        const val FENCE_WIDTH = 14
     }
 }
 

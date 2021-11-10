@@ -41,7 +41,7 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
     
     public Class<? extends ISyntaxErrorMessageProvider> bindISyntaxErrorMessageProvider() {
         return LFSyntaxErrorMessageProvider.class;
-}
+    }
 
     /** The error reporter. {@link LFStandaloneModule} overrides this binding. */
     public Class<? extends ErrorReporter> bindErrorReporter() {

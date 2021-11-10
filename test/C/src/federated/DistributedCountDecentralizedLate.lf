@@ -6,7 +6,6 @@
  * @author Soroush Bateni
  */
 target C {
-    flags: ["-g"],
     timeout: 4900 msec,
     coordination: decentralized
 };

@@ -1,0 +1,63 @@
+/**
+ * Example of a Deep Neural Network (YOLOv5) in LF.
+ * Please see README.md for instructions.
+ * This example is similar to YOLOv5_Webcam but uses a timer to 
+ * get camera frames instead of physical actions.
+ * Adapted from 
+ * https://towardsdatascience.com/implementing-real-time-object-detection-system-using-pytorch-and-opencv-70bac41148f7
+ */
+target Python;
+
+import DNN, Plotter from "YOLOv5_Webcam.lf"
+
+/**
+ * Use OpenCV2 to read from the user webcam.
+ * 
+ * Camera frames are captured periodically
+ * using a timer.
+ * 
+ * 'webcam_id' (default 0) can be adjusted
+ *  according to your local setup.
+ */
+reactor WebCam {
+    output camera_frame
+    state stream
+    state video_capture_thread
+    state thread_should_be_running
+    
+    preamble {=
+        import cv2
+    =}
+    reaction(startup) {=
+        self.stream = self.cv2.VideoCapture(0, self.cv2.CAP_ANY)
+        if (self.stream.isOpened() is not True):
+            sys.stderr.write("Error: Failed to capture from the webcam.\n")
+            exit(1)
+            
+        self.stream.set(self.cv2.CAP_PROP_FPS, 30) # Set the camera's FPS to 30
+    =}
+    
+    timer camera_tick(3 sec, 100 msec);
+    
+    reaction(camera_tick) -> camera_frame {=
+        ret, frame = self.stream.read()
+        if ret is True:
+            camera_frame.set(frame)
+    =}
+    
+    reaction(shutdown) {=
+        self.stream.release()
+    =}
+}
+
+main reactor {
+    webcam = new WebCam()
+    dnn = new DNN()
+    plotter = new Plotter(label_deadline = 100 msec)
+    
+    (webcam.camera_frame)+ -> dnn.frame, plotter.frame
+    dnn.labels, dnn.label_coordinates -> plotter.labels, plotter.label_coordinates
+    
+    dnn.model -> plotter.model
+    
+}

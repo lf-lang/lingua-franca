@@ -45,7 +45,7 @@ reactor PrintMessageWithDetector(offset:time(10 msec)) extends PrintMessage {
 }
 
 federated reactor HelloWorldDecentralized(offset:time(10 msec)) {
-    source = new MessageGenerator(root = "Hello World");
+    source = new MessageGenerator(prefix = "Hello World");
     print = new PrintMessageWithDetector(
         offset = offset
     );

@@ -4,12 +4,12 @@
  * delay. In this version, the timestamps at the receiving federate `print`
  * are the same as the timestamps at the sender `source`.
  * 
- * The `STP` parameter on the `print` federate tells the runtime
+ * The `STP_offset` parameter on the `print` federate tells the runtime
  * system to wait the amount of time specified before processing events.
  * That is, before processing an event with timestamp *t*, the federate
  * waits until physical time *T* exceeds *t* + `STP`.
  * 
- * If the `STP` is too small, then the `print`
+ * If the `STP_offset` is too small, then the `print`
  * receiving federate will report tardy messages, which are messages where
  * the intended timestamp cannot be assigned because the message arrived
  * too late.
@@ -38,7 +38,7 @@ reactor PrintMessageWithSTP(STP_offset:time(10 msec)) extends PrintMessageWithDe
 }
 
 federated reactor {
-    source = new MessageGenerator(root = "Hello World");
+    source = new MessageGenerator(prefix = "Hello World");
     print = new PrintMessageWithSTP(
         offset = 0,
         STP_offset = 10 msec 

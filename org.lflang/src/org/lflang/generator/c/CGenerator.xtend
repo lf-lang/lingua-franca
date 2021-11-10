@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
+import java.nio.file.Path
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -48,19 +49,21 @@ import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
-import org.lflang.federated.FedCLauncher
 import org.lflang.federated.FedFileConfig
-import org.lflang.federated.FedROS2CPPSerialization
 import org.lflang.federated.FederateInstance
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.launcher.FedCLauncher
+import org.lflang.federated.serialization.FedROS2CPPSerialization
+import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.InvalidSourceException
 import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
@@ -90,7 +93,7 @@ import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.TargetConfig
+import static extension org.lflang.JavaAstUtils.*
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -372,13 +375,14 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * 
+     * Set the appropriate target properties based on the target properties of
+     * the main .lf file.
      */
     override setTargetConfig(IGeneratorContext context) {
         super.setTargetConfig(context);
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
-        if(targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+        if (targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++"
                 targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
@@ -386,7 +390,38 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compiler = "gcc"
                 targetConfig.compilerFlags.addAll("-O2") // "-Wall -Wconversion"
             }
-        } 
+        }
+    }
+    
+    /**
+     * Look for physical actions in 'resource'.
+     * If found, take appropriate actions to accommodate.
+     * 
+     * Set keepalive to true.
+     * Set threads to be at least one to allow asynchronous schedule calls
+     */
+    override accommodatePhysicalActionsIfPresent(Resource resource) {
+        super.accommodatePhysicalActionsIfPresent(resource);
+
+        // If there are any physical actions, ensure the threaded engine is used and that
+        // keepalive is set to true, unless the user has explicitly set it to false.
+        for (action : resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                // If the unthreaded runtime is requested, use the threaded runtime instead
+                // because it is the only one currently capable of handling asynchronous events.
+                if (targetConfig.threads < 1) {
+                    targetConfig.threads = 1
+                    errorReporter.reportWarning(
+                        action,
+                        '''Using the threaded C runtime to allow for asynchronous handling of«
+                        » physical action «action.name».'''
+                    );
+                }
+
+            }
+
+        }
+        
     }
     
     /**
@@ -454,9 +489,21 @@ class CGenerator extends GeneratorBase {
                  }
              }
          }
+            
+        // Build the instantiation tree if a main/federated reactor is present.
+        if (this.mainDef !== null) {
+            if (this.main === null) {
+                // Recursively build instances. This is done once because
+                // it is the same for all federates.
+                this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
+                    this.unorderedReactions)
+                this.reactionGraph = new ReactionInstanceGraph(main)
+                // Avoid compile errors by removing disconnected network ports    
+                removeRemoteFederateConnectionPorts(main);
+            }   
+        }
         
         // Create the output directories if they don't yet exist.
-        
         var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = fileConfig.binPath.toFile
@@ -503,6 +550,16 @@ class CGenerator extends GeneratorBase {
                 "federated/clock-sync.c"
             );
             createFederatedLauncher(coreFiles);
+            
+            if (targetConfig.dockerOptions !== null) {
+                var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
+                var rtiDir = rtiPath.toFile()
+                if (!rtiDir.exists()) {
+                    rtiDir.mkdirs()
+                }
+                writeRTIDockerFile(rtiPath, rtiDir)
+                copyRtiFiles(rtiDir, coreFiles)
+            }
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -514,7 +571,7 @@ class CGenerator extends GeneratorBase {
         val oldFileConfig = fileConfig;
         val numOfCompileThreads = Math.min(6,
                 Math.min(
-                    federates.size, 
+                    Math.max(federates.size, 1), 
                     Runtime.getRuntime().availableProcessors()
                 )
             )
@@ -545,14 +602,16 @@ class CGenerator extends GeneratorBase {
                     // Update the cmake-include
                     TargetProperty.updateOne(
                         this.targetConfig, 
-                        TargetProperty.CMAKE_INCLUDE.description,
-                        target.config.pairs ?: emptyList
+                        TargetProperty.CMAKE_INCLUDE,
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                     // Update the files
                     TargetProperty.updateOne(
                         this.targetConfig, 
-                        TargetProperty.FILES.description,
-                        target.config.pairs ?: emptyList
+                        TargetProperty.FILES,
+                        target.config.pairs ?: emptyList,
+                        errorReporter
                     )
                 }
                 
@@ -574,21 +633,10 @@ class CGenerator extends GeneratorBase {
             }
             
             // Copy the core lib
-            fileConfig.copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
+            fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
             
             // Copy the header files
             copyTargetHeaderFile()
-            
-            // Build the instantiation tree if a main reactor is present.
-            if (this.mainDef !== null) {
-                if (this.main === null) {
-                    // Recursively build instances. This is done once because
-                    // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
-                        this.unorderedReactions)
-                    this.reactionGraph = new ReactionInstanceGraph(main)
-                }   
-            }
             
             // Generate code for each reactor.
             generateReactorDefinitionsForFederate(federate);
@@ -798,7 +846,8 @@ class CGenerator extends GeneratorBase {
                         #[cFilename], 
                         topLevelName, 
                         errorReporter,
-                        CCppMode
+                        CCppMode,
+                        mainDef !== null
                     ).toString().getBytes(),
                     cmakeFile
                 )
@@ -1115,21 +1164,16 @@ class CGenerator extends GeneratorBase {
      * are specific to the OS/underlying hardware, which is detected here automatically.
      */
     def addPlatformFiles(ArrayList<String> coreFiles) {
+        // All platforms use this one.
+        coreFiles.add("platform/lf_tag_64_32.h");
         // Check the operating system
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
         // Based on the detected operating system, copy the required files
-        // to enable platform-specific functionality. See lib/core/platform.h
+        // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
         // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_macos_support.c")            
-            coreFiles.add("platform/lf_macos_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -1140,12 +1184,6 @@ class CGenerator extends GeneratorBase {
             }
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_windows_support.c")
-            coreFiles.add("platform/lf_windows_support.h")
-            // For 64-bit epoch time
-            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -1156,13 +1194,6 @@ class CGenerator extends GeneratorBase {
             }
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
-            coreFiles.add("platform/lf_POSIX_threads_support.c")
-            coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_POSIX_threads_support.h")
-            coreFiles.add("platform/lf_C11_threads_support.h")
-            coreFiles.add("platform/lf_linux_support.c")
-            coreFiles.add("platform/lf_linux_support.h")
-            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             // Also, if useCmake is set to true, we don't need to add platform files. The CMakeLists.txt file
             // will detect and use the appropriate platform file based on the platform that cmake is invoked on.
@@ -1174,6 +1205,21 @@ class CGenerator extends GeneratorBase {
         } else {
             errorReporter.reportError("Platform " + OS + " is not supported")
         }
+
+        coreFiles.addAll(
+             "platform/lf_POSIX_threads_support.c",
+             "platform/lf_C11_threads_support.c",
+             "platform/lf_C11_threads_support.h",
+             "platform/lf_POSIX_threads_support.h",
+             "platform/lf_POSIX_threads_support.c",
+             "platform/lf_unix_clock_support.c",
+             "platform/lf_macos_support.c",
+             "platform/lf_macos_support.h",
+             "platform/lf_windows_support.c",
+             "platform/lf_windows_support.h",
+             "platform/lf_linux_support.c",
+             "platform/lf_linux_support.h"
+         )
     }
     
     /**
@@ -1200,24 +1246,27 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param The root filename (without any extension).
+     * @param the name given to the docker file (without any extension).
      */
-    def writeDockerFile(String filename) {
-        if (this.mainDef === null) {
-            return
-        }
-        
+    override writeDockerFile(String dockerFileName) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
-        val contents = new StringBuilder()
-        
+        val dockerFile = srcGenPath + File.separator + dockerFileName + '.Dockerfile'
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
             file.delete
         }
-        // The Docker configuration uses gcc, so config.compiler is ignored here.
-        var compileCommand = '''gcc «targetConfig.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        if (this.mainDef === null) {
+            return
+        }
+        
+        val contents = new StringBuilder()
+        // The Docker configuration uses cmake, so config.compiler is ignored here.
+        var compileCommand = '''
+        cmake -S src-gen -B bin && \
+        cd bin && \
+        make all
+        '''
         if (!targetConfig.buildCommands.nullOrEmpty) {
             compileCommand = targetConfig.buildCommands.join(' ')
         }
@@ -1225,27 +1274,95 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.fileNames.nullOrEmpty) {
             additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
+        var dockerCompiler = 'gcc'
+        var fileExtension = 'c'
+
+        if (CCppMode) {
+            dockerCompiler = 'g++'
+            fileExtension = 'cpp'
+        }
+
         pr(contents, '''
-            # Generated docker file for «topLevelName».lf in «srcGenPath».
+            # Generated docker file for «topLevelName» in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «targetConfig.dockerOptions.from»
-            WORKDIR /lingua-franca
-            COPY src-gen/core src-gen/core
-            COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
+            FROM «targetConfig.dockerOptions.from» AS builder
+            WORKDIR /lingua-franca/«topLevelName»
+            RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
+            COPY core src-gen/core
+            COPY ctarget.h ctarget.c src-gen/
+            COPY CMakeLists.txt \
+                 «topLevelName».«fileExtension» src-gen/
             «additionalFiles»
             RUN set -ex && \
-                apk add --no-cache gcc musl-dev && \
                 mkdir bin && \
-                «compileCommand» && \
-                apk del gcc musl-dev && \
-                rm -rf src-gen
+                «compileCommand»
+            
+            FROM «targetConfig.dockerOptions.from» 
+            WORKDIR /lingua-franca
+            RUN mkdir bin
+            COPY --from=builder /lingua-franca/«topLevelName»/bin/«topLevelName» ./bin/«topLevelName»
+            
             # Use ENTRYPOINT not CMD so that command-line arguments go through
-            ENTRYPOINT ["./bin/«filename»"]
+            ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        println("Dockerfile written to " + dockerFile)
+        println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t «topLevelName.toLowerCase()» -f «dockerFile» «srcGenPath»
+            
+            #####################################
+        ''')
     }
-    
+
+    /**
+     * Write a Dockerfile for the RTI at rtiDir.
+     * The file will go into src-gen/RTI/rti.Dockerfile.
+     * @param the directory where rti.Dockerfile will be written to.
+     */
+    def writeRTIDockerFile(Path rtiPath, File rtiDir) {
+        val dockerFileName = 'rti.Dockerfile'
+        val dockerFile = rtiDir + File.separator + dockerFileName
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+        if (this.mainDef === null) {
+            return
+        }
+        val contents = new StringBuilder()
+        pr(contents, '''
+            # Generated docker file for RTI in «rtiDir».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            FROM alpine:latest
+            WORKDIR /lingua-franca/RTI
+            COPY core core
+            WORKDIR core/federated/RTI
+            RUN set -ex && apk add --no-cache gcc musl-dev cmake make && \
+                mkdir build && \
+                cd build && \
+                cmake ../ && \
+                make && \
+                make install
+
+            # Use ENTRYPOINT not CMD so that command-line arguments go through
+            ENTRYPOINT ["./build/RTI"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile for RTI written to " + dockerFile)
+        println('''
+            #####################################
+            To build the docker image, use:
+               
+                docker build -t rti -f «dockerFile» «rtiDir»
+            
+            #####################################
+        ''')
+    }
+
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
      * 
@@ -1399,7 +1516,7 @@ class CGenerator extends GeneratorBase {
                     lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
-                            
+
             for (remoteFederate : federate.outboundP2PConnections) {
                 pr('''connect_to_federate(«remoteFederate.id»);''')
             }
@@ -1410,8 +1527,8 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        fileConfig.copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
-        fileConfig.copyFileFromClassPath("/lib/C/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/include/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
+        fileConfig.copyFileFromClassPath("/lib/c/reactor-c/lib/ctarget.c", fileConfig.getSrcGenPath + File.separator + "ctarget.c")
     }
 
     ////////////////////////////////////////////
@@ -2989,6 +3106,7 @@ class CGenerator extends GeneratorBase {
                         && federate.containsReaction(
                             dominatingReaction.definition
                             )
+                        && federate.contains(dominatingReaction.parent)
                         )
                 ) {
                     val upstreamReaction =
@@ -3117,7 +3235,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                                 for (portWithDependentReactions : portsWithDependentReactions) {
@@ -3140,7 +3258,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
-                                        throw new Exception("Internal error 2: Assigning a trigger beyond the end of the array!")
+                                        throw new InvalidSourceException("Internal error 2: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
                             }
@@ -3459,7 +3577,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->_lf_«port.name»«destinationIndexSpec»'''
         } else {
-            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
+            throw new InvalidSourceException("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -4050,7 +4168,7 @@ class CGenerator extends GeneratorBase {
      */
     private def void generateReactionOutputs(
         ReactionInstance reaction, 
-        LinkedHashSet<PortInstance> portAllocatedAlready
+        Set<PortInstance> portAllocatedAlready
     ) {
         val nameOfSelfStruct = selfStructName(reaction.parent);
 
@@ -4980,7 +5098,7 @@ class CGenerator extends GeneratorBase {
     // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile("^file:(/.*):([0-9]+):([0-9]+):(.*)$");
     
     /** Given a line of text from the output of a compiler, return
      *  an instance of ErrorFileAndLine if the line is recognized as
@@ -5003,7 +5121,7 @@ class CGenerator extends GeneratorBase {
             result.character = matcher.group(3)
             result.message = matcher.group(4)
             
-            if (result.message.toLowerCase.contains("warning:")) {
+            if (!result.message.toLowerCase.contains("error:")) {
                 result.isError = false
             }
             return result
@@ -5853,13 +5971,10 @@ class CGenerator extends GeneratorBase {
     override getTargetTimeType() '''interval_t'''
     
     override getTargetTagType() '''tag_t'''
-    
-    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
 
-    override getTargetFixedSizeListType(String baseType,
-        Integer size) '''«baseType»[«size»]'''
+    override getTargetFixedSizeListType(String baseType, int size) '''«baseType»[«size»]'''
         
     override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''

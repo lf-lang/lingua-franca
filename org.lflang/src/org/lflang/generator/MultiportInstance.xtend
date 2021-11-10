@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.LinkedHashSet
+import java.util.Set
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ErrorReporter
 import org.lflang.lf.Port
@@ -37,7 +38,11 @@ import org.lflang.lf.Port
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class MultiportInstance extends PortInstance {
-            
+
+    /** The array of instances. */
+    @Accessors(PUBLIC_GETTER)
+    val Set<PortInstance> instances = new LinkedHashSet<PortInstance>()
+
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
@@ -48,7 +53,7 @@ class MultiportInstance extends PortInstance {
         super(definition, parent)
         
         if (definition.widthSpec === null) {
-            throw new Exception("Port appears to not be a multiport: " + definition.name)
+            throw new InvalidSourceException("Port appears to not be a multiport: " + definition.name)
         }
         
         if (definition.widthSpec.ofVariableLength) {
@@ -88,16 +93,6 @@ class MultiportInstance extends PortInstance {
             instancePort.dependsOnReactions = this.dependsOnReactions
         }
     }
-    
-    /////////////////////////////////////////////
-    //// Public Fields
-
-    /** The array of instances. */
-    @Accessors(PUBLIC_GETTER)
-    val instances = new LinkedHashSet<PortInstance>()
-
-    /////////////////////////////////////////////
-    //// Public Methods
 
     /**
      * Return the list of ports that this port depends on.
@@ -113,7 +108,7 @@ class MultiportInstance extends PortInstance {
      */
     def getInstance(int position) {
         if (position < 0 || position >= instances.size) {
-            throw new Exception("Port index out of range.")
+            throw new InvalidSourceException("Port index out of range.")
         }
         return instances.get(position)
     }

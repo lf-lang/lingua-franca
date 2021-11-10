@@ -79,13 +79,4 @@ public interface ErrorReporter {
      * @return true if errors where reported
      */
     boolean getErrorsOccurred();
-
-
-    /**
-     * Reset the error reporter.
-     * After this, getErrorsOccurred() returns false. This
-     * will also clean any IDE markers if the reporter sets
-     * such markers.
-     */
-    void reset();
 }

@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.graph.TopologyGraph;
@@ -92,6 +93,9 @@ public class ModelInfo {
 
     public List<ReactorInstance> topLevelReactorInstances;
 
+    /** Cycles found during topology analysis. */
+    private List<Set<NamedInstance<?>>> topologyCycles = List.of();
+
     /**
      * Whether or not the model information has been updated at least once.
      */
@@ -118,7 +122,9 @@ public class ModelInfo {
                     it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))
                 );
             }
-            this.topologyGraph = new TopologyGraph(topLevelReactorInstances);
+            // don't store the graph into a field, only the cycles.
+            var topologyGraph = new TopologyGraph(topLevelReactorInstances);
+            this.topologyCycles = topologyGraph.getCycles();
         }
 
         // may be null if the target is invalid
@@ -128,6 +134,10 @@ public class ModelInfo {
         if (target == Target.C) {
             this.collectOverflowingNodes();
         }
+    }
+
+    public List<Set<NamedInstance<?>>> topologyCycles() {
+        return this.topologyCycles;
     }
 
     /**
