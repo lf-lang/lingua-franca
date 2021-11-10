@@ -71,9 +71,6 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
     state producerTerminated: {=bool[]=};
     state producer_id: size_t(0);
     
-    input start: bool;
-    output finished: bool;
-    
     input[numProducers] producerData: double;
     input[numProducers] producerFinished: bool;
     output[numProducers] producerCommand: bool;
@@ -97,10 +94,9 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
         }
     =}
         
-    reaction(consumerAvailable) -> consumerData, producerCommand, finished {=
-        // abort and signal finished if all producers have terminated and all data has been send
+    reaction(consumerAvailable) -> consumerData, producerCommand {=
+        // abort if all producers have terminated and all data has been send
         if((self->numTerminatedProducers == self->numProducers) && deque_is_empty(&self->pendingData)) {
-            SET(finished, true);
             return;
         }
         
@@ -154,7 +150,6 @@ reactor ProducerReactor(bank_index: size_t(0), numItemsToProduce: size_t(1000), 
     input produce: bool;
     output data: double
     
-    input reset: bool;
     output finished: bool;
     
     reaction (startup) {=   
@@ -178,8 +173,6 @@ reactor ProducerReactor(bank_index: size_t(0), numItemsToProduce: size_t(1000), 
 reactor ConsumerReactor(bank_index: size_t(0), consCost: size_t(25)) {
     
     state consItem: double(0.0);
-    
-    input reset: bool;
     
     input data: double;
     output available: bool;
@@ -225,9 +218,6 @@ main reactor (
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
     producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
     consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
-        
-    
-    
     
     manager.producerCommand -> producers.produce;
     producers.data -> manager.producerData;
