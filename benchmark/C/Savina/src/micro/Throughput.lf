@@ -62,7 +62,6 @@ target C {
     threads: 2,
     /// [[[end]]]
     flags: "-lm",
-    timeout: 5 nsec,
     tracing: true
 };
 
@@ -91,12 +90,17 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
  */
 reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
     
+    state sent_messages: int(0)
     output outMessage:bool;
     
     timer t(0, 1 nsec);
         
     reaction(t) -> outMessage {=
         SET(outMessage, true);
+        self->sent_messages++;
+        if (self->sent_messages == self->totalMessages) {
+            request_stop();
+        }
     =}
 }
 
