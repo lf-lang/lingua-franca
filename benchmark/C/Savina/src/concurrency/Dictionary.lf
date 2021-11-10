@@ -123,11 +123,13 @@ reactor DictionaryImpl(numWorkers: size_t(20)) {
                     // to the map was successful.
                     self->answersToSend[i] = msg->value;
                 } else if(msg->type == AccessType::Read) {
-                    // read the value. If the key is not yet present, this will add it and initialize the value to 0.
-                    // This does not match 100% the Savina implementation which returns null if the key is not present,
-                    // but should do a similar job.
-                    int value = self->dataMap[msg->key];
-                    self->answersToSend[i] = value;
+                    // Find the value. If the key is not present, return 0
+                    auto it = self->dataMap.find(msg->key);
+                    if (it == self->dataMap.end()) {
+                        self->answersToSend[i] = 0;    
+                    } else {
+                        self->answersToSend[i] = it->second;
+                    }
                 }
                 //FIXME: free the message here?
                 //free(msg);
