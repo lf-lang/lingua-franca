@@ -82,7 +82,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (trigger instanceof VarRef) {
                 Variable variable = ((VarRef)trigger).getVariable();
                 if (variable instanceof Port) {
-                    dependsOnPorts = true;
                     PortInstance portInstance = parent.lookupPortInstance((Port)variable);
                     // If the trigger is the port of a contained bank, then the
                     // portInstance will be null and we have to instead search for
@@ -117,6 +116,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                             }
                         }
                     }
+                    // Mark this reaction as depending on a port and therefore not
+                    // eligible to be assigned level 0. However,
+                    // if the port is not connected and doesn't depend on any reactions,
+                    // then it does not interfere with this reaction being given level 0.
+                    if (portInstance != null
+                            && (portInstance.dependsOnPorts.size() > 0 
+                            || portInstance.dependsOnReactions.size() > 0)) {
+                        dependsOnPorts = true;
+                    }
                 } else if (variable instanceof Action) {
                     var actionInstance = parent.lookupActionInstance(
                         (Action)((VarRef)trigger).getVariable());
@@ -128,6 +136,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                             (Timer)((VarRef)trigger).getVariable());
                     this.triggers.add(timerInstance);
                     timerInstance.dependentReactions.add(this);
+                    this.sources.add(timerInstance);
                 }
             } else if (trigger.isStartup()) {
                 this.triggers.add(parent.getOrCreateStartup(trigger));
@@ -139,8 +148,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         for (VarRef source : definition.getSources()) {
             Variable variable = source.getVariable();
             if (variable instanceof Port) {
-                dependsOnPorts = true;
                 var portInstance = parent.lookupPortInstance((Port)variable);
+                
                 // If the trigger is the port of a contained bank, then the
                 // portInstance will be null and we have to instead search for
                 // each port instance in the bank.
@@ -172,6 +181,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                             }
                         }
                     }
+                }
+                // Mark this reaction as depending on a port and therefore not
+                // eligible to be assigned level 0. However,
+                // if the port is not connected and doesn't depend on any reactions,
+                // then it does not interfere with this reaction being given level 0.
+                if (portInstance != null
+                        && (portInstance.dependsOnPorts.size() > 0 
+                        || portInstance.dependsOnReactions.size() > 0)) {
+                    dependsOnPorts = true;
                 }
             }
         }
@@ -247,7 +265,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      */
     public Set<TriggerInstance<? extends Variable>> sources 
             = new LinkedHashSet<TriggerInstance<? extends Variable>>();
-
+    // FIXME: Above sources is misnamed because in the grammar,
+    // "sources" are only the inputs a reaction reads without being
+    // triggered by them.
+    
     /**
      * Deadline for this reaction instance, if declared.
      */
@@ -326,7 +347,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (effect instanceof PortInstance) {
                 for (PortInstance.SendingChannelRange senderRange
                         : ((PortInstance)effect).eventualDestinations()) {
-                    for (PortInstance.PortChannelRange destinationRange
+                    for (PortInstance.Range destinationRange
                             : senderRange.destinations) {
                         dependentReactionsCache.addAll(
                                 destinationRange.getPortInstance().dependentReactions);
@@ -359,10 +380,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Next, add reactions that send data to this one.
         for (TriggerInstance<? extends Variable> source : sources) {
             if (source instanceof PortInstance) {
-                for (PortInstance.PortChannelRange senderRange
+                // First, add reactions that send data through an intermediate port.
+                for (PortInstance.Range senderRange
                         : ((PortInstance)source).eventualSources()) {
                     dependsOnReactionsCache.addAll(senderRange.getPortInstance().dependsOnReactions);
                 }
+                // Then, add reactions that send directly to this port.
+                dependsOnReactionsCache.addAll(source.dependsOnReactions);
             }
         }
         return dependsOnReactionsCache;

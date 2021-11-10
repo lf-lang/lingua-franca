@@ -167,7 +167,7 @@ public class PortInstance extends TriggerInstance<Port> {
         // If this port has dependent reactions, then add an entry for this port.
         if (dependentReactions.size() > 0) {
             SendingChannelRange thisPort = new SendingChannelRange(0, width);
-            thisPort.destinations.add(new PortChannelRange(0, width));
+            thisPort.destinations.add(new Range(0, width));
             result.add(thisPort);
         }
 
@@ -179,14 +179,14 @@ public class PortInstance extends TriggerInstance<Port> {
             }
             // Get the destination's source ranges and find the one(s) that match this port.
             int destinationChannel = 0;
-            for (PortChannelRange source : destinationPort.eventualSources()) {
+            for (Range source : destinationPort.eventualSources()) {
                 if (source.getPortInstance() == this) {
                     // This destinationPort receives data from the channel range
                     // given by source of port. Add to the result list.
                     SendingChannelRange sendingRange = new SendingChannelRange(
                             source.startChannel, source.channelWidth
                     );
-                    PortChannelRange receivingRange = destinationPort.newRange(
+                    Range receivingRange = destinationPort.newRange(
                             destinationChannel, source.channelWidth);
                     sendingRange.destinations.add(receivingRange);
                     result.add(sendingRange);
@@ -255,7 +255,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
      */
-    public List<PortChannelRange> eventualSources() {
+    public List<Range> eventualSources() {
         if (eventualSourceRanges == null) {
             eventualSourceRanges = eventualSources(0, width);
         }
@@ -266,7 +266,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * Return the list of downstream ports that are connected to this port
      * or an empty list if there are none.
      */
-    public List<PortChannelRange> getDependentPorts() {
+    public List<Range> getDependentPorts() {
         return dependentPorts;
     }
 
@@ -276,7 +276,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * For an ordinary port, this list will have length 0 or 1.
      * For a multiport, it can have a larger size.
      */
-    public List<PortChannelRange> getDependsOnPorts() {
+    public List<Range> getDependsOnPorts() {
         return dependsOnPorts;
     }
     
@@ -346,12 +346,12 @@ public class PortInstance extends TriggerInstance<Port> {
      * @param startRange The channel index for the start of the range of interest.
      * @param rangeWidth The number of channels to find sources for.
      */
-    protected List<PortChannelRange> eventualSources(int startRange, int rangeWidth) {
-        List<PortChannelRange> result = null;
+    protected List<Range> eventualSources(int startRange, int rangeWidth) {
+        List<Range> result = null;
         if (!isMultiport) {
-            result = new ArrayList<PortChannelRange>(1);
+            result = new ArrayList<Range>(1);
         } else {
-            result = new ArrayList<PortChannelRange>();
+            result = new ArrayList<Range>();
         }
         if (isOutput() 
                 && !dependentReactions.isEmpty() 
@@ -361,7 +361,7 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         int channelsToSkip = startRange;
         int channelsProvided = 0;
-        for (PortChannelRange sourceRange : dependsOnPorts) {
+        for (Range sourceRange : dependsOnPorts) {
             // sourceRange.channelWidth is the number of channels this source has to offer.
             if (sourceRange.channelWidth <= channelsToSkip) {
                 // No useful channels in this port. Skip it.
@@ -399,20 +399,20 @@ public class PortInstance extends TriggerInstance<Port> {
      * Create a SendingChannelRange representing a subset of the channels of this port.
      * @param startChannel The lower end of the channel range.
      * @param channelWidth The width of the range.
-     * @return A new instance of PortChannelRange.
+     * @return A new instance of Range.
      */
     protected SendingChannelRange newDestinationRange(int startChannel, int channelWidth) {
         return new SendingChannelRange(startChannel, channelWidth);
     }
 
     /**
-     * Create a PortChannelRange representing a subset of the channels of this port.
+     * Create a Range representing a subset of the channels of this port.
      * @param startChannel The lower end of the channel range.
      * @param channelWidth The width of the range.
-     * @return A new instance of PortChannelRange.
+     * @return A new instance of Range.
      */
-    protected PortChannelRange newRange(int startChannel, int channelWidth) {
-        return new PortChannelRange(startChannel, channelWidth);
+    protected Range newRange(int startChannel, int channelWidth) {
+        return new Range(startChannel, channelWidth);
     }
 
     //////////////////////////////////////////////////////
@@ -430,7 +430,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * by the validator). Each channel of this port will be broadcast
      * to N recipients.
      */
-    List<PortChannelRange> dependentPorts = new ArrayList<PortChannelRange>();
+    List<Range> dependentPorts = new ArrayList<Range>();
 
     /** 
      * Upstream ports that are connected directly to this port, if there are any.
@@ -438,7 +438,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * For a multiport, it can have a larger size.
      * This initially has capacity 1 because that is by far the most common case.
      */
-    List<PortChannelRange> dependsOnPorts = new ArrayList<PortChannelRange>(1);
+    List<Range> dependsOnPorts = new ArrayList<Range>(1);
     
     /** Indicator of whether this is a multiport. */
     boolean isMultiport = false;
@@ -457,7 +457,7 @@ public class PortInstance extends TriggerInstance<Port> {
     private List<SendingChannelRange> eventualDestinationRanges;
 
     /** Cached list of source ports with channel ranges. */
-    private List<PortChannelRange> eventualSourceRanges;
+    private List<Range> eventualSourceRanges;
 
     //////////////////////////////////////////////////////
     //// Inner classes.
@@ -471,15 +471,15 @@ public class PortInstance extends TriggerInstance<Port> {
      * It also includes a field representing the number of destination
      * reactors.
      */
-    public class SendingChannelRange extends PortChannelRange {
+    public class SendingChannelRange extends Range {
         
         public SendingChannelRange(int startChannel, int channelWidth) {
             super(startChannel, channelWidth);
             
             if (PortInstance.this.isMultiport) {
-                destinations = new ArrayList<PortChannelRange>();
+                destinations = new ArrayList<Range>();
             } else {
-                destinations = new ArrayList<PortChannelRange>(1);
+                destinations = new ArrayList<Range>(1);
             }
         }
 
@@ -487,7 +487,7 @@ public class PortInstance extends TriggerInstance<Port> {
             if (_numberOfDestinationReactors < 0) {
                 // Has not been calculate before. Calculate now.
                 Set<ReactorInstance> destinations = new HashSet<ReactorInstance>();
-                for (PortChannelRange destination : this.destinations) {
+                for (Range destination : this.destinations) {
                     destinations.add(destination.getPortInstance().getParent());
                 }
                 _numberOfDestinationReactors = destinations.size();
@@ -495,7 +495,7 @@ public class PortInstance extends TriggerInstance<Port> {
             return _numberOfDestinationReactors;
         }
 
-        public List<PortChannelRange> destinations;
+        public List<Range> destinations;
         private int _numberOfDestinationReactors = -1; // Never access this directly.
     }
     
@@ -504,8 +504,8 @@ public class PortInstance extends TriggerInstance<Port> {
      * If the enclosing port instance is not a multiport, this range will
      * be (0,1).
      */
-    public class PortChannelRange implements Comparable<PortChannelRange> {
-        public PortChannelRange(int startChannel, int channelWidth) {
+    public class Range implements Comparable<Range> {
+        public Range(int startChannel, int channelWidth) {
             if (startChannel < 0 || startChannel >= width || channelWidth < 0 || startChannel + channelWidth > width) {
                 throw new RuntimeException("Invalid range of port channels.");
             }
@@ -521,7 +521,7 @@ public class PortInstance extends TriggerInstance<Port> {
          * Compare the ranges by just comparing their startChannel index.
          */
         @Override
-        public int compareTo(PortChannelRange o) {
+        public int compareTo(Range o) {
             if (startChannel < o.startChannel) {
                 return -1;
             } else if (startChannel == o.startChannel) {
