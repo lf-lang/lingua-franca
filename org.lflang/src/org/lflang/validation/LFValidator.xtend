@@ -83,7 +83,7 @@ import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 
 /**
  * Custom validation checks for Lingua Franca programs.
