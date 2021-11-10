@@ -50,8 +50,8 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Get the default value of the receiver parameter in C++ code */
         val Parameter.defaultValue: String
             get() =
-                if (braces?.size == 2) "$targetType{${getInitializerList().joinToString(", ")}}"
-                else "$targetType(${getInitializerList().joinToString(", ")})"
+                if (braces?.size == 2) "($targetType){${getInitializerList().joinToString(", ")}}"
+                else "($targetType)(${getInitializerList().joinToString(", ")})"
 
         /** Get a C++ type that is a const reference to the parameter type */
         val Parameter.constRefType: String

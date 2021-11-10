@@ -1,0 +1,15 @@
+target Cpp;
+
+reactor Foo(ptr: int*({=nullptr=})) {
+    reaction (startup) {=
+            std::cout << "Got " << *ptr << "\n";
+    =}
+}
+
+main reactor {
+    private preamble {=
+        int bar{42};
+    =}
+    // don't do this at home
+    foo = new Foo(ptr={=&bar=});
+}
