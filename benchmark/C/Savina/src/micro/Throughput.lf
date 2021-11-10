@@ -1,5 +1,5 @@
 /**
- * Micro-benchmark from the Savina benchmark suite.
+ * Micro-benchmark from the Savina benchmark suite, where it is called Fork Join.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
  * According to the Savina paper performance can be achieved by
@@ -59,9 +59,10 @@ target C {
       else:
           cog.outl("threads: 0,")
     ]]] */
-    threads: 0,
+    threads: 2,
     /// [[[end]]]
     flags: "-lm",
+    tracing: true
 };
 
 
@@ -72,90 +73,33 @@ reactor ThroughputReactor(totalMessages:int(10000)) {
 
         void performComputation(double theta) {
             double sint = sin(theta);
-            double res = sint * sint;
-            // defeat dead code elimination
-            if(res <= 0) {
-                printf("Benchmark exited with unrealistic res value.");
-            }
+            // volatile to defeat dead code elimination
+            volatile double res = sint * sint;
         }
     =}
     
-    input inReset:bool;
     input inMessage:bool;
-    output outFinished:bool;
-    
-    state messagesProcessed:int(0);
-    
-    reaction(inReset) {=
-        self->messagesProcessed = 0;
-    =}
-    
-    reaction(inMessage) -> outFinished {=
-        self->messagesProcessed++;
+            
+    reaction(inMessage) {=
         performComputation(37.2);
-        
-        if(self->messagesProcessed == self->totalMessages) {
-            SET(outFinished, true);
-        }
     =}
-    
 }
 
+/**
+ * 
+ */
 reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
     
-    state messagesSent:int(0);
-    state nextConsumer:int(0);
-    state numConsumerFinished:int(0);
+    state sent_messages: int(0)
+    output outMessage:bool;
     
-    input inStart:bool;
-    output outFinished:bool;
-
-    output[numConsumer] outMessage:bool;
-    input[numConsumer] inFinished:bool;
-    output[numConsumer] outReset:bool;
-    
-    logical action sendNextMessage;
-    
-    reaction(inStart) -> outReset, sendNextMessage {=
+    timer t(0, 1 nsec);
         
-        // reset local state
-        self->messagesSent = 0;
-        self->nextConsumer = 0;
-        self->numConsumerFinished = 0;
-        for(int i = 0; i < self->numConsumer; i++) {
-            SET(outReset[i], true);
-        }
-        
-        // start execution
-        schedule(sendNextMessage, 0);
-    =}
-    
-    reaction(sendNextMessage) -> outMessage, sendNextMessage {=
-        
-        if(self->messagesSent == self->totalMessages) {
-            return;
-        }
-
-        for(int i = 0; i < self->numConsumer; i++) {
-            SET(outMessage[i], true);
-        }
-
-        self->messagesSent += 1;
-        
-        if(self->messagesSent < self->totalMessages) {
-            schedule(sendNextMessage, 0);
-        } 
-    =}
-    
-    reaction(inFinished) -> outFinished {=
-        
-        for(int i = 0; i < self->numConsumer; i++) {
-            if(inFinished[i]->is_present) {
-                self->numConsumerFinished++;
-            }
-        }
-        if(self->numConsumerFinished == self->numConsumer) {
-            SET(outFinished, true);
+    reaction(t) -> outMessage {=
+        SET(outMessage, true);
+        self->sent_messages++;
+        if (self->sent_messages == self->totalMessages) {
+            request_stop();
         }
     =}
 }
@@ -166,18 +110,9 @@ cog.outl(f'main reactor (numMessagesPerReactor:int({numMessagesPerReactor}), num
 main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60)) 
 // [[[end]]]
 {
-    
     producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
-    
-    reaction(startup) -> producer.inStart {=
-        SET(producer.inStart, true);
-    =}
-    
     
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
 
-    producer.outMessage -> worker.inMessage;
-    producer.outReset -> worker.inReset;
-    worker.outFinished -> producer.inFinished;
-    
+    (producer.outMessage)+ -> worker.inMessage;    
 }
