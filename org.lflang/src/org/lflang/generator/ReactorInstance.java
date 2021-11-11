@@ -202,7 +202,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return 0;
     }
-
+    
     /**
      * Return the destinations of the specified port.
      * The result is a set (albeit an ordered set) of ports that are destinations

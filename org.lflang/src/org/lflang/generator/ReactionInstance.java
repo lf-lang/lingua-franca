@@ -267,7 +267,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             = new LinkedHashSet<TriggerInstance<? extends Variable>>();
     // FIXME: Above sources is misnamed because in the grammar,
     // "sources" are only the inputs a reaction reads without being
-    // triggered by them.
+    // triggered by them. The name "reads" used here would be a better
+    // choice in the grammer.
     
     /**
      * Deadline for this reaction instance, if declared.
@@ -326,6 +327,16 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     //// Public methods.
 
     /**
+     * Clear caches used in reporting dependentReactions() and dependsOnReactions().
+     * This method should be called if any changes are made to triggers, sources,
+     * or effects.
+     */
+    public void clearCaches() {
+        dependentReactionsCache = null;
+        dependsOnReactionsCache = null;
+    }
+    
+    /**
      * Return the set of immediate downstream reactions, which are reactions
      * that receive data produced produced by this reaction plus
      * at most one reaction in the same reactor whose definition
@@ -345,7 +356,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Next, add reactions that get data from this one via a port.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
-                for (PortInstance.SendingChannelRange senderRange
+                for (PortInstance.SendRange senderRange
                         : ((PortInstance)effect).eventualDestinations()) {
                     for (PortInstance.Range destinationRange
                             : senderRange.destinations) {
@@ -423,6 +434,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         this.sources.remove(portInstance);
         this.effects.remove(portInstance);
         this.reads.remove(portInstance);
+        clearCaches();
+        portInstance.clearCaches();
     }
     
     /**
