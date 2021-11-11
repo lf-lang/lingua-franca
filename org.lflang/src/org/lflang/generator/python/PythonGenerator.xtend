@@ -1911,10 +1911,9 @@ class PythonGenerator extends CGenerator {
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM python:alpine
             WORKDIR /lingua-franca/«topLevelName»
-            COPY . src-gen
             RUN set -ex && apk add --no-cache gcc musl-dev \
-             && cd src-gen && python3 setup.py install && cd .. \
-             && apk del gcc musl-dev
+             && cd src-gen && python3 setup.py install && cd ..
+            COPY . src-gen
             ENTRYPOINT ["python3", "src-gen/«filename».py"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
