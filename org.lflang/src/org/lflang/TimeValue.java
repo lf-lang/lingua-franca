@@ -142,6 +142,11 @@ public final class TimeValue implements Comparable<TimeValue> {
                                      : Long.toString(time);
     }
 
+    /** Return the latest of both values. */
+    public static TimeValue max(TimeValue t1, TimeValue t2) {
+        return t1.isEarlierThan(t2) ? t2 : t1;
+    }
+
     /**
      * Return the sum of this duration and the one represented by b.
      * <p>

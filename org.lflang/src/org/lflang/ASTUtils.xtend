@@ -72,6 +72,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -1005,93 +1006,6 @@ class ASTUtils {
         return true
     }
 
-    /**
-     * Report whether the given parameter has been declared a type or has been
-     * inferred to be a type. Note that if the parameter was declared to be a
-     * time, its initialization may still be faulty (assigning a value that is 
-     * not actually a valid time).
-     * @param A parameter
-     * @return True if the argument denotes a time, false otherwise.
-     */
-    def static boolean isOfTimeType(Parameter p) {
-        if (p !== null) {
-            // Either the type has to be declared as a time.
-            if (p.type !== null && p.type.isTime) {
-                return true
-            }
-            // Or it has to be initialized as a proper time with units.
-            if (p.init !== null && p.init.size == 1) {
-                val time = p.init.get(0).time
-                if (time !== null && time.unit !== null) {
-                    return true
-                }
-            } 
-            // In other words, one can write:
-            // - `x:time(0)` -OR- 
-            // - `x:(0 msec)`, `x:(0 sec)`, etc.     
-        }
-        return false
-    }
-
-    /**
-     * Report whether the given state variable denotes a time or not.
-     * @param A state variable
-     * @return True if the argument denotes a time, false otherwise.
-     */
-    def static boolean isOfTimeType(StateVar s) {
-        if (s !== null) {
-            // Either the type has to be declared as a time.
-            if (s.type !== null)
-                return s.type.isTime
-            // Or the it has to be initialized as a time except zero.
-            if (s.init !== null && s.init.size == 1) {
-                val init = s.init.get(0)
-                if (init.isValidTime && !init.isZero)
-                    return true
-            }   
-            // In other words, one can write:
-            // - `x:time(0)` -OR- 
-            // - `x:(0 msec)`, `x:(0 sec)`, etc. -OR-
-            // - `x:(p)` where p is defined as above.
-        }
-        return false
-    }
-    
-    /**
-	 * Assuming that the given parameter is of time type, return
-	 * its initial value.
-	 * @param p The AST node to inspect.
-	 * @return A time value based on the given parameter's initial value.
-	 */    
-    def static TimeValue getInitialTimeValue(Parameter p) {
-        if (p !== null && p.isOfTimeType) {
-            val init = p.init.get(0)
-            if (init.time !== null) {
-                return new TimeValue(init.time.interval, TimeUnit.fromName(init.time.unit))
-            } else if (init.parameter !== null) {
-                // Parameter value refers to another parameter.
-                return getInitialTimeValue(init.parameter) 
-            } else {
-                return TimeValue.ZERO
-            }
-        }
-        return null
-    }
-    
-    /**
-	 * Assuming that the given value denotes a valid time, return a time value.
-	 * @param p The AST node to inspect.
-	 * @return A time value based on the given parameter's initial value.
-	 */        
-    def static TimeValue getTimeValue(Value v) {
-        if (v.parameter !== null) {
-            return ASTUtils.getInitialTimeValue(v.parameter)
-        } else if (v.time !== null) {
-            return new TimeValue(v.time.interval, TimeUnit.fromName(v.time.unit))
-        } else {
-            return TimeValue.ZERO
-        }
-    }
         
     /**
      * Given a parameter, return its initial value.

@@ -30,7 +30,7 @@ package org.lflang.generator
 import org.lflang.TimeValue
 import org.lflang.lf.Deadline
 
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Instance of a deadline. Upon creation the actual delay is converted into
