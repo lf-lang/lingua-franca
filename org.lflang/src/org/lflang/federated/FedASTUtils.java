@@ -128,9 +128,7 @@ public class FedASTUtils {
             // the minDelay.
             if (connection.getDelay() != null) {
                 action.setMinDelay(factory.createValue());
-                action.getMinDelay().setTime(factory.createTime());
-                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
-                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
+                action.getMinDelay().setTime(connection.getDelay().getTime());
             }
         } else {
             action.setOrigin(ActionOrigin.LOGICAL);

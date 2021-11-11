@@ -39,19 +39,19 @@ import java.util.stream.Collectors;
  */
 public enum TimeUnit {
     /** Nanoseconds. */
-    NANO("ns", "nsec", "nsecs"),
+    NANO("nsec", "ns", "nsecs"),
     /** Microseconds. */
-    MICRO("us", "usec", "usecs"),
+    MICRO("usec", "us", "usecs"),
     /** Milliseconds. */
-    MILLI("ms", "msec", "msecs"),
+    MILLI("msec", "ms", "msecs"),
     /** Seconds. */
-    SECOND("s", "sec", "secs", "second", "seconds"),
+    SECOND("sec", "s", "secs", "second", "seconds"),
     /** Minute. */
     MINUTE("min", "mins", "minute", "minutes"),
     /** Hour. */
-    HOUR("h", "hour", "hours"),
+    HOUR("hour", "h", "hours"),
     /** Day. */
-    DAY("d", "day", "days"),
+    DAY("day", "d", "days"),
     WEEK("week", "weeks"),
     ;
 
@@ -95,7 +95,8 @@ public enum TimeUnit {
     }
 
     /**
-     * Returns true if the parameter is null or it is the alias of a valid time unit.
+     * Returns true if the parameter is null, or it is the
+     * alias of a valid time unit.
      */
     public static boolean isValidUnit(String name) {
         if (name == null) {

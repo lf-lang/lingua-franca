@@ -740,12 +740,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
             if (time.unit !== null) {
-                return time.unit.name() + '(' + time.time + ')'
+                return time.unit.cMacroName + '(' + time.magnitude + ')'
             } else {
-                return time.time.toString()
+                return time.magnitude.toString()
             }
         }
         return "0" // FIXME: do this or throw exception?
+    }
+
+    // note that this is moved out by #544
+    final def String cMacroName(TimeUnit unit) {
+        return unit.canonicalName.toUpperCase
     }
 
     /**
@@ -1495,18 +1500,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return An RTI-compatible (ie. C target) time string
      */
     protected def getRTITime(Delay d) {
-        var TimeValue time
         if (d.parameter !== null) {
             return d.toText
         }
 
-        time = new TimeValue(d.interval,  TimeUnit.fromName(d.unit))
-
-        if (time.unit !== null) {
-            return time.unit.name() + '(' + time.time + ')'
-        } else {
-            return time.time.toString()
-        }
+        return d.time.toTimeValue.timeInTargetLanguage
     }
 
 
@@ -1875,7 +1873,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         if (d.parameter !== null) {
             return d.toText
         } else {
-            return new TimeValue(d.interval,  TimeUnit.fromName(d.unit)).timeInTargetLanguage
+            return d.time.toTimeValue.timeInTargetLanguage
         }
     }
 

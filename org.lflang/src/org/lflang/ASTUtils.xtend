@@ -280,9 +280,7 @@ class ASTUtils {
         if (delay.parameter !== null) {
             value.parameter = delay.parameter
         } else {
-            value.time = factory.createTime
-            value.time.interval = delay.interval
-            value.time.unit = delay.unit
+            value.time = delay.time
         }
         assignment.rhs.add(value)
         delayInstance.parameters.add(assignment)
@@ -775,7 +773,7 @@ class ASTUtils {
         if (d.parameter !== null) {
             return d.parameter.name
         }
-        '''«d.interval» «d.unit.toString»'''
+        d.time.toText
     }
     
     /**

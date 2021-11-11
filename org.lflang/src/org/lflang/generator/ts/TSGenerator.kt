@@ -351,7 +351,7 @@ class TSGenerator(
      */
     override fun timeInTargetLanguage(value: TimeValue): String {
         return if (value.unit != null) {
-            "TimeValue.${value.unit}(${value.time})"
+            "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
         } else {
             // The value must be zero.
             "TimeValue.zero()"
