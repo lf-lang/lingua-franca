@@ -1,0 +1,205 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This is a relatively simple benchmarks where multiple workers interact
+ * concurrently with a central dictionary. The original Akka implementation does
+ * not make an effort to synchronize and order the incoming requests. It simply
+ * processes requests in the order they are delivered to the dictinary actor by
+ * the runtime. The only synchroniztion applied, is that the workers wait for a
+ * response from the dictionary before sending the next request.
+ * 
+ * In the LF implementation, all components operate synchronously. This means
+ * that at each logical time step all workers send a request to the dictionary.
+ * The dictionary processes the requests in a fixed order which makes the whole
+ * application deterministic.
+ * 
+ * To break the causality loop the dictionary reactor contains a logical action.
+ * This appears to be more efficient than using a logical action within each
+ * worker. In a quick test, the version with logical actions in each worker was
+ * 50% slower compared to the version with only one logical action in the
+ * dictionary.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Matt Chorlian
+ */
+
+target CCpp {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    build-type : RelWithDebInfo,
+    logging: "warn"
+};
+
+preamble {=
+    #include <map>
+    #include <vector>
+    #include <memory>
+    enum class AccessType {
+      Read,
+      Write
+    };
+    
+    struct Message {
+      AccessType type;
+      int key;
+      int value;
+    };
+=}
+
+reactor Manager(numWorkers: size_t(20)) {
+    
+    state numWorkersTerminated: size_t(0);
+    
+    input start: bool;
+    output finished: bool;
+    
+    output doWork: bool;
+    input[numWorkers] workerFinished: bool;
+    
+    reaction(startup) -> doWork {=
+        //In C: initialize local state
+        self->numWorkersTerminated = 0;
+        // start execution
+        SET(doWork, true);
+    =}
+    
+    reaction(workerFinished) -> finished {=
+        for (int i = 0;  i < self->numWorkers; i ++) {
+            if (workerFinished[i]->is_present) {
+                self->numWorkersTerminated++;
+            }
+        }
+        if(self->numWorkersTerminated == self->numWorkers) {
+            printf("All workers terminated.");
+            SET(finished, true);
+        }
+    =}
+}
+
+reactor DictionaryImpl(numWorkers: size_t(20)) {
+    
+    
+    state dataMap: std::map<int,int>;
+    state answersToSend: std::vector<int>;
+    
+    // Having the action in the dictionary is fatser...
+    logical action sendAnswers;
+
+    input[numWorkers] request: Message*;
+    output[numWorkers] response: int; 
+    
+    reaction(startup) {=
+        // in C: initialize local state
+        self->dataMap = std::map<int, int>();
+        self->answersToSend = std::vector<int>(self->numWorkers, -1);
+    =}
+    
+    reaction(sendAnswers) -> response {=
+        for(size_t i = 0; i < self->numWorkers; i++) {
+            if(self->answersToSend[i] >= 0) {
+                SET(response[i], self->answersToSend[i]);
+                self->answersToSend[i] = -1;
+            }
+        }
+    =}
+    
+    reaction(request) -> sendAnswers {=
+        // The order of messages to read is relevant, it effectively
+        // assigns priorities to the workers.
+        for(size_t i = 0; i < self->numWorkers; i++) {
+            if(request[i]->is_present) {
+                auto msg = request[i]->value;
+                
+                if(msg->type == AccessType::Write) {  
+                    self->dataMap.emplace(msg->key, msg->value);
+                    // Savina sends ResultMsg always independently if adding (key,value)
+                    // to the map was successful.
+                    self->answersToSend[i] = msg->value;
+                } else if(msg->type == AccessType::Read) {
+                    // Find the value. If the key is not present, return 0
+                    auto it = self->dataMap.find(msg->key);
+                    if (it == self->dataMap.end()) {
+                        self->answersToSend[i] = 0;    
+                    } else {
+                        self->answersToSend[i] = it->second;
+                    }
+                }
+                //FIXME: free the message here?
+                //free(msg);
+            }
+        }
+
+        
+        schedule(sendAnswers, 0);
+    =}
+}
+
+reactor Worker(bank_index: size_t(0), numMessagesPerWorker: size_t(10000), writePercentage: int(10)) {
+    
+    preamble {=
+        #include <random>
+    =}
+    
+    state messageCount: size_t(0);
+    state random: std::minstd_rand;
+    
+    input doWork: bool;
+    output finished: bool;
+    
+    input dictResponse: int;
+    output dictRequest: Message*;
+    
+    reaction(doWork, dictResponse) -> dictRequest, finished {=
+        if (doWork->is_present) {
+            //reset local state
+            self->random.seed(self->bank_index + self->numMessagesPerWorker + self->writePercentage);
+            self->messageCount = 0;
+        }
+        
+        self->messageCount += 1;
+        if(self->messageCount <= self->numMessagesPerWorker) {
+            int anInt = static_cast<int>(random()) % 100;
+            SET_NEW(dictRequest);
+            Message* msg = dictRequest->value;
+
+            if(anInt < self->writePercentage) {
+                msg->type = AccessType::Write;
+                msg->key = static_cast<int>(random());
+                msg->value = static_cast<int>(random());
+            } else {
+                msg->type = AccessType::Read;
+                msg->key = static_cast<int>(random());
+                msg->value = 0;
+            }
+        } else {
+            SET(finished, true);
+        }
+    =}
+}
+
+
+/* [[[cog
+  	cog.outl(f'main reactor (numMessagesPerWorker: size_t({numMessagesPerWorker}), writePercentage: int({writePercentage}), numWorkers: size_t({numWorkers}))')
+	]]] */
+    main reactor (numMessagesPerWorker: size_t(10000), writePercentage: int(10), numWorkers: size_t(20))
+	// [[[end]]]
+{
+
+    
+    manager = new Manager(numWorkers=numWorkers);
+    
+    dict = new DictionaryImpl(numWorkers=numWorkers);
+    workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
+    
+    dict.response -> workers.dictResponse;
+    workers.dictRequest -> dict.request;
+    workers.finished -> manager.workerFinished;
+    (manager.doWork)+ -> workers.doWork;
+}

@@ -2394,7 +2394,7 @@ class CGenerator extends GeneratorBase {
                 // self->_lf__reaction_«reactionCount».index = 0;
                 // self->_lf__reaction_«reactionCount».chain_id = 0;
                 // self->_lf__reaction_«reactionCount».pos = 0;
-                // self->_lf__reaction_«reactionCount».running = false;
+                // self->_lf__reaction_«reactionCount».status = inactive;
                 // self->_lf__reaction_«reactionCount».deadline = 0LL;
                 // self->_lf__reaction_«reactionCount».is_STP_violated = false;
                 pr(reaction, constructorCode, '''
