@@ -1,6 +1,20 @@
 /**
  * Copyright (C) 2020 TU Dresden
  * 
+ * This benchmark calculates the logistic map series (https://en.wikipedia.org/wiki/Logistic_map)
+ * N (numSeries) times in parallel. Each of the N seriesWorkers starts with a
+ * different initial value and initial rate. The actual computation of the next
+ * value in the series is offloaded to the RateComputer reactors. The
+ * SeriesWorker reactors only keep track of the current value.
+ * 
+ * I am not sure why the Savina developers considered this to be an interesting
+ * benchmark as there is not much going on. The most interesting aspect is the
+ * interaction between the SeresWorker and its RateComputer. The worker tells
+ * the computer to produce a new value and then needs to wait for the result
+ * before it can update its internal state. This waiting isn't straight forward
+ * in actors, and there are actually multiple solutions implemented for Akka. In
+ * LF, this interaction is quite trivial. It's a simple feedback loop.
+ * 
  * @author Christian Menard
  * @author Hannes Klein
  */
@@ -13,24 +27,23 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor RateComputer(bank_index: size_t{0}, startRate: double{3.46}, rateIncrement: double{0.0025}) {
     
-    state currentRate: double;
-    
-    input reset: void;
+    state rate: double;
+
     input compute: double;
-    output rate: double;
+    output result: double;
     
-    reaction(reset) {=
-        currentRate = startRate + (bank_index * rateIncrement);
+    reaction(startup) {=
+        rate = startRate + (bank_index * rateIncrement);
     =}
     
-    reaction(compute) -> rate {=
+    reaction(compute) -> result {=
         double term = *compute.get();
-        double result = currentRate * term * (1 - term);
-        rate.set(result);
+        double res = rate * term * (1 - term);
+        result.set(res);
     =}
 }
 
-reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
+reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}, startRate: double{3.46}, rateIncrement: double{0.0025}) {
     
     state curTerm: double;
     
@@ -38,24 +51,24 @@ reactor SeriesWorker(bank_index: size_t{0}, termIncrement: double{0.0025}) {
     input nextTerm: void;
     input getTerm: void;
     output term: double;
-    output computeRate: double;
-    input rate: double;
+    
+    computer = new RateComputer(bank_index=bank_index, startRate=startRate, rateIncrement=rateIncrement);
 
     reaction (reset) {=
         //reset local state
         curTerm = bank_index * termIncrement;   
     =}
     
-    reaction(nextTerm) -> computeRate {=
-        computeRate.set(curTerm);
+    reaction(nextTerm) -> computer.compute {=
+        computer.compute.set(curTerm);
+    =}
+    
+    reaction(computer.result) {=
+        curTerm = *computer.result.get();
     =}
     
     reaction(getTerm) -> term {=
         term.set(curTerm);
-    =}
-    
-    reaction(rate) {=
-        curTerm = *rate.get();
     =}
 }
 
@@ -69,7 +82,7 @@ reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
 
     output nextTerm: void;
     output getTerm: void;
-    input[numSeries] term: double;
+    input[numSeries] results: double;
     
     logical action next: void;
     
@@ -84,10 +97,10 @@ reactor Manager(numSeries: size_t(10), numTerms: size_t(25000)) {
         next.schedule();
     =}
     
-    reaction(term) -> finished {=
+    reaction(results) -> finished {=
         double terms_sum{0.0};
         for (size_t i{0}; i < numSeries; ++i) {
-            terms_sum += *term[i].get();
+            terms_sum += *results[i].get();
         }
         reactor::log::Info() << "Terms sum: " << terms_sum;
         finished.set();
@@ -108,16 +121,12 @@ main reactor (numIterations: size_t{12}, numTerms: size_t{25000}, startRate: dou
         printSystemInfo();
     =}
     
-    rateComputers = new[numSeries] RateComputer(startRate=startRate, rateIncrement=0.0025);
-    seriesWorkers = new[numSeries] SeriesWorker(termIncrement=0.0025);
+    seriesWorkers = new[numSeries] SeriesWorker(startRate=startRate, rateIncrement=0.0025, termIncrement=0.0025);
     
-    (runner.start)+ -> manager.start, rateComputers.reset, seriesWorkers.reset;
+    (runner.start)+ -> manager.start, seriesWorkers.reset;
     manager.finished -> runner.finished;
     
     (manager.nextTerm)+ -> seriesWorkers.nextTerm;
     (manager.getTerm)+ -> seriesWorkers.getTerm;
-    seriesWorkers.term -> manager.term;
-    
-    seriesWorkers.computeRate -> rateComputers.compute;
-    rateComputers.rate -> seriesWorkers.rate; 
+    seriesWorkers.term -> manager.results;
 }

@@ -1,220 +1,129 @@
 /**
- * Simple implementation for deque in C
- * 
- * Supported Operations: deque_push_front, deque_push_back, deque_pop_front, deque_pop_back, deque_peek_front, 
- * deque_peek_back, deque_is_empty, deque_get_size.
- * 
- * Value stored in the deque is of type void* to make the use generic. Memory allocation/free is handled internally. Deque initialization requires
- * information about the size of value to be stored.
- * 
- * author: Arthur Deng
- */
+@file
+@author Arthur Deng
+@author Edward A. Lee
+@section LICENSE
+Copyright (c) 2021, The University of California at Berkeley.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@section DESCRIPTION
+This is the header file for an implementation of a double-ended queue.
+Each node in the queue contains a void* pointer.
+To use this, include the following in your target properties:
+<pre>
+target C {
+    cmake-include: "/lib/c/reactor-c/util/deque.cmake",
+    files: ["/lib/c/reactor-c/util/deque.c", "/lib/c/reactor-c/util/deque.h"]
+};
+</pre>
+In addition, you need this in your Lingua Franca file:
+<pre>
+preamble {=
+    #include "deque.h"
+=}
+</pre>
+To create a deque, use calloc to ensure that it gets initialized
+with null pointers and zero size:
+<pre>
+    deque_t* my_deque = (deque_t*) calloc(1, sizeof(deque_t));
+</pre>
+Alternatively, you can call initialize:
+<pre>
+    deque my_deque;
+    deque_initialize(&my_deque);
+</pre>
+*/
+
 
 #ifndef DEQUE_H
 #define DEQUE_H
 
-typedef struct node {
-    struct node *next;
-    struct node *prev;
-    void* value;
-} node;
+#include <stddef.h>  // Defines size_t
+#include <stdbool.h> // Defines bool
+#include <stdlib.h>  // Defines malloc and free
 
-typedef struct deque {
-    struct node* front;
-    struct node* back;
+/**
+ * A double-ended queue data structure.
+ */
+typedef struct deque_t {
+    struct deque_node_t* front;
+    struct deque_node_t* back;
     size_t size;
-    int length;
-} deque;
+} deque_t;
 
-/*
-* Function:  deque_initialize
-* --------------------
-* allocates memory for and intializes the deque.
-* size: size of each data item
-*  returns: pointer to the deque
-*/
-deque* deque_initialize(size_t size) {
-    // allocate space for deque
-    deque *p = (deque *) malloc (sizeof(deque));
-    if (p != NULL) {
-        p->front = NULL;
-        p->back = NULL;
-        p->length = 0;
-        p->size = size;
-    }
-    return p;
-}
+/**
+ * Initialize the specified deque to an empty deque.
+ * @param d The deque.
+ */
+void deque_initialize(deque_t* d);
 
-/*
-* Function:  deque_is_empty
-* --------------------
-*  d: pointer to the deque
-*  returns: 1 if deque is empty, 0 if deque is not empty
-*/
-int deque_is_empty(struct deque* d) {
-    if (d==NULL) {
-        return 1;
-    } else if (d->length != 0) {
-        return 0;
-    }
-    return 1;
-}
+/**
+ * Return true if the queue is empty.
+ * @param d The deque.
+ */
+bool deque_is_empty(deque_t* d);
 
-/*
-* Function:  _deque_create_node
-* --------------------
-* allocates memory for new node in deque. Used internally by deque_push_front
-* and deque_push_back. Memory is freed when node is popped using deque_pop_back
-* and deque_pop_front.
-*  val: value to be stored in the node
-*  returns: pointer to the node
-*/
-node* _deque_create_node(void* val) {
-    node *new_node = (struct node *) malloc(sizeof(struct node));
-    new_node->value = val;
-    new_node->next = NULL;
-    new_node->prev = NULL;
-    return new_node;
-}
+/**
+ * Return the size of the queue.
+ * @param d The deque.
+ * @return The size of the queue.
+ */
+size_t deque_size(deque_t* d);
 
-/*
-* Function:  deque_push_front
-* --------------------
-* Appends val to the front of the deque.
-*  d: pointer to the deque
-*  val: value to be added into the deque
-*  returns: None
-*/
-void deque_push_front(struct deque* d, void* val) {
-	// allocate space on the heap to store val
-	void *val_heap = malloc(d->size);
-	memcpy(val_heap, val, d->size);
-    node *n = _deque_create_node(val_heap);
-    if (d->back == NULL) {
-        d->back = d->front = n;
-    } else {
-        d->front->prev = n;
-        n->next = d->front;
-        d->front = d->front->prev;
-    }
-    d->length++;
-}
+/**
+ * Push a value to the front of the queue.
+ * @param d The queue.
+ * @param value The value to push.
+ */
+void deque_push_front(deque_t* d, void* value);
 
-/*
-* Function:  deque_push_back
-* --------------------
-* Appends val to the back of the deque.
-*  d: pointer to the deque
-*  val: value to be added into the deque
-*  returns: None
-*/
-void deque_push_back(struct deque* d, void* val) {
-	// allocate space on the heap to store val
-	void *val_heap = malloc(d->size);
-	memcpy(val_heap, val, d->size);
-    node *n = _deque_create_node(val_heap);
-    if (d->back == NULL) {
-        d->back = d->front = n;
-    } else {
-        d->back->next = n;
-        n->prev = d->back;
-        d->back = d->back->next;
-    }
-    d->length++;
-}
+/**
+ * Push a value to the back of the queue.
+ * @param d The queue.
+ * @param value The value to push.
+ */
+void deque_push_back(deque_t* d, void* value);
 
-/*
-* Function:  deque_pop_front
-* --------------------
-* Pops the front node from the deque and return its value. 
-*  d: pointer to the deque
-*  returns: value popped from the front
-*/
-void deque_pop_front(struct deque* d) {
-    if (d==NULL || d->front == NULL) {
-        fprintf(stderr, "Error: popping from empty deque\n");
-    }
-    
-    void* value = d->front->value;
-    struct node *temp = d->front; // temporary pointer for freeing up memory
-    
-    if (d->front == d->back) { 
-        // popping last element in deque
-        d->front = d->back = NULL;
-    } else {
-        d->front = d->front->next;
-    }
-    d->length--; // decrement size
-    free(temp->value); // free memory for value
-    free(temp); // free memory for popped node
-}
+/**
+ * Pop a value from the front of the queue, removing it from the queue.
+ * @param d The queue.
+ * @return The value on the front of the queue or NULL if the queue is empty.
+ */
+void* deque_pop_front(deque_t* d);
 
-/*
-* Function:  deque_pop_back
-* --------------------
-* Pops the back node from the deque and return its value. 
-*  d: pointer to the deque
-*  returns: value popped from the back
-*/
-void deque_pop_back(struct deque* d) {
-    if (d==NULL || d->back == NULL) {
-        fprintf(stderr, "Error: popping from empty deque\n");
-    }
-    
-    void* value = d->back->value;
-    struct node *temp = d->back; // temporary pointer for freeing up memory
-    if (d->front == d->back) { 
-        // popping last element in deque
-        d->front = d->back = NULL;
-    } else {
-        d->back = d->back->prev;
-    }
-    d->length--; // decrement size
-    free(temp->value); // free memory for value
-    free(temp); // free memory for popped node
-}
+/**
+ * Pop a value from the back of the queue, removing it from the queue.
+ * @param d The queue.
+ * @return The value on the back of the queue or NULL if the queue is empty.
+ */
+void* deque_pop_back(deque_t* d);
 
-/*
-* Function:  deque_peek_front
-* --------------------
-* Returns value of the front node without modifying the deque.
-*  d: pointer to the deque
-*  returns: value of the front node
-*/
-void* deque_peek_front(struct deque* d) {
-    if (d == NULL || d->front == NULL) {
-        fprintf(stderr, "Error: peeking empty deque");
-        return 0;
-    }
-    return d->front->value;
-}
+/**
+ * Peek at the value on the front of the queue, leaving it on the queue.
+ * @param d The queue.
+ * @return The value on the front of the queue or NULL if the queue is empty.
+ */
+void* deque_peek_back(deque_t* d);
 
-/*
-* Function:  deque_peek_back
-* --------------------
-* Returns value of the back node without modifying the deque.
-*  d: pointer to the deque
-*  returns: value of the back node
-*/
-void* deque_peek_back(struct deque* d) {
-    if (d == NULL || d->back == NULL) {
-        fprintf(stderr, "Error: peeking empty deque");
-        return 0;
-    }
-    return d->back->value;
-}
+/**
+ * Peek at the value on the back of the queue, leaving it on the queue.
+ * @param d The queue.
+ * @return The value on the back of the queue or NULL if the queue is empty.
+ */
+void* deque_peek_front(deque_t* d);
 
-/*
-* Function:  deque_get_size
-* --------------------
-* Returns number of elements in the deque.
-*  d: pointer to the deque
-*  returns: number of elements in the deque (int).
-*/
-int deque_get_size(struct deque* d) {
-    if (d == NULL) {
-        fprintf(stderr, "Cannot get size of non-existant deque.");
-    }
-    return d->length;
-}
-#endif
+#endif // DEQUE_H

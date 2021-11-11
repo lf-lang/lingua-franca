@@ -167,7 +167,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
@@ -539,6 +539,16 @@ public enum TargetProperty {
     }
 
     /**
+     * Return the name of the property in lingua franca. This
+     * is suitable for use as a key in a target properties block.
+     * It may be an invalid identifier in other languages (may
+     * contains dashes {@code -}).
+     */
+    public String getDisplayName() {
+        return description;
+    }
+
+    /**
      * Set the given configuration using the given target properties.
      *
      * @param config     The configuration object to update.
@@ -582,24 +592,21 @@ public enum TargetProperty {
      * function will do nothing if the list of target properties doesn't
      * include the property given by 'propertyName'.
      *
-     * @param config The target config to apply the update to.
-     * @param propertyName The name of the target property.
+     * @param config     The target config to apply the update to.
+     * @param property   The target property.
      * @param properties AST node that holds all the target properties.
      * @param err        Error reporter on which property format errors will be reported
      */
-    public static void updateOne(TargetConfig config, String propertyName, List<KeyValuePair> properties, ErrorReporter err) {
-        TargetProperty p = forName(propertyName);
-        if (p != null) {
-            properties.stream()
-                .filter(property -> property.getName().equals(propertyName))
-                .findFirst()
-                .map(KeyValuePair::getValue)
-                .ifPresent(value -> p.updater.parseIntoTargetConfig(
-                    config,
-                    value,
-                    err
-                ));
-        }
+    public static void updateOne(TargetConfig config, TargetProperty property, List<KeyValuePair> properties, ErrorReporter err) {
+        properties.stream()
+            .filter(p -> p.getName().equals(property.getDisplayName()))
+            .findFirst()
+            .map(KeyValuePair::getValue)
+            .ifPresent(value -> property.updater.parseIntoTargetConfig(
+                config,
+                value,
+                err
+            ));
     }
 
     /**

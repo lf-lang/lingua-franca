@@ -58,14 +58,15 @@ target C{
     ]]] */
     threads: 0,    
     /// [[[end]]]
-    files: ["../include/PseudoRandom.h", "../include/deque.h"]
+    cmake-include: "../include/deque.cmake",
+    files: ["../include/PseudoRandom.h", "../include/deque.h", "../include/deque.c"]
 };
 preamble {=
     #include "PseudoRandom.h"
     #include "deque.h"
     #include <float.h>
     long seed = 123456;
-    typedef deque message_queue_t;
+    typedef deque_t message_queue_t;
     typedef struct CreditMessage {
         size_t recipient;
         double amount;  
@@ -78,21 +79,20 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
 
     state message_queues : {=message_queue_t*=};
     state random_gen : {=PseudoRandom *=};
-
-    reaction(startup) ->next {=
+    output[numAccounts] credit: credit_message_t;
+    
+    logical action next;
+    
+    reaction(startup) -> next {=
         if (!self->message_queues) {
             self->message_queues = (message_queue_t *) calloc(self->numAccounts, sizeof(message_queue_t));
-            size_t cnt;
-            for (cnt = 0; cnt < self->numAccounts; cnt++) {
-                self->message_queues[cnt].size = sizeof(credit_message_t);
-            }
         }
         self->random_gen = (PseudoRandom *) malloc(sizeof(PseudoRandom));
         initPseudoRandom(self->random_gen, seed);
         
         //printf("Teller: Start a new iteration\n");
             
-        // generateWork();
+            
         for (int i = 0; i < self->numBankings; i++) {
             // src is lower than dest id to ensure there is never a deadlock
             // Note: this comment stems from the original Akka implementation and 
@@ -106,10 +106,10 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             
             double amount = nextDouble(self->random_gen) * 1000;
             
-            credit_message_t new_msg;
-            new_msg.recipient = dest_account;
-            new_msg.amount = amount;
-            deque_push_back(&(self->message_queues[src_account]), &new_msg);
+            credit_message_t *new_msg = malloc(sizeof(credit_message_t));
+            new_msg->recipient = dest_account;
+            new_msg->amount = amount;
+            deque_push_back(&(self->message_queues[src_account]), new_msg);
         }
                 
         // start execution
@@ -117,9 +117,7 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
     =}
 
 
-    output[numAccounts] credit: credit_message_t;
-    
-    logical action next;
+   
     
     
     reaction(next) -> next, credit {=
@@ -130,9 +128,9 @@ reactor Teller(numAccounts:int(1000), numBankings:int(50000)) {
             message_queue_t *queue = &(self->message_queues[i]);
             if (!deque_is_empty(queue)) {
                 work_found = 1;
-                credit_message_t message = *((credit_message_t *) deque_peek_front(queue));
-                SET(credit[i], message);
-                deque_pop_front(queue);
+                credit_message_t *message = (credit_message_t *) deque_peek_front(queue);
+                SET(credit[i], *message);
+                free(deque_pop_front(queue)); // free allocated memory
             }
         }
         

@@ -83,7 +83,7 @@ import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
-import org.lflang.federated.SupportedSerializers
+import org.lflang.federated.serialization.SupportedSerializers
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -300,7 +300,7 @@ class LFValidator extends BaseLFValidator {
         if (assignment.lhs.isOfTimeType) {
             if (assignment.rhs.size > 1) {
                  error("Incompatible type.", Literals.ASSIGNMENT__RHS)
-            } else {
+            } else if (assignment.rhs.size > 0) {
                 val v = assignment.rhs.get(0)
                 if (!v.isValidTime) {
                     if (v.parameter === null) {
@@ -1319,18 +1319,24 @@ class LFValidator extends BaseLFValidator {
     }
     
     @Check(FAST)
-    def checkVarRef(VarRef varRef) {        
+    def checkVarRef(VarRef varRef) {
+        // check correct usage of interleaved
         if (varRef.isInterleaved) {
             if (this.target != Target.CPP && !isCBasedTarget && this.target != Target.Python) {
-                error("This target does not support interleaved port references", Literals.VAR_REF__INTERLEAVED)
-            }
-            if (varRef.container === null || varRef.container.widthSpec === null || 
-                (varRef.variable as Port).widthSpec === null
-            ) {
-                error("interleaved can only be used for multiports contained within banks", Literals.VAR_REF__INTERLEAVED)
+                error("This target does not support interleaved port references.", Literals.VAR_REF__INTERLEAVED)
             }
             if (!(varRef.eContainer instanceof Connection)) {
-                error("interleaved can only be used in connections", Literals.VAR_REF__INTERLEAVED)
+                error("interleaved can only be used in connections.", Literals.VAR_REF__INTERLEAVED)
+            }
+            
+            if (varRef.variable instanceof Port) {
+                // This test only works correctly if the variable is actually a port. If it is not a port, other
+                // validator rules will produce error messages.
+                if (varRef.container === null || varRef.container.widthSpec === null || 
+                    (varRef.variable as Port).widthSpec === null
+                ) {
+                    error("interleaved can only be used for multiports contained within banks.", Literals.VAR_REF__INTERLEAVED)
+                }
             }
         }
     }
