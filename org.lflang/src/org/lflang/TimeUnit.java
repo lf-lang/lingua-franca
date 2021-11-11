@@ -95,6 +95,16 @@ public enum TimeUnit {
     }
 
     /**
+     * Returns true if the parameter is null or it is the alias of a valid time unit.
+     */
+    public static boolean isValidUnit(String name) {
+        if (name == null) {
+            return true;
+        }
+        return Arrays.stream(values()).anyMatch(it -> it.hasAlias(name));
+    }
+
+    /**
      * Returns a list of all possible aliases for time values.
      */
     public static List<String> list() {
