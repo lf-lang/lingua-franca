@@ -64,7 +64,6 @@ import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.ParameterInstance
-import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
@@ -91,6 +90,7 @@ import org.lflang.util.XtendUtil
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
+import org.lflang.generator.PortInstance
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -3103,7 +3103,7 @@ class CGenerator extends GeneratorBase {
                         // If the port is a multiport, then its channels may have different sets
                         // of destinations.  Handle each range of destinations separately.
                         // For ordinary ports, there will be only range and its width will be 1.
-                        for (PortInstance.SendingChannelRange range : port.eventualDestinations()) {
+                        for (PortInstance.SendRange range : port.eventualDestinations()) {
                             var numberOfTriggerTObjects = range.destinations.size();
                                                         
                             // Record this array size in reaction's reaction_t triggered_sizes array.
