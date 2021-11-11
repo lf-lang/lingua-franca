@@ -125,17 +125,17 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
  * inferred to be a type. Note that if the parameter was declared to be a
  * time, its initialization may still be faulty (assigning a value that is
  * not actually a valid time).
- * @see ASTUtils.isOfTimeType
+ * @see JavaAstUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
+val Parameter.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
 
 /**
  * Report whether the given state variable denotes a time or not.
- * @see ASTUtils.isOfTimeType
+ * @see JavaAstUtils.isOfTimeType
  * @return True if the receiver denotes a time, false otherwise.
  */
-val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
+val StateVar.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation.

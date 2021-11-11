@@ -30,7 +30,7 @@ import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
 import org.lflang.lf.Timer
 
-import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Instance of a timer.

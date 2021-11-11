@@ -27,6 +27,7 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.c.CGenerator;
@@ -236,7 +237,7 @@ public class CGeneratorExtension {
                 // And that value has to be a Time.
                 Value value = delay.getParameter().getInit().get(0);
                 if (value.getTime() != null) {
-                    additionalDelayString = Long.toString(ASTUtils.getTimeValue(value).toNanoSeconds());
+                    additionalDelayString = Long.toString(JavaAstUtils.getTimeValue(value).toNanoSeconds());
                 } else if (value.getLiteral() != null) {
                     // If no units are given, e.g. "0", then use the literal.
                     additionalDelayString = value.getLiteral();

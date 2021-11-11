@@ -79,7 +79,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.Type
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
