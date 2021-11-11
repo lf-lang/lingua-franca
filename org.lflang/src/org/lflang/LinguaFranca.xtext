@@ -401,15 +401,6 @@ terminal WS: (' '|'\t'|'\r'|'\n')+;
 terminal TRUE:  'true' | 'True';
 terminal FALSE: 'false' | 'False';
 
-terminal NSEC: 'ns' | 'nsec' | 'nsecs';
-terminal USEC: 'us' | 'usec' | 'usecs';
-terminal MSEC: 'ms' | 'msec' | 'msecs';
-terminal SEC: 's' | 'sec' | 'secs' | 'second' | 'seconds';
-terminal MIN: 'min' | 'mins' | 'minute' | 'minutes';
-terminal HOUR: 'h' | 'hour' | 'hours';
-terminal DAY: 'd' | 'day' | 'days';
-terminal WEEK: 'week' | 'weeks';
-
 terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 
 terminal INT returns ecore::EInt:     ('0'..'9')+;
@@ -491,7 +482,10 @@ enum ActionOrigin:
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
-TimeUnit: NSEC | USEC | MSEC | SEC | MIN | HOUR | DAY | WEEK;
+// Note: time units are not keywords, otherwise it would reserve
+// a lot of useful identifiers (like 's' or 'd').
+// The validator ensures the unit is valid.
+TimeUnit: ID;
 
 // An arbitrary sequence of terminals.
 Body:
@@ -517,8 +511,6 @@ Token:
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public' |
-    // Time units
-    TimeUnit |
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
