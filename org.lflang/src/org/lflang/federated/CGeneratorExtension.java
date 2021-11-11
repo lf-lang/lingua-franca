@@ -243,7 +243,7 @@ public class CGeneratorExtension {
                     additionalDelayString = value.getLiteral();
                 }
             } else {
-                additionalDelayString = Long.toString(new TimeValue(delay.getInterval(), TimeUnit.fromName(delay.getUnit())).toNanoSeconds());
+                additionalDelayString = Long.toString(JavaAstUtils.toTimeValue(delay.getTime()).toNanoSeconds());
             }
         }
         return additionalDelayString;

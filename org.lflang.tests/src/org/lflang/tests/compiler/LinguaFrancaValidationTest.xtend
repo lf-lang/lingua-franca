@@ -53,7 +53,6 @@ import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetProperty.UnionType
 import org.lflang.TargetProperty.ArrayType
 import org.lflang.tests.LFInjectorProvider
-import org.lflang.TimeUnit
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LFInjectorProvider)
@@ -556,8 +555,8 @@ class LinguaFrancaValidationTest {
                 a.y -> b.x after 1
             }
             
-        ''').assertError(LfPackage::eINSTANCE.delay,
-            null, 'Missing time units. Should be one of ' + TimeUnit.list())
+        ''').assertError(LfPackage::eINSTANCE.time,
+            null, 'Missing time unit.')
             
     }
 
@@ -576,9 +575,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        ''').assertError(LfPackage::eINSTANCE.value,
-            null, "Missing time units. Should be one of: " +
-            TimeUnit.list())
+        ''').assertError(LfPackage::eINSTANCE.value, null, "Missing time unit.")
     }    
     
     /**
@@ -775,8 +772,7 @@ class LinguaFrancaValidationTest {
 		model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Type declaration missing.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Missing time units. Should be one of " +
-            	TimeUnit.values())
+            "Missing time unit.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Invalid time literal.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
@@ -790,8 +786,7 @@ class LinguaFrancaValidationTest {
         model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Uninitialized parameter.")
        	model.assertError(LfPackage::eINSTANCE.value, null,
-            "Missing time units. Should be one of " +
-            	TimeUnit.values())
+            "Missing time unit.")
     }  
     
     

@@ -5056,8 +5056,8 @@ class CGenerator extends GeneratorBase {
                 runCommand.add(topLevelName)
             }
             runCommand.add("-o")
-            runCommand.add(targetConfig.timeout.time.toString)
-            runCommand.add(targetConfig.timeout.unit.toString)
+            runCommand.add(targetConfig.timeout.magnitude.toString)
+            runCommand.add(targetConfig.timeout.unit.canonicalName)
         }
         
     }

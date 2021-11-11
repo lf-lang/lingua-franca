@@ -51,16 +51,8 @@ object RustTypes : TargetTypes {
         else ident
 
     override fun getTargetTimeExpr(timeValue: TimeValue): TargetCode = with(timeValue) {
-        when (unit) {
-            NANO         -> "Duration::from_nanos($magnitude)"
-            MICRO        -> "Duration::from_micros($magnitude)"
-            MILLI        -> "Duration::from_millis($magnitude)"
-            MINUTE       -> "Duration::from_secs(${magnitude * 60})"
-            HOUR         -> "Duration::from_secs(${magnitude * 3600})"
-            DAY          -> "Duration::from_secs(${magnitude * 3600 * 24})"
-            WEEK         -> "Duration::from_secs(${magnitude * 3600 * 24 * 7})"
-            SECOND, null -> "Duration::from_secs($magnitude)"
-        }
+        val unit = unit?.canonicalName.orEmpty()
+        "delay!($magnitude $unit)"
     }
 
     override fun getFixedSizeListInitExpression(

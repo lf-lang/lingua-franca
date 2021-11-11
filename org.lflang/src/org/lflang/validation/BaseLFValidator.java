@@ -36,6 +36,7 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.CheckType;
 
 import org.lflang.TimeUnit;
+import org.lflang.lf.Delay;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Time;
 

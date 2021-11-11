@@ -62,7 +62,7 @@ class TSParameterPreambleGenerator(
 
     private fun timeInTargetLanguage(value: TimeValue): String {
         return if (value.unit != null) {
-            "TimeValue.${value.unit}(${value.time})"
+            "TimeValue.${value.unit.canonicalName}(${value.time})"
         } else {
             // The value must be zero.
             "TimeValue.zero()"

@@ -240,7 +240,7 @@ Connection:
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
 Delay:
-    'after' (parameter=[Parameter] | (interval=INT (unit=TimeUnit)?))
+    'after' (parameter=[Parameter] | time=TypedTime)
 ;
 
 // Chooses the serializer to use for the connection
@@ -328,6 +328,12 @@ Value:
 
 Time:
     (interval=INT unit=TimeUnit)
+;
+
+// This production is used when we know integer literals are
+// to be interpreted as time.
+TypedTime returns Time:
+    (interval=INT unit=TimeUnit?)
 ;
 
 Port:

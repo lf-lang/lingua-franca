@@ -138,7 +138,7 @@ public final class TimeValue implements Comparable<TimeValue> {
      * Return a string representation of this time value.
      */
     public String toString() {
-        return unit != null ? time + " " + unit
+        return unit != null ? time + " " + unit.getCanonicalName()
                                      : Long.toString(time);
     }
 

@@ -249,8 +249,8 @@ object CppTypes : TargetTypes {
 val TimeUnit?.cppUnit
     get() = when (this) {
         TimeUnit.NANO    -> "ns"
-        TimeUnit.MICRO    -> "us"
-        TimeUnit.MILLI    -> "ms"
+        TimeUnit.MICRO   -> "us"
+        TimeUnit.MILLI   -> "ms"
         TimeUnit.SECOND  -> "s"
         TimeUnit.MINUTE  -> "min"
         TimeUnit.HOUR    -> "h"
