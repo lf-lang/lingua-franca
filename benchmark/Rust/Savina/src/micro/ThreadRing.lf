@@ -88,6 +88,7 @@ reactor ThreadRingReactorLoopOpener {
 
     reaction(start) -> send_to_next_reactor, finished {=
         if let Some(s) = ctx.get(start) {
+            debug!("Starting with count {}", s.pings_left());
             if s.has_next() {
                 ctx.schedule_with_v(send_to_next_reactor, Some(s.next()), Asap);
             } else {
