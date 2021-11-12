@@ -183,7 +183,7 @@ public class PortInstance extends TriggerInstance<Port> {
             // of the port's parent.
             ReactorInstance container = parent.getParent();
             // If the port's parent has no parent, then there are no destinations.
-            if (parent == null) {
+            if (container == null) {
                 return new LinkedList<SendRange>();
             }
             
