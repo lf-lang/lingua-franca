@@ -3327,7 +3327,7 @@ class CGenerator extends GeneratorBase {
             )) {
                 for (port : reaction.effects.filter(PortInstance)) {
                     if (port.definition instanceof Input && !portsSeen.contains(port)) {
-                        portsSeen.add(port as PortInstance)
+                        portsSeen.add(port)
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
                         if (reactorBelongsToFederate(port.parent, federate)) {
@@ -5307,28 +5307,31 @@ class CGenerator extends GeneratorBase {
             for (port : reaction.effects.filter(PortInstance)) {
                 if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
-                    // the input of a contained reactor.
-                    val destStructType = variableStructType(
-                        port.definition as TypedVariable,
-                        port.parent.definition.reactorClass
-                    )
-                    if (port.isMultiport()) {
-                        pr('''
-                            // Connect «port», which gets data from reaction «reaction.reactionIndex»
-                            // of «instance.getFullName», to «port.getFullName».
-                            for (int i = 0; i < «port.width»; i++) {
-                                «destinationReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
-                            }
-                        ''')
-                    } else {
-                        pr('''
-                            // Connect «port», which gets data from reaction «reaction.reactionIndex»
-                            // of «instance.getFullName», to «port.getFullName».
-                            «destinationReference(port)» = («destStructType»*)&«sourceReference(port)»;
-                        ''')
+                    // the input of a contained reactor. If the contained reactor is
+                    // not in the federate, then we don't do anything here.
+                    if (reactorBelongsToFederate(port.parent, federate)) {
+                        val destStructType = variableStructType(
+                            port.definition as TypedVariable,
+                            port.parent.definition.reactorClass
+                        )
+                        if (port.isMultiport()) {
+                            pr('''
+                                // Connect «port», which gets data from reaction «reaction.reactionIndex»
+                                // of «instance.getFullName», to «port.getFullName».
+                                for (int i = 0; i < «port.width»; i++) {
+                                    «destinationReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
+                                }
+                            ''')
+                        } else {
+                            pr('''
+                                // Connect «port», which gets data from reaction «reaction.reactionIndex»
+                                // of «instance.getFullName», to «port.getFullName».
+                                «destinationReference(port)» = («destStructType»*)&«sourceReference(port)»;
+                            ''')
+                        }
+                        // FIXME: Don't we also to set set the destination reference for more
+                        // deeply contained ports?
                     }
-                    // FIXME: Don't we also to set set the destination reference for more
-                    // deeply contained ports?
                 }
             }
             // Next handle the sources that are outputs of contained reactors.
