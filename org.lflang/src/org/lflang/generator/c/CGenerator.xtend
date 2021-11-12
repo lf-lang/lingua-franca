@@ -526,6 +526,8 @@ class CGenerator extends GeneratorBase {
             "reactor.h",
             "pqueue.c",
             "pqueue.h",
+	    "vector.c",
+	    "vector.h",
             "tag.h",
             "tag.c",
             "trace.h",
@@ -1818,6 +1820,8 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(input, code, '''
                     typedef struct {
+                        trigger_t** triggers;
+                        size_t triggers_size;
                         «input.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -1840,6 +1844,8 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(output, code, '''
                     typedef struct {
+                        trigger_t** triggers;
+                        size_t triggers_size;
                         «output.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -2627,7 +2633,7 @@ class CGenerator extends GeneratorBase {
         val functionName = reactionFunctionName(decl, reactionIndex)
         
         
-        pr('void ' + functionName + '(void* instance_args) {')
+        pr('void ' + functionName + '(void* instance_args, int _lf_worker_number) {')
         indent()
         var body = reaction.code.toText
         
@@ -2645,7 +2651,7 @@ class CGenerator extends GeneratorBase {
         if (reaction.stp !== null) {
             val lateFunctionName = decl.name.toLowerCase + '_STP_function' + reactionIndex
 
-            pr('void ' + lateFunctionName + '(void* instance_args) {')
+            pr('void ' + lateFunctionName + '(void* instance_args, int _lf_worker_number) {')
             indent();
             generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'late'
@@ -2660,7 +2666,7 @@ class CGenerator extends GeneratorBase {
             // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
 
-            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            pr('void ' + deadlineFunctionName + '(void* instance_args, int _lf_worker_number) {')
             indent();
             generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'deadline'
@@ -3187,7 +3193,8 @@ class CGenerator extends GeneratorBase {
                             pr(initializeTriggerObjectsEnd, '''
                                 // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
                                 // downstream reactions through port «port.getFullName».
-                                «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
+                                    «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
+                                    «selfStruct»->_lf_«port.name»«port.multiportIndex == -1 ? "" : "[" + port.multiportIndex + "]"».triggers_size = «numberOfTriggerTObjects»;
                             ''')
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
@@ -3204,6 +3211,7 @@ class CGenerator extends GeneratorBase {
                                     // array of trigger pointers for downstream reactions through port «port.getFullName»
                                     trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
                                     «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
+                                    «selfStruct»->_lf_«port.name»«port.multiportIndex == -1 ? "" : "[" + port.multiportIndex + "]"».triggers = «triggerArray»;
                                 ''')
 
                                 // Next, initialize the newly created array.
@@ -3220,7 +3228,7 @@ class CGenerator extends GeneratorBase {
                                         if (destination.dependentReactions.size === 0) {
                                             pr(initializeTriggerObjectsEnd, '''
                                                 // Destination port «destination.getFullName» itself has no reactions.
-                                                «triggerArray»[«destinationCount++»] = NULL;
+                                                // «triggerArray»[«destinationCount++»] = NULL;
                                             ''')
                                         } else {
                                             // Add to portsWithDependentReactions. This occurs if the destination is
@@ -3231,7 +3239,7 @@ class CGenerator extends GeneratorBase {
                                     } else if (destination.dependentReactions.size === 0) {
                                         pr(initializeTriggerObjectsEnd, '''
                                             // Destination port «destination.getFullName» itself has no reactions.
-                                            «triggerArray»[«destinationCount++»] = NULL;
+                                            // «triggerArray»[«destinationCount++»] = NULL;
                                         ''')
                                     } else if (!(destination instanceof MultiportInstance)) { // Skip multiports.
                                     // Instead, the component ports are handled.
