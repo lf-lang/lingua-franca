@@ -364,8 +364,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                                 destinationRange.getPortInstance().dependentReactions);
                     }
                 }
-                // Also add any reactions that depend on this port.
-                dependentReactionsCache.addAll(((PortInstance)effect).dependentReactions);
             }
         }
         return dependentReactionsCache;
@@ -384,8 +382,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         
         // First, add the previous lexical reaction, if appropriate.
         if (!isUnordered && reactionIndex > 0) {
-            // Find the previous reaction in the parent's reaction list.
-            dependsOnReactionsCache.add(parent.reactions.get(reactionIndex - 1));
+            // Find the previous ordered reaction in the parent's reaction list.
+            int earlierIndex = reactionIndex - 1;
+            ReactionInstance earlierOrderedReaction = parent.reactions.get(earlierIndex);
+            while (earlierOrderedReaction.isUnordered && --earlierIndex >= 0) {
+                earlierOrderedReaction = parent.reactions.get(earlierIndex);
+            }
+            if (earlierIndex >= 0) {
+                dependsOnReactionsCache.add(parent.reactions.get(reactionIndex - 1));
+            }
         }
         
         // Next, add reactions that send data to this one.
