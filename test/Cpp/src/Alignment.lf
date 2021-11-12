@@ -76,7 +76,7 @@ reactor Sieve {
 reactor Destination {
     input ok:bool;
     input in:int;
-    state last_invoked:{=std::chrono::time_point<std::chrono::system_clock>=}({=std::chrono::system_clock::now()=});
+    state last_invoked:{=reactor::TimePoint=};
     reaction(ok, in) {=
         if (ok.is_present() && in.is_present()) {
             reactor::log::Info() << "Destination: Input " << *in.get() << " is a prime at tag ( "
