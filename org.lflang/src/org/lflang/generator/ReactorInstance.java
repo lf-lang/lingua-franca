@@ -175,7 +175,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                             candidateLevel = upstream.level + 1L;
                         }
                     }
-                    if (candidateLevel > 0) {
+                    if (candidateLevel > 0 && candidateLevel > downstream.level) {
                         // Can assign a level to downstream.
                         downstream.level = candidateLevel;
                         reactionsWithLevels.add(downstream);
