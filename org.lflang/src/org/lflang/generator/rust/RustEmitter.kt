@@ -371,19 +371,23 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
+            |struct CliParseResult(SchedulerOptions, __MainParams, Option<::log::LevelFilter>);
+            |
             |fn main() {
-            |    let (options, main_args, log_level) = cli::parse();
+            |    let CliParseResult(options, main_args, log_level) = cli::parse();
             |
             |    init_logger(log_level);
             |
             |    SyncScheduler::run_main::<__MainReactor>(options, main_args);
             |}
             |
-            |fn init_logger(level: LevelFilter) {
-            |    env_logger::Builder::from_env(env_logger::Env::default())
-            |        .format_target(false)
-            |        .filter_level(level)
-            |        .init();
+            |fn init_logger(level: Option<LevelFilter>) {
+            |    let mut builder = env_logger::Builder::from_env(env_logger::Env::default());
+            |    builder.format_target(false);
+            |    if let Some(level) = level {
+            |       builder.filter_level(level);
+            |    }
+            |    builder.init();
             |}
             |
         """.trimMargin()
@@ -415,10 +419,11 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |    use super::*;
             |
             |    /// Fallback implementation which doesn't parse parameters.
-            |    pub fn parse() -> (SchedulerOptions, __MainParams, ::log::LevelFilter) {
+            |    pub(super) fn parse() -> CliParseResult {
             |        if std::env::args().len() > 1 {
-            |           error!("CLI arguments are ignored, as the program was built without the \"cli\" feature.");
-            |           error!("In Lingua Franca, use the target property `cargo-features: [\"cli\"]`.");
+            |           warn!("CLI arguments are ignored, as the program was built without the \"cli\" feature.");
+            |           warn!("In Lingua Franca, use the target property `cargo-features: [\"cli\"]`.");
+            |           warn!("Proceeding with defaults defined at compile time.");
             |        }
             |
             |        let options = SchedulerOptions {
@@ -432,9 +437,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.defaultValue ?: "Default::default()") }}
             |        );
             |
-            |        let log_level = ::log::LevelFilter::Error;
-            |
-            |        (options, main_args, log_level)
+            |        CliParseResult(options, main_args, None)
             |    }
             |}
             |
@@ -484,16 +487,16 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |           possible_values(&["trace", "debug", "info", "warn", "error", "off"]),
             |           env = "RUST_LOG",
             |           hide_env_values = true,
-            |           default_value="error",
+            |           default_value="warn",
             |           value_name("level"),
             |           help_heading=Some("RUNTIME OPTIONS"),
             |        )]
-            |        log_level: String,
+            |        log_level: LevelFilter,
             |
 ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam() }}
             |    }
             |
-            |    pub fn parse() -> (SchedulerOptions, __MainParams, ::log::LevelFilter) {
+            |    pub(super) fn parse() -> CliParseResult {
             |        let opts = Opt::parse();
             |
             |        let options = SchedulerOptions {
@@ -506,9 +509,11 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + it.cliParamName }}
             |        );
             |
-            |        let log_level = ::log::LevelFilter::from_str(&opts.log_level).unwrap();
+            |        // Note here we return always Some(LogLevel), because clap supports reading RUST_LOG env var
+            |        // Note that there is an inconsistency here, as clap will just parse the simple values,
+            |        // while env_logger supports more complicated patterns for this env var.
             |
-            |        (options, main_args, log_level)
+            |        CliParseResult(options, main_args, Some(opts.log_level))
             |    }
             |
             |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
