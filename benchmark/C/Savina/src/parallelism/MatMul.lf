@@ -16,8 +16,11 @@ target C {
     threads: 0,
     /// [[[end]]]
     cmake-include: "../lib/matrix.cmake",
-    files: ["../lib/matrix.c", "../include/matrix.h"]
+    files: ["../lib/matrix.c", "../include/matrix.h"],
+    build-type: RelWithDebInfo
 };
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stddef.h>
@@ -144,6 +147,10 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
 
     input[num_workers] more_work: {= work_item_t* =};
 
+    // Ports to interact with the benchmarkRunner reactor
+    input start: bool;
+    output finished: bool;
+
     logical action next;
     logical action done;
 
@@ -156,17 +163,20 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
 
     state work_stack: work_stack_t;
 
-    reaction (startup) -> data, next {=
+    reaction (startup) {=
         // Fill both input arrays with data
         self->A = mat_new_d(self->data_length, self->data_length);
         self->B = mat_new_d(self->data_length, self->data_length);
-        self->C = mat_new_d(self->data_length, self->data_length);
         for (size_t i = 0; i < self->data_length; ++i) {
             for (size_t j = 0; j < self->data_length; ++j) {
                 *mat_at_d(self->A, i, j) = i;
                 *mat_at_d(self->B, i, j) = j;
             }
         }
+    =}
+
+    reaction (start) -> data, next {=
+        self->C = mat_new_d(self->data_length, self->data_length);
         SET_NEW_ARRAY(data, 3);
         data->value[0] = self->A;
         data->value[1] = self->B;
@@ -209,13 +219,16 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
         }
     =}
 
-    reaction (done) {=
+    reaction (done) -> finished {=
         check_if_valid(self->C, self->data_length);
         work_stack_free(self->work_stack);
+        mat_destroy_d(self->C);
+        SET_PRESENT(finished);
+    =}
+
+    reaction(shutdown) {=
         mat_destroy_d(self->A);
         mat_destroy_d(self->B);
-        mat_destroy_d(self->C);
-        request_stop();
     =}
 }
 
@@ -275,19 +288,31 @@ reactor Worker(threshold: size_t(16384), data_length: size_t(1024)) {
 
 main reactor (
     /*[[[cog
+    cog.outl(f'num_iterations: size_t({num_iterations}),')
     cog.outl(f'data_length: size_t({data_length}),')
     cog.outl(f'block_threshold: int({block_threshold}),')
     cog.outl(f'priorities: int({priorities}),')
     cog.outl(f'num_workers: int({num_workers})')
     ]]] */
+    num_iterations: size_t(12),
     data_length: size_t(1024),
     block_threshold: int(16384),
     priorities: int(10),
     num_workers: int(20)
     /// [[[end]]]
 ) {
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
     manager = new Manager(num_workers=num_workers, data_length=data_length);
     workers = new[num_workers] Worker(threshold=block_threshold, data_length=data_length);
+
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
+        printSystemInfo();
+        SET(runner.inStart, true);
+    =}
+
+    runner.outIterationStart -> manager.start;
+    manager.finished -> runner.inIterationFinish;
 
     (manager.data)+ -> workers.data;
     manager.do_work -> workers.do_work;
