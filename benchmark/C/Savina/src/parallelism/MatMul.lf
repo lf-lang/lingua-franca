@@ -306,7 +306,7 @@ main reactor (
     workers = new[num_workers] Worker(threshold=block_threshold, data_length=data_length);
 
     reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
+        printBenchmarkInfo("RecMatMulBenchmark");
         printSystemInfo();
         SET(runner.inStart, true);
     =}
