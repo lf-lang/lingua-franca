@@ -3188,14 +3188,14 @@ class CGenerator extends GeneratorBase {
                             }
 
                             numberOfTriggerTObjects += destinationPorts.size
-                            val String portIdentifier = '''«selfStruct»->_lf_«port.parent === reactorInstance ? "" : port.parent.name + '.'»«port.name»«port.multiportIndex == -1 ? "" : "[" + port.multiportIndex + "]"»'''
+                            var String portLvalue = '''(*(«sourceReference(sourcePort(port))»))'''
 
                             // Record this array size in reaction's reaction_t triggered_sizes array.
                             pr(initializeTriggerObjectsEnd, '''
                                 // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
                                 // downstream reactions through port «port.getFullName».
                                 «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
-                                «portIdentifier».triggers_size = «numberOfTriggerTObjects»;
+                                «portLvalue».triggers_size = «numberOfTriggerTObjects»;
                             ''')
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
@@ -3212,7 +3212,7 @@ class CGenerator extends GeneratorBase {
                                     // array of trigger pointers for downstream reactions through port «port.getFullName»
                                     trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
                                     «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
-                                    «portIdentifier».triggers = «triggerArray»;
+                                    «portLvalue».triggers = «triggerArray»;
                                 ''')
 
                                 // Next, initialize the newly created array.
@@ -4671,7 +4671,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
             case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
             }
             case SupportedSerializers.ROS2: {
                 val portType = (receivingPort.variable as Port).inferredType
@@ -4816,7 +4816,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
             case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
             }
             case SupportedSerializers.ROS2: {
                 var variableToSerialize = sendRef;
