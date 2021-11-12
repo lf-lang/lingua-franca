@@ -1704,9 +1704,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         PortInstance input, FederateInstance destinationFederate, ReactorInstance federateReactor, ReactorInstance mainInstance
     ) {
         var channel = 0; // Next input channel to be replaced.
-        for (source : input.immediateSources()) {
-            // If the port is not an input, ignore it.
-            if (input.isInput) {
+        // If the port is not an input, ignore it.
+        if (input.isInput) {
+            for (source : input.immediateSources()) {
                 val sourceBankIndex = (source.getPortInstance().parent.bankIndex >= 0) ? source.getPortInstance().parent.bankIndex : 0
                 val sourceFederate = federatesByInstantiation.get(source.getPortInstance().parent.definition).get(sourceBankIndex);
 
