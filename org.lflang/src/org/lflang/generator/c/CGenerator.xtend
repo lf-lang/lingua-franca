@@ -526,8 +526,8 @@ class CGenerator extends GeneratorBase {
             "reactor.h",
             "pqueue.c",
             "pqueue.h",
-	    "vector.c",
-	    "vector.h",
+            "vector.c",
+            "vector.h",
             "tag.h",
             "tag.c",
             "trace.h",
@@ -1000,8 +1000,8 @@ class CGenerator extends GeneratorBase {
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
                 _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
-		_lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
-		_lf_is_present_fields_abbreviated_size = 0;
+                _lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+                _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
 
@@ -3188,13 +3188,14 @@ class CGenerator extends GeneratorBase {
                             }
 
                             numberOfTriggerTObjects += destinationPorts.size
+                            val String portIdentifier = '''«selfStruct»->_lf_«port.parent === reactorInstance ? "" : port.parent.name + '.'»«port.name»«port.multiportIndex == -1 ? "" : "[" + port.multiportIndex + "]"»'''
 
                             // Record this array size in reaction's reaction_t triggered_sizes array.
                             pr(initializeTriggerObjectsEnd, '''
                                 // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
                                 // downstream reactions through port «port.getFullName».
-                                    «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
-                                    «selfStruct»->_lf_«port.name»«port.multiportIndex == -1 ? "" : "[" + port.multiportIndex + "]"».triggers_size = «numberOfTriggerTObjects»;
+                                «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
+                                «portIdentifier».triggers_size = «numberOfTriggerTObjects»;
                             ''')
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
@@ -3211,7 +3212,7 @@ class CGenerator extends GeneratorBase {
                                     // array of trigger pointers for downstream reactions through port «port.getFullName»
                                     trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
                                     «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
-                                    «selfStruct»->_lf_«port.name»«port.multiportIndex == -1 ? "" : "[" + port.multiportIndex + "]"».triggers = «triggerArray»;
+                                    «portIdentifier».triggers = «triggerArray»;
                                 ''')
 
                                 // Next, initialize the newly created array.
