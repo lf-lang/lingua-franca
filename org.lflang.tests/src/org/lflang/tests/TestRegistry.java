@@ -152,7 +152,7 @@ public class TestRegistry {
         FEDERATED(true),
 
         // non-shared tests
-
+        DOCKER(false),
         SERIALIZATION(false),
         TARGET(false),
         EXAMPLE(false),

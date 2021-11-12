@@ -56,6 +56,13 @@ public abstract class AbstractTest extends TestBase {
         return false;
     }
 
+    /**
+     * Whether to enable {@link #runDockerTests()}.
+     */
+    protected boolean supportsDockerOption() {
+        return false;
+    }
+
 
     @Test
     public void runExampleTests() {
@@ -142,6 +149,14 @@ public abstract class AbstractTest extends TestBase {
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_FEDERATED,
                            TestCategory.FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
+    @Test
+    public void runDockerTests() {
+        Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
+        runTestsForTargets(Message.DESC_DOCKER,
+                           TestCategory.DOCKER::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
     }
 
