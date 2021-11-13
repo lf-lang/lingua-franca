@@ -3111,8 +3111,8 @@ class CGenerator extends GeneratorBase {
                         // its width will be 1.
                         // We generate the code to fill the triggers array first in a temporary buffer,
                         // so that we can simultaneously calculate the size of the total array.
-                        val temp = new StringBuilder();
                         for (PortInstance.SendRange range : port.eventualDestinations()) {
+                            val temp = new StringBuilder();
                             var destRangeCount = 0;
                             for (destinationRange : range.destinations) {
                                 val destination = destinationRange.getPortInstance();
