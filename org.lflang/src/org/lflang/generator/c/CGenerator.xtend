@@ -1820,8 +1820,8 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(input, code, '''
                     typedef struct {
-                        trigger_t** triggers;
-                        size_t triggers_size;
+                        reaction_t** reactions;
+                        size_t reactions_size;
                         «input.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -1844,8 +1844,8 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(output, code, '''
                     typedef struct {
-                        trigger_t** triggers;
-                        size_t triggers_size;
+                        reaction_t** reactions;
+                        size_t reactions_size;
                         «output.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -3188,7 +3188,6 @@ class CGenerator extends GeneratorBase {
                             }
 
                             numberOfTriggerTObjects += destinationPorts.size
-                            var String portLvalue = '''(*(«sourceReference(sourcePort(port))»))'''
 
                             // Record this array size in reaction's reaction_t triggered_sizes array.
                             pr(initializeTriggerObjectsEnd, '''
@@ -3196,7 +3195,7 @@ class CGenerator extends GeneratorBase {
                                 // downstream reactions through port «port.getFullName».
                                 «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
                             ''')
-			    var destinationCount = 0;
+                            var destinationCount = 0;
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
                                 // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
@@ -3212,7 +3211,6 @@ class CGenerator extends GeneratorBase {
                                     // array of trigger pointers for downstream reactions through port «port.getFullName»
                                     trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
                                     «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
-                                    «portLvalue».triggers = «triggerArray»;
                                 ''')
 
                                 // Next, initialize the newly created array.
@@ -3274,8 +3272,15 @@ class CGenerator extends GeneratorBase {
                                         throw new InvalidSourceException("Internal error 2: Assigning a trigger beyond the end of the array!")
                                     }
                                 }
+                                pr(initializeTriggerObjectsEnd, '''
+                                    _lf_associate_reactions_to_port(
+                                        «triggerArray»,
+                                        «destinationCount»,
+                                        &((«sourceReference(sourcePort(port))»)->reactions),
+                                        &((«sourceReference(sourcePort(port))»)->reactions_size)
+                                    );
+                                ''');
                             }
-			    pr(initializeTriggerObjectsEnd, '''«portLvalue».triggers_size = «destinationCount»;''');
                         }
                         // Count the port even if it is not contained in the federate because effect
                         // may be a bank (it can't be an instance of a bank), so an empty placeholder
@@ -5873,21 +5878,7 @@ class CGenerator extends GeneratorBase {
      *  @param eObject The node.
      */
     protected def prSourceLineNumber(StringBuilder output, EObject eObject) {
-        var node = NodeModelUtils.getNode(eObject)
-        if (node !== null) {
-            // For code blocks (delimited by {= ... =}, unfortunately,
-            // we have to adjust the offset by the number of newlines before {=.
-            // Unfortunately, this is complicated because the code has been
-            // tokenized.
-            var offset = 0
-            if (eObject instanceof Code) {
-                offset += 1
-            }
-            // Extract the filename from eResource, an astonishingly difficult thing to do.
-            val resolvedURI = CommonPlugin.resolve(eObject.eResource.URI)
-            // pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
-            pr(output, "#line " + (node.getStartLine() + offset) + ' "' + resolvedURI + '"')
-        }
+        output
     }
 
     /**
