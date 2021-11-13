@@ -3195,8 +3195,8 @@ class CGenerator extends GeneratorBase {
                                 // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
                                 // downstream reactions through port «port.getFullName».
                                 «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
-                                «portLvalue».triggers_size = «numberOfTriggerTObjects»;
                             ''')
+			    var destinationCount = 0;
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
                                 // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
@@ -3216,7 +3216,6 @@ class CGenerator extends GeneratorBase {
                                 ''')
 
                                 // Next, initialize the newly created array.
-                                var destinationCount = 0;
                                 for (destination : destinationPorts) {
                                     // If the destination of a connection is an input
                                     // port of a reactor that has no reactions to that input,
@@ -3229,7 +3228,6 @@ class CGenerator extends GeneratorBase {
                                         if (destination.dependentReactions.size === 0) {
                                             pr(initializeTriggerObjectsEnd, '''
                                                 // Destination port «destination.getFullName» itself has no reactions.
-                                                // «triggerArray»[«destinationCount++»] = NULL;
                                             ''')
                                         } else {
                                             // Add to portsWithDependentReactions. This occurs if the destination is
@@ -3240,7 +3238,6 @@ class CGenerator extends GeneratorBase {
                                     } else if (destination.dependentReactions.size === 0) {
                                         pr(initializeTriggerObjectsEnd, '''
                                             // Destination port «destination.getFullName» itself has no reactions.
-                                            // «triggerArray»[«destinationCount++»] = NULL;
                                         ''')
                                     } else if (!(destination instanceof MultiportInstance)) { // Skip multiports.
                                     // Instead, the component ports are handled.
@@ -3278,6 +3275,7 @@ class CGenerator extends GeneratorBase {
                                     }
                                 }
                             }
+			    pr(initializeTriggerObjectsEnd, '''«portLvalue».triggers_size = «destinationCount»;''');
                         }
                         // Count the port even if it is not contained in the federate because effect
                         // may be a bank (it can't be an instance of a bank), so an empty placeholder
@@ -4594,7 +4592,7 @@ class CGenerator extends GeneratorBase {
             self->_lf_«outputName».value = («action.inferredType.targetType»)self->_lf__«action.name».token->value;
             self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
             ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
-            self->«getStackPortMember('''_lf_«outputName»''', "is_present")» = true;
+            SET_PRESENT((&self->_lf_«outputName»));
             '''
         } else {
             '''
