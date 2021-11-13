@@ -524,14 +524,18 @@ class CGenerator extends GeneratorBase {
         var coreFiles = newArrayList(
             "reactor_common.c",
             "reactor.h",
-            "pqueue.c",
-            "pqueue.h",
             "tag.h",
             "tag.c",
             "trace.h",
             "trace.c",
-            "util.h", 
-            "util.c", 
+            "utils/pqueue.c",
+            "utils/pqueue.h",
+            "utils/vector.c",
+            "utils/vector.h",
+            "utils/semaphore.h",
+            "utils/semaphore.c",
+            "utils/util.h", 
+            "utils/util.c", 
             "platform.h"
             );
         if (targetConfig.threads === 0) {
@@ -999,8 +1003,8 @@ class CGenerator extends GeneratorBase {
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
                 _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
-		_lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
-		_lf_is_present_fields_abbreviated_size = 0;
+                _lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+                _lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
 
