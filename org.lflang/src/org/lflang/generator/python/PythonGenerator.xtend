@@ -1681,6 +1681,9 @@ class PythonGenerator extends CGenerator {
                         «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "«pythonFunctionName»");
+                if («nameOfSelfStruct»->_lf_py_reaction_function_«reaction.reactionIndex» == NULL) {
+                    error_print_and_exit("Could not load function «instance.name» reaction_function_«reaction.reactionIndex».");
+                }
                 ''')
         
             if (reaction.definition.deadline !== null) {
@@ -1690,6 +1693,10 @@ class PythonGenerator extends CGenerator {
                         «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
                         "deadline_function_«reaction.reactionIndex»");
+                
+                if («nameOfSelfStruct»->_lf_py_deadline_function_«reaction.reactionIndex» == NULL) {
+                    error_print_and_exit("Could not load function «instance.name» deadline_function_«reaction.reactionIndex».");
+                }
                 ''')
             }
         
