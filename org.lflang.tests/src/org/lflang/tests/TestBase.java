@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -429,30 +430,33 @@ public abstract class TestBase {
      * an error code.
      */
     private void execute(LFTest test) {
-        final ProcessBuilder pb = getExecCommand(test);
-        if (pb == null) {
+        final List<ProcessBuilder> pbList = getExecCommand(test);
+        if (pbList.isEmpty()) {
             return;
         }
         try {
-            var p = pb.start();
-            var stdout = test.execLog.recordStdOut(p);
-            var stderr = test.execLog.recordStdErr(p);
-            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                stdout.interrupt();
-                stderr.interrupt();
-                p.destroyForcibly();
-                test.result = Result.TEST_TIMEOUT;
-            } else {
-                if (p.exitValue() == 0) {
-                    test.result = Result.TEST_PASS;
+            for (ProcessBuilder pb : pbList) {
+                var p = pb.start();
+                var stdout = test.execLog.recordStdOut(p);
+                var stderr = test.execLog.recordStdErr(p);
+                if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
+                    stdout.interrupt();
+                    stderr.interrupt();
+                    p.destroyForcibly();
+                    test.result = Result.TEST_TIMEOUT;
+                    return;
                 } else {
-                    test.result = Result.TEST_FAIL;
+                    if (p.exitValue() != 0) {
+                        test.result = Result.TEST_FAIL;
+                        return;
+                    }
                 }
             }
-
         } catch (Exception e) {
             test.result = Result.TEST_FAIL;
+            return;
         }
+        test.result = Result.TEST_PASS;
     }
 
     /**
@@ -460,20 +464,20 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private ProcessBuilder getExecCommand(LFTest test) {
+    private List<ProcessBuilder> getExecCommand(LFTest test) {
         final var nameWithExtension = test.srcFile.getFileName().toString();
         final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
-
+        
         var srcGenPath = test.fileConfig.getSrcGenPath();
         var parentDirName = srcGenPath.getParent().getFileName().toString();
         // special case to test docker file generation
         if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_NONFEDERATED.name())) {
             var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
-            System.out.println(dockerPath);
-            System.out.println(srcGenPath);
-            return new ProcessBuilder("docker", "build", "-t", "_lf_test", "-f", dockerPath.toString(), srcGenPath.toString());
+            return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
+                                 new ProcessBuilder("docker", "run", "--rm", "lingua_franca:test"),
+                                 new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
         } else if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.name())) {
-            
+            return new ArrayList<>();
         }
 
         var binPath = test.fileConfig.binPath;
@@ -498,27 +502,27 @@ public abstract class TestBase {
                 // Running the command as .\binary.exe does not work on Windows for
                 // some reason... Thus we simply pass the full path here, which
                 // should work across all platforms
-                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
             } else {
                 test.issues.append(fullPath).append(": No such file or directory.").append(System.lineSeparator());
                 test.result = Result.NO_EXEC_FAIL;
-                return null;
+                return new ArrayList<>();
             }
         }
         case Python: {
             var fullPath = binPath.resolve(binaryName);
             if (Files.exists(fullPath)) {
                 // If execution script exists, run it.
-                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
             }
             fullPath = srcGenPath.resolve(nameOnly + ".py");
             if (Files.exists(fullPath)) {
-                return new ProcessBuilder("python3", fullPath.getFileName().toString())
-                    .directory(srcGenPath.toFile());
+                return Arrays.asList(new ProcessBuilder("python3", fullPath.getFileName().toString())
+                    .directory(srcGenPath.toFile()));
             } else {
                 test.result = Result.NO_EXEC_FAIL;
                 test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
-                return null;
+                return new ArrayList<>();
             }
         }
         case TS: {
@@ -529,17 +533,17 @@ public abstract class TestBase {
             var fullPath = binPath.resolve(binaryName);
             if (Files.exists(fullPath)) {
                 // If execution script exists, run it.
-                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
             }
             // If execution script does not exist, run .js directly.
             var dist = test.fileConfig.getSrcGenPath().resolve("dist");
             var file = dist.resolve(nameOnly + ".js");
             if (Files.exists(file)) {
-                return new ProcessBuilder("node", file.toString());
+                return Arrays.asList(new ProcessBuilder("node", file.toString()));
             } else {
                 test.result = Result.NO_EXEC_FAIL;
                 test.issues.append("File: ").append(file).append(System.lineSeparator());
-                return null;
+                return new ArrayList<>();
             }
         }
         default:
