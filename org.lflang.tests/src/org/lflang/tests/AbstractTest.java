@@ -153,10 +153,19 @@ public abstract class AbstractTest extends TestBase {
     }
 
     @Test
-    public void runDockerTests() {
+    public void runDockerNonfederatedTests() {
         Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
-        runTestsForTargets(Message.DESC_DOCKER,
-                           TestCategory.DOCKER::equals, Configurators::noChanges, TestLevel.EXECUTION,
+        runTestsForTargets(Message.DESC_DOCKER_NONFEDERATED,
+                           TestCategory.DOCKER_NONFEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
+    @Test
+    public void runDockerFederatedTests() {
+        Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+        runTestsForTargets(Message.DESC_DOCKER_FEDERATED,
+                           TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
     }
 

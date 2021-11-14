@@ -131,8 +131,7 @@ public class CTest extends AbstractTest {
 
     @Test
     @Override
-    public void runDockerTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runDockerTests();
+    public void runDockerNonfederatedTests() {
+        super.runDockerNonfederatedTests();
     }
 }

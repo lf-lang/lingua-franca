@@ -152,7 +152,8 @@ public class TestRegistry {
         FEDERATED(true),
 
         // non-shared tests
-        DOCKER(false),
+        DOCKER_NONFEDERATED(false),
+        DOCKER_FEDERATED(false),
         SERIALIZATION(false),
         TARGET(false),
         EXAMPLE(false),
