@@ -541,6 +541,7 @@ class CGenerator extends GeneratorBase {
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
+            coreFiles.add("threaded/scheduler.h")
             coreFiles.add("threaded/scheduler.c")
             coreFiles.add("threaded/reactor_threaded.c")
         }
