@@ -1792,8 +1792,7 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(input, code, '''
                     typedef struct {
-                        reaction_t** reactions;
-                        size_t reactions_size;
+                        reaction_t** reactions;  // This array is null-terminated.
                         «input.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -1816,8 +1815,7 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(output, code, '''
                     typedef struct {
-                        reaction_t** reactions;
-                        size_t reactions_size;
+                        reaction_t** reactions;  // This array is null-terminated.
                         «output.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -3175,27 +3173,18 @@ class CGenerator extends GeneratorBase {
                                     // If the destination is an output port, however, then
                                     // the dependentReactions.size reflects the number of downstream
                                     // reactions, including possible reactions in the container.
-                                    if (destination.isOutput) {
-                                        if (destination.dependentReactions.size === 0) {
-                                            pr(initializeTriggerObjectsEnd, '''
-                                                // Destination port «destination.getFullName» itself has no reactions.
-                                            ''')
-                                        } else {
-                                            // Add to portsWithDependentReactions. This occurs if the destination is
-                                            // output port of the container, and that output port triggers reactions in
-                                            // its container.
+                                    if (destination.dependentReactions.size > 0) {
+                                        // Add to portsWithDependentReactions. This occurs if the destination is
+                                        // output port of the container, and that output port triggers reactions in
+                                        // its container.
+                                        if (destination.isOutput) {
                                             portsWithDependentReactions.add(destination)
+                                        } else if (!(destination instanceof MultiportInstance)) {
+                                                pr(initializeTriggerObjectsEnd, '''
+                                                // Point to destination port «destination.getFullName»'s trigger struct.
+                                                «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
+                                            ''')
                                         }
-                                    } else if (destination.dependentReactions.size === 0) {
-                                        pr(initializeTriggerObjectsEnd, '''
-                                            // Destination port «destination.getFullName» itself has no reactions.
-                                        ''')
-                                    } else if (!(destination instanceof MultiportInstance)) { // Skip multiports.
-                                    // Instead, the component ports are handled.
-                                        pr(initializeTriggerObjectsEnd, '''
-                                            // Point to destination port «destination.getFullName»'s trigger struct.
-                                            «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
-                                        ''')
                                     }
                                     if (destinationCount > numberOfTriggerTObjects) {
                                         // This should not happen, but rather than generate incorrect code, throw an exception.
@@ -3229,8 +3218,7 @@ class CGenerator extends GeneratorBase {
                                     _lf_associate_reactions_to_port(
                                         «triggerArray»,
                                         «destinationCount»,
-                                        &((«sourceReference(sourcePort(port))»)->reactions),
-                                        &((«sourceReference(sourcePort(port))»)->reactions_size)
+                                        &((«sourceReference(sourcePort(port))»)->reactions)
                                     );
                                 ''');
                             }
