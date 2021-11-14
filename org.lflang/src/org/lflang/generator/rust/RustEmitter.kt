@@ -173,7 +173,7 @@ ${"             |            "..assembleChildReactors(assembleSelfCall())};
                 |        self.__id
                 |    }
                 |
-                |    fn react_erased(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: $rsRuntime::LocalReactionId) {
+                |    fn react(&mut self, ctx: &mut $rsRuntime::ReactionCtx, rid: $rsRuntime::LocalReactionId) {
                 |        match rid.raw() {
 ${"             |            "..workerFunctionCalls()}
 ${"             |            "..syntheticTimerReactions()}
