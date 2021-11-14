@@ -57,7 +57,7 @@ public abstract class AbstractTest extends TestBase {
     }
 
     /**
-     * Whether to enable {@link #runDockerTests()}.
+     * Whether to enable {@link #runDockerNonfederatedTests()} and {@link #runDockerFederatedTests()}.
      */
     protected boolean supportsDockerOption() {
         return false;
