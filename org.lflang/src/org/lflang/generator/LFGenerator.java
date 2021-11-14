@@ -183,6 +183,13 @@ public class LFGenerator extends AbstractGenerator {
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
+
+        // If the verification flag is true, generate a UCLID5 model from
+        // the static information.
+        if (generator.targetConfig.smt) {
+            System.out.println("*** Generating Uclid models and SMT files...");
+            GeneratorBase uclidGen = new UclidGenerator(fileConfig, errorReporter);
+            uclidGen.doGenerate(resource, fsa, context);
         }
     }
 

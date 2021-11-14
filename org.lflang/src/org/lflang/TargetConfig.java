@@ -323,4 +323,8 @@ public class TargetConfig {
         public String traceFileName = null;
     }
 
+    /**
+     * If true, lfc outputs smt files for the program using Uclid5.
+     */
+    public boolean smt = false;
 }

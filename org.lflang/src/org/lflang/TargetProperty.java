@@ -464,6 +464,14 @@ public enum TargetProperty {
         config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
     }),
 
+    /**
+     * Directive to generate smt files for formal analysis.
+     */
+    SMT("smt", PrimitiveType.BOOLEAN, Target.ALL,
+        (config, value, err) -> {
+            config.smt = ASTUtils.toBoolean(value);
+        }),
+
     ;
 
     /**
