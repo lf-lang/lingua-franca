@@ -556,7 +556,7 @@ class PythonGenerator extends CGenerator {
         val reactor = decl.toDefinition
         var StringBuilder temporary_code = new StringBuilder()
         
-        temporary_code.append('''        #Define parameters and their default values
+        temporary_code.append('''        # Define parameters and their default values
         ''')
         
         for (param : decl.toDefinition.allParameters) {
