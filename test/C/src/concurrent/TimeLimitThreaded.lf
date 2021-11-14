@@ -31,15 +31,15 @@ reactor Destination {
     =}
     reaction(shutdown) {=
         printf("**** shutdown reaction invoked.\n");
-        if (self->s != 10000002) {
-            fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
+        if (self->s != 10002) {
+            fprintf(stderr, "ERROR: Expected 1000002 but got %d.\n", self->s);
             exit(1);
         }
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
 main reactor (period:time(1 usec)) {
-    timer stop(10 secs);
+    timer stop(10 msecs);
     reaction(stop) {=
         request_stop();
     =}
