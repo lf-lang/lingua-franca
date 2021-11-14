@@ -264,19 +264,6 @@ import static extension org.lflang.JavaAstUtils.*
  * In addition, `_lf_in->is_present` is a pointer to the corresponding
  * `out->is_present` field of the output reactor's self struct.
  *  
- * In addition, the `reaction_i` struct on the self struct has a `triggers`
- * field that records all the trigger_t structs for ports and reactions
- * that are triggered by the i-th reaction. The triggers field is
- * an array of arrays of pointers to trigger_t structs.
- * The length of the outer array is the number of output ports the
- * reaction effects plus the number of input ports of contained
- * reactors that it effects. Each inner array has a length equal to the
- * number final destinations of that output port or input port.
- * The reaction_i struct has an array triggered_sizes that indicates
- * the sizes of these inner arrays. The num_outputs field of the
- * reaction_i struct gives the length of the triggered_sizes and
- * (outer) triggers arrays.
- * 
  * ## Runtime Tables
  * 
  * This generator creates an populates the following tables used at run time.
@@ -1756,21 +1743,6 @@ class CGenerator extends GeneratorBase {
     protected def generateDestructor(
         ReactorDecl decl, FederateInstance federate, StringBuilder destructorCode
     ) {
-        // Append to the destructor code freeing the trigger arrays for each reaction.
-        var reactor = decl.toDefinition
-        var reactionCount = 0
-        for (reaction : reactor.reactions) {
-            if (federate === null || federate.containsReaction(reaction)) {
-                pr(destructorCode, '''
-                    for(int i = 0; i < self->_lf__reaction_«reactionCount».num_outputs; i++) {
-                        free(self->_lf__reaction_«reactionCount».triggers[i]);
-                    }
-                ''')
-            }
-            // Increment the reaction count even if not in the federate for consistency.
-            reactionCount++;
-        }
-        
         val structType = selfStructType(decl)
         pr('''
             void delete_«decl.name»(«structType»* self) {
@@ -2367,18 +2339,6 @@ class CGenerator extends GeneratorBase {
                         outputsOfContainedReactors.put(source.variable, source.container)
                     }
                 }
-
-                pr(destructorCode, '''
-                    if (self->_lf__reaction_«reactionCount».output_produced != NULL) {
-                        free(self->_lf__reaction_«reactionCount».output_produced);
-                    }
-                    if (self->_lf__reaction_«reactionCount».triggers != NULL) {
-                        free(self->_lf__reaction_«reactionCount».triggers);
-                    }
-                    if (self->_lf__reaction_«reactionCount».triggered_sizes != NULL) {
-                        free(self->_lf__reaction_«reactionCount».triggered_sizes);
-                    }
-                ''')
 
                 var deadlineFunctionPointer = "NULL"
                 if (reaction.deadline !== null) {
@@ -3189,12 +3149,6 @@ class CGenerator extends GeneratorBase {
 
                             numberOfTriggerTObjects += destinationPorts.size
 
-                            // Record this array size in reaction's reaction_t triggered_sizes array.
-                            pr(initializeTriggerObjectsEnd, '''
-                                // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
-                                // downstream reactions through port «port.getFullName».
-                                «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
-                            ''')
                             var destinationCount = 0;
                             if (numberOfTriggerTObjects > 0) {
                                 // Next, malloc the memory for the trigger array and record its location.
@@ -3210,7 +3164,6 @@ class CGenerator extends GeneratorBase {
                                     // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
                                     // array of trigger pointers for downstream reactions through port «port.getFullName»
                                     trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
-                                    «selfStruct»->_lf__reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
                                 ''')
 
                                 // Next, initialize the newly created array.
@@ -4191,14 +4144,6 @@ class CGenerator extends GeneratorBase {
     ) {
         val nameOfSelfStruct = selfStructName(reaction.parent);
 
-        // Count the output ports and inputs of contained reactors that
-        // may be set by this reaction. This ignores actions in the effects.
-        // Collect initialization statements for the output_produced array for the reaction
-        // to point to the is_present field of the appropriate output.
-        // These statements must be inserted after the array is malloc'd,
-        // but we construct them while we are counting outputs.
-        var outputCount = 0;
-        val initialization = new StringBuilder()
         // The reaction.effects does not contain multiports, but rather the individual
         // ports of the multiport. We handle each multiport only once using this set.
         val handledMultiports = new LinkedHashSet<MultiportInstance>();
@@ -4251,12 +4196,6 @@ class CGenerator extends GeneratorBase {
                                 }
                             ''')
                         }
-                        pr(initialization, '''
-                            for (int i = 0; i < «effect.getMultiportInstance().width»; i++) {
-                                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
-                                        = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.name»[i]''', "is_present")»;
-                            }
-                        ''')
                     } else {
                         // The port belongs to a contained reactor.
                         val containerName = effect.parent.name
@@ -4273,50 +4212,10 @@ class CGenerator extends GeneratorBase {
                                 }
                             ''')
                         }
-                        pr(initialization, '''
-                            for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width; i++) {
-                                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
-                                        = &«nameOfSelfStruct»->_lf_«containerName».«effect.name»[i]->is_present;
-                            }
-                        ''')
                     }
-                    outputCount += effect.getMultiportInstance().getWidth();
-                } else if (effect.getMultiportInstance() === null && !(effect instanceof MultiportInstance)) {
-                    // The effect is not a multiport nor a port contained by a multiport.
-                    if (effect.parent === reaction.parent) {
-                        // The port belongs to the same reactor as the reaction.
-                        pr(initialization, '''
-                            «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount»]
-                                    = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.name»''', "is_present")»;
-                        ''')
-                    } else {
-                        // The port belongs to a contained reactor.
-                        pr(initialization, '''
-                            «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced[«outputCount»]
-                                    = &«nameOfSelfStruct»->«getStackPortMember('''_lf_«effect.parent.name».«effect.name»''', "is_present")»;
-                        ''')
-                    }
-                    outputCount++
                 }
             }
         }
-        pr(initializeTriggerObjectsEnd, '''
-            // Total number of outputs produced by the reaction.
-            «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs = «outputCount»;
-            // Allocate arrays for triggering downstream reactions.
-            if («nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs > 0) {
-                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».output_produced 
-                        = (bool**)malloc(sizeof(bool*) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
-                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».triggers 
-                        = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs);
-                «nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».triggered_sizes 
-                        = (int*)calloc(«nameOfSelfStruct»->_lf__reaction_«reaction.reactionIndex».num_outputs, sizeof(int));
-            }
-        ''')
-        pr(initializeTriggerObjectsEnd, '''
-            // Initialize the output_produced array.
-            «initialization.toString»
-        ''')
     } 
     
     /**
