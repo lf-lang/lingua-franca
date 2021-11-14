@@ -286,7 +286,12 @@ import static extension org.lflang.JavaAstUtils.*
  *   event is present. The _lf_start_time_step() function in reactor_common.c uses
  *   this to mark every event absent at the start of a time step. The size of this
  *   table is contained in the variable _lf_is_present_fields_size.
- * 
+ *    * This table is accompanied by another list, _lf_is_present_fields_abbreviated,
+ *      which only contains the is_present fields that have been set to true in the
+ *      current tag. This list can allow a performance improvement if most ports are
+ *      seldom present because only fields that have been set to true need to be
+ *      reset to false.
+ *
  * * _lf_tokens_with_ref_count: An array of pointers to structs that point to lf_token_t
  *   objects, which carry non-primitive data types between reactors. This is used
  *   by the _lf_start_time_step() function to decrement reference counts, if necessary,
@@ -993,6 +998,8 @@ class CGenerator extends GeneratorBase {
                 // Create the array that will contain pointers to is_present fields to reset on each step.
                 _lf_is_present_fields_size = «startTimeStepIsPresentCount»;
                 _lf_is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+		_lf_is_present_fields_abbreviated = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+		_lf_is_present_fields_abbreviated_size = 0;
             ''')
         }
 
@@ -2387,7 +2394,7 @@ class CGenerator extends GeneratorBase {
                 // self->_lf__reaction_«reactionCount».index = 0;
                 // self->_lf__reaction_«reactionCount».chain_id = 0;
                 // self->_lf__reaction_«reactionCount».pos = 0;
-                // self->_lf__reaction_«reactionCount».running = false;
+                // self->_lf__reaction_«reactionCount».status = inactive;
                 // self->_lf__reaction_«reactionCount».deadline = 0LL;
                 // self->_lf__reaction_«reactionCount».is_STP_violated = false;
                 pr(reaction, constructorCode, '''
