@@ -114,6 +114,7 @@ public abstract class TestBase {
         public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
+        public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
@@ -125,6 +126,8 @@ public abstract class TestBase {
         public static final String DESC_MULTIPORT = "Run multiport tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
+        public static final String DESC_DOCKER_NONFEDERATED = "Run docker non-federated tests.";
+        public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
@@ -461,13 +464,26 @@ public abstract class TestBase {
         final var nameWithExtension = test.srcFile.getFileName().toString();
         final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
 
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var parentDirName = srcGenPath.getParent().getFileName().toString();
+        // special case to test docker file generation
+        if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_NONFEDERATED.name())) {
+            var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
+            System.out.println(dockerPath);
+            System.out.println(srcGenPath);
+            return new ProcessBuilder("docker", "build", "-t", "_lf_test", "-f", dockerPath.toString(), srcGenPath.toString());
+        } else if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.name())) {
+            
+        }
+
+        var binPath = test.fileConfig.binPath;
+        var binaryName = nameOnly;
+
         switch (test.target) {
         case C:
         case CPP:
         case Rust:
         case CCPP: {
-            var binPath = test.fileConfig.binPath;
-            var binaryName = nameOnly;
             if (test.target == Target.Rust) {
                 // rust binaries uses snake_case
                 binaryName = StringUtil.camelToSnakeCase(binaryName);
@@ -490,18 +506,15 @@ public abstract class TestBase {
             }
         }
         case Python: {
-            var binPath = test.fileConfig.binPath;
-            var binaryName = nameOnly;
             var fullPath = binPath.resolve(binaryName);
             if (Files.exists(fullPath)) {
                 // If execution script exists, run it.
                 return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
             }
-            var srcGen = test.fileConfig.getSrcGenPath();
-            fullPath = srcGen.resolve(nameOnly + ".py");
+            fullPath = srcGenPath.resolve(nameOnly + ".py");
             if (Files.exists(fullPath)) {
                 return new ProcessBuilder("python3", fullPath.getFileName().toString())
-                    .directory(srcGen.toFile());
+                    .directory(srcGenPath.toFile());
             } else {
                 test.result = Result.NO_EXEC_FAIL;
                 test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
@@ -509,8 +522,6 @@ public abstract class TestBase {
             }
         }
         case TS: {
-            var binPath = test.fileConfig.binPath;
-            var binaryName = nameOnly;
             // Adjust binary extension if running on Window
             if (System.getProperty("os.name").startsWith("Windows")) {
                 binaryName += ".exe";
