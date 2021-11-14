@@ -27,6 +27,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import org.lflang.graph.DirectedGraph
+import java.util.LinkedHashMap
+import org.lflang.ConnectivityInfo
 
 /**
  * This graph represents the connectivity between system components,
@@ -44,6 +46,14 @@ import org.lflang.graph.DirectedGraph
     
     var ReactionInstanceGraph reactionGraph
     
+    /**
+     * Adjacency map from a pair of reactions (i.e. components)
+     * to a pair (to be extended to triplet) containing a boolean
+     * (whether it is a connection) and a TimeValue (logical time delay).
+     */
+    var LinkedHashMap<Pair<ReactionInstance, ReactionInstance>,
+        ConnectivityInfo> connectivity = new LinkedHashMap();
+    
     new(ReactorInstance main) {
         this.main = main
         this.reactionGraph = new ReactionInstanceGraph(main)
@@ -59,8 +69,6 @@ import org.lflang.graph.DirectedGraph
         this.clear()
         
         println("========== Building Connectivity Graph ==========")
-        println(this.reactionGraph)
-        println("Testing traversal:")
         for (node : this.reactionGraph.nodes) {
             addNodesAndEdges(node)
         }
@@ -81,11 +89,64 @@ import org.lflang.graph.DirectedGraph
         println("Reaction " + reaction + " has the following downstream nodes.")
         var downstreamAdjNodes = this.reactionGraph.getDownstreamAdjacentNodes(reaction)
         for (node : downstreamAdjNodes) {
+            println(node)
+            
             // Recursively add downstream nodes to the graph.
             addNodesAndEdges(node)
             
             // Add an edge
             this.addEdge(node, reaction)
+            
+            // Store logical delay between the two reactions.
+            // Logical delays can be induced by connections
+            // or actions.
+            var effects = reaction.effects
+            var sources = node.sources
+            var key     = new Pair(reaction, node)
+            var info    = new ConnectivityInfo(false, false, 0)
+            
+            for (e : effects) {
+                for (s : sources) {
+                    // If these two reactions are linked by an action.
+                    if (s == e) {
+                        if (s instanceof ActionInstance) {
+                            // Add the delay info to the connectivity hashmap.
+                            info = new ConnectivityInfo(false, s.isPhysical, s.minDelay.toNanoSeconds)
+                            
+                            if (connectivity.get(key) === null) {
+                                connectivity.put(key, info)
+                                println("New connectivity info added. isConnection: " + info.isConnection
+                                    + ", isPhysical: " + info.isPhysical + ", delay: " + info.delay)
+                            }
+                        }
+                        else {
+                            // FIXME: this should not happen.
+                        }
+                    }
+                    else {
+                        if (s instanceof PortInstance && e instanceof PortInstance) {
+                            var connection = main.getConnection(e as PortInstance, s as PortInstance)
+                            println(s)
+                            println(e)
+                            println("connection: " + connection)
+                            if (connection !== null) {
+                                // FIXME: how to break break for loops in xtend?
+                                // FIXME: what is the relationship between delay and TimeValue.
+                                // Add the delay info to the connectivity hashmap.
+                                // FIXME: is there a better way to get int value?
+                                
+                                // FIXME: get delay
+                                info = new ConnectivityInfo(true, connection.isPhysical, 0)
+                                // connectivity.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
+                                if (connectivity.get(key) === null) {
+                                    connectivity.put(key, info)
+                                    println("New connectivity info added. isConnection: " + info.isConnection
+                                        + ", isPhysical: " + info.isPhysical + ", delay: " + info.delay)                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
  }

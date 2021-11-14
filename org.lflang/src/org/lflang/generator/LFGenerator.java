@@ -187,7 +187,6 @@ public class LFGenerator extends AbstractGenerator {
         // If the verification flag is true, generate a UCLID5 model from
         // the static information.
         if (generator.targetConfig.smt) {
-            System.out.println("*** Generating Uclid models and SMT files...");
             GeneratorBase uclidGen = new UclidGenerator(fileConfig, errorReporter);
             uclidGen.doGenerate(resource, fsa, context);
         }
