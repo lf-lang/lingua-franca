@@ -58,6 +58,7 @@ data class RustTargetProperties(
     val timeoutLf: TimeValue? = null,
     val singleFile: Boolean = false,
     val threads: Int = 0,
+    val dumpDependencyGraph: Boolean = false,
 )
 
 /**
@@ -495,6 +496,7 @@ object RustModelBuilder {
             timeoutLf = this.timeout,
             singleFile = this.singleFileProject,
             threads = this.threads,
+            dumpDependencyGraph = this.exportDependencyGraph,
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
