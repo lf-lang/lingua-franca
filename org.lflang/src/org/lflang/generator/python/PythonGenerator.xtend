@@ -1484,7 +1484,7 @@ class PythonGenerator extends CGenerator {
         }
         
         
-        pr('void ' + functionName + '(void* instance_args) {')
+        pr('void ' + functionName + '(void* instance_args, int worker_number) {')
         indent()
         
         // First, generate C initializations
@@ -1497,6 +1497,8 @@ class PythonGenerator extends CGenerator {
             // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
             PyGILState_STATE gstate;
             gstate = PyGILState_Ensure();
+            // The GIL is a mutex, so it is safe to set this global variable here.
+            _lf_worker_number = worker_number;
             
             DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
             PyObject *rValue = PyObject_CallObject(
@@ -1527,7 +1529,7 @@ class PythonGenerator extends CGenerator {
             // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
 
-            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            pr('void ' + deadlineFunctionName + '(void* instance_args, int worker_number) {')
             indent();
             
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
@@ -1536,6 +1538,8 @@ class PythonGenerator extends CGenerator {
                 // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.         
                 PyGILState_STATE gstate;
                 gstate = PyGILState_Ensure();
+                // The GIL is a mutex, so it is safe to set this global variable here.
+                _lf_worker_number = worker_number;
                 
                 DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
                 PyObject *rValue = PyObject_CallObject(
