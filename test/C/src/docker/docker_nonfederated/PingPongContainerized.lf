@@ -30,7 +30,7 @@ import Ping from "../../PingPong.lf"
 import Pong from "../../PingPong.lf"
 
 
-main reactor PingPong {
+main reactor PingPongContainerized {
     ping = new Ping();
     pong = new Pong();
     ping.send -> pong.receive;

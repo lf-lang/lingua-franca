@@ -8,8 +8,15 @@ import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.FileFilter;
+import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Objects;
@@ -459,6 +466,90 @@ public abstract class TestBase {
         test.result = Result.TEST_PASS;
     }
 
+    private Map<String, Path> getDockerFiles(Path srcGenPath) {
+        Map<String, Path> fedNameToDockerFile = new HashMap<>();
+        File[] srcGenFiles = srcGenPath.toFile().listFiles();
+        for (File srcGenFile : srcGenFiles) {
+            if (srcGenFile.isDirectory()) {
+                File[] dockerFile = srcGenFile.listFiles(new FileFilter() {
+                    @Override
+                    public boolean accept(File pathName) {
+                        return pathName.getName().endsWith("Dockerfile");
+                    }
+                });
+                assert dockerFile.length == 1;
+                fedNameToDockerFile.put(srcGenFile.getName(), dockerFile[0].getAbsoluteFile().toPath());
+            }
+        }
+        return fedNameToDockerFile;
+    }
+
+    private String getDockerRunScript(Map<String, Path> fedNameToDockerFile, String testNetworkName) {
+        StringBuilder shCode = new StringBuilder();
+        shCode.append("#!/bin/bash\n");
+        int n = fedNameToDockerFile.size();
+        shCode.append("pids=\"\"\n");
+        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:test -i 1 -n %d &\n", testNetworkName, n));
+        shCode.append("pids+=\"$!\"\nsleep 3\n");
+        for (String fedName : fedNameToDockerFile.keySet()) {
+            Path dockerFile = fedNameToDockerFile.get(fedName);
+            shCode.append(String.format("docker run --rm --network=%s %s:test -i 1 &\n", testNetworkName, fedName));
+            shCode.append("pids+=\" $!\"\n");
+        }
+        shCode.append("for p in $pids; do\n");
+        shCode.append("    if wait $p; then\n");
+        shCode.append("        :\n");
+        shCode.append("    else\n");
+        shCode.append("        exit 1\n");
+        shCode.append("    fi\n");
+        shCode.append("done\n");
+        return shCode.toString();
+    }
+
+    private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
+        return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
+                             new ProcessBuilder("docker", "run", "--rm", "lingua_franca:test"),
+                             new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
+    }
+
+    private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
+        var rtiPath = test.fileConfig.getSrcGenBasePath().resolve("RTI");
+        var rtiDockerPath = rtiPath.resolve("rti.Dockerfile");
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        Map<String, Path> fedNameToDockerFile = getDockerFiles(srcGenPath);
+        try {
+            File testScript = File.createTempFile("dockertest", null);
+            testScript.deleteOnExit();
+            if (!testScript.setExecutable(true)) {
+                throw new IOException("Failed to make test script executable");
+            }
+            FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
+            String testNetworkName = "linguaFrancaTestNetwork";
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(getDockerRunScript(fedNameToDockerFile, testNetworkName));
+            bufferedWriter.close();
+            List<ProcessBuilder> execCommands = new ArrayList<>();
+            execCommands.add(new ProcessBuilder("docker", "network", "create", testNetworkName));
+            execCommands.add(new ProcessBuilder("docker", "build", "-t", "rti:test", "-f", rtiDockerPath.toString(), rtiPath.toString()));
+            for (String fedName : fedNameToDockerFile.keySet()) {
+                Path dockerFile = fedNameToDockerFile.get(fedName);
+                execCommands.add(new ProcessBuilder("docker", "build", "-t", fedName + ":test", "-f", dockerFile.toString(), dockerFile.getParent().toString()));
+            }
+            execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
+            execCommands.add(new ProcessBuilder("docker", "image", "rm", "rti:test"));
+            for (String fedName : fedNameToDockerFile.keySet()) {
+                Path dockerFile = fedNameToDockerFile.get(fedName);
+                execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));
+            }
+            execCommands.add(new ProcessBuilder("docker", "network", "rm", testNetworkName));
+            return execCommands;
+        } catch (IOException e) {
+            return Arrays.asList(new ProcessBuilder("exit", "1"));
+        }
+    }
+
     /**
      * Return a preconfigured ProcessBuilder for the command
      * that should be used to execute the test program.
@@ -472,12 +563,9 @@ public abstract class TestBase {
         var parentDirName = srcGenPath.getParent().getFileName().toString();
         // special case to test docker file generation
         if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_NONFEDERATED.name())) {
-            var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
-            return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
-                                 new ProcessBuilder("docker", "run", "--rm", "lingua_franca:test"),
-                                 new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
+            return getNonfederatedDockerExecCommand(test);
         } else if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.name())) {
-            return new ArrayList<>();
+            return getFederatedDockerExecCommand(test);
         }
 
         var binPath = test.fileConfig.binPath;
