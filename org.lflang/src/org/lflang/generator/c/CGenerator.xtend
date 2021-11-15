@@ -3055,7 +3055,6 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsReaction(
                 reaction.definition
             )) {
-                var Collection<PortInstance> destinationPorts = null
 
                 // Record the number of reactions that this reaction depends on.
                 // This is used for optimization. When that number is 1, the reaction can
@@ -3102,13 +3101,11 @@ class CGenerator extends GeneratorBase {
             reactionCount++
         }
         var portCount = 0
-        for (port : reactorInstance.outputs) {
-            // Also skip ports whose parent is not in the federation.
-            // This can happen with reactions in the top-level that have
-            // as an effect a port in a bank.
-            if (federate !== null && !federate.contains(port.parent)) {
-                continue;
-            }
+        // Also skip ports whose parent is not in the federation.
+        // This can happen with reactions in the top-level that have
+        // as an effect a port in a bank.
+        for (port : reactorInstance.outputs.filter [ port | federate === null || federate.contains(port.parent)]) {
+            var Collection<PortInstance> destinationPorts = null
             // Skip multiports and handle the component ports instead.
             if (!(port instanceof MultiportInstance)) {
                 // Port is not within a multiport.
@@ -3160,7 +3157,7 @@ class CGenerator extends GeneratorBase {
                     if (reactorInstance.bankIndex >= 0) {
                         bankIndex = '_' + reactorInstance.bankIndex + '_'
                     }
-                    val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
+                    val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«portCount»'''
                     pr(initializeTriggerObjectsEnd, '''
                         // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
                         // array of trigger pointers for downstream reactions through port «port.getFullName»

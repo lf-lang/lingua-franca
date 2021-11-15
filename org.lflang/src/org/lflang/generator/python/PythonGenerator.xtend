@@ -105,8 +105,7 @@ class PythonGenerator extends CGenerator {
     *   typedef struct {
     *       PyObject* value;
     *       bool is_present;
-    *       trigger_t** triggers;
-    *       size_t triggers_size;
+    *       reaction_t** reactions;
     *       int num_destinations;
     *       FEDERATED_CAPSULE_EXTENSION
     *   } generic_port_instance_struct;
@@ -122,8 +121,7 @@ class PythonGenerator extends CGenerator {
     *   typedef struct {
     *       PyObject_HEAD
     *       PyObject* value;
-    *       trigger_t** triggers;
-    *       size_t triggers_size;
+    *       reaction_t** reactions;
     *       bool is_present;
     *       int num_destinations;
     *       lf_token_t* token;
