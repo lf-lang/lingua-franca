@@ -123,6 +123,7 @@ public abstract class TestBase {
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
+        public static final String NO_DOCKER_TEST_SUPPORT_MAC = "Docker tests are not supported on MacOS.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
@@ -241,6 +242,15 @@ public abstract class TestBase {
     protected static boolean isWindows() {
         String OS = System.getProperty("os.name").toLowerCase();
         return OS.contains("win");
+    }
+
+     /**
+     * Determine whether the current platform is Windows.
+     * @return true if the current platform is Windwos, false otherwise.
+     */
+    protected static boolean isMac() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return OS.contains("mac");
     }
 
     /**
