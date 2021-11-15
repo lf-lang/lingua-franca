@@ -3055,6 +3055,7 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsReaction(
                 reaction.definition
             )) {
+                var Collection<PortInstance> destinationPorts = null
 
                 var portCount = 0
                 // Record the number of reactions that this reaction depends on.
