@@ -119,11 +119,11 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |           warn!("Proceeding with defaults defined at compile time.");
             |        }
             |
-            |        let options = SchedulerOptions {
-            |           timeout: $defaultTimeOutAsRust,
-            |           keep_alive: ${gen.properties.keepAlive},
-            |           threads: ${gen.properties.threads}, // note: zero means "1 per core"
-            |        };
+            |        let mut options = SchedulerOptions::default();
+            |        options.timeout = $defaultTimeOutAsRust;
+            |        options.keep_alive = ${gen.properties.keepAlive};
+            |        options.threads = ${gen.properties.threads}; // note: zero means "1 per core"
+            |        options.dump_graph = ${gen.properties.dumpDependencyGraph};
 
             |        // main params are entirely defaulted
             |        let main_args = __MainParams::new(
@@ -172,6 +172,10 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.default
             |        #[clap(long, default_value="${gen.properties.threads}", help_heading=Some("RUNTIME OPTIONS"), value_name("usize"),)]
             |        threads: usize,
             |
+            |        /// Export the dependency graph in DOT format before starting execution.
+            |        #[clap(long, help_heading=Some("RUNTIME OPTIONS"),)]
+            |        export_graph: bool,
+            |
             |        /// Minimum logging level for the runtime. Specifying the log level on the
             |        /// command-line overrides the environment variable RUST_LOG. Note that release
             |        /// builds of the runtime are stripped of trace and debug logs, so only up
@@ -192,11 +196,11 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.toCliParam(
             |    pub(super) fn parse() -> CliParseResult {
             |        let opts = Opt::parse();
             |
-            |        let options = SchedulerOptions {
-            |            timeout: opts.timeout,
-            |            keep_alive: opts.keep_alive,
-            |            threads: opts.threads,
-            |        };
+            |        let mut options = SchedulerOptions::default();
+            |        options.timeout = opts.timeout;
+            |        options.keep_alive = opts.keep_alive;
+            |        options.threads = opts.threads;
+            |        options.dump_graph = opts.export_graph;
             |
             |        let main_args = __MainParams::new(
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + it.cliParamName }}
