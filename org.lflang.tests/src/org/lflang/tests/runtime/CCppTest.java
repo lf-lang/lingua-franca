@@ -44,6 +44,10 @@ public class CCppTest extends TestBase {
      */
     static private boolean runAsCCppExclusion(TestCategory category) {
         boolean excluded = false;
+        // Don't need to test examples.
+        // If any of them uses CCpp, it will
+        // be tested when compileExamples is
+        // run.
         excluded |= (category == TestCategory.EXAMPLE);
         excluded |= (!isLinux() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER_NONFEDERATED));
         return !excluded;

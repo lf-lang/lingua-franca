@@ -93,7 +93,6 @@ public class Configurators {
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
         excluded |= (TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET));
-
         return !excluded;
     }
 }
