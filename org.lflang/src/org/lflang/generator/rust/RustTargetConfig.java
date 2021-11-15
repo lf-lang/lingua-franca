@@ -74,13 +74,14 @@ public final class RustTargetConfig {
     }
 
     public void addAndCheckTopLevelModule(Path path, EObject errorOwner, ErrorReporter err) {
+        String fileName = path.getFileName().toString();
         if (!Files.exists(path)) {
             err.reportError(errorOwner, "File not found");
-        } else if (Files.isRegularFile(path) && !path.getFileName().toString().endsWith(".rs")) {
+        } else if (Files.isRegularFile(path) && !fileName.endsWith(".rs")) {
             err.reportError(errorOwner, "Not a rust file");
-        } else if (path.getFileName().toString().equals("main.rs")) {
+        } else if (fileName.equals("main.rs")) {
             err.reportError(errorOwner, "Cannot use 'main.rs' as a module name (reserved)");
-        } else if (path.getFileName().toString().equals("reactors")) {
+        } else if (fileName.equals("reactors") || fileName.equals("reactors.rs")) {
             err.reportError(errorOwner, "Cannot use 'reactors' as a module name (reserved)");
         } else if (Files.isDirectory(path) && !Files.exists(path.resolve("mod.rs"))) {
             err.reportError(errorOwner, "Cannot find module descriptor in directory");

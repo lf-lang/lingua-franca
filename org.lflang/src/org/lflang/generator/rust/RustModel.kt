@@ -57,6 +57,7 @@ data class RustTargetProperties(
     val timeout: TargetCode? = null,
     val timeoutLf: TimeValue? = null,
     val singleFile: Boolean = false,
+    /** note: zero means "1 per core" */
     val threads: Int = 0,
     val dumpDependencyGraph: Boolean = false,
 )
