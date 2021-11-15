@@ -466,9 +466,14 @@ public abstract class TestBase {
         test.result = Result.TEST_PASS;
     }
 
-    private Map<String, Path> getDockerFiles(Path srcGenPath) {
+    /**
+     * Return a Mapping of federateName -> absolutePathToDockerFile.
+     * Expects the docker file to be two levels below where the source files are generated (ex. srcGenPath/nameOfFederate/*Dockerfile)
+     * @param test The test to get the execution command for.
+     */
+    private Map<String, Path> getFederatedDockerFiles(LFTest test) {
         Map<String, Path> fedNameToDockerFile = new HashMap<>();
-        File[] srcGenFiles = srcGenPath.toFile().listFiles();
+        File[] srcGenFiles = test.fileConfig.getSrcGenPath().toFile().listFiles();
         for (File srcGenFile : srcGenFiles) {
             if (srcGenFile.isDirectory()) {
                 File[] dockerFile = srcGenFile.listFiles(new FileFilter() {
@@ -484,6 +489,12 @@ public abstract class TestBase {
         return fedNameToDockerFile;
     }
 
+    /**
+     * Return the content of the bash script used for testing docker option in federated execution. 
+     * @param fedNameToDockerFile A mapping of federateName -> absolutePathToDockerFile
+     * @param testNetworkName The name of the network used for testing the docker option. 
+     *                        See https://github.com/lf-lang/lingua-franca/wiki/Containerized-Execution#federated-execution for more details.
+     */
     private String getDockerRunScript(Map<String, Path> fedNameToDockerFile, String testNetworkName) {
         StringBuilder shCode = new StringBuilder();
         shCode.append("#!/bin/bash\n");
@@ -506,6 +517,10 @@ public abstract class TestBase {
         return shCode.toString();
     }
 
+    /**
+     * Return a list of ProcessBuilders used to test the docker option under non-federated execution.
+     * @param test The test to get the execution command for.
+     */
     private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
         var srcGenPath = test.fileConfig.getSrcGenPath();
         var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
@@ -514,11 +529,14 @@ public abstract class TestBase {
                              new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
     }
 
+    /**
+     * Return a list of ProcessBuilders used to test the docker option under federated execution.
+     * @param test The test to get the execution command for.
+     */
     private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
         var rtiPath = test.fileConfig.getSrcGenBasePath().resolve("RTI");
         var rtiDockerPath = rtiPath.resolve("rti.Dockerfile");
-        var srcGenPath = test.fileConfig.getSrcGenPath();
-        Map<String, Path> fedNameToDockerFile = getDockerFiles(srcGenPath);
+        Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
         try {
             File testScript = File.createTempFile("dockertest", null);
             testScript.deleteOnExit();
@@ -551,7 +569,7 @@ public abstract class TestBase {
     }
 
     /**
-     * Return a preconfigured ProcessBuilder for the command
+     * Return a list of preconfigured ProcessBuilder(s) for the command(s)
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
