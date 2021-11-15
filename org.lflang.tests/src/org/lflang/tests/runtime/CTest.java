@@ -132,7 +132,6 @@ public class CTest extends AbstractTest {
     @Test
     @Override
     public void runDockerNonfederatedTests() {
-        Assumptions.assumeFalse(isMac(), Message.NO_DOCKER_TEST_SUPPORT_MAC);
         super.runDockerNonfederatedTests();
     }
 
@@ -140,7 +139,6 @@ public class CTest extends AbstractTest {
     @Override
     public void runDockerFederatedTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        Assumptions.assumeFalse(isMac(), Message.NO_DOCKER_TEST_SUPPORT_MAC);
         super.runDockerFederatedTests();
     }
 }
