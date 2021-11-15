@@ -89,7 +89,9 @@ public class Configurators {
                 // SERIALIZATION and TARGET tests are currently not
                 // supported on Windows.
                 return category != TestCategory.SERIALIZATION &&
-                    category != TestCategory.TARGET;
+                    category != TestCategory.TARGET &&
+                    category != TestCategory.DOCKER_FEDERATED &&
+                    category != TestCategory.DOCKER_NONFEDERATED;
             }
             return true;
         }

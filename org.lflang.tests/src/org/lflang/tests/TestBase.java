@@ -245,12 +245,21 @@ public abstract class TestBase {
     }
 
      /**
-     * Determine whether the current platform is Windows.
-     * @return true if the current platform is Windwos, false otherwise.
+     * Determine whether the current platform is MacOS.
+     * @return true if the current platform is MacOS, false otherwise.
      */
     protected static boolean isMac() {
         String OS = System.getProperty("os.name").toLowerCase();
         return OS.contains("mac");
+    }
+
+    /**
+     * Determine whether the current platform is Linux.
+     * @return true if the current platform is Linux, false otherwise.
+     */
+    protected static boolean isLinux() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return OS.contains("linux");
     }
 
     /**
