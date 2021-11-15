@@ -33,18 +33,19 @@ public class CCppTest extends TestBase {
     @Test
     public void runAsCCpp() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-
-        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        categories.removeAll(EnumSet.of(
-            // Don't need to test examples.
-            // If any of them uses CCpp, it will
-            // be tested when compileExamples is
-            // run.
-            TestCategory.EXAMPLE));
-
-        runTestsForTargets(Message.DESC_AS_CCPP, categories::contains,
+        runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::runAsCCppExclusion,
                            it -> ASTUtils.changeTargetName(it.fileConfig.resource,
                                                            Target.CCPP.getDisplayName()),
                            TestLevel.EXECUTION, true);
     }
+
+    /**
+     * Exclusion function for runAsCCpp test
+     */
+    static private boolean runAsCCppExclusion(TestCategory category) {
+        boolean excluded = false;
+        excluded |= (category == TestCategory.EXAMPLE);
+        excluded |= (!isLinux() && category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER_NONFEDERATED);
+        return !excluded;
+    }   
 }
