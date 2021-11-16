@@ -8,7 +8,6 @@ import BenchmarkRunner from "../BenchmarkRunner2.lf";
 reactor ThreadRingReactor {
     output out_next_reactor: {= PingMessage =};
     input in_prev_reactor: {= PingMessage =};
-    input start: {= PingMessage =};
     output finished: {= () =};
 
     preamble {=
@@ -48,17 +47,6 @@ reactor ThreadRingReactor {
             }
         }
     =}
-
-    reaction(start) -> out_next_reactor, finished {=
-        if let Some(s) = ctx.get(start) {
-            if s.has_next() {
-                ctx.set(out_next_reactor, s.next());
-                debug!("Starting with count {}", s.pings_left());
-            } else {
-                ctx.set(finished, ());
-            }
-        }
-    =}
 }
 
 reactor ThreadRingReactorLoopOpener {
@@ -86,7 +74,7 @@ reactor ThreadRingReactorLoopOpener {
         }
     =}
 
-    reaction(start) -> send_to_next_reactor, finished {=        
+    reaction(start) -> send_to_next_reactor, finished {=
         if let Some(s) = ctx.get(start) {
             debug!("Starting with count {}", s.pings_left());
             if s.has_next() {
@@ -129,7 +117,7 @@ main reactor (num_iterations:usize(12), num_pings:usize(100000), num_reactors:us
     state num_iterations(num_iterations);
     state num_pings(num_pings);
     state num_reactors(num_reactors);
-    
+
     init = new Initializer(num_reactors={=num_reactors + 1=}, num_pings=num_pings);
     runner = new BenchmarkRunner(num_iterations=num_iterations);
 
