@@ -47,6 +47,7 @@ import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
@@ -226,61 +227,24 @@ class FederateInstance {
 
     /////////////////////////////////////////////
     //// Public Methods
-    
-    /** 
-     * Return true if the specified reactor instance or any parent
-     * reactor instance is contained by this federate.
-     * If the specified instance is the top-level reactor, return true
-     * (this reactor belongs to all federates).
-     * If it is a bank member, then this returns true only if the bankIndex
-     * of the reactor instance matches the federate instance bank index.
-     * If this federate instance is a singleton, then return true if the
-     * instance is non null.
-     * 
-     * @param instance The reactor instance.
-     * @return True if this federate contains the reactor instance
-     */
-    def contains(ReactorInstance instance) {
-        if (isSingleton) {
-            return (instance !== null);
-        }
-        if (instance.parent === null) {
-            return true;
-        }
-        // Start with this instance, then check its parents.
-        var i = instance;
-        while (i !== null) {
-            if (i.definition === this.instantiation
-                    && (
-                        i.bankIndex < 0                 // Not a bank member
-                        || i.bankIndex == this.bankIndex  // Index matches.
-                    )
-            ) {
-                return true;
-            }
-            i = i.parent;
-        }
-        return false;
-    }
-    
-    
+        
     /**
-     * Return true if the specified reactor is not the top-level federated reactor,
-     * or if it is and the action should be included in the code generated
+     * Return true if the specified action should be included in the code generated
      * for the federate. This means that either the action is used as a trigger,
      * a source, or an effect in a top-level reaction that belongs to this federate.
+     * This returns true if the program is not federated.
      * 
      * @param action The action
      * @return True if this federate contains the action in the specified reactor
      */
-    def containsAction(Action action) {
+    def contains(Action action) {
         val reactor  = action.eContainer as Reactor
         if (!reactor.federated || isSingleton) return true
         
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (react : reactor.allReactions) {
-            if (containsReaction(react)) {
+            if (contains(react)) {
                 // Look in triggers
                 for (TriggerRef trigger : react.triggers ?: emptyList) {
                     if (trigger instanceof VarRef) {
@@ -316,14 +280,14 @@ class FederateInstance {
      * @param port The Port
      * @return True if this federate contains the action in the specified reactor
      */
-    def containsPort(Port port) {
+    def contains(Port port) {
         val reactor  = port.eContainer as Reactor
         if (!reactor.federated || isSingleton) return true
         
         // If the port is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (react : reactor.allReactions) {
-            if (containsReaction(react)) {
+            if (contains(react)) {
                 // Look in triggers
                 for (TriggerRef trigger : react.triggers ?: emptyList) {
                     if (trigger instanceof VarRef) {
@@ -361,7 +325,7 @@ class FederateInstance {
      *
      * @param reaction The reaction.
      */
-    def containsReaction(Reaction reaction) {
+    def contains(Reaction reaction) {
         val reactor  = reaction.eContainer as Reactor
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
@@ -389,6 +353,84 @@ class FederateInstance {
         return !excludeReactions.contains(reaction)
     }
     
+    /** 
+     * FIXME: This redundant function is here only because it is used in
+     * another repo (for the TS target) and it is a royal pain to refactor
+     * across repos.
+     */
+    def containsReaction(Reaction reaction) {
+        return contains(reaction);
+    }
+
+    /** 
+     * Return true if the specified reactor instance or any parent
+     * reactor instance is contained by this federate.
+     * If the specified instance is the top-level reactor, return true
+     * (this reactor belongs to all federates).
+     * If it is a bank member, then this returns true only if the bankIndex
+     * of the reactor instance matches the federate instance bank index.
+     * This also returns true for the bank placeholder for a bank that
+     * contains an instance that matches this bank index.
+     * If this federate instance is a singleton, then return true if the
+     * instance is non null.
+     * 
+     * @param instance The reactor instance.
+     * @return True if this federate contains the reactor instance
+     */
+    def contains(ReactorInstance instance) {
+        if (isSingleton) {
+            return (instance !== null);
+        }
+        if (instance.parent === null) {
+            return true; // Top-level reactor
+        }
+        // Start with this instance, then check its parents.
+        var i = instance;
+        while (i !== null) {
+            if (i.definition === this.instantiation
+                    && (
+                        i.bankIndex < 0                 // Not a bank member
+                        || i.bankIndex == this.bankIndex  // Index matches.
+                    )
+            ) {
+                return true;
+            }
+            i = i.parent;
+        }
+        return false;
+    }
+    
+    /**
+     * Return true if the specified timer should be included in the code generated
+     * for the federate. This means that the timer is used as a trigger
+     * in a top-level reaction that belongs to this federate.
+     * This also returns true if the program is not federated.
+     * 
+     * @param action The action
+     * @return True if this federate contains the action in the specified reactor
+     */
+    def contains(Timer timer) {
+        val reactor  = timer.eContainer as Reactor
+        if (!reactor.federated || isSingleton) return true
+        
+        // If the action is used as a trigger, a source, or an effect for a top-level reaction
+        // that belongs to this federate, then generate it.
+        for (r : reactor.allReactions) {
+            if (contains(r)) {
+                // Look in triggers
+                for (TriggerRef trigger : r.triggers ?: emptyList) {
+                    if (trigger instanceof VarRef) {
+                        if (trigger.variable == (timer as Variable)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return false;        
+    }
+
     /**
      * Build an index of reactions at the top-level (in the
      * federatedReactor) that don't belong to this federate

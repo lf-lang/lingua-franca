@@ -82,7 +82,6 @@ import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
-import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
@@ -663,7 +662,7 @@ class CGenerator extends GeneratorBase {
             // Generate main instance, if there is one.
             // Note that any main reactors in imported files are ignored.        
             if (this.main !== null) {
-                generateReactorInstance(this.main, federate)
+                generateFederate(federate)
                 // Generate function to set default command-line options.
                 // A literal array needs to be given outside any function definition,
                 // so start with that.
@@ -943,7 +942,7 @@ class CGenerator extends GeneratorBase {
     /**
      * Generate the _lf_initialize_trigger_objects function for 'federate'.
      */
-    def generateInitializeTriggerObjects(FederateInstance federate) {
+    private def generateInitializeTriggerObjects(FederateInstance federate) {
         pr('''
             void _lf_initialize_trigger_objects() {
         ''')
@@ -1757,7 +1756,7 @@ class CGenerator extends GeneratorBase {
         var reactor = decl.toDefinition
         var reactionCount = 0
         for (reaction : reactor.reactions) {
-            if (federate === null || federate.containsReaction(reaction)) {
+            if (federate === null || federate.contains(reaction)) {
                 pr(destructorCode, '''
                     for(int i = 0; i < self->_lf__reaction_«reactionCount».num_outputs; i++) {
                         free(self->_lf__reaction_«reactionCount».triggers[i]);
@@ -1807,7 +1806,7 @@ class CGenerator extends GeneratorBase {
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(input as Port)) {
+            if (federate === null || federate.contains(input as Port)) {
                 var token = ''
                 if (input.inferredType.isTokenType) {
                     token = '''
@@ -1829,7 +1828,7 @@ class CGenerator extends GeneratorBase {
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.containsPort(output as Port)) {
+            if (federate === null || federate.contains(output as Port)) {
                 var token = ''
                 if (output.inferredType.isTokenType) {
                      token = '''
@@ -1854,7 +1853,7 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(action)) {
+            if (federate === null || federate.contains(action)) {
                 pr(action, code, '''
                     typedef struct {
                         trigger_t* trigger;
@@ -1978,7 +1977,7 @@ class CGenerator extends GeneratorBase {
         
         // Next handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(action)) {
+            if (federate === null || federate.contains(action)) {
                 pr(action, body, '''
                     «variableStructType(action, decl)» _lf_«action.name»;
                 ''')
@@ -1991,7 +1990,7 @@ class CGenerator extends GeneratorBase {
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(input as Port)) {
+            if (federate === null || federate.contains(input as Port)) {
                 // If the port is a multiport, the input field is an array of
                 // pointers that will be allocated separately for each instance
                 // because the sizes may be different. Otherwise, it is a simple
@@ -2028,7 +2027,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.containsPort(output as Port)) {
+            if (federate === null || federate.contains(output as Port)) {
                 // If the port is a multiport, create an array to be allocated
                 // at instantiation.
                 if (output.isMultiport) {
@@ -2328,7 +2327,7 @@ class CGenerator extends GeneratorBase {
         val startupReactions = new LinkedHashSet<Integer>
         val shutdownReactions = new LinkedHashSet<Integer>
         for (reaction : reactor.allReactions) {
-            if (federate === null || federate.containsReaction(reaction)) {
+            if (federate === null || federate.contains(reaction)) {
                 // Create the reaction_t struct.
                 pr(reaction, body, '''reaction_t _lf__reaction_«reactionCount»;''')
                 
@@ -2480,7 +2479,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(action)) {
+            if (federate === null || federate.contains(action)) {
                 createTriggerT(body, action, triggerMap, constructorCode, destructorCode)
                 var isPhysical = "true";
                 if (action.origin == ActionOrigin.LOGICAL) {
@@ -2507,7 +2506,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(input as Port)) {            
+            if (federate === null || federate.contains(input as Port)) {            
                 createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
             }
         }
@@ -2605,7 +2604,7 @@ class CGenerator extends GeneratorBase {
         var reactionIndex = 0;
         val reactor = decl.toDefinition
         for (reaction : reactor.allReactions) {
-            if (federate === null || federate.containsReaction(reaction)) {
+            if (federate === null || federate.contains(reaction)) {
                 generateReaction(reaction, decl, reactionIndex)
             }
             // Increment reaction index even if the reaction is not in the federate
@@ -2667,6 +2666,64 @@ class CGenerator extends GeneratorBase {
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
+        }
+    }
+    
+    /**
+     * Generate code to allocate the memory needed by reactions for triggering
+     * downstream reactions. Also, record startup and shutdown reactions.
+     * @param reactions A list of reactions.
+     */
+    private def void generateReactionMemory(Iterable<ReactionInstance> reactions) {
+        // For each reaction instance, allocate the arrays that will be used to
+        // trigger downstream reactions.
+        for (reaction : reactions) {
+            val instance = reaction.parent;
+            val nameOfSelfStruct = selfStructName(instance)
+            
+            generateReactionOutputs(reaction);
+
+            // Next handle triggers of the reaction that come from a multiport output
+            // of a contained reactor.  Also, handle startup and shutdown triggers.
+            for (trigger : reaction.triggers) {
+                if (trigger instanceof PortInstance) {
+                    // If the port is a multiport, then we need to create an entry for each
+                    // individual port.
+                    if (trigger.isMultiport() && trigger.parent !== null && trigger.isOutput) {
+                        // If the width is given as a numeric constant, then add that constant
+                        // to the output count. Otherwise, assume it is a reference to one or more parameters.
+                        val width = trigger.width;
+                        val containerName = trigger.parent.name
+                        val portStructType = variableStructType(trigger.definition,
+                            trigger.parent.definition.reactorClass)
+
+                        // FIXME: What if the effect is a bank?  Need to index the container.
+                        pr(initializeTriggerObjectsEnd, '''
+                            «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width = «width»;
+                            // Allocate memory to store pointers to the multiport outputs of a contained reactor.
+                            «nameOfSelfStruct»->_lf_«containerName».«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                    * «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width);
+                        ''')
+                    }
+                }
+                if (trigger.isStartup) {
+                    pr(initializeTriggerObjects, '''
+                        _lf_startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reaction.index»;
+                    ''')
+                } else if (trigger.isShutdown) {
+                    pr(initializeTriggerObjects, '''
+                        _lf_shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reaction.index»;
+                    ''')
+
+                    if (targetConfig.tracing !== null) {
+                        val description = getShortenedName(instance)
+                        pr(initializeTriggerObjects, '''
+                            _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__shutdown),
+                                    trace_trigger, "«description».shutdown");
+                        ''')
+                    }
+                }
+            }
         }
     }
     
@@ -3067,8 +3124,8 @@ class CGenerator extends GeneratorBase {
     }
 
     /** 
-     * Generate code to create the trigger table for each reaction of the
-     * specified reactor.  Each table lists the triggers that the reaction's
+     * Generate code to create the trigger table for each given reaction.
+     * Each table lists the triggers that the reaction
      * execution may trigger. Each table is an array of arrays
      * of pointers to the trigger_t structs representing the downstream inputs
      * (or outputs of the container reactor) that are triggered by the reaction.
@@ -3079,110 +3136,103 @@ class CGenerator extends GeneratorBase {
      * on the reaction_t struct to indicate the size of each array of trigger_t
      * pointers. The generated code will malloc each of these arrays, and the
      * destructor for the reactor instance will free them.
-     * The generated code goes into the _lf_initialize_trigger_objects() function.
-     * @param reactorIntance The reactor instance.
-     * @param federate The federate name or null if no federation.
+     * @param reactions The reactions.
      */
-    def generateRemoteTriggerTable(ReactorInstance reactorInstance, FederateInstance federate) {
-        val selfStruct = selfStructName(reactorInstance)
-        var reactionCount = 0
-        for (reaction : reactorInstance.reactions) {
-            if (federate === null || federate.containsReaction(reaction.definition)) {
-                // The reaction is in the federate.
-                var channelCount = 0
-                
-                optimizeForSingleDominatingReaction(reaction, reactionCount, federate);
-                               
-                // Insert a string name to facilitate debugging.                 
-                if (targetConfig.logLevel >= LogLevel.LOG) {
-                    pr(initializeTriggerObjectsEnd, '''
-                        // Reaction «reactionCount» of «reactorInstance.getFullName»'s name.
-                        «selfStruct»->_lf__reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
-                    ''')
-                }
-                
-                for (port : reaction.effects.filter(PortInstance)) {
-                    // Skip ports whose parent is not in the federation.
-                    // This can happen with reactions in the top-level that have
-                    // as an effect a port in a bank.
-                    if (federate === null || federate.contains(port.parent)) {
-                        
-                        // If the port is a multiport, then its channels may have different sets
-                        // of destinations. For ordinary ports, there will be only one range and
-                        // its width will be 1.
-                        // We generate the code to fill the triggers array first in a temporary buffer,
-                        // so that we can simultaneously calculate the size of the total array.
-                        for (PortInstance.SendRange range : port.eventualDestinations()) {
-                            val temp = new StringBuilder();
-                            var destRangeCount = 0;
-                            for (destinationRange : range.destinations) {
-                                val destination = destinationRange.getPortInstance();
-                                if (destination.isOutput) {
-                                    // Include this destination port only if it has at least one
-                                    // reaction in the federation.
-                                    var belongs = false;
-                                    for (destinationReaction : destination.dependentReactions) {
-                                        if (reactorBelongsToFederate(destinationReaction.parent, federate)) {
-                                            belongs = true
-                                        }
+    private def generateRemoteTriggerTable(Iterable<ReactionInstance> reactions) {
+        for (reaction : reactions) {
+            val selfStruct = selfStructName(reaction.parent);
+            val name = reaction.parent.getFullName;
+            var channelCount = 0
+            
+            optimizeForSingleDominatingReaction(reaction, reaction.index);
+                           
+            // Insert a string name to facilitate debugging.                 
+            if (targetConfig.logLevel >= LogLevel.LOG) {
+                pr(initializeTriggerObjectsEnd, '''
+                    // Reaction «reaction.index» of «name».
+                    «selfStruct»->_lf__reaction_«reaction.index».name = "«name» reaction «reaction.index»";
+                ''')
+            }
+            
+            for (port : reaction.effects.filter(PortInstance)) {
+                // Skip ports whose parent is not in the federation.
+                // This can happen with reactions in the top-level that have
+                // as an effect a port in a bank.
+                if (currentFederate.contains(port.parent)) {
+                    
+                    // If the port is a multiport, then its channels may have different sets
+                    // of destinations. For ordinary ports, there will be only one range and
+                    // its width will be 1.
+                    // We generate the code to fill the triggers array first in a temporary buffer,
+                    // so that we can simultaneously calculate the size of the total array.
+                    for (PortInstance.SendRange range : port.eventualDestinations()) {
+                        val temp = new StringBuilder();
+                        var destRangeCount = 0;
+                        for (destinationRange : range.destinations) {
+                            val destination = destinationRange.getPortInstance();
+                            if (destination.isOutput) {
+                                // Include this destination port only if it has at least one
+                                // reaction in the federation.
+                                var belongs = false;
+                                for (destinationReaction : destination.dependentReactions) {
+                                    if (currentFederate.contains(destinationReaction.parent)) {
+                                        belongs = true
                                     }
-                                    if (belongs) {
-                                        pr(temp, '''
-                                            // Port «port.getFullName» has reactions in its parent's parent.
-                                            // Point to the trigger struct for those reactions.
-                                            triggerArray[«destRangeCount»] = &«triggerStructName(
-                                                destination, 
-                                                destination.parent.parent
-                                            )»;
-                                        ''')
-                                        // One array entry for each destination range is sufficient.
-                                        destRangeCount++;
-                                    }
-                                } else {
-                                    // Destination is an input port.
+                                }
+                                if (belongs) {
                                     pr(temp, '''
-                                        // Point to destination port «destination.getFullName»'s trigger struct.
-                                        triggerArray[«destRangeCount»] = &«triggerStructName(destination)»;
+                                        // Port «port.getFullName» has reactions in its parent's parent.
+                                        // Point to the trigger struct for those reactions.
+                                        triggerArray[«destRangeCount»] = &«triggerStructName(
+                                            destination, 
+                                            destination.parent.parent
+                                        )»;
                                     ''')
                                     // One array entry for each destination range is sufficient.
                                     destRangeCount++;
                                 }
+                            } else {
+                                // Destination is an input port.
+                                pr(temp, '''
+                                    // Point to destination port «destination.getFullName»'s trigger struct.
+                                    triggerArray[«destRangeCount»] = &«triggerStructName(destination)»;
+                                ''')
+                                // One array entry for each destination range is sufficient.
+                                destRangeCount++;
                             }
-                        
-                            // Record the total size of the array.
-                            pr(initializeTriggerObjectsEnd, '''
-                                for (int i = 0; i < «range.channelWidth»; i++) {
-                                    // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «channelCount»
-                                    // downstream reactions through port «port.getFullName»[«channelCount» + i].
-                                    «selfStruct»->_lf__reaction_«reactionCount».triggered_sizes[«channelCount» + i] = «destRangeCount»;
-                                }
-                            ''')
-                        
-                            // Malloc the memory for the arrays.
-                            pr(initializeTriggerObjectsEnd, '''
-                                { // For scoping
-                                    // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
-                                    // array of trigger pointers for downstream reactions through port «port.getFullName»
-                                    trigger_t** triggerArray = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
-                                    for (int i = 0; i < «range.channelWidth»; i++) {
-                                        «selfStruct»->_lf__reaction_«reactionCount».triggers[«channelCount» + i] = triggerArray;
-                                    }
-                                    // Fill the trigger array.
-                                    «temp.toString()»
-                                }
-                            ''')
-                            channelCount += range.channelWidth;
                         }
-                    } else {
-                        // Count the port even if it is not contained in the federate because effect
-                        // may be a bank (it can't be an instance of a bank), so an empty placeholder
-                        // will be needed for each member of the bank that is not in the federate.
-                        channelCount += port.width;
+                    
+                        // Record the total size of the array.
+                        pr(initializeTriggerObjectsEnd, '''
+                            for (int i = 0; i < «range.channelWidth»; i++) {
+                                // Reaction «reaction.index» of «name» triggers «channelCount»
+                                // downstream reactions through port «port.getFullName»[«channelCount» + i].
+                                «selfStruct»->_lf__reaction_«reaction.index».triggered_sizes[«channelCount» + i] = «destRangeCount»;
+                            }
+                        ''')
+                    
+                        // Malloc the memory for the arrays.
+                        pr(initializeTriggerObjectsEnd, '''
+                            { // For scoping
+                                // For reaction «reaction.index» of «name», allocate an
+                                // array of trigger pointers for downstream reactions through port «port.getFullName»
+                                trigger_t** triggerArray = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
+                                for (int i = 0; i < «range.channelWidth»; i++) {
+                                    «selfStruct»->_lf__reaction_«reaction.index».triggers[«channelCount» + i] = triggerArray;
+                                }
+                                // Fill the trigger array.
+                                «temp.toString()»
+                            }
+                        ''')
+                        channelCount += range.channelWidth;
                     }
+                } else {
+                    // Count the port even if it is not contained in the federate because effect
+                    // may be a bank (it can't be an instance of a bank), so an empty placeholder
+                    // will be needed for each member of the bank that is not in the federate.
+                    channelCount += port.width;
                 }
             }
-            // Increment reaction count even if it is not in the federate for consistency.
-            reactionCount++
         }
     }
     
@@ -3193,12 +3243,10 @@ class CGenerator extends GeneratorBase {
      * 
      * @param reaction The reaction.
      * @param reactionNumber The reaction number within the parent.
-     * @param federate The federate or null for a non-federation.
      */
     def optimizeForSingleDominatingReaction (
         ReactionInstance reaction,
-        int reactionNumber, 
-        FederateInstance federate
+        int reactionNumber
     ) {
         val reactorInstance = reaction.parent;
         val selfStruct = selfStructName(reactorInstance)
@@ -3210,15 +3258,14 @@ class CGenerator extends GeneratorBase {
         
         // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
         while (dominatingReaction !== null 
-                && (federate !== null && !federate.containsReaction(dominatingReaction.definition))
+                && (!currentFederate.contains(dominatingReaction.definition))
         ) {
             dominatingReaction = dominatingReaction.findSingleDominatingReaction();
         }
         if (dominatingReaction !== null 
-                && (federate !== null 
-                    && federate.containsReaction(dominatingReaction.definition)
-                    && federate.contains(dominatingReaction.parent)
-                )) {
+                && currentFederate.contains(dominatingReaction.definition)
+                && currentFederate.contains(dominatingReaction.parent)
+        ) {
             val upstreamReaction = '''«selfStructName(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
             pr(initializeTriggerObjectsEnd, '''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
@@ -3237,11 +3284,11 @@ class CGenerator extends GeneratorBase {
      * counts and mark outputs absent between time steps. This function puts the code
      * into startTimeStep.
      */
-    def generateStartTimeStep(ReactorInstance instance, FederateInstance federate) {
+    private def generateStartTimeStep(ReactorInstance instance) {
         // First, set up to decrement reference counts for each token type
         // input of a contained reactor that is present.
         for (child : instance.children) {
-            if (reactorBelongsToFederate(child, federate)) {
+            if (currentFederate.contains(child)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
@@ -3278,15 +3325,13 @@ class CGenerator extends GeneratorBase {
         // port so we have to avoid listing the port more than once.
         val portsSeen = new LinkedHashSet<PortInstance>();
         for (reaction : instance.reactions) {
-            if (federate === null || federate.containsReaction(
-                reaction.definition
-            )) {
+            if (currentFederate.contains(reaction.definition)) {
                 for (port : reaction.effects.filter(PortInstance)) {
                     if (port.definition instanceof Input && !portsSeen.contains(port)) {
                         portsSeen.add(port)
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
-                        if (reactorBelongsToFederate(port.parent, federate)) {
+                        if (currentFederate.contains(port.parent)) {
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
                             if (port.isMultiport) {
@@ -3363,7 +3408,7 @@ class CGenerator extends GeneratorBase {
         }
         // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
-            if (reactorBelongsToFederate(child, federate)) {
+            if (currentFederate.contains(child)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
                     if (output.isMultiport()) {
@@ -3407,7 +3452,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         for (action : instance.actions) {
-            if (federate === null || federate.containsAction(action.definition)) {
+            if (currentFederate === null || currentFederate.contains(action.definition)) {
                 pr(startTimeStep, '''
                     // Add action «action.getFullName» to array of is_present fields.
                     _lf_is_present_fields[«startTimeStepIsPresentCount»] 
@@ -3427,53 +3472,52 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * For each timer and action in the specified reactor instance, generate
-     * initialization code for the offset and period fields. This code goes into
-     * _lf_initialize_trigger_objects(). This has to be done separately for each
-     * instance, rather than by the constructor, because the values of the offset
-     * and period may be given by parameters, so the values are potentially
-     * different for each instance.
+     * For each action given, generate initialization code for the offset
+     * and period fields. 
+     * 
+     * @param actions The actions.
+     */
+    private def generateActionInitializations(Iterable<ActionInstance> actions) {
+        for (action : actions) {
+            if (!action.isShutdown) {
+                var triggerStructName = triggerStructName(action)
+                var minDelay = action.minDelay
+                var minSpacing = action.minSpacing
+                pr(initializeTriggerObjects, '''
+                    «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
+                    «IF minSpacing !== null»
+                        «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                    «ELSE»
+                        «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
+                    «ENDIF»
+                ''')
+            }
+            triggerCount++
+        }
+    }
+
+    /**
+     * For each timer given, generate initialization code for the offset
+     * and period fields.
      * 
      * This method will also populate the global _lf_timer_triggers array, which is
      * used to start all timers at the start of execution.
      * 
-     * @param reactorInstance The instance for which we are generating trigger objects.
-     * @return A map of trigger names to the name of the trigger struct.
+     * @param timers The timers.
      */
-    def generateOffsetAndPeriodInitializations(ReactorInstance reactorInstance, FederateInstance federate) {
-        var count = 0
-        // Iterate over triggers (input ports, actions, and timers that trigger reactions).
-        for (triggerInstance : reactorInstance.triggersAndReads) {
-            var trigger = triggerInstance.definition
-            var triggerStructName = triggerStructName(triggerInstance)
-            if (trigger instanceof Timer && !triggerInstance.isStartup) {
-                val offset = timeInTargetLanguage((triggerInstance as TimerInstance).offset)
-                val period = timeInTargetLanguage((triggerInstance as TimerInstance).period)
+    private def generateTimerInitializations(Iterable<TimerInstance> timers) {
+        for (timer : timers) {
+            if (!timer.isStartup) {
+                var triggerStructName = triggerStructName(timer)
+                val offset = timeInTargetLanguage(timer.offset)
+                val period = timeInTargetLanguage(timer.period)
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
                     _lf_timer_triggers[«timerCount»] = &«triggerStructName»;
                 ''')
                 timerCount++
-            } else if (trigger instanceof Action && !triggerInstance.isShutdown) {
-                if (federate === null ||
-                    federate.containsAction(triggerInstance.definition as Action)) {
-                    var minDelay = (triggerInstance as ActionInstance).minDelay
-                    var minSpacing = (triggerInstance as ActionInstance).minSpacing
-                    pr(initializeTriggerObjects, '''
-                        «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
-                        «IF minSpacing !== null»
-                            «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
-                        «ELSE»
-                            «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
-                        «ENDIF»
-                    ''')
-                }
-            } else {
-                // The trigger is either a port or a startup or shutdown trigger.
-                // Nothing to do in initialize_trigger_objects
             }
-            count++
             triggerCount++
         }
     }
@@ -3727,29 +3771,28 @@ class CGenerator extends GeneratorBase {
      * the full name of the specified reactor instance in the
      * trace table. If tracing is not turned on, do nothing.
      * @param instance The reactor instance.
-     * @param builder The place to put the generated code.
-     * @param federate A federate instance to conditionally generate code for actions
-     *  and timers
+     * @param actions The actions of this reactor.
+     * @param timers The timers of this reactor.
      */
-    def void generateTraceTableEntries(ReactorInstance instance, StringBuilder builder, FederateInstance federate) {
+    private def void generateTraceTableEntries(
+        ReactorInstance instance, Iterable<ActionInstance> actions, Iterable<TimerInstance> timers
+    ) {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
         if (targetConfig.tracing !== null) {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
-            pr(builder, '''
+            pr(initializeTriggerObjects, '''
                 _lf_register_trace_event(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
             ''')
-            for (action : instance.actions) {
-                if (federate === null || federate.containsAction(action.definition)) {
-                    pr(builder, '''
-                        _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
-                    ''')
-                }
+            for (action : actions) {
+                pr(initializeTriggerObjects, '''
+                    _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__«action.name»), trace_trigger, "«description».«action.name»");
+                ''')
             }
-            for (timer : instance.timers) {
-                pr(builder, '''
+            for (timer : timers) {
+                pr(initializeTriggerObjects, '''
                     _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__«timer.name»), trace_trigger, "«description».«timer.name»");
                 ''')
             }
@@ -3761,7 +3804,55 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate to instantiate or null to generate everything.
      */
     private def void generateFederate(FederateInstance federate) {
-        // FIXME
+        
+        currentFederate = federate;
+        
+        // Create lists of the actions, timers, and reactions that are in the federate.
+        // These default to the full list for non-federated programs.
+        var actionsInFederate = main.actions.filter[ 
+                a | return federate.contains(a.definition);
+            ];
+        var reactionsInFederate = main.reactions.filter[ 
+                r | return federate.contains(r.definition);
+            ];
+        var timersInFederate = main.timers.filter[ 
+                t | return federate.contains(t.definition);
+            ];
+
+        // Generate the self struct declaration for the top level.
+        pr(initializeTriggerObjects, '''
+            «selfStructType(main.definition.reactorClass)»* «selfStructName(main)» = new_«main.name»();
+        ''')
+
+        // Generate code for top-level parameters, actions, timers, and reactions that
+        // are in the federate.
+        generateTraceTableEntries(main, actionsInFederate, timersInFederate);
+        generateReactorInstanceExtension(main, reactionsInFederate);
+        generateParameterInitialization(main);
+        
+        for (child: main.children) {
+            // If the child has a multiport that is an effect of some reaction in main,
+            // then we have to generate code to allocate memory for arrays pointing to
+            // its data. If the child is a bank, then memory is allocated for the entire bank width.
+            if (federate.contains(child) || child.bankIndex != -1) {
+                generateAllocationForEffectsOnInputs(child);
+            }
+            if (federate.contains(child)) {
+                generateReactorInstance(child);
+            }
+        }
+        
+        generateReactionMemory(reactionsInFederate);
+        generateStateVariableInitializations(main);
+        generateRemoteTriggerTable(reactionsInFederate);
+        generateTimerInitializations(timersInFederate);
+        generateActionInitializations(actionsInFederate);
+        generateInputNumDestinations(reactionsInFederate);
+        generateInitializeActionToken(actionsInFederate);
+        generateSetDeadline(reactionsInFederate);
+        generateStartTimeStep(main);
+        
+        pr(initializeTriggerObjects, "//***** End initializing " + main.name);
     }
     
     /** 
@@ -3771,11 +3862,7 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate instance to conditionally generate code by
      *  contained reactors or null if there are no federates.
      */
-    def void generateReactorInstance(ReactorInstance instance, FederateInstance federate) {
-        // If this is not the main reactor and is not in the federate, nothing to do.
-        if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
-            return
-        }
+    def void generateReactorInstance(ReactorInstance instance) {
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +
@@ -3793,15 +3880,6 @@ class CGenerator extends GeneratorBase {
             return
         }
 
-        // If this reactor is an instance in a bank of federates, then only generate an
-        // instance if the bank index of the reactor matches the bank index of the federate.
-        if (federate.instantiation === instance.definition    // Is a top-level federate.
-            && federate.instantiation.widthSpec !== null      // Is in a bank of federates.
-            && federate.bankIndex != instance.bankIndex    // Bank position does not match.
-        ) {
-            return;
-        }
-
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct). The form is slightly different
         // depending on whether its in a bank of reactors.
@@ -3814,214 +3892,90 @@ class CGenerator extends GeneratorBase {
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
         }
-        
-        generateTraceTableEntries(instance, initializeTriggerObjects, federate)
-              
-        generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
-
-        // Start with parameters.
-        generateParameterInitialization(initializeTriggerObjects, instance)
+        
+        generateTraceTableEntries(instance, instance.actions, instance.timers)
+        generateReactorInstanceExtension(instance, instance.reactions)
+        generateParameterInitialization(instance)
         
         // Once parameters are done, we can allocate memory for any multiports.
         // Allocate memory for outputs.
+        // NOTE: Not done for top level.
         for (output : reactorClass.toDefinition.outputs) {
-            if (federate === null || 
-                federate.containsPort(output as Port)
-            ) {
-                // If the port is a multiport, create an array.
-                if (output.isMultiport) {
-                    initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
-                } else {
-                    pr(initializeTriggerObjects, '''
-                        // width of -2 indicates that it is not a multiport.
-                        «nameOfSelfStruct»->_lf_«output.name»_width = -2;
-                    ''')
-                }            
-            }
+            // If the port is a multiport, create an array.
+            if (output.isMultiport) {
+                initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
+            } else {
+                pr(initializeTriggerObjects, '''
+                    // width of -2 indicates that it is not a multiport.
+                    «nameOfSelfStruct»->_lf_«output.name»_width = -2;
+                ''')
+            }            
         }
         
         // For each input and output that is a multiport and an effect of some reaction,
         // generate code to allocate memory for arrays pointing to its data. Do this here
-        // for the inputs of the children and the outputs of this reactor. This ensures
-        // that even for a child that not in the federate, in the even of a bank with
-        // a multiport input, memory is allocated for the entire bank width.
+        // for the inputs of the children and the outputs of this reactor.
         for (child : instance.children) {
-            // FIXME: If the child is in bank, it seems we have to allocate memory for
-            // effects because network input reactions may write to some channels, but
-            // there is no way to tell which channels. Get a segfault otherwise.
-            if (federate === null || federate.contains(child) || child.bankIndex != -1) {
-                for (input : child.inputs) {
-                    generateAllocationForEffects(input);
-                }
-            }
-        }
-        for (output : instance.outputs) {
-            generateAllocationForEffects(output);
-        }
-
-        // For each reaction instance, allocate the arrays that will be used to
-        // trigger downstream reactions.
-        for (reaction : instance.reactions) {
-            if (federate === null || federate.containsReaction(reaction.definition)) {
-                generateReactionOutputs(reaction);
-
-                // Next handle triggers of the reaction that come from a multiport output
-                // of a contained reactor.  Also, handle startup and shutdown triggers.
-                for (trigger : reaction.triggers) {
-                    if (trigger instanceof PortInstance) {
-                        // If the port is a multiport, then we need to create an entry for each
-                        // individual port.
-                        if (trigger.isMultiport() && trigger.parent !== null && trigger.isOutput) {
-                            // If the width is given as a numeric constant, then add that constant
-                            // to the output count. Otherwise, assume it is a reference to one or more parameters.
-                            val width = trigger.width;
-                            val containerName = trigger.parent.name
-                            val portStructType = variableStructType(trigger.definition,
-                                trigger.parent.definition.reactorClass)
-
-                            // FIXME: What if the effect is a bank?  Need to index the container.
-                            pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width = «width»;
-                                // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-                                «nameOfSelfStruct»->_lf_«containerName».«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                        * «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width);
-                            ''')
-                        }
-                    }
-                    if (trigger.isStartup) {
-                        pr(initializeTriggerObjects, '''
-                            _lf_startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reaction.index»;
-                        ''')
-                    } else if (trigger.isShutdown) {
-                        pr(initializeTriggerObjects, '''
-                            _lf_shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reaction.index»;
-                        ''')
-
-                        if (targetConfig.tracing !== null) {
-                            val description = getShortenedName(instance)
-                            pr(initializeTriggerObjects, '''
-                                _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__shutdown),
-                                        trace_trigger, "«description».shutdown");
-                            ''')
-                        }
-                    }
-                }
-            }
+            generateAllocationForEffectsOnInputs(child);
         }
         
+        generateAllocationForEffectsOnOutputs(instance);
+        generateReactionMemory(instance.reactions);
+
         // Next, allocate memory for input. 
+        // NOTE: Not done for top level.
         for (input : reactorClass.toDefinition.inputs) {
-            if (federate === null || 
-                federate.containsPort(input as Port)
-            ) {
-                // If the port is a multiport, create an array.
-                if (input.isMultiport) {
-                    pr(initializeTriggerObjects, '''
-                        «nameOfSelfStruct»->_lf_«input.name»_width = «multiportWidthSpecInC(input, null, instance)»;
-                        // Allocate memory for multiport inputs.
-                        «nameOfSelfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->_lf_«input.name»_width); 
-                        // Set inputs by default to an always absent default input.
-                        for (int i = 0; i < «nameOfSelfStruct»->_lf_«input.name»_width; i++) {
-                            «nameOfSelfStruct»->_lf_«input.name»[i] = &«nameOfSelfStruct»->_lf_default__«input.name»;
-                        }
-                    ''')
-                } else {
-                    pr(initializeTriggerObjects, '''
-                        // width of -2 indicates that it is not a multiport.
-                        «nameOfSelfStruct»->_lf_«input.name»_width = -2;
-                    ''')
-                }
-            }           
+            // If the port is a multiport, create an array.
+            if (input.isMultiport) {
+                pr(initializeTriggerObjects, '''
+                    «nameOfSelfStruct»->_lf_«input.name»_width = «multiportWidthSpecInC(input, null, instance)»;
+                    // Allocate memory for multiport inputs.
+                    «nameOfSelfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->_lf_«input.name»_width); 
+                    // Set inputs by default to an always absent default input.
+                    for (int i = 0; i < «nameOfSelfStruct»->_lf_«input.name»_width; i++) {
+                        «nameOfSelfStruct»->_lf_«input.name»[i] = &«nameOfSelfStruct»->_lf_default__«input.name»;
+                    }
+                ''')
+            } else {
+                pr(initializeTriggerObjects, '''
+                    // width of -2 indicates that it is not a multiport.
+                    «nameOfSelfStruct»->_lf_«input.name»_width = -2;
+                ''')
+            }
         }
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
-        generateStateVariableInitializations(instance)
+        generateStateVariableInitializations(instance);
 
-        generateRemoteTriggerTable(instance, federate)
+        generateRemoteTriggerTable(instance.reactions);
 
         // Generate trigger objects for the instance.
-        generateOffsetAndPeriodInitializations(instance, federate)
+        generateTimerInitializations(instance.timers);
+        generateActionInitializations(instance.actions);
         
         // Initialize the num_destinations fields of port structs on the self struct.
-        generateNumDestinations(instance, federate)
+        generateOutputNumDestinations(instance); // NOTE: Not done for top level.
+        generateInputNumDestinations(instance.reactions);
+        
+        generateInitializeActionToken(instance.actions);
+        generateSetDeadline(instance.reactions);
 
-        // Next, initialize actions by creating a lf_token_t in the self struct.
-        // This has the information required to allocate memory for the action payload.
-        // Skip any action that is not actually used as a trigger.
-        val triggersInUse = instance.triggers
-        for (action : instance.actions) {
-            // Skip this step if the action is not in use. 
-            if (triggersInUse.contains(action) && 
-                (federate === null || federate.containsAction(action.definition))
-            ) {
-                var type = action.definition.inferredType
-                var payloadSize = "0"
-                
-                if (!type.isUndefined) {
-                    var String typeStr = type.targetType
-                    if (isTokenType(type)) {
-                        typeStr = typeStr.rootType
-                    } else {
-                        typeStr = type.targetType
-                    }
-                    if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
-                        payloadSize = '''sizeof(«typeStr»)'''
-                    }    
-                }
-            
-                // Create a reference token initialized to the payload size.
-                // This token is marked to not be freed so that the trigger_t struct
-                // always has a reference token.
-                pr(initializeTriggerObjects,
-                    '''
-                    «nameOfSelfStruct»->_lf__«action.name».token = _lf_create_token(«payloadSize»);
-                    «nameOfSelfStruct»->_lf__«action.name».status = absent;
-                    '''
-                )
-                // At the start of each time step, we need to initialize the is_present field
-                // of each action's trigger object to false and free a previously
-                // allocated token if appropriate. This code sets up the table that does that.
-                pr(initializeTriggerObjects, '''
-                    _lf_tokens_with_ref_count[«startTimeStepTokens»].token
-                            = &«nameOfSelfStruct»->_lf__«action.name».token;
-                    _lf_tokens_with_ref_count[«startTimeStepTokens»].status
-                            = &«nameOfSelfStruct»->_lf__«action.name».status;
-                    _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
-                ''')
-                startTimeStepTokens++
-            }
-        }
-        // Handle reaction local deadlines.
-        for (reaction : instance.reactions) {
-            if (federate === null || federate.containsReaction(
-                reaction.definition
-            )) {
-                if (reaction.declaredDeadline !== null) {
-                    var deadline = reaction.declaredDeadline.maxDelay
-                    val reactionStructName = '''«selfStructName(reaction.parent)»->_lf__reaction_«reaction.index»'''
-                    pr(initializeTriggerObjects, '''
-                        «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
-                    ''')
-                }
-            }
-        }
+        // Recursively generate code for the children.
         for (child : instance.children) {
-            if (reactorBelongsToFederate(child, federate)) {
-                generateReactorInstance(child, federate)
-            }
+            generateReactorInstance(child);
         }
         
         // If this program is federated with centralized coordination and this reactor
         // instance is a federate, then check
         // for outputs that depend on physical actions so that null messages can be
         // sent to the RTI.
-        if (isFederatedAndCentralized && instance.definition === federate.instantiation) {
-            val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance)
+        if (isFederatedAndCentralized && instance.parent === main) {
+            val outputDelayMap = currentFederate.findOutputsConnectedToPhysicalActions(instance)
             var minDelay = TimeValue.MAX_VALUE;
             var outputFound = null as Output;
             for (output : outputDelayMap.keySet) {
@@ -4053,19 +4007,71 @@ class CGenerator extends GeneratorBase {
         // _lf_start_time_step() function in reactor_common.c.
         // Note that this function is also run once at the end
         // so that it can deallocate any memory.
-        generateStartTimeStep(instance, federate)
+        generateStartTimeStep(instance)
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
     
     /**
-     * Set the num_destinations field of port structs on the self struct
+     * Initialize actions by creating a lf_token_t in the self struct.
+     * This has the information required to allocate memory for the action payload.
+     * Skip any action that is not actually used as a trigger.
+     * @param reactor The reactor containing the actions.
+     * @param actions The actions.
+     */
+    private def void generateInitializeActionToken(Iterable<ActionInstance> actions) {
+        for (action : actions) {
+            // Skip this step if the action is not in use. 
+            if (action.parent.triggers.contains(action)) {
+                var type = action.definition.inferredType
+                var payloadSize = "0"
+                
+                if (!type.isUndefined) {
+                    var String typeStr = type.targetType
+                    if (isTokenType(type)) {
+                        typeStr = typeStr.rootType
+                    } else {
+                        typeStr = type.targetType
+                    }
+                    if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
+                        payloadSize = '''sizeof(«typeStr»)'''
+                    }    
+                }
+            
+                var nameOfSelfStruct = selfStructName(action.parent);
+
+                // Create a reference token initialized to the payload size.
+                // This token is marked to not be freed so that the trigger_t struct
+                // always has a reference token.
+                pr(initializeTriggerObjects,
+                    '''
+                    «nameOfSelfStruct»->_lf__«action.name».token = _lf_create_token(«payloadSize»);
+                    «nameOfSelfStruct»->_lf__«action.name».status = absent;
+                    '''
+                )
+                // At the start of each time step, we need to initialize the is_present field
+                // of each action's trigger object to false and free a previously
+                // allocated token if appropriate. This code sets up the table that does that.
+                pr(initializeTriggerObjects, '''
+                    _lf_tokens_with_ref_count[«startTimeStepTokens»].token
+                            = &«nameOfSelfStruct»->_lf__«action.name».token;
+                    _lf_tokens_with_ref_count[«startTimeStepTokens»].status
+                            = &«nameOfSelfStruct»->_lf__«action.name».status;
+                    _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
+                ''')
+                startTimeStepTokens++
+            }
+        }
+    }
+    
+    /**
+     * For each output port of the specified reactor,
+     * set the num_destinations field of port structs on its self struct
      * equal to the total number of destination reactors. This is used
      * to initialize reference counts in dynamically allocated tokens
      * sent to other reactors.
      * @param reactor The reactor instance.
-     * @param federate The federate instance.
      */
-    private def void generateNumDestinations(ReactorInstance reactor, FederateInstance federate) {
+    private def void generateOutputNumDestinations(ReactorInstance reactor) {
         // Reference counts are decremented by each destination reactor
         // at the conclusion of a time step. Hence, the initial reference
         // count should equal the number of destination _reactors_, not the
@@ -4073,68 +4079,118 @@ class CGenerator extends GeneratorBase {
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance.
         for (output : reactor.outputs) {
-            if (federate === null || federate.containsPort(output.definition)) {
-                for (sendingRange : output.eventualDestinations) {
-                    // Syntax is slightly difference for a multiport output vs. single port.
-                    // For a single port, there should be only one sendingRange.
-                    if (output.isMultiport()) {
-                        val start = sendingRange.startChannel;
-                        val end = sendingRange.startChannel + sendingRange.channelWidth;
-                        // Eliminate the for loop for the case where range.channelWidth == 1,
-                        // a common situation on multiport to bank messaging.
-                        if (sendingRange.channelWidth == 1) {
+            for (sendingRange : output.eventualDestinations) {
+                // Syntax is slightly difference for a multiport output vs. single port.
+                // For a single port, there should be only one sendingRange.
+                if (output.isMultiport()) {
+                    val start = sendingRange.startChannel;
+                    val end = sendingRange.startChannel + sendingRange.channelWidth;
+                    // Eliminate the for loop for the case where range.channelWidth == 1,
+                    // a common situation on multiport to bank messaging.
+                    if (sendingRange.channelWidth == 1) {
+                        pr(initializeTriggerObjectsEnd, '''
+                            «sourceReference(output)»[«start»].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                        ''')
+                    } else {
+                        pr(initializeTriggerObjectsEnd, '''
+                            for (int i = «start»; i < «end»; i++) {
+                                «sourceReference(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                            }
+                        ''')
+                    }
+                } else {
+                    pr(initializeTriggerObjectsEnd, '''
+                        «sourceReference(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                    ''')
+                }
+            }
+        }
+    }
+    
+    /**
+     * For each input port of a contained reactor that receives data
+     * from one or more of the specified reactions, set the num_destinations
+     * field of the corresponding port structs on the self struct of
+     * the reaction's parent reactor equal to the total number of
+     * destination reactors. This is used to initialize reference
+     * counts in dynamically allocated tokens sent to other reactors.
+     * @param reactions The reactions.
+     */
+    private def void generateInputNumDestinations(Iterable<ReactionInstance> reactions) {
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance.
+
+        // Since a port may be written to by multiple reactions,
+        // ensure that this is done only once.
+        val portsHandled = new HashSet<PortInstance>();
+        for (reaction : reactions) {
+            for (port : reaction.effects.filter(PortInstance)) {
+                if (port.isInput && !portsHandled.contains(port)) {
+                    // Port is an input of a contained reactor that gets data from a reaction of this reactor.
+                    portsHandled.add(port);
+                    
+                    // The input port may itself have multiple destinations.
+                    for (sendingRange : port.eventualDestinations) {
+                    
+                        // Syntax is slightly different for a multiport output vs. single port.
+                        if (port.isMultiport()) {
+                            val start = sendingRange.startChannel;
+                            val end = sendingRange.startChannel + sendingRange.channelWidth;
                             pr(initializeTriggerObjectsEnd, '''
-                                «sourceReference(output)»[«start»].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                                for (int i = «start»; i < «end»; i++) {
+                                    «sourceReference(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                }
                             ''')
                         } else {
                             pr(initializeTriggerObjectsEnd, '''
-                                for (int i = «start»; i < «end»; i++) {
-                                    «sourceReference(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
-                                }
+                                «sourceReference(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
-                    } else {
-                        pr(initializeTriggerObjectsEnd, '''
-                            «sourceReference(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
-                        ''')
                     }
                 }
             }
         }
+    }
+
+    /**
+     * If any input port of the specified reactor is a multiport
+     * and is mentioned as an effect of a reaction in its reactors's parent
+     * (the reaction provides input to a contained reactor), then generate
+     * code to allocate memory to store the data produced by those reactions.
+     * The allocated memory is pointed to by a field called
+     * `_lf_containername.portname` on the self struct of the reactor's parent.
+     * @param reactor A contained reactor.
+     */
+    private def void generateAllocationForEffectsOnInputs(ReactorInstance reactor) {
+        for (port : reactor.inputs) {
+            if (port.isMultiport) {
+                if (port.parent.parent !== null) {
+                    for (reaction : port.parent.parent.reactions) {
+                        for (effect : reaction.effects) {
+                            if (effect === port) {
+                                // Port is an effect of a parent's parent's reaction,
+                                // meaning that the reaction is writing to the input of a contained reactor.
+                                val nameOfSelfStruct = selfStructName(reaction.parent);
+                                val containerName = port.parent.name; // If parent is a bank, has form x[i]
+                                val portStructType = variableStructType(
+                                        port.definition, port.parent.definition.reactorClass);
         
-        // Do the same for inputs of contained reactors that are sent data by reactions
-        // of this reactor.  Since a port may be written to by multiple reactions,
-        // ensure that this is done only once.
-        val portsHandled = new HashSet<PortInstance>();
-        for (reaction : reactor.reactions) {
-            if (federate === null || federate.containsReaction(reaction.definition)) {
-                
-                // Handle reactions that produce outputs sent to inputs
-                // of contained reactors.  An input port can have only
-                // one source, so we can immediately generate the initialization.
-                for (port : reaction.effects.filter(PortInstance)) {
-                    
-                    if (port.isInput && !portsHandled.contains(port)) {
-                        // Port is an input of a contained reactor that gets data from a reaction of this reactor.
-                        
-                        portsHandled.add(port);
-                        
-                        // The input port may iself have multiple destinations.
-                        for (sendingRange : port.eventualDestinations) {
-                        
-                            // Syntax is slightly difference for a multiport output vs. single port.
-                            if (port.isMultiport()) {
-                                val start = sendingRange.startChannel;
-                                val end = sendingRange.startChannel + sendingRange.channelWidth;
                                 pr(initializeTriggerObjectsEnd, '''
-                                    for (int i = «start»; i < «end»; i++) {
-                                        «sourceReference(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                    «nameOfSelfStruct»->_lf_«containerName».«port.name»_width = «port.width»;
+                                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                                    «nameOfSelfStruct»->_lf_«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                        * «nameOfSelfStruct»->_lf_«containerName».«port.name»_width);
+                                    for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«port.name»_width; i++) {
+                                        «nameOfSelfStruct»->_lf_«containerName».«port.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
                                     }
                                 ''')
-                            } else {
-                                pr(initializeTriggerObjectsEnd, '''
-                                    «sourceReference(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
-                                ''')
+                                // There may be more reactions writing to this port,
+                                // but once we have done the allocation, no need to do anything for those.
+                                return;
                             }
                         }
                     }
@@ -4144,79 +4200,49 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * If the specified port is a multiport and is mentioned as an effect of a 
-     * reaction in the port's parent (an output port) or its parent's parent
-     * (an input to a contained reactor), then generate code to
+     * If any output port of the specified reactor is a multiport and is mentioned
+     * as an effect of a reaction in the reactor, then generate code to
      * allocate memory to store the data produced by those reactions.
-     * The allocated memory is pointed to by a field called
-     * `_lf_portname` or `_lf_containername.portname` on the self
-     * struct of the paper (for an output port) or the parent's parent
-     * (for an input of a contained reactor).
-     * 
-     * Note that a port cannot be an effect of both a parent's reaction and a
-     * parent's parent's reaction.
+     * The allocated memory is pointed to by a field called `_lf_portname`.
+     * @param reactor A reactor instance.
      */
-    private def void generateAllocationForEffects(PortInstance port) {
-        if (!port.isMultiport) return;
-        for (reaction : port.parent.reactions) {
-            for (effect : reaction.effects) {
-                if (effect === port) {
-                    // Port is an effect of a parent's reaction.
-                    // That is, the port belongs to the same reactor as the reaction.
-                    // The reaction is writing to an output of its container reactor.
-                    val nameOfSelfStruct = selfStructName(port.parent);
-                    val portStructType = variableStructType(
-                        port.definition,
-                        port.parent.definition.reactorClass
-                    )
-                    
-                    pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->_lf_«port.name»_width = «port.width»;
-                        // Allocate memory to store output of reaction.
-                        «nameOfSelfStruct»->_lf_«port.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«port.name»_width,
-                            sizeof(«portStructType»)); 
-                        «nameOfSelfStruct»->_lf_«port.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                                            * «nameOfSelfStruct»->_lf_«port.name»_width);
-                        // Assign each output port pointer to be used in reactions to facilitate user access to output ports
-                        for(int i=0; i < «nameOfSelfStruct»->_lf_«port.name»_width; i++) {
-                             «nameOfSelfStruct»->_lf_«port.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«port.name»[i]);
+    private def void generateAllocationForEffectsOnOutputs(ReactorInstance reactor) {
+        for (port : reactor.outputs) {
+            if (port.isMultiport) {
+                for (reaction : reactor.reactions) {
+                    for (effect : reaction.effects) {
+                        if (effect === port) {
+                            // Port is an effect of a parent's reaction.
+                            // That is, the port belongs to the same reactor as the reaction.
+                            // The reaction is writing to an output of its container reactor.
+                            val nameOfSelfStruct = selfStructName(port.parent);
+                            val portStructType = variableStructType(
+                                port.definition,
+                                port.parent.definition.reactorClass
+                            )
+                            
+                            pr(initializeTriggerObjectsEnd, '''
+                                «nameOfSelfStruct»->_lf_«port.name»_width = «port.width»;
+                                // Allocate memory to store output of reaction.
+                                «nameOfSelfStruct»->_lf_«port.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«port.name»_width,
+                                    sizeof(«portStructType»)); 
+                                «nameOfSelfStruct»->_lf_«port.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                                                    * «nameOfSelfStruct»->_lf_«port.name»_width);
+                                // Assign each output port pointer to be used in reactions to facilitate user access to output ports
+                                for(int i=0; i < «nameOfSelfStruct»->_lf_«port.name»_width; i++) {
+                                     «nameOfSelfStruct»->_lf_«port.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«port.name»[i]);
+                                }
+                            ''')
+                            // There may be more reactions writing to this port,
+                            // but once we have done the allocation, no need to do anything for those.
+                            return;
                         }
-                    ''')
-                    // There may be more reactions writing to this port,
-                    // but once we have done the allocation, no need to do anything for those.
-                    return;
-                }
-            }
-        }
-        if (port.parent.parent !== null) {
-            for (reaction : port.parent.parent.reactions) {
-                for (effect : reaction.effects) {
-                    if (effect === port) {
-                        // Port is an effect of a parent's parent's reaction,
-                        // meaning that the reaction is writing to the input of a contained reactor.
-                        val nameOfSelfStruct = selfStructName(reaction.parent);
-                        val containerName = port.parent.name; // If parent is a bank, has form x[i]
-                        val portStructType = variableStructType(
-                                port.definition, port.parent.definition.reactorClass);
-
-                        pr(initializeTriggerObjectsEnd, '''
-                            «nameOfSelfStruct»->_lf_«containerName».«port.name»_width = «port.width»;
-                            // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                            «nameOfSelfStruct»->_lf_«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                * «nameOfSelfStruct»->_lf_«containerName».«port.name»_width);
-                            for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«port.name»_width; i++) {
-                                «nameOfSelfStruct»->_lf_«containerName».«port.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
-                            }
-                        ''')
-                        // There may be more reactions writing to this port,
-                        // but once we have done the allocation, no need to do anything for those.
-                        return;
                     }
                 }
             }
         }
     }
-    
+
     /**
      * For the specified reaction, for output ports that it writes to,
      * set up the arrays that store the output values (if necessary) and
@@ -4319,12 +4345,18 @@ class CGenerator extends GeneratorBase {
     } 
     
     /**
-     * Generate code that is executed while the reactor instance is being initialized
-     * @param initializationCode The StringBuilder appended to _lf_initialize_trigger_objects()
-     * @param instance The reactor instance
-     * @param federate The federate instance
+     * Generate code that is executed while the reactor instance is being initialized.
+     * This is provided as an extension point for subclasses.
+     * Normally, the reactions argument is the full list of reactions,
+     * but for the top-level of a federate, will be a subset of reactions that
+     * is relevant to the federate.
+     * @param instance The reactor instance.
+     * @param reactions The reactions of this instance.
      */
-    def void generateReactorInstanceExtension(StringBuilder initializationCode, ReactorInstance instance, FederateInstance federate) {
+    def void generateReactorInstanceExtension(
+        ReactorInstance instance, 
+        Iterable<ReactionInstance> reactions
+    ) {
         // Do nothing
     }
     
@@ -4387,14 +4419,28 @@ class CGenerator extends GeneratorBase {
             }
         }
     }
+    
+    /**
+     * Generate code to set the deadline field of the specified reactions.
+     * @param reactions The reactions.
+     */
+    private def void generateSetDeadline(Iterable<ReactionInstance> reactions) {
+        for (reaction : reactions) {
+            if (reaction.declaredDeadline !== null) {
+                var deadline = reaction.declaredDeadline.maxDelay
+                val reactionStructName = '''«selfStructName(reaction.parent)»->_lf__reaction_«reaction.index»'''
+                pr(initializeTriggerObjects, '''
+                    «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
+                ''')
+            }
+        }
+    }
         
     /**
      * Generate runtime initialization code for parameters of a given reactor instance
-     * @param builder The StringBuilder used to append the initialization code to
-     * @param instance The reactor instance
-     * @return initialization code
+     * @param instance The reactor instance.
      */
-    def generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
+    def void generateParameterInitialization(ReactorInstance instance) {
         var nameOfSelfStruct = selfStructName(instance)
         // Array type parameters have to be handled specially.
         // Use the superclass getTargetType to avoid replacing the [] with *.
@@ -4408,16 +4454,15 @@ class CGenerator extends GeneratorBase {
                 // Use an intermediate temporary variable so that parameter dependencies
                 // are resolved correctly.
                 val temporaryVariableName = parameter.uniqueID
-                pr(builder, '''
+                pr(initializeTriggerObjects, '''
                     static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
                     «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
                 ''')
             } else {
-                pr(builder, '''
+                pr(initializeTriggerObjects, '''
                     «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
                 ''')
             }
-
         }
     }
     
@@ -4502,19 +4547,6 @@ class CGenerator extends GeneratorBase {
             return list.join('{', ', ', '}', [it])
     }
     
-    /** 
-     * Return true if the specified reactor instance belongs to the specified
-     * federate. This always returns true if the specified federate is
-     * null or a singleton. Otherwise, it returns true only if the
-     * instance is contained within the specified federate. 
-     * 
-     * @param instance A reactor instance.
-     * @param federate A federate or null if there are no federates.
-     */
-    def reactorBelongsToFederate(ReactorInstance instance, FederateInstance federate) {
-        return (federate === null || federate.contains(instance));
-    }
-
     /** Set the reaction priorities based on dependency analysis.
      *  @param reactor The reactor on which to do this.
      *  @param federate A federate to conditionally generate code for
@@ -4524,7 +4556,7 @@ class CGenerator extends GeneratorBase {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
         for (r : reactor.reactions) {
-            if (federate === null || federate.containsReaction(
+            if (federate === null || federate.contains(
                 r.definition
             )) {
                 val reactionStructName = '''«selfStructName(r.parent)»->_lf__reaction_«r.index»'''
@@ -4540,7 +4572,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         for (child : reactor.children) {
-            if (reactorBelongsToFederate(child, federate)) {
+            if (federate.contains(child)) {
                 setReactionPriorities(child, federate)
             }
         }
@@ -5195,7 +5227,7 @@ class CGenerator extends GeneratorBase {
      *  if there is no federation.
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
-        if (!reactorBelongsToFederate(instance, federate)) {
+        if (!federate.contains(instance)) {
             return;
         }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
@@ -5243,7 +5275,7 @@ class CGenerator extends GeneratorBase {
         var startChannel = 0;
         for (eventualSource: port.eventualSources()) {
             val src = eventualSource.portInstance;
-            if (src != port && reactorBelongsToFederate(src.parent, federate)) {
+            if (src != port && federate.contains(src.parent)) {
                 // The eventual source is different from the port and is in the federate.
                 val destStructType = variableStructType(
                     port.definition as TypedVariable,
@@ -5310,7 +5342,7 @@ class CGenerator extends GeneratorBase {
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
-                    if (reactorBelongsToFederate(port.parent, federate)) {
+                    if (federate.contains(port.parent)) {
                         val destStructType = variableStructType(
                             port.definition as TypedVariable,
                             port.parent.definition.reactorClass
@@ -5341,7 +5373,7 @@ class CGenerator extends GeneratorBase {
                     // This reaction is receiving data from an output
                     // of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
-                    if (reactorBelongsToFederate(port.parent, federate)) {
+                    if (federate.contains(port.parent)) {
                         val destStructType = variableStructType(
                             port.definition as TypedVariable,
                             port.parent.definition.reactorClass
@@ -5858,7 +5890,7 @@ class CGenerator extends GeneratorBase {
     private def void createDefaultTokens(ReactorInstance parent, FederateInstance federate) {
         for (containedReactor : parent.children) {
             // Do this only for reactors in the federate.
-            if (reactorBelongsToFederate(containedReactor, federate)) {
+            if (federate.contains(containedReactor)) {
                 var nameOfSelfStruct = selfStructName(containedReactor)
                 for (output : containedReactor.outputs) {
                     val type = (output.definition as Output).inferredType
@@ -5983,7 +6015,7 @@ class CGenerator extends GeneratorBase {
         new(Reactor reactor, FederateInstance federate) {
             var reactionCount = 0
             for (reaction : reactor.allReactions) {
-                if (federate === null || federate.containsReaction(
+                if (federate === null || federate.contains(
                     reaction
                 )) {
                     // First, handle reactions that produce data sent to inputs
@@ -6091,4 +6123,8 @@ class CGenerator extends GeneratorBase {
             return new LinkedList<Integer>
         }
     }
+    
+    // FIXME: Get rid of this, if possible.
+    /** The current federate for which we are generating code. */
+    private var currentFederate = null as FederateInstance;
 }
