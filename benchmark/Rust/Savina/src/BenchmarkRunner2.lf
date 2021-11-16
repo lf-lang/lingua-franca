@@ -51,18 +51,19 @@ reactor BenchmarkRunner(num_iterations:usize(12)) {
         
         if let (Some(best), Some(worst)) = (measured_millis.iter().nth(0), measured_millis.iter().last()) {
             println!("\nExecution - Summary:");
-            println!("Best Time: {}", best);
-            println!("Worst Time: {}", worst);
-            println!("Median: {}", median(&measured_millis));   
+            println!("Best Time: {} ms", best);
+            println!("Worst Time: {} ms", worst);
+            println!("Median: {} ms", median(&measured_millis));   
         } else {
             panic!("Error: no measurements recorded!");
         }
         
-        // TODO: this is C++ => find out what the Rust equivalent is
-        // environment()->sync_shutdown();
+        ctx.request_stop(Asap);
     =}
     
     preamble {=
+        use std::fmt::Display;
+        
         fn median(exec_times: &[f64]) -> f64 {
             if exec_times.is_empty() {
                 0.0
@@ -77,12 +78,49 @@ reactor BenchmarkRunner(num_iterations:usize(12)) {
             }          
         }
         
+        fn print_pair<T: Display>(s: T, t: T) {
+            println!("{:>25} = {}", s, t);
+        }
+        
         pub fn print_benchmark_info(benchmark_id: &str) {
             println!("Benchmark: {}", benchmark_id);
         }
         
         pub fn print_system_info() {
-            // TODO
+            println!("System information:");
+            
+            let OS_NAME = {
+                if cfg!(target_os = "windows") {
+                    "Windows"
+                } else if cfg!(target_os = "macos") {
+                    "macOS"
+                } else if cfg!(target_os = "linux") {
+                    "Linux"
+                } else if cfg!(target_os = "freebsd") {
+                    "FreeBSD"
+                } else if cfg!(target_os = "dragonfly") {
+                    "DragonFly BSD"
+                } else if cfg!(target_os = "openbsd") {
+                    "OpenBSD"
+                } else if cfg!(target_os = "netbsd") {
+                    "NetBSD"
+                } else if cfg!(target_family = "unix") {
+                    "Unix"
+                } else {
+                    "Other"
+                }
+            };
+            print_pair("O/S Name", OS_NAME);
+        }
+        
+        #[macro_export]
+        macro_rules! print_args {
+            ( $($arg:expr, $v:expr), + ) => {
+                println!("Arguments:");
+                $(
+                    println!("{:>25} = {}", $arg, $v);
+                )+
+            };
         }
     =}
 }
