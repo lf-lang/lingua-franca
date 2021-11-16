@@ -541,6 +541,14 @@ class CGenerator extends GeneratorBase {
         
         addPlatformFiles(coreFiles);
         
+        // TODO: Find a better way to automatically generate a unique federationID.
+        var dockerComposeFederationID = 1;
+
+        // TODO: Find a better way to come up with a unique network name.
+        var dockerComposeNetworkName = 'lf';
+
+        var dockerComposeServices = new StringBuilder();
+
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         if (isFederated) {
@@ -562,13 +570,7 @@ class CGenerator extends GeneratorBase {
                 }
                 var dockerFileName = 'rti.Dockerfile'
                 writeRTIDockerFile(rtiDir, dockerFileName)
-
-                // TODO: Find a better way to automatically generate a unique federationID.
-                var federationID = 1;
-
-                // TODO: Find a better way to come up with a unique network name.
-                var networkName = 'lf';
-                writeRTIDockerComposeFile(rtiDir, dockerFileName, networkName, federationID, federates.size)
+                writeRTIDockerComposeFile(rtiDir, dockerFileName, dockerComposeNetworkName, dockerComposeFederationID, federates.size)
                 copyRtiFiles(rtiDir, coreFiles)
             }
         }
@@ -866,7 +868,9 @@ class CGenerator extends GeneratorBase {
             
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
-                writeDockerFile(topLevelName)
+                var dockerFileName = topLevelName + '.Dockerfile'
+                writeDockerFile(dockerFileName)
+                appendFederateToDockerComposeServices(dockerComposeServices, federate.name, dockerFileName, dockerComposeFederationID)
             }
 
             // If this code generator is directly compiling the code, compile it now so that we
@@ -902,6 +906,8 @@ class CGenerator extends GeneratorBase {
             }
             fileConfig = oldFileConfig;
         }
+
+        writeFederatesDockerComposeFile(fileConfig.getSrcGenPath().toFile(), dockerComposeServices, dockerComposeNetworkName);
         
         // Initiate an orderly shutdown in which previously submitted tasks are 
         // executed, but no new tasks will be accepted.
@@ -1263,7 +1269,7 @@ class CGenerator extends GeneratorBase {
      */
     override writeDockerFile(String dockerFileName) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + dockerFileName + '.Dockerfile'
+        val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
@@ -1287,13 +1293,9 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.fileNames.nullOrEmpty) {
             additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
-        var dockerCompiler = 'gcc'
-        var fileExtension = 'c'
-
-        if (CCppMode) {
-            dockerCompiler = 'g++'
-            fileExtension = 'cpp'
-        }
+        var dockerCompiler = CCppMode ? 'g++' : 'gcc'
+        var fileExtension = CCppMode ? 'cpp' : 'c'
+        var setRtiHostName = isFederated ? '''ENV RTI_HOST=«federationRTIProperties.get('host').toString»''' : ''
 
         pr(contents, '''
             # Generated docker file for «topLevelName» in «srcGenPath».
@@ -1303,6 +1305,7 @@ class CGenerator extends GeneratorBase {
             RUN set -ex && apk add --no-cache «dockerCompiler» musl-dev cmake make
             COPY core src-gen/core
             COPY ctarget.h ctarget.c src-gen/
+            «setRtiHostName»
             COPY CMakeLists.txt \
                  «topLevelName».«fileExtension» src-gen/
             «additionalFiles»
@@ -1328,6 +1331,44 @@ class CGenerator extends GeneratorBase {
             
             #####################################
         ''')
+    }
+
+    /**
+     * Write the docker-compose.yml for orchestrating the federates.
+     * @param the directory to write the docker-compose.yml
+     * @param content of the "services" section of the docker-compose.yml
+     * @param the name of the network hosting the federation
+     */
+    def writeFederatesDockerComposeFile(File dir, StringBuilder dockerComposeServices, String networkName) {
+        val dockerComposeFileName = 'docker-compose.yml'
+        val dockerComposeFile = dir + File.separator + dockerComposeFileName
+        val content = new StringBuilder()
+        pr(content, '''
+        version: "3.9"
+        services:
+        «dockerComposeServices.toString»
+        networks:
+            default:
+                external:
+                    name: «networkName»
+        ''')
+        writeSourceCodeToFile(content.toString.getBytes, dockerComposeFile)
+    }
+
+    /**
+     * Append a service to the "services" section of the docker-compose.yml file.
+     * @param the content of the "services" section of the docker-compose.yml file.
+     * @param the name of the federate to be added to "services".
+     * @param the name of the federate's Dockerfile.
+     * @param the federationID.
+     */
+    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String dockerFileName, int dockerComposeFederationID) {
+        val tab = '    '
+        dockerComposeServices.append('''«tab»«federateName»:«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»build:«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»«tab»context: «federateName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»command: -i «dockerComposeFederationID»«System.lineSeparator»''')
     }
 
     /**
@@ -1365,15 +1406,6 @@ class CGenerator extends GeneratorBase {
             ENTRYPOINT ["./build/RTI"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        // println("Dockerfile for RTI written to " + dockerFile)
-        // println('''
-        //     #####################################
-        //     To build the docker image, use:
-               
-        //         docker build -t rti -f «dockerFile» «rtiDir»
-            
-        //     #####################################
-        // ''')
     }
 
     /**
