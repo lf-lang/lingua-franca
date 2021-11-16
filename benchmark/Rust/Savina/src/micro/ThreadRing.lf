@@ -86,7 +86,7 @@ reactor ThreadRingReactorLoopOpener {
         }
     =}
 
-    reaction(start) -> send_to_next_reactor, finished {=
+    reaction(start) -> send_to_next_reactor, finished {=        
         if let Some(s) = ctx.get(start) {
             debug!("Starting with count {}", s.pings_left());
             if s.has_next() {
@@ -126,7 +126,10 @@ reactor Initializer(num_reactors:usize(100), num_pings:usize(100000)) {
 }
 
 main reactor (num_iterations:usize(12), num_pings:usize(100000), num_reactors:usize(99)) {
-
+    state num_iterations(num_iterations);
+    state num_pings(num_pings);
+    state num_reactors(num_reactors);
+    
     init = new Initializer(num_reactors={=num_reactors + 1=}, num_pings=num_pings);
     runner = new BenchmarkRunner(num_iterations=num_iterations);
 
@@ -134,8 +137,15 @@ main reactor (num_iterations:usize(12), num_pings:usize(100000), num_reactors:us
     init.out_finished -> runner.finished;
 
     reaction(startup) {=
-        print_benchmark_info("ThreadRingBenchmark");
-        // printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", numReactors);
+        print_benchmark_info("ThreadRing benchmark");
+        print_args!(
+            "num_iterations",
+            self.num_iterations,
+            "num_pings",
+            self.num_pings,
+            "num_reactors",
+            self.num_reactors
+        );
         print_system_info();
     =}
 
@@ -149,6 +159,6 @@ main reactor (num_iterations:usize(12), num_pings:usize(100000), num_reactors:us
     loopOpener.finished, workers.finished -> init.in_finished;
 
     preamble {=
-        use crate::reactors::benchmark_runner::{print_system_info, print_benchmark_info};
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
     =}
 }
