@@ -102,7 +102,7 @@ internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
  */
 fun String.camelToSnakeCase(): String = StringUtil.camelToSnakeCase(this)
 
-private val nlPattern = Regex("\\R\\s+")
+private val nlPattern = Regex("\\R\\s*")
 
 /**
  * Replace newlines with a single space.
