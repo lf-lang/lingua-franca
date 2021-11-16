@@ -1,0 +1,218 @@
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+    rust-include: "../pseudo_random.rs",
+};
+
+import BenchmarkRunner from "../BenchmarkRunner2.lf";
+
+reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsumers: usize(40)) {
+    state num_producers(numProducers);
+    
+    state adjusted_buffer_size: usize({=bufferSize-numProducers=});
+    state pending_data: VecDeque<f64>;
+    state num_terminated_producers: usize(0);
+    state producer_terminated: Vec<bool>;
+    state producer_id: usize(0);
+    
+    input start: {= () =};
+    output finished: {= () =};
+    
+    input[numProducers] producerData: f64;
+    input[numProducers] producerFinished: {= () =};
+    output[numProducers] producerCommand: {= () =};
+    
+    input[numConsumers] consumerAvailable: {= () =};
+    output[numConsumers] consumerData: f64;
+    
+    preamble {=
+        use std::collections::VecDeque;
+    =}
+    
+    reaction(start) -> producerCommand {=
+        // reset local state
+        self.pending_data.clear();
+        self.num_terminated_procedures = 0;
+        self.producer_terminated = vec![false, self.num_producers];
+        self.producer_id = 0;
+        
+        for port in self.producerCommand {
+            ctx.set(port, ());
+        }
+    =}
+    
+    reaction(consumerAvailable) -> consumerData, producerCommand, finished {=
+        // abort and signal finished if all producers have terminated and all data has been send
+        if self.num_terminated_producers == self.num_producers && self.pending_data.is_empty() {
+            ctx.set(finished, ());
+        } else {
+            let mut consumer_id = 0;
+            let mut activated_producers = 0;
+            
+            for (consumer_available, consumer_data) in consumerAvailable.zip(consumerData) {
+                if ctx.is_present(consumer_available) {
+                    if let Some(data) = self.pending_data.pop_front() {
+                        ctx.set(consumer_data, data);
+                        
+                        if activated_producers < self.num_producers && !self.producer_terminated[producer_id] {
+                            ctx.set(prducerCommand, ());
+                            self.producer_id = (self.producer_id + 1) % self.num_producers;
+                            activated_producers += 1;                        
+                        }
+                    }        
+                } else {
+                    break;
+                }
+                consumer_id += 1; 
+            }
+        }   
+    =}
+    
+    reaction(producerData) {=
+        for data in self.producerData {
+            if let Some(x) = ctx.get(data) {
+                self.pending_data.push_back(x);
+            }
+        }    
+    =}
+    
+    reaction(producerFinished) {=
+        for ((finished, terminated), i) in self.producerFinished.zip(self.producerTerminated).enumerate() {
+            if ctx.is_present(finished) {
+                self.num_terminated_producers += 1;
+                ctx.set(terminated, true);
+                info!("Producer {} finished", i);
+            }
+        }
+    =}    
+}
+
+reactor ProducerReactor(bank_index: usize(0), numItemsToProduce: usize(1000), prodCost: usize(25)) {
+    state num_items_to_produce(numItemsToProduce);
+
+    state prod_item: f64(0.0);
+    state items_produced: usize(0);
+    
+    input produce: {= () =};
+    output data: f64;
+    
+    input reset: {= () =};
+    output finished: {= () =};
+
+    reaction(reset) {=
+        // reset local state
+        self.prod_item = 0.0;
+        self.items_produced = 0;
+    =}
+    
+    reaction(produce) -> data, finished {=
+        self.prod_item = process_item(self.prod_item, self.prod_cost);
+        info!("Producer {}: producing item {} ({})", self.bank_index, self.items_produced, self.prod_item);
+        
+        ctx.set(data, prod_item);
+        self.items_produced += 1;
+        
+        if self.items_produced == self.num_items_to_produce {
+            ctx.set(finished, ());
+        }
+    =}
+
+    preamble {=
+        fn processItem(cur_term: f64, cost: usize) -> f64 {
+            let res = cur_term;
+            
+            let random = PseudoRandom::new(cost);
+            if(cost > 0) {
+                for i in 0..cost {
+                    for j in 0..100 {
+                        res += ((random.next() as f64).abs() + 0.01).log();
+                    }
+                }
+            } else {
+                res += ((random.next() as f64).abs() + 0.01).log();
+            }
+            
+            res
+        }
+    =}
+}
+
+reactor ConsumerReactor(bank_index: usize(0), consCost: usize(25)) {
+    state bank_index(bank_index);
+    state cons_cost(consCost);
+    
+    state cons_item: f64(0.0);
+    
+    input reset: {= () =};
+    
+    input data: f64;
+    output available: {= () =};
+    
+    logical action sendAvailable;
+
+    reaction (reset) -> sendAvailable {=
+        // reset local state
+        selfcons_item = 0.0;
+        ctx.schedule(sendAvailable, Asap);
+    =}
+    
+    reaction(sendAvailable) -> available {=
+        info!("Consumer {}: Send available",  self.bank_index);
+        ctx.set(available, ());
+    =}
+    
+    reaction(data) -> sendAvailable {=
+        if let Some(d) = data {
+            self.cons_item = process_item(self.cons_item, d, cons_cost);
+            info!("Consumer {}: consuming item {}; result {}", self.bank_index, d, self.cons_item);
+        }
+        ctx.schedule(sendAvailable, ());
+    =}
+}
+
+main reactor (
+    numIterations: usize(12),
+    bufferSize: usize(50),
+    prodCost: usize(25),
+    consCost: usize(25),
+    numItemsPerProducer: usize(1000),
+    numConsumers: usize(40),
+    numProducers: usize(40)
+) {
+    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    
+    (runner.start)+ -> manager.start, producers.reset, consumers.reset;
+    manager.finished -> runner.finished;
+    
+    reaction(startup){=
+        print_benchmark_info("ProdConsBenchmark");
+        print_args!(
+            "numIterations",
+            numIterations,
+            "bufferSize",
+            bufferSize,
+            "prodCost",
+            prodCost,
+            "consCost",
+            consCost,
+            "numItemsPerProducer",
+            numItemsPerProducer, 
+            "numProducers",
+            numProducers,
+            "numConsumers",
+            numConsumers
+        );
+        print_system_info();
+    =}
+    
+    producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+    consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
+    
+    manager.producerCommand -> producers.produce;
+    producers.data -> manager.producerData;
+    producers.finished -> manager.producerFinished;
+    
+    consumers.available -> manager.consumerAvailable;
+    manager.consumerData -> consumers.data;
+}
