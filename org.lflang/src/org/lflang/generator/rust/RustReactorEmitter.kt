@@ -33,9 +33,9 @@ import org.lflang.generator.rust.RustEmitter.generateRustProject
 
 
 /**
- * Part of the Rust generator that emits the actual Rust code,
- * including its project structure. Its entry point is
- * [generateRustProject].
+ * Emits modules for a single reactor.
+ *
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 object RustReactorEmitter : RustEmitterBase() {
 

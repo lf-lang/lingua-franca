@@ -34,9 +34,9 @@ import org.lflang.joinWithCommasLn
 
 
 /**
- * Part of the Rust generator that emits the actual Rust code,
- * including its project structure. Its entry point is
- * [generateRustProject].
+ * Emits the entry point for the generated program.
+ *
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 object RustMainFileEmitter : RustEmitterBase() {
 

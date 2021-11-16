@@ -34,6 +34,8 @@ import java.nio.file.Files
  * Part of the Rust generator that emits the actual Rust code,
  * including its project structure. Its entry point is
  * [generateRustProject].
+ *
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 object RustEmitter : RustEmitterBase() {
 

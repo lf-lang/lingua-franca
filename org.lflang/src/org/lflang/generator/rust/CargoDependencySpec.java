@@ -42,7 +42,7 @@ import org.lflang.validation.LFValidator;
 /**
  * Info about a cargo dependency. See {@link TargetProperty#CARGO_DEPENDENCIES}.
  *
- * @author Clément Fournier
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public class CargoDependencySpec {
 
