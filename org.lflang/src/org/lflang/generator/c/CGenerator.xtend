@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c
 
 import java.io.File
-import java.nio.file.Path
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -557,12 +556,19 @@ class CGenerator extends GeneratorBase {
             createFederatedLauncher(coreFiles);
             
             if (targetConfig.dockerOptions !== null) {
-                var rtiPath = fileConfig.getSrcGenBasePath().resolve("RTI")
-                var rtiDir = rtiPath.toFile()
+                var rtiDir = fileConfig.getSrcGenBasePath().resolve("RTI").toFile()
                 if (!rtiDir.exists()) {
                     rtiDir.mkdirs()
                 }
-                writeRTIDockerFile(rtiPath, rtiDir)
+                var dockerFileName = 'rti.Dockerfile'
+                writeRTIDockerFile(rtiDir, dockerFileName)
+
+                // TODO: Find a better way to automatically generate a unique federationID.
+                var federationID = 1;
+
+                // TODO: Find a better way to come up with a unique network name.
+                var networkName = 'lf';
+                writeRTIDockerComposeFile(rtiDir, dockerFileName, networkName, federationID, federates.size)
                 copyRtiFiles(rtiDir, coreFiles)
             }
         }
@@ -1328,9 +1334,9 @@ class CGenerator extends GeneratorBase {
      * Write a Dockerfile for the RTI at rtiDir.
      * The file will go into src-gen/RTI/rti.Dockerfile.
      * @param the directory where rti.Dockerfile will be written to.
+     * @param name of the Dockerfile for the RTI.
      */
-    def writeRTIDockerFile(Path rtiPath, File rtiDir) {
-        val dockerFileName = 'rti.Dockerfile'
+    def writeRTIDockerFile(File rtiDir, String dockerFileName) {
         val dockerFile = rtiDir + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
@@ -1359,14 +1365,62 @@ class CGenerator extends GeneratorBase {
             ENTRYPOINT ["./build/RTI"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        println("Dockerfile for RTI written to " + dockerFile)
+        // println("Dockerfile for RTI written to " + dockerFile)
+        // println('''
+        //     #####################################
+        //     To build the docker image, use:
+               
+        //         docker build -t rti -f «dockerFile» «rtiDir»
+            
+        //     #####################################
+        // ''')
+    }
+
+    /**
+     * Write a docker-compose.yml for the RTI at rtiDir.
+     * The file will go into src-gen/RTI/docker-compose.yml.
+     * @param the directory where docker-compose.yml will be written to.
+     * @param name of the Dockerfile created for the RTI.
+     * @param name of the docker network to host the federation
+     * @param the federationID, which is the number passed by the -i flag to the RTI.
+     * @param the total number of federates.
+     */
+    def writeRTIDockerComposeFile(File rtiDir, String rtiDockerFileName, String networkName, int federationID, int n) {
+        val dockerComposeFileName = 'docker-compose.yml'
+        val dockerComposeFile = rtiDir + File.separator + dockerComposeFileName
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerComposeFile)
+        if (file.exists) {
+            file.delete
+        }
+        if (this.mainDef === null) {
+            return
+        }
+        val contents = new StringBuilder()
+        pr(contents, '''
+            # Generated docker-comopose file for RTI in «rtiDir».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            version: "3.9"
+            services:
+                «federationRTIProperties.get('host').toString»:
+                    build:
+                        context: .
+                        dockerfile: «rtiDockerFileName»
+                    command: -i «federationID» -n «n»
+            networks:
+                default:
+                    external:
+                        name: «networkName»
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerComposeFile)
+        println("Dockerfile for RTI written to " + dockerComposeFile)
         println('''
-            #####################################
+            #############################################
             To build the docker image, use:
                
-                docker build -t rti -f «dockerFile» «rtiDir»
+                docker compose -f «dockerComposeFile» up
             
-            #####################################
+            #############################################
         ''')
     }
 
