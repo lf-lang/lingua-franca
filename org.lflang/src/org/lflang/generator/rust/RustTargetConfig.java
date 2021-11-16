@@ -40,7 +40,7 @@ import org.lflang.TargetProperty.BuildType;
 /**
  * Rust-specific part of a {@link org.lflang.TargetConfig}.
  *
- * @author Clément Fournier
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public final class RustTargetConfig {
 
