@@ -48,6 +48,7 @@ import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ParameterInstance
+import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.c.CCompiler
 import org.lflang.generator.c.CGenerator
@@ -468,7 +469,7 @@ class PythonGenerator extends CGenerator {
      */
     def void generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses,
         FederateInstance federate, ArrayList<String> instantiatedClasses) {
-        if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
+        if (instance !== this.main && !federate.contains(instance)) {
             return
         }
 
@@ -488,7 +489,7 @@ class PythonGenerator extends CGenerator {
         // Do not generate classes that don't have any reactions
         // Do not generate the main federated class, which is always implemented in C
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !decl.toDefinition.isFederated) {
-            if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
+            if (federate.contains(instance) && !instantiatedClasses.contains(className)) {
 
                 pythonClasses.append('''
                                     
@@ -683,7 +684,7 @@ class PythonGenerator extends CGenerator {
     def void generatePythonClassInstantiation(ReactorInstance instance, StringBuilder pythonClassesInstantiation,
         FederateInstance federate) {
         // If this is not the main reactor and is not in the federate, nothing to do.
-        if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
+        if (instance !== this.main && !federate.contains(instance)) {
             return
         }
         
@@ -698,7 +699,7 @@ class PythonGenerator extends CGenerator {
         // Do not instantiate reactor classes that don't have a reaction in Python
         // Do not instantiate the federated main reactor since it is generated in C
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !instance.definition.reactorClass.toDefinition.isFederated) {
-            if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null) {
+            if (federate.contains(instance) && instance.bankMembers !== null) {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
@@ -1132,7 +1133,7 @@ class PythonGenerator extends CGenerator {
         val reactor = decl.toDefinition
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            if (federate === null || federate.containsPort(input as Port)) {
+            if (federate === null || federate.contains(input as Port)) {
                 if (input.inferredType.isTokenType) {
                     pr(input, code, '''
                         typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
@@ -1148,7 +1149,7 @@ class PythonGenerator extends CGenerator {
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            if (federate === null || federate.containsPort(output as Port)) {
+            if (federate === null || federate.contains(output as Port)) {
                 if (output.inferredType.isTokenType) {
                     pr(output, code, '''
                         typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
@@ -1163,7 +1164,7 @@ class PythonGenerator extends CGenerator {
         }
         // Finally, handle actions.
         for (action : reactor.allActions) {
-            if (federate === null || federate.containsAction(action)) {
+            if (federate === null || federate.contains(action)) {
                 pr(action, code, '''
                     typedef «generic_action_type» «variableStructType(action, decl)»;
                 ''')
@@ -1601,11 +1602,10 @@ class PythonGenerator extends CGenerator {
      * If it succeeds, we proceed with the C initialization. If it fails, we defer initialization
      * to Python.
      * 
-     * @param builder The StringBuilder used to append the initialization code to
-     * @param instance The reactor instance
-     * @return initialization code
+     * Generate runtime initialization code for parameters of a given reactor instance
+     * @param instance The reactor instance.
      */
-    override generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
+    override void generateParameterInitialization(ReactorInstance instance) {
         // Mostly ignore the initialization in C
         // The actual initialization will be done in Python
         // Except if the parameter is a width (an integer)
@@ -1618,7 +1618,7 @@ class PythonGenerator extends CGenerator {
             try {
                 // Attempt to convert it to integer
                 val number = Integer.parseInt(initializer);
-                pr(builder, '''
+                pr(initializeTriggerObjects, '''
                     «nameOfSelfStruct»->«parameter.name» = «number»;
                 ''')
             } catch (NumberFormatException ex){
@@ -1650,12 +1650,14 @@ class PythonGenerator extends CGenerator {
     
     
     /**
-     * Generate code that is executed while the reactor instance is being initialized
-     * @param initializationCode The StringBuilder appended to _lf_initialize_trigger_objects()
-     * @param instance The reactor instance
-     * @param federate The federate instance
+     * Generate code that is executed while the reactor instance is being initialized.
+     * This wraps the reaction functions in a Python function.
+     * @param instance The reactor instance.
+     * @param reactions The reactions of this instance.
      */
-    override generateReactorInstanceExtension(StringBuilder initializationCode, ReactorInstance instance, FederateInstance federate) {
+    override void generateReactorInstanceExtension(
+        ReactorInstance instance, Iterable<ReactionInstance> reactions
+    ) {
         var nameOfSelfStruct = selfStructName(instance)
         var reactor = instance.definition.reactorClass.toDefinition
         
@@ -1668,14 +1670,14 @@ class PythonGenerator extends CGenerator {
         }
         
         // Initialize the name field to the unique name of the instance
-        pr(initializationCode, '''
+        pr(initializeTriggerObjects, '''
             «nameOfSelfStruct»->_lf_name = "«instance.uniqueID»_lf";
         ''');
         
-        for (reaction : instance.reactions) {
+        for (reaction : reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.index)
             // Create a PyObject for each reaction
-            pr(initializationCode, '''
+            pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
@@ -1684,7 +1686,7 @@ class PythonGenerator extends CGenerator {
                 ''')
         
             if (reaction.definition.deadline !== null) {
-                pr(initializationCode, '''
+                pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
@@ -1692,7 +1694,6 @@ class PythonGenerator extends CGenerator {
                         "deadline_function_«reaction.index»");
                 ''')
             }
-        
         }
     }
     
