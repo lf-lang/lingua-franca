@@ -102,6 +102,9 @@ reactor ThroughputProducer(total_messages:usize(10000), num_consumer:usize(60)) 
 }
 
 main reactor (num_iterations:usize(12), num_messages_per_reactor:usize(10000), num_workers:usize(60)) {
+    state num_iterations(num_iterations);
+    state num_messages_per_reactor(num_messages_per_reactor);
+    state num_workers(num_workers);
     
     producer = new ThroughputProducer(total_messages=num_messages_per_reactor, num_consumer=num_workers);
     runner = new BenchmarkRunner(num_iterations=num_iterations);
@@ -110,8 +113,15 @@ main reactor (num_iterations:usize(12), num_messages_per_reactor:usize(10000), n
     producer.outFinished -> runner.finished;
     
     reaction(startup) {=
-        print_benchmark_info("ThroughputBenchmark");
-        // printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", numWorkers);
+        print_benchmark_info("Throughput benchmark");
+        print_args!(
+            "num_iterations",
+            self.num_iterations,
+            "num_messages_per_reactor",
+            self.num_messages_per_reactor,
+            "num_workers",
+            self.num_workers
+        );
         print_system_info();
     =}
     
@@ -122,6 +132,6 @@ main reactor (num_iterations:usize(12), num_messages_per_reactor:usize(10000), n
     worker.outFinished -> producer.inFinished;
     
     preamble {=
-        use crate::reactors::benchmark_runner::{print_benchmark_info, print_system_info};
+        use crate::{print_args, reactors::benchmark_runner::{print_benchmark_info, print_system_info}};
     =}
 }
