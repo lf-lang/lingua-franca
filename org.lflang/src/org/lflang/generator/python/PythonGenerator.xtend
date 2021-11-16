@@ -1673,10 +1673,10 @@ class PythonGenerator extends CGenerator {
         ''');
         
         for (reaction : instance.reactions) {
-            val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
+            val pythonFunctionName = pythonReactionFunctionName(reaction.index)
             // Create a PyObject for each reaction
             pr(initializationCode, '''
-                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
@@ -1685,11 +1685,11 @@ class PythonGenerator extends CGenerator {
         
             if (reaction.definition.deadline !== null) {
                 pr(initializationCode, '''
-                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.reactionIndex» = 
+                «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
                         «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
-                        "deadline_function_«reaction.reactionIndex»");
+                        "deadline_function_«reaction.index»");
                 ''')
             }
         

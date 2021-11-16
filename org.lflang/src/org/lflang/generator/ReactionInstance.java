@@ -67,7 +67,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             int index
     ) {
         super(definition, parent);
-        this.reactionIndex = index;
+        this.index = index;
         this.isUnordered = isUnordered;
         
         // If the reaction has no port triggers or sources, then
@@ -290,7 +290,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Index of order of occurrence within the reactor definition.
      * The first reaction has index 0, the second index 1, etc.
      */
-    public int reactionIndex = -1;
+    public int index = -1;
 
     /**
      * Whether or not this reaction is ordered with respect to other
@@ -348,9 +348,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         dependentReactionsCache = new LinkedHashSet<ReactionInstance>();
         
         // First, add the next lexical reaction, if appropriate.
-        if (!isUnordered && parent.reactions.size() > reactionIndex + 1) {
+        if (!isUnordered && parent.reactions.size() > index + 1) {
             // Find the next reaction in the parent's reaction list.
-            dependentReactionsCache.add(parent.reactions.get(reactionIndex + 1));
+            dependentReactionsCache.add(parent.reactions.get(index + 1));
         }
         
         // Next, add reactions that get data from this one via a port.
@@ -381,15 +381,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         dependsOnReactionsCache = new LinkedHashSet<ReactionInstance>();
         
         // First, add the previous lexical reaction, if appropriate.
-        if (!isUnordered && reactionIndex > 0) {
+        if (!isUnordered && index > 0) {
             // Find the previous ordered reaction in the parent's reaction list.
-            int earlierIndex = reactionIndex - 1;
+            int earlierIndex = index - 1;
             ReactionInstance earlierOrderedReaction = parent.reactions.get(earlierIndex);
             while (earlierOrderedReaction.isUnordered && --earlierIndex >= 0) {
                 earlierOrderedReaction = parent.reactions.get(earlierIndex);
             }
             if (earlierIndex >= 0) {
-                dependsOnReactionsCache.add(parent.reactions.get(reactionIndex - 1));
+                dependsOnReactionsCache.add(parent.reactions.get(index - 1));
             }
         }
         
@@ -422,12 +422,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /**
      * Return the name of this reaction, which is 'reaction_n',
-     * where n is replaced by the reactionIndex. 
+     * where n is replaced by the reaction index. 
      * @return The name of this reaction.
      */
     @Override
     public String getName() {
-        return "reaction_" + this.reactionIndex;
+        return "reaction_" + this.index;
     }
     
     /**
