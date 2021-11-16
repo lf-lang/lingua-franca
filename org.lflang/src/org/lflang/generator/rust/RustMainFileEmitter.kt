@@ -64,7 +64,9 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
-            |struct CliParseResult(SchedulerOptions, __MainParams, Option<::log::LevelFilter>);
+            |struct CliParseResult(SchedulerOptions, __MainParams, LevelFilter);
+            |
+            |const DEFAULT_LOG_LEVEL: LevelFilter = LevelFilter::Warn;
             |
             |fn main() {
             |    let CliParseResult(options, main_args, log_level) = cli::parse();
@@ -74,12 +76,16 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |    SyncScheduler::run_main::<__MainReactor>(options, main_args);
             |}
             |
-            |fn init_logger(level: Option<LevelFilter>) {
+            |fn init_logger(level: LevelFilter) {
+            |    if !cfg!(debug_assertions) && level < LevelFilter::Info {
+            |        warn!("Log level {} is not active because this application was built in release mode.", level);
+            |        warn!("Use a debug build to enable this level.");
+            |        warn!("In Lingua France, use the target property `build-type: Debug` (the default).");
+            |    }
+            |
             |    let mut builder = env_logger::Builder::from_env(env_logger::Env::default());
             |    builder.format_target(false);
-            |    if let Some(level) = level {
-            |       builder.filter_level(level);
-            |    }
+            |    builder.filter_level(level);
             |    builder.init();
             |}
             |
@@ -110,6 +116,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
             |mod cli {
             |    use $rsRuntime::*;
             |    use super::*;
+            |    use std::str::FromStr;
             |
             |    /// Fallback implementation which doesn't parse parameters.
             |    pub(super) fn parse() -> CliParseResult {
@@ -130,7 +137,10 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.
 ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { (it.defaultValue ?: "Default::default()") }}
             |        );
             |
-            |        CliParseResult(options, main_args, None)
+            |        let level_by_env = std::env::var("RUST_LOG").ok().and_then(|e| e.as_str().parse::<::log::LevelFilter>().ok());
+            |        let log_level = level_by_env.unwrap_or(DEFAULT_LOG_LEVEL);
+            |
+            |        CliParseResult(options, main_args, log_level)
             |    }
             |}
             |
@@ -210,7 +220,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
             |        // Note that there is an inconsistency here, as clap will just parse the simple values,
             |        // while env_logger supports more complicated patterns for this env var.
             |
-            |        CliParseResult(options, main_args, Some(opts.log_level))
+            |        CliParseResult(options, main_args, opts.log_level)
             |    }
             |
             |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
