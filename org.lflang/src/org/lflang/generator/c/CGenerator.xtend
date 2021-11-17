@@ -3833,8 +3833,12 @@ class CGenerator extends GeneratorBase {
         for (child: main.children) {
             // If the child has a multiport that is an effect of some reaction in main,
             // then we have to generate code to allocate memory for arrays pointing to
-            // its data. If the child is a bank, then memory is allocated for the entire bank width.
-            if (federate.contains(child) || child.bankIndex != -1) {
+            // its data. If the child is a bank, then memory is allocated for the entire
+            // bank width because a reaction cannot specify which bank members it writes
+            // to so we have to assume it can write to any. Hence, we do not want to
+            // filter which children we do this for by federate, which is why this call
+            // is here.
+            if (federate.contains(child) || child.bankIndex >= 0) {
                 generateAllocationForEffectsOnInputs(child);
             }
             if (federate.contains(child)) {
@@ -4166,33 +4170,46 @@ class CGenerator extends GeneratorBase {
      * @param reactor A contained reactor.
      */
     private def void generateAllocationForEffectsOnInputs(ReactorInstance reactor) {
-        for (port : reactor.inputs) {
-            if (port.isMultiport) {
-                if (port.parent.parent !== null) {
-                    for (reaction : port.parent.parent.reactions) {
-                        for (effect : reaction.effects) {
-                            if (effect === port) {
-                                // Port is an effect of a parent's parent's reaction,
-                                // meaning that the reaction is writing to the input of a contained reactor.
-                                val nameOfSelfStruct = selfStructName(reaction.parent);
-                                val containerName = port.parent.name; // If parent is a bank, has form x[i]
-                                val portStructType = variableStructType(
-                                        port.definition, port.parent.definition.reactorClass);
+        // Keep track of ports already handled. There may be more than one reaction
+        // in the container writing to the port, but we want only one memory allocation.
+        val portsHandled = new HashSet<PortInstance>();
         
-                                pr(initializeTriggerObjectsEnd, '''
-                                    «nameOfSelfStruct»->_lf_«containerName».«port.name»_width = «port.width»;
-                                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                    «nameOfSelfStruct»->_lf_«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                        * «nameOfSelfStruct»->_lf_«containerName».«port.name»_width);
-                                    for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«port.name»_width; i++) {
-                                        «nameOfSelfStruct»->_lf_«containerName».«port.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
-                                    }
-                                ''')
-                                // There may be more reactions writing to this port,
-                                // but once we have done the allocation, no need to do anything for those.
-                                return;
-                            }
+        // Find parent reactions that mention multiport inputs of this reactor.
+        for (reaction : reactor.parent.reactions) { 
+            for (effect : reaction.effects.filter(PortInstance)) {
+                if (effect.isMultiport && reactor.inputs.contains(effect) && !portsHandled.contains(effect)) {
+                    // Port is a multiport input that the parent's reaction is writing to.
+                    portsHandled.add(effect);
+                    
+                    val nameOfSelfStruct = selfStructName(reactor.parent);
+                    var containerName = reactor.name;
+                    val portStructType = variableStructType(
+                            effect.definition, reactor.definition.reactorClass);
+
+                    // FIXME: As of now, the following never happens because bank members
+                    // are handled individually. But I plan to fix this, so I'm leaving this
+                    // dead code here.
+                    if (reactor.bankIndex === -2) {
+                        pr(initializeTriggerObjectsEnd, '''
+                            for (int j = 0; j < «reactor.bankSize»; j++) {
+                        ''')
+                        indent(initializeTriggerObjectsEnd);
+                        containerName += "[j]";
+                    }
+                    pr(initializeTriggerObjectsEnd, '''
+                        «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width = «effect.width»;
+                        // Allocate memory to store output of reaction feeding a multiport input of a contained reactor.
+                        «nameOfSelfStruct»->_lf_«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                            * «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width);
+                        for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width; i++) {
+                            «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
                         }
+                    ''')
+                    if (reactor.bankIndex === -2) {
+                        unindent(initializeTriggerObjectsEnd);
+                        pr(initializeTriggerObjectsEnd, '''
+                            }
+                        ''')
                     }
                 }
             }
@@ -6126,5 +6143,5 @@ class CGenerator extends GeneratorBase {
     
     // FIXME: Get rid of this, if possible.
     /** The current federate for which we are generating code. */
-    private var currentFederate = null as FederateInstance;
+    var currentFederate = null as FederateInstance;
 }
