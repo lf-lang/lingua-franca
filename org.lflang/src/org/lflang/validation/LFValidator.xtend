@@ -1342,4 +1342,18 @@ class LFValidator extends BaseLFValidator {
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
 
+
+    @Check(FAST)
+    def checkInitialMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            val initialModesCount = reactor.getModes().filter[it.initial].size
+            if (initialModesCount == 0) {
+                error("Every modal reactor requires one initial mode.", Literals.REACTOR__MODES, 0)
+            } else if (initialModesCount > 1) {
+                for (m : reactor.getModes().filter[it.initial].drop(1)) {
+                    error("A modal reactor can only have one initial mode.", Literals.REACTOR__MODES, reactor.modes.indexOf(m))
+                }
+            }
+        }
+    }
 }
