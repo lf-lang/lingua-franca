@@ -32,11 +32,11 @@ reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsum
     reaction(start) -> producerCommand {=
         // reset local state
         self.pending_data.clear();
-        self.num_terminated_procedures = 0;
-        self.producer_terminated = vec![false, self.num_producers];
+        self.num_terminated_producers = 0;
+        self.producer_terminated = vec![false; self.num_producers];
         self.producer_id = 0;
         
-        for port in self.producerCommand {
+        for port in producerCommand {
             ctx.set(port, ());
         }
     =}
@@ -49,13 +49,13 @@ reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsum
             let mut consumer_id = 0;
             let mut activated_producers = 0;
             
-            for (consumer_available, consumer_data) in consumerAvailable.zip(consumerData) {
-                if ctx.is_present(consumer_available) {
+            for (consumer_available, consumer_data) in consumerAvailable.into_iter().zip(consumerData) {
+                if ctx.is_present(&consumer_available) {
                     if let Some(data) = self.pending_data.pop_front() {
                         ctx.set(consumer_data, data);
                         
-                        if activated_producers < self.num_producers && !self.producer_terminated[producer_id] {
-                            ctx.set(prducerCommand, ());
+                        if activated_producers < self.num_producers && !self.producer_terminated[self.producer_id] {
+                            ctx.set(producerCommand.get(self.producer_id), ());
                             self.producer_id = (self.producer_id + 1) % self.num_producers;
                             activated_producers += 1;                        
                         }
@@ -69,18 +69,18 @@ reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsum
     =}
     
     reaction(producerData) {=
-        for data in self.producerData {
-            if let Some(x) = ctx.get(data) {
+        for data in producerData {
+            if let Some(x) = ctx.get(&data) {
                 self.pending_data.push_back(x);
             }
         }    
     =}
     
     reaction(producerFinished) {=
-        for ((finished, terminated), i) in self.producerFinished.zip(self.producerTerminated).enumerate() {
-            if ctx.is_present(finished) {
+        for (i, (finished, terminated)) in producerFinished.into_iter().zip(self.producer_terminated).enumerate() {
+            if ctx.is_present(&finished) {
                 self.num_terminated_producers += 1;
-                ctx.set(terminated, true);
+                terminated = true;
                 info!("Producer {} finished", i);
             }
         }
@@ -88,7 +88,9 @@ reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsum
 }
 
 reactor ProducerReactor(bank_index: usize(0), numItemsToProduce: usize(1000), prodCost: usize(25)) {
+    state bank_index(bank_index);
     state num_items_to_produce(numItemsToProduce);
+    state prod_cost(prodCost);
 
     state prod_item: f64(0.0);
     state items_produced: usize(0);
@@ -109,7 +111,7 @@ reactor ProducerReactor(bank_index: usize(0), numItemsToProduce: usize(1000), pr
         self.prod_item = process_item(self.prod_item, self.prod_cost);
         info!("Producer {}: producing item {} ({})", self.bank_index, self.items_produced, self.prod_item);
         
-        ctx.set(data, prod_item);
+        ctx.set(data, self.prod_item);
         self.items_produced += 1;
         
         if self.items_produced == self.num_items_to_produce {
@@ -118,18 +120,21 @@ reactor ProducerReactor(bank_index: usize(0), numItemsToProduce: usize(1000), pr
     =}
 
     preamble {=
-        fn processItem(cur_term: f64, cost: usize) -> f64 {
+        use crate::pseudo_random::PseudoRandomGenerator;
+        use std::f64;
+        
+        pub fn process_item(cur_term: f64, cost: usize) -> f64 {
             let res = cur_term;
             
-            let random = PseudoRandom::new(cost);
+            let random = PseudoRandomGenerator::from(cost as _);
             if(cost > 0) {
                 for i in 0..cost {
                     for j in 0..100 {
-                        res += ((random.next() as f64).abs() + 0.01).log();
+                        res += ((random.next() as f64).abs() + 0.01).log(f64::consts::E);
                     }
                 }
             } else {
-                res += ((random.next() as f64).abs() + 0.01).log();
+                res += ((random.next() as f64).abs() + 0.01).log(f64::consts::E);
             }
             
             res
@@ -152,7 +157,7 @@ reactor ConsumerReactor(bank_index: usize(0), consCost: usize(25)) {
 
     reaction (reset) -> sendAvailable {=
         // reset local state
-        selfcons_item = 0.0;
+        self.cons_item = 0.0;
         ctx.schedule(sendAvailable, Asap);
     =}
     
@@ -162,11 +167,15 @@ reactor ConsumerReactor(bank_index: usize(0), consCost: usize(25)) {
     =}
     
     reaction(data) -> sendAvailable {=
-        if let Some(d) = data {
-            self.cons_item = process_item(self.cons_item, d, cons_cost);
+        if let Some(d) = ctx.get(data) {
+            self.cons_item = process_item(self.cons_item + d, self.cons_cost);
             info!("Consumer {}: consuming item {}; result {}", self.bank_index, d, self.cons_item);
         }
-        ctx.schedule(sendAvailable, ());
+        ctx.schedule(sendAvailable, Asap);
+    =}
+    
+    preamble {=
+        use crate::reactors::producer_reactor::process_item;
     =}
 }
 
@@ -179,6 +188,14 @@ main reactor (
     numConsumers: usize(40),
     numProducers: usize(40)
 ) {
+    state numIterations(numIterations);
+    state bufferSize(bufferSize);
+    state prodCost(prodCost);
+    state consCost(consCost);
+    state numItemsPerProducer(numItemsPerProducer);
+    state numConsumers(numConsumers);
+    state numProducers(numProducers);
+    
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
     runner = new BenchmarkRunner(num_iterations=numIterations);
     
@@ -189,19 +206,19 @@ main reactor (
         print_benchmark_info("ProdConsBenchmark");
         print_args!(
             "numIterations",
-            numIterations,
+            self.numIterations,
             "bufferSize",
-            bufferSize,
+            self.bufferSize,
             "prodCost",
-            prodCost,
+            self.prodCost,
             "consCost",
-            consCost,
+            self.consCost,
             "numItemsPerProducer",
-            numItemsPerProducer, 
+            self.numItemsPerProducer, 
             "numProducers",
-            numProducers,
+            self.numProducers,
             "numConsumers",
-            numConsumers
+            self.numConsumers
         );
         print_system_info();
     =}
@@ -215,4 +232,8 @@ main reactor (
     
     consumers.available -> manager.consumerAvailable;
     manager.consumerData -> consumers.data;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
 }
