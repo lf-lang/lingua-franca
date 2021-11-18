@@ -1610,12 +1610,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             for (instantiation : mainReactor.allInstantiations) {
                 var bankWidth = ASTUtils.width(instantiation.widthSpec, context);
                 if (bankWidth < 0) {
-                    errorReporter.reportError(instantiation, "Cannot determine bank width!");
+                    errorReporter.reportError(instantiation, "Cannot determine bank width! Assuming width of 1.");
                     // Continue with a bank width of 1.
                     bankWidth = 1;
                 }
-                // Create one federate instance for each reactor instance in the bank of reactors.
-                val federateInstances = new ArrayList<FederateInstance>();
+                // Create one federate instance for each instance in a bank of reactors.
+                val federateInstances = new ArrayList<FederateInstance>(bankWidth);
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.size
@@ -1682,10 +1682,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         val mainInstance = new ReactorInstance(mainReactor, errorReporter, 1)
 
         for (federateReactor : mainInstance.children) {
-            // Skip banks and just process the individual instances.
-            if (federateReactor.bankIndex > -2) {
-                val bankIndex = (federateReactor.bankIndex >= 0)? federateReactor.bankIndex : 0
-                val federateInstance = federatesByInstantiation.get(federateReactor.definition).get(bankIndex);
+            // FIXME: This used to Skip banks and just process the individual instances.
+            val federateInstances = federatesByInstantiation.get(federateReactor.definition);
+            for (federateInstance : federateInstances) {
                 for (input : federateReactor.inputs) {
                     replaceConnectionFromSource(input, federateInstance, federateReactor, mainInstance)
                 }
@@ -1707,7 +1706,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // If the port is not an input, ignore it.
         if (input.isInput) {
             for (source : input.immediateSources()) {
-                val sourceBankIndex = (source.getPortInstance().parent.bankIndex >= 0) ? source.getPortInstance().parent.bankIndex : 0
+                // FIXME: How to determine the bank index of the source?
+                // Need ReactorInstance support for ranges.
+                // val sourceBankIndex = (source.getPortInstance().parent.bankIndex >= 0) ? source.getPortInstance().parent.bankIndex : 0
+                val sourceBankIndex = 0
                 val sourceFederate = federatesByInstantiation.get(source.getPortInstance().parent.definition).get(sourceBankIndex);
 
                 // Set up dependency information.
@@ -1750,16 +1752,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
 
                     // Make one communication for each channel.
                     // FIXME: There is an opportunity for optimization here by aggregating channels.
+                    // FIXME: bank indices not handled yet.
                     for (var i = 0; i < source.channelWidth; i++) {
                         FedASTUtils.makeCommunication(
                             source.getPortInstance(),
                             input,
                             connection,
                             sourceFederate,
-                            source.getPortInstance().parent.bankIndex,
+                            0, // FIXME: source.getPortInstance().parent.bankIndex,
                             source.startChannel + i,
                             destinationFederate,
-                            input.parent.bankIndex,
+                            0, // FIXME: input.parent.bankIndex,
                             channel + i,
                             this,
                             targetConfig.coordination

@@ -95,24 +95,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         ReactorInstance containedReactor 
                                 = parent.lookupReactorInstance(((VarRef)trigger).getContainer());
                         if (containedReactor != null) {
-                            if (containedReactor.bankMembers != null) {
-                                // Contained reactor is a bank. Connect to all bank members.
-                                for (ReactorInstance bankMember : containedReactor.bankMembers) {
-                                    portInstance = bankMember.lookupPortInstance((Port)variable);
-                                    if (portInstance != null) {
-                                        this.sources.add(portInstance);
-                                        portInstance.dependentReactions.add(this);
-                                        this.triggers.add(portInstance);
-                                    }
-                                }
-                            } else {
-                                // Contained reactor is not a bank.
-                                portInstance = containedReactor.lookupPortInstance((Port)variable);
-                                if (portInstance != null) {
-                                    this.sources.add(portInstance);
-                                    portInstance.dependentReactions.add(this);
-                                    this.triggers.add(portInstance);
-                                }
+                            portInstance = containedReactor.lookupPortInstance((Port)variable);
+                            if (portInstance != null) {
+                                this.sources.add(portInstance);
+                                portInstance.dependentReactions.add(this);
+                                this.triggers.add(portInstance);
                             }
                         }
                     }
@@ -161,24 +148,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     ReactorInstance containedReactor
                             = parent.lookupReactorInstance(source.getContainer());
                     if (containedReactor != null) {
-                        if (containedReactor.bankMembers != null) {
-                            // Contained reactor is a bank. Connect to all members.
-                            for (ReactorInstance bankMember : containedReactor.bankMembers) {
-                                portInstance = bankMember.lookupPortInstance((Port)variable);
-                                if (portInstance != null) {
-                                    this.sources.add(portInstance);
-                                    portInstance.dependentReactions.add(this);
-                                    this.reads.add(portInstance);
-                                }
-                            }
-                        } else {
-                            // The trigger is a port of a contained reactor that is not a bank.
-                            portInstance = containedReactor.lookupPortInstance((Port)variable);
-                            if (portInstance != null) {
-                                this.sources.add(portInstance);
-                                portInstance.dependentReactions.add(this);
-                                this.triggers.add(portInstance);
-                            }
+                        portInstance = containedReactor.lookupPortInstance((Port)variable);
+                        if (portInstance != null) {
+                            this.sources.add(portInstance);
+                            portInstance.dependentReactions.add(this);
+                            this.triggers.add(portInstance);
                         }
                     }
                 }
@@ -212,18 +186,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     this.effects.add(portInstance);
                     portInstance.dependsOnReactions.add(this);
                 } else {
-                    // The effect container must be a bank of reactors.
-                    // Need to find the ports of all the instances within the bank.
-                    ReactorInstance bank = parent.lookupReactorInstance(effect.getContainer());
-                    if (bank == null || bank.bankIndex != -2) {
-                        throw new InvalidSourceException(
-                                "Unexpected effect. Cannot find port " + variable.getName());
-                    }
-                    for (ReactorInstance bankElement : bank.bankMembers) {
-                        portInstance = bankElement.lookupPortInstance((Port)variable);
-                        this.effects.add(portInstance);
-                        portInstance.dependsOnReactions.add(this);
-                    }
+                    throw new InvalidSourceException(
+                            "Unexpected effect. Cannot find port " + variable.getName());
                 }
             } else if (variable instanceof Action) {
                 var actionInstance = parent.lookupActionInstance(
