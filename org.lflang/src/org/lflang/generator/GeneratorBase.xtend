@@ -808,7 +808,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     protected def checkModalReactorSupport(boolean isSupported) {
         hasModalReactors = reactors.exists[!modes.empty]
         if (hasModalReactors && !isSupported) {
-            errorReporter.reportError("The currently selected code generation does not support modal reactors!")
+            errorReporter.reportError("The currently selected code generation or target configuration does not support modal reactors!")
         }
     }
 
