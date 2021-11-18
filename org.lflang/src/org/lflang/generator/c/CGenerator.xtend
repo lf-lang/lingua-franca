@@ -3814,10 +3814,22 @@ class CGenerator extends GeneratorBase {
         var timersInFederate = main.timers.filter[ 
                 t | return federate.contains(t.definition);
             ];
+            
+        // Create an array to store all self structs.
+        // This is needed because connections cannot be established until
+        // all reactor instances have self structs because ports that
+        // receive data reference the self structs of the originating
+        // reactors, which are arbitarily far away in the program graph.
+        // The type of each struct type is different, so the type of this
+        // array is vague.
+        pr(initializeTriggerObjects, '''
+            void* selfStructs[«main.getTotalNumReactorInstances()»]
+        ''')
 
         // Generate the self struct declaration for the top level.
         pr(initializeTriggerObjects, '''
             «selfStructType(main.definition.reactorClass)»* «selfStructName(main)» = new_«main.name»();
+            selfStructs[0] = «selfStructName(main)»;
         ''')
 
         // Generate code for top-level parameters, actions, timers, and reactions that
