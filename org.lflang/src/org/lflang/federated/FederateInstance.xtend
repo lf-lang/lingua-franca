@@ -367,10 +367,6 @@ class FederateInstance {
      * reactor instance is contained by this federate.
      * If the specified instance is the top-level reactor, return true
      * (this reactor belongs to all federates).
-     * If it is a bank member, then this returns true only if the bankIndex
-     * of the reactor instance matches the federate instance bank index.
-     * This also returns true for the bank placeholder for a bank that
-     * contains an instance that matches this bank index.
      * If this federate instance is a singleton, then return true if the
      * instance is non null.
      * 
@@ -387,12 +383,7 @@ class FederateInstance {
         // Start with this instance, then check its parents.
         var i = instance;
         while (i !== null) {
-            if (i.definition === this.instantiation
-                    && (
-                        i.bankIndex < 0                 // Not a bank member
-                        || i.bankIndex == this.bankIndex  // Index matches.
-                    )
-            ) {
+            if (i.definition === this.instantiation) {
                 return true;
             }
             i = i.parent;

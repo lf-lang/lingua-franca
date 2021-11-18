@@ -105,6 +105,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public List<ActionInstance> actions = new ArrayList<ActionInstance>();
 
     /**
+     * For the convenience of code generators, this public field can
+     * be used to annotate the reactor instance.
+     */
+    public String annotation;
+    
+    /**
      * The contained reactor instances, in order of declaration.
      * For banks of reactors, this includes both the bank definition
      * Reactor (which has bankIndex == -2) followed by each of the
@@ -193,17 +199,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
         
     /**
-     * Returns the size of the bank that this reactor represents or
-     * 0 if this reactor does not represent a bank.
-     */
-    public int bankSize() {
-        if (bankMembers != null) {
-            return bankMembers.size();
-        }
-        return 0;
-    }
-    
-    /**
      * Return the destinations of the specified port.
      * The result is a set (albeit an ordered set) of ports that are destinations
      * in connections. This will return null if the source has no destinations.
@@ -216,30 +211,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
     
-    /**
-     * If this reactor is in a bank of reactors, then return
-     * the reactor instance defining the bank. Otherwise, return null.
-     */
-    public ReactorInstance getBank() {
-        return bank;
-    }
-
-    /**
-     * If this reactor is in a bank of reactors, return its index, otherwise, return -1
-     * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
-     */
-    public int getBankIndex() {
-        return bankIndex;
-    }
-
-    /**
-     * Return the members of this bank, or null if there are none.
-     * @return actual bank size or -1 if this is not a bank master.
-     */
-    public List<ReactorInstance> getBankMembers() {
-        return bankMembers;
-    }
-
     /** 
      * Return the instance of a child rector created by the specified
      * definition or null if there is none.
@@ -278,6 +249,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
+     * Get the depth of the reactor instance. This is 0 for the main reactor,
+     * 1 for reactors immediately contained therein, etc.
+     */
+    public int getDepth() {
+        return depth;
+    }
+    
+    /**
      * Return the specified input by name or null if there is no such input.
      * @param name The input name.
      */
@@ -291,18 +270,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /** 
-     * Override the base class to append [index] if this reactor
-     * is in a bank of reactors.
-     * @return The full name of this instance.
+     * Override the base class to append [i_d], where d is the depth,
+     * if this reactor is in a bank of reactors.
+     * @return The name of this instance.
      */
     @Override
     public String getName() {
-        var result = this.definition.getName();
-        if (this.bankIndex >= 0) {
-            result += "[" + this.bankIndex + "]";
-        }
-        if (result == null) return "";
-        return result;
+        return this.definition.getName();
     }
 
     /**
@@ -317,7 +291,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
+    /**
+     * Get the number of reactor instances associated with this
+     * reactor. This is 1 plus the total number of reactors
+     * in any contained reactors.  If this is a bank, then
+     * this number does not account for the bank width.
+     * Use getTotalNumberOfReactorInstances() to take into
+     * account bank width.
+     */
+    public int getNumReactorInstances() {
+        return numReactorInstances;
+    }
+    
     /**
      * Return a parameter matching the specified name if the reactor has one
      * and otherwise return null.
@@ -344,6 +330,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
         return shutdownTrigger;
+    }
+    
+    /**
+     * Get the total number of reactor instances associated with
+     * this reactor. This is equal to the result of
+     * getNumReactorInstances() times the bank width, as returned
+     * by width().
+     */
+    public int getTotalNumReactorInstances() {
+        return totalNumReactorInstances;
     }
     
     /** 
@@ -440,8 +436,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return true if a reactor is a bank, false otherwise
      */
     public boolean isBank() {
-        // FIXME magic number
-        return bankIndex == -2;
+        return (definition.getWidthSpec() != null);
     }
 
     /**
@@ -639,63 +634,23 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return result;
     }
 
-    /** 
-     * Override the base class to return the uniqueID of the bank rather
-     * than this member of the bank, if this is a member of a bank of reactors.
-     * 
-     * @return An identifier for this instance that is guaranteed to be
-     *  unique within the top-level parent.
-     */
-    @Override
-    public String uniqueID() {
-        if (this.bank != null) {
-            return this.bank.uniqueID();
-        }
-        return super.uniqueID();
-    }
-
     /**
-     * For the specified width specification, return the width.
-     * This may be for a bank of reactors within this reactor instance or
-     * for a port of this reactor instance. If the argument is null, there
-     * is no width specification, so return 1. Otherwise, evaluate the
-     * width value by determining the value of any referenced parameters.
-     * 
-     * @param widthSpec The width specification.
-     * 
+     * If this is a bank of reactors, return the width or -1 if it cannot
+     * be determined. Otherwise, return 1.
      * @return The width, or -1 if it cannot be determined.
      */
-    public int width(WidthSpec widthSpec) {
-        if (widthSpec.eContainer() instanceof Instantiation && parent != null) {
+    public int width() {
+        WidthSpec widthSpec = definition.getWidthSpec();
+        if (widthSpec != null) {
             // We need the instantiations list of the containing reactor,
             // not this one.
             return ASTUtils.width(widthSpec, parent.instantiations());
         }
-        return ASTUtils.width(widthSpec, instantiations());
+        return 1;
     }
     
     //////////////////////////////////////////////////////
     //// Protected fields.
-
-    /**
-     * If this reactor is in a bank of reactors, then this member
-     * refers to the reactor instance defining the bank.
-     */
-    protected ReactorInstance bank = null;
-
-    /**
-     * If this reactor instance is a placeholder for a bank of reactors,
-     * as created by the new[width] ReactorClass() syntax, then this
-     * list will be non-null and will contain the reactor instances in
-     * the bank.
-     */
-    protected List<ReactorInstance> bankMembers = null;
-
-    /**
-     * If this reactor is in a bank of reactors, its index, otherwise, -1
-     * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
-     */
-    protected int bankIndex = -1;
 
     /** 
      * Table recording connections and which connection created a link between 
@@ -867,42 +822,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Private constructors
     
     /**
-     * Create reactor instance resulting from the specified top-level instantiation.
-     * @param instance The Instance statement in the AST.
-     * @param parent The parent, or null for the main rector.
-     * @param reporter The error reporter.
-     * @param desiredDepth The depth to which to expand the hierarchy.
-     * @param unorderedReactions A list of reactions that should be treated as unordered.
-     */
-    private ReactorInstance(
-        Instantiation definition, 
-        ReactorInstance parent, 
-        ErrorReporter reporter, 
-        int desiredDepth,
-        Set<Reaction> unorderedReactions
-    ) {
-        // If the reactor is being instantiated with new[width], then pass -2
-        // to the constructor, otherwise pass -1.
-        this(
-            definition, 
-            parent, 
-            reporter, 
-            (definition.getWidthSpec() != null)? -2 : -1, 
-            0, 
-            desiredDepth,
-            unorderedReactions
-        );
-    }
-
-    /**
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
+     * @param definition The instantiation statement in the AST.
      * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
-     * @param reactorIndex -1 for an ordinary reactor, -2 for a
-     *  placeholder for a bank of reactors, or the index of the
-     *  reactor in a bank of reactors otherwise.
+     * @param reporter An error reporter.
      * @param depth The depth of this reactor in the hierarchy.
      * @param desiredDepth The depth to which to expand the hierarchy.
      * @param unorderedReactions A list of reactions that should be treated as unordered.
@@ -912,15 +836,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             Instantiation definition, 
             ReactorInstance parent,
             ErrorReporter reporter,
-            int reactorIndex,
-            int depth,
             int desiredDepth,
             Set<Reaction> unorderedReactions) {
         super(definition, parent);
         this.reporter = reporter;
-        this.bankIndex = reactorIndex;
         this.reactorDefinition = ASTUtils.toDefinition(definition.getReactorClass());
-        this.depth = depth;
+        
+        // Calculate the depth.
+        this.depth = 0;
+        ReactorInstance p = parent;
+        while (p != null) {
+            p = p.parent;
+            this.depth++;
+        }
+        
         if (unorderedReactions != null) {
             this.unorderedReactions = unorderedReactions;
         }
@@ -943,30 +872,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (recursive) {
             reporter.reportError(definition, "Recursive reactor instantiation.");
         }
-        
-        // If this reactor is actually a bank of reactors, then instantiate
-        // each individual reactor in the bank and skip the rest of the
-        // initialization for this reactor instance.
-        if (reactorIndex == -2) {
-            // If the bank width is variable, then we have to wait until the first connection
-            // before instantiating the children.
-            var width = width(definition.getWidthSpec());
-            if (width > 0) {
-                this.bankMembers = new ArrayList<ReactorInstance>(width);
-                for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(
-                        definition, parent, reporter, index, depth, desiredDepth, this.unorderedReactions
-                    );
-                    this.bankMembers.add(childInstance);
-                    childInstance.bank = this;
-                    childInstance.bankIndex = index;
-                }
-            } else {
-                reporter.reportWarning(definition, "Cannot infer width.");
-            }
-            return;
-        }
-        
+                
         // If the reactor definition is null, give up here. Otherwise, diagram generation
         // will fail an NPE.
         if (reactorDefinition == null) {
@@ -997,17 +903,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     child, 
                     this, 
                     reporter, 
-                    (child.getWidthSpec() != null)? -2 : -1, 
-                    depth + 1, 
                     desiredDepth,
                     this.unorderedReactions
                 );
                 this.children.add(childInstance);
-                // If the child is a bank of instances, add all the bank instances.
-                // These must be added after the bank itself.
-                if (childInstance.bankMembers != null) {
-                    this.children.addAll(childInstance.bankMembers);
-                }
+                this.numReactorInstances += childInstance.getTotalNumReactorInstances();
             }
 
             // Instantiate timers for this reactor instance
@@ -1027,6 +927,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Note that this can only happen _after_ the children, 
             // port, action, and timer instances have been created.
             createReactionInstances();
+            
+            this.totalNumReactorInstances = width() * this.numReactorInstances;
         }
     }
     
@@ -1081,29 +983,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 
         // The following is support for the diagram visualization.
         
-        // The source may be at a bank index greater than 0.
-        // For visualization, this needs to be converted to the source
-        // at bank 0, because only that one is rendered.
-        // We want the rendering to represent all connections.
-        var src = srcInstance;
-        var dst = dstInstance;
-        if (src.isOutput() && src.parent.bankIndex > 0) {
-            // Replace the source with the corresponding port instance
-            // at bank index 0.
-            ReactorInstance newParent = src.parent.bank.bankMembers.get(0);
-            src = newParent.getOutput(src.getName());
-        }
-        // The destination may be at a bank index greater than 0.
-        // For visualization, this needs to be converted to the destination
-        // at bank 0, because only that one is rendered.
-        // We want the rendering to represent all connections.
-        if (dst.isInput() && dst.parent.bankIndex > 0) {
-            // Replace the destination with the corresponding port instance
-            // at bank index 0.
-            ReactorInstance newParent = dst.parent.bank.bankMembers.get(0);
-            dst = newParent.getInput(dst.getName());
-        }
-        
         // Record this representative connection for visualization in the
         // connections map.
         Map<PortInstance, Set<PortInstance>> map = connections.get(connection);
@@ -1111,12 +990,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             map = new LinkedHashMap<PortInstance, Set<PortInstance>>();
             connections.put(connection, map);
         }
-        Set<PortInstance> destinations = map.get(src);
+        Set<PortInstance> destinations = map.get(srcInstance);
         if (destinations == null) {
             destinations = new LinkedHashSet<PortInstance>();
-            map.put(src, destinations);
+            map.put(srcInstance, destinations);
         }
-        destinations.add(dst);
+        destinations.add(dstInstance);
 
         // Original cryptic xtend code below.
         // val src2 = src
@@ -1206,8 +1085,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * If a given port reference `b.m`, where `b` is a bank and `m` is a multiport,
      * is unqualified, this function iterates over bank members first, then ports.
      * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`.
-     * 
-     * If a given port reference has the form `interleaved(b.m)`, where `b` is a
+     * If instead a given port reference has the form `interleaved(b.m)`, where `b` is a
      * bank and `m` is a multiport, this function iterates over ports first,
      * then bank members. E.g., if `b` and `m` have width 2, it returns
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`.
@@ -1231,38 +1109,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // The reactor can be null only if there is an error in the code.
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
-                if (reactor.bankMembers != null) {
-                    // Reactor is a bank.
-                    // Only here does the "interleaved" annotation matter.
-                    if (!portRef.isInterleaved()) {
-                        // Port is not interleaved, so iterate first over bank members, then channels.
-                        for (ReactorInstance memberReactor: reactor.bankMembers) {
-                            PortInstance portInstance = memberReactor.lookupPortInstance(
-                                    (Port) portRef.getVariable());
-                            result.add(portInstance.newRange(0, portInstance.width));
-                        }
-                    } else {
-                        // Port is interleaved, so iterate first over channels, then bank members.
-                        // Need to return a list of width-one ranges.
-                        // NOTE: Here, we get multiplicative complexity (bank width times port width).
-                        // We assume all ports in each bank have the same width.
-                        // First, get an array of bank members so as to not have to look up each time.
-                        List<PortInstance> bankPorts = new ArrayList<PortInstance>();
-                        for (ReactorInstance b : reactor.bankMembers) {
-                            bankPorts.add(b.lookupPortInstance((Port) portRef.getVariable()));
-                        }
-                        for (int i = 0; i < bankPorts.get(0).width; i++) {
-                            for (PortInstance p : bankPorts) {
-                                result.add(p.newRange(i, 1));
-                            }
-                        }
-                    }
-                } else {
-                    // Reactor is not a bank.
-                    PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
-                    PortInstance.Range range = portInstance.newRange(0, portInstance.width);
-                    result.add(range);
-                }
+                PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
+                PortInstance.Range range = portInstance.newRange(0, portInstance.width);
+                result.add(range);
             }
         }
         return result;
@@ -1294,4 +1143,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * this reactor and its contained reactors.
      */
     private int totalNumberOfReactionsCache = -1;
+    
+    /** Number of reactor instances (if a bank, in a bank element). */
+    private int numReactorInstances = 1;
+    
+    /** Total number of reactor instances, including bank width. */
+    private int totalNumReactorInstances = 1;
 }

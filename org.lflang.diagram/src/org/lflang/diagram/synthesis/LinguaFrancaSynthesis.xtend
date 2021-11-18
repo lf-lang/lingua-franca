@@ -323,13 +323,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
 			}
 		} else {
-            // If the reactor is a bank, then obtain the details from the first
-            // element of the bank rather than the bank itself.
-            val instance = if (reactorInstance.bankSize > 0) {
-                reactorInstance.bankMembers.get(0)
-            } else {
-                reactorInstance
-            }
+            val instance = reactorInstance
             
 			// Expanded Rectangle
 			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
@@ -573,12 +567,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactorInstance.children.reverseView.indexed) {
 			val child = entry.value
-			// Do not render individual reactors in a bank.
-			if (child.getBank() === null) {
-			    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
-			    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
-			    nodes += rNodes
-		    }
+		    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
+		    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
+		    nodes += rNodes
 		}
 		
 		// Create timers
@@ -677,29 +668,24 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect outputs
 			port = null // create new ports
 			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
-			    // Skip this effect if it is contained in a bank with index other than 0.
-			    if (!(effect instanceof PortInstance) 
-			        || (effect.parent.bankIndex <= 0)
-			    ) {
-                    port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-                        port
+                port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+                    port
+                } else {
+                    node.addInvisiblePort() => [
+                        setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
+                    ]
+                }
+                if (effect instanceof ActionInstance) {
+                    actionSources.put(effect, port)
+                } else if (effect instanceof PortInstance) {
+                    var KPort dst = null
+                    if (effect.isOutput) {
+                        dst = parentOutputPorts.get(effect)
                     } else {
-                        node.addInvisiblePort() => [
-                            setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-                        ]
+                        dst = inputPorts.get(effect.parent, effect)
                     }
-                    if (effect instanceof ActionInstance) {
-                        actionSources.put(effect, port)
-                    } else if (effect instanceof PortInstance) {
-                        var KPort dst = null
-                        if (effect.isOutput) {
-                            dst = parentOutputPorts.get(effect)
-                        } else {
-                            dst = inputPorts.get(effect.parent, effect)
-                        }
-                        if (dst !== null) {
-                            createDependencyEdge(effect).connect(port, dst)
-                        }
+                    if (dst !== null) {
+                        createDependencyEdge(effect).connect(port, dst)
                     }
                 }
 			}
@@ -872,17 +858,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             b.append(reactorInstance.reactorDefinition.name)
         }
         if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
-            // If the reactor is a bank, then obtain the details from the first
-            // element of the bank rather than the bank itself.
-            val instance = if (reactorInstance.bankSize > 0) {
-                reactorInstance.bankMembers.get(0)
-            } else {
-                reactorInstance
-            }
-            if (instance.parameters.empty) {
+            if (reactorInstance.parameters.empty) {
                 b.append("()")
             } else {
-                b.append(instance.parameters.join("(", ", ", ")") [
+                b.append(reactorInstance.parameters.join("(", ", ", ")") [
                     createParameterLabel(false)
                 ])
             }

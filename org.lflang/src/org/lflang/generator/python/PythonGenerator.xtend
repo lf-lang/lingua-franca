@@ -699,8 +699,8 @@ class PythonGenerator extends CGenerator {
         // Do not instantiate reactor classes that don't have a reaction in Python
         // Do not instantiate the federated main reactor since it is generated in C
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !instance.definition.reactorClass.toDefinition.isFederated) {
-            if (federate.contains(instance) && instance.bankMembers !== null) {
-                // If this reactor is a placeholder for a bank of reactors, then generate
+            if (federate.contains(instance) && instance.isBank) {
+                // If this reactor is a bank, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
                     append('''
@@ -1681,7 +1681,7 @@ class PythonGenerator extends CGenerator {
                 «nameOfSelfStruct»->_lf_py_reaction_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
-                        «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
+                        «IF (instance.isBank)» i_«instance.depth» «ELSE» «0» «ENDIF»,
                         "«pythonFunctionName»");
                 ''')
         
@@ -1690,7 +1690,7 @@ class PythonGenerator extends CGenerator {
                 «nameOfSelfStruct»->_lf_py_deadline_function_«reaction.index» = 
                     get_python_function("«topLevelName»", 
                         «nameOfSelfStruct»->_lf_name,
-                        «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
+                        «IF (instance.isBank)» i_«instance.depth» «ELSE» «0» «ENDIF»,
                         "deadline_function_«reaction.index»");
                 ''')
             }

@@ -662,7 +662,7 @@ class CGenerator extends GeneratorBase {
             // Generate main instance, if there is one.
             // Note that any main reactors in imported files are ignored.        
             if (this.main !== null) {
-                generateFederate(federate)
+                generateMain(federate)
                 // Generate function to set default command-line options.
                 // A literal array needs to be given outside any function definition,
                 // so start with that.
@@ -1002,14 +1002,12 @@ class CGenerator extends GeneratorBase {
 
         // Allocate the memory for triggers used in federated execution
         pr(CGeneratorExtension.allocateTriggersForFederate(federate, this));
-        // Assign appropriate pointers to the triggers
-        pr(initializeTriggerObjectsEnd,
-            CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this));
 
         pr(initializeTriggerObjects.toString)
-        pr('// Allocate memory.')
-        pr('// Populate arrays of trigger pointers.')
-        pr(initializeTriggerObjectsEnd.toString)
+
+        // Assign appropriate pointers to the triggers
+        // FIXME: For python target, almost surely in the wrong place.
+        pr(CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this).toString());
         doDeferredInitialize(federate)
 
         // Put the code here to set up the tables that drive resetting is_present and
@@ -1143,12 +1141,7 @@ class CGenerator extends GeneratorBase {
         LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
         for (r : reactor.children) {
-            // FIXME: If the reactor is the bank itself, it is just a placeholder and should be skipped.
-            // It seems that the way banks are instantiated is that
-            // for a bank new[4] Foo, there will be a reactor instance Foo and four additional
-            // reactor instances of Foo (5 total), but the first instance doesn't include
-            // any of the reactor instances within Foo in its children structure.
-            if (r.bankIndex != -2 && federate.contains(r)) {
+            if (federate.contains(r)) {
                 val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
                 if (!declarations.isNullOrEmpty) {
                     for (d : declarations) {
@@ -1545,7 +1538,7 @@ class CGenerator extends GeneratorBase {
      * 
      * @param federate The federate that is sending its neighbor structure
      */
-    def generateFederateNeighborStructure(FederateInstance federate) {
+    private def generateFederateNeighborStructure(FederateInstance federate) {
 
         val rtiCode = new StringBuilder();
         pr(rtiCode, '''
@@ -3653,9 +3646,12 @@ class CGenerator extends GeneratorBase {
     }
 
     /** Return the unique name for the "self" struct of the specified
-     *  reactor instance from the instance ID. If the instance is a member
-     *  of a bank of reactors, this returns something of the form
-     *  name_self[index], where the index is the position within the bank.
+     *  reactor instance from the instance ID. If the instance is a
+     *  bank of reactors, this returns something of the form
+     *  name_self[i_d], where d is the depth of the reactor.
+     *  This assumes that this will appear within a for loop that
+     *  uses index i_d. The use of the depth qualifier enables the
+     *  for loops to be nested when a bank contains other banks.
      *  @param instance The reactor instance.
      *  @return The name of the self struct.
      */
@@ -3663,8 +3659,8 @@ class CGenerator extends GeneratorBase {
         var result = instance.uniqueID + "_self"
         // If this reactor is a member of a bank of reactors, then change
         // the name of its self struct to append [index].
-        if (instance.bankIndex >= 0) {
-            result += "[" + instance.bankIndex + "]"
+        if (instance.isBank) {
+            result += "[i_" + instance.getDepth() + "]"
         }
         return result
     }
@@ -3800,10 +3796,10 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code to instantiate the specified federate at the top level.
-     * @param federate The federate to instantiate or null to generate everything.
+     * Generate code to instantiate the main reactor in the specified federate.
+     * @param federate The federate to instantiate or a singleton federate to generate everything.
      */
-    private def void generateFederate(FederateInstance federate) {
+    private def void generateMain(FederateInstance federate) {
         
         currentFederate = federate;
         
@@ -3831,17 +3827,14 @@ class CGenerator extends GeneratorBase {
         generateParameterInitialization(main);
         
         for (child: main.children) {
-            // If the child has a multiport that is an effect of some reaction in main,
-            // then we have to generate code to allocate memory for arrays pointing to
-            // its data. If the child is a bank, then memory is allocated for the entire
-            // bank width because a reaction cannot specify which bank members it writes
-            // to so we have to assume it can write to any. Hence, we do not want to
-            // filter which children we do this for by federate, which is why this call
-            // is here.
-            if (federate.contains(child) || child.bankIndex >= 0) {
-                generateAllocationForEffectsOnInputs(child);
-            }
             if (federate.contains(child)) {
+                // If the child has a multiport that is an effect of some reaction in main,
+                // then we have to generate code to allocate memory for arrays pointing to
+                // its data. If the child is a bank, then memory is allocated for the entire
+                // bank width because a reaction cannot specify which bank members it writes
+                // to so we have to assume it can write to any.
+                generateAllocationForEffectsOnInputs(child);
+                
                 generateReactorInstance(child);
             }
         }
@@ -3876,18 +3869,24 @@ class CGenerator extends GeneratorBase {
         var structType = selfStructType(reactorClass)
         
         // If this reactor is a placeholder for a bank of reactors, then generate
-        // an array of instances of reactors and return.
-        if (instance.bankMembers !== null) {
+        // an array of instances of reactors and create an enclosing for loop.
+        if (instance.isBank) {
+            val index = "i_" + instance.depth;
+            // Array is the self struct name, but without the indexing.
+            var selfStructArrayName = instance.uniqueID + "_self"
+            
             pr(initializeTriggerObjects, '''
-                «structType»* «nameOfSelfStruct»[«instance.bankMembers.size»];
+                «structType»* «selfStructArrayName»[«instance.width»];
+                // Create bank members.
+                for (int «index»; «index» < «instance.width»; «index»++) {
             ''')
-            return
+            indent(initializeTriggerObjects);
         }
 
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct). The form is slightly different
         // depending on whether its in a bank of reactors.
-        if (instance.bankIndex >= 0) {
+        if (instance.isBank) {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
@@ -4012,6 +4011,18 @@ class CGenerator extends GeneratorBase {
         // Note that this function is also run once at the end
         // so that it can deallocate any memory.
         generateStartTimeStep(instance)
+        
+        // End code must go here because it references the for loop variable if we are in a bank.
+        pr(initializeTriggerObjects, initializeTriggerObjectsEnd)
+        initializeTriggerObjectsEnd = new StringBuilder();
+        
+        if (instance.isBank()) {
+            // Close the for loop.
+            unindent(initializeTriggerObjects);
+            pr(initializeTriggerObjects, '''
+                }
+            ''')
+        }
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
     
@@ -4186,16 +4197,6 @@ class CGenerator extends GeneratorBase {
                     val portStructType = variableStructType(
                             effect.definition, reactor.definition.reactorClass);
 
-                    // FIXME: As of now, the following never happens because bank members
-                    // are handled individually. But I plan to fix this, so I'm leaving this
-                    // dead code here.
-                    if (reactor.bankIndex === -2) {
-                        pr(initializeTriggerObjectsEnd, '''
-                            for (int j = 0; j < «reactor.bankSize»; j++) {
-                        ''')
-                        indent(initializeTriggerObjectsEnd);
-                        containerName += "[j]";
-                    }
                     pr(initializeTriggerObjectsEnd, '''
                         «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width = «effect.width»;
                         // Allocate memory to store output of reaction feeding a multiport input of a contained reactor.
@@ -4205,12 +4206,6 @@ class CGenerator extends GeneratorBase {
                             «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
                         }
                     ''')
-                    if (reactor.bankIndex === -2) {
-                        unindent(initializeTriggerObjectsEnd);
-                        pr(initializeTriggerObjectsEnd, '''
-                            }
-                        ''')
-                    }
                 }
             }
         }
@@ -4403,33 +4398,25 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects,
                             nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
                     } else {
-                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
-                        if (instance.getBank() !== null) {
-                            temporaryVariableName += "_" + instance.bankIndex
-                        }
                         // Array type has to be handled specially because C doesn't accept
                         // type[] as a type designator.
                         // Use the superclass to avoid [] being replaced by *.
                         var type = super.getTargetType(stateVar.inferredType)
                         val matcher = arrayPatternVariable.matcher(type)
+                        
+                        var declaration = type + " _initial";
                         if (matcher.find()) {
                             // If the state type ends in [], then we have to move the []
                             // because C is very picky about where this goes. It has to go
                             // after the variable name.
-                            pr(
-                                initializeTriggerObjects,
-                                "static " + matcher.group(1) + " " + temporaryVariableName + "[] = " + initializer + ";"
-                            )
-                        } else {
-                            pr(
-                                initializeTriggerObjects,
-                                "static " + type + " " + temporaryVariableName + " = " + initializer + ";"
-                            )
+                            declaration = matcher.group(1) + " _initial[]"
                         }
-                        pr(
-                            initializeTriggerObjects,
-                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
+                        pr(initializeTriggerObjects, '''
+                            { // For scoping
+                                static «declaration» = «initializer»;
+                                «nameOfSelfStruct»->«stateVar.name» = _initial;
+                            } // End scoping.
+                        '''
                         )
                     }
                 }
@@ -5218,12 +5205,11 @@ class CGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Private methods.
     
-    /** Perform deferred initializations in initialize_trigger_objects.
-     *  @param federate The federate for which we are doing this.
+    /** 
+     * Perform deferred initializations in initialize_trigger_objects.
+     * @param federate The federate for which we are doing this.
      */
     private def doDeferredInitialize(FederateInstance federate) {
-        // First, populate the trigger tables for each output.
-        // The entries point to the trigger_t structs for the destination inputs.
         pr('// doDeferredInitialize')
 
         // For outputs that are not primitive types (of form type* or type[]),
@@ -5238,7 +5224,8 @@ class CGenerator extends GeneratorBase {
     /**
      * Generate assignments of pointers in the "self" struct of a destination
      * port's reactor to the appropriate entries in the "self" struct of the
-     * source reactor.
+     * source reactor. This has to be done after all reactors have been created
+     * because inputs point to outputs that are arbitrarily far away.
      * @param instance The reactor instance.
      * @param federate The federate for which we are generating code or null
      *  if there is no federation.
@@ -5248,6 +5235,17 @@ class CGenerator extends GeneratorBase {
             return;
         }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
+        
+        // If the reactor is a bank, have to surround with a for loop.
+        FIXME wont work reactpr self struct is out of scope
+        if (instance.isBank) {
+            val index = "i_" + instance.depth;            
+            pr('''
+                // Initialize bank members.
+                for (int «index»; «index» < «instance.width»; «index»++) {
+            ''')
+            indent();
+        }
         // Iterate over all ports of this reactor that have dependent reactions.
         for (input : instance.inputs) {
             if (!input.dependentReactions.isEmpty()) {
@@ -5272,6 +5270,12 @@ class CGenerator extends GeneratorBase {
         // output of a contained reactor.
         connectReactionsToPorts(instance, federate)
         
+        if (instance.isBank) {
+            unindent();
+            pr('''
+                }
+            ''')
+        }
         pr('''// END Connect inputs and outputs for reactor «instance.getFullName».''')
     }
     
@@ -5899,15 +5903,25 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** For each output that has a token type (type* or type[]),
-     *  create a default token and put it on the self struct.
-     *  @param parent The container reactor.
-     *  @param federate The federate, or null if there is no federation.
+    /** 
+     * For each output that has a token type (type* or type[]),
+     * create a default token and put it on the self struct.
+     * @param parent The container reactor.
+     * @param federate The federate, or null if there is no federation.
      */
     private def void createDefaultTokens(ReactorInstance parent, FederateInstance federate) {
         for (containedReactor : parent.children) {
             // Do this only for reactors in the federate.
             if (federate.contains(containedReactor)) {
+                // If the reactor is a bank, have to surround with a for loop.
+                if (containedReactor.isBank) {
+                    val index = "i_" + containedReactor.depth;            
+                    pr('''
+                        // Initialize bank members.
+                        for (int «index»; «index» < «containedReactor.width»; «index»++) {
+                    ''')
+                    indent();
+                }
                 var nameOfSelfStruct = selfStructName(containedReactor)
                 for (output : containedReactor.outputs) {
                     val type = (output.definition as Output).inferredType
@@ -5933,6 +5947,12 @@ class CGenerator extends GeneratorBase {
                 }
                 // In case this is a composite, handle its contained reactors.
                 createDefaultTokens(containedReactor, federate)
+                if (containedReactor.isBank) {
+                    unindent();
+                    pr('''
+                        }
+                    ''')
+                }
             }
         }
     }
