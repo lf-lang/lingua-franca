@@ -2668,7 +2668,7 @@ class CGenerator extends GeneratorBase {
         // trigger downstream reactions.
         for (reaction : reactions) {
             val instance = reaction.parent;
-            val nameOfSelfStruct = selfStructName(instance)
+            val nameOfSelfStruct = CUtil.selfRef(instance)
             
             generateReactionOutputs(reaction);
 
@@ -3129,7 +3129,7 @@ class CGenerator extends GeneratorBase {
      */
     private def generateRemoteTriggerTable(Iterable<ReactionInstance> reactions) {
         for (reaction : reactions) {
-            val selfStruct = selfStructName(reaction.parent);
+            val selfStruct = CUtil.selfRef(reaction.parent);
             val name = reaction.parent.getFullName;
             var channelCount = 0
             
@@ -3238,7 +3238,7 @@ class CGenerator extends GeneratorBase {
         int reactionNumber
     ) {
         val reactorInstance = reaction.parent;
-        val selfStruct = selfStructName(reactorInstance)
+        val selfStruct = CUtil.selfRef(reactorInstance)
         
         // Record the number of reactions that this reaction depends on.
         // This is used for optimization. When that number is 1, the reaction can
@@ -3255,7 +3255,7 @@ class CGenerator extends GeneratorBase {
                 && currentFederate.contains(dominatingReaction.definition)
                 && currentFederate.contains(dominatingReaction.parent)
         ) {
-            val upstreamReaction = '''«selfStructName(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
+            val upstreamReaction = '''«CUtil.selfRef(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
             pr(initializeTriggerObjectsEnd, '''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
                 «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = &(«upstreamReaction»);
@@ -3278,7 +3278,7 @@ class CGenerator extends GeneratorBase {
         // input of a contained reactor that is present.
         for (child : instance.children) {
             if (currentFederate.contains(child)) {
-                var nameOfSelfStruct = selfStructName(child)
+                var nameOfSelfStruct = CUtil.selfRef(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
                         if (input.isMultiport()) {
@@ -3306,7 +3306,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        var containerSelfStructName = selfStructName(instance)
+        var containerSelfStructName = CUtil.selfRef(instance)
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
@@ -3398,7 +3398,7 @@ class CGenerator extends GeneratorBase {
         // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
             if (currentFederate.contains(child)) {
-                var nameOfSelfStruct = selfStructName(child)
+                var nameOfSelfStruct = CUtil.selfRef(child)
                 for (output : child.outputs) {
                     if (output.isMultiport()) {
                         pr(startTimeStep, '''
@@ -3566,49 +3566,7 @@ class CGenerator extends GeneratorBase {
             '''
         }
     }
-    
-    /**
-     * Return a string for referencing the struct with the value and is_present
-     * fields of the specified port. This is used for establishing the destination of
-     * data for a connection between ports.
-     * This will have the following form:
-     * 
-     * * selfStruct->_lf_portName
-     * 
-     * @param port An instance of a destination input port.
-     */
-    static def destinationReference(PortInstance port) {
-        // Note that if the port is an output, then it must
-        // have dependent reactions, otherwise it would not
-        // be a destination.
-        var destStruct = selfStructName(port.parent)
-        return '''«destStruct»->_lf_«port.name»'''
-    }
- 
-    /**
-     * Return a string for referencing the port struct with the value
-     * and is_present fields in a self struct that receives data from
-     * the specified output port to be used by a reaction.
-     * The output port is contained by a contained reactor.
-     * This will have the following form:
-     * 
-     * * selfStruct->_lf_reactorName.portName
-     * 
-     * The selfStruct is that of the container of reactor that
-     * contains the port.
-     * 
-     * @param port An instance of a destination port.
-     */
-    static def reactionReference(PortInstance port) {
-        var destStruct = selfStructName(port.parent.parent)
-
-        if (port.isOutput) {
-            return '''«destStruct»->_lf_«port.parent.name».«port.name»'''
-        } else {
-            return '// Nothing to do. Port is an input.'
-        }
-    }
- 
+     
     /**
      * Return a string for referencing the data or is_present value of
      * the specified port. This is used for establishing the source of
@@ -3633,60 +3591,43 @@ class CGenerator extends GeneratorBase {
      */
     static def sourceReference(PortInstance port) {                
         if (port.isOutput()) {
-            val sourceStruct = selfStructName(port.parent);
+            val sourceStruct = CUtil.selfRef(port.parent);
             return '''«sourceStruct»->_lf_«port.name»'''
         } else {
-            val sourceStruct = selfStructName(port.parent.parent)
+            val sourceStruct = CUtil.selfRef(port.parent.parent)
             return '''«sourceStruct»->_lf_«port.parent.name».«port.name»'''
         }
     }
 
-    /** Return the unique name for the "self" struct of the specified
-     *  reactor instance from the instance ID. If the instance is a
-     *  bank of reactors, this returns something of the form
-     *  name_self[i_d], where d is the depth of the reactor.
-     *  This assumes that this will appear within a for loop that
-     *  uses index i_d. The use of the depth qualifier enables the
-     *  for loops to be nested when a bank contains other banks.
-     *  @param instance The reactor instance.
-     *  @return The name of the self struct.
+    /** 
+     * Construct a unique type for the "self" struct of the specified
+     * reactor class from the reactor class.
+     * @param reactor The reactor class.
+     * @return The name of the self struct.
      */
-    static def selfStructName(ReactorInstance instance) {
-        var result = instance.uniqueID + "_self"
-        // If this reactor is a member of a bank of reactors, then change
-        // the name of its self struct to append [index].
-        if (instance.isBank) {
-            result += "[i_" + instance.getDepth() + "]"
-        }
-        return result
-    }
-
-    /** Construct a unique type for the "self" struct of the specified
-     *  reactor class from the reactor class.
-     *  @param reactor The reactor class.
-     *  @return The name of the self struct.
-     */
-    def selfStructType(ReactorDecl reactor) {
+    static def selfStructType(ReactorDecl reactor) {
         return reactor.name.toLowerCase + "_self_t"
     }
     
-    /** Construct a unique type for the struct of the specified
-     *  typed variable (port or action) of the specified reactor class.
-     *  @param variable The variable.
-     *  @param reactor The reactor class.
-     *  @return The name of the self struct.
+    /** 
+     * Construct a unique type for the struct of the specified
+     * typed variable (port or action) of the specified reactor class.
+     * @param variable The variable.
+     * @param reactor The reactor class.
+     * @return The name of the self struct.
      */
-    def variableStructType(Variable variable, ReactorDecl reactor) {
+    static def variableStructType(Variable variable, ReactorDecl reactor) {
         '''«reactor.name.toLowerCase»_«variable.name»_t'''
     }
     
-    /** Return the function name for specified reaction of the
-     *  specified reactor.
-     *  @param reactor The reactor
-     *  @param reactionIndex The reaction index.
-     *  @return The function name for the reaction.
+    /** 
+     * Return the function name for specified reaction of the
+     * specified reactor.
+     * @param reactor The reactor
+     * @param reactionIndex The reaction index.
+     * @return The function name for the reaction.
      */
-    def reactionFunctionName(ReactorDecl reactor, int reactionIndex) {
+    static def reactionFunctionName(ReactorDecl reactor, int reactionIndex) {
           reactor.name.toLowerCase + "reaction_function_" + reactionIndex
     }
 
@@ -3697,7 +3638,7 @@ class CGenerator extends GeneratorBase {
      *  @return The name of the trigger struct.
      */
     static def triggerStructName(TriggerInstance<? extends Variable> instance) {
-        return selfStructName(instance.parent) 
+        return CUtil.selfRef(instance.parent) 
                 + '''->_lf__'''
                 + instance.name
     }
@@ -3710,7 +3651,7 @@ class CGenerator extends GeneratorBase {
      *   of the container of the reaction.
      */
     static def triggerStructName(PortInstance port, ReactorInstance reactor) {
-        return '''«selfStructName(reactor)»->_lf_«port.parent.name».«port.name»_trigger'''
+        return '''«CUtil.selfRef(reactor)»->_lf_«port.parent.name».«port.name»_trigger'''
     }
     
     /**
@@ -3774,7 +3715,7 @@ class CGenerator extends GeneratorBase {
         // the header information in the trace file.
         if (targetConfig.tracing !== null) {
             var description = getShortenedName(instance)
-            var nameOfSelfStruct = selfStructName(instance)
+            var nameOfSelfStruct = CUtil.selfRef(instance)
             pr(initializeTriggerObjects, '''
                 _lf_register_trace_event(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
             ''')
@@ -3821,8 +3762,8 @@ class CGenerator extends GeneratorBase {
 
         // Generate the self struct declaration for the top level.
         pr(initializeTriggerObjects, '''
-            «selfStructType(main.definition.reactorClass)»* «selfStructName(main)» = new_«main.name»();
-            selfStructs[0] = «selfStructName(main)»;
+            «selfStructType(main.definition.reactorClass)»* «CUtil.selfRef(main)» = new_«main.name»();
+            selfStructs[0] = «CUtil.selfRef(main)»;
         ''')
 
         // Generate code for top-level parameters, actions, timers, and reactions that
@@ -3870,13 +3811,13 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
             
-        var nameOfSelfStruct = selfStructName(instance)
+        var nameOfSelfStruct = CUtil.selfRef(instance)
         var structType = selfStructType(reactorClass)
         
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         if (instance.isBank) {
-            val index = INDEX_PREFIX + instance.depth;
+            val index = CUtil.INDEX_PREFIX + instance.depth;
             // Array is the self struct name, but without the indexing.
             var selfStructArrayName = instance.uniqueID + "_self"
             
@@ -3894,7 +3835,6 @@ class CGenerator extends GeneratorBase {
         if (instance.isBank) {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
-                selfStructs[«instance.indexExpression(INDEX_PREFIX)»] = «nameOfSelfStruct»;
             ''')
         } else {
             pr(initializeTriggerObjects, '''
@@ -3903,7 +3843,7 @@ class CGenerator extends GeneratorBase {
         }
         // Record the self struct on the big array of self structs.
         pr(initializeTriggerObjects, '''
-            selfStructs[«instance.indexExpression(INDEX_PREFIX)»] = «nameOfSelfStruct»;
+            selfStructs[«instance.indexExpression(CUtil.INDEX_PREFIX)»] = «nameOfSelfStruct»;
         ''')
 
         // Generate code to initialize the "self" struct in the
@@ -4062,7 +4002,7 @@ class CGenerator extends GeneratorBase {
                     }    
                 }
             
-                var nameOfSelfStruct = selfStructName(action.parent);
+                var nameOfSelfStruct = CUtil.selfRef(action.parent);
 
                 // Create a reference token initialized to the payload size.
                 // This token is marked to not be freed so that the trigger_t struct
@@ -4202,8 +4142,8 @@ class CGenerator extends GeneratorBase {
                     // Port is a multiport input that the parent's reaction is writing to.
                     portsHandled.add(effect);
                     
-                    val nameOfSelfStruct = selfStructName(reactor.parent);
-                    var containerName = reactor.name;
+                    val nameOfSelfStruct = CUtil.selfRef(reactor.parent);
+                    var containerName = CUtil.reactorRef(reactor);
                     val portStructType = variableStructType(
                             effect.definition, reactor.definition.reactorClass);
 
@@ -4237,7 +4177,7 @@ class CGenerator extends GeneratorBase {
                             // Port is an effect of a parent's reaction.
                             // That is, the port belongs to the same reactor as the reaction.
                             // The reaction is writing to an output of its container reactor.
-                            val nameOfSelfStruct = selfStructName(port.parent);
+                            val nameOfSelfStruct = CUtil.selfRef(port.parent);
                             val portStructType = variableStructType(
                                 port.definition,
                                 port.parent.definition.reactorClass
@@ -4280,7 +4220,7 @@ class CGenerator extends GeneratorBase {
      * @param The reaction instance.
      */
     private def void generateReactionOutputs(ReactionInstance reaction) {
-        val nameOfSelfStruct = selfStructName(reaction.parent);
+        val nameOfSelfStruct = CUtil.selfRef(reaction.parent);
 
         // Count the output ports and inputs of contained reactors that
         // may be set by this reaction. This ignores actions in the effects.
@@ -4391,7 +4331,7 @@ class CGenerator extends GeneratorBase {
      */
     def generateStateVariableInitializations(ReactorInstance instance) {
         val reactorClass = instance.definition.reactorClass
-        val nameOfSelfStruct = selfStructName(instance)
+        val nameOfSelfStruct = CUtil.selfRef(instance)
         for (stateVar : reactorClass.toDefinition.stateVars) {
 
             val initializer = getInitializer(stateVar, instance)
@@ -4442,7 +4382,7 @@ class CGenerator extends GeneratorBase {
         for (reaction : reactions) {
             if (reaction.declaredDeadline !== null) {
                 var deadline = reaction.declaredDeadline.maxDelay
-                val reactionStructName = '''«selfStructName(reaction.parent)»->_lf__reaction_«reaction.index»'''
+                val reactionStructName = '''«CUtil.selfRef(reaction.parent)»->_lf__reaction_«reaction.index»'''
                 pr(initializeTriggerObjects, '''
                     «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
                 ''')
@@ -4455,7 +4395,7 @@ class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     def void generateParameterInitialization(ReactorInstance instance) {
-        var nameOfSelfStruct = selfStructName(instance)
+        var nameOfSelfStruct = CUtil.selfRef(instance)
         // Array type parameters have to be handled specially.
         // Use the superclass getTargetType to avoid replacing the [] with *.
         for (parameter : instance.parameters) {
@@ -4515,9 +4455,9 @@ class CGenerator extends GeneratorBase {
             if (contained !== null) {
                 // Caution: If port belongs to a contained reactor, the self struct needs to be that
                 // of the contained reactor instance, not this containe
-                selfStruct = selfStructName(reactorInstance.getChildReactorInstance(contained))
+                selfStruct = CUtil.selfRef(reactorInstance.getChildReactorInstance(contained))
             } else {
-                selfStruct =selfStructName(reactorInstance);
+                selfStruct =CUtil.selfRef(reactorInstance);
             }
         }
         if (port.widthSpec !== null) {
@@ -4547,7 +4487,7 @@ class CGenerator extends GeneratorBase {
 
         for (i : state?.init) {
             if (i.parameter !== null) {
-                list.add(parent.selfStructName + "->" + i.parameter.name)
+                list.add(CUtil.selfRef(parent) + "->" + i.parameter.name)
             } else if (state.isOfTimeType) {
                 list.add(i.targetTime)
             } else {
@@ -4573,7 +4513,7 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.contains(
                 r.definition
             )) {
-                val reactionStructName = '''«selfStructName(r.parent)»->_lf__reaction_«r.index»'''
+                val reactionStructName = '''«CUtil.selfRef(r.parent)»->_lf__reaction_«r.index»'''
                 // xtend doesn't support bitwise operators...
                 val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, r.level)
                 val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
@@ -5217,11 +5157,9 @@ class CGenerator extends GeneratorBase {
      * @param description A description of the section of code.
      */
     protected def startScopedSection(StringBuilder builder, String description) {
-        pr(builder, '''
-            // «description»
-            { // For scoping
-        ''')
-        indent();
+        pr(builder, "// " + description);
+        pr(builder, "{ // For scoping");
+        indent(builder);
     }
     
     /**
@@ -5229,10 +5167,8 @@ class CGenerator extends GeneratorBase {
      * @param builder The string builder to write to.
      */
     protected def endScopedSection(StringBuilder builder) {
-        unindent();
-        pr(builder, '''
-            } // End scoped section
-        ''')
+        unindent(builder);
+        pr(builder, "} // End scoped section");
     }
     
     // //////////////////////////////////////////
@@ -5272,7 +5208,7 @@ class CGenerator extends GeneratorBase {
         
         // If the reactor is a bank, have to surround with a for loop.
         if (instance.isBank) {
-            val index = INDEX_PREFIX + instance.depth;            
+            val index = CUtil.INDEX_PREFIX + instance.depth;            
             pr('''
                 // Initialize bank members.
                 for (int «index»; «index» < «instance.width»; «index»++) {
@@ -5281,11 +5217,11 @@ class CGenerator extends GeneratorBase {
         }
         
         // Retrieve the self struct from the common array of self structs.
-        var nameOfSelfStruct = selfStructName(instance)
+        var nameOfSelfStruct = CUtil.selfRef(instance)
         var structType = selfStructType(instance.definition.reactorClass)
         pr('''
             «structType»* «nameOfSelfStruct» 
-                = («structType»*)selfStructs[«instance.indexExpression(INDEX_PREFIX)»];
+                = («structType»*)selfStructs[«instance.indexExpression(CUtil.INDEX_PREFIX)»];
         ''')
         
         // Iterate over all ports of this reactor that have dependent reactions.
@@ -5358,7 +5294,7 @@ class CGenerator extends GeneratorBase {
                             { // To scope variable j
                                 int j = «eventualSource.startChannel»;
                                 for (int i = «startChannel»; i < «eventualSource.channelWidth» + «startChannel»; i++) {
-                                    «destinationReference(port)»[i] = («destStructType»*)«modifier»«sourceReference(src)»[j++];
+                                    «CUtil.destinationRef(port)»[i] = («destStructType»*)«modifier»«sourceReference(src)»[j++];
                                 }
                             }
                         ''')
@@ -5367,21 +5303,21 @@ class CGenerator extends GeneratorBase {
                         // Source is a multiport, destination is a single port.
                         pr('''
                             // Connect «src.getFullName» to port «port.getFullName»
-                            «destinationReference(port)» = («destStructType»*)«modifier»«sourceReference(src)»[«eventualSource.startChannel»];
+                            «CUtil.destinationRef(port)» = («destStructType»*)«modifier»«sourceReference(src)»[«eventualSource.startChannel»];
                         ''')
                     }
                 } else if (port.isMultiport()) {
                     // Source is a single port, Destination is a multiport.
                     pr('''
                         // Connect «src.getFullName» to port «port.getFullName»
-                        «destinationReference(port)»[«startChannel»] = («destStructType»*)&«sourceReference(src)»;
+                        «CUtil.destinationRef(port)»[«startChannel»] = («destStructType»*)&«sourceReference(src)»;
                     ''')
                     startChannel++;
                 } else {
                     // Both ports are single ports.
                     pr('''
                         // Connect «src.getFullName» to port «port.getFullName»
-                        «destinationReference(port)» = («destStructType»*)&«sourceReference(src)»;
+                        «CUtil.destinationRef(port)» = («destStructType»*)&«sourceReference(src)»;
                     ''')
                 }
             }
@@ -5412,14 +5348,14 @@ class CGenerator extends GeneratorBase {
                                 // Connect «port», which gets data from reaction «reaction.index»
                                 // of «instance.getFullName», to «port.getFullName».
                                 for (int i = 0; i < «port.width»; i++) {
-                                    «destinationReference(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
+                                    «CUtil.destinationRef(port)»[i] = («destStructType»*)«sourceReference(port)»[i];
                                 }
                             ''')
                         } else {
                             pr('''
                                 // Connect «port», which gets data from reaction «reaction.index»
                                 // of «instance.getFullName», to «port.getFullName».
-                                «destinationReference(port)» = («destStructType»*)&«sourceReference(port)»;
+                                «CUtil.destinationRef(port)» = («destStructType»*)&«sourceReference(port)»;
                             ''')
                         }
                         // FIXME: Don't we also to set set the destination reference for more
@@ -5448,7 +5384,7 @@ class CGenerator extends GeneratorBase {
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
                                     for (int i = 0; i < «eventualSource.channelWidth»; i++) {
-                                        «reactionReference(port)»[i + «portChannelCount»] = («destStructType»*)&«sourceReference(sourcePort)»[i + «eventualSource.startChannel»];
+                                        «CUtil.containedPortRef(port)»[i + «portChannelCount»] = («destStructType»*)&«sourceReference(sourcePort)»[i + «eventualSource.startChannel»];
                                     }
                                 ''')
                                 portChannelCount += eventualSource.channelWidth;
@@ -5457,7 +5393,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)» = («destStructType»*)&«sourceReference(sourcePort)»[«eventualSource.startChannel»];
+                                    «CUtil.containedPortRef(port)» = («destStructType»*)&«sourceReference(sourcePort)»[«eventualSource.startChannel»];
                                 ''')
                                 portChannelCount++;
                             } else if (port.isMultiport) {
@@ -5465,7 +5401,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)»[«portChannelCount»] = («destStructType»*)&«sourceReference(sourcePort)»;
+                                    «CUtil.containedPortRef(port)»[«portChannelCount»] = («destStructType»*)&«sourceReference(sourcePort)»;
                                 ''')
                                 portChannelCount++;
                             } else {
@@ -5473,7 +5409,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    «reactionReference(port)» = («destStructType»*)&«sourceReference(sourcePort)»;
+                                    «CUtil.containedPortRef(port)» = («destStructType»*)&«sourceReference(sourcePort)»;
                                 ''')
                                 portChannelCount++;
                             }
@@ -5953,14 +5889,14 @@ class CGenerator extends GeneratorBase {
             if (currentFederate.contains(containedReactor)) {
                 // If the reactor is a bank, have to surround with a for loop.
                 if (containedReactor.isBank) {
-                    val index = INDEX_PREFIX + containedReactor.depth;            
+                    val index = CUtil.INDEX_PREFIX + containedReactor.depth;            
                     pr('''
                         // Initialize bank members.
                         for (int «index»; «index» < «containedReactor.width»; «index»++) {
                     ''')
                     indent();
                 }
-                var nameOfSelfStruct = selfStructName(containedReactor)
+                var nameOfSelfStruct = CUtil.selfRef(containedReactor)
                 
                 // Look for outputs with token types.
                 var foundOne = false;
@@ -5972,7 +5908,7 @@ class CGenerator extends GeneratorBase {
                             var structType = selfStructType(containedReactor.definition.reactorClass)
                             pr('''
                                 «structType»* «nameOfSelfStruct» 
-                                    = («structType»*)selfStructs[«containedReactor.indexExpression(INDEX_PREFIX)»];
+                                    = («structType»*)selfStructs[«containedReactor.indexExpression(CUtil.INDEX_PREFIX)»];
                             ''')
                 
                             foundOne = true;
@@ -6216,6 +6152,4 @@ class CGenerator extends GeneratorBase {
     /** The current federate for which we are generating code. */
     var currentFederate = null as FederateInstance;
     
-    /** Prefix used for-loop variables when iterating over bank members. */
-    static val INDEX_PREFIX = "i_";
 }

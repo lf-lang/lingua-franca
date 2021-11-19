@@ -52,6 +52,7 @@ import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.c.CCompiler
 import org.lflang.generator.c.CGenerator
+import org.lflang.generator.c.CUtil
 import org.lflang.lf.Action
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
@@ -1624,7 +1625,7 @@ class PythonGenerator extends CGenerator {
         // Here, we attempt to convert the parameter value to 
         // integer. If it succeeds, we also initialize it in C.
         // If it fails, we defer the initialization to Python.
-        var nameOfSelfStruct = selfStructName(instance)
+        var nameOfSelfStruct = CUtil.selfRef(instance)
         for (parameter : instance.parameters) {
             val initializer =  parameter.getInitializer
             try {
@@ -1670,7 +1671,7 @@ class PythonGenerator extends CGenerator {
     override void generateReactorInstanceExtension(
         ReactorInstance instance, Iterable<ReactionInstance> reactions
     ) {
-        var nameOfSelfStruct = selfStructName(instance)
+        var nameOfSelfStruct = CUtil.selfRef(instance)
         var reactor = instance.definition.reactorClass.toDefinition
         
          // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
