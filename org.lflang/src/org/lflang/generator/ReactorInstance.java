@@ -295,8 +295,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Get the number of reactor instances associated with this
      * reactor. This is 1 plus the total number of reactors
-     * in any contained reactors.  If this is a bank, then
-     * this number does not account for the bank width.
+     * in any contained reactors, as returned by getTotalNumReactorInstances().
+     * If this is a bank, then this number does not account for the bank width.
      * Use getTotalNumberOfReactorInstances() to take into
      * account bank width.
      */
@@ -408,6 +408,44 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public List<Value> initialParameterValue(Parameter parameter) {
         return ASTUtils.initialValue(parameter, instantiations());
+    }
+
+    /**
+     * Return an expression that, when evaluated in a
+     * context with bank index variables defined, returns a unique index
+     * for a runtime reactor instance. This can be used to maintain an
+     * array of runtime instance objects, each of which will have a
+     * unique index.
+     * 
+     * This is rather complicated because
+     * this reactor instance and any of its parents may actually
+     * represent a bank of runtime reactor instances rather a single
+     * runtime instance. This method returns an expression that should
+     * be evaluatable in any target language that uses + for addition
+     * and * for multiplication and has defined variables in the context
+     * in which this will be evaluated that specify which bank member is
+     * desired for this reactor instance and any of its parents that is
+     * a bank.  The names of these variables should be rd, where r is
+     * the root string given here as an argument and d is the depth of
+     * the reactor instance that represents a bank.
+     * 
+     * If this is a top-level reactor, this appends "0" and returns.
+     * If this is one level down, this appends "n", where n is the
+     * sum of the total 
+     */
+    public String indexExpression(String root) {
+        if (depth == 0) return("0");
+        if (isBank()) {
+            return(
+                    root + depth + " * " + numReactorInstances // Position of the bank member relative to the bank.
+                    + " + " + indexOffset                      // Position of the bank within its parent.
+                    + " + " + parent.indexExpression(root)     // Position of the parent.
+            );
+        } else {
+            return(indexOffset                                 // Position within the parent.
+                    + " + " + parent.indexExpression(root)     // Position of the parent.
+            );
+        }
     }
 
     /**
@@ -897,7 +935,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Do not process content (except interface above) if recursive
         if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
-            // Instantiate children for this reactor instance
+            // Instantiate children for this reactor instance.
+            // While doing this, assign an index offset to each.
+            int offset = 1;
             for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
                 var childInstance = new ReactorInstance(
                     child, 
@@ -908,6 +948,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 );
                 this.children.add(childInstance);
                 this.numReactorInstances += childInstance.getTotalNumReactorInstances();
+                childInstance.indexOffset = offset;
+                // Next child will have an offset augmented by the total number of
+                // reactor instances in this one.
+                offset += childInstance.getTotalNumReactorInstances();
             }
 
             // Instantiate timers for this reactor instance
@@ -1138,14 +1182,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private int levelsAssignedAlready = 0;
     
+    /** Number of reactor instances (if a bank, in a bank element). */
+    private int numReactorInstances = 1;
+    
+    /**
+     * The offset relative to the parent. This is the sum of
+     * the total number of reactor instances of peer reactors
+     * (those with the same parent) that are instantiated before
+     * this in the parent. This is used by indexExpression().
+     */
+    private int indexOffset = 0;
+    
     /**
      * Cached version of the total number of reactions within
      * this reactor and its contained reactors.
      */
     private int totalNumberOfReactionsCache = -1;
-    
-    /** Number of reactor instances (if a bank, in a bank element). */
-    private int numReactorInstances = 1;
     
     /** Total number of reactor instances, including bank width. */
     private int totalNumReactorInstances = 1;

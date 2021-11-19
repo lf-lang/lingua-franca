@@ -580,6 +580,8 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         for (federate : federates) {
+            currentFederate = federate;
+            
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
@@ -626,8 +628,9 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjects = new StringBuilder()
                 initializeTriggerObjectsEnd = new StringBuilder()                
                         
-                // Enable clock synchronization if the federate is not local and clock-sync is enabled
-                initializeClockSynchronization(federate)
+                // Enable clock synchronization if the federate
+                // is not local and clock-sync is enabled
+                initializeClockSynchronization()
                 
 
                 startTimeStep = new StringBuilder()
@@ -641,7 +644,7 @@ class CGenerator extends GeneratorBase {
             copyTargetHeaderFile()
             
             // Generate code for each reactor.
-            generateReactorDefinitionsForFederate(federate);
+            generateReactorDefinitionsForFederate();
         
             // Derive target filename from the .lf filename.
             val cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
@@ -662,7 +665,7 @@ class CGenerator extends GeneratorBase {
             // Generate main instance, if there is one.
             // Note that any main reactors in imported files are ignored.        
             if (this.main !== null) {
-                generateMain(federate)
+                generateMain()
                 // Generate function to set default command-line options.
                 // A literal array needs to be given outside any function definition,
                 // so start with that.
@@ -1008,7 +1011,7 @@ class CGenerator extends GeneratorBase {
         // Assign appropriate pointers to the triggers
         // FIXME: For python target, almost surely in the wrong place.
         pr(CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this).toString());
-        doDeferredInitialize(federate)
+        doDeferredInitialize()
 
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
@@ -1095,17 +1098,15 @@ class CGenerator extends GeneratorBase {
      * - If there are any cmake-include files, add them to the current list
      *  of cmake-include files.
      * - If there are any preambles, add them to the preambles of the reactor.
-     * 
-     * @param federate The federate to generate reactors for
      */
-    def void generateReactorDefinitionsForFederate(FederateInstance federate) {
+    private def void generateReactorDefinitionsForFederate() {
         val generatedReactorDecls = newLinkedHashSet
         if (this.main !== null) {
-            generateReactorChildrenForReactorInFederate(this.main, federate, generatedReactorDecls);
+            generateReactorChildrenForReactorInFederate(this.main, generatedReactorDecls);
         }
 
         if (this.mainDef !== null) {
-            generateReactorFederated(this.mainDef.reactorClass, federate)
+            generateReactorFederated(this.mainDef.reactorClass)
         }
 
         // Generate code for each reactor that was not instantiated in main or its children.
@@ -1117,7 +1118,7 @@ class CGenerator extends GeneratorBase {
             // generate code for it anyway (at a minimum, this means that the compiler is invoked
             // so that reaction bodies are checked).
             if (mainDef === null && declarations.isEmpty()) {
-                generateReactorFederated(r, null)
+                generateReactorFederated(r)
             }
         }
     }
@@ -1133,23 +1134,21 @@ class CGenerator extends GeneratorBase {
      * - If there are any preambles, add them to the preambles of the reactor.
      * 
      * @param reactor Used to extract children from
-     * @param federate All generated reactors will belong to this federate
      */
-    def void generateReactorChildrenForReactorInFederate(
+    private def void generateReactorChildrenForReactorInFederate(
         ReactorInstance reactor,
-        FederateInstance federate,
         LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
         for (r : reactor.children) {
-            if (federate.contains(r)) {
+            if (currentFederate.contains(r)) {
                 val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
                 if (!declarations.isNullOrEmpty) {
                     for (d : declarations) {
                         if (!generatedReactorDecls.contains(d)) {
                             generatedReactorDecls.add(d);
-                            generateReactorChildrenForReactorInFederate(r, federate, generatedReactorDecls);
+                            generateReactorChildrenForReactorInFederate(r, generatedReactorDecls);
                             inspectReactorEResource(d);
-                            generateReactorFederated(d, federate);
+                            generateReactorFederated(d);
                         }
                     }
                 }
@@ -1366,13 +1365,11 @@ class CGenerator extends GeneratorBase {
      * 
      * Clock synchronization can be enabled using the clock-sync target property.
      * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
-     * 
-     * @param federate The federate to initialize clock synchronizatino for
      */
-    protected def initializeClockSynchronization(FederateInstance federate) {
+    protected def initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
         if (targetConfig.clockSync != ClockSyncMode.OFF
-            && (!federationRTIProperties.get('host').toString.equals(federate.host) 
+            && (!federationRTIProperties.get('host').toString.equals(currentFederate.host) 
             || targetConfig.clockSyncOptions.localFederatesOn)
         ) {
             // Insert the #defines at the beginning
@@ -1383,13 +1380,13 @@ class CGenerator extends GeneratorBase {
                 #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
             ''')
             System.out.println("Initial clock synchronization is enabled for federate "
-                + federate.id
+                + currentFederate.id
             );
             if (targetConfig.clockSync == ClockSyncMode.ON) {
                 var collectStatsEnable = ''
                 if (targetConfig.clockSyncOptions.collectStats) {
                     collectStatsEnable = "#define _LF_CLOCK_SYNC_COLLECT_STATS"
-                    System.out.println("Will collect clock sync statistics for federate " + federate.id)
+                    System.out.println("Will collect clock sync statistics for federate " + currentFederate.id)
                     // Add libm to the compiler flags
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
@@ -1401,7 +1398,7 @@ class CGenerator extends GeneratorBase {
                     «collectStatsEnable»
                 ''')
                 System.out.println("Runtime clock synchronization is enabled for federate "
-                    + federate.id
+                    + currentFederate.id
                 );
             }
         }
@@ -1672,9 +1669,8 @@ class CGenerator extends GeneratorBase {
      * will not be generated if they are triggered by or send
      * data to contained reactors that are not in the federate.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      */
-    def generateReactorFederated(ReactorDecl reactor, FederateInstance federate) {
+    private def generateReactorFederated(ReactorDecl reactor) {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.
         
         val defn = reactor.toDefinition
@@ -1692,11 +1688,11 @@ class CGenerator extends GeneratorBase {
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new StringBuilder()
         val destructorCode = new StringBuilder()
-        generateAuxiliaryStructs(reactor, federate)
-        generateSelfStruct(reactor, federate, constructorCode, destructorCode)
-        generateReactions(reactor, federate)
-        generateConstructor(reactor, federate, constructorCode)
-        generateDestructor(reactor, federate, destructorCode)
+        generateAuxiliaryStructs(reactor, currentFederate)
+        generateSelfStruct(reactor, currentFederate, constructorCode, destructorCode)
+        generateReactions(reactor, currentFederate)
+        generateConstructor(reactor, currentFederate, constructorCode)
+        generateDestructor(reactor, currentFederate, destructorCode)
 
         pr("// =============== END reactor class " + reactor.name)
         pr("")
@@ -3797,22 +3793,19 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate code to instantiate the main reactor in the specified federate.
-     * @param federate The federate to instantiate or a singleton federate to generate everything.
      */
-    private def void generateMain(FederateInstance federate) {
-        
-        currentFederate = federate;
-        
+    private def void generateMain() {
+                
         // Create lists of the actions, timers, and reactions that are in the federate.
         // These default to the full list for non-federated programs.
         var actionsInFederate = main.actions.filter[ 
-                a | return federate.contains(a.definition);
+                a | return currentFederate.contains(a.definition);
             ];
         var reactionsInFederate = main.reactions.filter[ 
-                r | return federate.contains(r.definition);
+                r | return currentFederate.contains(r.definition);
             ];
         var timersInFederate = main.timers.filter[ 
-                t | return federate.contains(t.definition);
+                t | return currentFederate.contains(t.definition);
             ];
             
         // Create an array to store all self structs.
@@ -3839,7 +3832,7 @@ class CGenerator extends GeneratorBase {
         generateParameterInitialization(main);
         
         for (child: main.children) {
-            if (federate.contains(child)) {
+            if (currentFederate.contains(child)) {
                 // If the child has a multiport that is an effect of some reaction in main,
                 // then we have to generate code to allocate memory for arrays pointing to
                 // its data. If the child is a bank, then memory is allocated for the entire
@@ -3883,7 +3876,7 @@ class CGenerator extends GeneratorBase {
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         if (instance.isBank) {
-            val index = "i_" + instance.depth;
+            val index = INDEX_PREFIX + instance.depth;
             // Array is the self struct name, but without the indexing.
             var selfStructArrayName = instance.uniqueID + "_self"
             
@@ -3901,12 +3894,17 @@ class CGenerator extends GeneratorBase {
         if (instance.isBank) {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
+                selfStructs[«instance.indexExpression(INDEX_PREFIX)»] = «nameOfSelfStruct»;
             ''')
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
         }
+        // Record the self struct on the big array of self structs.
+        pr(initializeTriggerObjects, '''
+            selfStructs[«instance.indexExpression(INDEX_PREFIX)»] = «nameOfSelfStruct»;
+        ''')
 
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
@@ -4037,7 +4035,7 @@ class CGenerator extends GeneratorBase {
         }
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
-    
+        
     /**
      * Initialize actions by creating a lf_token_t in the self struct.
      * This has the information required to allocate memory for the action payload.
@@ -5219,18 +5217,17 @@ class CGenerator extends GeneratorBase {
     
     /** 
      * Perform deferred initializations in initialize_trigger_objects.
-     * @param federate The federate for which we are doing this.
      */
-    private def doDeferredInitialize(FederateInstance federate) {
+    private def doDeferredInitialize() {
         pr('// doDeferredInitialize')
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        createDefaultTokens(main, federate)
+        createDefaultTokens(main)
 
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
-        connectInputsToOutputs(main, federate)
+        connectInputsToOutputs(main)
     }
 
     /**
@@ -5239,48 +5236,54 @@ class CGenerator extends GeneratorBase {
      * source reactor. This has to be done after all reactors have been created
      * because inputs point to outputs that are arbitrarily far away.
      * @param instance The reactor instance.
-     * @param federate The federate for which we are generating code or null
-     *  if there is no federation.
      */
-    private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
-        if (!federate.contains(instance)) {
+    private def void connectInputsToOutputs(ReactorInstance instance) {
+        if (!currentFederate.contains(instance)) {
             return;
         }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
         
         // If the reactor is a bank, have to surround with a for loop.
-        FIXME wont work reactpr self struct is out of scope
         if (instance.isBank) {
-            val index = "i_" + instance.depth;            
+            val index = INDEX_PREFIX + instance.depth;            
             pr('''
                 // Initialize bank members.
                 for (int «index»; «index» < «instance.width»; «index»++) {
             ''')
             indent();
         }
+        
+        // Retrieve the self struct from the common array of self structs.
+        var nameOfSelfStruct = selfStructName(instance)
+        var structType = selfStructType(instance.definition.reactorClass)
+        pr('''
+            «structType»* «nameOfSelfStruct» 
+                = («structType»*)selfStructs[«instance.indexExpression(INDEX_PREFIX)»];
+        ''')
+        
         // Iterate over all ports of this reactor that have dependent reactions.
         for (input : instance.inputs) {
             if (!input.dependentReactions.isEmpty()) {
                 // Input has reactions. Connect it to its eventual source.
-                connectPortToEventualSource(input, federate); 
+                connectPortToEventualSource(input); 
             }
         }
         for (output : instance.outputs) {
             if (!output.dependentReactions.isEmpty() && output.dependsOnPorts.isEmpty()) {
                 // Output has reactions and no upstream ports.
                 // Connect it to its eventual source.
-                connectPortToEventualSource(output, federate); 
+                connectPortToEventualSource(output); 
             }
         }
         for (child : instance.children) {
             // In case this is a composite, recurse.
-            connectInputsToOutputs(child, federate)
+            connectInputsToOutputs(child)
         }
 
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
-        connectReactionsToPorts(instance, federate)
+        connectReactionsToPorts(instance)
         
         if (instance.isBank) {
             unindent();
@@ -5296,10 +5299,8 @@ class CGenerator extends GeneratorBase {
      * port's reactor to the appropriate entries in the "self" struct of the
      * source reactor.
      * @param instance A port with dependant reactions.
-     * @param federate The federate for which we are generating code or null
-     *  if there is no federation.
      */
-    private def void connectPortToEventualSource(PortInstance port, FederateInstance federate) {
+    private def void connectPortToEventualSource(PortInstance port) {
         // Find the sources that send data to this port,
         // which could be the same port if it is an input port written to by a reaction
         // or it could be an upstream output port.
@@ -5308,7 +5309,7 @@ class CGenerator extends GeneratorBase {
         var startChannel = 0;
         for (eventualSource: port.eventualSources()) {
             val src = eventualSource.portInstance;
-            if (src != port && federate.contains(src.parent)) {
+            if (src != port && currentFederate.contains(src.parent)) {
                 // The eventual source is different from the port and is in the federate.
                 val destStructType = variableStructType(
                     port.definition as TypedVariable,
@@ -5365,9 +5366,8 @@ class CGenerator extends GeneratorBase {
      * another contained reactor and reactions that are triggered by an
      * output of a contained reactor.
      * @param instance The reactor instance that contains the reactions.
-     * @param fedeate The federate instance.
      */
-    private def connectReactionsToPorts(ReactorInstance instance, FederateInstance federate) {
+    private def connectReactionsToPorts(ReactorInstance instance) {
         for (reaction : instance.reactions) {
             // First handle the effects that are inputs of contained reactors.
             for (port : reaction.effects.filter(PortInstance)) {
@@ -5375,7 +5375,7 @@ class CGenerator extends GeneratorBase {
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
-                    if (federate.contains(port.parent)) {
+                    if (currentFederate.contains(port.parent)) {
                         val destStructType = variableStructType(
                             port.definition as TypedVariable,
                             port.parent.definition.reactorClass
@@ -5406,7 +5406,7 @@ class CGenerator extends GeneratorBase {
                     // This reaction is receiving data from an output
                     // of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
-                    if (federate.contains(port.parent)) {
+                    if (currentFederate.contains(port.parent)) {
                         val destStructType = variableStructType(
                             port.definition as TypedVariable,
                             port.parent.definition.reactorClass
@@ -5919,15 +5919,14 @@ class CGenerator extends GeneratorBase {
      * For each output that has a token type (type* or type[]),
      * create a default token and put it on the self struct.
      * @param parent The container reactor.
-     * @param federate The federate, or null if there is no federation.
      */
-    private def void createDefaultTokens(ReactorInstance parent, FederateInstance federate) {
+    private def void createDefaultTokens(ReactorInstance parent) {
         for (containedReactor : parent.children) {
             // Do this only for reactors in the federate.
-            if (federate.contains(containedReactor)) {
+            if (currentFederate.contains(containedReactor)) {
                 // If the reactor is a bank, have to surround with a for loop.
                 if (containedReactor.isBank) {
-                    val index = "i_" + containedReactor.depth;            
+                    val index = INDEX_PREFIX + containedReactor.depth;            
                     pr('''
                         // Initialize bank members.
                         for (int «index»; «index» < «containedReactor.width»; «index»++) {
@@ -5935,6 +5934,14 @@ class CGenerator extends GeneratorBase {
                     indent();
                 }
                 var nameOfSelfStruct = selfStructName(containedReactor)
+                
+                // Retrieve the self struct from the common array of self structs.
+                var structType = selfStructType(containedReactor.definition.reactorClass)
+                pr('''
+                    «structType»* «nameOfSelfStruct» 
+                        = («structType»*)selfStructs[«containedReactor.indexExpression(INDEX_PREFIX)»];
+                ''')
+                
                 for (output : containedReactor.outputs) {
                     val type = (output.definition as Output).inferredType
                     if (type.isTokenType) {
@@ -5958,7 +5965,7 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 // In case this is a composite, handle its contained reactors.
-                createDefaultTokens(containedReactor, federate)
+                createDefaultTokens(containedReactor)
                 if (containedReactor.isBank) {
                     unindent();
                     pr('''
@@ -6176,4 +6183,7 @@ class CGenerator extends GeneratorBase {
     // FIXME: Get rid of this, if possible.
     /** The current federate for which we are generating code. */
     var currentFederate = null as FederateInstance;
+    
+    /** Prefix used for-loop variables when iterating over bank members. */
+    static val INDEX_PREFIX = "i_";
 }
