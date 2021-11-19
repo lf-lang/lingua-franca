@@ -3816,7 +3816,7 @@ class CGenerator extends GeneratorBase {
         // The type of each struct type is different, so the type of this
         // array is vague.
         pr(initializeTriggerObjects, '''
-            void* selfStructs[«main.getTotalNumReactorInstances()»]
+            void* selfStructs[«main.getTotalNumReactorInstances()»];
         ''')
 
         // Generate the self struct declaration for the top level.
@@ -5190,7 +5190,6 @@ class CGenerator extends GeneratorBase {
         return null as ErrorFileAndLine
     }
     
-    
     /**
      * Strip all line directives from the given C code.
      * @param code The code to remove # line directives from.
@@ -5211,7 +5210,31 @@ class CGenerator extends GeneratorBase {
         }
         return builder.toString()
      }
-        
+
+    /**
+     * Start a scoped section of code, surrounded by { ... }.
+     * @param builder The string builder to write to.
+     * @param description A description of the section of code.
+     */
+    protected def startScopedSection(StringBuilder builder, String description) {
+        pr(builder, '''
+            // «description»
+            { // For scoping
+        ''')
+        indent();
+    }
+    
+    /**
+     * End a scoped section of code, surrounded by { ... }.
+     * @param builder The string builder to write to.
+     */
+    protected def endScopedSection(StringBuilder builder) {
+        unindent();
+        pr(builder, '''
+            } // End scoped section
+        ''')
+    }
+    
     // //////////////////////////////////////////
     // // Private methods.
     
@@ -5223,11 +5246,15 @@ class CGenerator extends GeneratorBase {
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        createDefaultTokens(main)
+        startScopedSection(code, "Create default tokens for token types.");
+        createDefaultTokens(main);
+        endScopedSection(code);
 
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
+        startScopedSection(code, "Connect inputs to outputs.");
         connectInputsToOutputs(main)
+        endScopedSection(code);
     }
 
     /**
@@ -5935,16 +5962,21 @@ class CGenerator extends GeneratorBase {
                 }
                 var nameOfSelfStruct = selfStructName(containedReactor)
                 
-                // Retrieve the self struct from the common array of self structs.
-                var structType = selfStructType(containedReactor.definition.reactorClass)
-                pr('''
-                    «structType»* «nameOfSelfStruct» 
-                        = («structType»*)selfStructs[«containedReactor.indexExpression(INDEX_PREFIX)»];
-                ''')
-                
+                // Look for outputs with token types.
+                var foundOne = false;
                 for (output : containedReactor.outputs) {
                     val type = (output.definition as Output).inferredType
                     if (type.isTokenType) {
+                        if (!foundOne) {
+                            // Retrieve the self struct from the common array of self structs.
+                            var structType = selfStructType(containedReactor.definition.reactorClass)
+                            pr('''
+                                «structType»* «nameOfSelfStruct» 
+                                    = («structType»*)selfStructs[«containedReactor.indexExpression(INDEX_PREFIX)»];
+                            ''')
+                
+                            foundOne = true;
+                        }
                         // Create the template token that goes in the trigger struct.
                         // Its reference count is zero, enabling it to be used immediately.
                         var rootType = type.targetType.rootType
