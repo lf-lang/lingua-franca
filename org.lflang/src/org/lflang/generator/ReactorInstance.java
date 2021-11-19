@@ -426,24 +426,26 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * in which this will be evaluated that specify which bank member is
      * desired for this reactor instance and any of its parents that is
      * a bank.  The names of these variables should be rd, where r is
-     * the root string given here as an argument and d is the depth of
+     * the prefix string given here as an argument and d is the depth of
      * the reactor instance that represents a bank.
      * 
      * If this is a top-level reactor, this appends "0" and returns.
      * If this is one level down, this appends "n", where n is the
      * sum of the total 
+     * 
+     * @param prefix The prefix used for index variables for bank members.
      */
-    public String indexExpression(String root) {
+    public String indexExpression(String prefix) {
         if (depth == 0) return("0");
         if (isBank()) {
             return(
-                    root + depth + " * " + numReactorInstances // Position of the bank member relative to the bank.
+                    prefix + depth + " * " + numReactorInstances // Position of the bank member relative to the bank.
                     + " + " + indexOffset                      // Position of the bank within its parent.
-                    + " + " + parent.indexExpression(root)     // Position of the parent.
+                    + " + " + parent.indexExpression(prefix)     // Position of the parent.
             );
         } else {
             return(indexOffset                                 // Position within the parent.
-                    + " + " + parent.indexExpression(root)     // Position of the parent.
+                    + " + " + parent.indexExpression(prefix)     // Position of the parent.
             );
         }
     }

@@ -28,8 +28,9 @@ package org.lflang.federated;
 
 import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
-import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Port;
@@ -143,7 +144,7 @@ public class CGeneratorExtension {
 
         ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(reactorClass);
-        String nameOfSelfStruct = CGenerator.selfStructName(instance);
+        String nameOfSelfStruct = CUtil.selfRef(instance);
 
         // Initialize triggers for network input control reactions
         for (Port trigger : federate.networkInputControlReactionsTriggers) {
@@ -169,7 +170,7 @@ public class CGeneratorExtension {
             }
         }
 
-        nameOfSelfStruct = CGenerator.selfStructName(instance);
+        nameOfSelfStruct = CUtil.selfRef(instance);
 
         // Initialize the trigger for network output control reactions if it doesn't exists
         if (federate.networkOutputControlReactionsTrigger != null) {
