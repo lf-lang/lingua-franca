@@ -699,25 +699,37 @@ class PythonGenerator extends CGenerator {
         // Do not instantiate reactor classes that don't have a reaction in Python
         // Do not instantiate the federated main reactor since it is generated in C
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !instance.definition.reactorClass.toDefinition.isFederated) {
-            if (federate.contains(instance) && instance.isBank) {
-                // If this reactor is a bank, then generate
-                // a list of instances of reactors and return.         
-                pythonClassesInstantiation.
-                    append('''
-                    «instance.uniqueID»_lf = \
-                        [«FOR member : instance.bankMembers SEPARATOR ", \\\n"»\
-                            _«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/»,\
-                                «FOR param : member.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
+            if (federate.contains(instance) && instance.width > 0 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+                if (instance.isBank) {
+                    // If this reactor is a bank, then generate
+                    // a list of instances of reactors and return.         
+                    pythonClassesInstantiation.
+                        append('''
+                        «instance.uniqueID»_lf = \
+                            _«className»(bank_index = 0 /* bank_index is specially assigned by us*/»,\
+                                «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)
+                        ''')
+                        for (var i = 1; i < instance.width; i++) {
+                            pythonClassesInstantiation.
+                                append('''
+                                    _«className»(bank_index = «i» /* bank_index is specially assigned by us*/,\
+                                        «FOR param : instance.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»), \\\n
+                                ''')
+                        }
+                        pythonClassesInstantiation.
+                            append('''
+                                ]
+                            ''')
+                    return
+                } else {
+                    // FIXME: Why does this add a bank_index if it's not a bank?
+                    pythonClassesInstantiation.append('''
+                        «instance.uniqueID»_lf = \
+                            [_«className»(bank_index = 0 /* bank_index is specially assigned by us*/, \
+                                «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
                     ''')
-                return
-            } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                pythonClassesInstantiation.append('''
-                    «instance.uniqueID»_lf = \
-                        [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», \
-                            «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
-                ''')
+                }
             }
-
         }
 
         for (child : instance.children) {
