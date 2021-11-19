@@ -949,13 +949,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return createEdge => [
 			associateWith(associate)
 			addPolyline() => [
+                boldLineSelectionStyle()
+                addJunctionPointDecorator()
 				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
 					lineStyle = LineStyle.CUSTOM
 					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
 				} else {
 					lineStyle = LineStyle.DASH
 				}
-				boldLineSelectionStyle()
 			]
 		]
 	}
@@ -966,12 +967,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
+                boldLineSelectionStyle()
+			    addJunctionPointDecorator()
 				if (multiport) {
                     // Render multiport connections and bank connections in bold.
                     lineWidth = 2.2f
                     lineCap = LineCap.CAP_SQUARE
+                    // Adjust junction point size
+                    setJunctionPointDecorator(it.junctionPointRendering, 6, 6)
 				}
-				boldLineSelectionStyle()
 			]
 		]
 	}
@@ -982,13 +986,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
+                boldLineSelectionStyle()
+                addJunctionPointDecorator()
 				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
 					lineStyle = LineStyle.CUSTOM
 					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
 				} else {
 					lineStyle = LineStyle.DASH
 				}
-				boldLineSelectionStyle()
 			]
 		]
 	}
