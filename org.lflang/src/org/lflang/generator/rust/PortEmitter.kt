@@ -42,17 +42,18 @@ object PortEmitter : RustEmitterBase() {
      * Returns the Rust code that declares the given connection.
      */
     fun Connection.declareConnection(assembler: String): String {
-        val lhsPorts = leftPorts.iterAllPorts().let {
-            // to implement iterated connection, we just use Iterator::cycle on the LHS
-            if (isIterated) "$it.cycle()" else it
-        }
+        val lhsPorts = leftPorts.iterAllPorts()
         val rhsPorts = rightPorts.iterAllPorts()
+
+        val methodName =
+            if (isIterated) "bind_ports_iterated"
+            else "bind_ports_zip"
 
         return """
                 |{ ${locationInfo().lfTextComment()}
                 |    let up = $lhsPorts;
                 |    let down = $rhsPorts;
-                |    $assembler.bind_ports_zip(up, down)?;
+                |    $assembler.$methodName(up, down)?;
                 |}
             """.trimMargin()
     }
