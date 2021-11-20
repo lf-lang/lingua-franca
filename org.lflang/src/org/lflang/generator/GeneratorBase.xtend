@@ -98,7 +98,7 @@ import static extension org.lflang.JavaAstUtils.*
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes {
+abstract class GeneratorBase extends JavaGeneratorBase {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -118,11 +118,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     
     ////////////////////////////////////////////
     //// Protected fields.
-        
-    /**
-     * All code goes into this string buffer.
-     */
-    protected var code = new StringBuilder
 
     /**
      * The current target configuration.
@@ -245,10 +240,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
 
     // //////////////////////////////////////////
     // // Private fields.
-    /**
-     * Map from builder to its current indentation.
-     */
-    var indentation = new LinkedHashMap<StringBuilder, String>()
     
     /**
      * Create a new GeneratorBase object.
@@ -1024,149 +1015,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     }
 
     /**
-     * Get the code produced so far.
-     * @return The code produced so far as a String.
-     */
-    protected def getCode() {
-        code.toString()
-    }
-
-    /**
-     * Increase the indentation of the output code produced.
-     */
-    protected def indent() {
-        indent(code)
-    }
-
-    /**
-     * Increase the indentation of the output code produced
-     * on the specified builder.
-     * @param The builder to indent.
-     */
-    protected def indent(StringBuilder builder) {
-        var prefix = indentation.get(builder)
-        if (prefix === null) {
-            prefix = ""
-        }
-        prefix += "    ";
-        indentation.put(builder, prefix)
-    }
-
-    /**
-     * Append the specified text plus a final newline to the current
-     * code buffer.
-     * @param format A format string to be used by String.format or
-     * the text to append if no further arguments are given.
-     * @param args Additional arguments to pass to the formatter.
-     */
-    protected def pr(String format, Object... args) {
-        pr(code, if (args !== null && args.length > 0)
-            String.format(format, args)
-        else
-            format)
-    }
-
-    /**
-     * Append the specified text plus a final newline to the specified
-     * code buffer.
-     * @param builder The code buffer.
-     * @param text The text to append.
-     */
-    protected def pr(StringBuilder builder, Object text) {
-        // Handle multi-line text.
-        var string = text.toString
-        var indent = indentation.get(builder)
-        if (indent === null) {
-            indent = ""
-        }
-        if (string.contains("\n")) {
-            // Replace all tabs with four spaces.
-            string = string.replaceAll("\t", "    ")
-            // Use two passes, first to find the minimum leading white space
-            // in each line of the source text.
-            var split = string.split("\n")
-            var offset = Integer.MAX_VALUE
-            var firstLine = true
-            for (line : split) {
-                // Skip the first line, which has white space stripped.
-                if (firstLine) {
-                    firstLine = false
-                } else {
-                    var numLeadingSpaces = line.indexOf(line.trim());
-                    if (numLeadingSpaces < offset) {
-                        offset = numLeadingSpaces
-                    }
-                }
-            }
-            // Now make a pass for each line, replacing the offset leading
-            // spaces with the current indentation.
-            firstLine = true
-            for (line : split) {
-                builder.append(indent)
-                // Do not trim the first line
-                if (firstLine) {
-                    builder.append(line)
-                    firstLine = false
-                } else {
-                    builder.append(line.substring(offset))
-                }
-                builder.append("\n")
-            }
-        } else {
-            builder.append(indent)
-            builder.append(text)
-            builder.append("\n")
-        }
-    }
-
-    /**
-     * Prints an indented block of text with the given begin and end markers,
-     * but only if the actions print any text at all.
-     * This is helpful to avoid the production of empty blocks.
-     * @param begin The prologue of the block.
-     * @param end The epilogue of the block.
-     * @param actions Actions that print the interior of the block. 
-     */
-    protected def prBlock(String begin, String end, Runnable... actions) {
-        val i = code.length
-        indent()
-        for (action : actions) {
-            action.run()
-        }
-        unindent()
-        if (i < code.length) {
-            val inserted = code.substring(i, code.length)
-            code.delete(i, code.length)
-            pr(begin)
-            code.append(inserted)
-            pr(end)
-        }
-    }
-
-    /**
-     * Leave a marker in the generated code that indicates the original line
-     * number in the LF source.
-     * @param eObject The node.
-     */
-    protected def prSourceLineNumber(EObject eObject) {
-        if (eObject instanceof Code) {
-            pr(code, '''// «NodeModelUtils.getNode(eObject).startLine +1»''')
-        } else {
-            pr(code, '''// «NodeModelUtils.getNode(eObject).startLine»''')
-        }
-    }
-
-    /**
-     * Print a comment to the generated file.
-     * Particular targets will need to override this if comments
-     * start with something other than '//'.
-     * @param comment The comment.
-     */
-    protected def prComment(String comment) {
-        pr(code, '// ' + comment);
-    }
-
-    /**
      * Given a line of text from the output of a compiler, return
      * an instance of ErrorFileAndLine if the line is recognized as
      * the first line of an error message. Otherwise, return null.
@@ -1312,29 +1160,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             } catch (IllegalStateException e) {
                 println("Unable to refresh workspace: " + e)
             }
-        }
-    }  
-
-    /** Reduce the indentation by one level for generated code
-     *  in the default code buffer.
-     */
-    protected def unindent() {
-        unindent(code)
-    }
-
-    /** Reduce the indentation by one level for generated code
-     *  in the specified code buffer.
-     */
-    protected def unindent(StringBuilder builder) {
-        var indent = indentation.get(builder)
-        if (indent !== null) {
-            val end = indent.length - 4;
-            if (end < 0) {
-                indent = ""
-            } else {
-                indent = indent.substring(0, end)
-            }
-            indentation.put(builder, indent)
         }
     }
 
