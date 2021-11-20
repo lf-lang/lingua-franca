@@ -257,6 +257,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
+     * Return an integer is equal to one plus the total number of reactor instances
+     * (including bank members) that have been instantiated before this one
+     * within the same parent.
+     * This can be used, for example, to index into an array of data structures
+     * representing instances of reactors in generated code.
+     * This assumes that index 0 refers to the parent, hence the "one plus."
+     */
+    public int getIndexOffset() {
+        return indexOffset;
+    }
+    
+    /**
      * Return the specified input by name or null if there is no such input.
      * @param name The input name.
      */
@@ -280,6 +292,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
+     * Get the number of reactor instances associated with this
+     * reactor. This is 1 plus the total number of reactors
+     * in any contained reactors, as returned by getTotalNumReactorInstances().
+     * If this is a bank, then this number does not account for the bank width.
+     * Use getTotalNumberOfReactorInstances() to take into
+     * account bank width.
+     */
+    public int getNumReactorInstances() {
+        return numReactorInstances;
+    }
+    
+    /**
      * Return the specified output by name or null if there is no such output.
      * @param name The output name.
      */
@@ -290,18 +314,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         return null;
-    }
-    
-    /**
-     * Get the number of reactor instances associated with this
-     * reactor. This is 1 plus the total number of reactors
-     * in any contained reactors, as returned by getTotalNumReactorInstances().
-     * If this is a bank, then this number does not account for the bank width.
-     * Use getTotalNumberOfReactorInstances() to take into
-     * account bank width.
-     */
-    public int getNumReactorInstances() {
-        return numReactorInstances;
     }
     
     /**
@@ -408,46 +420,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public List<Value> initialParameterValue(Parameter parameter) {
         return ASTUtils.initialValue(parameter, instantiations());
-    }
-
-    /**
-     * Return an expression that, when evaluated in a
-     * context with bank index variables defined, returns a unique index
-     * for a runtime reactor instance. This can be used to maintain an
-     * array of runtime instance objects, each of which will have a
-     * unique index.
-     * 
-     * This is rather complicated because
-     * this reactor instance and any of its parents may actually
-     * represent a bank of runtime reactor instances rather a single
-     * runtime instance. This method returns an expression that should
-     * be evaluatable in any target language that uses + for addition
-     * and * for multiplication and has defined variables in the context
-     * in which this will be evaluated that specify which bank member is
-     * desired for this reactor instance and any of its parents that is
-     * a bank.  The names of these variables should be rd, where r is
-     * the prefix string given here as an argument and d is the depth of
-     * the reactor instance that represents a bank.
-     * 
-     * If this is a top-level reactor, this appends "0" and returns.
-     * If this is one level down, this appends "n", where n is the
-     * sum of the total 
-     * 
-     * @param prefix The prefix used for index variables for bank members.
-     */
-    public String indexExpression(String prefix) {
-        if (depth == 0) return("0");
-        if (isBank()) {
-            return(
-                    prefix + depth + " * " + numReactorInstances // Position of the bank member relative to the bank.
-                    + " + " + indexOffset                      // Position of the bank within its parent.
-                    + " + " + parent.indexExpression(prefix)     // Position of the parent.
-            );
-        } else {
-            return(indexOffset                                 // Position within the parent.
-                    + " + " + parent.indexExpression(prefix)     // Position of the parent.
-            );
-        }
     }
 
     /**
@@ -1191,7 +1163,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * The offset relative to the parent. This is the sum of
      * the total number of reactor instances of peer reactors
      * (those with the same parent) that are instantiated before
-     * this in the parent. This is used by indexExpression().
+     * this in the parent.
      */
     private int indexOffset = 0;
     

@@ -1722,7 +1722,7 @@ class CGenerator extends GeneratorBase {
     protected def generateConstructor(
         ReactorDecl reactor, FederateInstance federate, StringBuilder constructorCode
     ) {
-        val structType = selfStructType(reactor)
+        val structType = CUtil.selfType(reactor)
         pr('''
             «structType»* new_«reactor.name»() {
                 «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
@@ -1757,7 +1757,7 @@ class CGenerator extends GeneratorBase {
             reactionCount++;
         }
         
-        val structType = selfStructType(decl)
+        val structType = CUtil.selfType(decl)
         pr('''
             void delete_«decl.name»(«structType»* self) {
                 «destructorCode.toString»
@@ -1949,7 +1949,7 @@ class CGenerator extends GeneratorBase {
         StringBuilder destructorCode
     ) {
         val reactor = decl.toDefinition
-        val selfType = selfStructType(decl)
+        val selfType = CUtil.selfType(decl)
         
         // Construct the typedef for the "self" struct.
         // Create a type name for the self struct.
@@ -2862,7 +2862,7 @@ class CGenerator extends GeneratorBase {
         var StringBuilder reactionInitialization = new StringBuilder()
 
         // Define the "self" struct.
-        var structType = selfStructType(decl)
+        var structType = CUtil.selfType(decl)
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType !== null) {
@@ -3099,12 +3099,20 @@ class CGenerator extends GeneratorBase {
         // First, set up to decrement reference counts for each token type
         // input of a contained reactor that is present.
         for (child : instance.children) {
-            if (currentFederate.contains(child)) {
+            if (currentFederate.contains(child) && child.inputs.size > 0) {
+                
+                // Avoid generating code if not needed.
+                var foundOne = false;
+                val temp = new StringBuilder();
                 var nameOfSelfStruct = CUtil.selfRef(child)
+                startScopedBlock(temp, child);
+                getSelfStruct(temp, child);
+
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
+                        foundOne = true;
                         if (input.isMultiport()) {
-                            pr(startTimeStep, '''
+                            pr(temp, '''
                                 for (int i = 0; i < «input.width»; i++) {
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
                                             = &«nameOfSelfStruct»->_lf_«input.name»[i]->token;
@@ -3115,7 +3123,7 @@ class CGenerator extends GeneratorBase {
                             ''')
                             startTimeStepTokens += input.width
                         } else {
-                            pr(startTimeStep, '''
+                            pr(temp, '''
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].token
                                         = &«nameOfSelfStruct»->_lf_«input.name»->token;
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].status
@@ -3126,9 +3134,19 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
+                endScopedBlock(temp);
+                if (foundOne) {
+                    pr(startTimeStep, temp.toString());
+                }
             }
         }
+        // Avoid generating dead code if nothing is relevant.
+        var foundOne = false;
+        val temp = new StringBuilder();
         var containerSelfStructName = CUtil.selfRef(instance)
+        startScopedBlock(temp, instance);
+        getSelfStruct(temp, instance);
+        
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
@@ -3146,7 +3164,8 @@ class CGenerator extends GeneratorBase {
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
                             if (port.isMultiport) {
-                                pr(startTimeStep, '''
+                                foundOne = true;
+                                pr(temp, '''
                                     // Add port «port.getFullName» to array of is_present fields.
                                     for (int i = 0; i < «port.width»; i++) {
                                         _lf_is_present_fields[«startTimeStepIsPresentCount» + i] 
@@ -3155,7 +3174,7 @@ class CGenerator extends GeneratorBase {
                                 ''')
                                 if (isFederatedAndDecentralized) {
                                     // Intended_tag is only applicable to ports in federated execution.
-                                    pr(startTimeStep, '''
+                                    pr(temp, '''
                                         // Add port «port.getFullName» to array of is_present fields.
                                         for (int i = 0; i < «port.width»; i++) {
                                             _lf_intended_tag_fields[«startTimeStepIsPresentCount» + i] 
@@ -3165,14 +3184,15 @@ class CGenerator extends GeneratorBase {
                                 }
                                 startTimeStepIsPresentCount += port.width;
                             } else {
-                                pr(startTimeStep, '''
+                                foundOne = true;
+                                pr(temp, '''
                                     // Add port «port.getFullName» to array of is_present fields.
                                     _lf_is_present_fields[«startTimeStepIsPresentCount»] 
                                             = &«containerSelfStructName»->_lf_«port.parent.name».«port.name».is_present;
                                 ''')
                                 if (isFederatedAndDecentralized) {
                                     // Intended_tag is only applicable to ports in federated execution.
-                                    pr(startTimeStep, '''
+                                    pr(temp, '''
                                         // Add port «port.getFullName» to array of is_present fields.
                                         _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
                                                 = &«containerSelfStructName»->_lf_«port.parent.name».«port.name».intended_tag;
@@ -3191,8 +3211,9 @@ class CGenerator extends GeneratorBase {
                         portsSeen.add(output)
                         // This reaction is receiving data from the port.
                         if (isTokenType((output.definition as Output).inferredType)) {
+                            foundOne = true;
                             if (output.isMultiport()) {
-                                pr(startTimeStep, '''
+                                pr(temp, '''
                                     for (int i = 0; i < «output.width»; i++) {
                                         _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
                                                 = &«containerSelfStructName»->_lf_«output.parent.name».«output.name»[i]->token;
@@ -3203,7 +3224,7 @@ class CGenerator extends GeneratorBase {
                                 ''')
                                 startTimeStepTokens += output.width
                             } else {
-                                pr(startTimeStep, '''
+                                pr(temp, '''
                                     _lf_tokens_with_ref_count[«startTimeStepTokens»].token
                                             = &«containerSelfStructName»->_lf_«output.parent.name».«output.name»->token;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens»].status
@@ -3217,10 +3238,35 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
+        for (action : instance.actions) {
+            if (currentFederate === null || currentFederate.contains(action.definition)) {
+                pr(startTimeStep, '''
+                    // Add action «action.getFullName» to array of is_present fields.
+                    _lf_is_present_fields[«startTimeStepIsPresentCount»] 
+                            = &«containerSelfStructName»->_lf_«action.name».is_present;
+                ''')
+                if (isFederatedAndDecentralized) {
+                    // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
+                    pr(startTimeStep, '''
+                        // Add action «action.getFullName» to array of intended_tag fields.
+                        _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                = &«containerSelfStructName»->_lf_«action.name».intended_tag;
+                    ''')
+                }
+                startTimeStepIsPresentCount++
+            }
+        }
+
+        endScopedBlock(temp);
+        if (foundOne) pr(startTimeStep, temp.toString());
+        
         // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
-            if (currentFederate.contains(child)) {
+            if (currentFederate.contains(child) && child.outputs.size > 0) {
                 var nameOfSelfStruct = CUtil.selfRef(child)
+                startScopedBlock(startTimeStep, child);
+                getSelfStruct(startTimeStep, child);
+        
                 for (output : child.outputs) {
                     if (output.isMultiport()) {
                         pr(startTimeStep, '''
@@ -3260,24 +3306,7 @@ class CGenerator extends GeneratorBase {
                         startTimeStepIsPresentCount++
                     }
                 }
-            }
-        }
-        for (action : instance.actions) {
-            if (currentFederate === null || currentFederate.contains(action.definition)) {
-                pr(startTimeStep, '''
-                    // Add action «action.getFullName» to array of is_present fields.
-                    _lf_is_present_fields[«startTimeStepIsPresentCount»] 
-                            = &«containerSelfStructName»->_lf_«action.name».is_present;
-                ''')
-                if (isFederatedAndDecentralized) {
-                    // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
-                    pr(startTimeStep, '''
-                        // Add action «action.getFullName» to array of intended_tag fields.
-                        _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                = &«containerSelfStructName»->_lf_«action.name».intended_tag;
-                    ''')
-                }
-                startTimeStepIsPresentCount++
+                endScopedBlock(startTimeStep);
             }
         }
     }
@@ -3421,16 +3450,6 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** 
-     * Construct a unique type for the "self" struct of the specified
-     * reactor class from the reactor class.
-     * @param reactor The reactor class.
-     * @return The name of the self struct.
-     */
-    static def selfStructType(ReactorDecl reactor) {
-        return reactor.name.toLowerCase + "_self_t"
-    }
-    
     /** 
      * Construct a unique type for the struct of the specified
      * typed variable (port or action) of the specified reactor class.
@@ -3584,7 +3603,7 @@ class CGenerator extends GeneratorBase {
 
         // Generate the self struct declaration for the top level.
         pr(initializeTriggerObjects, '''
-            «selfStructType(main.definition.reactorClass)»* «CUtil.selfRef(main)» = new_«main.name»();
+            «CUtil.selfType(main)»* «CUtil.selfRef(main)» = new_«main.name»();
             selfStructs[0] = «CUtil.selfRef(main)»;
         ''')
 
@@ -3621,26 +3640,24 @@ class CGenerator extends GeneratorBase {
     def void generateReactorInstance(ReactorInstance instance) {
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
-        pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +
-            reactorClass.name)
+        pr(initializeTriggerObjects,
+                '// ************* Instance ' + fullName + ' of class ' + reactorClass.name)
             
         var nameOfSelfStruct = CUtil.selfRef(instance)
-        var structType = selfStructType(reactorClass)
+        var structType = CUtil.selfType(reactorClass)
         
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         if (instance.isBank) {
-            val index = CUtil.INDEX_PREFIX + instance.depth;
             // Array is the self struct name, but without the indexing.
             var selfStructArrayName = instance.uniqueID + "_self"
             
             pr(initializeTriggerObjects, '''
                 «structType»* «selfStructArrayName»[«instance.width»];
                 // Create bank members.
-                for (int «index»; «index» < «instance.width»; «index»++) {
             ''')
-            indent(initializeTriggerObjects);
         }
+        startScopedBlock(initializeTriggerObjects, instance);
 
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct). The form is slightly different
@@ -3656,7 +3673,7 @@ class CGenerator extends GeneratorBase {
         }
         // Record the self struct on the big array of self structs.
         pr(initializeTriggerObjects, '''
-            selfStructs[«instance.indexExpression(CUtil.INDEX_PREFIX)»] = «nameOfSelfStruct»;
+            selfStructs[«CUtil.indexExpression(instance)»] = «nameOfSelfStruct»;
         ''')
 
         // Generate code to initialize the "self" struct in the
@@ -3761,13 +3778,7 @@ class CGenerator extends GeneratorBase {
         // so that it can deallocate any memory.
         generateStartTimeStep(instance)
         
-        if (instance.isBank()) {
-            // Close the for loop.
-            unindent(initializeTriggerObjects);
-            pr(initializeTriggerObjects, '''
-                }
-            ''')
-        }
+        endScopedBlock(initializeTriggerObjects);
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
         
@@ -4018,23 +4029,28 @@ class CGenerator extends GeneratorBase {
             return list.join('{', ', ', '}', [it])
     }
     
-    /** Set the reaction priorities based on dependency analysis.
-     *  @param reactor The reactor on which to do this.
-     *  @param federate A federate to conditionally generate code for
-     *   contained reactors or null if there are no federates.
+    /** 
+     * Set the reaction priorities based on dependency analysis.
+     * @param reactor The reactor on which to do this.
+     * @param federate A federate to conditionally generate code for
+     *  contained reactors or null if there are no federates.
      */
     def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
-        // Use "reactionToReactionTName" property of reactionInstance
-        // to set the levels.
+        val temp = new StringBuilder();
+        var foundOne = false;
+        startScopedBlock(temp, reactor);
+        getSelfStruct(temp, reactor);
+        
         for (r : reactor.reactions) {
             if (federate === null || federate.contains(
                 r.definition
             )) {
-                val reactionStructName = '''«CUtil.selfRef(r.parent)»->_lf__reaction_«r.index»'''
+                foundOne = true;
+                val reactionStructName = '''«CUtil.selfRef(reactor)»->_lf__reaction_«r.index»'''
                 // xtend doesn't support bitwise operators...
                 val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, r.level)
                 val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
-                pr('''
+                pr(temp, '''
                     «reactionStructName».chain_id = «r.chainID.toString»;
                     // index is the OR of level «r.level» and 
                     // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
@@ -4042,6 +4058,9 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
         }
+        endScopedBlock(temp);
+        if (foundOne) pr(temp.toString());
+        
         for (child : reactor.children) {
             if (federate.contains(child)) {
                 setReactionPriorities(child, federate)
@@ -4675,15 +4694,15 @@ class CGenerator extends GeneratorBase {
      * Start a scoped block for the specified reactor.
      * If the reactor is a bank, then this starts a for loop
      * that iterates over the bank members using a standard index
-     * variable. If the reactor is not a bank, then this simply
+     * variable. If the reactor is null or is not a bank, then this simply
      * starts a scoped block by printing an opening curly brace.
      * This must be followed by an endScopedBlock().
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance.
      */
     private def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
-        if (reactor.isBank) {
-            val index = CUtil.INDEX_PREFIX + reactor.depth;            
+        if (reactor !== null && reactor.isBank) {
+            val index = CUtil.bankIndex(reactor);            
             pr(builder, '''
                 // Initialize bank members.
                 for (int «index»; «index» < «reactor.width»; «index»++) {
@@ -4714,10 +4733,9 @@ class CGenerator extends GeneratorBase {
      */
     private def void getSelfStruct(StringBuilder builder, ReactorInstance reactor) {
         var nameOfSelfStruct = CUtil.selfRef(reactor)
-        var structType = selfStructType(reactor.definition.reactorClass)
+        var structType = CUtil.selfType(reactor)
         pr(builder, '''
-            «structType»* «nameOfSelfStruct» 
-                = («structType»*)selfStructs[«reactor.indexExpression(CUtil.INDEX_PREFIX)»];
+            «structType»* «nameOfSelfStruct» = («structType»*)selfStructs[«CUtil.indexExpression(reactor)»];
         ''')
      }
 
@@ -5724,11 +5742,19 @@ class CGenerator extends GeneratorBase {
                 && currentFederate.contains(dominatingReaction.definition)
                 && currentFederate.contains(dominatingReaction.parent)
         ) {
+            if (dominatingReaction.parent != reaction.parent) {
+                // Define the destination struct pointer.
+                // FIXME: If the destination is a bank, need to define the bank_index variable.
+                getSelfStruct(code, dominatingReaction.parent);
+            }
+            startScopedBlock(code, null);
+
             val upstreamReaction = '''«CUtil.selfRef(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
             pr('''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
                 «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = &(«upstreamReaction»);
             ''')
+            endScopedBlock(code);
         } else {
             pr('''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
@@ -5920,6 +5946,11 @@ class CGenerator extends GeneratorBase {
                         var destRangeCount = 0;
                         for (destinationRange : range.destinations) {
                             val destination = destinationRange.getPortInstance();
+
+                            // Define the destination struct pointer.
+                            // FIXME: If the destination is a bank, need to define the bank_index variable.
+                            getSelfStruct(temp, destination.parent);
+
                             if (destination.isOutput) {
                                 // Include this destination port only if it has at least one
                                 // reaction in the federation.

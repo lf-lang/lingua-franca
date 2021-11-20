@@ -28,11 +28,13 @@ package org.lflang.generator.c;
 
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.lf.ReactorDecl;
 
 /**
  * A collection of utilties for C code generation.
  * This class codifies the coding conventions for the C target code generator.
  * I.e., it defines how variables are named and referenced.
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class CUtil {
 
@@ -41,12 +43,13 @@ public class CUtil {
 
     /**
      * Return a name of a variable to refer to the bank index of a reactor
-     * in a bank. This is has the form INDEX_PREFIX_i where i is the depth
-     * of the reactor (how many parents it has).
+     * in a bank. This is has the form uniqueID_bank_index where uniqueID
+     * is an identifier for the instance that is guaranteed to be different
+     * from the ID of any other instance in the program.
      * @param instance A reactor instance.
      */
     static public String bankIndex(ReactorInstance instance) {
-        return INDEX_PREFIX + instance.getDepth();
+        return instance.uniqueID() + "_bank_index";
     }
     
     /**
@@ -67,7 +70,7 @@ public class CUtil {
         var destStruct = CUtil.selfRef(port.getParent().getParent());
         return destStruct + "->_lf_" + reactorRef(port.getParent()) + "." + port.getName();
     }
-
+    
     /**
      * Return a string for referencing the struct with the value and is_present
      * fields of the specified port. This is used for establishing the destination of
@@ -83,6 +86,51 @@ public class CUtil {
         // have dependent reactions, otherwise it would not
         // be a destination.
         return selfRef(port.getParent()) + "->_lf_" + port.getName();
+    }
+
+    /**
+     * Return an expression that, when evaluated in a context with
+     * bank index variables defined for the specified reactor and
+     * any container(s) that are also banks, returns a unique index
+     * for a runtime reactor instance. This can be used to maintain an
+     * array of runtime instance objects, each of which will have a
+     * unique index.
+     * 
+     * This is rather complicated because
+     * this reactor instance and any of its parents may actually
+     * represent a bank of runtime reactor instances rather a single
+     * runtime instance. This method returns an expression that should
+     * be evaluatable in any target language that uses + for addition
+     * and * for multiplication and has defined variables in the context
+     * in which this will be evaluated that specify which bank member is
+     * desired for this reactor instance and any of its parents that is
+     * a bank.  The names of these variables need to be values returned
+     * by bankIndex().
+     * 
+     * If this is a top-level reactor, this returns "0".
+     * 
+     * @see bankIndex(ReactorInstance)
+     * @param prefix The prefix used for index variables for bank members.
+     */
+    static public String indexExpression(ReactorInstance instance) {
+        if (instance.getDepth() == 0) return("0");
+        if (instance.isBank()) {
+            return(
+                    // Position of the bank member relative to the bank.
+                    bankIndex(instance) + " * " + instance.getNumReactorInstances()
+                    // Position of the bank within its parent.
+                    + " + " + instance.getIndexOffset()
+                    // Position of the parent.
+                    + " + " + indexExpression(instance.getParent())
+            );
+        } else {
+            return(
+                    // Position within the parent.
+                    instance.getIndexOffset()
+                    // Position of the parent.
+                    + " + " + indexExpression(instance.getParent())
+            );
+        }
     }
 
     /** 
@@ -102,7 +150,7 @@ public class CUtil {
         // If this reactor is a member of a bank of reactors, then change
         // the name of its self struct to append [index].
         if (instance.isBank()) {
-            return instance.getName() + "[" + INDEX_PREFIX + instance.getDepth() + "]";
+            return instance.getName() + "[" + bankIndex(instance) + "]";
         } else {
             return instance.getName();
         }
@@ -127,14 +175,28 @@ public class CUtil {
         // If this reactor is a member of a bank of reactors, then change
         // the name of its self struct to append [index].
         if (instance.isBank()) {
-            result += "[" + INDEX_PREFIX + instance.getDepth() + "]";
+            result += "[" + bankIndex(instance) + "]";
         }
         return result;
     }
-
-    //////////////////////////////////////////////////////
-    //// Public constants.
-
-    /** Prefix used for-loop variables when iterating over bank members. */
-    public static String INDEX_PREFIX = "i_";
+    
+    /** 
+     * Return a unique type for the "self" struct of the specified
+     * reactor class from the reactor class.
+     * @param reactor The reactor class.
+     * @return The type of a self struct for the specified reactor class.
+     */
+    static public String selfType(ReactorDecl reactor) {
+        return reactor.getName().toLowerCase() + "_self_t";
+    }
+    
+    /** 
+     * Construct a unique type for the "self" struct of the specified
+     * reactor class from the reactor class.
+     * @param reactor The reactor class.
+     * @return The name of the self struct.
+     */
+    static public String selfType(ReactorInstance instance) {
+        return selfType(instance.getDefinition().getReactorClass());
+    }
 }
