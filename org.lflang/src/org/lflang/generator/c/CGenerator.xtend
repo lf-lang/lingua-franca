@@ -3446,7 +3446,12 @@ class CGenerator extends GeneratorBase {
             return '''«sourceStruct»->_lf_«port.name»'''
         } else {
             val sourceStruct = CUtil.selfRef(port.parent.parent)
-            return '''«sourceStruct»->_lf_«port.parent.name».«port.name»'''
+            // The form is slightly different depending on whether the port belongs to a bank.
+            if (port.parent.isBank) {
+                return '''«sourceStruct»->_lf_«port.parent.name»[«CUtil.bankIndex(port.parent)»].«port.name»'''
+            } else {
+                return '''«sourceStruct»->_lf_«port.parent.name».«port.name»'''
+            }
         }
     }
 
@@ -4705,7 +4710,7 @@ class CGenerator extends GeneratorBase {
             val index = CUtil.bankIndex(reactor);            
             pr(builder, '''
                 // Initialize bank members.
-                for (int «index»; «index» < «reactor.width»; «index»++) {
+                for (int «index» = 0; «index» < «reactor.width»; «index»++) {
             ''')
         } else {
             pr(builder, "{");
@@ -5605,6 +5610,8 @@ class CGenerator extends GeneratorBase {
                     // Port is an input of a contained reactor that gets data from a reaction of this reactor.
                     portsHandled.add(port);
                     
+                    startScopedBlock(code, port.parent);
+                    
                     // The input port may itself have multiple destinations.
                     for (sendingRange : port.eventualDestinations) {
                     
@@ -5623,6 +5630,7 @@ class CGenerator extends GeneratorBase {
                             ''')
                         }
                     }
+                    endScopedBlock(code);
                 }
             }
         }
