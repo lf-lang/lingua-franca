@@ -41,11 +41,9 @@ import java.util.regex.Pattern
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.util.CancelIndicator
 import org.eclipse.xtext.validation.CheckMode
@@ -66,7 +64,6 @@ import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Code
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
@@ -82,15 +79,12 @@ import org.lflang.lf.TimeUnit
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
-import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Generator base class for shared code between code generators.
- * This extends AbstractLinguaFrancaValidator so that errors can be highlighted
- * in the XText-based IDE.
  * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
