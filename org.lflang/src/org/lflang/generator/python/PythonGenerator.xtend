@@ -1410,7 +1410,8 @@ class PythonGenerator extends CGenerator {
         
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
         if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef?.reactorClass) && reactor.isFederated)) {
-            return super.generateReaction(reaction, decl, reactionIndex)
+            super.generateReaction(reaction, decl, reactionIndex)
+            return
         }
         
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
