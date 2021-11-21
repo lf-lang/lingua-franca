@@ -159,13 +159,13 @@ public class CUtil {
     /** 
      * Return the unique reference for the "self" struct of the specified
      * reactor instance. If the instance is a bank of reactors, this returns
-     * something of the form name_self[id], where i is INDEX_PREFIX and 
-     * d is the depth of the reactor. This assumes that the resulting string
-     * will be used in a context that defines a variable id. The result has
+     * something of the form name_self[bankIndex], where bankIndex is the 
+     * returned by {@link bankIndex(ReactorInstance)}. This assumes that the resulting string
+     * will be used in a context that defines a variable with name bankIndex. The result has
      * one of the following forms:
      * 
      * * uniqueID
-     * * uniqueID[id]
+     * * uniqueID[bankIndex]
      * 
      * @param instance The reactor instance.
      * @return A reference to the self struct.
@@ -198,5 +198,43 @@ public class CUtil {
      */
     static public String selfType(ReactorInstance instance) {
         return selfType(instance.getDefinition().getReactorClass());
+    }
+
+    /**
+     * Return a string for referencing the data, width, or is_present value of
+     * the specified port that is a source of data.
+     * This will have one of the following forms:
+     * 
+     * * selfStruct->_lf_portName
+     * * selfStruct->_lf_parentName.portName
+     * * selfStruct->_lf_parentName[bankIndex].portName
+     * 
+     * The selfStruct points to the port's parent (for an output) or the
+     * port's parent's parent (for an input), and it that parent
+     * is a bank, then it will have the form selfStruct[bankIndex],
+     * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
+     * 
+     * If the port is an output, then the first form is returned.
+     * The second and third forms are returned for an input, in which case
+     * the "source" is a reaction port's parent's parent. If that parent
+     * is a bank, then the third form results, and bankIndex will be the
+     * value returned by {@link bankIndex(ReactorInstance)} for that parent.
+     * 
+     * @param port An instance of the port to be referenced.
+     */
+    static public String sourceRef(PortInstance port) {                
+        if (port.isOutput()) {
+            String sourceStruct = CUtil.selfRef(port.getParent());
+            return sourceStruct + "->_lf_" + port.getName();
+        } else {
+            String sourceStruct = CUtil.selfRef(port.getParent().getParent());
+            // The form is slightly different depending on whether the port belongs to a bank.
+            if (port.getParent().isBank()) {
+                return sourceStruct + "->_lf_" + port.getParent().getName()
+                        + "[" + bankIndex(port.getParent()) + "]." + port.getName();
+            } else {
+                return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
+            }
+        }
     }
 }
