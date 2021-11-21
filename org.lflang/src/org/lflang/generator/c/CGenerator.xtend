@@ -63,6 +63,7 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -356,12 +357,12 @@ class CGenerator extends GeneratorBase {
     var boolean CCppMode = false;
 
     new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
-        this(fileConfig, errorReporter)
-        this.CCppMode = CCppMode;        
+        super(fileConfig, errorReporter)
+        this.CCppMode = CCppMode;
     }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
-        super(fileConfig, errorReporter)       
+        this(fileConfig, errorReporter, false)
     }
 
     ////////////////////////////////////////////
@@ -373,14 +374,10 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Set the appropriate target properties based on the target properties of
-     * the main .lf file.
+     * Set C-specific default target properties if needed.
      */
-    override setTargetConfig(IGeneratorContext context) {
-        super.setTargetConfig(context);
-        // Set defaults for the compiler after parsing the target properties
-        // of the main .lf file.
-        if (targetConfig.useCmake == false && targetConfig.compiler.isNullOrEmpty) {
+    def setCSpecificDefaults() {
+        if (!targetConfig.useCmake && targetConfig.compiler.isNullOrEmpty) {
             if (this.CCppMode) {
                 targetConfig.compiler = "g++"
                 targetConfig.compilerFlags.addAll("-O2", "-Wno-write-strings")
@@ -392,34 +389,28 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Look for physical actions in 'resource'.
-     * If found, take appropriate actions to accommodate.
-     * 
-     * Set keepalive to true.
-     * Set threads to be at least one to allow asynchronous schedule calls
+     * Look for physical actions in all resources.
+     * If found, set threads to be at least one to allow asynchronous schedule calls.
      */
-    override accommodatePhysicalActionsIfPresent(Resource resource) {
-        super.accommodatePhysicalActionsIfPresent(resource);
-
+    def accommodatePhysicalActionsIfPresent() {
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
-        for (action : resource.allContents.toIterable.filter(Action)) {
-            if (action.origin == ActionOrigin.PHYSICAL) {
-                // If the unthreaded runtime is requested, use the threaded runtime instead
-                // because it is the only one currently capable of handling asynchronous events.
-                if (targetConfig.threads < 1) {
-                    targetConfig.threads = 1
-                    errorReporter.reportWarning(
-                        action,
-                        '''Using the threaded C runtime to allow for asynchronous handling of«
-                        » physical action «action.name».'''
-                    );
+        for (resource : JavaGeneratorUtils.getResources(reactors)) {
+            for (action : resource.allContents.toIterable.filter(Action)) {
+                if (action.origin == ActionOrigin.PHYSICAL) {
+                    // If the unthreaded runtime is requested, use the threaded runtime instead
+                    // because it is the only one currently capable of handling asynchronous events.
+                    if (targetConfig.threads < 1) {
+                        targetConfig.threads = 1
+                        errorReporter.reportWarning(
+                            action,
+                            '''Using the threaded C runtime to allow for asynchronous handling of«
+                            » physical action «action.name».'''
+                        );
+                    }
                 }
-
             }
-
         }
-        
     }
     
     /**
@@ -462,10 +453,13 @@ class CGenerator extends GeneratorBase {
      * generation.
      * @param resource The resource containing the source code.
      * @param fsa The file system access (used to write the result).
-     * @param context FIXME: Undocumented argument. No idea what this is.
+     * @param context Information about the invocation of this code generator,
+     * including whether the code generation process has been cancelled.
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+        accommodatePhysicalActionsIfPresent()
+        setCSpecificDefaults()
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
@@ -598,7 +592,7 @@ class CGenerator extends GeneratorBase {
                 targetConfig.filesNamesWithoutPath.clear();
                 
                 // Re-apply the cmake-include target property of the main .lf file.
-                val target = mainDef.reactorClass.eResource.findTarget
+                val target = JavaGeneratorUtils.findTarget(mainDef.reactorClass.eResource)
                 if (target.config !== null) {
                     // Update the cmake-include
                     TargetProperty.updateOne(

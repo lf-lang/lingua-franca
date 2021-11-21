@@ -1379,16 +1379,7 @@ class PythonGenerator extends CGenerator {
     override generateForwardBody(Action action, VarRef port) {
         val outputName = generateVarRef(port)
         if (action.inferredType.isTokenType) {
-            // Forward the entire token and prevent freeing.
-            // Increment the ref_count because it will be decremented
-            // by both the action handling code and the input handling code.
-            '''
-            «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->_lf_«outputName».value = («action.inferredType.targetType»)self->_lf__«action.name».token->value;
-            self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
-            ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
-            self->«getStackPortMember('''_lf_«outputName»''', "is_present")» = true;
-            '''
+            super.generateForwardBody(action, port)
         } else {
             '''
             SET(«outputName», «action.name»->token->value);
