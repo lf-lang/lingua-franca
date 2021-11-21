@@ -40,6 +40,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.JavaGeneratorUtils
 
 /**
  * Generator for TypeScript target.
@@ -196,7 +197,8 @@ class TSGenerator(
         if (pnpmInstall != null) {
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
-                errorReporter.reportError(findTarget(resource),
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed: " + pnpmInstall.errors.toString())
             }
         } else {
@@ -214,9 +216,11 @@ class TSGenerator(
             }
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
-                errorReporter.reportError(findTarget(resource),
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
-                errorReporter.reportError(findTarget(resource), "ERROR: npm install command failed." +
+                errorReporter.reportError(
+                    JavaGeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }

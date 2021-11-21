@@ -37,6 +37,7 @@ import java.util.LinkedHashSet
 import java.util.List
 import java.util.Map
 import java.util.Set
+import java.util.stream.Collectors
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
@@ -44,9 +45,7 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.util.CancelIndicator
-import org.eclipse.xtext.validation.CheckMode
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -55,7 +54,6 @@ import org.lflang.MainConflictChecker
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
-import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
@@ -63,7 +61,6 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
@@ -73,7 +70,6 @@ import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
-import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Value
@@ -268,83 +264,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     }
 
     /**
-     * Set the appropriate target properties based on the target properties of
-     * the main .lf file.
-     */
-    protected def void setTargetConfig(IGeneratorContext context) {
-
-        val target = fileConfig.resource.findTarget
-        if (target.config !== null) {
-            // Update the configuration according to the set target properties.
-            TargetProperty.set(this.targetConfig, target.config.pairs ?: emptyList, errorReporter)
-        }
-
-        // Accommodate the physical actions in the main .lf file
-        accommodatePhysicalActionsIfPresent(fileConfig.resource);
-
-       // Override target properties if specified as command line arguments.
-       if (context instanceof StandaloneContext) {
-            if (context.args.containsKey("no-compile")) {
-                targetConfig.noCompile = true
-            }
-            if (context.args.containsKey("threads")) {
-                targetConfig.threads = Integer.parseInt(context.args.getProperty("threads"))
-            }
-            if (context.args.containsKey("target-compiler")) {
-                targetConfig.compiler = context.args.getProperty("target-compiler")
-            }
-            if (context.args.containsKey("target-flags")) {
-                targetConfig.compilerFlags.clear()
-                if (!context.args.getProperty("target-flags").isEmpty) {
-                    targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
-                }
-            }
-            if (context.args.containsKey("runtime-version")) {
-                targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
-            }
-            if (context.args.containsKey("external-runtime-path")) {
-                targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
-            }
-            if (context.args.containsKey(TargetProperty.KEEPALIVE.description)) {
-                targetConfig.keepalive = Boolean.parseBoolean(
-                    context.args.getProperty(TargetProperty.KEEPALIVE.description));
-            }
-        }
-    }
-
-    /**
-     * Look for physical actions in 'resource'.
-     * If found, take appropriate actions to accommodate.
-     *
-     * Set keepalive to true.
-     */
-    protected def void accommodatePhysicalActionsIfPresent(Resource resource) {
-        if (!target.setsKeepAliveOptionAutomatically) {
-            return; // nothing to do
-        }
-
-        // If there are any physical actions, ensure the threaded engine is used and that
-        // keepalive is set to true, unless the user has explicitly set it to false.
-        for (action : resource.allContents.toIterable.filter(Action)) {
-            if (action.origin == ActionOrigin.PHYSICAL) {
-                // Check if the user has explicitly set keepalive to false or true
-                if (!targetConfig.setByUser.contains(TargetProperty.KEEPALIVE)
-                    && targetConfig.keepalive == false
-                ) {
-                    // If not, set it to true
-                    targetConfig.keepalive = true
-                    errorReporter.reportWarning(
-                        action,
-                        '''Setting «TargetProperty.KEEPALIVE.displayName» to true because of «action.name».«
-                        » This can be overridden by setting the «TargetProperty.KEEPALIVE.description»«
-                        » target property manually.'''
-                    );
-                }
-            }
-        }
-    }
-
-    /**
      * If there is a main or federated reactor, then create a synthetic Instantiation
      * for that top-level reactor and set the field mainDef to refer to it.
      */
@@ -375,7 +294,9 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
-        setTargetConfig(context)
+        JavaGeneratorUtils.setTargetConfig(
+            context, JavaGeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
+        )
 
         fileConfig.cleanIfNeeded()
 
@@ -415,9 +336,16 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph()
 
-        // Collect the reactors defined in this resource (i.e., file in Eclipse speak) and (non-main)
-        // reactors defined in imported resources.
-        setResources(context)
+        JavaGeneratorUtils.validateImports(context, fileConfig, instantiationGraph, errorReporter)
+        val allResources = JavaGeneratorUtils.getResources(reactors)
+        resources.addAll(allResources.stream()
+            .filter [it | it != fileConfig.resource]
+            .map [it | JavaGeneratorUtils.getLFResource(it, fsa, context, errorReporter)]
+            .collect(Collectors.toList())
+        )
+        JavaGeneratorUtils.accommodatePhysicalActionsIfPresent(allResources, target, targetConfig, errorReporter);
+        // FIXME: Should the GeneratorBase pull in `files` from imported
+        // resources?
         
         // Reroute connections that have delays associated with them via generated delay reactors.
         transformDelays()
@@ -436,8 +364,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
             // enable support for them.
             enableSupportForSerialization(context.cancelIndicator);
         }
-        
-        
     }
 
     /**
@@ -475,68 +401,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     protected def transformDelays() {
          for (r : this.resources) {
              r.eResource.insertGeneratedDelays(this)
-        }
-    }
-
-    /**
-     * Update the class variable that lists all the involved resources. Also report validation problems of imported 
-     * resources at the import statements through those failing resources are reached.
-     * 
-     * @param context The context providing the cancel indicator used by the validator.
-     */
-    protected def setResources(IGeneratorContext context) {
-        val fsa = this.fileConfig.fsa;
-        val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
-        if (mainDef !== null) {
-            reactors.add(mainDef.reactorClass as Reactor);
-            this.resources.add(
-                new LFResource(
-                    mainDef.reactorClass.eResource,
-                    this.fileConfig,
-                    this.targetConfig));
-        }
-        // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
-        // as tainted or fail to validate.
-        val tainted = newHashSet
-        for (r : this.reactors) {
-            val res = r.eResource
-            if (!this.resources.contains(res)) {
-                if (res !== this.fileConfig.resource) {
-                    if (tainted.contains(res) ||
-                        (validator.validate(res, CheckMode.ALL, context.cancelIndicator)).size > 0) {
-                        for (inst : this.instantiationGraph.getDownstreamAdjacentNodes(r)) {
-                            for (imp : (inst.eContainer as Model).imports) {
-                                for (decl : imp.reactorClasses) {
-                                    if (decl.reactorClass.eResource === res) {
-                                        errorReporter.reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
-                                        tainted.add(decl.eResource)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // Read the target property of the imported file
-                    val target = res.findTarget
-                    var targetConfig = new TargetConfig();
-                    if (target.config !== null) {
-                        TargetProperty.set(targetConfig, target.config.pairs ?: emptyList, errorReporter);
-                    }
-                    val fileConfig = new FileConfig(res, fsa, context);
-                    // Add it to the list of LFResources
-                    this.resources.add(
-                        new LFResource(
-                            res,
-                            fileConfig,
-                            targetConfig)
-                    );
-
-                    // Accommodate the physical actions in the imported .lf file
-                    accommodatePhysicalActionsIfPresent(res);
-                    // FIXME: Should the GeneratorBase pull in `files` from imported
-                    // resources? If so, uncomment the following line.
-                    // copyUserFiles(targetConfig, fileConfig);
-                }
-            }
         }
     }
 
@@ -789,23 +653,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      */
     protected def clearCode() {
         code = new StringBuilder
-    }
-
-    /**
-     * Return the target.
-     */
-    def findTarget(Resource resource) {
-        var TargetDecl targetDecl
-        for (t : resource.allContents.toIterable.filter(TargetDecl)) {
-            if (targetDecl !== null) {
-                throw new InvalidSourceException("There is more than one target!") // FIXME: check this in validator
-            }
-            targetDecl = t
-        }
-        if (targetDecl === null) {
-            throw new InvalidSourceException("No target found!")
-        }
-        targetDecl
     }
 
     /**
