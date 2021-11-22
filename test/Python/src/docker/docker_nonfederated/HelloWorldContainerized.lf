@@ -1,4 +1,6 @@
-target Python;
+target Python {
+    docker: true
+};
 
 import HelloWorld2 from "../../HelloWorld.lf"
 
