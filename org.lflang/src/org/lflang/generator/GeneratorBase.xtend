@@ -708,11 +708,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * coordination mechanism.
      */
     def isFederatedAndDecentralized() {
-        if (isFederated &&
-            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            return true
-        }
-        return false
+        return isFederated && targetConfig.coordination === CoordinationType.DECENTRALIZED
     }
     
     /**
@@ -720,11 +716,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * coordination mechanism.
      */
     def isFederatedAndCentralized() {
-        if (isFederated &&
-            targetConfig.coordination === CoordinationType.CENTRALIZED) {
-            return true
-        }
-        return false
+        return isFederated && targetConfig.coordination === CoordinationType.CENTRALIZED
     }
 
     /**
