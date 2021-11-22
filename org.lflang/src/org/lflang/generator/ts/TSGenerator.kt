@@ -494,11 +494,11 @@ class TSGenerator(
 
     // Virtual methods.
     override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${generateVarRef(port)} as ${getActionType(action)});"
+        return "actions.${action.name}.schedule(0, ${JavaAstUtils.generateVarRef(port)} as ${getActionType(action)});"
     }
 
     override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
+        return "${JavaAstUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
     }
 
     override fun generateDelayGeneric(): String {

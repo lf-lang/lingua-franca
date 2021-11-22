@@ -466,47 +466,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     abstract def String generateDelayGeneric();
 
     /**
-     * Generate code for referencing a port, action, or timer.
-     * @param reference The reference to the variable.
-     */
-    def String generateVarRef(VarRef reference) {
-        var prefix = "";
-        if (reference.container !== null) {
-            prefix = reference.container.name + "."
-        }
-        return prefix + reference.variable.name
-    }
-
-    /**
-     * Generate code for referencing a port possibly indexed by
-     * a bank index and/or a multiport index. This assumes the target language uses
-     * the usual array indexing [n] for both cases. If not, this needs to be overridden
-     * by the target code generator.  If the provided reference is not a port, then
-     * this return the string "ERROR: not a port.".
-     * @param reference The reference to the port.
-     * @param bankIndex A bank index or null or negative if not in a bank.
-     * @param multiportIndex A multiport index or null or negative if not in a multiport.
-     */
-    def String generatePortRef(VarRef reference, Integer bankIndex, Integer multiportIndex) {
-        if (!(reference.variable instanceof Port)) {
-            return "ERROR: not a port.";
-        }
-        var prefix = "";
-        if (reference.container !== null) {
-            var bank = "";
-            if (reference.container.widthSpec !== null && bankIndex !== null && bankIndex >= 0) {
-                bank = "[" + bankIndex + "]";
-            }
-            prefix = reference.container.name + bank + "."
-        }
-        var multiport = "";
-        if ((reference.variable as Port).widthSpec !== null && multiportIndex !== null && multiportIndex >= 0) {
-            multiport = "[" + multiportIndex + "]";
-        }
-        return prefix + reference.variable.name + multiport;
-    }
-
-    /**
      * Return true if the reaction is unordered. An unordered reaction is one
      * that does not have any dependency on other reactions in the containing
      * reactor, and where no other reaction in the containing reactor depends

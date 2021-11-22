@@ -38,6 +38,7 @@ import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
+import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty.CoordinationType
@@ -1337,7 +1338,7 @@ class PythonGenerator extends CGenerator {
      * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) { 
-        val ref = generateVarRef(port);
+        val ref = JavaAstUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
         if (action.inferredType.isTokenType) {
@@ -1377,7 +1378,7 @@ class PythonGenerator extends CGenerator {
      * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
-        val outputName = generateVarRef(port)
+        val outputName = JavaAstUtils.generateVarRef(port)
         if (action.inferredType.isTokenType) {
             super.generateForwardBody(action, port)
         } else {

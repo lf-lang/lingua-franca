@@ -45,6 +45,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
+import org.lflang.JavaAstUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -4031,7 +4032,7 @@ class CGenerator extends GeneratorBase {
      * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) { 
-        val ref = generateVarRef(port);
+        val ref = JavaAstUtils.generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
         if (action.inferredType.isTokenType) {
@@ -4058,7 +4059,7 @@ class CGenerator extends GeneratorBase {
      * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
-        val outputName = generateVarRef(port)
+        val outputName = JavaAstUtils.generateVarRef(port)
         if (action.inferredType.isTokenType) {
             // Forward the entire token and prevent freeing.
             // Increment the ref_count because it will be decremented
@@ -4119,7 +4120,7 @@ class CGenerator extends GeneratorBase {
             (receivingPort.variable as Port).type.id = "char*"
         }
 
-        var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
+        var receiveRef = JavaAstUtils.generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
       
         // Transfer the physical time of arrival from the action to the port
@@ -4211,8 +4212,8 @@ class CGenerator extends GeneratorBase {
         Delay delay,
         SupportedSerializers serializer
     ) { 
-        var sendRef = generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
-        val receiveRef = generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
+        var sendRef = JavaAstUtils.generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
+        val receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
@@ -4377,7 +4378,7 @@ class CGenerator extends GeneratorBase {
     ) {
         // Store the code
         val result = new StringBuilder();
-        var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
+        var sendRef = JavaAstUtils.generatePortRef(port, sendingBankIndex, sendingChannelIndex);
         
         // Get the delay literal
         var String additionalDelayString = 

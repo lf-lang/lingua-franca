@@ -28,6 +28,7 @@ package org.lflang.federated;
 
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.JavaAstUtils;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -74,8 +75,8 @@ public class PythonGeneratorExtension {
         SupportedSerializers serializer,
         PythonGenerator generator
     ) { 
-        String sendRef = generator.generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
-        String receiveRef = generator.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
+        String sendRef = JavaAstUtils.generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
+        String receiveRef = JavaAstUtils.generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         StringBuilder result = new StringBuilder();
         result.append("// Sending from " + sendRef + 
                 " in federate " + sendingFed.name + " to " + receiveRef + " in federate " + receivingFed.name + "\n");
@@ -179,7 +180,7 @@ public class PythonGeneratorExtension {
         PythonGenerator generator
     ) {
 
-        String receiveRef = generator.generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex);
+        String receiveRef = JavaAstUtils.generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex);
         StringBuilder result = new StringBuilder();
       
         // Transfer the physical time of arrival from the action to the port
