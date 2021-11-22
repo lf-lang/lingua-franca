@@ -5632,8 +5632,7 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * If any output port of the specified reactor is a multiport and is mentioned
-     * as an effect of a reaction in the reactor, then generate code to
+     * If any output port of the specified reactor is a multiport, then generate code to
      * allocate memory to store the data produced by those reactions.
      * The allocated memory is pointed to by a field called `_lf_portname`.
      * @param reactor A reactor instance.
@@ -5641,36 +5640,30 @@ class CGenerator extends GeneratorBase {
     private def void deferredAllocationForEffectsOnOutputs(ReactorInstance reactor) {
         for (port : reactor.outputs) {
             if (port.isMultiport) {
-                for (reaction : reactor.reactions) {
-                    for (effect : reaction.effects) {
-                        if (effect === port) {
-                            // Port is an effect of a parent's reaction.
-                            // That is, the port belongs to the same reactor as the reaction.
-                            // The reaction is writing to an output of its container reactor.
-                            val nameOfSelfStruct = CUtil.selfRef(port.parent);
-                            val portStructType = variableStructType(
-                                port.definition,
-                                port.parent.definition.reactorClass
-                            )
-                            
-                            pr('''
-                                «nameOfSelfStruct»->_lf_«port.name»_width = «port.width»;
-                                // Allocate memory to store output of reaction.
-                                «nameOfSelfStruct»->_lf_«port.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«port.name»_width,
-                                    sizeof(«portStructType»)); 
-                                «nameOfSelfStruct»->_lf_«port.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                                                    * «nameOfSelfStruct»->_lf_«port.name»_width);
-                                // Assign each output port pointer to be used in reactions to facilitate user access to output ports
-                                for(int i=0; i < «nameOfSelfStruct»->_lf_«port.name»_width; i++) {
-                                     «nameOfSelfStruct»->_lf_«port.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«port.name»[i]);
-                                }
-                            ''')
-                            // There may be more reactions writing to this port,
-                            // but once we have done the allocation, no need to do anything for those.
-                            return;
-                        }
+                // Port is an effect of a parent's reaction.
+                // That is, the port belongs to the same reactor as the reaction.
+                // The reaction is writing to an output of its container reactor.
+                val nameOfSelfStruct = CUtil.selfRef(port.parent);
+                val portStructType = variableStructType(
+                    port.definition,
+                    port.parent.definition.reactorClass
+                )
+                
+                pr('''
+                    «nameOfSelfStruct»->_lf_«port.name»_width = «port.width»;
+                    // Allocate memory to store output of reaction.
+                    «nameOfSelfStruct»->_lf_«port.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«port.name»_width,
+                        sizeof(«portStructType»)); 
+                    «nameOfSelfStruct»->_lf_«port.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                                        * «nameOfSelfStruct»->_lf_«port.name»_width);
+                    // Assign each output port pointer to be used in reactions to facilitate user access to output ports
+                    for(int i=0; i < «nameOfSelfStruct»->_lf_«port.name»_width; i++) {
+                         «nameOfSelfStruct»->_lf_«port.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«port.name»[i]);
                     }
-                }
+                ''')
+                // There may be more reactions writing to this port,
+                // but once we have done the allocation, no need to do anything for those.
+                return;
             }
         }
     }
