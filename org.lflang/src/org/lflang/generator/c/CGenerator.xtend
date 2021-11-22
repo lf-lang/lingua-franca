@@ -94,7 +94,7 @@ import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 
 /** 
- * Generator for C target. This class generates C code definining each reactor
+ * Generator for C target. This class generates C code defining each reactor
  * class given in the input .lf file and imported .lf files. The generated code
  * has the following components:
  * 
@@ -469,7 +469,7 @@ class CGenerator extends GeneratorBase {
         
         if (!isOSCompatible()) return; // Incompatible OS and configuration
 
-         // Check for duplicate declerations.
+         // Check for duplicate declarations.
          val names = newLinkedHashSet
          for (r : reactors) {
              // Get the declarations for reactors that are instantiated somewhere.
@@ -2019,7 +2019,7 @@ class CGenerator extends GeneratorBase {
                         // An array of pointers to the individual ports. Useful
                         // for the SET macros to work out-of-the-box for
                         // multiports in the body of reactions because their 
-                        // value can be accessed via a -> operater (e.g.,foo[i]->value).
+                        // value can be accessed via a -> operator (e.g.,foo[i]->value).
                         // So we have to handle multiports specially here a construct that
                         // array of pointers.
                         «variableStructType(output, decl)»** _lf_«output.name»_pointers;
@@ -3057,7 +3057,7 @@ class CGenerator extends GeneratorBase {
         // Search for instances of the parent within the tail of the breadcrumbs list.
         val container = nestedBreadcrumbs.first.reactorClass.toDefinition
         for (instantiation: container.instantiations) {
-            // Put this new instantation at the head of the list.
+            // Put this new instantiation at the head of the list.
             nestedBreadcrumbs.add(0, instantiation)
             if (instantiation.reactorClass.toDefinition == parent) {
                 // Found a matching instantiation of the parent.
@@ -3713,7 +3713,7 @@ class CGenerator extends GeneratorBase {
                             With centralized coordination, this can result in a large number of messages to the RTI.
                             Consider refactoring the code so that the output does not depend on the physical action,
                             or consider using decentralized coordination. To silence this warning, set the target
-                            parameter cooridiation-options with a value like {advance-message-interval: 10 msec}"''')
+                            parameter coordination-options with a value like {advance-message-interval: 10 msec}"''')
                 }
                 pr(initializeTriggerObjects, '''
                     _fed.min_delay_from_physical_action_to_federate_output = «JavaAstUtils.getTargetTime(minDelay)»;
@@ -3932,7 +3932,7 @@ class CGenerator extends GeneratorBase {
         if (reactorInstance !== null) { 
             if (contained !== null) {
                 // Caution: If port belongs to a contained reactor, the self struct needs to be that
-                // of the contained reactor instance, not this containe
+                // of the contained reactor instance, not this container
                 selfStruct = CUtil.selfRef(reactorInstance.getChildReactorInstance(contained))
             } else {
                 selfStruct =CUtil.selfRef(reactorInstance);
@@ -4142,7 +4142,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
             case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
             }
             case SupportedSerializers.ROS2: {
                 val portType = (receivingPort.variable as Port).inferredType
@@ -4262,7 +4262,7 @@ class CGenerator extends GeneratorBase {
                 // Handle native types.
                 if (isTokenType(type)) {
                     // NOTE: Transporting token types this way is likely to only work if the sender and receiver
-                    // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
+                    // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
                     result.append('''
                         size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                         «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
@@ -4287,7 +4287,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
             case SupportedSerializers.PROTO: {
-                throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+                throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
             }
             case SupportedSerializers.ROS2: {
                 var variableToSerialize = sendRef;
@@ -5011,7 +5011,7 @@ class CGenerator extends GeneratorBase {
      * from the "self" struct.
      * @param builder The string builder.
      * @param effect The effect declared by the reaction. This must refer to an output.
-     * @param decl The reactor containing the rection or the import statement.
+     * @param decl The reactor containing the reaction or the import statement.
      */
     private def generateOutputVariablesInReaction(
         StringBuilder builder,
@@ -5282,14 +5282,17 @@ class CGenerator extends GeneratorBase {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
     
-    //////////////////////////////////////////////////////////////
-    // Private methods that generate code to go at the end
-    // of _lf_initialize_trigger_objects().
-    
-    /** 
-     * Perform deferred initializations in initialize_trigger_objects.
-     * @param reactor for which to generate deferred initialization.
-     * @param reactions The reactions of the reactor to initialize (normally all of them).
+    /**
+     * Data structure that for each instantiation of a contained
+     * reactor. This provides a set of input and output ports that trigger
+     * reactions of the container, are read by a reaction of the
+     * container, or that receive data from a reaction of the container.
+     * For each port, this provides a list of reaction indices that
+     * are triggered by the port, or an empty list if there are no
+     * reactions triggered by the port.
+     * @param reactor The container.
+     * @param federate The federate (used to determine whether a
+     *  reaction belongs to the federate).
      */
     private def void deferredInitialize(
         ReactorInstance reactor, Iterable<ReactionInstance> reactions
