@@ -4,11 +4,11 @@ from LinguaFrancaBase.classes import * #Useful classes
 import sys
 import copy
 
-sys.setrecursionlimit(100000)
+sys.setrecursionlimit(1000000)
 EXPECTED = 10000
 
 class _Ping:
-    count = 1000000
+    count = EXPECTED
     pingsLeft = count
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -17,18 +17,18 @@ class _Ping:
         if self.pingsLeft > 0:
             pingpong_pong_lf.reaction_function_0(self.pingsLeft)
         else:
-            exit()
+            return
         return 0
 
 class _Pong:
-    expected = 1000000
+    expected = EXPECTED
     count = 0
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
     def reaction_function_0(self , receive):
         self.count += 1
         if(self.count == self.expected):
-            exit()
+            return
         pingpong_ping_lf.reaction_function_1()
         return 0
     def reaction_function_1(self ):
@@ -46,7 +46,9 @@ pingpong_pong_lf = _Pong(bank_index = 0, expected=EXPECTED)
 def main():
     pingpong_ping_lf.reaction_function_1()
 
+import timeit
 # As is customary in Python programs, the main() function
 # should only be executed if the main module is active.
 if __name__=="__main__":
-    main()
+    t = timeit.timeit("main()", setup="from __main__ import main")
+    print(t)
