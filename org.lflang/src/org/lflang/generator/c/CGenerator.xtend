@@ -5758,16 +5758,11 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * For the specified reaction, for output ports that it writes to,
-     * set up the arrays that store the output values (if necessary) and
-     * that are used to trigger downstream reactions if an output is actually
-     * produced.
-     * 
-     * NOTE: This method is quite complicated because of the possibility that
-     * that the reaction is writing to a multiport output or to an
-     * input port of a contained reactor, and the possibility that that
-     * the contained reactor is a bank of reactors and that its input port may
-     * be a multiport.
+     * For the specified reaction, for ports that it writes to,
+     * set up the arrays that store the results (if necessary) and
+     * that are used to trigger downstream reactions if an effect is actually
+     * produced.  The port may be an output of the reaction's parent
+     * or an input to a reactor contained by the parent.
      * 
      * @param The reaction instance.
      */
@@ -5785,20 +5780,24 @@ class CGenerator extends GeneratorBase {
 
         for (effect : reaction.effects) {
             if (effect instanceof PortInstance) {
-                // Effect is a port. There are four cases.
-                // 1. The port is an ordinary port contained by the same reactor that contains this reaction.
-                // 2. The port is a multiport contained by the same reactor that contains reaction.
-                // 3. The port is an ordinary input port contained by a contained reactor.
-                // 4. The port is a multiport input contained by a contained reactor.
+                // Effect is a port.
                 // Create the entry in the output_produced array for this port.
                 // If the port is a multiport, then we need to create an entry for each
                 // individual channel.
+                
+                // If the port is an input of a contained reactor, then, if that
+                // contained reactor is a bank, we will have to iterate over bank
+                // members.
+                if (effect.isInput) {
+                    startScopedBlock(initialization, effect.parent);
+                }
+                
                 if (effect.isMultiport()) {
                     // Point the output_produced field to where the is_present field of the port is.
                     pr(initialization, '''
                         for (int i = 0; i < «effect.width»; i++) {
                             «nameOfSelfStruct»->_lf__reaction_«reaction.index».output_produced[«outputCount» + i]
-                                    = &«CUtil.sourceRef(effect)»[i].is_present;
+                                    = &«CUtil.sourceRef(effect)»[i]->is_present;
                         }
                     ''')
                     outputCount += effect.getWidth();
@@ -5809,6 +5808,9 @@ class CGenerator extends GeneratorBase {
                                 = &«CUtil.sourceRef(effect)».is_present;
                     ''')
                     outputCount++
+                }
+                if (effect.isInput) {
+                    endScopedBlock(initialization);
                 }
             }
         }
