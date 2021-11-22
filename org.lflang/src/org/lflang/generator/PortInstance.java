@@ -112,7 +112,7 @@ public class PortInstance extends TriggerInstance<Port> {
     //// Public methods
 
     /**
-     * Cleared cached information about the connectivity of this port.
+     * Clear cached information about the connectivity of this port.
      * In particular, {@link #eventualDestinations()} and {@link #eventualSources()}
      * cache the lists they return. To force those methods to recompute
      * their lists, call this method. This method also clears the caches
