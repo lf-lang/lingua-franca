@@ -106,7 +106,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     /**
      * Constant that specifies how to name generated delay reactors.
      */
-    public static val GEN_DELAY_CLASS_NAME = "_GenDelay"
+    public static val GEN_DELAY_CLASS_NAME = "_lf_GenDelay"
 
     /** 
      * The main (top-level) reactor instance.

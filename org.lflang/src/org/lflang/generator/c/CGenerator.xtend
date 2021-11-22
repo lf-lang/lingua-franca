@@ -3867,6 +3867,9 @@ class CGenerator extends GeneratorBase {
      *  contained reactors or null if there are no federates.
      */
     def void generateReactorInstance(ReactorInstance instance) {
+        // FIXME: Consolidate this with generateFederate. The only difference is that
+        // generateFederate is the version of this method that is run on main, the
+        // top-level reactor. 
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +

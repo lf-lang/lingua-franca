@@ -356,7 +356,9 @@ class FederateInstance {
     /** 
      * FIXME: This redundant function is here only because it is used in
      * another repo (for the TS target) and it is a royal pain to refactor
-     * across repos.
+     * across repos. This function has been renamed "contains" from
+     * "containsReaction", so this is here just for backward compability
+     * in another repo.
      */
     def containsReaction(Reaction reaction) {
         return contains(reaction);
