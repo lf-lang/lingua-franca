@@ -86,7 +86,7 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = getTargetValue(v)
+    fun getTargetValueW(v: Value): String = JavaAstUtils.getTargetValue(v)
     fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = getTargetType(state)
     fun getTargetTypeW(t: Type): String = getTargetType(t)
@@ -345,20 +345,6 @@ class TSGenerator(
             getTargetType(action.type)
         } else {
             "Present"
-        }
-    }
-
-    /** Given a representation of time that may possibly include units,
-     *  return a string that TypeScript can recognize as a value.
-     *  @param value Literal that represents a time value.
-     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
-     */
-    override fun timeInTargetLanguage(value: TimeValue): String {
-        return if (value.unit != TimeUnit.NONE) {
-            "TimeValue.${value.unit}(${value.time})"
-        } else {
-            // The value must be zero.
-            "TimeValue.zero()"
         }
     }
 

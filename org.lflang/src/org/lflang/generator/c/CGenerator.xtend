@@ -1371,7 +1371,7 @@ class CGenerator extends GeneratorBase {
             // Insert the #defines at the beginning
             code.insert(0, '''
                 #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.timeInTargetLanguage»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «JavaAstUtils.getTargetTime(targetConfig.clockSyncOptions.period)»
                 #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
                 #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
             ''')
@@ -1423,7 +1423,7 @@ class CGenerator extends GeneratorBase {
                         val stp = param.init.get(0).getTimeValue
                         if (stp !== null) {                        
                             pr('''
-                                set_stp_offset(«stp.timeInTargetLanguage»);
+                                set_stp_offset(«JavaAstUtils.getTargetTime(stp)»);
                             ''')
                         }
                     }
@@ -1594,11 +1594,7 @@ class CGenerator extends GeneratorBase {
                                 candidate_tmp = NEVER;
                             ''')
                         } else {
-                            var delayTime = delay.getTargetTime
-                            if (delay.parameter !== null) {
-                                // The delay is given as a parameter reference. Find its value.
-                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
-                            }
+                            var delayTime = JavaAstUtils.getTargetTime(delay)
                             pr(rtiCode, '''
                                 if («delayTime» < candidate_tmp) {
                                     candidate_tmp = «delayTime»;
@@ -3319,9 +3315,9 @@ class CGenerator extends GeneratorBase {
                 var minDelay = action.minDelay
                 var minSpacing = action.minSpacing
                 pr(initializeTriggerObjects, '''
-                    «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
+                    «triggerStructName».offset = «JavaAstUtils.getTargetTime(minDelay)»;
                     «IF minSpacing !== null»
-                        «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                        «triggerStructName».period = «JavaAstUtils.getTargetTime(minSpacing)»;
                     «ELSE»
                         «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
                     «ENDIF»
@@ -3344,8 +3340,8 @@ class CGenerator extends GeneratorBase {
         for (timer : timers) {
             if (!timer.isStartup) {
                 var triggerStructName = triggerStructName(timer)
-                val offset = timeInTargetLanguage(timer.offset)
-                val period = timeInTargetLanguage(timer.period)
+                val offset = JavaAstUtils.getTargetTime(timer.offset)
+                val period = JavaAstUtils.getTargetTime(timer.period)
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
@@ -3720,7 +3716,7 @@ class CGenerator extends GeneratorBase {
                             parameter cooridiation-options with a value like {advance-message-interval: 10 msec}"''')
                 }
                 pr(initializeTriggerObjects, '''
-                    _fed.min_delay_from_physical_action_to_federate_output = «minDelay.timeInTargetLanguage»;
+                    _fed.min_delay_from_physical_action_to_federate_output = «JavaAstUtils.getTargetTime(minDelay)»;
                 ''')
             }
         }
@@ -3866,7 +3862,7 @@ class CGenerator extends GeneratorBase {
                 var deadline = reaction.declaredDeadline.maxDelay
                 val reactionStructName = '''«CUtil.selfRef(reaction.parent)»->_lf__reaction_«reaction.index»'''
                 pr(initializeTriggerObjects, '''
-                    «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
+                    «reactionStructName».deadline = «JavaAstUtils.getTargetTime(deadline)»;
                 ''')
             }
         }
@@ -3971,9 +3967,9 @@ class CGenerator extends GeneratorBase {
             if (i.parameter !== null) {
                 list.add(CUtil.selfRef(parent) + "->" + i.parameter.name)
             } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
+                list.add(JavaAstUtils.getTargetTime(i))
             } else {
-                list.add(i.targetValue)
+                list.add(JavaAstUtils.getTargetValue(i))
             }
         }
         
@@ -4345,7 +4341,7 @@ class CGenerator extends GeneratorBase {
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
-                max_STP = «maxSTP.timeInTargetLanguage»;
+                max_STP = «JavaAstUtils.getTargetTime(maxSTP)»;
             ''')  
         }
         
@@ -4498,7 +4494,7 @@ class CGenerator extends GeneratorBase {
         pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
         
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
-            pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
+            pr('#define ADVANCE_MESSAGE_INTERVAL ' + JavaAstUtils.getTargetTime(targetConfig.coordinationOptions.advance_message_interval))
         }
         
         includeTargetLanguageSourceFiles()
@@ -5264,9 +5260,9 @@ class CGenerator extends GeneratorBase {
     protected def String getInitializer(ParameterInstance p) {
         
             if (p.type.isList && p.init.size > 1) {
-                return p.init.join('{', ', ', '}', [it.targetValue])
+                return p.init.join('{', ', ', '}', [JavaAstUtils.getTargetValue(it)])
             } else {
-                return p.init.get(0).targetValue
+                return JavaAstUtils.getTargetValue(p.init.get(0))
             }
         
     }

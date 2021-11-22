@@ -47,6 +47,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
+import org.lflang.JavaAstUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -70,9 +71,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
-import org.lflang.lf.Time
 import org.lflang.lf.TimeUnit
-import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
@@ -398,7 +397,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     /**
      * For each involved resource, replace connections with delays with generated delay reactors.
      */
-    protected def transformDelays() {
+    private def transformDelays() {
          for (r : this.resources) {
              r.eResource.insertGeneratedDelays(this)
         }
@@ -532,28 +531,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         if (reactionBankIndices === null) return -1
         if (reactionBankIndices.get(reaction) === null) return -1
         return reactionBankIndices.get(reaction)
-    }
-    
-    /**
-     * Given a representation of time that may possibly include units, return
-     * a string that the target language can recognize as a value. In this base
-     * class, if units are given, e.g. "msec", then we convert the units to upper
-     * case and return an expression of the form "MSEC(value)". Particular target
-     * generators will need to either define functions or macros for each possible
-     * time unit or override this method to return something acceptable to the
-     * target language.
-     * @param time A TimeValue that represents a time.
-     * @return A string, such as "MSEC(100)" for 100 milliseconds.
-     */
-    def String timeInTargetLanguage(TimeValue time) {
-        if (time !== null) {
-            if (time.unit != TimeUnit.NONE) {
-                return time.unit.name() + '(' + time.time + ')'
-            } else {
-                return time.time.toString()
-            }
-        }
-        return "0" // FIXME: do this or throw exception?
     }
 
     /**
@@ -974,9 +951,9 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
         for (i : param?.init) {
             if (param.isOfTimeType) {
-                list.add(i.targetTime)
+                list.add(JavaAstUtils.getTargetTime(i))
             } else {
-                list.add(i.targetValue)
+                list.add(JavaAstUtils.getTargetValue(i))
             }
         }
         return list
@@ -999,9 +976,9 @@ abstract class GeneratorBase extends JavaGeneratorBase {
             if (i.parameter !== null) {
                 list.add(i.parameter.targetReference)
             } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
+                list.add(JavaAstUtils.getTargetTime(i))
             } else {
-                list.add(i.targetValue)
+                list.add(JavaAstUtils.getTargetValue(i))
             }
         }
         return list
@@ -1032,10 +1009,15 @@ abstract class GeneratorBase extends JavaGeneratorBase {
             // the parameter was overwritten in the instantiation
             var list = new ArrayList<String>();
             for (init : assignments.get(0)?.rhs) {
+                // FIXME: This pattern of checking if it is a time and then calling
+                //  the appropriate function is used repetitively. Factor out?
+                //  It only seems to be necessary because of the special case where the value
+                //  is zero, with no units. Otherwise, values would know whether or not they
+                //  are times -- we would not need to ask their parent nodes.
                 if (param.isOfTimeType) {
-                    list.add(init.targetTime)
+                    list.add(JavaAstUtils.getTargetTime(init))
                 } else {
-                    list.add(init.targetValue)
+                    list.add(JavaAstUtils.getTargetValue(init))
                 }
             }
             return list
@@ -1110,13 +1092,10 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     // //////////////////////////////////////////////////
     // // Private functions
     /**
-     * Get textual representation of a time in the target language.
-     * This is a separate function from 
-     * getTargetTime to avoid producing invalid RTI
-     * code for targets that override timeInTargetLanguage
-     * to return a C-incompatible time type.
-     * 
-     * @param v A time AST node
+     * Get textual representation of a time in the target language
+     * in an RTI-compatible form.
+     *
+     * @param d A time AST node
      * @return An RTI-compatible (ie. C target) time string
      */
     protected def getRTITime(Delay d) {
@@ -1133,8 +1112,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
             return time.time.toString()
         }
     }
-    
-    
     
     /**
      * Remove triggers in each federates' network reactions that are defined in remote federates.
@@ -1447,58 +1424,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
     protected def getTargetType(Port p) {
         return p.inferredType.targetType
-    }
-
-    /**
-     * Get textual representation of a time in the target language.
-     * 
-     * @param t A time AST node
-     * @return A time string in the target language
-     */
-    protected def getTargetTime(Time t) {
-        val value = new TimeValue(t.interval, t.unit)
-        return value.timeInTargetLanguage
-    }
-
-    /**
-     * Get textual representation of a value in the target language.
-     * 
-     * If the value evaluates to 0, it is interpreted as a normal value.
-     * 
-     * @param v A time AST node
-     * @return A time string in the target language
-     */
-    protected def getTargetValue(Value v) {
-        if (v.time !== null) {
-            return v.time.targetTime
-        }
-        return v.toText
-    }
-
-    /**
-     * Get textual representation of a value in the target language.
-     * 
-     * If the value evaluates to 0, it is interpreted as a time.
-     * 
-     * @param v A time AST node
-     * @return A time string in the target language
-     */
-    protected def getTargetTime(Value v) {
-        if (v.time !== null) {
-            return v.time.targetTime
-        } else if (v.isZero) {
-            val value = new TimeValue(0, TimeUnit.NONE)
-            return value.timeInTargetLanguage
-        }
-        return v.toText
-    }
-
-    protected def getTargetTime(Delay d) {
-        if (d.parameter !== null) {
-            return d.toText
-        } else {
-            return new TimeValue(d.interval, d.unit).timeInTargetLanguage
-        }
     }
 
     /**

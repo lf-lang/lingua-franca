@@ -29,9 +29,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.lf.Action;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Time;
+import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
@@ -184,7 +187,7 @@ public final class JavaAstUtils {
      * Generate code for referencing a port possibly indexed by
      * a bank index and/or a multiport index. This assumes the target language uses
      * the usual array indexing [n] for both cases. If the provided reference is
-     * not a port, then this returns the string "ERROR: not a port.".
+     * not a port, then this returns the string "ERROR: not a port."
      * @param reference The reference to the port.
      * @param bankIndex A bank index or null or negative if not in a bank.
      * @param multiportIndex A multiport index or null or negative if not in a multiport.
@@ -208,5 +211,72 @@ public final class JavaAstUtils {
             multiport = "[" + multiportIndex + "]";
         }
         return prefix + reference.getVariable().getName() + multiport;
+    }
+
+    /**
+     * Given a representation of time that may include units, return
+     * a string that the target language can recognize as a value.
+     * If units are given, e.g. "msec", then we convert the units to upper
+     * case and return an expression of the form "MSEC(value)".
+     * @param time A TimeValue that represents a time.
+     * @return A string, such as "MSEC(100)" for 100 milliseconds.
+     */
+    public static String getTargetTime(TimeValue time) {
+        // The following apply to other methods in this section.
+        // FIXME: This is only used in a few code generators. Does the code reuse achieved justify the
+        //  coupling that results from having this common dependency, in comparison to having separate
+        //  implementations sequestered in the appropriate packages?
+        // FIXME: In Kotlin, this would be done more concisely in the style of AstExtensions.kt.
+        if (time != null) {
+            if (time.unit != TimeUnit.NONE) {
+                return time.unit.name() + '(' + time.time + ')';
+            } else {
+                return String.valueOf(time.time);
+            }
+        }
+        return "0"; // FIXME: do this or throw exception?
+    }
+
+    /**
+     * Return the time specified by {@code t}, expressed as
+     * code that is valid for some target languages.
+     */
+    public static String getTargetTime(Time t) {
+        return getTargetTime(new TimeValue(t.getInterval(), t.getUnit()));
+    }
+
+    /**
+     * Return the time specified by {@code d}, expressed as
+     * code that is valid for some target languages.
+     */
+    public static String getTargetTime(Delay d) {
+        return d.getParameter() != null ? ASTUtils.toText(d) : getTargetTime(
+            ASTUtils.getInitialTimeValue(d.getParameter())  // The time is given as a parameter reference.
+        );
+    }
+
+    /**
+     * Return the time specified by {@code v}, expressed as
+     * code that is valid for some target languages.
+     */
+    public static String getTargetTime(Value v) {
+        if (v.getTime() != null) return getTargetTime(v.getTime());
+        if (ASTUtils.isZero(v)) return getTargetTime(new TimeValue(0, TimeUnit.NONE));
+        return ASTUtils.toText(v);
+    }
+
+    /**
+     * Get textual representation of a value in the target language.
+     *
+     * If the value evaluates to 0, it is interpreted as a normal value.
+     *
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    public static String getTargetValue(Value v) {
+        // FIXME: This is practically the same as getTargetTime, and it is almost always used for times
+        //  (at least in the TypeScript generator). Perhaps it can be eliminated.
+        if (v.getTime() != null) return getTargetTime(v.getTime());
+        return ASTUtils.toText(v);
     }
 }
