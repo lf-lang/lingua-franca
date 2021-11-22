@@ -2,9 +2,6 @@ target Python {
     tracing: true
 };
 reactor HelloWorld2 {
-    preamble {=
-        import sys
-    =}
     state success(False);
     reaction(startup) {=
         print("Hello World.")
