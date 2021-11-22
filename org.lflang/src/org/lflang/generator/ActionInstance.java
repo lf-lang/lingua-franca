@@ -41,7 +41,7 @@ import org.lflang.lf.TimeUnit;
 public class ActionInstance extends TriggerInstance<Action> {
     
     /**
-     * Create a new timer instance.
+     * Create a new action instance.
      * If the definition is null, then this is a shutdown action.
      * @param definition The AST definition, or null for startup.
      * @param parent The parent reactor.
