@@ -73,39 +73,7 @@ public class PortInstance extends TriggerInstance<Port> {
             throw new NullPointerException("Cannot create a PortInstance with no parent.");
         }
         
-        // If this is a multiport, determine the width.
-        WidthSpec widthSpec = definition.getWidthSpec();
-
-        if (widthSpec != null) {
-            if (widthSpec.isOfVariableLength()) {
-                errorReporter.reportError(definition,
-                        "Variable-width multiports not supported (yet): " + definition.getName());
-            } else {
-                isMultiport = true;
-                
-                // Determine the initial width, if possible.
-                // The width may be given by a parameter or even sum of parameters.
-                width = 0;
-                for (WidthTerm term : widthSpec.getTerms()) {
-                    Parameter parameter = term.getParameter();
-                    if (parameter != null) {
-                        Integer parameterValue = parent.initialIntParameterValue(parameter);
-                        // Only a Literal is supported.
-                        if (parameterValue != null) {
-                            // This could throw NumberFormatException
-                            width += parameterValue;
-                        } else {
-                            errorReporter.reportWarning(definition,
-                                "Width of multiport "+ getFullName() +" cannot be determined at compile time. Assuming 1."
-                            );
-                            width += 1;
-                        }
-                    } else {
-                        width += term.getWidth();
-                    }
-                }
-            }
-        }
+        setInitialWidth(errorReporter);
     }
 
     //////////////////////////////////////////////////////
@@ -524,6 +492,49 @@ public class PortInstance extends TriggerInstance<Port> {
      * For a multiport, it may be larger than 1.
      */
     int width = 1;
+
+    //////////////////////////////////////////////////////
+    //// Private methods.
+
+    /**
+     * Set the initial multiport width, if this is a multiport, from the widthSpec
+     * in the definition.
+     * @param errorReporter For reporting errors.
+     */
+    private void setInitialWidth(ErrorReporter errorReporter) {
+        // If this is a multiport, determine the width.
+        WidthSpec widthSpec = definition.getWidthSpec();
+
+        if (widthSpec != null) {
+            if (widthSpec.isOfVariableLength()) {
+                errorReporter.reportError(definition,
+                        "Variable-width multiports not supported (yet): " + definition.getName());
+            } else {
+                isMultiport = true;
+                
+                // Determine the initial width, if possible.
+                // The width may be given by a parameter or even sum of parameters.
+                width = 0;
+                for (WidthTerm term : widthSpec.getTerms()) {
+                    Parameter parameter = term.getParameter();
+                    if (parameter != null) {
+                        Integer parameterValue = parent.initialIntParameterValue(parameter);
+                        // Only a Literal is supported.
+                        if (parameterValue != null) {
+                            width += parameterValue;
+                        } else {
+                            errorReporter.reportWarning(definition,
+                                "Width of a multiport cannot be determined. Assuming 1."
+                            );
+                            width += 1;
+                        }
+                    } else {
+                        width += term.getWidth();
+                    }
+                }
+            }
+        }
+    }
 
     //////////////////////////////////////////////////////
     //// Private fields.
