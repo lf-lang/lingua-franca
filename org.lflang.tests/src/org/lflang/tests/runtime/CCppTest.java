@@ -49,7 +49,8 @@ public class CCppTest extends TestBase {
         // be tested when compileExamples is
         // run.
         excluded |= (category == TestCategory.EXAMPLE);
-        excluded |= (!isLinux() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER_NONFEDERATED));
+        excluded |= (isWindows() && (category == TestCategory.DOCKER_FEDERATED));
+        excluded |= (isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER_NONFEDERATED));
         return !excluded;
-    }   
+    }
 }
