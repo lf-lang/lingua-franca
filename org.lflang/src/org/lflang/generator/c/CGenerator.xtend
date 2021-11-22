@@ -1173,8 +1173,13 @@ class CGenerator extends GeneratorBase {
     def addPlatformFiles(ArrayList<String> coreFiles) {
         // All platforms use this one.
         coreFiles.add("platform/lf_tag_64_32.h");
-        // Check the operating system
-        val OS = System.getProperty("os.name").toLowerCase();
+        var OS = ""
+	// Check platform target
+	if (targetConfig.platform != "") {
+		OS = target.Config.platform
+	} else {
+		// Check the operating system
+        	OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
         // Based on the detected operating system, copy the required files
         // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
@@ -1209,7 +1214,14 @@ class CGenerator extends GeneratorBase {
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
                 )
             }
-        } else {
+        } else if (OS.indexOf("spike") >= 0) {
+	   if (mainDef !== null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "lf_spike_support.c"
+                )
+            }
+ 
+	} else {
             errorReporter.reportError("Platform " + OS + " is not supported")
         }
 
@@ -1225,7 +1237,9 @@ class CGenerator extends GeneratorBase {
              "platform/lf_windows_support.c",
              "platform/lf_windows_support.h",
              "platform/lf_linux_support.c",
-             "platform/lf_linux_support.h"
+             "platform/lf_linux_support.h",
+	     "platform/lf_spike_support.c",
+	     "platform/lf_spike_support.h"
          )
     }
     

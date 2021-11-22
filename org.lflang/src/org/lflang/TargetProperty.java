@@ -454,6 +454,14 @@ public enum TargetProperty {
         config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
     }),
 
+    /** 
+     * Directive to specify the platform for cross code generation. 
+     */
+    PLATFORM("platform", PrimitiveType.STRING, Arrays.asList(Target.ALL),
+            (config, value) -> {
+                config.platform = ASTUtils.toText(value);
+            }),
+
     ;
 
     /**
