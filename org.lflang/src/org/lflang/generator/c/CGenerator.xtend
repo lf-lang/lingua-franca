@@ -1176,11 +1176,12 @@ class CGenerator extends GeneratorBase {
         var OS = ""
 	// Check platform target
 	if (targetConfig.platform != "") {
-		OS = target.Config.platform
+		OS = targetConfig.platform
 	} else {
 		// Check the operating system
         	OS = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
+        }
+	// FIXME: allow for cross-compiling
         // Based on the detected operating system, copy the required files
         // to enable platform-specific functionality. See lib/c/reactor-c/core/platform.h
         // for more detail.

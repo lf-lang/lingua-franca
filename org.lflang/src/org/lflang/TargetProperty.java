@@ -457,8 +457,8 @@ public enum TargetProperty {
     /** 
      * Directive to specify the platform for cross code generation. 
      */
-    PLATFORM("platform", PrimitiveType.STRING, Arrays.asList(Target.ALL),
-            (config, value) -> {
+    PLATFORM("platform", PrimitiveType.STRING, Target.ALL,
+            (config, value, err) -> {
                 config.platform = ASTUtils.toText(value);
             }),
 
@@ -903,7 +903,7 @@ public enum TargetProperty {
         public void check(Element e, String name, LFValidator v) {
             Array array = e.getArray();
             if (array == null) {
-                TargetPropertyType.produceError(name, this.toString(), v);
+                TargetPropertyType.produceError(name, this.toString(), v);		
             } else {
                 List<Element> elements = array.getElements();
                 for (int i = 0; i < elements.size(); i++) {
