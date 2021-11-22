@@ -96,7 +96,7 @@ public class PortInstance extends TriggerInstance<Port> {
                             width += parameterValue;
                         } else {
                             errorReporter.reportWarning(definition,
-                                "Width of a multiport cannot be determined. Assuming 1."
+                                "Width of multiport "+ getFullName() +" cannot be determined at compile time. Assuming 1."
                             );
                             width += 1;
                         }
