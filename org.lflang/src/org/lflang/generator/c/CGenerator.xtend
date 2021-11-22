@@ -3096,8 +3096,8 @@ class CGenerator extends GeneratorBase {
                 var foundOne = false;
                 val temp = new StringBuilder();
                 var nameOfSelfStruct = CUtil.selfRef(child)
-                startScopedBlock(temp, child);
                 getSelfStruct(temp, child);
+                startScopedBlock(temp, child);
 
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
@@ -3135,8 +3135,8 @@ class CGenerator extends GeneratorBase {
         var foundOne = false;
         val temp = new StringBuilder();
         var containerSelfStructName = CUtil.selfRef(instance)
-        startScopedBlock(temp, instance);
         getSelfStruct(temp, instance);
+        startScopedBlock(temp, instance);
         
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
@@ -3254,8 +3254,8 @@ class CGenerator extends GeneratorBase {
         // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
-                startScopedBlock(startTimeStep, child);
                 getSelfStruct(startTimeStep, child);
+                startScopedBlock(startTimeStep, child);
         
                 for (output : child.outputs) {
                     if (output.isMultiport()) {
@@ -3988,8 +3988,8 @@ class CGenerator extends GeneratorBase {
     def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
         val temp = new StringBuilder();
         var foundOne = false;
-        startScopedBlock(temp, reactor);
         getSelfStruct(temp, reactor);
+        startScopedBlock(temp, reactor);
         
         for (r : reactor.reactions) {
             if (federate === null || federate.contains(
@@ -4674,19 +4674,26 @@ class CGenerator extends GeneratorBase {
     
     /**
      * For the specified reactor, print code to the specified builder
-     * that retrieves the reactor instance using the current context
-     * variables to determine which instance of a bank is needed.
-     * A pointer to the self struct will be stored in a variable name
-     * given by CUtil.selfRef(reactor).
+     * that defines a pointer to the self struct of the specified
+     * reactor. If the specified reactor is a bank, then the pointer
+     * is to the array of pointers to the self structs for that bank
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance.
      */
     private def void getSelfStruct(StringBuilder builder, ReactorInstance reactor) {
-        var nameOfSelfStruct = CUtil.selfRef(reactor)
+        var nameOfSelfStruct = reactor.uniqueID() + "_self";
         var structType = CUtil.selfType(reactor)
-        pr(builder, '''
-            «structType»* «nameOfSelfStruct» = («structType»*)selfStructs[«CUtil.indexExpression(reactor)»];
-        ''')
+        if (reactor.isBank) {
+            pr(builder, '''
+                «structType»** «nameOfSelfStruct» = &(«structType»*)selfStructs[
+                        «CUtil.indexExpression(reactor.parent)» + «reactor.getIndexOffset»];
+            ''')
+        } else {
+            pr(builder, '''
+                «structType»* «nameOfSelfStruct» = («structType»*)selfStructs[
+                        «CUtil.indexExpression(reactor)»];
+            ''')
+        }
      }
 
     /**
@@ -5292,8 +5299,8 @@ class CGenerator extends GeneratorBase {
         }
         
         pr('''// deferredInitialize for «reactor.getFullName()»''')
-        startScopedBlock(code, reactor);
         getSelfStruct(code, reactor);
+        startScopedBlock(code, reactor);
         
         // Initialize the num_destinations fields of port structs on the self struct.
         deferredOutputNumDestinations(reactor); // NOTE: Not done for top level.
@@ -5793,11 +5800,15 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 if (effect.isMultiport()) {
+                    // Form is slightly different for inputs vs. outputs.
+                    var connector = ".";
+                    if (effect.isInput) connector = "->";
+                    
                     // Point the output_produced field to where the is_present field of the port is.
                     pr(initialization, '''
                         for (int i = 0; i < «effect.width»; i++) {
                             «nameOfSelfStruct»->_lf__reaction_«reaction.index».output_produced[«outputCount» + i]
-                                    = &«CUtil.sourceRef(effect)»[i]->is_present;
+                                    = &«CUtil.sourceRef(effect)»[i]«connector»is_present;
                         }
                     ''')
                     outputCount += effect.getWidth();
