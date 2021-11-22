@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
+import org.lflang.JavaAstUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
@@ -30,7 +31,7 @@ class TSReactionGenerator(
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
-    private fun VarRef.generateVarRef(): String = tsGenerator.generateVarRef(this)
+    private fun VarRef.generateVarRef(): String = JavaAstUtils.generateVarRef(this)
 
     /**
      * Return a TS type for the specified action.
