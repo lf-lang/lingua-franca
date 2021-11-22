@@ -231,7 +231,7 @@ class PythonGenerator extends CGenerator {
         switch(v.toText) {
             case "false": returnValue = "False"
             case "true": returnValue = "True"
-            default: returnValue = super.getTargetValue(v)
+            default: returnValue = JavaAstUtils.getTargetValue(v)
         }
         
         // Parameters in Python are always prepended with a 'self.'
