@@ -50,6 +50,7 @@ import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.util.StringUtil;
+import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -141,6 +142,9 @@ public abstract class TestBase {
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
+
+        /* Missing dependency messages */
+        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
     }
 
     /** Constructor for test classes that test a single target. */
@@ -537,10 +541,22 @@ public abstract class TestBase {
     }
 
     /**
+     * Returns true if docker exists, false otherwise.
+     */
+    private boolean checkDockerExists() {
+        LFCommand checkCommand = LFCommand.get("docker", Arrays.asList("info"));
+        return checkCommand.run() == 0;
+    }
+
+    /**
      * Return a list of ProcessBuilders used to test the docker option under non-federated execution.
      * @param test The test to get the execution command for.
      */
     private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
+        if (!checkDockerExists()) {
+            System.out.println(Message.MISSING_DOCKER);
+            return Arrays.asList(new ProcessBuilder("exit", "1"));
+        }
         var srcGenPath = test.fileConfig.getSrcGenPath();
         var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
         return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
@@ -553,6 +569,10 @@ public abstract class TestBase {
      * @param test The test to get the execution command for.
      */
     private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
+        if (!checkDockerExists()) {
+            System.out.println(Message.MISSING_DOCKER);
+            return Arrays.asList(new ProcessBuilder("exit", "1"));
+        }
         var rtiPath = test.fileConfig.getSrcGenBasePath().resolve("RTI");
         var rtiDockerPath = rtiPath.resolve("rti.Dockerfile");
         Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
