@@ -33,9 +33,9 @@ reactor SeriesWorker(bank_index: usize(0), termIncrement: f64(0.0025), startRate
     
     state cur_term: f64;
     
-    input reset: {=()=};
-    input nextTerm: {=()=};
-    input getTerm: {=()=};
+    input reset: unit;
+    input nextTerm: unit;
+    input getTerm: unit;
     output term: f64;
     
     computer = new RateComputer(bank_index=bank_index, startRate=startRate, rateIncrement=rateIncrement);
@@ -66,14 +66,14 @@ reactor Manager(numSeries: usize(10), numTerms: usize(25000)) {
  
     state current_iteration: usize(0);
     
-    input start: {=()=};
-    output finished: {=()=};
+    input start: unit;
+    output finished: unit;
 
-    output nextTerm: {=()=};
-    output getTerm: {=()=};
+    output nextTerm: unit;
+    output getTerm: unit;
     input[numSeries] results: f64;
     
-    logical action next: {=()=};
+    logical action next: unit;
     
     reaction(start, next) -> getTerm, nextTerm, next {=
         if self.current_iteration == self.num_terms  {

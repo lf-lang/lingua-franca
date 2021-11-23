@@ -24,11 +24,11 @@ reactor ProducerReactor(count_to: u32(1000000)) {
     state count_to(count_to);
 
 
-    output outIncrement: {= () =};
-    output outRetrieveResult: {= () =};
+    output outIncrement: unit;
+    output outRetrieveResult: unit;
     input inResult: u32;
 
-    logical action count: {= () =};
+    logical action count: unit;
 
     reaction(startup) -> count {=
         ctx.schedule(count, Asap);
@@ -52,8 +52,8 @@ reactor ProducerReactor(count_to: u32(1000000)) {
 }
 
 reactor CountingReactor {
-    input inIncrement: {= () =};
-    input inRetrieveResult: {= () =};
+    input inIncrement: unit;
+    input inRetrieveResult: unit;
     output outSendResult: u32;
     state count: u32(0);
 
