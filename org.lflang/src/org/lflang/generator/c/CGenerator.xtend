@@ -3102,9 +3102,7 @@ class CGenerator extends GeneratorBase {
                 val temp = new StringBuilder();
                 var nameOfSelfStruct = CUtil.selfRef(child)
                 
-                startScopedBlock(temp, null);
-                defineSelfStruct(temp, child);
-                startScopedBlock(temp, child);
+                startScopedReactorBlock(temp, child);
 
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
@@ -3132,8 +3130,7 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
-                endScopedBlock(temp);
-                endScopedBlock(temp);
+                endScopedReactorBlock(temp);
 
                 if (foundOne) {
                     pr(startTimeStep, temp.toString());
@@ -3145,9 +3142,7 @@ class CGenerator extends GeneratorBase {
         val temp = new StringBuilder();
         var containerSelfStructName = CUtil.selfRef(instance)
 
-        startScopedBlock(temp, null);
-        defineSelfStruct(temp, instance);
-        startScopedBlock(temp, instance);
+        startScopedReactorBlock(temp, instance);
         
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
@@ -3260,8 +3255,7 @@ class CGenerator extends GeneratorBase {
             }
         }
 
-        endScopedBlock(temp);
-        endScopedBlock(temp);
+        endScopedReactorBlock(temp);
 
         if (foundOne) pr(startTimeStep, temp.toString());
         
@@ -3269,9 +3263,7 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
                 
-                startScopedBlock(startTimeStep, null);
-                defineSelfStruct(startTimeStep, child);
-                startScopedBlock(startTimeStep, child);
+                startScopedReactorBlock(startTimeStep, child);
         
                 for (output : child.outputs) {
                     if (output.isMultiport()) {
@@ -3313,8 +3305,7 @@ class CGenerator extends GeneratorBase {
                         startTimeStepIsPresentCount++
                     }
                 }
-                endScopedBlock(startTimeStep);
-                endScopedBlock(startTimeStep);
+                endScopedReactorBlock(startTimeStep);
             }
         }
     }
@@ -4016,9 +4007,7 @@ class CGenerator extends GeneratorBase {
         val temp = new StringBuilder();
         var foundOne = false;
 
-        startScopedBlock(temp, null);
-        defineSelfStruct(temp, reactor);
-        startScopedBlock(temp, reactor);
+        startScopedReactorBlock(temp, reactor);
         
         for (r : reactor.reactions) {
             if (federate === null || federate.contains(
@@ -4037,8 +4026,7 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
         }
-        endScopedBlock(temp);
-        endScopedBlock(temp);
+        endScopedReactorBlock(temp);
 
         if (foundOne) pr(temp.toString());
         
@@ -4756,7 +4744,7 @@ class CGenerator extends GeneratorBase {
      * that iterates over the bank members using a standard index
      * variable. If the reactor is null or is not a bank, then this simply
      * starts a scoped block by printing an opening curly brace.
-     * This must be followed by an endScopedBlock().
+     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance.
      */
@@ -4774,6 +4762,25 @@ class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Start a scoped block for the specified reactor in situations where
+     * the self struct for the specified reactor is not already in scope.
+     * If the reactor is a bank, then this starts a for loop
+     * that iterates over the bank members using a standard index
+     * variable. If the reactor is null or is not a bank, then this simply
+     * starts a scoped block by printing an opening curly brace.
+     * This must be followed by an {@link endScopedReactorBlock(StringBuilder)}.
+     * @param builder The string builder into which to write.
+     * @param reactor The reactor instance.
+     */
+    private def void startScopedReactorBlock(StringBuilder builder, ReactorInstance reactor) {
+        // The first creates a scope in which we can define a pointer to the self
+        // struct without fear of redefining.
+        startScopedBlock(builder, null);
+        defineSelfStruct(builder, reactor);
+        startScopedBlock(builder, reactor);
+    }
+
+    /**
      * End a scoped block.
      * @param builder The string builder into which to write.
      */
@@ -4782,6 +4789,15 @@ class CGenerator extends GeneratorBase {
         pr(builder, "}");
     }
     
+    /**
+     * End a scoped reactor block.
+     * @param builder The string builder into which to write.
+     */
+    private def void endScopedReactorBlock(StringBuilder builder) {
+        endScopedBlock(builder);
+        endScopedBlock(builder);
+    }
+
     /**
      * For the specified reactor, print code to the specified builder
      * that defines a pointer to the self struct of the specified
@@ -5446,9 +5462,7 @@ class CGenerator extends GeneratorBase {
         }
         
         pr('''// deferredInitialize for «reactor.getFullName()»''')
-        startScopedBlock(code, null);
-        defineSelfStruct(code, reactor);
-        startScopedBlock(code, reactor);
+        startScopedReactorBlock(code, reactor);
         
         // Initialize the num_destinations fields of port structs on the self struct.
         deferredOutputNumDestinations(reactor); // NOTE: Not done for top level.
@@ -5478,8 +5492,7 @@ class CGenerator extends GeneratorBase {
         // output of a contained reactor.
         deferredConnectReactionsToPorts(reactor)
         
-        endScopedBlock(code)
-        endScopedBlock(code)
+        endScopedReactorBlock(code)
     }
     
     /**
