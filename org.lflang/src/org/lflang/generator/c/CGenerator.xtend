@@ -45,10 +45,10 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
-import org.lflang.JavaAstUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
+import org.lflang.JavaAstUtils
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty
@@ -65,6 +65,7 @@ import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.NamedInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -3096,7 +3097,8 @@ class CGenerator extends GeneratorBase {
                 var foundOne = false;
                 val temp = new StringBuilder();
                 var nameOfSelfStruct = CUtil.selfRef(child)
-                getSelfStruct(temp, child);
+                
+                defineSelfStruct(temp, child);
                 startScopedBlock(temp, child);
 
                 for (input : child.inputs) {
@@ -3108,7 +3110,7 @@ class CGenerator extends GeneratorBase {
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
                                             = &«nameOfSelfStruct»->_lf_«input.name»[i]->token;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].status
-                                            = (port_status_t*)&«nameOfSelfStruct»->_lf_«input.name»[i]->is_present;
+                                            = (port_status_t*)&«nameOfSelfStruct»->_lf_«input.name»[i].is_present;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                 }
                             ''')
@@ -3118,7 +3120,7 @@ class CGenerator extends GeneratorBase {
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].token
                                         = &«nameOfSelfStruct»->_lf_«input.name»->token;
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].status
-                                        = (port_status_t*)&«nameOfSelfStruct»->_lf_«input.name»->is_present;
+                                        = (port_status_t*)&«nameOfSelfStruct»->_lf_«input.name».is_present;
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
                             startTimeStepTokens++
@@ -3135,7 +3137,7 @@ class CGenerator extends GeneratorBase {
         var foundOne = false;
         val temp = new StringBuilder();
         var containerSelfStructName = CUtil.selfRef(instance)
-        getSelfStruct(temp, instance);
+        defineSelfStruct(temp, instance);
         startScopedBlock(temp, instance);
         
         // Handle inputs that get sent data from a reaction rather than from
@@ -3156,11 +3158,12 @@ class CGenerator extends GeneratorBase {
                             // struct is a pointer. Otherwise, it is the struct itself.
                             if (port.isMultiport) {
                                 foundOne = true;
+                                
                                 pr(temp, '''
                                     // Add port «port.getFullName» to array of is_present fields.
                                     for (int i = 0; i < «port.width»; i++) {
                                         _lf_is_present_fields[«startTimeStepIsPresentCount» + i] 
-                                                = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->is_present;
+                                                = &«CUtil.sourceRef(port)»[i]->is_present;
                                     }
                                 ''')
                                 if (isFederatedAndDecentralized) {
@@ -3169,7 +3172,7 @@ class CGenerator extends GeneratorBase {
                                         // Add port «port.getFullName» to array of is_present fields.
                                         for (int i = 0; i < «port.width»; i++) {
                                             _lf_intended_tag_fields[«startTimeStepIsPresentCount» + i] 
-                                                    = &«containerSelfStructName»->_lf_«port.parent.name».«port.name»[i]->intended_tag;
+                                                    = &«CUtil.sourceRef(port)»[i]->intended_tag;
                                         }
                                     ''')
                                 }
@@ -3179,14 +3182,14 @@ class CGenerator extends GeneratorBase {
                                 pr(temp, '''
                                     // Add port «port.getFullName» to array of is_present fields.
                                     _lf_is_present_fields[«startTimeStepIsPresentCount»] 
-                                            = &«containerSelfStructName»->_lf_«port.parent.name».«port.name».is_present;
+                                            = &«CUtil.sourceRef(port)».is_present;
                                 ''')
                                 if (isFederatedAndDecentralized) {
                                     // Intended_tag is only applicable to ports in federated execution.
                                     pr(temp, '''
                                         // Add port «port.getFullName» to array of is_present fields.
                                         _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                                = &«containerSelfStructName»->_lf_«port.parent.name».«port.name».intended_tag;
+                                                = &«CUtil.sourceRef(port)».intended_tag;
                                     ''')
                                 }
                                 startTimeStepIsPresentCount++
@@ -3254,7 +3257,7 @@ class CGenerator extends GeneratorBase {
         // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
-                getSelfStruct(startTimeStep, child);
+                defineSelfStruct(startTimeStep, child);
                 startScopedBlock(startTimeStep, child);
         
                 for (output : child.outputs) {
@@ -3602,6 +3605,9 @@ class CGenerator extends GeneratorBase {
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         if (instance.isBank) {
+            // Need an extra layer of scoping for the array of self structs.
+            startScopedBlock(initializeTriggerObjects, null)
+            
             // Array is the self struct name, but without the indexing.
             var selfStructArrayName = instance.uniqueID + "_self"
             
@@ -3732,6 +3738,10 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance)
         
         endScopedBlock(initializeTriggerObjects);
+        
+        if (instance.isBank) {
+            endScopedBlock(initializeTriggerObjects);
+        }
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
         
@@ -3991,7 +4001,7 @@ class CGenerator extends GeneratorBase {
     def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
         val temp = new StringBuilder();
         var foundOne = false;
-        getSelfStruct(temp, reactor);
+        defineSelfStruct(temp, reactor);
         startScopedBlock(temp, reactor);
         
         for (r : reactor.reactions) {
@@ -4678,17 +4688,49 @@ class CGenerator extends GeneratorBase {
     /**
      * For the specified reactor, print code to the specified builder
      * that defines a pointer to the self struct of the specified
-     * reactor. If the specified reactor is a bank, then the pointer
-     * is to the array of pointers to the self structs for that bank
+     * reactor. 
+     * 
+     * If the specified reactor is a bank, then the pointer
+     * is to the array of pointers to the self structs for that bank.
+     * 
      * @param builder The string builder into which to write.
-     * @param reactor The reactor instance.
+     * @param reactor The reactor instance for which to provide a self struct.
      */
-    private def void getSelfStruct(StringBuilder builder, ReactorInstance reactor) {
+    private def void defineSelfStruct(
+        StringBuilder builder, ReactorInstance reactor
+    ) {
+        defineSelfStruct(builder, reactor, null);
+    }
+
+    /**
+     * For the specified reactor, if necessary, print code to the specified builder
+     * that defines a pointer to the self struct of the specified
+     * reactor. 
+     * 
+     * The self struct is necessary if the specified reactor is not main nor
+     * a parent (even indirectly) of the specified instance (or if the
+     * specified instance is null. 
+     * 
+     * If the specified reactor is a bank, then the pointer
+     * is to the array of pointers to the self structs for that bank.
+     * 
+     * @param builder The string builder into which to write.
+     * @param reactor The reactor instance for which to provide a self struct.
+     * @param instance The 
+     */
+    private def void defineSelfStruct(
+        StringBuilder builder, ReactorInstance reactor, NamedInstance<?> instance
+    ) {
+        if (reactor.isParentOf(instance) || reactor == main) {
+            // Assume the self struct is already in scope because the reactor
+            // is a parent of the instance.
+            return;
+        }
         var nameOfSelfStruct = reactor.uniqueID() + "_self";
         var structType = CUtil.selfType(reactor)
         if (reactor.isBank) {
             pr(builder, '''
-                «structType»** «nameOfSelfStruct» = &(«structType»*)selfStructs[
+                «structType»** «nameOfSelfStruct» = («structType»**)&selfStructs[
                         «CUtil.indexExpression(reactor.parent)» + «reactor.getIndexOffset»];
             ''')
         } else {
@@ -5305,7 +5347,7 @@ class CGenerator extends GeneratorBase {
         }
         
         pr('''// deferredInitialize for «reactor.getFullName()»''')
-        getSelfStruct(code, reactor);
+        defineSelfStruct(code, reactor);
         startScopedBlock(code, reactor);
         
         // Initialize the num_destinations fields of port structs on the self struct.
@@ -5701,11 +5743,9 @@ class CGenerator extends GeneratorBase {
                 && currentFederate.contains(dominatingReaction.definition)
                 && currentFederate.contains(dominatingReaction.parent)
         ) {
-            if (dominatingReaction.parent != reaction.parent) {
-                // Define the destination struct pointer.
-                // FIXME: If the destination is a bank, need to define the bank_index variable.
-                getSelfStruct(code, dominatingReaction.parent);
-            }
+            // Define the destination struct pointer, if needed.
+            // FIXME: If the destination is a bank, need to define the bank_index variable.
+            defineSelfStruct(code, dominatingReaction.parent, reaction);
             startScopedBlock(code, null);
 
             val upstreamReaction = '''«CUtil.selfRef(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
@@ -5893,7 +5933,7 @@ class CGenerator extends GeneratorBase {
 
                             // Define the destination struct pointer.
                             // FIXME: If the destination is a bank, need to define the bank_index variable.
-                            getSelfStruct(temp, destination.parent);
+                            defineSelfStruct(temp, destination.parent);
 
                             if (destination.isOutput) {
                                 // Include this destination port only if it has at least one
