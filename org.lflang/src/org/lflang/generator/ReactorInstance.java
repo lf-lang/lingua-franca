@@ -460,6 +460,24 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 && (reactorDefinition.isMain() || reactorDefinition.isFederated());
     }
     
+    /**
+     * Return true if this reactor is a parent
+     * (possibly indirect) of the specified instance.
+     */
+    public boolean isParentOf(NamedInstance<?> other) {
+        
+        if (other == null) return false;
+        
+        ReactorInstance otherReactor = (other instanceof ReactorInstance)?
+                (ReactorInstance)other : other.parent;
+        
+        while (otherReactor != null) {
+            if (otherReactor == this) return true;
+            otherReactor = otherReactor.parent;
+        }
+        return false;
+    }
+    
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
