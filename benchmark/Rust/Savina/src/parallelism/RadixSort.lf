@@ -13,11 +13,8 @@
 target Rust {
     build-type: Release,
     cargo-features: [ "cli" ],
+    rust-include: "../pseudo_random.rs",
     cargo-dependencies: {
-        rand: {
-            version: "0.8",
-            features: ["small_rng"],
-        },
         reactor_rt: {
             features: ["parallel-runtime"]
         },
@@ -31,12 +28,10 @@ reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60
     state seed(seed);
 
     preamble {=
-       use rand::rngs::SmallRng;
-       use rand::Rng;
-       use rand::SeedableRng;
+        use crate::pseudo_random::PseudoRandomGenerator;
     =}
 
-    state random: rand::rngs::SmallRng({= SmallRng::seed_from_u64(seed) =});
+    state random: PseudoRandomGenerator({= PseudoRandomGenerator::from(seed) =});
     state num_sent_values: usize(0);
     state num_values(num_values);
     state max_value(max_value);
@@ -49,7 +44,7 @@ reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60
     
     reaction(start) -> sendRandomNum {=
         // reset local state
-        self.random = SmallRng::seed_from_u64(self.seed);
+        self.random = PseudoRandomGenerator::from(self.seed);
         self.num_sent_values = 0;
         
         ctx.schedule(sendRandomNum, Asap);
@@ -57,7 +52,7 @@ reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60
 
     // @label gen_random
     reaction(startup, sendRandomNum) -> outValue, sendRandomNum {=
-        let value = self.random.gen_range(0..self.max_value);
+        let value = self.random.next() % self.max_value;
         ctx.set(outValue, value);
         self.num_sent_values += 1;
 
