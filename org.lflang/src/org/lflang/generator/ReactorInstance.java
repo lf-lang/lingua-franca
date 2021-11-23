@@ -102,36 +102,30 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public fields.
 
     /** The action instances belonging to this reactor instance. */
-    public List<ActionInstance> actions = new ArrayList<ActionInstance>();
+    public final List<ActionInstance> actions = new ArrayList<ActionInstance>();
 
-    /**
-     * For the convenience of code generators, this public field can
-     * be used to annotate the reactor instance.
-     */
-    public String annotation;
-    
     /**
      * The contained reactor instances, in order of declaration.
      * For banks of reactors, this includes both the bank definition
      * Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
-    public List<ReactorInstance> children = new ArrayList<ReactorInstance>();
+    public final List<ReactorInstance> children = new ArrayList<ReactorInstance>();
 
     /** The input port instances belonging to this reactor instance. */
-    public List<PortInstance> inputs = new ArrayList<PortInstance>();
+    public final List<PortInstance> inputs = new ArrayList<PortInstance>();
 
     /** The output port instances belonging to this reactor instance. */
-    public List<PortInstance> outputs = new ArrayList<PortInstance>();
+    public final List<PortInstance> outputs = new ArrayList<PortInstance>();
 
     /** The parameters of this instance. */
-    public List<ParameterInstance> parameters = new ArrayList<ParameterInstance>();
+    public final List<ParameterInstance> parameters = new ArrayList<ParameterInstance>();
 
     /** List of reaction instances for this reactor instance. */
-    public List<ReactionInstance> reactions = new ArrayList<ReactionInstance>();
+    public final List<ReactionInstance> reactions = new ArrayList<ReactionInstance>();
 
     /** The timer instances belonging to this reactor instance. */
-    public List<TimerInstance> timers = new ArrayList<TimerInstance>();
+    public final List<TimerInstance> timers = new ArrayList<TimerInstance>();
 
     /** The reactor definition in the AST. */
     public final Reactor reactorDefinition;
@@ -246,14 +240,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public Map<Connection, Map<PortInstance, Set<PortInstance>>> getConnections() {
         return connections;
-    }
-    
-    /**
-     * Get the depth of the reactor instance. This is 0 for the main reactor,
-     * 1 for reactors immediately contained therein, etc.
-     */
-    public int getDepth() {
-        return depth;
     }
     
     /**
@@ -607,18 +593,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        if (parent != null) {
-            return parent.root();
-        } else {
-            return this;
-        }
-    }
-    
-    /**
      * Return the set of ports in that are sources in connections in this reactor.
      * These may be input ports of this reactor or output ports of contained reactors.
      */
@@ -722,12 +696,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The nested list of instantiations that created this reactor instance. */
     protected List<Instantiation> _instantiations;
-
-    /**
-     * The depth in the hierarchy of this reactor instance.
-     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
-     */
-    protected int depth = 0;
 
     //////////////////////////////////////////////////////
     //// Protected methods.
@@ -857,7 +825,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param definition The instantiation statement in the AST.
      * @param parent The parent, or null for the main rector.
      * @param reporter An error reporter.
-     * @param depth The depth of this reactor in the hierarchy.
      * @param desiredDepth The depth to which to expand the hierarchy.
      * @param unorderedReactions A list of reactions that should be treated as unordered.
      *  It can be passed as null.
@@ -871,14 +838,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDefinition = ASTUtils.toDefinition(definition.getReactorClass());
-        
-        // Calculate the depth.
-        this.depth = 0;
-        ReactorInstance p = parent;
-        while (p != null) {
-            p = p.parent;
-            this.depth++;
-        }
         
         if (unorderedReactions != null) {
             this.unorderedReactions = unorderedReactions;

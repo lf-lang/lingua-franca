@@ -26,7 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+
 import org.eclipse.emf.ecore.EObject;
 
 /** 
@@ -49,6 +52,14 @@ public abstract class NamedInstance<T extends EObject> {
     protected NamedInstance(T definition, ReactorInstance parent) {
         this.definition = definition;
         this.parent = parent;
+
+        // Calculate the depth.
+        this.depth = 0;
+        ReactorInstance p = parent;
+        while (p != null) {
+            p = p.parent;
+            this.depth++;
+        }
     }
     
     //////////////////////////////////////////////////////
@@ -65,6 +76,14 @@ public abstract class NamedInstance<T extends EObject> {
      */
     public T getDefinition() {
         return definition;
+    }
+    
+    /**
+     * Get the depth of the reactor instance. This is 0 for the main reactor,
+     * 1 for reactors immediately contained therein, etc.
+     */
+    public int getDepth() {
+        return depth;
     }
     
     /** 
@@ -104,6 +123,23 @@ public abstract class NamedInstance<T extends EObject> {
     }
     
     /**
+     * Return a list of all the parents starting with the root().
+     */
+    public List<ReactorInstance> parents() {
+        List<ReactorInstance> result = new ArrayList<ReactorInstance>(depth + 1);
+        if (this instanceof ReactorInstance && parent == null) {
+            // This is the top level, so it must be a reactor.
+            result.add((ReactorInstance) this);
+        }
+        ReactorInstance container = parent;
+        while (container != null) {
+            result.add(container);
+            container = container.parent;
+        }
+        return result;
+    }
+    
+    /**
      * Return the root reactor if it is marked as as main or federated,
      * and otherwise return null.
      * @return The main/federated top-level parent.
@@ -120,7 +156,13 @@ public abstract class NamedInstance<T extends EObject> {
      * Return the root reactor, which is the top-level parent.
      * @return The top-level parent.
      */
-    public abstract ReactorInstance root();
+    public ReactorInstance root() {
+        if (parent != null) {
+            return parent.root();
+        } else {
+            return (ReactorInstance)this;
+        }
+    }
             
     /**
      * Return an identifier for this instance, which has the form "a_b_c"
@@ -209,6 +251,15 @@ public abstract class NamedInstance<T extends EObject> {
             return parent.getFullNameWithJoiner(joiner) + joiner + this.getName();
         }
     }
+
+    //////////////////////////////////////////////////////
+    //// Protected fields.
+
+    /**
+     * The depth in the hierarchy of this reactor instance.
+     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
+     */
+    protected int depth = 0;
 
     //////////////////////////////////////////////////////
     //// Private fields.

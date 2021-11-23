@@ -93,14 +93,6 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         return assignment.get();
     }
 	
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        return parent.root();
-    }
-
     /** Return a descriptive string. */
     @Override
     public String toString() {

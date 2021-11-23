@@ -128,14 +128,6 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
         return builtinTriggerType != null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        return parent.root();
-    }
-    
     /////////////////////////////////////////////
     //// Protected Fields
     
