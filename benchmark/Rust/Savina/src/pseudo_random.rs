@@ -4,12 +4,6 @@ pub struct PseudoRandomGenerator {
 }
 
 impl PseudoRandomGenerator {
-    pub fn new() -> Self {
-        PseudoRandomGenerator {
-            m: 74755,
-        }
-    }
-
     pub fn from(value: i64) -> Self {
         PseudoRandomGenerator {
             m: value,
@@ -19,5 +13,11 @@ impl PseudoRandomGenerator {
     pub fn next(&mut self) -> i64 {
         self.m = ((self.m * 1309) + 13849) & 65535;
         self.m
+    }
+}
+
+impl Default for PseudoRandomGenerator {
+    fn default() -> Self {
+        PseudoRandomGenerator::from(74755)
     }
 }
