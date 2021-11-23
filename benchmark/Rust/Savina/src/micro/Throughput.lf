@@ -11,9 +11,9 @@ target Rust {
 import BenchmarkRunner from "../BenchmarkRunner2.lf";
 
 reactor ThroughputReactor(total_messages:usize(10000)) {
-    input inReset: {= () =};
-    input inMessage: {= () =};
-    output outFinished: {= () =};
+    input inReset: unit;
+    input inMessage: unit;
+    output outFinished: unit;
     
     state total_messages(total_messages);
     state messages_processed:usize(0);
@@ -53,12 +53,12 @@ reactor ThroughputProducer(total_messages:usize(10000), num_consumer:usize(60)) 
     state next_consumer:usize(0);
     state num_consumer_finished:usize(0);
     
-    input inStart:{=()=};
-    output outFinished:{=()=};
+    input inStart:unit;
+    output outFinished:unit;
     
-    output[num_consumer] outMessage: {= () =};
-    input[num_consumer] inFinished: {= () =};
-    output[num_consumer] outReset: {= () =};
+    output[num_consumer] outMessage: unit;
+    input[num_consumer] inFinished: unit;
+    output[num_consumer] outReset: unit;
     
     logical action sendNextMessage;
     

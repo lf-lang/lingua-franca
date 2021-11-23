@@ -1,8 +1,8 @@
 target Rust;
 
 reactor BenchmarkRunner(num_iterations:usize(12)) {
-    output start: {= () =}
-    input finished: {= () =}
+    output start: unit;
+    input finished: unit;
     
     logical action nextIteration;
     logical action done;

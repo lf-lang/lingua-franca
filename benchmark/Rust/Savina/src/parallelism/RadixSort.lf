@@ -36,7 +36,7 @@ reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60
     state num_values(num_values);
     state max_value(max_value);
     
-    input start: {=()=};
+    input start: unit;
 
     output outValue: u64;
 
@@ -71,7 +71,7 @@ reactor SortActor(num_values: usize(100000), bank_index: usize(0), num_bits: usi
     state radix: u64 ({= 1u64 << bank_index =});
     state bank_index(bank_index);
 
-    input start: {=()=};
+    input start: unit;
     input inValue: u64;
     output outValue: u64;
 
@@ -133,7 +133,7 @@ reactor ValidationReactor(num_values: usize(100000)) {
     state errorValueLong: Option<u64>;
 
     input inValue: u64
-    output outFinished: {=()=};
+    output outFinished: unit;
 
     reaction(inValue) -> outFinished {=
 

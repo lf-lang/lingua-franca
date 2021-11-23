@@ -8,7 +8,7 @@ import BenchmarkRunner from "../BenchmarkRunner2.lf";
 reactor ThreadRingReactor {
     output out_next_reactor: {= PingMessage =};
     input in_prev_reactor: {= PingMessage =};
-    output finished: {= () =};
+    output finished: unit;
 
     preamble {=
         #[derive(Copy, Clone)]
@@ -53,7 +53,7 @@ reactor ThreadRingReactorLoopOpener {
     output out_next_reactor: {= PingMessage =};
     input in_prev_reactor: {= PingMessage =};
     input start: {= PingMessage =};
-    output finished: {= () =};
+    output finished: unit;
 
     logical action send_to_next_reactor: {= PingMessage =};
 
@@ -93,11 +93,11 @@ reactor ThreadRingReactorLoopOpener {
 reactor Initializer(num_reactors:usize(100), num_pings:usize(100000)) {
     state num_pings(num_pings);
 
-    input in_start: {= () =};
-    output out_finished: {= () =};
+    input in_start: unit;
+    output out_finished: unit;
 
     // benchmark internal start and finish
-    input[num_reactors] in_finished: {= () =};
+    input[num_reactors] in_finished: unit;
     output out_start: {= PingMessage =};
 
     reaction(in_start) -> out_start {=

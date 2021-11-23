@@ -15,14 +15,14 @@ reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsum
     state producer_terminated: Vec<bool>;
     state producer_id: usize(0);
     
-    input start: {= () =};
-    output finished: {= () =};
+    input start: unit;
+    output finished: unit;
     
     input[numProducers] producerData: f64;
-    input[numProducers] producerFinished: {= () =};
-    output[numProducers] producerCommand: {= () =};
+    input[numProducers] producerFinished: unit;
+    output[numProducers] producerCommand: unit;
     
-    input[numConsumers] consumerAvailable: {= () =};
+    input[numConsumers] consumerAvailable: unit;
     output[numConsumers] consumerData: f64;
     
     preamble {=
@@ -95,11 +95,11 @@ reactor ProducerReactor(bank_index: usize(0), numItemsToProduce: usize(1000), pr
     state prod_item: f64(0.0);
     state items_produced: usize(0);
     
-    input produce: {= () =};
+    input produce: unit;
     output data: f64;
     
-    input reset: {= () =};
-    output finished: {= () =};
+    input reset: unit;
+    output finished: unit;
 
     reaction(reset) {=
         // reset local state
@@ -148,10 +148,10 @@ reactor ConsumerReactor(bank_index: usize(0), consCost: usize(25)) {
     
     state cons_item: f64(0.0);
     
-    input reset: {= () =};
+    input reset: unit;
     
     input data: f64;
-    output available: {= () =};
+    output available: unit;
     
     logical action sendAvailable;
 
