@@ -35,8 +35,6 @@ import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ASTUtils
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
-import org.lflang.generator.MultiportInstance
-import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Code
 import org.lflang.lf.Host
@@ -97,22 +95,6 @@ class UtilityExtensions extends AbstractSynthesisExtensions {
 	def isMainOrFederated(Reactor reactor) {
 		return reactor.main || reactor.federated
 	}
-	
-    /**
-     * Returns true if the port is a multiport
-     */
-    def boolean isMultiport(PortInstance port) {
-        return port instanceof MultiportInstance
-    }
-//    def boolean isMultiport(VarRef port) {
-//        if (port.variable instanceof Port) {
-//            return isMultiport(port.variable as Port)
-//        }
-//        return false
-//    }
-//    def boolean isMultiport(Port port) {
-//        return port?.widthSpec !== null ? port.widthSpec.width !== 1 : false
-//    }
 	
     /**
      * Returns true if the instance is a bank of reactors
