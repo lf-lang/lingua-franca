@@ -408,14 +408,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
     
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ReactorInstance root() {
-        return parent.root();
-    }
-
-    /**
      * Return a descriptive string.
      */
     @Override

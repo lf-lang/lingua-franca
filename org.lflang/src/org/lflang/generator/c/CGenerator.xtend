@@ -1010,6 +1010,10 @@ class CGenerator extends GeneratorBase {
 
         deferredInitialize(main, reactionsInFederate)
 
+        // Next, for every input port, populate its "self" struct
+        // fields with pointers to the output port that sends it data.
+        deferredConnectInputsToOutputs(main)
+
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
         // in _lf_initialize_trigger_objects() after the code that makes connections
@@ -3098,6 +3102,7 @@ class CGenerator extends GeneratorBase {
                 val temp = new StringBuilder();
                 var nameOfSelfStruct = CUtil.selfRef(child)
                 
+                startScopedBlock(temp, null);
                 defineSelfStruct(temp, child);
                 startScopedBlock(temp, child);
 
@@ -3128,6 +3133,8 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 endScopedBlock(temp);
+                endScopedBlock(temp);
+
                 if (foundOne) {
                     pr(startTimeStep, temp.toString());
                 }
@@ -3137,6 +3144,8 @@ class CGenerator extends GeneratorBase {
         var foundOne = false;
         val temp = new StringBuilder();
         var containerSelfStructName = CUtil.selfRef(instance)
+
+        startScopedBlock(temp, null);
         defineSelfStruct(temp, instance);
         startScopedBlock(temp, instance);
         
@@ -3252,11 +3261,15 @@ class CGenerator extends GeneratorBase {
         }
 
         endScopedBlock(temp);
+        endScopedBlock(temp);
+
         if (foundOne) pr(startTimeStep, temp.toString());
         
         // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
+                
+                startScopedBlock(startTimeStep, null);
                 defineSelfStruct(startTimeStep, child);
                 startScopedBlock(startTimeStep, child);
         
@@ -3300,6 +3313,7 @@ class CGenerator extends GeneratorBase {
                         startTimeStepIsPresentCount++
                     }
                 }
+                endScopedBlock(startTimeStep);
                 endScopedBlock(startTimeStep);
             }
         }
@@ -4001,6 +4015,8 @@ class CGenerator extends GeneratorBase {
     def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
         val temp = new StringBuilder();
         var foundOne = false;
+
+        startScopedBlock(temp, null);
         defineSelfStruct(temp, reactor);
         startScopedBlock(temp, reactor);
         
@@ -4022,6 +4038,8 @@ class CGenerator extends GeneratorBase {
             }
         }
         endScopedBlock(temp);
+        endScopedBlock(temp);
+
         if (foundOne) pr(temp.toString());
         
         for (child : reactor.children) {
@@ -4654,6 +4672,85 @@ class CGenerator extends GeneratorBase {
     // // Private methods.
     
     /**
+     * Enclose the specified code in a potentially nested iteration over
+     * bank indices for the specified connection from the given source to the
+     * given destination. The code may include references to bank indices of
+     * containers of either the source or destination as returned by
+     * {@link CUtil.bankIndex(ReactorInstance)}. It may also include
+     * "srcChannel" and "dstChannel" to refer to the source an destination
+     * channel indices if those are multiports.
+     */
+    private def void encloseInBankAndMultiportIteration(
+        StringBuilder builder, 
+        NamedInstance<?> source, 
+        NamedInstance<?> destination,
+        StringBuilder toEnclose
+    ) {
+        // Start a scoped block so we can define bank index variables without
+        // resulting in them being multiply defined.
+        startScopedBlock(builder, null);
+        defineSelfStruct(builder, source.parent);
+        if (destination.parent != source.parent) {
+            defineSelfStruct(builder, destination.parent);
+        }
+        
+        val sourceParents = source.parents;
+        // Initialize parent bank indices and construct a reversed list.
+        val sourceParentBanksReversed = new LinkedList<ReactorInstance>();
+        for (s : sourceParents) {
+            if (s.isBank) {
+                pr(builder, '''
+                    int «CUtil.bankIndex(s)» = 0;
+                ''')
+                sourceParentBanksReversed.push(s);
+            }
+        }
+        pr(builder, "int _lf_channels_satisfied = 0;");
+        
+        // Generate iterations over banks of the destination containers.
+        for (destinationContainer : destination.parents) {
+            if (destinationContainer.isBank) {
+                val index = CUtil.bankIndex(destinationContainer);            
+                pr(builder, '''
+                    // Iterate over destination bank members.
+                    for (int «index» = 0; «index» < «destinationContainer.width»; «index»++) {
+                ''')
+                indent(builder);
+            }
+        }
+        
+        pr(builder, toEnclose);
+                
+        // Increment the source bank variables as needed.
+        if (!sourceParentBanksReversed.isEmpty) {
+            var s = sourceParentBanksReversed.pop();
+            var i = CUtil.bankIndex(s);
+            var indents = 1;
+            pr(builder, '''
+                «i»++;
+                if («i» >= «s.width») {
+                    «i» = 0;
+            ''')
+            while (!sourceParentBanksReversed.isEmpty) {
+                s = sourceParentBanksReversed.pop();
+                i = CUtil.bankIndex(s);
+                indent(builder);
+                indents++;
+                pr(builder, '''
+                    if («i» >= «s.width») {
+                        «i» = 0;
+                ''')
+            }
+            while(indents-- > 0) {
+                unindent(builder);
+                pr(builder, "}");
+            }
+        }
+                
+        endScopedBlock(builder)
+    }
+    
+    /**
      * Start a scoped block for the specified reactor.
      * If the reactor is a bank, then this starts a for loop
      * that iterates over the bank members using a standard index
@@ -4716,7 +4813,7 @@ class CGenerator extends GeneratorBase {
      * 
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance for which to provide a self struct.
-     * @param instance The 
+     * @param instance The current object whose parents are all in scope.
      */
     private def void defineSelfStruct(
         StringBuilder builder, ReactorInstance reactor, NamedInstance<?> instance
@@ -4745,7 +4842,7 @@ class CGenerator extends GeneratorBase {
      * Generate assignments of pointers in the "self" struct of a destination
      * port's reactor to the appropriate entries in the "self" struct of the
      * source reactor.
-     * @param instance A port with dependant reactions.
+     * @param instance A port with dependent reactions.
      */
     private def void connectPortToEventualSource(PortInstance port) {
         // Find the sources that send data to this port,
@@ -4757,6 +4854,7 @@ class CGenerator extends GeneratorBase {
         for (eventualSource: port.eventualSources()) {
             val src = eventualSource.portInstance;
             if (src != port && currentFederate.contains(src.parent)) {
+                val temp = new StringBuilder();
                 // The eventual source is different from the port and is in the federate.
                 val destStructType = variableStructType(
                     port.definition as TypedVariable,
@@ -4773,7 +4871,7 @@ class CGenerator extends GeneratorBase {
                     
                     if (port.isMultiport()) {
                         // Source and destination are both multiports.                        
-                        pr('''
+                        pr(temp, '''
                             // Connect «src.getFullName» to port «port.getFullName»
                             { // To scope variable j
                                 int j = «eventualSource.startChannel»;
@@ -4785,25 +4883,26 @@ class CGenerator extends GeneratorBase {
                         startChannel += eventualSource.channelWidth;
                     } else {
                         // Source is a multiport, destination is a single port.
-                        pr('''
+                        pr(temp, '''
                             // Connect «src.getFullName» to port «port.getFullName»
                             «CUtil.destinationRef(port)» = («destStructType»*)«modifier»«CUtil.sourceRef(src)»[«eventualSource.startChannel»];
                         ''')
                     }
                 } else if (port.isMultiport()) {
                     // Source is a single port, Destination is a multiport.
-                    pr('''
+                    pr(temp, '''
                         // Connect «src.getFullName» to port «port.getFullName»
                         «CUtil.destinationRef(port)»[«startChannel»] = («destStructType»*)&«CUtil.sourceRef(src)»;
                     ''')
                     startChannel++;
                 } else {
                     // Both ports are single ports.
-                    pr('''
+                    pr(temp, '''
                         // Connect «src.getFullName» to port «port.getFullName»
                         «CUtil.destinationRef(port)» = («destStructType»*)&«CUtil.sourceRef(src)»;
                     ''')
                 }
+                encloseInBankAndMultiportIteration(code, src, port, temp);
             }
         }
     }
@@ -5347,6 +5446,7 @@ class CGenerator extends GeneratorBase {
         }
         
         pr('''// deferredInitialize for «reactor.getFullName()»''')
+        startScopedBlock(code, null);
         defineSelfStruct(code, reactor);
         startScopedBlock(code, reactor);
         
@@ -5360,10 +5460,6 @@ class CGenerator extends GeneratorBase {
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
         deferredCreateDefaultTokens(reactor);
-
-        // Next, for every input port, populate its "self" struct
-        // fields with pointers to the output port that sends it data.
-        deferredConnectInputsToOutputs(reactor)
         
         deferredAllocationForEffectsOnOutputs(reactor);
         
@@ -5383,6 +5479,7 @@ class CGenerator extends GeneratorBase {
         deferredConnectReactionsToPorts(reactor)
         
         endScopedBlock(code)
+        endScopedBlock(code)
     }
     
     /**
@@ -5393,7 +5490,8 @@ class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private def void deferredConnectInputsToOutputs(ReactorInstance instance) {
-        pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')        
+        pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
+        
         // Iterate over all ports of this reactor that have dependent reactions.
         for (input : instance.inputs) {
             if (!input.dependentReactions.isEmpty()) {
@@ -5407,6 +5505,9 @@ class CGenerator extends GeneratorBase {
                 // Connect it to its eventual source.
                 connectPortToEventualSource(output); 
             }
+        }
+        for (child: instance.children) {
+            deferredConnectInputsToOutputs(child);
         }
     }
     
@@ -5745,15 +5846,15 @@ class CGenerator extends GeneratorBase {
         ) {
             // Define the destination struct pointer, if needed.
             // FIXME: If the destination is a bank, need to define the bank_index variable.
-            defineSelfStruct(code, dominatingReaction.parent, reaction);
-            startScopedBlock(code, null);
+            val temp = new StringBuilder();
 
             val upstreamReaction = '''«CUtil.selfRef(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
-            pr('''
+            pr(temp, '''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
                 «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = &(«upstreamReaction»);
             ''')
-            endScopedBlock(code);
+            
+            encloseInBankAndMultiportIteration(code, dominatingReaction, reaction, temp);
         } else {
             pr('''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
