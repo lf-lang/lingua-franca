@@ -77,10 +77,10 @@ reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsum
     =}
     
     reaction(producerFinished) {=
-        for (i, (finished, terminated)) in producerFinished.into_iter().zip(self.producer_terminated).enumerate() {
+        for (i, (finished, terminated)) in producerFinished.into_iter().zip(self.producer_terminated.iter_mut()).enumerate() {
             if ctx.is_present(&finished) {
                 self.num_terminated_producers += 1;
-                terminated = true;
+                *terminated = true;
                 info!("Producer {} finished", i);
             }
         }
@@ -124,9 +124,9 @@ reactor ProducerReactor(bank_index: usize(0), numItemsToProduce: usize(1000), pr
         use std::f64;
         
         pub fn process_item(cur_term: f64, cost: usize) -> f64 {
-            let res = cur_term;
+            let mut res = cur_term;
             
-            let random = PseudoRandomGenerator::from(cost as _);
+            let mut random = PseudoRandomGenerator::from(cost as _);
             if(cost > 0) {
                 for i in 0..cost {
                     for j in 0..100 {
