@@ -123,7 +123,7 @@ public abstract class TestBase {
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
-        public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are not supported on Mac.";
+        public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
