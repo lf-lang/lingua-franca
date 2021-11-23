@@ -1909,9 +1909,8 @@ class PythonGenerator extends CGenerator {
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM python:alpine
+            FROM python:latest
             WORKDIR /lingua-franca/«topLevelName»
-            RUN set -ex && apk add --no-cache gcc musl-dev
             COPY . src-gen
             RUN cd src-gen && python3 setup.py install && cd ..
             ENTRYPOINT ["python3", "src-gen/«filename».py"]
