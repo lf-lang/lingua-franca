@@ -36,7 +36,7 @@ class CppStateGenerator(private val reactor: Reactor) {
     /**
      * Create a list of state initializers in target code.
      *
-     * TODO This is redundant to GeneratorBase.getInitializerList
+     * TODO This is redundant to ValueGenerator.getInitializerList
      */
     private fun getInitializerList(state: StateVar) = state.init.map {
         when {

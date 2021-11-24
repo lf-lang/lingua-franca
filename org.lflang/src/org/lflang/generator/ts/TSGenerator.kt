@@ -41,6 +41,7 @@ import java.nio.file.Files
 import java.util.*
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.ValueGenerator
 
 /**
  * Generator for TypeScript target.
@@ -75,6 +76,17 @@ class TSGenerator(
             "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")
+
+        private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
+
+        private fun timeInTargetLanguage(value: TimeValue): String {
+            return if (value.unit != TimeUnit.NONE) {
+                "TimeValue.${value.unit}(${value.time})"
+            } else {
+                // The value must be zero.
+                "TimeValue.zero()"
+            }
+        }
     }
 
     init {
@@ -86,15 +98,15 @@ class TSGenerator(
     // Wrappers to expose GeneratorBase methods.
     fun federationRTIPropertiesW() = federationRTIProperties
 
-    fun getTargetValueW(v: Value): String = JavaAstUtils.getTargetValue(v)
+    fun getTargetValueW(v: Value): String = VG.getTargetValue(v)
     fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
     fun getTargetTypeW(state: StateVar): String = getTargetType(state)
     fun getTargetTypeW(t: Type): String = getTargetType(t)
 
-    fun getInitializerListW(state: StateVar): List<String> = getInitializerList(state)
-    fun getInitializerListW(param: Parameter): List<String> = getInitializerList(param)
+    fun getInitializerListW(state: StateVar): List<String> = VG.getInitializerList(state)
+    fun getInitializerListW(param: Parameter): List<String> = VG.getInitializerList(param)
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
-        getInitializerList(param, i)
+        VG.getInitializerList(param, i)
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -355,10 +367,6 @@ class TSGenerator(
         } else {
             type
         }
-    }
-
-    override fun getTargetReference(param: Parameter): String {
-        return "this.${param.name}.get()"
     }
 
     /**

@@ -26,9 +26,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.lflang.TimeValue;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.ValueGenerator;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.TimeUnit;
+import org.lflang.lf.Variable;
+import org.lflang.lf.WidthTerm;
 
 /**
  * A collection of utilties for C code generation.
@@ -37,6 +47,11 @@ import org.lflang.lf.ReactorDecl;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class CUtil {
+
+    //////////////////////////////////////////////////////
+    //// Public fields.
+
+    public static final ValueGenerator VG = new ValueGenerator(CUtil::timeInTargetLanguage, CUtil::getTargetReference);
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -236,5 +251,82 @@ public class CUtil {
                 return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
             }
         }
+    }
+
+    //////////////////////////////////////////////////////
+    //// Private methods.
+
+    /**
+     * Given a representation of time that may include units, return
+     * a string that the target language can recognize as a value.
+     * If units are given, e.g. "msec", then we convert the units to upper
+     * case and return an expression of the form "MSEC(value)".
+     * @param time A TimeValue that represents a time.
+     * @return A string, such as "MSEC(100)" for 100 milliseconds.
+     */
+    public static String timeInTargetLanguage(TimeValue time) {
+        if (time != null) {
+            if (time.unit != TimeUnit.NONE) {
+                return time.unit.name() + '(' + time.time + ')';
+            } else {
+                return String.valueOf(time.time);
+            }
+        }
+        return "0"; // FIXME: do this or throw exception?
+    }
+
+    /**
+     * Generate target code for a parameter reference.
+     *
+     * @param param The parameter to generate code for
+     * @return Parameter reference in target code
+     */
+    public static String getTargetReference(Parameter param) {
+        return param.getName();
+    }
+
+    /**
+     * If the argument is a multiport, then return a string that
+     * gives the width as an expression, and otherwise, return null.
+     * The string will be empty if the width is variable (specified
+     * as '[]'). Otherwise, if is a single term or a sum of terms
+     * (separated by '+'), where each term is either an integer
+     * or a parameter reference in the target language.
+     */
+    public static String multiportWidthExpression(Variable variable) {
+        List<String> spec = multiportWidthTerms(variable);
+        return spec == null ? null : String.join(" + ", spec);
+    }
+
+    //////////////////////////////////////////////////////
+    //// Private methods.
+
+    /**
+     * If the argument is a multiport, return a list of strings
+     * describing the width of the port, and otherwise, return null.
+     * If the list is empty, then the width is variable (specified
+     * as '[]'). Otherwise, it is a list of integers and/or parameter
+     * references.
+     * @param variable The port.
+     * @return The width specification for a multiport or null if it is
+     *  not a multiport.
+     */
+    private static List<String> multiportWidthTerms(Variable variable) {
+        List<String> result = null;
+        if (variable instanceof Port) {
+            if (((Port) variable).getWidthSpec() != null) {
+                result = new ArrayList<>();
+                if (!((Port) variable).getWidthSpec().isOfVariableLength()) {
+                    for (WidthTerm term : ((Port) variable).getWidthSpec().getTerms()) {
+                        if (term.getParameter() != null) {
+                            result.add(getTargetReference(term.getParameter()));
+                        } else {
+                            result.add("" + term.getWidth());
+                        }
+                    }
+                }
+            }
+        }
+        return result;
     }
 }

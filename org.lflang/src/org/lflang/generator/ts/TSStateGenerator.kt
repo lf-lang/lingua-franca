@@ -1,7 +1,6 @@
 package org.lflang.generator.ts
 
 import org.lflang.ASTUtils
-import org.lflang.generator.PrependOperator
 import org.lflang.lf.StateVar
 import java.util.*
 
