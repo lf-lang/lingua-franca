@@ -13,50 +13,77 @@ target Rust {
     cargo-features: ["cli"],
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../BenchmarkRunner2.lf";
 
-main reactor PingPong(count: u32(1000000)) {
-    runner = new BenchmarkRunner();
+reactor Ping(count: usize(40000)) {
+    state count(count);
+    state pings_left: usize(0);
+    
+    input inStart: unit;
+    output outFinished: unit;
+    
+    output outPing: unit;
+    input inPong: unit;
 
-    ping = new Ping(count=count);
-    pong = new Pong(expected=count);
-    ping.send -> pong.receive;
-    pong.send -> ping.receive;
-}
-
-reactor Ping(count: u32(1000000)) {
-    input receive: u32;
-    output send: u32;
-    state pingsLeft: u32(count);
     logical action serve;
-
-    reaction(startup, serve) -> send {=
-        ctx.set(send, self.pingsLeft);
-        self.pingsLeft -= 1;
+    
+    reaction(inStart) -> serve {=
+        // reset local state
+        self.pings_left = self.count;
+        // start execution
+        ctx.schedule(serve, Asap);
     =}
 
-    reaction (receive) -> serve {=
-        if self.pingsLeft > 0 {
-            ctx.schedule(serve, Asap);
+    reaction(serve) -> outPing {=
+        ctx.set(outPing, ());
+        self.pings_left -= 1;
+    =}
+
+    reaction (inPong) -> serve, outFinished {=
+        if self.pings_left == 0 {
+            ctx.set(outFinished, ());
         } else {
-            ctx.request_stop(Asap);
+            ctx.schedule(serve, Asap);
         }
     =}
 }
 
-reactor Pong(expected: u32(1000000)) {
-    state expected(expected);
-
-    input receive: u32;
-    output send: u32;
-    state count: u32(0);
-
-    reaction(receive) -> send {=
-        self.count += 1;
-        ctx.set(send, ctx.get(receive).unwrap());
+reactor Pong {
+    input inPing: unit;
+    output outPong: unit;
+    
+    reaction(inPing) -> outPong {=
+        ctx.set(outPong, ());   
     =}
+}
 
-    reaction(shutdown) {=
-        assert_eq!(self.count, self.expected);
+main reactor (numIterations:usize(12), count:usize(40000)) {
+    state num_iterations(numIterations);
+    state count(count);
+    
+    ping = new Ping(count=count);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    
+    runner.start -> ping.inStart;
+    ping.outFinished -> runner.finished;
+    
+    reaction(startup) {=
+        print_benchmark_info("PingPongBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "count",
+            self.count
+        );
+        print_system_info();
+    =}
+    
+    pong = new Pong();
+    
+    ping.outPing -> pong.inPing;
+    pong.outPong -> ping.inPong;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
     =}
 }
