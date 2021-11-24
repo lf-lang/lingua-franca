@@ -73,7 +73,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
-import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -811,6 +810,8 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * @param stderr The output on standard error of executing a command.
      */
     def reportCommandErrors(String stderr) {
+        // NOTE: If the VS Code branch passes code review, then this function,
+        //  parseCommandOutput, and ErrorFileAndLine will be deleted soon after.
         // First, split the message into lines.
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
@@ -930,146 +931,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                 println("Unable to refresh workspace: " + e)
             }
         }
-    }
-
-    /**
-     * Create a list of default parameter initializers in target code.
-     * 
-     * @param param The parameter to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def getInitializerList(Parameter param) {
-        var list = new ArrayList<String>();
-
-        for (i : param?.init) {
-            if (param.isOfTimeType) {
-                list.add(JavaAstUtils.getTargetTime(i))
-            } else {
-                list.add(JavaAstUtils.getTargetValue(i))
-            }
-        }
-        return list
-    }
-
-    /**
-     * Create a list of state initializers in target code.
-     * 
-     * @param state The state variable to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def List<String> getInitializerList(StateVar state) {
-        if (!state.isInitialized) {
-            return null
-        }
-
-        var list = new ArrayList<String>();
-
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(i.parameter.targetReference)
-            } else if (state.isOfTimeType) {
-                list.add(JavaAstUtils.getTargetTime(i))
-            } else {
-                list.add(JavaAstUtils.getTargetValue(i))
-            }
-        }
-        return list
-    }
-
-    /**
-     * Create a list of parameter initializers in target code in the context
-     * of an reactor instantiation.
-     * 
-     * This respects the parameter assignments given in the reactor
-     * instantiation and falls back to the reactors default initializers
-     * if no value is assigned to it. 
-     * 
-     * @param param The parameter to create initializers for
-     * @return A list of initializers in target code
-     */
-    protected def getInitializerList(Parameter param, Instantiation i) {
-        if (i === null || param === null) {
-            return null
-        }
-
-        val assignments = i.parameters.filter[p|p.lhs === param]
-
-        if (assignments.size == 0) {
-            // the parameter was not overwritten in the instantiation
-            return param.initializerList
-        } else {
-            // the parameter was overwritten in the instantiation
-            var list = new ArrayList<String>();
-            for (init : assignments.get(0)?.rhs) {
-                // FIXME: This pattern of checking if it is a time and then calling
-                //  the appropriate function is used repetitively. Factor out?
-                //  It only seems to be necessary because of the special case where the value
-                //  is zero, with no units. Otherwise, values would know whether or not they
-                //  are times -- we would not need to ask their parent nodes.
-                if (param.isOfTimeType) {
-                    list.add(JavaAstUtils.getTargetTime(init))
-                } else {
-                    list.add(JavaAstUtils.getTargetValue(init))
-                }
-            }
-            return list
-        }
-    }
-
-    /**
-     * Generate target code for a parameter reference.
-     * 
-     * @param param The parameter to generate code for
-     * @return Parameter reference in target code
-     */
-    protected def String getTargetReference(Parameter param) {
-        return param.name
-    }
-
-    // // Utility functions supporting multiports.
-    /**
-     * If the argument is a multiport, return a list of strings
-     * describing the width of the port, and otherwise, return null.
-     * If the list is empty, then the width is variable (specified
-     * as '[]'). Otherwise, it is a list of integers and/or parameter
-     * references obtained by getTargetReference().
-     * @param variable The port.
-     * @return The width specification for a multiport or null if it is
-     *  not a multiport.
-     */
-    protected def List<String> multiportWidthSpec(Variable variable) {
-        var result = null as List<String>
-        if (variable instanceof Port) {
-            if (variable.widthSpec !== null) {
-                result = new ArrayList<String>()
-                if (!variable.widthSpec.ofVariableLength) {
-                    for (term : variable.widthSpec.terms) {
-                        if (term.parameter !== null) {
-                            result.add(getTargetReference(term.parameter))
-                        } else {
-                            result.add('' + term.width)
-                        }
-                    }
-                }
-            }
-        }
-        return result
-    }
-
-    /**
-     * If the argument is a multiport, then return a string that
-     * gives the width as an expression, and otherwise, return null.
-     * The string will be empty if the width is variable (specified
-     * as '[]'). Otherwise, if is a single term or a sum of terms
-     * (separated by '+'), where each term is either an integer
-     * or a parameter reference in the target language.
-     */
-    protected def String multiportWidthExpression(Variable variable) {
-        val spec = multiportWidthSpec(variable)
-        if (spec !== null) {
-            return spec.join(' + ')
-        }
-        return null
     }
 
     /**

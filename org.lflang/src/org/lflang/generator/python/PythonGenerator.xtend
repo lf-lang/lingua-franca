@@ -231,7 +231,7 @@ class PythonGenerator extends CGenerator {
         switch(v.toText) {
             case "false": returnValue = "False"
             case "true": returnValue = "True"
-            default: returnValue = JavaAstUtils.getTargetValue(v)
+            default: returnValue = CUtil.VG.getTargetValue(v)
         }
         
         // Parameters in Python are always prepended with a 'self.'
@@ -259,9 +259,9 @@ class PythonGenerator extends CGenerator {
 
         for (i : state?.init) {
             if (i.parameter !== null) {
-                list.add(i.parameter.targetReference)
+                list.add(CUtil.getTargetReference(i.parameter))
             } else if (state.isOfTimeType) {
-                list.add(i.targetTime)
+                list.add(CUtil.VG.getTargetTime(i))
             } else {
                 list.add(i.pythonTargetValue)
             }

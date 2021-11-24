@@ -1376,7 +1376,7 @@ class CGenerator extends GeneratorBase {
             // Insert the #defines at the beginning
             code.insert(0, '''
                 #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «JavaAstUtils.getTargetTime(targetConfig.clockSyncOptions.period)»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «CUtil.VG.getTargetTime(targetConfig.clockSyncOptions.period)»
                 #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
                 #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
             ''')
@@ -1428,7 +1428,7 @@ class CGenerator extends GeneratorBase {
                         val stp = param.init.get(0).getTimeValue
                         if (stp !== null) {                        
                             pr('''
-                                set_stp_offset(«JavaAstUtils.getTargetTime(stp)»);
+                                set_stp_offset(«CUtil.VG.getTargetTime(stp)»);
                             ''')
                         }
                     }
@@ -1599,7 +1599,7 @@ class CGenerator extends GeneratorBase {
                                 candidate_tmp = NEVER;
                             ''')
                         } else {
-                            var delayTime = JavaAstUtils.getTargetTime(delay)
+                            var delayTime = CUtil.VG.getTargetTime(delay)
                             pr(rtiCode, '''
                                 if («delayTime» < candidate_tmp) {
                                     candidate_tmp = «delayTime»;
@@ -3327,9 +3327,9 @@ class CGenerator extends GeneratorBase {
                 var minDelay = action.minDelay
                 var minSpacing = action.minSpacing
                 pr(initializeTriggerObjects, '''
-                    «triggerStructName».offset = «JavaAstUtils.getTargetTime(minDelay)»;
+                    «triggerStructName».offset = «CUtil.VG.getTargetTime(minDelay)»;
                     «IF minSpacing !== null»
-                        «triggerStructName».period = «JavaAstUtils.getTargetTime(minSpacing)»;
+                        «triggerStructName».period = «CUtil.VG.getTargetTime(minSpacing)»;
                     «ELSE»
                         «triggerStructName».period = «CGenerator.UNDEFINED_MIN_SPACING»;
                     «ENDIF»
@@ -3352,8 +3352,8 @@ class CGenerator extends GeneratorBase {
         for (timer : timers) {
             if (!timer.isStartup) {
                 var triggerStructName = triggerStructName(timer)
-                val offset = JavaAstUtils.getTargetTime(timer.offset)
-                val period = JavaAstUtils.getTargetTime(timer.period)
+                val offset = CUtil.VG.getTargetTime(timer.offset)
+                val period = CUtil.VG.getTargetTime(timer.period)
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
@@ -3734,7 +3734,7 @@ class CGenerator extends GeneratorBase {
                             parameter coordination-options with a value like {advance-message-interval: 10 msec}"''')
                 }
                 pr(initializeTriggerObjects, '''
-                    _fed.min_delay_from_physical_action_to_federate_output = «JavaAstUtils.getTargetTime(minDelay)»;
+                    _fed.min_delay_from_physical_action_to_federate_output = «CUtil.VG.getTargetTime(minDelay)»;
                 ''')
             }
         }
@@ -3884,7 +3884,7 @@ class CGenerator extends GeneratorBase {
                 var deadline = reaction.declaredDeadline.maxDelay
                 val reactionStructName = '''«CUtil.selfRef(reaction.parent)»->_lf__reaction_«reaction.index»'''
                 pr(initializeTriggerObjects, '''
-                    «reactionStructName».deadline = «JavaAstUtils.getTargetTime(deadline)»;
+                    «reactionStructName».deadline = «CUtil.VG.getTargetTime(deadline)»;
                 ''')
             }
         }
@@ -3966,7 +3966,7 @@ class CGenerator extends GeneratorBase {
                     if (term.parameter !== null) {
                         result.append(selfStruct)
                         result.append('->')
-                        result.append(getTargetReference(term.parameter))
+                        result.append(CUtil.getTargetReference(term.parameter))
                     } else {
                         count += term.width
                     }
@@ -3989,9 +3989,9 @@ class CGenerator extends GeneratorBase {
             if (i.parameter !== null) {
                 list.add(CUtil.selfRef(parent) + "->" + i.parameter.name)
             } else if (state.isOfTimeType) {
-                list.add(JavaAstUtils.getTargetTime(i))
+                list.add(CUtil.VG.getTargetTime(i))
             } else {
-                list.add(JavaAstUtils.getTargetValue(i))
+                list.add(CUtil.VG.getTargetValue(i))
             }
         }
         
@@ -4364,7 +4364,7 @@ class CGenerator extends GeneratorBase {
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
-                max_STP = «JavaAstUtils.getTargetTime(maxSTP)»;
+                max_STP = «CUtil.VG.getTargetTime(maxSTP)»;
             ''')  
         }
         
@@ -4517,7 +4517,7 @@ class CGenerator extends GeneratorBase {
         pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
         
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
-            pr('#define ADVANCE_MESSAGE_INTERVAL ' + JavaAstUtils.getTargetTime(targetConfig.coordinationOptions.advance_message_interval))
+            pr('#define ADVANCE_MESSAGE_INTERVAL ' + CUtil.VG.getTargetTime(targetConfig.coordinationOptions.advance_message_interval))
         }
         
         includeTargetLanguageSourceFiles()
@@ -5062,9 +5062,9 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 // Mutable multiport input, so copy the input structs
                 // into an array of temporary variables on the stack.
-                «structType» _lf_tmp_«input.name»[«input.multiportWidthExpression»];
-                «structType»* «input.name»[«input.multiportWidthExpression»];
-                for (int i = 0; i < «input.multiportWidthExpression»; i++) {
+                «structType» _lf_tmp_«input.name»[«CUtil.multiportWidthExpression(input)»];
+                «structType»* «input.name»[«CUtil.multiportWidthExpression(input)»];
+                for (int i = 0; i < «CUtil.multiportWidthExpression(input)»; i++) {
                     «input.name»[i] = &_lf_tmp_«input.name»[i];
                     _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
                     // If necessary, copy the tokens.
@@ -5091,9 +5091,9 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 // Mutable multiport input, so copy the input structs
                 // into an array of temporary variables on the stack.
-                «structType» _lf_tmp_«input.name»[«input.multiportWidthExpression»];
-                «structType»* «input.name»[«input.multiportWidthExpression»];
-                for (int i = 0; i < «input.multiportWidthExpression»; i++) {
+                «structType» _lf_tmp_«input.name»[«CUtil.multiportWidthExpression(input)»];
+                «structType»* «input.name»[«CUtil.multiportWidthExpression(input)»];
+                for (int i = 0; i < «CUtil.multiportWidthExpression(input)»; i++) {
                     «input.name»[i]  = &_lf_tmp_«input.name»[i];
                     // Copy the struct, which includes the value.
                     _lf_tmp_«input.name»[i] = *(self->_lf_«input.name»[i]);
@@ -5447,9 +5447,9 @@ class CGenerator extends GeneratorBase {
     protected def String getInitializer(ParameterInstance p) {
         
             if (p.type.isList && p.init.size > 1) {
-                return p.init.join('{', ', ', '}', [JavaAstUtils.getTargetValue(it)])
+                return p.init.join('{', ', ', '}', [CUtil.VG.getTargetValue(it)])
             } else {
-                return JavaAstUtils.getTargetValue(p.init.get(0))
+                return CUtil.VG.getTargetValue(p.init.get(0))
             }
         
     }
