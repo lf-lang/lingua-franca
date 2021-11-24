@@ -48,6 +48,7 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
@@ -341,7 +342,7 @@ class PythonGenerator extends CGenerator {
                             generatedParams.add('''mutable_«trigger.variable.name»''')
 
                             // Create a deep copy                            
-                            if ((trigger.variable as Input).isMultiport) {
+                            if (JavaAstUtils.isMultiport(trigger.variable as Input)) {
                                 inits.
                                     append('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]
                                     ''')
@@ -419,7 +420,7 @@ class PythonGenerator extends CGenerator {
             } else {
                 generatedParams.add(effect.variable.name)
                 if (effect.variable instanceof Port) {
-                    if (isMultiport(effect.variable as Port)) {
+                    if (JavaAstUtils.isMultiport(effect.variable as Port)) {
                         // Handle multiports           
                     }
                 }
@@ -818,7 +819,7 @@ class PythonGenerator extends CGenerator {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
+        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -830,7 +831,7 @@ class PythonGenerator extends CGenerator {
         }
             
         // Create the setup file
-        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath.toString)
+        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath.toString)
              
         
     }
@@ -1774,7 +1775,7 @@ class PythonGenerator extends CGenerator {
         }
         else
         {
-            if(!(port.variable as Port).isMultiport)
+            if(!JavaAstUtils.isMultiport(port.variable as Port))
             {
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», -2)''')
@@ -1808,10 +1809,13 @@ class PythonGenerator extends CGenerator {
             // but what we have on the self struct is an array of output structs.
             // So we have to handle multiports specially here a construct that
             // array of pointers.
-            if (!output.isMultiport) {
+            // FIXME: The C Generator also has this awkwardness. It makes the code generators
+            //  unnecessarily difficult to maintain, and it may have performance consequences as well.
+            //  Maybe we should change the SET macros.
+            if (!JavaAstUtils.isMultiport(output)) {
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', convert_C_port_to_py(«output.name», -2)''')
-            } else if (output.isMultiport) {
+            } else {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', convert_C_port_to_py(«output.name»,«output.name»_width) ''')
@@ -1833,7 +1837,7 @@ class PythonGenerator extends CGenerator {
         ReactorDecl decl        
     )
     {
-        if(input.isMultiport)
+        if(JavaAstUtils.isMultiport(input))
         {            
             pyObjectDescriptor.append("O")
             pyObjects.append(''', convert_C_port_to_py(«definition.name».«input.name», «definition.name».«input.name»_width)''')   
@@ -1869,16 +1873,16 @@ class PythonGenerator extends CGenerator {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable && !input.isMultiport) {
+        if (!input.isMutable && !JavaAstUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
             pyObjectDescriptor.append("O")
             pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
-        } else if (input.isMutable && !input.isMultiport) {
+        } else if (input.isMutable && !JavaAstUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
             // TODO: handle mutable
             pyObjectDescriptor.append("O")
             pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
-        } else if (!input.isMutable && input.isMultiport) {
+        } else if (!input.isMutable && JavaAstUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjectDescriptor.append("O")            
@@ -1924,7 +1928,7 @@ class PythonGenerator extends CGenerator {
              && apk del gcc musl-dev
             ENTRYPOINT ["python3", "src-gen/«filename».py"]
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
         println("Dockerfile written to " + dockerFile)
         println('''
             #####################################

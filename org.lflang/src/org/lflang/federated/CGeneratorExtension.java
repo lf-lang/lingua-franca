@@ -27,6 +27,7 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CGenerator;
@@ -194,7 +195,7 @@ public class CGeneratorExtension {
             CGenerator generator) {
         StringBuilder builder = new StringBuilder();
         // Check if the port is a multiport
-        if (generator.isMultiport(input)) {
+        if (JavaAstUtils.isMultiport(input)) {
             // If it is a multiport, then create an auxiliary list of port
             // triggers for each channel of
             // the multiport to keep track of the status of each channel

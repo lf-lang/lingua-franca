@@ -1,5 +1,3 @@
-/* Generator base class for shared code between code generators. */
-
 /*************
  * Copyright (c) 2019-2020, The University of California at Berkeley.
 
@@ -27,7 +25,6 @@
 package org.lflang.generator
 
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.ArrayList
@@ -47,7 +44,6 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
-import org.lflang.JavaAstUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -78,8 +74,9 @@ import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
 
 /**
- * Generator base class for shared code between code generators.
- * 
+ * Generator base class for specifying core functionality
+ * that all code generators should have.
+ *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de}
@@ -90,20 +87,20 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
     ////////////////////////////////////////////
     //// Public fields.
-    
+
     /**
      * Constant that specifies how to name generated delay reactors.
      */
     public static val GEN_DELAY_CLASS_NAME = "_lf_GenDelay"
 
-    /** 
+    /**
      * The main (top-level) reactor instance.
      */
     public ReactorInstance main
-    
+
     /** A error reporter for reporting any errors or warnings during the code generation */
     public ErrorReporter errorReporter
-    
+
     ////////////////////////////////////////////
     //// Protected fields.
 
@@ -933,15 +930,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         }
     }
 
-    /**
-     * Return true if the specified port is a multiport.
-     * @param port The port.
-     * @return True if the port is a multiport.
-     */
-    def boolean isMultiport(Port port) {
-        port.widthSpec !== null
-    }
-
     // //////////////////////////////////////////////////
     // // Private functions
     /**
@@ -1278,17 +1266,4 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     protected def getTargetType(Port p) {
         return p.inferredType.targetType
     }
-
-    /**
-     * Write the source code to file.
-     * @param code The code to be written.
-     * @param path The file to write the code to.
-     */
-    protected def writeSourceCodeToFile(byte[] code, String path) {
-        // Write the generated code to the output file.
-        var fOut = new FileOutputStream(new File(path), false);
-        fOut.write(code)
-        fOut.close()
-    }
-    
 }
