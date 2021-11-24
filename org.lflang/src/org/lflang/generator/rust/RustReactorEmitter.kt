@@ -126,14 +126,14 @@ ${"             |            "..otherComponents.joinWithCommasLn { it.rustFieldN
                 |    type Params = $paramStructName$typeArgs;
                 |    const MAX_REACTION_ID: $rsRuntime::LocalReactionId = $rsRuntime::LocalReactionId::new($totalNumReactions - 1);
                 |
-                |    fn assemble(__params: Self::Params, __ctx: $rsRuntime::assembly::AssemblyCtx<Self>) -> $rsRuntime::assembly::AssemblyResult<Self> {
+                |    fn assemble(__params: Self::Params, __ctx: $rsRuntime::assembly::AssemblyCtx<Self>)
+                |       -> $rsRuntime::assembly::AssemblyResult<$rsRuntime::assembly::FinishedReactor<Self>> {
                 |        use $rsRuntime::assembly::TriggerLike;
                 |
                 |        let $ctorParamsDeconstructor = __params;
-                |        let (_, __self) =
-${"             |            "..assembleChildReactors(assembleSelfCall())};
-                |
-                |       Ok(__self)
+                |        __ctx.assemble(|__ctx|
+${"             |            "..assembleChildReactors(assembleSelfCall())}
+                |        )
                 |    }
                 |}
                 |
@@ -185,7 +185,6 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
             for (inst in nestedInstances) {
                 append("})")
             }
-            append("?")
         }
     }
 
@@ -203,7 +202,7 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
         return """
-                |__ctx.do_assembly(
+                |__ctx.assemble_self(
                 |    |cc, id| Self::user_assemble(cc, id, $ctorParamsDeconstructor),
                 |    // number of non-synthetic reactions
                 |    ${reactions.size},
@@ -358,19 +357,31 @@ ${"             |        "..declareChildConnections()}
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
         is PortData           -> {
             if (widthSpec != null) {
-                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $isInput, $widthSpec)?"
+                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $portKind, $widthSpec)?"
             } else {
-                "__assembler.new_port::<$dataType>(\"$lfName\", $isInput)"
+                "__assembler.new_port::<$dataType>(\"$lfName\", $portKind)"
             }
         }
         is ChildPortReference -> {
             if (isMultiport) {
                 throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
             } else {
-                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $isInput)"
+                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $portKind)"
             }
         }
     }
+
+    private val PortLike.portKind: String
+        get() {
+            val kind = if (this is ChildPortReference) {
+                if (isInput) "ChildInputReference"
+                else "ChildOutputReference"
+            } else {
+                if (isInput) "Input"
+                else "Output"
+            }
+            return "$rsRuntime::assembly::PortKind::$kind"
+        }
 
     /** The type of the parameter injected into a reaction for the given dependency. */
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode {
