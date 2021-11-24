@@ -127,6 +127,28 @@ class CppGenerator(
         fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
+    fun getCmakeVersion(buildPath: Path): String? {
+        val cmd = commandFactory.createCommand("cmake", listOf("--version"), buildPath)
+        val res = cmd.run()
+        if (res == 0) {
+            val regex = "\\d+(\\.\\d+)+".toRegex()
+            val version = regex.find(cmd.output.toString())
+            return version?.value
+        }
+        return null
+    }
+
+    private fun String.compareVersion(other: String): Int {
+        val a = this.split(".").map { it.toInt() }
+        val b = other.split(".").map { it.toInt() }
+        for (x in (a zip b)) {
+            val res = x.first.compareTo(x.second)
+            if (res != 0)
+                return res
+        }
+        return 0
+    }
+
     fun doCompile(context: IGeneratorContext) {
         val outPath = fileConfig.outPath
 
@@ -135,6 +157,15 @@ class CppGenerator(
 
         // make sure the build directory exists
         Files.createDirectories(buildPath)
+
+        val version = getCmakeVersion(buildPath)
+        if (version == null || version.compareVersion("3.5.0") < 0) {
+            errorReporter.reportError(
+                "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
+                        "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+            )
+            return
+        }
 
         val cores = Runtime.getRuntime().availableProcessors()
 
@@ -156,13 +187,6 @@ class CppGenerator(
             ),
             buildPath
         )
-        if (makeCommand == null || cmakeCommand == null) {
-            errorReporter.reportError(
-                "The C++ target requires CMAKE >= 3.02 to compile the generated code. " +
-                        "Auto-compiling can be disabled using the \"no-compile: true\" target property."
-            )
-            return
-        }
 
         // prepare cmake
         if (targetConfig.compiler != null) {
