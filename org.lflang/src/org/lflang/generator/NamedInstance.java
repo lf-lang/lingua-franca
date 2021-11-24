@@ -123,6 +123,22 @@ public abstract class NamedInstance<T extends EObject> {
     }
     
     /**
+     * Return true if this instance has the specified parent
+     * (possibly indirectly, anywhere up the hierarchy).
+     */
+    public boolean hasParent(ReactorInstance container) {
+        
+        ReactorInstance p = parent;
+        
+        while (p != null) {
+            if (p == container) return true;
+            p = p.parent;
+        }
+        return false;
+    }
+    
+
+    /**
      * Return a list of all the parents starting with the root().
      */
     public List<ReactorInstance> parents() {

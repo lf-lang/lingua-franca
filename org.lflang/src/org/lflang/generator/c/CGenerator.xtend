@@ -3158,6 +3158,9 @@ class CGenerator extends GeneratorBase {
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
                         if (currentFederate.contains(port.parent)) {
+                            
+                            startScopedReactorBlock(temp, port.parent);
+                            
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
                             if (port.isMultiport) {
@@ -3198,6 +3201,7 @@ class CGenerator extends GeneratorBase {
                                 }
                                 startTimeStepIsPresentCount++
                             }
+                            endScopedReactorBlock(temp);
                         }
                     }
                 }
@@ -4663,47 +4667,60 @@ class CGenerator extends GeneratorBase {
      * Enclose the specified code in a potentially nested iteration over
      * bank indices for the specified connection from the given source to the
      * given destination. The code may include references to bank indices of
-     * containers of either the source or destination as returned by
-     * {@link CUtil.bankIndex(ReactorInstance)}. It may also include
-     * "srcChannel" and "dstChannel" to refer to the source an destination
-     * channel indices if those are multiports.
+     * parents of either the source or destination. The names of these reference
+     * variables are the string returned by {@link CUtil.bankIndex(ReactorInstance)}.
+     * These variables are also defined if the parent of either the source or
+     * destination (or both) is not a parent of the context argument (even
+     * indirectly).
+     * 
+     * This returns the total number of iterations, which is never less than 1.
      */
-    private def void encloseInBankAndMultiportIteration(
+    private def int encloseInBankIteration(
         StringBuilder builder, 
         NamedInstance<?> source, 
         NamedInstance<?> destination,
-        StringBuilder toEnclose
+        StringBuilder toEnclose,
+        NamedInstance<?> context
     ) {
+        val sourceParentBanksReversed = new LinkedList<ReactorInstance>();
+        var result = 1;
+
         // Start a scoped block so we can define bank index variables without
         // resulting in them being multiply defined.
         startScopedBlock(builder, null);
-        defineSelfStruct(builder, source.parent);
-        if (destination.parent != source.parent) {
-            defineSelfStruct(builder, destination.parent);
-        }
+        // The following define the self structs only if the parents are not a parent of context.
+        defineSelfStruct(builder, source.parent, context);
+
+        if (source.parent != destination.parent) {
+            defineSelfStruct(builder, destination.parent, context);
         
-        val sourceParents = source.parents;
-        // Initialize parent bank indices and construct a reversed list.
-        val sourceParentBanksReversed = new LinkedList<ReactorInstance>();
-        for (s : sourceParents) {
-            if (s.isBank) {
-                pr(builder, '''
-                    int «CUtil.bankIndex(s)» = 0;
-                ''')
-                sourceParentBanksReversed.push(s);
+            // Initialize parent bank indices and construct a reversed list.
+            val sourceParents = source.parents;
+            for (s : sourceParents) {
+                if (s.isBank) {
+                    pr(builder, '''
+                        int «CUtil.bankIndex(s)» = 0;
+                    ''')
+                    sourceParentBanksReversed.push(s);
+                }
             }
         }
-        pr(builder, "int _lf_channels_satisfied = 0;");
         
         // Generate iterations over banks of the destination containers.
+        var indents = 0;
         for (destinationContainer : destination.parents) {
             if (destinationContainer.isBank) {
+                // Inserting a new for loop, so the total number of iterations
+                // becomes the previous total multiplied by the number here.
+                result *= destinationContainer.width;
+                
                 val index = CUtil.bankIndex(destinationContainer);            
                 pr(builder, '''
                     // Iterate over destination bank members.
                     for (int «index» = 0; «index» < «destinationContainer.width»; «index»++) {
                 ''')
                 indent(builder);
+                indents++;
             }
         }
         
@@ -4713,7 +4730,6 @@ class CGenerator extends GeneratorBase {
         if (!sourceParentBanksReversed.isEmpty) {
             var s = sourceParentBanksReversed.pop();
             var i = CUtil.bankIndex(s);
-            var indents = 1;
             pr(builder, '''
                 «i»++;
                 if («i» >= «s.width») {
@@ -4729,13 +4745,15 @@ class CGenerator extends GeneratorBase {
                         «i» = 0;
                 ''')
             }
-            while(indents-- > 0) {
-                unindent(builder);
-                pr(builder, "}");
-            }
+        }
+        while(indents > 0) {
+            indents--;
+            unindent(builder);
+            pr(builder, "}");
         }
                 
-        endScopedBlock(builder)
+        endScopedBlock(builder);
+        return result;
     }
     
     /**
@@ -4834,7 +4852,7 @@ class CGenerator extends GeneratorBase {
     private def void defineSelfStruct(
         StringBuilder builder, ReactorInstance reactor, NamedInstance<?> instance
     ) {
-        if (reactor.isParentOf(instance) || reactor == main) {
+        if ((instance !== null && instance.hasParent(reactor)) || reactor == main) {
             // Assume the self struct is already in scope because the reactor
             // is a parent of the instance.
             return;
@@ -4918,7 +4936,9 @@ class CGenerator extends GeneratorBase {
                         «CUtil.destinationRef(port)» = («destStructType»*)&«CUtil.sourceRef(src)»;
                     ''')
                 }
-                encloseInBankAndMultiportIteration(code, src, port, temp);
+                // The null argument ensures that both src and port self struct
+                // variables are defined.
+                encloseInBankIteration(code, src, port, temp, null);
             }
         }
     }
@@ -5543,6 +5563,9 @@ class CGenerator extends GeneratorBase {
                             port.definition as TypedVariable,
                             port.parent.definition.reactorClass
                         )
+                        // The port belongs to a contained reactor, which may be a bank.
+                        startScopedReactorBlock(code, port.parent);
+                        
                         if (port.isMultiport()) {
                             pr('''
                                 // Connect «port», which gets data from reaction «reaction.index»
@@ -5558,6 +5581,7 @@ class CGenerator extends GeneratorBase {
                                 «CUtil.destinationRef(port)» = («destStructType»*)&«CUtil.sourceRef(port)»;
                             ''')
                         }
+                        endScopedReactorBlock(code);
                     }
                 }
             }
@@ -5771,20 +5795,25 @@ class CGenerator extends GeneratorBase {
                     // Port is a multiport input that the parent's reaction is writing to.
                     portsHandled.add(effect);
                     
-                    val nameOfSelfStruct = CUtil.selfRef(reactor.parent);
-                    var containerName = CUtil.reactorRef(reactor);
                     val portStructType = variableStructType(
-                            effect.definition, reactor.definition.reactorClass);
+                            effect.definition, reactor.definition.reactorClass
+                    );
+                            
+                    startScopedBlock(code, reactor);
+                    
+                    val effectRef = CUtil.sourceRef(effect);
 
                     pr('''
-                        «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width = «effect.width»;
+                        «effectRef»_width = «effect.width»;
                         // Allocate memory to store output of reaction feeding a multiport input of a contained reactor.
-                        «nameOfSelfStruct»->_lf_«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                            * «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width);
-                        for (int i = 0; i < «nameOfSelfStruct»->_lf_«containerName».«effect.name»_width; i++) {
-                            «nameOfSelfStruct»->_lf_«containerName».«effect.name»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
+                        «effectRef» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                            * «effectRef»_width);
+                        for (int i = 0; i < «effectRef»_width; i++) {
+                            «effectRef»[i] = («portStructType»*)calloc(1, sizeof(«portStructType»));
                         }
                     ''')
+                    
+                    endScopedBlock(code);
                 }
             }
         }
@@ -5867,7 +5896,7 @@ class CGenerator extends GeneratorBase {
                 «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = &(«upstreamReaction»);
             ''')
             
-            encloseInBankAndMultiportIteration(code, dominatingReaction, reaction, temp);
+            encloseInBankIteration(code, dominatingReaction, reaction, temp, reaction);
         } else {
             pr('''
                 // Reaction «reactionNumber» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
@@ -6041,13 +6070,11 @@ class CGenerator extends GeneratorBase {
                     // so that we can simultaneously calculate the size of the total array.
                     for (PortInstance.SendRange range : port.eventualDestinations()) {
                         val temp = new StringBuilder();
+                        pr(temp, "int _lf_trigger_index = 0;");
                         var destRangeCount = 0;
                         for (destinationRange : range.destinations) {
                             val destination = destinationRange.getPortInstance();
-
-                            // Define the destination struct pointer.
-                            // FIXME: If the destination is a bank, need to define the bank_index variable.
-                            defineSelfStruct(temp, destination.parent);
+                            val temp2 = new StringBuilder();
 
                             if (destination.isOutput) {
                                 // Include this destination port only if it has at least one
@@ -6059,25 +6086,25 @@ class CGenerator extends GeneratorBase {
                                     }
                                 }
                                 if (belongs) {
-                                    pr(temp, '''
+                                    pr(temp2, '''
                                         // Port «port.getFullName» has reactions in its parent's parent.
                                         // Point to the trigger struct for those reactions.
-                                        triggerArray[«destRangeCount»] = &«triggerStructName(
+                                        triggerArray[_lf_trigger_index++] = &«triggerStructName(
                                             destination, 
                                             destination.parent.parent
                                         )»;
                                     ''')
                                     // One array entry for each destination range is sufficient.
-                                    destRangeCount++;
+                                    destRangeCount += encloseInBankIteration(temp, port, destination, temp2, reaction);
                                 }
                             } else {
                                 // Destination is an input port.
-                                pr(temp, '''
+                                pr(temp2, '''
                                     // Point to destination port «destination.getFullName»'s trigger struct.
-                                    triggerArray[«destRangeCount»] = &«triggerStructName(destination)»;
+                                    triggerArray[_lf_trigger_index++] = &«triggerStructName(destination)»;
                                 ''')
                                 // One array entry for each destination range is sufficient.
-                                destRangeCount++;
+                                destRangeCount += encloseInBankIteration(temp, port, destination, temp2, reaction);
                             }
                         }
                     
