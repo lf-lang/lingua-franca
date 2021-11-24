@@ -9,7 +9,6 @@
 target Rust {
     build-type: Release,
     cargo-features: ["cli"],
-    rust-include: "support.rs",
     cargo-dependencies: {
         reactor_rt: {
             features: ["parallel-runtime"]
@@ -28,7 +27,7 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
     state num_workers(num_workers);
 
     preamble {=
-        use crate::support::WorkMessage;
+        use super::trapezoidal::WorkMessage;
     =}
 
     state numTermsReceived: u32(0);
@@ -66,7 +65,7 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
 
 reactor Worker {
     preamble {=
-        use crate::support::WorkMessage;
+        use super::trapezoidal::WorkMessage;
     =}
 
     input inManager: WorkMessage;
@@ -115,4 +114,13 @@ main reactor (num_pieces: u32(10000000),
 
     workers.outManager -> manager.inWorkers;
     manager.outWorkers -> workers.inManager;
+
+    preamble {=
+        #[derive(Copy, Clone, Debug)]
+        pub struct WorkMessage {
+            pub l: f64,
+            pub r: f64,
+            pub h: f64,
+        }
+    =}
 }
