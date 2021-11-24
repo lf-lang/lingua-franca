@@ -19,7 +19,7 @@ target Rust {
             features: ["small_rng"],
         },
         reactor_rt: {
-            features: ["parallel-runtime", "graph-dump"]
+            features: ["parallel-runtime"]
         },
     }
 };
