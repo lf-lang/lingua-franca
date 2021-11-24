@@ -1220,6 +1220,9 @@ class CGenerator extends GeneratorBase {
                 targetConfig.compileAdditionalSources.add(
                     "core" + File.separator + "platform" + File.separator + "lf_spike_support.c"
                 )
+		targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "start.S"
+                )
             }
  
 	} else {
@@ -1240,7 +1243,8 @@ class CGenerator extends GeneratorBase {
              "platform/lf_linux_support.c",
              "platform/lf_linux_support.h",
 	     "platform/lf_spike_support.c",
-	     "platform/lf_spike_support.h"
+	     "platform/lf_spike_support.h",
+	     "platform/start.S"
          )
     }
     
