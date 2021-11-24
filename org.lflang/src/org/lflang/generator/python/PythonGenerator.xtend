@@ -1664,7 +1664,7 @@ class PythonGenerator extends CGenerator {
     override void generateReactorInstanceExtension(
         ReactorInstance instance, Iterable<ReactionInstance> reactions
     ) {
-        var nameOfSelfStruct = CUtil.selfRef(instance)
+        var nameOfSelfStruct = CUtil.selfName(instance)
         var reactor = instance.definition.reactorClass.toDefinition
         
          // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C

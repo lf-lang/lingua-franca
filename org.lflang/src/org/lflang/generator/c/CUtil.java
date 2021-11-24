@@ -172,21 +172,26 @@ public class CUtil {
     }
 
     /** 
+     * Return the unique name for the "self" struct of the specified
+     * reactor instance.
+     * @param instance The reactor instance.
+     * @return A name for the self struct.
+     */
+    static public String selfName(ReactorInstance instance) {
+        return instance.uniqueID() + "_self";
+    }
+
+    /** 
      * Return the unique reference for the "self" struct of the specified
      * reactor instance. If the instance is a bank of reactors, this returns
      * something of the form name_self[bankIndex], where bankIndex is the 
-     * returned by {@link bankIndex(ReactorInstance)}. This assumes that the resulting string
-     * will be used in a context that defines a variable with name bankIndex. The result has
-     * one of the following forms:
-     * 
-     * * uniqueID
-     * * uniqueID[bankIndex]
+     * returned by {@link bankIndex(ReactorInstance)}.
      * 
      * @param instance The reactor instance.
      * @return A reference to the self struct.
      */
     static public String selfRef(ReactorInstance instance) {
-        var result = instance.uniqueID() + "_self";
+        var result = selfName(instance);
         // If this reactor is a member of a bank of reactors, then change
         // the name of its self struct to append [index].
         if (instance.isBank()) {
