@@ -166,6 +166,15 @@ public final class JavaAstUtils {
         return literal;
     }
 
+    /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    public static boolean isMultiport(Port port) {
+        return port.getWidthSpec() != null;
+    }
+
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
     // This is a continuation of a large section of ASTUtils.xtend

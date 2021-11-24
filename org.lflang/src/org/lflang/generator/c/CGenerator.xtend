@@ -831,15 +831,15 @@ class CGenerator extends GeneratorBase {
                 }
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
-            writeSourceCodeToFile(getCode().getBytes(), targetFile)
+            JavaGeneratorUtils.writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             
             if (targetConfig.useCmake) {
                 // If cmake is requested, generated the CMakeLists.txt
                 val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
                 val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
-                writeSourceCodeToFile(
-                cmakeGenerator.generateCMakeCode(
+                JavaGeneratorUtils.writeSourceCodeToFile(
+                    cmakeGenerator.generateCMakeCode(
                         #[cFilename], 
                         topLevelName, 
                         errorReporter,
@@ -882,7 +882,7 @@ class CGenerator extends GeneratorBase {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
                         }
-                        writeSourceCodeToFile(cleanCode, targetFile)
+                        JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
             }
@@ -1303,7 +1303,7 @@ class CGenerator extends GeneratorBase {
             # Use ENTRYPOINT not CMD so that command-line arguments go through
             ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
@@ -1349,7 +1349,7 @@ class CGenerator extends GeneratorBase {
             # Use ENTRYPOINT not CMD so that command-line arguments go through
             ENTRYPOINT ["./build/RTI"]
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
         println("Dockerfile for RTI written to " + dockerFile)
         println('''
             #####################################
@@ -1981,7 +1981,7 @@ class CGenerator extends GeneratorBase {
                 // pointers that will be allocated separately for each instance
                 // because the sizes may be different. Otherwise, it is a simple
                 // pointer.
-                if (input.isMultiport) {
+                if (JavaAstUtils.isMultiport(input)) {
                     pr(input, body, '''
                         // Multiport input array will be malloc'd later.
                         «variableStructType(input, decl)»** _lf_«input.name»;
@@ -2016,7 +2016,7 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.contains(output as Port)) {
                 // If the port is a multiport, create an array to be allocated
                 // at instantiation.
-                if (output.isMultiport) {
+                if (JavaAstUtils.isMultiport(output)) {
                     pr(output, body, '''
                         // Array of output ports.
                         «variableStructType(output, decl)»* _lf_«output.name»;
@@ -2126,7 +2126,7 @@ class CGenerator extends GeneratorBase {
                 if (port instanceof Input) {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.
-                    if (!port.isMultiport) {
+                    if (!JavaAstUtils.isMultiport(port)) {
                         // Not a multiport.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)» «port.name»;
@@ -2143,7 +2143,7 @@ class CGenerator extends GeneratorBase {
                     // Must be an output port.
                     // Outputs of contained reactors are pointers to the source of data on the
                     // self struct of the container.
-                    if (!port.isMultiport) {
+                    if (!JavaAstUtils.isMultiport(port)) {
                         // Not a multiport.
                         pr(port, body, '''
                             «variableStructType(port, containedReactor.reactorClass)»* «port.name»;
@@ -2217,7 +2217,7 @@ class CGenerator extends GeneratorBase {
                         pr(constructorCode, "}")
                     }
                 }
-                if (port.isMultiport) {
+                if (JavaAstUtils.isMultiport(port)) {
                     // Add to the destructor code to free the malloc'd memory.
                     if (containedReactor.widthSpec !== null) {
                         pr(port, destructorCode, '''
@@ -2733,7 +2733,7 @@ class CGenerator extends GeneratorBase {
                     if (inputTrigger.variable instanceof Output) {
                         // Output from a contained reactor
                         val outputPort = inputTrigger.variable as Output                        
-                        if (outputPort.isMultiport) {
+                        if (JavaAstUtils.isMultiport(outputPort)) {
                             pr(intendedTagInheritenceCode, '''
                                 for (int i=0; i < «inputTrigger.container.name».«inputTrigger.variable.name»_width; i++) {
                                     if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»[i]->intended_tag,
@@ -2753,7 +2753,7 @@ class CGenerator extends GeneratorBase {
                     } else if (inputTrigger.variable instanceof Port) {
                         // Input port
                         val inputPort = inputTrigger.variable as Port 
-                        if (inputPort.isMultiport) {
+                        if (JavaAstUtils.isMultiport(inputPort)) {
                             pr(intendedTagInheritenceCode, '''
                                 for (int i=0; i < «inputTrigger.variable.name»_width; i++) {
                                     if (compare_tags(«inputTrigger.variable.name»[i]->intended_tag, inherited_min_intended_tag) < 0) {
@@ -2804,7 +2804,7 @@ class CGenerator extends GeneratorBase {
             indent(intendedTagInheritenceCode);
             for (effect : reaction.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
-                    if ((effect.variable as Port).isMultiport) {
+                    if (JavaAstUtils.isMultiport(effect.variable as Port)) {
                         pr(intendedTagInheritenceCode, '''
                             for(int i=0; i < «effect.container.name».«effect.variable.name»_width; i++) {
                                 «effect.container.name».«effect.variable.name»[i]->intended_tag = inherited_min_intended_tag;
@@ -3642,7 +3642,7 @@ class CGenerator extends GeneratorBase {
         // NOTE: Not done for top level.
         for (output : reactorClass.toDefinition.outputs) {
             // If the port is a multiport, create an array.
-            if (output.isMultiport) {
+            if (JavaAstUtils.isMultiport(output)) {
                 initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
             } else {
                 pr(initializeTriggerObjects, '''
@@ -3658,7 +3658,7 @@ class CGenerator extends GeneratorBase {
         // NOTE: Not done for top level.
         for (input : reactorClass.toDefinition.inputs) {
             // If the port is a multiport, create an array.
-            if (input.isMultiport) {
+            if (JavaAstUtils.isMultiport(input)) {
                 pr(initializeTriggerObjects, '''
                     «nameOfSelfStruct»->_lf_«input.name»_width = «multiportWidthSpecInC(input, null, instance)»;
                     // Allocate memory for multiport inputs.
@@ -4987,12 +4987,12 @@ class CGenerator extends GeneratorBase {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable && !inputType.isTokenType && !input.isMultiport) {
+        if (!input.isMutable && !inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
             pr(builder, '''
                 «structType»* «input.name» = self->_lf_«input.name»;
             ''')
-        } else if (input.isMutable && !inputType.isTokenType && !input.isMultiport) {
+        } else if (input.isMutable && !inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
             pr(builder, '''
                 // Mutable input, so copy the input into a temporary variable.
@@ -5000,7 +5000,7 @@ class CGenerator extends GeneratorBase {
                 «structType» _lf_tmp_«input.name» = *(self->_lf_«input.name»);
                 «structType»* «input.name» = &_lf_tmp_«input.name»;
             ''')
-        } else if (!input.isMutable && inputType.isTokenType && !input.isMultiport) {
+        } else if (!input.isMutable && inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, token type.
             pr(builder, '''
                 «structType»* «input.name» = self->_lf_«input.name»;
@@ -5011,7 +5011,7 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')
-        } else if (input.isMutable && inputType.isTokenType && !input.isMultiport) {
+        } else if (input.isMutable && inputType.isTokenType && !JavaAstUtils.isMultiport(input)) {
             // Mutable, non-multiport, token type.
             pr(builder, '''
                 // Mutable input, so copy the input struct into a temporary variable.
@@ -5034,7 +5034,7 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')            
-        } else if (!input.isMutable && input.isMultiport) {
+        } else if (!input.isMutable && JavaAstUtils.isMultiport(input)) {
             // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
                 «structType»** «input.name» = self->_lf_«input.name»;
@@ -5125,7 +5125,7 @@ class CGenerator extends GeneratorBase {
             val reactorName = port.container.name
             // First define the struct containing the output value and indicator
             // of its presence.
-            if (!output.isMultiport) {
+            if (!JavaAstUtils.isMultiport(output)) {
                 // Output is not a multiport.
                 pr(structBuilder, '''
                     «portStructType»* «output.name»;
@@ -5146,7 +5146,7 @@ class CGenerator extends GeneratorBase {
                         «reactorName»[i].«output.name» = self->_lf_«reactorName»[i].«output.name»;
                     }
                 ''')
-                if (output.isMultiport) {
+                if (JavaAstUtils.isMultiport(output)) {
                     pr(builder, '''
                         for (int i = 0; i < «port.container.name»_width; i++) {
                             «reactorName»[i].«output.name»_width = self->_lf_«reactorName»[i].«output.name»_width;
@@ -5158,7 +5158,7 @@ class CGenerator extends GeneratorBase {
                 pr(builder, '''
                     «reactorName».«output.name» = self->_lf_«reactorName».«output.name»;
                 ''')                    
-                if (output.isMultiport) {
+                if (JavaAstUtils.isMultiport(output)) {
                     pr(builder, '''
                         «reactorName».«output.name»_width = self->_lf_«reactorName».«output.name»_width;
                     ''')                    
@@ -5190,7 +5190,7 @@ class CGenerator extends GeneratorBase {
                     variableStructType(output, decl)
                     :
                     variableStructType(output, effect.container.reactorClass)
-            if (!output.isMultiport) {
+            if (!JavaAstUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 pr(builder, '''
                     «outputStructType»* «output.name» = &self->_lf_«output.name»;
@@ -5234,7 +5234,7 @@ class CGenerator extends GeneratorBase {
             structs.put(definition, structBuilder)
         }
         val inputStructType = variableStructType(input, definition.reactorClass)
-        if (!input.isMultiport) {
+        if (!JavaAstUtils.isMultiport(input)) {
             // Contained reactor's input is not a multiport.
             pr(structBuilder, '''
                 «inputStructType»* «input.name»;

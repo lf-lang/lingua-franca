@@ -1,5 +1,7 @@
 package org.lflang.generator;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -285,5 +287,17 @@ public final class JavaGeneratorUtils {
                                            + "occurred.");
         }
         return new LFResource(resource, fc, targetConfig);
+    }
+
+    /**
+     * Write the source code to file.
+     * @param code The code to be written.
+     * @param path The file to write the code to.
+     */
+    public static void writeSourceCodeToFile(byte[] code, String path) throws IOException {
+        // Write the generated code to the output file.
+        var fOut = new FileOutputStream(path, false);
+        fOut.write(code);
+        fOut.close();
     }
 }
