@@ -903,7 +903,9 @@ class CGenerator extends GeneratorBase {
         // Note that the code does not get cleaned in this case.
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
-                runBuildCommand()
+                CUtil.runBuildCommand(
+                    fileConfig, targetConfig, commandFactory, errorReporter, [it | reportCommandErrors(it)]
+                )
             }
         }
         
