@@ -26,10 +26,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
+import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
+import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.TimeValue;
+import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ValueGenerator;
@@ -39,6 +47,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
+import org.lflang.util.LFCommand;
 
 /**
  * A collection of utilties for C code generation.
@@ -258,8 +267,75 @@ public class CUtil {
         }
     }
 
-    //////////////////////////////////////////////////////
-    //// Private methods.
+    /**
+     * FIXME: The following functional interface is throwaway
+     *  code, intended only to be used while the C Generator
+     *  undergoes a transition period.
+     */
+    public interface ReportCommandErrors {
+        void report(String errors);
+    }
+
+    /**
+     * Run the custom build command specified with the "build" parameter.
+     * This command is executed in the same directory as the source file.
+     *
+     * The following environment variables will be available to the command:
+     *
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
+     *
+     */
+    public static void runBuildCommand(
+        FileConfig fileConfig,
+        TargetConfig targetConfig,
+        GeneratorCommandFactory commandFactory,
+        ErrorReporter errorReporter,
+        ReportCommandErrors reportCommandErrors
+    ) {
+        List<LFCommand> commands = getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
+        // If the build command could not be found, abort.
+        // An error has already been reported in createCommand.
+        if (commands.stream().anyMatch(Objects::isNull)) return;
+
+        for (LFCommand cmd : commands) {
+            int returnCode = cmd.run();
+            if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+                errorReporter.reportError(String.format(
+                    // FIXME: Why is the content of stderr not provided to the user in this error message?
+                    "Build command \"%s\" failed with error code %d.",
+                    targetConfig.buildCommands, returnCode
+                ));
+                return;
+            }
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (!cmd.getErrors().toString().isEmpty() && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+                reportCommandErrors.report(cmd.getErrors().toString());
+                return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
+            }
+        }
+    }
+
+    /**
+     * Converts the given commands from strings to their LFCommand
+     * representation.
+     * @param commands A list of commands.
+     * @param factory A command factory.
+     * @param dir The directory in which the commands should be executed.
+     * @return The LFCommand representations of the given commands,
+     * where {@code null} is a placeholder for commands that cannot be
+     * executed.
+     */
+    private static List<LFCommand> getCommands(List<String> commands, GeneratorCommandFactory factory, Path dir) {
+        return commands.stream()
+                       .map(cmd -> List.of(cmd.split("\\s+")))
+                       .filter(tokens -> tokens.size() > 0)
+                       .map(tokens -> factory.createCommand(tokens.get(0), tokens.subList(1, tokens.size()), dir))
+                       .collect(Collectors.toList());
+    }
 
     /**
      * Given a representation of time that may include units, return
