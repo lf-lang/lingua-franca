@@ -932,27 +932,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
     // //////////////////////////////////////////////////
     // // Private functions
-    /**
-     * Get textual representation of a time in the target language
-     * in an RTI-compatible form.
-     *
-     * @param d A time AST node
-     * @return An RTI-compatible (ie. C target) time string
-     */
-    protected def getRTITime(Delay d) {
-        var TimeValue time
-        if (d.parameter !== null) {
-            return d.toText
-        }
-
-        time = new TimeValue(d.interval, d.unit)
-
-        if (time.unit != TimeUnit.NONE) {
-            return time.unit.name() + '(' + time.time + ')'
-        } else {
-            return time.time.toString()
-        }
-    }
     
     /**
      * Remove triggers in each federates' network reactions that are defined in remote federates.
