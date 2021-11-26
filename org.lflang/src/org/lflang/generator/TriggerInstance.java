@@ -24,13 +24,14 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import java.util.LinkedHashSet
-import org.eclipse.xtend.lib.annotations.Accessors
-import org.lflang.lf.TriggerRef
-import org.lflang.lf.Variable
-import org.lflang.lf.impl.VariableImpl
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import org.lflang.lf.TriggerRef;
+import org.lflang.lf.Variable;
+import org.lflang.lf.impl.VariableImpl;
 
 /** Instance of a trigger (port, action, or timer).
  * 
@@ -38,14 +39,7 @@ import org.lflang.lf.impl.VariableImpl
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class TriggerInstance<T extends Variable> extends NamedInstance<T> {
-    
-    /**
-     * Special builtin trigger types.
-     */
-    enum BuiltinTrigger {
-        STARTUP, SHUTDOWN
-    }
+public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     
     /** Construct a new instance with the specified definition
      *  and parent. E.g., for a action instance, the definition
@@ -55,80 +49,103 @@ class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      *  @param definition The definition in the AST for this instance.
      *  @param parent The reactor instance that creates this instance.
      */
-    protected new(T definition, ReactorInstance parent) {
-        super(definition, parent)
+    protected TriggerInstance(T definition, ReactorInstance parent) {
+        super(definition, parent);
     }
     
     /**
      * Construct a new instance for a special builtin trigger.
-     * This constructor must be used with the Variable or BuiltinTriggerVariable as generic type T.
+     * This constructor must be used with Variable or BuiltinTriggerVariable
+     * as generic type T.
      * 
      * @param type The builtin trigger type.
      * @param type The actual trigger definition.
      * @param parent The reactor instance that creates this instance.
      */
-    package new(BuiltinTrigger type, TriggerRef trigger, ReactorInstance parent) {
-        super(new BuiltinTriggerVariable(type, trigger) as T, parent)
-        this.builtinTriggerType = type
+    public TriggerInstance(BuiltinTrigger type, TriggerRef trigger, ReactorInstance parent) {
+        super((T)(new BuiltinTriggerVariable(type, trigger)), parent);
+        builtinTriggerType = type;
     }
 
     /////////////////////////////////////////////
     //// Public Fields
     
-    /** Reaction instances that are triggered by this trigger. */
-    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
-
-    /** Reaction instances that may send outputs via this port. */
-    public var dependsOnReactions = new LinkedHashSet<ReactionInstance>(); // FIXME: Perhaps better to use a TreeSet here
-
+    /**
+     * Special builtin trigger types.
+     */
+    public enum BuiltinTrigger {
+        STARTUP, SHUTDOWN
+    }
+    
     /////////////////////////////////////////////
     //// Public Methods
 
+    /**
+     * Return the built-in trigger type or null if this is not a
+     * built-in trigger.
+     */
+    public BuiltinTrigger getBuiltinTriggerType() {
+        return builtinTriggerType;
+    }
+    
+    /** Return the reaction instances that are triggered by this trigger. */
+    public Set<ReactionInstance> getDependentReactions() {
+        return dependentReactions;
+    }
+
+    /** Reaction instances that may send outputs via this port. */
+    public Set<ReactionInstance> getDependsOnReactions() {
+        return dependsOnReactions;
+    };
+    
     /** 
      * Return the name of this trigger. 
      * @return The name of this trigger.
      */
-    override getName() {
-        this.definition.name
+    @Override
+    public String getName() {
+        return definition.getName();
     }
 
     /**
-     * Return true if this trigger is "shutdown"./
+     * Return true if this trigger is "shutdown".
      */
-    def isShutdown() {
-        return builtinTriggerType === BuiltinTrigger.SHUTDOWN
+    public boolean isShutdown() {
+        return builtinTriggerType == BuiltinTrigger.SHUTDOWN;
     }
 
     /**
      * Return true if this trigger is "startup"./
      */
-    def isStartup() {
-        return builtinTriggerType === BuiltinTrigger.STARTUP
+    public boolean isStartup() {
+        return builtinTriggerType == BuiltinTrigger.STARTUP;
     }
 
     /**
      * Return true if this trigger is a builtin one.
      */
-    def isBuiltinTrigger() {
-        return builtinTriggerType !== null
+    public boolean isBuiltinTrigger() {
+        return builtinTriggerType != null;
     }
 
     /**
      * {@inheritDoc}
      */
-    override ReactorInstance root() {
-        this.parent.root()
+    @Override
+    public ReactorInstance root() {
+        return parent.root();
     }
     
-    /**
-     * Return true if this trigger is "startup".
-     */
-
     /////////////////////////////////////////////
     //// Protected Fields
     
-    @Accessors(PUBLIC_GETTER)
-    protected var BuiltinTrigger builtinTriggerType = null;
+    BuiltinTrigger builtinTriggerType = null;
+    
+    /** Reaction instances that are triggered by this trigger. */
+    Set<ReactionInstance> dependentReactions = new LinkedHashSet<ReactionInstance>();
+
+    /** Reaction instances that may send outputs via this port. */
+    Set<ReactionInstance> dependsOnReactions = new LinkedHashSet<ReactionInstance>();
     
     /////////////////////////////////////////////
     //// Special class for builtin triggers
@@ -136,23 +153,28 @@ class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     /**
      * This class allows to have BuiltinTriggers represented by a Variable type.
      */
-    static class BuiltinTriggerVariable extends VariableImpl {
+    static public class BuiltinTriggerVariable extends VariableImpl {
+        
         /** The builtin trigger type represented by this variable. */
-        public final BuiltinTrigger type
+        public final BuiltinTrigger type;
+        
         /** The actual TriggerRef definition in the AST. */
-        public final TriggerRef definition
+        public final TriggerRef definition;
         
-        new(BuiltinTrigger type, TriggerRef trigger) {
-            this.type = type
-            this.definition = trigger
+        public BuiltinTriggerVariable(BuiltinTrigger type, TriggerRef trigger) {
+            this.type = type;
+            this.definition = trigger;
         }
         
-        override getName() {
-            this.type.name.toLowerCase
+        @Override
+        public String getName() {
+            return this.type.name().toLowerCase();
         }
         
-        override setName(String newName) {
-            throw new UnsupportedOperationException(this.class.simpleName + " has an immutable name.")
+        @Override
+        public void setName(String newName) {
+            throw new UnsupportedOperationException(
+                    this.getClass().getName() + " has an immutable name.");
         }
     }
 }

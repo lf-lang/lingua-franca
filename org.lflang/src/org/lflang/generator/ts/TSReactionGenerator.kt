@@ -362,7 +362,7 @@ class TSReactionGenerator(
                     || reaction.code.toText().contains("generateNetworkInputControlReactionBody")) {
                     continue;
                 }
-                if (federate.containsReaction(reaction)) {
+                if (federate.contains(reaction)) {
                     generatedReactions.add(reaction)
                 }
             }
