@@ -238,7 +238,7 @@ class TSGenerator(
             }
         }
 
-        refreshProject()
+        JavaGeneratorUtils.refreshProject(fileConfig.compilerMode, code.toString())
 
         // Invoke the protocol buffers compiler on all .proto files in the project directory
         // Assumes protoc compiler has been installed on this machine
