@@ -847,41 +847,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         }
     }
 
-    /** If the mode is INTEGRATED (the code generator is running in an
-     *  an Eclipse IDE), then refresh the project. This will ensure that
-     *  any generated files become visible in the project.
-     */
-    protected def refreshProject() {
-        if (fileConfig.compilerMode == Mode.INTEGRATED) {
-            // Find name of current project
-            val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
-                    Pattern.compile("platform:" + File.separator + "resource" + File.separator + id + File.separator);
-                } else { // Windows file separator
-                    Pattern.compile(
-                        "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
-                            id + File.separator + File.separator);
-                }
-            val matcher = pattern.matcher(code);
-            var projName = ""
-            if (matcher.find()) {
-                projName = matcher.group(1)
-            }
-            try {
-                val members = ResourcesPlugin.getWorkspace().root.members
-                for (member : members) {
-                    // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName == "" || projName.equals(member.fullPath.toString.substring(1))) {
-                        member.refreshLocal(IResource.DEPTH_INFINITE, null)
-                        println("Refreshed " + member.fullPath.toString)
-                    }
-                }
-            } catch (IllegalStateException e) {
-                println("Unable to refresh workspace: " + e)
-            }
-        }
-    }
-
     // //////////////////////////////////////////////////
     // // Private functions
     

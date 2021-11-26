@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -20,6 +25,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
@@ -299,5 +305,41 @@ public final class JavaGeneratorUtils {
         var fOut = new FileOutputStream(path, false);
         fOut.write(code);
         fOut.close();
+    }
+
+    /** If the mode is INTEGRATED (the code generator is running in an
+     *  an Eclipse IDE), then refresh the project. This will ensure that
+     *  any generated files become visible in the project.
+     */
+    public static void refreshProject(Mode compilerMode, String code) {
+        if (compilerMode == Mode.INTEGRATED) {
+            // Find name of current project
+            String id = "((:?[a-z]|[A-Z]|_\\w)*)";
+            Pattern pattern;
+            if (File.separator.equals("/")) { // Linux/Mac file separator
+                pattern = Pattern.compile("platform:" + File.separator + "resource" + File.separator + id + File.separator);
+            } else { // Windows file separator
+                pattern = Pattern.compile(
+                    "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
+                        id + File.separator + File.separator);
+            }
+            Matcher matcher = pattern.matcher(code);
+            String projName = "";
+            if (matcher.find()) {
+                projName = matcher.group(1);
+            }
+            try {
+                IResource[] members = ResourcesPlugin.getWorkspace().getRoot().members();
+                for (IResource member : members) {
+                    // Refresh current project, or simply entire workspace if project name was not found
+                    if (projName.isEmpty() || projName.equals(member.getFullPath().toString().substring(1))) {
+                        member.refreshLocal(IResource.DEPTH_INFINITE, null);
+                        System.out.println("Refreshed " + member.getFullPath());
+                    }
+                }
+            } catch (IllegalStateException | CoreException e) {
+                System.err.println("Unable to refresh workspace: " + e);
+            }
+        }
     }
 }

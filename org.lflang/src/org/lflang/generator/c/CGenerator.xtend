@@ -910,7 +910,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // In case we are in Eclipse, make sure the generated code is visible.
-        refreshProject()
+        JavaGeneratorUtils.refreshProject(fileConfig.compilerMode, code.toString)
     }
     
     /**
