@@ -23,7 +23,7 @@ target Rust {
     },
 };
 
-import BenchmarkRunner from "../BenchmarkRunner2.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor ArbiterReactor(num_rounds: usize(1000), num_smokers: usize(200)) {
     

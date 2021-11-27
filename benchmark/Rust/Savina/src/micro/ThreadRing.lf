@@ -3,7 +3,7 @@ target Rust {
     cargo-features: ["cli"],
 };
 
-import BenchmarkRunner from "../BenchmarkRunner2.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor ThreadRingReactor {
     output out_next_reactor: {= PingMessage =};
