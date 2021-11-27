@@ -27,30 +27,25 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
     state num_workers(num_workers);
 
     preamble {=
-        #[derive(Copy, Clone, Debug)]
-        pub struct WorkMessage {
-            pub l: f64,
-            pub r: f64,
-            pub h: f64,
-        }
+        use super::trapezoidal::WorkMessage;
     =}
 
     state numTermsReceived: u32(0);
     state resultArea: f64(0.0);
-    
+
     input inStart: unit;
     output outFinished: unit;
 
     output[num_workers] outWorkers: WorkMessage;
     input[num_workers] inWorkers: f64;
-    
+
     logical action sendWorkMessages;
-    
+
     reaction(inStart) -> sendWorkMessages {=
         // reset local state
         self.numTermsReceived = 0;
         self.resultArea = 0.0;
-        
+
         // start execution
         ctx.schedule(sendWorkMessages, Asap);
     =}
@@ -84,7 +79,7 @@ reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000))
 
 reactor Worker {
     preamble {=
-        use crate::reactors::manager::WorkMessage;
+        use super::trapezoidal::WorkMessage;
     =}
 
     input inManager: WorkMessage;
@@ -127,13 +122,13 @@ main reactor (numIterations:usize(12), numPieces:u32(10000000), leftEndPoint:f64
     state left_end_point(leftEndPoint);
     state right_end_point(rightEndPoint);
     state num_workers(numWorkers);
-    
+
     manager = new Manager(num_workers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
     runner = new BenchmarkRunner(num_iterations=numIterations);
-    
+
     runner.start -> manager.inStart;
     manager.outFinished -> runner.finished;
-    
+
     reaction(startup) {=
         print_benchmark_info("TrapezoidalBenchmark");
         print_args!(
@@ -150,14 +145,20 @@ main reactor (numIterations:usize(12), numPieces:u32(10000000), leftEndPoint:f64
         );
         print_system_info();
     =}
-    
+
     workers = new[numWorkers] Worker();
-    
+
     workers.outManager -> manager.inWorkers;
     manager.outWorkers -> workers.inManager;
-    
+
     preamble {=
         use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+        #[derive(Copy, Clone, Debug)]
+        pub struct WorkMessage {
+            pub l: f64,
+            pub r: f64,
+            pub h: f64,
+        }
     =}
 }
 
