@@ -84,12 +84,12 @@ public class Configurators {
     public static boolean defaultCategoryExclusion(TestCategory category) {
         boolean excluded = false;
         
-        // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER_NONFEDERATED are excluded
+        // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER are excluded
         excluded |= (category == TestCategory.CONCURRENT 
                     || category == TestCategory.FEDERATED 
                     || category == TestCategory.EXAMPLE 
                     || category == TestCategory.DOCKER_FEDERATED 
-                    || category == TestCategory.DOCKER_NONFEDERATED);
+                    || category == TestCategory.DOCKER);
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
         excluded |= (TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET));

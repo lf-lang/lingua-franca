@@ -50,7 +50,7 @@ public class CCppTest extends TestBase {
         // run.
         excluded |= (category == TestCategory.EXAMPLE);
         excluded |= (isWindows() && (category == TestCategory.DOCKER_FEDERATED));
-        excluded |= (isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER_NONFEDERATED));
+        excluded |= (isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER));
         return !excluded;
     }
 }
