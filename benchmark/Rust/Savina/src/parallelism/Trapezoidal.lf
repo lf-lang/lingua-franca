@@ -116,15 +116,15 @@ reactor Worker {
 }
 
 
-main reactor (numIterations:usize(12), numPieces:u32(10000000), leftEndPoint:f64(1.0), rightEndPoint:f64(5.0), numWorkers:usize(100)) {
-    state num_iterations(numIterations);
+main reactor (num_iterations:usize(12), numPieces:u32(10000000), leftEndPoint:f64(1.0), rightEndPoint:f64(5.0), numWorkers:usize(100)) {
+    state num_iterations(num_iterations);
     state num_pieces(numPieces);
     state left_end_point(leftEndPoint);
     state right_end_point(rightEndPoint);
     state num_workers(numWorkers);
 
     manager = new Manager(num_workers=numWorkers, L=leftEndPoint, R=rightEndPoint, N=numPieces);
-    runner = new BenchmarkRunner(num_iterations=numIterations);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
 
     runner.start -> manager.inStart;
     manager.outFinished -> runner.finished;
@@ -132,7 +132,7 @@ main reactor (numIterations:usize(12), numPieces:u32(10000000), leftEndPoint:f64
     reaction(startup) {=
         print_benchmark_info("TrapezoidalBenchmark");
         print_args!(
-            "numIterations",
+            "num_iterations",
             self.num_iterations,
             "numPieces",
             self.num_pieces,
