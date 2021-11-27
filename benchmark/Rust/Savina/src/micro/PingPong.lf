@@ -57,12 +57,12 @@ reactor Pong {
     =}
 }
 
-main reactor (numIterations:usize(12), count:usize(40000)) {
-    state num_iterations(numIterations);
+main reactor (num_iterations:usize(12), count:usize(40000)) {
+    state num_iterations(num_iterations);
     state count(count);
     
     ping = new Ping(count=count);
-    runner = new BenchmarkRunner(num_iterations=numIterations);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
     
     runner.start -> ping.inStart;
     ping.outFinished -> runner.finished;
@@ -70,7 +70,7 @@ main reactor (numIterations:usize(12), count:usize(40000)) {
     reaction(startup) {=
         print_benchmark_info("PingPongBenchmark");
         print_args!(
-            "numIterations",
+            "num_iterations",
             self.num_iterations,
             "count",
             self.count

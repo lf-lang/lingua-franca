@@ -95,13 +95,13 @@ reactor SmokerReactor {
     =}
 }
 
-main reactor (numIterations:usize(12), numRounds:usize(1000), numSmokers:usize(200)) {
-    state num_iterations(numIterations);
+main reactor (num_iterations:usize(12), numRounds:usize(1000), numSmokers:usize(200)) {
+    state num_iterations(num_iterations);
     state num_rounds(numRounds);
     state num_smokers(numSmokers);
     
     arbiter = new ArbiterReactor(num_rounds=numRounds, num_smokers=numSmokers);
-    runner = new BenchmarkRunner(num_iterations=numIterations);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
     
     runner.start -> arbiter.inStart;
     arbiter.outFinished -> runner.finished;
@@ -109,7 +109,7 @@ main reactor (numIterations:usize(12), numRounds:usize(1000), numSmokers:usize(2
     reaction(startup) {=        
         print_benchmark_info("CigaretteSmokerReactorLFRustBenchmark");
         print_args!(
-            "numIterations",
+            "num_iterations",
             self.num_iterations,
             "numRounds",
             self.num_rounds,
