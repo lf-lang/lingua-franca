@@ -13,7 +13,7 @@
 target Rust {
     build-type: Release,
     cargo-features: [ "cli" ],
-    rust-include: "../pseudo_random.rs",
+    rust-include: "../lib/pseudo_random.rs",
     cargo-dependencies: {
         reactor_rt: {
             features: ["parallel-runtime"]
@@ -21,7 +21,7 @@ target Rust {
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 
 reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60 =}), seed: u64(2048)) {

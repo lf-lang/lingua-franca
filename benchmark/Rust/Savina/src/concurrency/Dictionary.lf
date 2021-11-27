@@ -37,7 +37,7 @@ target Rust {
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 reactor DictionaryImpl(num_workers: usize(20)) {
 
