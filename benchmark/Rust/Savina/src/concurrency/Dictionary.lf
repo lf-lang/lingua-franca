@@ -27,8 +27,11 @@
 target Rust {
     build-type: Release,
     cargo-features: [ "cli" ],
-    rust-include: "../lib/pseudo_random.rs",
     cargo-dependencies: {
+        rand: {
+            version: "0.8",
+            features: ["small_rng"],
+        },
         reactor_rt: {
             features: ["parallel-runtime"]
         },
@@ -128,11 +131,15 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
 
     preamble {=
         use super::dictionary::*;
-        use crate::pseudo_random::*;
+        use rand::rngs::SmallRng;
+        use rand::Rng;
+        use rand::SeedableRng;
     =}
 
     state message_count: usize(0);
-    state random: PseudoRandomGenerator;
+    state random: SmallRng({={
+        SmallRng::seed_from_u64(0) // will be reseeded on startup
+    }=});
 
     input start: unit;
     output done: unit;
@@ -151,16 +158,16 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
         if ctx.is_present(start) {
             // reset local state
             let seed = self.bank_index + self.num_messages_per_worker + (self.write_percentage as usize);
-            self.random.reseed(seed as u64);
+            self.random = SmallRng::seed_from_u64(seed as u64);
             self.message_count = 0;
         }
 
         self.message_count += 1;
         if self.message_count <= self.num_messages_per_worker {
-            let key = self.random.gen_u32();
+            let key = self.random.gen();
             let an_int = self.random.gen_range(0..100);
             if an_int < self.write_percentage {
-                ctx.set(dict_request, Message::Write { key, value: self.random.gen_u32() });
+                ctx.set(dict_request, Message::Write { key, value: self.random.gen() });
             } else {
                 ctx.set(dict_request, Message::Read { key });
             }
