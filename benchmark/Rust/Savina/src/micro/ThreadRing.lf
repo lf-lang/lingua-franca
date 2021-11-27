@@ -1,3 +1,20 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * Micro-benchmark from the Savina benchmark suite, intended
+ * to measure message passing overhead and switching between
+ * actors.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ *
+ * To open the causality loop in the ring of reactors one
+ * reactor uses a logical action for message passing.
+ *
+ * @author Hannes Klein
+ * @author Felix Wittwer
+ * @author Johannes Hayeß
+ */
+
+
 target Rust {
     build-type: Release,
     cargo-features: ["cli"],
