@@ -333,8 +333,8 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
         JavaGeneratorUtils.validateImports(context, fileConfig, instantiationGraph, errorReporter)
         val allResources = JavaGeneratorUtils.getResources(reactors)
-        resources.addAll(allResources.stream()
-            .filter [it | it != fileConfig.resource]
+        resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
+            .filter [it | it != fileConfig.resource || (mainDef !== null && it === mainDef.reactorClass.eResource)]
             .map [it | JavaGeneratorUtils.getLFResource(it, fsa, context, errorReporter)]
             .collect(Collectors.toList())
         )
