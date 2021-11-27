@@ -136,7 +136,7 @@ public abstract class TestBase {
         public static final String DESC_MULTIPORT = "Run multiport tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
-        public static final String DESC_DOCKER_NONFEDERATED = "Run docker non-federated tests.";
+        public static final String DESC_DOCKER = "Run docker tests.";
         public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
@@ -617,11 +617,14 @@ public abstract class TestBase {
         final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
         
         var srcGenPath = test.fileConfig.getSrcGenPath();
-        var parentDirName = srcGenPath.getParent().getFileName().toString();
+        var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
+        var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
+        System.out.println(relativePathName);
+        
         // special case to test docker file generation
-        if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_NONFEDERATED.name())) {
+        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
             return getNonfederatedDockerExecCommand(test);
-        } else if (parentDirName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.name())) {
+        } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getFederatedDockerExecCommand(test);
         }
 

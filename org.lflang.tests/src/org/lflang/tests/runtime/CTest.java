@@ -131,8 +131,8 @@ public class CTest extends AbstractTest {
 
     @Test
     @Override
-    public void runDockerNonfederatedTests() {
-        super.runDockerNonfederatedTests();
+    public void runDockerTests() {
+        super.runDockerTests();
     }
 
     @Test

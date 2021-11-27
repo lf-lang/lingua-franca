@@ -5,6 +5,7 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.exists;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.filter;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -152,8 +153,8 @@ public class TestRegistry {
         FEDERATED(true),
 
         // non-shared tests
-        DOCKER_NONFEDERATED(false),
-        DOCKER_FEDERATED(false),
+        DOCKER(false),
+        DOCKER_FEDERATED(false, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         TARGET(false),
         EXAMPLE(false),
@@ -163,14 +164,28 @@ public class TestRegistry {
          * Whether or not we should compare coverage against other targets.
          */
         public final boolean isCommon;
+        public final String path;
         
         /**
          * Create a new test category.
          */
         TestCategory(boolean isCommon) {
             this.isCommon = isCommon;
+            this.path = this.name();
         }
-        
+
+        /**
+         * Create a new test category.
+         */
+        TestCategory(boolean isCommon, String path) {
+            this.isCommon = isCommon;
+            this.path = path;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
         /**
          * Return a header associated with the category.
          * 
@@ -421,6 +436,8 @@ public class TestRegistry {
         protected Target target;
         
         protected ResourceSet rs;
+
+        protected Path srcBasePath;
         
         /**
          * Create a new file visitor based on a given target.
@@ -430,6 +447,7 @@ public class TestRegistry {
             stack.push(TestCategory.GENERIC);
             this.rs = rs;
             this.target = target;
+            this.srcBasePath = LF_TEST_PATH.resolve(target.toString()).resolve("src");
         }
         
         /**
@@ -445,8 +463,8 @@ public class TestRegistry {
                 }
             }
             for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase(category.name())) {
+                var relativePathName = srcBasePath.relativize(dir).toString();
+                if (relativePathName.equalsIgnoreCase(category.getPath())) {
                     stack.push(category);
                 }
             }
@@ -459,8 +477,8 @@ public class TestRegistry {
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
             for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase(category.name())) {
+                var relativePathName = srcBasePath.relativize(dir).toString();
+                if (relativePathName.equalsIgnoreCase(category.getPath())) {
                     this.stack.pop();
                 }
             }

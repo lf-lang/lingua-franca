@@ -5,7 +5,7 @@ target C {
     build-type: Debug
 };
 
-import HelloWorld2 from "../../HelloWorld.lf"
+import HelloWorld2 from "../HelloWorld.lf"
 
 main reactor {
     a = new HelloWorld2();

@@ -26,8 +26,8 @@ target C {
     docker: true
 };
 
-import Ping from "../../PingPong.lf"
-import Pong from "../../PingPong.lf"
+import Ping from "../PingPong.lf"
+import Pong from "../PingPong.lf"
 
 
 main reactor PingPongContainerized {
