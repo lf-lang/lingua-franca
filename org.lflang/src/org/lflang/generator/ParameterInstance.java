@@ -60,19 +60,26 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         }
         
         this.type = JavaAstUtils.getInferredType(definition);
-        this.init = parent.initialParameterValue(definition);
     }
 
     /////////////////////////////////////////////
     //// Public Fields
-    
-    public List<Value> init;
-    
+        
     public InferredType type;
     
     /////////////////////////////////////////////
     //// Public Methods
 
+    /**
+     * Get the initial value(s) of this parameter as a list of
+     * Value objects, where each Value is either an instance
+     * of Time, Literal, or Code. That is, references to other
+     * parameters have been replaced with their initial values.
+     */
+    public List<Value> getInitialValue() {
+        return parent.initialParameterValue(this.definition);
+    }
+    
     /**
      * Return the name of this parameter. 
      * @return The name of this parameter.

@@ -50,6 +50,7 @@ import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
 import de.cau.cs.kieler.klighd.util.KlighdProperties
 import java.util.Collection
 import java.util.EnumSet
+import java.util.LinkedList
 import java.util.List
 import java.util.Map
 import javax.inject.Inject
@@ -728,28 +729,28 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Transform connections.
-		// The connections data structure maps connections to their connections as they appear
-        // in a visualization of the program. For each connection, there is map
-        // from source ports (single ports and multiports) on the left side of the
-        // connection to a set of destination ports (single ports and multiports)
-        // on the right side of the connection. The ports contained by the multiports
-        // are not represented.		
-		for (Connection connection : reactorInstance.connections.keySet) {
-		    // TODO check banks
-		    val connections = reactorInstance.connections.get(connection);
-		    for (leftPort : connections.keySet) {
-                val rightPorts = connections.get(leftPort);
-                for (rightPort : rightPorts) {
-                    val source = if (leftPort.parent == reactorInstance) {
-                            parentInputPorts.get(leftPort)
-                        } else {
-                            outputPorts.get(leftPort.parent, leftPort)
-                        }
-                    val target = if (rightPort.parent == reactorInstance) {
-                            parentOutputPorts.get(rightPort)
-                        } else {
-                            inputPorts.get(rightPort.parent, rightPort)
-                        }
+		// First, collect all the source ports.
+		val sourcePorts = new LinkedList<PortInstance>(reactorInstance.inputs);
+		for (child : reactorInstance.children) {
+		    sourcePorts.addAll(child.outputs);
+		}
+
+		for (leftPort : sourcePorts) {
+            for (rightRange : leftPort.dependentPorts) {
+                val source = if (leftPort.parent == reactorInstance) {
+                        parentInputPorts.get(leftPort)
+                    } else {
+                        outputPorts.get(leftPort.parent, leftPort)
+                    }
+                val rightPort = rightRange.getPort();
+                val target = if (rightPort.parent == reactorInstance) {
+                        parentOutputPorts.get(rightPort)
+                    } else {
+                        inputPorts.get(rightPort.parent, rightPort)
+                    }
+                // There should be a connection, but skip if not.
+                val connection = rightRange.connection;
+                if (connection !== null) {
                     val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
                     if (connection.delay !== null) {
                         edge.addCenterEdgeLabel(connection.delay.toText) => [
@@ -896,8 +897,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		if (!t.nullOrEmpty) {
 			b.append(":").append(t)
 		}
-		if (!param.init.nullOrEmpty) {
-		    b.append("(").append(param.init.join(", ", [it.toText])).append(")")
+		if (!param.getInitialValue.nullOrEmpty) {
+		    b.append("(").append(param.getInitialValue.join(", ", [it.toText])).append(")")
 		}
 		return b.toString()
 	}
