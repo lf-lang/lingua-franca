@@ -4,7 +4,7 @@ target Rust {
     rust-include: "../pseudo_random.rs",
 };
 
-import BenchmarkRunner from "../BenchmarkRunner2.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsumers: usize(40)) {
     state num_producers(numProducers);

@@ -21,7 +21,7 @@ target Rust {
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner2.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
 reactor IntSourceReactor(num_values: usize(100000), max_value: u64({= 1u64 << 60 =}), seed: u64(2048)) {

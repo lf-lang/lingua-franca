@@ -13,7 +13,7 @@ target Rust {
     cargo-features: ["cli"],
 };
 
-import BenchmarkRunner from "../BenchmarkRunner2.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor Ping(count: usize(40000)) {
     state count(count);

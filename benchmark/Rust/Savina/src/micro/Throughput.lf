@@ -8,7 +8,7 @@ target Rust {
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner2.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 reactor ThroughputReactor(total_messages:usize(10000)) {
     input inReset: unit;
