@@ -83,13 +83,11 @@ reactor DictionaryImpl(num_workers: usize(20)) {
                         info!("Worker {} writes {} to key {}", i, value, key);
                     },
                     Message::Read { key } => {
-                        // read the value. If the key is not yet present, this will add it and initialize the value to 0.
-                        // This does not match 100% the Savina implementation which returns null if the key is not present,
-                        // but should do a similar job.
+                        // this version inserts a key in the map
+                        // let value = self.data_map.entry(*key).or_insert(0);
 
-                        // todo wat? does the savina impl insert a new (key->null) mapping or just return null?
-
-                        let value = self.data_map.entry(*key).or_insert(0);
+                        // this version doesn't change the map, which is what savina does
+                        let value = self.data_map.get(*key).unwrap_or(0);
                         self.answers_to_send[i] = (*value).try_into().unwrap_or(0);
                         info!("Worker {} reads key {}; response is {:?}", i, key, value);
                     },
