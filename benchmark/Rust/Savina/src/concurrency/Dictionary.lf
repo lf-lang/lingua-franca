@@ -21,6 +21,7 @@
  * 
  * @author Christian Menard
  * @author Hannes Klein
+ * @author Clément Fournier
  */
 
 target Rust {

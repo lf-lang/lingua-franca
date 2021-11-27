@@ -1,3 +1,13 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * See C++ benchmark for documentation.
+ *
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+
 target Rust {
     build-type: Release,
     cargo-features: ["cli"],
