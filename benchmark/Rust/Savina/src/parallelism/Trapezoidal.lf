@@ -16,7 +16,7 @@ target Rust {
     }
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 
 reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000)) {

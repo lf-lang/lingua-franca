@@ -32,8 +32,8 @@ reactor BenchmarkRunner(num_iterations:usize(12)) {
         let duration = end_time.duration_since(self.start_time);
         self.measured_times[self.count - 1] = duration;
         
-        println!("Iteration {} - {} ms", self.count, duration.as_micros() as f64 / 1000.0);
-        
+        println!("Iteration {}\t- {} ms\t= {} µs\t= {} ns", self.count, duration.as_millis(), duration.as_micros(), duration.as_nanos());
+
         if self.count < self.num_iterations {
             ctx.schedule(nextIteration, Asap);
         } else {

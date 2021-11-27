@@ -3,7 +3,7 @@ target Rust {
     cargo-features: ["cli"],
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 reactor RateComputer(bank_index: usize(0), startRate: f64(3.46), rateIncrement: f64(0.0025)) {
     state bank_index(bank_index);

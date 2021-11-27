@@ -11,7 +11,7 @@
 target Rust {
     build-type : RelWithDebInfo,
     cargo-features: [ "cli" ],
-    rust-include: "../pseudo_random.rs",
+    rust-include: "../lib/pseudo_random.rs",
     cargo-dependencies: {
         rand: {
             version: "0.8",
@@ -23,7 +23,7 @@ target Rust {
     },
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 reactor ArbiterReactor(num_rounds: usize(1000), num_smokers: usize(200)) {
     

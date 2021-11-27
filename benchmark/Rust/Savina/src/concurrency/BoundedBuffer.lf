@@ -1,10 +1,10 @@
 target Rust {
     build-type: Release,
     cargo-features: ["cli"],
-    rust-include: "../pseudo_random.rs",
+    rust-include: "../lib/pseudo_random.rs",
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
 
 reactor ManagerReactor(bufferSize: usize(50), numProducers: usize(40), numConsumers: usize(40)) {
     state num_producers(numProducers);
