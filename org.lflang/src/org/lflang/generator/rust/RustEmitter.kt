@@ -47,6 +47,11 @@ object RustEmitter : RustEmitterBase() {
             }
         }
 
+        // this file determines the default toolchain for Cargo, useful for CLion too
+        fileConfig.emit("rust-toolchain") {
+            this += "nightly"
+        }
+
         // if singleFile, this file will contain every module.
         fileConfig.emit("src/main.rs") {
             with(RustMainFileEmitter) {

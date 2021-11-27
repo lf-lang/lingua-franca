@@ -25,7 +25,6 @@
 
 target Rust {
     build-type: Release,
-    rust-include: [ "dictionary_support.rs" ],
     cargo-features: [ "cli" ],
     cargo-dependencies: {
         rand: {
@@ -43,7 +42,7 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 reactor DictionaryImpl(num_workers: usize(20)) {
 
     preamble {=
-        use crate::dictionary_support::*;
+        use super::dictionary::*;
         use std::collections::HashMap;
         use std::convert::TryInto;
     =}
@@ -112,7 +111,7 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
     state write_percentage(write_percentage);
 
     preamble {=
-        use crate::dictionary_support::*;
+        use super::dictionary::*;
         use rand::rngs::SmallRng;
         use rand::Rng;
         use rand::SeedableRng;
@@ -164,4 +163,11 @@ main reactor (num_messages_per_worker: usize(10000), write_percentage: u32(10), 
 
     dict.response -> workers.dict_response;
     workers.dict_request -> dict.request;
+
+    preamble {=
+        pub enum Message {
+            Read { key: u32 },
+            Write { key: u32, value: u32 }
+        }
+    =}
 }
