@@ -30,10 +30,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
@@ -191,19 +189,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             return true;
         }
     }
-        
-    /**
-     * Return the destinations of the specified port.
-     * The result is a set (albeit an ordered set) of ports that are destinations
-     * in connections. This will return null if the source has no destinations.
-     */
-    public Set<PortInstance> destinations(PortInstance source) {
-        Map<PortInstance, Connection> map = connectionTable.get(source);
-        if (map != null) {
-            return map.keySet();
-        }
-        return null;
-    }
     
     /** 
      * Return the instance of a child rector created by the specified
@@ -220,33 +205,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the Connection that created the link between the specified source
-     * and destination, or null if there is no such link.
-     */
-    public Connection getConnection(PortInstance source, PortInstance destination) {
-        var table = connectionTable.get(source);
-        if (table != null) {
-            return table.get(destination);
-        }
-        return null;
-    }
-
-    /**
-     * Get a map of connections as they appear in a visualization of the program.
-     * For each connection, there is map from source ports (single ports and multiports)
-     * on the left side of the connection to a set of destination ports (single ports
-     * and multiports) on the right side of the connection. For banks of reactors,
-     * this includes only the connections to and from the first element of the bank.
-     */
-    public Map<Connection, Map<PortInstance, Set<PortInstance>>> getConnections() {
-        return connections;
-    }
-    
-    /**
      * Return an integer is equal to one plus the total number of reactor instances
      * (including bank members) that have been instantiated before this one
-     * within the same parent.
-     * This can be used, for example, to index into an array of data structures
+     * within the same parent.  If the number of instances cannot be determined,
+     * this will be 0.
+     * 
+     * When this number can be determined, it can be used, for example,
+     * to index into an array of data structures
      * representing instances of reactors in generated code.
      * This assumes that index 0 refers to the parent, hence the "one plus."
      */
@@ -278,12 +243,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Get the number of reactor instances associated with this
-     * reactor. This is 1 plus the total number of reactors
-     * in any contained reactors, as returned by getTotalNumReactorInstances().
-     * If this is a bank, then this number does not account for the bank width.
-     * Use getTotalNumberOfReactorInstances() to take into
-     * account bank width.
+     * Return one plus the number of contained reactor instances in this
+     * reactor, if this can be determined, or -1 if not. This is 1 plus 
+     * the total number of reactors in any contained reactor instances,
+     * taking into account their bank widths if necessary.
      */
     public int getNumReactorInstances() {
         return numReactorInstances;
@@ -331,13 +294,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Get the total number of reactor instances associated with
-     * this reactor. This is equal to the result of
-     * getNumReactorInstances() times the bank width, as returned
-     * by width().
+     * Return the total number of reactor instances associated with
+     * this reactor, if it can be determined, or -1 if not. This is equal
+     * to the result of getNumReactorInstances() times the bank width,
+     * as returned by width().
      */
     public int getTotalNumReactorInstances() {
-        return totalNumReactorInstances;
+        if (width() < 0 || numReactorInstances < 0) return -1;
+        return width() * numReactorInstances;
     }
     
     /** 
@@ -574,14 +538,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
 
-    /**
-     * Return the set of ports in that are sources in connections in this reactor.
-     * These may be input ports of this reactor or output ports of contained reactors.
-     */
-    public Set<PortInstance> sources() {
-        return connectionTable.keySet();
-    }
-
     /** 
      * Return a descriptive string.
      */
@@ -638,16 +594,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //////////////////////////////////////////////////////
     //// Protected fields.
 
-    /** 
-     * Table recording connections and which connection created a link between 
-     * a source and destination. Use a source port as a key to obtain a Map.
-     * The key set of the obtained Map is the set of destination ports.
-     * The value of the obtained Map is the connection that established the
-     * connection.
-     */
-    protected Map<PortInstance, Map<PortInstance, Connection>> connectionTable 
-            = new LinkedHashMap<PortInstance, Map<PortInstance, Connection>>();
-    
     /**
      * For a root reactor instance only, this will be a queue of reactions
      * that either have been assigned an initial level or are ready to be
@@ -774,26 +720,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     this + " nor any of its children."
             );
         }
-        // If the port is a multiport, then iterate over its contained ordinary ports instead.
         // If the port is an input port, then include it in the result.
         if (source.isInput()) {
             destinations.add(source);
         }
-        Map<PortInstance, Connection> map = connectionTable.get(source);
-        if (map != null) {
-            Set<PortInstance> localDestinations = map.keySet();
-
-            if (localDestinations != null) {
-                for (PortInstance destination : localDestinations) {
-                    destinations.add(destination);
-                    if (destination.isInput()) {
-                        // Destination may have further destinations lower in the hierarchy.
-                        destination.parent.transitiveClosure(destination, destinations);
-                    } else if (destination.parent.parent != null) {
-                        // Destination may have further destinations higher in the hierarchy.
-                        destination.parent.parent.transitiveClosure(destination, destinations);
-                    }
-                }
+        for (PortInstance.Range dst : source.dependentPorts) {
+            PortInstance destination = dst.getPort();
+            destinations.add(destination);
+            if (destination.isInput()) {
+                // Destination may have further destinations lower in the hierarchy.
+                destination.parent.transitiveClosure(destination, destinations);
+            } else if (destination.parent.parent != null) {
+                // Destination may have further destinations higher in the hierarchy.
+                destination.parent.parent.transitiveClosure(destination, destinations);
             }
         }
     }
@@ -880,11 +819,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     this.unorderedReactions
                 );
                 this.children.add(childInstance);
-                this.numReactorInstances += childInstance.getTotalNumReactorInstances();
-                childInstance.indexOffset = offset;
-                // Next child will have an offset augmented by the total number of
-                // reactor instances in this one.
-                offset += childInstance.getTotalNumReactorInstances();
+                int numChildReactors = childInstance.getTotalNumReactorInstances();
+                if (this.numReactorInstances >= 0 && numChildReactors > 0) {
+                    this.numReactorInstances += numChildReactors;
+                    
+                    childInstance.indexOffset = offset;
+                    // Next child will have an offset augmented by the total number of
+                    // reactor instances in this one.
+                    offset += childInstance.getTotalNumReactorInstances();
+                } else {
+                    numReactorInstances = -1;
+                }
             }
 
             // Instantiate timers for this reactor instance
@@ -904,8 +849,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Note that this can only happen _after_ the children, 
             // port, action, and timer instances have been created.
             createReactionInstances();
-            
-            this.totalNumReactorInstances = width() * this.numReactorInstances;
         }
     }
     
@@ -913,77 +856,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Private methods.
 
     /**
-     * Record the connection from the source port to the destination port in the
-     * connectionTable map.
-     * @param source The source port.
-     * @param destination The destination port.
-     * @param connection The connection AST node creating the connection.
-     */
-    private void addDestination(PortInstance source, PortInstance destination, Connection connection) {
-        Map<PortInstance, Connection> srcConnections = connectionTable.get(source);
-        if (srcConnections == null) {
-            srcConnections = new LinkedHashMap<PortInstance, Connection>();
-            connectionTable.put(source, srcConnections);
-        }
-        srcConnections.put(destination, connection);
-    }
-
-    /**
-     * Connect the given left port instance to the given right port instance.
-     * These may be multiports.
-     * @param connection The connection statement creating this connection.
-     * @param srcInstance The source instance (the left port).
-     * @param srcChannel The starting channel number for the source.
-     * @param dstInstance The destination instance (the right port).
-     * @param dstChannel The starting channel number for the destination.
-     * @param width The width of this connection.
+     * Connect the given left port range to the given right port range.
+     * @param src The source range.
+     * @param dst The destination range.
      */
     private void connectPortInstances(
-            Connection connection, 
-            PortInstance srcInstance,
-            int srcChannel,
-            PortInstance dstInstance,
-            int dstChannel,
-            int width
+            PortInstance.Range src,
+            PortInstance.Range dst
     ) {
-        PortInstance.Range dstRange = dstInstance.newRange(dstChannel, width);
-        srcInstance.dependentPorts.add(dstRange);
-        
-        PortInstance.Range srcRange = srcInstance.newRange(srcChannel, width);
-        dstInstance.dependsOnPorts.add(srcRange);
-        
-        // Record the connection in the connection table.
-        // Original cryptic xtend code:
-        // this.destinations.compute(srcInstance, [key, set| CollectionUtil.plus(set, dstInstance)])
-        // this.connectionTable.compute(srcInstance, [key, map| CollectionUtil.plus(map, dstInstance, connection)])
-        addDestination(srcInstance, dstInstance, connection);
-                
-        // The following is support for the diagram visualization.
-        
-        // Record this representative connection for visualization in the
-        // connections map.
-        Map<PortInstance, Set<PortInstance>> map = connections.get(connection);
-        if (map == null) {
-            map = new LinkedHashMap<PortInstance, Set<PortInstance>>();
-            connections.put(connection, map);
-        }
-        Set<PortInstance> destinations = map.get(srcInstance);
-        if (destinations == null) {
-            destinations = new LinkedHashSet<PortInstance>();
-            map.put(srcInstance, destinations);
-        }
-        destinations.add(dstInstance);
-
-        // Original cryptic xtend code below.
-        // val src2 = src
-        // val dst2 = dst
-        // this.connections.compute(connection, [_, links| {
-        //     CollectionUtil.compute(links, src2, [_2, destinations| CollectionUtil.plus(destinations, dst2)])
-        // }])
+        src.getPort().dependentPorts.add(dst);
+        dst.getPort().dependsOnPorts.add(src);
     }
 
     /**
-     * Populate destinations map and the connectivity information in the port instances.
+     * Populate connectivity information in the port instances.
      * Note that this can only happen _after_ the children and port instances have been created.
      * Unfortunately, we have to do some complicated things here
      * to support multiport-to-multiport, multiport-to-bank,
@@ -993,60 +879,72 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<PortInstance.Range> leftRanges = listPortInstances(connection.getLeftPorts());
-            List<PortInstance.Range> rightRanges = listPortInstances(connection.getRightPorts());
-
-            // Check widths.  FIXME: This duplicates validator checks!
-            int leftWidth = 0;
-            for (PortInstance.Range range: leftRanges) {
-                leftWidth += range.channelWidth;
-            }
-            int rightWidth = 0;
-            for (PortInstance.Range range: rightRanges) {
-                rightWidth += range.channelWidth;
-            }
-            if (leftWidth > rightWidth) {
-                reporter.reportWarning(connection, 
-                        "Source is wider than the destination. Outputs will be lost.");
-            } else if (leftWidth < rightWidth && !connection.isIterated()) {
-                reporter.reportWarning(connection, 
-                        "Destination is wider than the source. Inputs will be missing.");
-            }
-
-            // If any of these ports is a multiport, then things can complicated depending
-            // on how they overlap. Keep track of how much of the current left and right
-            // multiports have already been used.
-            Iterator<PortInstance.Range> leftIterator = leftRanges.iterator();
-            PortInstance.Range leftRange = leftIterator.next();
+            List<PortInstance.Range> leftPorts = listPortInstances(connection.getLeftPorts());
+            Iterator<PortInstance.Range> srcRanges = leftPorts.iterator();
+            Iterator<PortInstance.Range> dstRanges = listPortInstances(connection.getRightPorts()).iterator();
             
-            int leftUsedChannels = 0;
-            for (PortInstance.Range rightRange : rightRanges) {
-                int rightUsedChannels = 0;
-                while (rightUsedChannels < rightRange.channelWidth && leftRange != null) {
-                    // Figure out how much of each port we have used (in case it is a multiport).
-                    // This is the minimum of the two remaining widths.
-                    int connectionWidth = leftRange.channelWidth - leftUsedChannels;
-                    if (rightRange.channelWidth - rightUsedChannels < connectionWidth) {
-                        connectionWidth = rightRange.channelWidth - rightUsedChannels;
-                    }
-                    connectPortInstances(
-                            connection, 
-                            leftRange.getPortInstance(), leftRange.startChannel + leftUsedChannels, 
-                            rightRange.getPortInstance(), rightRange.startChannel + rightUsedChannels, 
-                            connectionWidth);
-                    leftUsedChannels += connectionWidth;
-                    rightUsedChannels += connectionWidth;
-                    if (leftUsedChannels >= leftRange.channelWidth) {
-                        if (leftIterator.hasNext()) {
-                            leftRange = leftIterator.next();
-                        } else if (connection.isIterated()) {
-                            leftIterator = leftRanges.iterator();
-                            leftRange = leftIterator.next();
-                        } else {
-                            leftRange = null;
+            // Check for empty lists.
+            if (!srcRanges.hasNext()) {
+                if (dstRanges.hasNext()) {
+                    reporter.reportWarning(connection, "No sources to provide inputs.");
+                }
+                return;
+            } else if (!dstRanges.hasNext()) {
+                reporter.reportWarning(connection, "No destination. Outputs will be lost.");
+                return;
+            }
+            
+            PortInstance.Range src = srcRanges.next();
+            PortInstance.Range dst = dstRanges.next();
+
+            while(true) {
+                if (dst.getTotalWidth() == src.getTotalWidth()) {
+                    connectPortInstances(src, dst);
+                    if (!dstRanges.hasNext()) {
+                        if (srcRanges.hasNext()) {
+                            reporter.reportWarning(connection, 
+                                    "Source is wider than the destination. Outputs will be lost.");
                         }
-                        leftUsedChannels = 0;
+                        break;
+                    } else if (!srcRanges.hasNext()) {
+                        if (connection.isIterated()) {
+                            srcRanges = leftPorts.iterator();
+                        } else {
+                            reporter.reportWarning(connection, 
+                                    "Destination is wider than the source. Inputs will be missing.");
+                        }
+                        break;
                     }
+                    dst = dstRanges.next();
+                    src = srcRanges.next();
+                } else if (dst.getTotalWidth() < src.getTotalWidth()) {
+                    // Split the left range in two.
+                    PortInstance.Range remaining = src.tail(dst.getTotalWidth());
+                    src.truncate(dst.getTotalWidth()); // Shorten source range to match destination.
+                    connectPortInstances(src, dst);
+                    src = remaining;
+                    if (!dstRanges.hasNext()) {
+                        reporter.reportWarning(connection, 
+                                "Source is wider than the destination. Outputs will be lost.");
+                        break;
+                    }
+                    dst = dstRanges.next();
+                } else if (src.getTotalWidth() < dst.getTotalWidth()) {
+                    // Split the right range in two.
+                    PortInstance.Range remaining = dst.tail(src.getTotalWidth());
+                    dst.truncate(src.getTotalWidth());
+                    connectPortInstances(src, dst);
+                    dst = remaining;
+                    if (!srcRanges.hasNext()) {
+                        if (connection.isIterated()) {
+                            srcRanges = leftPorts.iterator();
+                        } else {
+                            reporter.reportWarning(connection, 
+                                    "Destination is wider than the source. Inputs will be missing.");
+                        }
+                        break;
+                    }
+                    src = srcRanges.next();
                 }
             }
         }
@@ -1055,17 +953,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Given a list of port references, as found on either side of a connection,
      * return a list of the port instances referenced. These may be multiports,
-     * so the returned list includes ranges of channels.
-     * If the port reference has the form `c.x`, where `c` is a bank of reactors,
-     * then the list will contain the port instances belonging to each bank member.
+     * and may be ports of a contained bank (a port representing ports of the bank
+     * members) so the returned list includes ranges of banks and channels.
      * 
-     * If a given port reference `b.m`, where `b` is a bank and `m` is a multiport,
-     * is unqualified, this function iterates over bank members first, then ports.
-     * E.g., if `b` and `m` have width 2, it returns `[b0.m0, b0.m1, b1.m0, b1.m1]`.
-     * If instead a given port reference has the form `interleaved(b.m)`, where `b` is a
-     * bank and `m` is a multiport, this function iterates over ports first,
-     * then bank members. E.g., if `b` and `m` have width 2, it returns
-     * `[b0.m0, b1.m0, b0.m1, b1.m1]`.
+     * If a given port reference has the form `interleaved(b.m)`, where `b` is
+     * a bank and `m` is a multiport, then the corresponding range in the returned
+     * list is marked interleaved.
+     * 
+     * For example, if `b` and `m` have width 2, without the interleaved keyword,
+     * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
+     * With the interleaved marking, the returned range represents the sequence
+     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
      */
     private List<PortInstance.Range> listPortInstances(List<VarRef> references) {
         List<PortInstance.Range> result = new ArrayList<PortInstance.Range>();
@@ -1077,8 +975,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
             // First, figure out which reactor we are dealing with.
             // The reactor we want is the container of the port.
-            // If the port reference has no container, then the reactor is this one,
-            // or if this one is a bank, the next available bank member.
+            // If the port reference has no container, then the reactor is this one.
             var reactor = this;
             if (portRef.getContainer() != null) {
                 reactor = getChildReactorInstance(portRef.getContainer());
@@ -1087,7 +984,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
                 PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
-                PortInstance.Range range = portInstance.newRange(0, portInstance.width);
+                
+                // If the reactor is a contained reactor that is a bank, get its width.
+                int bankWidth = 1;
+                if (reactor != this) bankWidth = reactor.width();
+                
+                Connection connection = null;
+                if (portRef.eContainer() instanceof Connection) {
+                    connection = (Connection)portRef.eContainer();
+                }
+                    
+                PortInstance.Range range = portInstance.newRange(
+                        0, 0, portInstance.width * bankWidth, portRef.isInterleaved(), connection
+                );
                 result.add(range);
             }
         }
@@ -1098,16 +1007,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Private fields.
 
     /**
-     * A map of connections as they appear in a visualization of the program.
-     * For each connection, there is map from source ports (single ports and multiports)
-     * on the left side of the connection to a set of destination ports (single ports
-     * and multiports) on the right side of the connection. For banks of reactors,
-     * this includes only the connections to and from the first element of the bank
-     */
-    private Map<Connection, Map<PortInstance, Set<PortInstance>>> connections 
-            = new LinkedHashMap<Connection, Map<PortInstance, Set<PortInstance>>>();
-
-    /**
      * Indicator of whether levels have already been assigned.
      * This has value 0 if no attempt has been made, 1 if levels have been
      * succesfully assigned, and -1 if a causality loop has prevented levels
@@ -1115,7 +1014,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private int levelsAssignedAlready = 0;
     
-    /** Number of reactor instances (if a bank, in a bank element). */
+    /** 
+     * One plus the number of contained reactor instances
+     * (if a bank, in a bank element).
+     */
     private int numReactorInstances = 1;
     
     /**
@@ -1131,7 +1033,4 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * this reactor and its contained reactors.
      */
     private int totalNumberOfReactionsCache = -1;
-    
-    /** Total number of reactor instances, including bank width. */
-    private int totalNumReactorInstances = 1;
 }

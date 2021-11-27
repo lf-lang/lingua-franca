@@ -74,6 +74,7 @@ import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
+import org.lflang.lf.Assignment
 import org.lflang.lf.Code
 import org.lflang.lf.Delay
 import org.lflang.lf.Input
@@ -1427,7 +1428,7 @@ class CGenerator extends GeneratorBase {
                 val reactorInstance = main.getChildReactorInstance(federate.instantiation)
                 for (param : reactorInstance.parameters) {
                     if (param.name.equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                        val stp = param.init.get(0).getTimeValue
+                        val stp = param.getInitialValue.get(0).getTimeValue
                         if (stp !== null) {                        
                             pr('''
                                 set_stp_offset(«CUtil.VG.getTargetTime(stp)»);
@@ -3564,13 +3565,16 @@ class CGenerator extends GeneratorBase {
         // The type of each struct type is different, so the type of this
         // array is vague.
         pr(initializeTriggerObjects, '''
-            void* selfStructs[«main.getTotalNumReactorInstances()»];
+            void* self_structs[«main.getTotalNumReactorInstances()»];
         ''')
+
+        pr(initializeTriggerObjects,
+                '// ***** Start initializing ' + main.name)
 
         // Generate the self struct declaration for the top level.
         pr(initializeTriggerObjects, '''
             «CUtil.selfType(main)»* «CUtil.selfName(main)» = new_«main.name»();
-            selfStructs[0] = «CUtil.selfName(main)»;
+            self_structs[0] = «CUtil.selfName(main)»;
         ''')
 
         // Generate code for top-level parameters, actions, timers, and reactions that
@@ -3593,7 +3597,7 @@ class CGenerator extends GeneratorBase {
         generateSetDeadline(reactionsInFederate);
         generateStartTimeStep(main);
         
-        pr(initializeTriggerObjects, "//***** End initializing " + main.name);
+        pr(initializeTriggerObjects, "// ***** End initializing " + main.name);
     }
     
     /** 
@@ -3610,7 +3614,7 @@ class CGenerator extends GeneratorBase {
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr(initializeTriggerObjects,
-                '// ************* Instance ' + fullName + ' of class ' + reactorClass.name)
+                '// ***** Start initializing ' + fullName + ' of class ' + reactorClass.name)
             
         var nameOfSelfStruct = CUtil.selfName(instance)
         var structType = CUtil.selfType(reactorClass)
@@ -3628,12 +3632,11 @@ class CGenerator extends GeneratorBase {
 
         // Record the self struct on the big array of self structs.
         pr(initializeTriggerObjects, '''
-            selfStructs[«CUtil.indexExpression(instance)»] = «nameOfSelfStruct»;
+            self_structs[«CUtil.indexExpression(instance)»] = «nameOfSelfStruct»;
         ''')
 
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
-        pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
         
         generateTraceTableEntries(instance, instance.actions, instance.timers)
         generateReactorInstanceExtension(instance, instance.reactions)
@@ -3964,25 +3967,6 @@ class CGenerator extends GeneratorBase {
             result.append(count)
         }
         return result.toString
-    }
-    
-    protected def getInitializer(StateVar state, ReactorInstance parent) {
-        var list = new LinkedList<String>();
-
-        for (i : state?.init) {
-            if (i.parameter !== null) {
-                list.add(CUtil.selfRef(parent) + "->" + i.parameter.name)
-            } else if (state.isOfTimeType) {
-                list.add(CUtil.VG.getTargetTime(i))
-            } else {
-                list.add(CUtil.VG.getTargetValue(i))
-            }
-        }
-        
-        if (list.size == 1)
-            return list.get(0)
-        else
-            return list.join('{', ', ', '}', [it])
     }
     
     /** 
@@ -4856,12 +4840,12 @@ class CGenerator extends GeneratorBase {
         var structType = CUtil.selfType(reactor)
         if (reactor.isBank) {
             pr(builder, '''
-                «structType»** «nameOfSelfStruct» = («structType»**)&selfStructs[
+                «structType»** «nameOfSelfStruct» = («structType»**)&self_structs[
                         «CUtil.indexExpression(reactor.parent)» + «reactor.getIndexOffset»];
             ''')
         } else {
             pr(builder, '''
-                «structType»* «nameOfSelfStruct» = («structType»*)selfStructs[
+                «structType»* «nameOfSelfStruct» = («structType»*)self_structs[
                         «CUtil.indexExpression(reactor)»];
             ''')
         }
@@ -4881,7 +4865,7 @@ class CGenerator extends GeneratorBase {
         // the range of channels.
         var startChannel = 0;
         for (eventualSource: port.eventualSources()) {
-            val src = eventualSource.portInstance;
+            val src = eventualSource.getPort();
             if (src != port && currentFederate.contains(src.parent)) {
                 val temp = new StringBuilder();
                 // The eventual source is different from the port and is in the federate.
@@ -4904,12 +4888,12 @@ class CGenerator extends GeneratorBase {
                             // Connect «src.getFullName» to port «port.getFullName»
                             { // To scope variable j
                                 int j = «eventualSource.startChannel»;
-                                for (int i = «startChannel»; i < «eventualSource.channelWidth» + «startChannel»; i++) {
+                                for (int i = «startChannel»; i < «eventualSource.totalWidth» + «startChannel»; i++) {
                                     «CUtil.destinationRef(port)»[i] = («destStructType»*)«modifier»«CUtil.sourceRef(src)»[j++];
                                 }
                             }
                         ''')
-                        startChannel += eventualSource.channelWidth;
+                        startChannel += eventualSource.totalWidth;
                     } else {
                         // Source is a multiport, destination is a single port.
                         pr(temp, '''
@@ -5439,14 +5423,83 @@ class CGenerator extends GeneratorBase {
         
     override getNetworkBufferType() '''uint8_t*'''
     
-    protected def String getInitializer(ParameterInstance p) {
-        
-            if (p.type.isList && p.init.size > 1) {
-                return p.init.join('{', ', ', '}', [CUtil.VG.getTargetValue(it)])
+    /**
+     * Return a C expression that can be used to initialize the specified
+     * state variable within the specified parent. If the state variable
+     * initializer refers to parameters of the parent, then those parameter
+     * references are replaced with accesses to the self struct of the parent.
+     */
+    protected def String getInitializer(StateVar state, ReactorInstance parent) {
+        var list = new LinkedList<String>();
+
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                list.add(CUtil.selfRef(parent) + "->" + i.parameter.name)
+            } else if (state.isOfTimeType) {
+                list.add(CUtil.VG.getTargetTime(i))
             } else {
-                return CUtil.VG.getTargetValue(p.init.get(0))
+                list.add(CUtil.VG.getTargetValue(i))
             }
+        }
         
+        if (list.size == 1) {
+            return list.get(0)
+        } else {
+            return list.join('{', ', ', '}', [it])
+        }
+    }
+    
+    /**
+     * Return a C expression that can be used to initialize the specified
+     * parameter instance. If the parameter initializer refers to other
+     * parameters, then those parameter references are replaced with
+     * accesses to the self struct of the parents of those parameters.
+     */
+    protected def String getInitializer(ParameterInstance p) {
+        // Handle the bank_index parameter.
+        if (p.name.equals("bank_instance")) {
+            return CUtil.bankIndex(p.parent);
+        }
+        
+        // Handle overrides in the intantiation.
+        // In case there is more than one assignment to this parameter, we need to
+        // find the last one.
+        var lastAssignment = null as Assignment;
+        for (assignment: p.parent.definition.parameters) {
+            if (assignment.lhs == p.definition) {
+                lastAssignment = assignment;
+            }
+        }
+        var list = new LinkedList<String>();
+        if (lastAssignment !== null) {
+            // The parameter has an assignment.
+            // Right hand side can be a list. Collect the entries.
+            for (value: lastAssignment.rhs) {
+                if (value.parameter !== null) {
+                    // The parameter is being assigned a parameter value.
+                    // Assume that parameter belongs to the parent's parent.
+                    // This should have been checked by the validator.
+                    list.add(CUtil.selfRef(p.parent.parent) + "->" + value.parameter.name);
+                } else {
+                    list.add(CUtil.VG.getTargetValue(value))
+                }
+            }
+        } else {
+            // there was no assignment in the instantiation. So just use the
+            // parameter's initial value.
+            for (i : p.parent.initialParameterValue(p.definition)) {
+                if (p.definition.isOfTimeType) {
+                    list.add(CUtil.VG.getTargetTime(i))
+                } else {
+                    list.add(CUtil.VG.getTargetValue(i))
+                }
+            }
+        } 
+        if (list.size == 1) {
+            return list.get(0)
+        } else {
+            return list.join('{', ', ', '}', [it])
+        }
     }
     
     override supportsGenerics() {
@@ -5595,17 +5648,17 @@ class CGenerator extends GeneratorBase {
                         // The port may be deeper in the hierarchy.
                         var portChannelCount = 0;
                         for (eventualSource: port.eventualSources()) {
-                            val sourcePort = eventualSource.portInstance
+                            val sourcePort = eventualSource.getPort();
                             if (sourcePort.isMultiport && port.isMultiport) {
                                 // Both source and destination are multiports.
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    for (int i = 0; i < «eventualSource.channelWidth»; i++) {
+                                    for (int i = 0; i < «eventualSource.totalWidth»; i++) {
                                         «CUtil.containedPortRef(port)»[i + «portChannelCount»] = («destStructType»*)&«CUtil.sourceRef(sourcePort)»[i + «eventualSource.startChannel»];
                                     }
                                 ''')
-                                portChannelCount += eventualSource.channelWidth;
+                                portChannelCount += eventualSource.totalWidth;
                             } else if (sourcePort.isMultiport) {
                                 // Destination is not a multiport, so the channelWidth of the source port should be 1.
                                 pr('''
@@ -5696,10 +5749,10 @@ class CGenerator extends GeneratorBase {
                 // For a single port, there should be only one sendingRange.
                 if (output.isMultiport()) {
                     val start = sendingRange.startChannel;
-                    val end = sendingRange.startChannel + sendingRange.channelWidth;
+                    val end = sendingRange.startChannel + sendingRange.totalWidth;
                     // Eliminate the for loop for the case where range.channelWidth == 1,
                     // a common situation on multiport to bank messaging.
-                    if (sendingRange.channelWidth == 1) {
+                    if (sendingRange.totalWidth == 1) {
                         pr('''
                             «CUtil.sourceRef(output)»[«start»].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                         ''')
@@ -5756,7 +5809,7 @@ class CGenerator extends GeneratorBase {
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
                             val start = sendingRange.startChannel;
-                            val end = sendingRange.startChannel + sendingRange.channelWidth;
+                            val end = sendingRange.startChannel + sendingRange.totalWidth;
                             pr('''
                                 for (int i = «start»; i < «end»; i++) {
                                     «CUtil.sourceRef(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
@@ -6074,7 +6127,7 @@ class CGenerator extends GeneratorBase {
                         pr(temp, "int _lf_trigger_index = 0;");
                         var destRangeCount = 0;
                         for (destinationRange : range.destinations) {
-                            val destination = destinationRange.getPortInstance();
+                            val destination = destinationRange.getPort();
                             val temp2 = new StringBuilder();
 
                             if (destination.isOutput) {
@@ -6111,7 +6164,7 @@ class CGenerator extends GeneratorBase {
                     
                         // Record the total size of the array.
                         pr('''
-                            for (int i = 0; i < «range.channelWidth»; i++) {
+                            for (int i = 0; i < «range.totalWidth»; i++) {
                                 // Reaction «reaction.index» of «name» triggers «channelCount»
                                 // downstream reactions through port «port.getFullName»[«channelCount» + i].
                                 «selfStruct»->_lf__reaction_«reaction.index».triggered_sizes[«channelCount» + i] = «destRangeCount»;
@@ -6124,14 +6177,14 @@ class CGenerator extends GeneratorBase {
                                 // For reaction «reaction.index» of «name», allocate an
                                 // array of trigger pointers for downstream reactions through port «port.getFullName»
                                 trigger_t** triggerArray = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
-                                for (int i = 0; i < «range.channelWidth»; i++) {
+                                for (int i = 0; i < «range.totalWidth»; i++) {
                                     «selfStruct»->_lf__reaction_«reaction.index».triggers[«channelCount» + i] = triggerArray;
                                 }
                                 // Fill the trigger array.
                                 «temp.toString()»
                             }
                         ''')
-                        channelCount += range.channelWidth;
+                        channelCount += range.totalWidth;
                     }
                 } else {
                     // Count the port even if it is not contained in the federate because effect

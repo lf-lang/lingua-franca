@@ -34,8 +34,8 @@ import java.util.LinkedHashSet
 import java.util.List
 import java.util.Map
 import java.util.Set
-import java.util.stream.Collectors
 import java.util.regex.Pattern
+import java.util.stream.Collectors
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -67,7 +67,6 @@ import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
@@ -1044,15 +1043,15 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         var channel = 0; // Next input channel to be replaced.
         // If the port is not an input, ignore it.
         if (input.isInput) {
-            for (source : input.immediateSources()) {
+            for (source : input.dependsOnPorts) {
                 // FIXME: How to determine the bank index of the source?
                 // Need ReactorInstance support for ranges.
-                // val sourceBankIndex = (source.getPortInstance().parent.bankIndex >= 0) ? source.getPortInstance().parent.bankIndex : 0
+                // val sourceBankIndex = (source.getPort().parent.bankIndex >= 0) ? source.getPort().parent.bankIndex : 0
                 val sourceBankIndex = 0
-                val sourceFederate = federatesByInstantiation.get(source.getPortInstance().parent.definition).get(sourceBankIndex);
+                val sourceFederate = federatesByInstantiation.get(source.getPort().parent.definition).get(sourceBankIndex);
 
                 // Set up dependency information.
-                var connection = mainInstance.getConnection(source.getPortInstance(), input)
+                var connection = source.connection;
                 if (connection === null) {
                     // This should not happen.
                     errorReporter.reportError(input.definition, "Unexpected error. Cannot find input connection for port")
@@ -1091,14 +1090,13 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
                     // Make one communication for each channel.
                     // FIXME: There is an opportunity for optimization here by aggregating channels.
-                    // FIXME: bank indices not handled yet.
-                    for (var i = 0; i < source.channelWidth; i++) {
+                    for (var i = 0; i < source.getTotalWidth(); i++) {
                         FedASTUtils.makeCommunication(
-                            source.getPortInstance(),
+                            source.getPort(),
                             input,
                             connection,
                             sourceFederate,
-                            0, // FIXME: source.getPortInstance().parent.bankIndex,
+                            0, // FIXME: source.getPort().parent.bankIndex,
                             source.startChannel + i,
                             destinationFederate,
                             0, // FIXME: input.parent.bankIndex,
@@ -1107,7 +1105,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                             targetConfig.coordination
                         );
                     }
-                    channel += source.channelWidth;
+                    channel += source.getTotalWidth();
                 }
             }
         }
