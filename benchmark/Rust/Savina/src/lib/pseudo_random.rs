@@ -30,7 +30,12 @@ pub struct PseudoRandomGenerator {
 }
 
 impl PseudoRandomGenerator {
-    pub fn from(value: u64) -> Self {
+    /// Reset internal state, as if this was just created with given seed.
+    pub fn reseed(&mut self, seed: u64) {
+        self.m = seed;
+    }
+
+    pub fn from(value: u64) -> Self { // this should be in a From impl
         PseudoRandomGenerator {
             m: value,
         }
@@ -39,6 +44,16 @@ impl PseudoRandomGenerator {
     pub fn next(&mut self) -> u64 {
         self.m = ((self.m * 1309) + 13849) & 65535;
         self.m
+    }
+
+    pub fn gen_u32(&mut self) -> u32 {
+        let x = self.next();
+        (x % (u32::MAX as u64)) as u32
+    }
+
+    pub fn gen_range(&mut self, range: std::ops::Range<u32>) -> u32 {
+        let x = self.gen_u32();
+        range.start + (x % (range.end - range.start))
     }
 }
 

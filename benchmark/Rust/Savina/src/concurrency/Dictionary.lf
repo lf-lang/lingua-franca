@@ -27,11 +27,8 @@
 target Rust {
     build-type: Release,
     cargo-features: [ "cli" ],
+    rust-include: "../lib/pseudo_random.rs",
     cargo-dependencies: {
-        rand: {
-            version: "0.8",
-            features: ["small_rng"],
-        },
         reactor_rt: {
             features: ["parallel-runtime"]
         },
@@ -39,6 +36,19 @@ target Rust {
 };
 
 import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Manager(num_workers: usize(20)) {
+    state num_workers(num_workers);
+    
+    output finished: unit;
+    input[num_workers] worker_finished: unit;
+
+    reaction(worker_finished) -> finished {=
+        let num_terminated = worker_finished.into_iter().filter(|w| ctx.is_present(w)).count();
+        assert_eq!(num_terminated, self.num_workers);
+        ctx.set(finished, ());
+    =}
+}
 
 reactor DictionaryImpl(num_workers: usize(20)) {
 
@@ -54,11 +64,21 @@ reactor DictionaryImpl(num_workers: usize(20)) {
 
     state num_requests_served: u32(0);
 
+    input reset: unit;
+
     // Having the action in the dictionary is faster... (this is a c++ comment)
     logical action send_answers: unit;
 
     input[num_workers] request: Message;
     output[num_workers] response: u32;
+
+    reaction(reset) {=
+        // reset local state
+        self.data_map.clear();
+        for i in &mut self.answers_to_send {
+            *i = -1;
+        }
+    =}
 
     // @label send_answers
     reaction(send_answers) -> response {=
@@ -84,11 +104,11 @@ reactor DictionaryImpl(num_workers: usize(20)) {
                     },
                     Message::Read { key } => {
                         // this version inserts a key in the map
-                        // let value = self.data_map.entry(*key).or_insert(0);
+                        // let value = *self.data_map.entry(*key).or_insert(0);
 
                         // this version doesn't change the map, which is what savina does
-                        let value = self.data_map.get(*key).unwrap_or(0);
-                        self.answers_to_send[i] = (*value).try_into().unwrap_or(0);
+                        let value = *self.data_map.get(key).unwrap_or(&0);
+                        self.answers_to_send[i] = value.try_into().unwrap_or(0);
                         info!("Worker {} reads key {}; response is {:?}", i, key, value);
                     },
                 }
@@ -98,9 +118,6 @@ reactor DictionaryImpl(num_workers: usize(20)) {
         ctx.schedule(send_answers, Asap);
     =}
 
-//    reaction(shutdown) {=
-//        info!("Served {} requests", self.num_requests_served);
-//    =}
 }
 
 reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), write_percentage: u32(10)) {
@@ -111,54 +128,62 @@ reactor Worker(bank_index: usize(0), num_messages_per_worker: usize(10000), writ
 
     preamble {=
         use super::dictionary::*;
-        use rand::rngs::SmallRng;
-        use rand::Rng;
-        use rand::SeedableRng;
+        use crate::pseudo_random::*;
     =}
 
     state message_count: usize(0);
-    state random: rand::rngs::SmallRng({= {
-        let seed = bank_index + num_messages_per_worker + (write_percentage as usize);
-        rand::rngs::SmallRng::seed_from_u64(seed as u64)
-    }=});
+    state random: PseudoRandomGenerator;
 
-    timer do_work(0);
+    input start: unit;
+    output done: unit;
 
     input dict_response: u32;
     output dict_request: Message;
 
     // @label recv_answer
-    reaction(do_work, dict_response) -> dict_request {=
-        if log_enabled!(log::Level::Info) {
+    reaction(start, dict_response) -> dict_request, done {=
+        if log_enabled!(log::Level::Debug) {
             if let Some(resp) = ctx.get(dict_response) {
-                info!("Received {}", resp);
+                debug!("Received {}", resp);
             }
+        }
+
+        if ctx.is_present(start) {
+            // reset local state
+            let seed = self.bank_index + self.num_messages_per_worker + (self.write_percentage as usize);
+            self.random.reseed(seed as u64);
+            self.message_count = 0;
         }
 
         self.message_count += 1;
         if self.message_count <= self.num_messages_per_worker {
-            let key = self.random.gen();
+            let key = self.random.gen_u32();
             let an_int = self.random.gen_range(0..100);
             if an_int < self.write_percentage {
-                ctx.set(dict_request, Message::Write { key, value: self.random.gen() });
+                ctx.set(dict_request, Message::Write { key, value: self.random.gen_u32() });
             } else {
                 ctx.set(dict_request, Message::Read { key });
             }
+        } else {
+            ctx.set(done, ());
         }
     =}
-//
-//
-//    reaction(shutdown) {=
-//        println!("Worker {} sent {} requests", self.bank_index, self.message_count);
-//    =}
 }
 
-main reactor (num_messages_per_worker: usize(10000), write_percentage: u32(10), num_workers: usize(20)) {
+main reactor (num_messages_per_worker: usize(10000), 
+              write_percentage: u32(10), 
+              num_workers: usize(20),
+              num_iterations: usize(10)) {
 
-    runner = new BenchmarkRunner();
+    manager = new Manager(num_workers=num_workers);
+    runner = new BenchmarkRunner(num_iterations=num_iterations);
 
     dict = new DictionaryImpl(num_workers=num_workers);
     workers = new[num_workers] Worker(num_messages_per_worker=num_messages_per_worker, write_percentage=write_percentage);
+
+    (runner.start)+ -> workers.start, dict.reset;
+    workers.done -> manager.worker_finished;
+    manager.finished -> runner.finished;
 
     dict.response -> workers.dict_response;
     workers.dict_request -> dict.request;
