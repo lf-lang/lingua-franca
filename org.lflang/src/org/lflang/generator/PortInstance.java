@@ -152,9 +152,22 @@ public class PortInstance extends TriggerInstance<Port> {
         // If this port has dependent reactions, then add it to the result.
         if (!dependentReactions.isEmpty()) {
             // This will be the final result if there are no connections.
-            SendRange candidate = new SendRange(0, 0, width * parent.width(), false, null);
-            candidate.destinations.add(newRange(0, 0, width * parent.width(), false, null));
-            result.add(candidate);
+            // The width depends on whether this is an input port or an output port.
+            // For an input port (of a contained reactor), the width is just the width
+            // of the port. For an output port, that width is multiplied by the the bank width.
+            if (isInput()) {
+                SendRange candidate = new SendRange(0, 0, width, false, null);
+                // Broadcast to bank members.
+                for (int i = 0; i < parent.width(); i++) {
+                    candidate.destinations.add(newRange(0, i, width, false, null));
+                }
+                result.add(candidate);
+            } else {
+                // For an output port, the entire bank is treated as a send range
+                // because every channel can carry different data.
+                SendRange candidate = new SendRange(0, 0, width * parent.width(), false, null);
+                candidate.destinations.add(newRange(0, 0, width * parent.width(), false, null));
+                result.add(candidate);            }
         }
         
         // Next, look at downstream ports.
