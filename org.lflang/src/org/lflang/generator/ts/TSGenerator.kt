@@ -33,15 +33,12 @@ import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
 import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.JavaGeneratorUtils
-import org.lflang.generator.ValueGenerator
+import org.lflang.generator.*
 
 /**
  * Generator for TypeScript target.
@@ -99,9 +96,9 @@ class TSGenerator(
     fun federationRTIPropertiesW() = federationRTIProperties
 
     fun getTargetValueW(v: Value): String = VG.getTargetValue(v)
-    fun getTargetTypeW(p: Parameter): String = getTargetType(p.inferredType)
-    fun getTargetTypeW(state: StateVar): String = getTargetType(state)
-    fun getTargetTypeW(t: Type): String = getTargetType(t)
+    fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
+    fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
+    fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
 
     fun getInitializerListW(state: StateVar): List<String> = VG.getInitializerList(state)
     fun getInitializerListW(param: Parameter): List<String> = VG.getInitializerList(param)
@@ -354,20 +351,13 @@ class TSGenerator(
      */
     private fun getActionType(action: Action): String {
         return if (action.type != null) {
-            getTargetType(action.type)
+            TSTypes.getTargetType(action.type)
         } else {
             "Present"
         }
     }
 
-    override fun getTargetType(s: StateVar): String {
-        val type = super.getTargetType(s)
-        return if (!isInitialized(s)) {
-            "$type | undefined"
-        } else {
-            type
-        }
-    }
+    override fun getTargetTypes(): TargetTypes = TSTypes
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -497,30 +487,6 @@ class TSGenerator(
 
     override fun generateDelayGeneric(): String {
         return "T extends Present"
-    }
-
-    override fun supportsGenerics(): Boolean {
-        return true
-    }
-
-    override fun getTargetTimeType(): String {
-        return "TimeValue"
-    }
-
-    override fun getTargetTagType(): String {
-        return "TimeValue"
-    }
-
-    override fun getTargetUndefinedType(): String {
-        return "Present"
-    }
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array($size)<$baseType>"
-    }
-
-    override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<$baseType>"
     }
 
     override fun getTarget(): Target {

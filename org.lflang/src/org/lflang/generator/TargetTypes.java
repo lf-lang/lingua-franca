@@ -8,6 +8,10 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
+import org.lflang.lf.Action;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Port;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
 import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
@@ -18,9 +22,6 @@ import org.lflang.lf.Value;
  * utilities to convert LF expressions and types to the target
  * language. Each code generator is expected to use at least one
  * language-specific instance of this interface.
- *
- * TODO currently, {@link GeneratorBase} implements this interface,
- *  it should instead contain an instance.
  */
 public interface TargetTypes {
 
@@ -157,6 +158,38 @@ public interface TargetTypes {
             return getTargetVariableSizeListType(type.baseType());
         }
         return type.toText();
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * parameter.
+     */
+    default String getTargetType(Parameter p) {
+        return getTargetType(JavaAstUtils.getInferredType(p));
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * state variable.
+     */
+    default String getTargetType(StateVar s) {
+        return getTargetType(JavaAstUtils.getInferredType(s));
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * action.
+     */
+    default String getTargetType(Action a) {
+        return getTargetType(JavaAstUtils.getInferredType(a));
+    }
+
+    /**
+     * Return a string representing the type of the given
+     * port.
+     */
+    default String getTargetType(Port p) {
+        return getTargetType(JavaAstUtils.getInferredType(p));
     }
 
     /**

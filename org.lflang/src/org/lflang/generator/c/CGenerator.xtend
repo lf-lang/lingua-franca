@@ -358,9 +358,12 @@ class CGenerator extends GeneratorBase {
     // Indicate whether the generator is in Cpp mode or not
     var boolean CCppMode = false;
 
+    var CTypes types;
+
     new(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
         super(fileConfig, errorReporter)
         this.CCppMode = CCppMode;
+        types = new CTypes(errorReporter)
     }
 
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -1784,12 +1787,12 @@ class CGenerator extends GeneratorBase {
         var StringBuilder federatedExtension = new StringBuilder();    
         if (isFederatedAndDecentralized) {
             federatedExtension.append('''
-                «targetTagType» intended_tag;
+                «types.getTargetTagType» intended_tag;
             ''');
         }
         if (isFederated) {
             federatedExtension.append('''                
-                «targetTimeType» physical_time_of_arrival;
+                «types.getTargetTimeType» physical_time_of_arrival;
             ''');
         }
         // First, handle inputs.
@@ -1877,21 +1880,7 @@ class CGenerator extends GeneratorBase {
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        // val portType = lfTypeToTokenType(port.inferredType)
-        val portType = port.inferredType.targetType
-        // If the port type has the form type[number], then treat it specially
-        // to get a valid C type.
-        val matcher = arrayPatternFixed.matcher(portType)
-        if (matcher.find()) {
-            // for int[10], the first match is int, the second [10].
-            // The following results in: int* _lf_foo[10];
-            // if the port is an input and not a multiport.
-            // An output multiport will result in, for example
-            // int _lf_out[4][10];
-            return '''«matcher.group(1)» value«matcher.group(2)»;''';
-        } else {
-            return '''«portType» value;'''
-        }
+        return types.getVariableDeclaration(port.inferredType, "value") + ";"
     }
 
     /**
@@ -1911,23 +1900,7 @@ class CGenerator extends GeneratorBase {
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        val actionType = action.inferredType.targetType
-        // If the input type has the form type[number], then treat it specially
-        // to get a valid C type.
-        val matcher = arrayPatternFixed.matcher(actionType)
-        if (matcher.find()) {
-            // for int[10], the first match is int, the second [10].
-            // The following results in: int* foo;
-            return '''«matcher.group(1)»* value;''';
-        } else {
-            val matcher2 = arrayPatternVariable.matcher(actionType)
-            if (matcher2.find()) {
-                // for int[], the first match is int.
-                // The following results in: int* foo;
-                return '''«matcher2.group(1)»* value;''';
-            }
-            return '''«actionType» value;'''
-        }
+        return types.getTargetType(action) + " value;"
     }
 
     /**
@@ -2268,7 +2241,7 @@ class CGenerator extends GeneratorBase {
     def generateParametersForReactor(StringBuilder builder, Reactor reactor) {
         for (parameter : reactor.allParameters) {
             prSourceLineNumber(builder, parameter)
-            pr(builder, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
+            pr(builder, types.getTargetType(parameter) + ' ' + parameter.name + ';');
         }
     }
     
@@ -2281,7 +2254,7 @@ class CGenerator extends GeneratorBase {
     def generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
         for (stateVar : reactor.allStateVars) {            
             prSourceLineNumber(builder, stateVar)
-            pr(builder, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
+            pr(builder, types.getTargetType(stateVar) + ' ' + stateVar.name + ';');
         }
     }
     
@@ -2478,8 +2451,8 @@ class CGenerator extends GeneratorBase {
                 var elementSize = "0"
                 // If the action type is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
-                if (action.type !== null && action.targetType.rootType != 'void') {
-                    elementSize = '''sizeof(«action.targetType.rootType»)'''
+                if (action.type !== null && types.getTargetType(action).rootType != 'void') {
+                    elementSize = '''sizeof(«types.getTargetType(action).rootType»)'''
                 }
     
                 // Since the self struct is allocated using calloc, there is no need to set:
@@ -2558,7 +2531,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         if (variable instanceof Input) {
-            val rootType = variable.targetType.rootType
+            val rootType = types.getTargetType(variable).rootType
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->_lf__«input.name».is_timer = false;
             // self->_lf__«input.name».offset = 0LL;
@@ -2723,7 +2696,7 @@ class CGenerator extends GeneratorBase {
                 
                 // Inherited intended tag. This will take the minimum
                 // intended_tag of all input triggers
-                «targetTagType» inherited_min_intended_tag = («targetTagType») { .time = FOREVER, .microstep = UINT_MAX };
+                «types.getTargetTagType» inherited_min_intended_tag = («types.getTargetTagType») { .time = FOREVER, .microstep = UINT_MAX };
             ''')
             pr(intendedTagInheritenceCode, '''
                 // Find the minimum intended tag
@@ -3753,11 +3726,9 @@ class CGenerator extends GeneratorBase {
                 var payloadSize = "0"
                 
                 if (!type.isUndefined) {
-                    var String typeStr = type.targetType
+                    var String typeStr = types.getTargetType(type)
                     if (isTokenType(type)) {
                         typeStr = typeStr.rootType
-                    } else {
-                        typeStr = type.targetType
                     }
                     if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
                         payloadSize = '''sizeof(«typeStr»)'''
@@ -3832,22 +3803,9 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects,
                             nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
                     } else {
-                        // Array type has to be handled specially because C doesn't accept
-                        // type[] as a type designator.
-                        // Use the superclass to avoid [] being replaced by *.
-                        var type = super.getTargetType(stateVar.inferredType)
-                        val matcher = arrayPatternVariable.matcher(type)
-                        
-                        var declaration = type + " _initial";
-                        if (matcher.find()) {
-                            // If the state type ends in [], then we have to move the []
-                            // because C is very picky about where this goes. It has to go
-                            // after the variable name.
-                            declaration = matcher.group(1) + " _initial[]"
-                        }
                         pr(initializeTriggerObjects, '''
                             { // For scoping
-                                static «declaration» = «initializer»;
+                                static «types.getVariableDeclaration(stateVar.inferredType, "_initial")» = «initializer»;
                                 «nameOfSelfStruct»->«stateVar.name» = _initial;
                             } // End scoping.
                         '''
@@ -3880,27 +3838,17 @@ class CGenerator extends GeneratorBase {
      */
     def void generateParameterInitialization(ReactorInstance instance) {
         var nameOfSelfStruct = CUtil.selfName(instance)
-        // Array type parameters have to be handled specially.
-        // Use the superclass getTargetType to avoid replacing the [] with *.
         for (parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
             // memory allocations.
-            val targetType = super.getTargetType(parameter.type)
-            val matcher = arrayPatternVariable.matcher(targetType)
-            if (matcher.find()) {
-                // Use an intermediate temporary variable so that parameter dependencies
-                // are resolved correctly.
-                val temporaryVariableName = parameter.uniqueID
-                pr(initializeTriggerObjects, '''
-                    static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
-                    «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
-                ''')
-            } else {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
-                ''')
-            }
+            // Use an intermediate temporary variable so that parameter dependencies
+            // are resolved correctly.
+            val temporaryVariableName = parameter.uniqueID
+            pr(initializeTriggerObjects, '''
+                static «types.getVariableDeclaration(parameter.type, temporaryVariableName)» = «parameter.getInitializer»;
+                «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
+            ''')
         }
     }
     
@@ -4025,6 +3973,10 @@ class CGenerator extends GeneratorBase {
         }
     }
 
+    override getTargetTypes() {
+        return types;
+    }
+
     // //////////////////////////////////////////
     // // Protected methods.
 
@@ -4069,7 +4021,7 @@ class CGenerator extends GeneratorBase {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->_lf_«outputName».value = («action.inferredType.targetType»)self->_lf__«action.name».token->value;
+            self->_lf_«outputName».value = («types.getTargetType(action)»)self->_lf__«action.name».token->value;
             self->_lf_«outputName».token = (lf_token_t*)self->_lf__«action.name».token;
             ((lf_token_t*)self->_lf__«action.name».token)->ref_count++;
             self->_lf_«outputName».is_present = true;
@@ -4114,11 +4066,17 @@ class CGenerator extends GeneratorBase {
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
         // used only for statically allocated strings.
-        if (action.type.targetType == "string") {
+        // FIXME: Is the getTargetType method not responsible for generating the desired C code
+        //  (e.g., char* rather than string)? If not, what exactly is that method
+        //  responsible for? If generateNetworkReceiverBody has different requirements
+        //  than those that the method was designed to satisfy, should we use a different
+        //  method? The best course of action is not obvious, but we have a pattern of adding
+        //  downstream patches to generated strings rather than fixing them at their source.
+        if (types.getTargetType(action) == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
-        if ((receivingPort.variable as Port).type.targetType == "string") {
+        if (types.getTargetType(receivingPort.variable as Port) == "string") {
             (receivingPort.variable as Port).type.code = null
             (receivingPort.variable as Port).type.id = "char*"
         }
@@ -4153,11 +4111,11 @@ class CGenerator extends GeneratorBase {
             }
             case SupportedSerializers.ROS2: {
                 val portType = (receivingPort.variable as Port).inferredType
-                var portTypeStr = portType.targetType
+                var portTypeStr = types.getTargetType(portType)
                 if (isTokenType(portType)) {
                     throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
                 } else if (isSharedPtrType(portType)) {
-                    val matcher = sharedPointerVariable.matcher(portType.targetType)
+                    val matcher = sharedPointerVariable.matcher(portTypeStr)
                     if (matcher.find()) {
                         portTypeStr = matcher.group(1);
                     }
@@ -4278,12 +4236,12 @@ class CGenerator extends GeneratorBase {
                     // string types need to be dealt with specially because they are hidden pointers.
                     // void type is odd, but it avoids generating non-standard expression sizeof(void),
                     // which some compilers reject.
-                    lengthExpression = switch(type.targetType) {
+                    lengthExpression = switch(types.getTargetType(type)) {
                         case 'string': '''strlen(«sendRef»->value) + 1'''
                         case 'void': '0'
-                        default: '''sizeof(«type.targetType»)'''
+                        default: '''sizeof(«types.getTargetType(type)»)'''
                     }
-                    pointerExpression = switch(type.targetType) {
+                    pointerExpression = switch(types.getTargetType(type)) {
                         case 'string': '''(unsigned char*) «sendRef»->value'''
                         default: '''(unsigned char*)&«sendRef»->value'''
                     }
@@ -4298,11 +4256,11 @@ class CGenerator extends GeneratorBase {
             }
             case SupportedSerializers.ROS2: {
                 var variableToSerialize = sendRef;
-                var typeStr = type.targetType
+                var typeStr = types.getTargetType(type)
                 if (isTokenType(type)) {
                     throw new UnsupportedOperationException("Cannot handle ROS serialization when ports are pointers.");
                 } else if (isSharedPtrType(type)) {
-                    val matcher = sharedPointerVariable.matcher(type.targetType)
+                    val matcher = sharedPointerVariable.matcher(typeStr)
                     if (matcher.find()) {
                         typeStr = matcher.group(1);
                     }
@@ -4957,9 +4915,9 @@ class CGenerator extends GeneratorBase {
             pr(action, builder, '''
                 if («action.name»->has_value) {
                     «IF type.isTokenType»
-                        «action.name»->value = («type.targetType»)«tokenPointer»->value;
+                        «action.name»->value = («types.getTargetType(type)»)«tokenPointer»->value;
                     «ELSE»
-                        «action.name»->value = *(«type.targetType»*)«tokenPointer»->value;
+                        «action.name»->value = *(«types.getTargetType(type)»*)«tokenPointer»->value;
                     «ENDIF»
                 }
             ''')
@@ -5008,7 +4966,7 @@ class CGenerator extends GeneratorBase {
                 «structType»* «input.name» = self->_lf_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
-                    «input.name»->value = («inputType.targetType»)«input.name»->token->value;
+                    «input.name»->value = («types.getTargetType(inputType)»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
@@ -5031,7 +4989,7 @@ class CGenerator extends GeneratorBase {
                         «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
                         _lf_more_tokens_with_ref_count = «input.name»->token;
                     }
-                    «input.name»->value = («inputType.targetType»)«input.name»->token->value;
+                    «input.name»->value = («types.getTargetType(inputType)»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
@@ -5064,7 +5022,7 @@ class CGenerator extends GeneratorBase {
                             «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
                             _lf_more_tokens_with_ref_count = «input.name»[i]->token;
                         }
-                        «input.name»[i]->value = («inputType.targetType»)«input.name»[i]->token->value;
+                        «input.name»[i]->value = («types.getTargetType(inputType)»)«input.name»[i]->token->value;
                     } else {
                         «input.name»[i]->length = 0;
                     }
@@ -5277,30 +5235,9 @@ class CGenerator extends GeneratorBase {
             }
         }
     }
-
-    /**
-     * Override the base class to replace a type of form type[] with type*.
-     * @param type The type.
-     */ 
-    override String getTargetType(InferredType type) {
-        var result = super.getTargetType(type)
-        val matcher = arrayPatternVariable.matcher(result)
-        if (matcher.find()) {
-            return matcher.group(1) + '*'
-        }
-        return result
-    }
     
     protected def isSharedPtrType(InferredType type) {
-        if (type.isUndefined)
-            return false
-        val targetType = type.targetType
-        val matcher = sharedPointerVariable.matcher(targetType)
-        if (matcher.find()) {
-            true
-        } else {
-            false
-        }
+        return !type.isUndefined && sharedPointerVariable.matcher(types.getTargetType(type)).find()
     }
        
     /** Given a type for an input or output, return true if it should be
@@ -5312,7 +5249,7 @@ class CGenerator extends GeneratorBase {
     protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
-        val targetType = type.targetType
+        val targetType = types.getTargetType(type)
         if (targetType.trim.matches("^\\w*\\[\\s*\\]$") || targetType.trim.endsWith('*')) {
             true
         } else {
@@ -5320,10 +5257,8 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** If the type specification of the form type[] or
-     *  type*, return the type. Otherwise remove the code delimiter,
-     *  if there is one, and otherwise just return the argument
-     *  unmodified.
+    /** If the type specification of the form {@code type[]},
+     *  {@code type*}, or {@code type}, return the type.
      *  @param type A string describing the type.
      */
     private def rootType(String type) {
@@ -5384,16 +5319,6 @@ class CGenerator extends GeneratorBase {
             pr(builder, line)
         }
     }
-
-    // Regular expression pattern for array types with specified length.
-    // \s is whitespace, \w is a word character (letter, number, or underscore).
-    // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
-    static final Pattern arrayPatternFixed = Pattern.compile("^\\s*+(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
-    
-    // Regular expression pattern for array types with unspecified length.
-    // \s is whitespace, \w is a word character (letter, number, or underscore).
-    // For example, for "foo[]", the first match will be "foo".
-    static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
     
     // Regular expression pattern for shared_ptr types.
     static final Pattern sharedPointerVariable = Pattern.compile("^std::shared_ptr<(\\S+)>$");
@@ -5413,19 +5338,7 @@ class CGenerator extends GeneratorBase {
     override getTarget() {
         return Target.C
     }
-        
-    override getTargetTimeType() '''interval_t'''
-    
-    override getTargetTagType() '''tag_t'''
 
-    override getTargetUndefinedType() '''/* «errorReporter.reportError("undefined type")» */'''
-
-    override getTargetFixedSizeListType(String baseType, int size) '''«baseType»[«size»]'''
-        
-    override String getTargetVariableSizeListType(
-        String baseType) '''«baseType»[]'''
-        
-        
     override getNetworkBufferType() '''uint8_t*'''
     
     protected def String getInitializer(ParameterInstance p) {
@@ -5436,10 +5349,6 @@ class CGenerator extends GeneratorBase {
                 return CUtil.VG.getTargetValue(p.init.get(0))
             }
         
-    }
-    
-    override supportsGenerics() {
-        return false
     }
     
     override generateDelayGeneric() {
@@ -5640,7 +5549,7 @@ class CGenerator extends GeneratorBase {
             if (type.isTokenType) {
                 // Create the template token that goes in the trigger struct.
                 // Its reference count is zero, enabling it to be used immediately.
-                var rootType = type.targetType.rootType;
+                var rootType = types.getTargetType(type).rootType;
                 // If the rootType is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
                 val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
