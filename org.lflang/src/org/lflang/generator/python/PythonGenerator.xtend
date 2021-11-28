@@ -297,11 +297,11 @@ class PythonGenerator extends CGenerator {
      * @return Initialization code
      */
      protected def String getPythonInitializer(ParameterInstance p) {        
-            if (p.init.size > 1) {
+            if (p.getInitialValue.size > 1) {
                 // parameters are initialized as immutable tuples
-                return p.init.join('(', ', ', ')', [it.pythonTargetValue])
+                return p.getInitialValue.join('(', ', ', ')', [it.pythonTargetValue])
             } else {
-                return p.init.get(0).getPythonTargetValue
+                return p.getInitialValue.get(0).getPythonTargetValue
             }
         
     }

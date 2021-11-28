@@ -56,7 +56,7 @@ public class ActionInstance extends TriggerInstance<Action> {
                 Parameter parm = definition.getMinDelay().getParameter();
                 if (parm != null) {
                     this.minDelay = ASTUtils.getTimeValue(
-                            parent.lookupParameterInstance(parm).init.get(0));
+                            parent.initialParameterValue(parm).get(0));
                 } else {
                     this.minDelay = ASTUtils.getTimeValue(definition.getMinDelay());
                 }
@@ -65,7 +65,7 @@ public class ActionInstance extends TriggerInstance<Action> {
                 Parameter parm = definition.getMinSpacing().getParameter();
                 if (parm != null) {
                     this.minSpacing = ASTUtils.getTimeValue(
-                            parent.lookupParameterInstance(parm).init.get(0));
+                            parent.initialParameterValue(parm).get(0));
                 } else {
                     this.minSpacing = ASTUtils.getTimeValue(definition.getMinSpacing());
                 }
