@@ -438,6 +438,11 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         return errorReporter.getErrorsOccurred();
     }
 
+    /*
+     * Return the TargetTypes instance associated with this.
+     */
+    abstract def TargetTypes getTargetTypes();
+
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
@@ -1146,20 +1151,4 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * Return the Targets enum for the current target
      */
     abstract def Target getTarget()
-
-    protected def getTargetType(Parameter p) {
-        return p.inferredType.targetType
-    }
-
-    protected def getTargetType(StateVar s) {
-        return s.inferredType.targetType
-    }
-
-    protected def getTargetType(Action a) {
-        return a.inferredType.targetType
-    }
-
-    protected def getTargetType(Port p) {
-        return p.inferredType.targetType
-    }
 }

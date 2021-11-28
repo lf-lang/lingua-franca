@@ -14,7 +14,7 @@ import org.lflang.validation.AbstractLFValidator;
  * Generator base class for shared code between code generators.
  * This is created to ease our migration from Xtend.
  */
-public abstract class JavaGeneratorBase extends AbstractLFValidator implements TargetTypes {
+public abstract class JavaGeneratorBase extends AbstractLFValidator {
     ////////////////////////////////////////////
     //// Protected fields.
 

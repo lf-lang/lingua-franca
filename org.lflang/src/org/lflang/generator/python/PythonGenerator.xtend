@@ -81,7 +81,7 @@ import static extension org.lflang.JavaAstUtils.*
  * Each class will contain all the reaction functions defined by the user in order, with the necessary ports/actions given as parameters.
  * Moreover, each class will contain all state variables in native Python format.
  * 
- * A backend is also generated using the CGenrator that interacts with the C code library (see CGenerator.xtend).
+ * A backend is also generated using the CGenerator that interacts with the C code library (see CGenerator.xtend).
  * The backend is responsible for passing arguments to the Python reactor functions.
  *
  * @author{Soroush Bateni <soroush@utdallas.edu>}
@@ -94,12 +94,15 @@ class PythonGenerator extends CGenerator {
     // Used to add module requirements to setup.py (delimited with ,)
     var pythonRequiredModules = new StringBuilder()
 
+    var PythonTypes types;
+
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
         targetConfig.linkerFlags = ""
+        types = new PythonTypes(errorReporter)
     }
     	
     /** 
@@ -151,15 +154,10 @@ class PythonGenerator extends CGenerator {
      */
     val generic_action_type = "generic_action_instance_struct"
 	
-	override getTargetUndefinedType() '''PyObject*'''
-	
 	/** Returns the Target enum for this generator */
     override getTarget() {
         return Target.Python
     }
-
-	// Regular expression pattern for pointer types. The star at the end has to be visible.
-    static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
     
     ////////////////////////////////////////////
     //// Public methods
@@ -214,6 +212,10 @@ class PythonGenerator extends CGenerator {
         
         #####################################
         ''');
+    }
+
+    override getTargetTypes() {
+        return types;
     }
     
     ////////////////////////////////////////////
@@ -564,10 +566,10 @@ class PythonGenerator extends CGenerator {
         ''')
         
         for (param : decl.toDefinition.allParameters) {
-            if (!param.inferredType.targetType.equals("PyObject*")) {
+            if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    append('''        self._«param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                    append('''        self._«param.name»:«types.getPythonType(param.inferredType)» = «param.pythonInitializer»
                     ''')
             } else {
                 // If type is not given, just pass along the initialization
@@ -589,10 +591,10 @@ class PythonGenerator extends CGenerator {
         ''')
         // Next, handle state variables
         for (stateVar : reactor.allStateVars) {
-            if (!stateVar.inferredType.targetType.equals("PyObject*")) {
+            if (!types.getTargetType(stateVar).equals("PyObject*")) {
                 // If type is given, use it
                 temporary_code.
-                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                    append('''        self.«stateVar.name»:«types.getPythonType(stateVar.inferredType)» = «stateVar.pythonInitializer»
                     ''')
             } else if (stateVar.isInitialized) {
                 // If type is not given, pass along the initialization directly if it is present
@@ -650,31 +652,6 @@ class PythonGenerator extends CGenerator {
             # End of preamble.
         «ENDFOR»
     '''
-    
-    /**
-     * This generator inherits types from the CGenerator.
-     * This function reverts them back to Python types
-     * For example, the types double is converted to float,
-     * the * for pointer types is removed, etc.
-     * @param type The type
-     * @return The Python equivalent of a C type
-     */
-    def getPythonType(InferredType type) {
-        var result = super.getTargetType(type)
-        
-        switch(result){
-            case "double": result = "float"
-            case "string": result = "object"
-            default: result = result
-        }
-        
-        val matcher = pointerPatternVariable.matcher(result)
-        if(matcher.find()) {
-            return matcher.group(1)
-        }
-        
-        return result
-    }
     
     /**
      * Instantiate classes in Python.

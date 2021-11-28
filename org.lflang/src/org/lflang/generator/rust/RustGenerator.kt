@@ -55,8 +55,7 @@ class RustGenerator(
     fileConfig: RustFileConfig,
     errorReporter: ErrorReporter,
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
-) : GeneratorBase(fileConfig, errorReporter),
-    TargetTypes by RustTypes {
+) : GeneratorBase(fileConfig, errorReporter) {
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -133,6 +132,7 @@ class RustGenerator(
 
     override fun getTarget(): Target = Target.Rust
 
+    override fun getTargetTypes(): TargetTypes = RustTypes
 
     override fun generateDelayBody(action: Action, port: VarRef): String {
         TODO("Not yet implemented")
