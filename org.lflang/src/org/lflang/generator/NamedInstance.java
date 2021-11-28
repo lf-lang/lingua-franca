@@ -272,7 +272,7 @@ public abstract class NamedInstance<T extends EObject> {
     //// Protected fields.
 
     /**
-     * The depth in the hierarchy of this reactor instance.
+     * The depth in the hierarchy of this instance.
      * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
      */
     protected int depth = 0;

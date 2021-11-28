@@ -86,11 +86,6 @@ public class ModelInfo {
      */
     public Set<Parameter> overflowingParameters;
 
-    /**
-     * A graph of ports and reactions.
-     */
-    public TopologyGraph topologyGraph;
-
     public List<ReactorInstance> topLevelReactorInstances;
 
     /** Cycles found during topology analysis. */

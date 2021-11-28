@@ -112,7 +112,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
                 addEdge(effect, reaction);
                 PortInstance orig = (PortInstance) effect;
                 orig.getDependentPorts().forEach(dest -> {
-                    recordDependency(reaction, orig, dest.getPortInstance());
+                    recordDependency(reaction, orig, dest.getPort(), dest.connection);
                 });
             }
         }
@@ -132,7 +132,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
                 addEdge(reaction, source);
                 PortInstance dest = (PortInstance) source;
                 dest.getDependsOnPorts().forEach(orig -> {
-                    recordDependency(reaction, orig.getPortInstance(), dest);
+                    recordDependency(reaction, orig.getPort(), dest, orig.connection);
                 });
             }
         }
@@ -142,37 +142,18 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
      * Record a dependency between two port instances, but only if there is a
      * zero-delay path from origin to destination.
      * 
-     * @param reaction A reaction that has one of the given port as a source or
+     * @param reaction A reaction that has one of the given ports as a source or
      *                 effect.
      * @param orig     The upstream port.
      * @param dest     The downstream port.
+     * @param connection The connection creating this dependency or null if not
+     *  created by a connection.
      */
     private void recordDependency(ReactionInstance reaction, PortInstance orig,
-            PortInstance dest) {
-        // Note: a reaction always has a parent, but it might not have a
-        // grandparent. Hence, the first argument given to getConnection might
-        // be null.
-        if (!dependencyBroken(
-                getConnection(reaction.getParent().getParent(), orig, dest))) {
+            PortInstance dest, Connection connection) {
+        if (!dependencyBroken(connection)) {
             addEdge(dest, orig);
         }
-    }
-
-    /**
-     * Look up the AST node that describes the connection between the two given
-     * port instances and return it if there is one.
-     * 
-     * @param container The reactor instance in which to perform the look up.
-     * @param orig      The upstream port.
-     * @param dest      The downstream port.
-     * @return The corresponding Connection object or null if there is none.
-     */
-    private Connection getConnection(ReactorInstance container,
-            PortInstance orig, PortInstance dest) {
-        if (container == null) {
-            return null;
-        }
-        return container.getConnection(orig, dest);
     }
 
     /**
