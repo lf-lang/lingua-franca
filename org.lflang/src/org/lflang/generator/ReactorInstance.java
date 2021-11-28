@@ -912,17 +912,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         } else {
                             reporter.reportWarning(connection, 
                                     "Destination is wider than the source. Inputs will be missing.");
+                            break;
                         }
-                        break;
                     }
                     dst = dstRanges.next();
                     src = srcRanges.next();
                 } else if (dst.getTotalWidth() < src.getTotalWidth()) {
                     // Split the left range in two.
-                    PortInstance.Range remaining = src.tail(dst.getTotalWidth());
-                    src.truncate(dst.getTotalWidth()); // Shorten source range to match destination.
-                    connectPortInstances(src, dst);
-                    src = remaining;
+                    connectPortInstances(src.truncate(dst.getTotalWidth()), dst);
+                    src = src.tail(dst.getTotalWidth());
                     if (!dstRanges.hasNext()) {
                         reporter.reportWarning(connection, 
                                 "Source is wider than the destination. Outputs will be lost.");
@@ -931,18 +929,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     dst = dstRanges.next();
                 } else if (src.getTotalWidth() < dst.getTotalWidth()) {
                     // Split the right range in two.
-                    PortInstance.Range remaining = dst.tail(src.getTotalWidth());
-                    dst.truncate(src.getTotalWidth());
-                    connectPortInstances(src, dst);
-                    dst = remaining;
+                    connectPortInstances(src, dst.truncate(src.getTotalWidth()));
+                    dst = dst.tail(src.getTotalWidth());
                     if (!srcRanges.hasNext()) {
                         if (connection.isIterated()) {
                             srcRanges = leftPorts.iterator();
                         } else {
                             reporter.reportWarning(connection, 
                                     "Destination is wider than the source. Inputs will be missing.");
+                            break;
                         }
-                        break;
                     }
                     src = srcRanges.next();
                 }

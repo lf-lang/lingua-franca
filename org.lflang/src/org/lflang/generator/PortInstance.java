@@ -181,7 +181,7 @@ public class PortInstance extends TriggerInstance<Port> {
                         // Destination range spills over into the next multicast iteration.
                         // Need to split the destination range.
                         SendRange residualDst = (SendRange)dstSend.tail(totalWidth - sourceWidthCovered);
-                        dstSend.truncate(totalWidth - sourceWidthCovered);
+                        dstSend = dstSend.truncate(totalWidth - sourceWidthCovered);
                         result.add(dstSend);
                         dstSend = residualDst;
                         sourceWidthCovered = 0;
@@ -208,9 +208,9 @@ public class PortInstance extends TriggerInstance<Port> {
                     candidate.destinations.addAll(next.destinations);
                     if (candidate.getTotalWidth() < next.getTotalWidth()) {
                         // The next range has more channels connected to this sender.
-                        next.truncate(candidate.getTotalWidth());
+                        next = next.truncate(candidate.getTotalWidth());
                         // Truncate the destinations just imported.
-                        candidate.truncate(candidate.getTotalWidth());
+                        candidate = candidate.truncate(candidate.getTotalWidth());
                     } else {
                         // We are done with next and can discard it.
                         next = result.poll();
@@ -232,7 +232,7 @@ public class PortInstance extends TriggerInstance<Port> {
                 } else {
                     // Ranges overlap. Have to split candidate.
                     SendRange candidateTail = (SendRange)candidate.tail(next.startChannel);
-                    candidate.truncate(next.startChannel);
+                    candidate = candidate.truncate(next.startChannel);
                     result.add(candidate);
                     candidate = candidateTail;
                 }
@@ -509,15 +509,16 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         
         /**
-         * Override the base class to also trucate the destinations.
+         * Override the base class to also truncate the destinations.
          * @param newWidth The new width.
          */
         @Override
-        protected void truncate(int newWidth) {
-            super.truncate(newWidth);
+        protected SendRange truncate(int newWidth) {
+            SendRange result = (SendRange)super.truncate(newWidth);
             for (Range destination : destinations) {
-                destination.truncate(newWidth);
+                result.destinations.add(destination.truncate(newWidth));
             }
+            return result;
         }
 
         private int _numberOfDestinationReactors = -1; // Never access this directly.
@@ -625,11 +626,12 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         
         /**
-         * Modify this range to reduce its total width to the specified width.
+         * Return a new range that is identical to this range but
+         * with a reduced total width to the specified width.
          * @param newWidth The new width.
          */
-        protected void truncate(int newWidth) {
-            totalWidth = newWidth;
+        protected Range truncate(int newWidth) {
+            return newRange(startChannel, startBank, newWidth, interleaved, connection);
         }
         
         /**
