@@ -157,10 +157,7 @@ public class PortInstance extends TriggerInstance<Port> {
             // of the port. For an output port, that width is multiplied by the the bank width.
             if (isInput()) {
                 SendRange candidate = new SendRange(0, 0, width, false, null);
-                // Broadcast to bank members.
-                for (int i = 0; i < parent.width(); i++) {
-                    candidate.destinations.add(newRange(0, i, width, false, null));
-                }
+                candidate.destinations.add(newRange(0, 0, width, false, null));
                 result.add(candidate);
             } else {
                 // For an output port, the entire bank is treated as a send range
