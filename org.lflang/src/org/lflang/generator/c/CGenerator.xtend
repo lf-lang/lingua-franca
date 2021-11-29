@@ -3849,7 +3849,7 @@ class CGenerator extends GeneratorBase {
             // are resolved correctly.
             val temporaryVariableName = parameter.uniqueID
             pr(initializeTriggerObjects, '''
-                static «types.getVariableDeclaration(parameter.type, temporaryVariableName)» = «parameter.getInitializer»;
+                «types.getVariableDeclaration(parameter.type, temporaryVariableName)» = «parameter.getInitializer»;
                 «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
             ''')
         }
@@ -4660,6 +4660,7 @@ class CGenerator extends GeneratorBase {
                 «i»++;
                 if («i» >= «s.width») {
                     «i» = 0;
+                }
             ''')
             while (!sourceParentBanksReversed.isEmpty) {
                 s = sourceParentBanksReversed.pop();
@@ -4669,6 +4670,7 @@ class CGenerator extends GeneratorBase {
                 pr(builder, '''
                     if («i» >= «s.width») {
                         «i» = 0;
+                    }
                 ''')
             }
         }
@@ -5244,12 +5246,8 @@ class CGenerator extends GeneratorBase {
     protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
-        val targetType = types.getTargetType(type)
-        if (targetType.trim.matches("^\\w*\\[\\s*\\]$") || targetType.trim.endsWith('*')) {
-            true
-        } else {
-            false
-        }
+        val targetType = types.getVariableDeclaration(type, "") // This is a hacky way to do this. It is now considered to be a bug (#657)
+        return type.isVariableSizeList || targetType.contains("*")
     }
     
     /** If the type specification of the form {@code type[]},
