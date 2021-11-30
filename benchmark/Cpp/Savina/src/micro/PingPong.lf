@@ -27,12 +27,12 @@
  */
 
 target Cpp {
-    build-type : RelWithDebInfo
+    build-type : RelWithDebInfo,
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor Ping(count:unsigned(40000)) {
+reactor Ping(count:unsigned(1000000)) {
     
     state pings_left:unsigned(0);
     
@@ -79,7 +79,7 @@ reactor Pong {
 }
 
 
-main reactor (numIterations:int(12), count:unsigned(40000)) {
+main reactor (numIterations:int(12), count:unsigned(1000000)) {
     
     ping = new Ping(count=count);
     runner = new BenchmarkRunner(numIterations=numIterations);
