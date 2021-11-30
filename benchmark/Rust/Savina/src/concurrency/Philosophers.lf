@@ -1,0 +1,214 @@
+/**
+ * Copyright (C) 2020-2021 TU Dresden
+ * 
+ * This benchmark implements a "solution" to the philosophers problem.
+ * This LF implementation stays close to the original Akka implementation
+ * in the Savina suite. However, it is not a particularly good solution as
+ * it relies on busy waiting. The Philosophers bombard the Arbitrator
+ * with "hungry" messages until they are allowed to eat. In an actor
+ * implementation, this leads to millions of messages being sent.
+ * Due to the synchronous semantics of LF, this effect is mitigated.
+ * Since we know all hungry philosophers at each tag, we can compute a
+ * schedule and let as many philosophers eat as possible. Philosophers
+ * will try again if they are denied, but they will only send a request 
+ * once per tag and hence the total number of denied messages is much lower 
+ * than in Akka.
+ *   
+ * Due to the bidrectional interaction between the Arbitrator and the 
+ * Philosophers, there is a cycle in the dependency graph. Normally we
+ * would break the cycle by using actions in the Philosophers as this would
+ * model the time a philosopher needs to eat and think. But for this simple
+ * benchmark, it is more efficient to have a single action in the arbitrator
+ * only to break the loop. The idea is to process all hungry requests within
+ * one tag and to store the replies in a state variable. Then, a logical action
+ * is scheduled and the corresponding reaction will send the eat and denied
+ * messages to each Philosopher.
+ * 
+ * @author Hannes Klein
+ * @author Christian Menard
+ * @author Johannes Hayeß
+ */
+ 
+ target Rust {
+    build-type: Debug,
+    cargo-features: ["cli"],
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Arbitrator(numPhilosophers:usize(20)) {
+    
+    state num_philosophers(numPhilosophers);
+    
+    preamble {=
+        #[derive(Clone, Copy)]
+        enum Reply {
+            Invalid,
+            Eat,
+            Denied,
+        }
+    =}
+    
+    state replies: Vec<Reply>({= vec![Reply::Invalid; numPhilosophers] =});
+    state forks: Vec<bool>({= vec![false; numPhilosophers] =});
+    state numFinishedPhilosophers: usize(0);
+    state arbitration_id: usize(0);
+    state numRetries: usize(0);
+    
+    input start: unit;
+    output allFinished: unit;
+    
+    input[numPhilosophers] hungry: unit;
+    input[numPhilosophers] done: unit;
+    input[numPhilosophers] finished: usize;
+    output[numPhilosophers] eat: unit;
+    output[numPhilosophers] denied: unit;
+    
+    logical action sendReplies;
+    
+    reaction(start) {=
+        // reset state
+        self.numFinishedPhilosophers = 0;
+        self.numRetries = 0;
+        self.arbitration_id = 0;
+        self.forks.fill(false);
+        self.replies.fill(Reply::Invalid);
+    =}
+    
+    reaction(sendReplies) -> eat, denied {=
+        for i in 0..self.num_philosophers {
+            match self.replies[i] {
+                Reply::Eat => ctx.set(eat.get(i), ()),
+                Reply::Denied => ctx.set(denied.get(i), ()),
+                _ => {},
+            }
+        }
+        self.replies.fill(Reply::Invalid);
+    =}
+    
+    reaction(done) {=
+        for (i, d) in done.into_iter().enumerate() {
+            if ctx.is_present(&d) {
+                self.forks[i] = false;
+                self.forks[(i + 1 ) % self.num_philosophers] = false;
+            }
+        }
+    =}
+    
+    reaction(hungry) -> sendReplies {=
+        for i in 0..self.num_philosophers {
+            let j = (i + self.arbitration_id) % self.num_philosophers;
+            
+            if ctx.is_present(&hungry.get(j)) {
+                let left_fork = self.forks[j];
+                let right_fork = self.forks[(j + 1) % self.num_philosophers];
+                
+                if left_fork || right_fork {
+                    // someone else has access to the fork
+                    self.replies[j] = Reply::Denied;
+                } else {
+                    self.forks[j] = true;
+                    self.forks[(j + 1) % self.num_philosophers] = true;
+                    self.replies[j] = Reply::Eat;
+                }
+            }
+        }
+        self.arbitration_id = (self.arbitration_id + 1) % self.num_philosophers;
+        ctx.schedule(sendReplies, Asap);
+    =}
+    
+    reaction(finished) -> allFinished {=
+        for fin in finished.into_iter().map(|f| ctx.get(&f)).filter(|f| f.is_some()).map(|f| f.unwrap()) {
+            self.numRetries += fin;
+            self.numFinishedPhilosophers += 1;
+            if self.num_philosophers == self.numFinishedPhilosophers {
+                println!("Total retries: {}", self.numRetries);
+                ctx.set(allFinished, ());
+                break;
+            }
+        }
+    =}
+}
+
+reactor Philosopher(bank_index: usize(0), rounds: usize(10000)) {
+    state bank_index(bank_index);
+    state rounds(rounds);
+    
+    state numDenied: usize(0); // count failed tries
+    state numEaten: usize(0); // count successful tries
+    
+    input start: unit;
+    input eat: unit;
+    input denied: unit;
+    output hungry: unit;
+    output done: unit;
+    output finished: usize;
+    
+    logical action requestToEat: unit;
+    logical action finish: unit;
+    
+    reaction(start) -> hungry {=
+        self.numEaten = 0;
+        self.numDenied = 0;
+        info!("Hello! I am Philosopher {} and I am hungry!", self.bank_index);
+        ctx.set(hungry, ());
+    =}
+    
+    reaction(eat) -> hungry, done, finished {=
+        info!("Philosopher {} is eating :)", self.bank_index);
+        self.numEaten += 1;
+        ctx.set(done, ());
+        
+        if self.numEaten == self.rounds {
+            // now I am really finished
+            ctx.set(finished, self.numDenied);
+        } else {
+            // I am hungry again!
+            ctx.set(hungry, ());
+        }
+    =}
+    
+    reaction(denied) -> hungry {=
+        // do thinking
+        info!("Philosopher {} got denied :( and is now thinking", self.bank_index);
+        self.numDenied += 1;
+        // I am hungry again!
+        ctx.set(hungry, ());
+    =}
+}
+
+main reactor (numIterations:usize(12), numEatingRounds:usize(10000), numPhilosophers:usize(20)) {
+    state num_iterations(numIterations);
+    state num_eating_rounds(numEatingRounds);
+    state num_philosophers(numPhilosophers);
+    
+    arbitrator = new Arbitrator(numPhilosophers=numPhilosophers);
+    philosophers = new[numPhilosophers] Philosopher(rounds=numEatingRounds);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    
+    reaction(startup) {=
+        print_benchmark_info("PhilosopherReactorLFRustBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "numEatingRounds",
+            self.num_eating_rounds,
+            "numPhilosophers",
+            self.num_philosophers
+        );
+        print_system_info();
+    =}
+    
+    (runner.start)+ -> arbitrator.start, philosophers.start;
+    arbitrator.allFinished -> runner.finished;
+    
+    arbitrator.eat -> philosophers.eat;
+    arbitrator.denied -> philosophers.denied;
+    philosophers.hungry -> arbitrator.hungry;
+    philosophers.done -> arbitrator.done;
+    philosophers.finished -> arbitrator.finished;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
+}
