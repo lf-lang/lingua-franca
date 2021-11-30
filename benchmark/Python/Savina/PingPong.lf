@@ -49,7 +49,7 @@ reactor Ping(count(1000000)) {
         if self.pingsLeft > 0:
             serve.schedule(0)
         else:
-            stop()
+            request_stop()
     =}
 }
 reactor Pong(expected(1000000)) {
@@ -69,8 +69,8 @@ reactor Pong(expected(1000000)) {
 }
 
 main reactor PingPong {
-    ping = new Ping();
-    pong = new Pong();
+    ping = new Ping(count = 10000);
+    pong = new Pong(expected = 10000);
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }

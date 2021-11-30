@@ -56,8 +56,8 @@ class ReactionPortAdjustment implements IStyleModifier {
 				while(parent.eContainer !== null) {
 					parent = parent.eContainer as KNode
 				}
-				// Get viewer
-				val viewer = parent.allProperties.entrySet.findFirst[key.id.equals("de.cau.cs.kieler.klighd.viewer")]?.value
+				// Get viewer (this is a bit brittle because it fetches the viewer from some internal property)
+				val viewer = parent.allProperties.entrySet.findFirst[key.id.equals("de.cau.cs.kieler.klighd.viewer") || key.id.equals("klighd.layout.viewer")]?.value
 				val recorder = if (viewer instanceof IViewer) {
 					viewer.viewContext?.layoutRecorder
 				}
