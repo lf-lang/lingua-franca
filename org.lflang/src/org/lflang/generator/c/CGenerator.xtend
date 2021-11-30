@@ -5877,9 +5877,6 @@ class CGenerator extends GeneratorBase {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (reaction : reactions) {
-            val instance = reaction.parent;
-            val nameOfSelfStruct = CUtil.selfRef(instance)
-            
             deferredReactionOutputs(reaction);
 
             // Next handle triggers of the reaction that come from a multiport output
@@ -5888,20 +5885,23 @@ class CGenerator extends GeneratorBase {
                 // If the port is a multiport, then we need to create an entry for each
                 // individual port.
                 if (trigger.isMultiport() && trigger.parent !== null && trigger.isOutput) {
+                    // Trigger is an output of a contained reactor or bank.
+                    startScopedReactorBlock(code, trigger.parent);
+                    
                     // If the width is given as a numeric constant, then add that constant
                     // to the output count. Otherwise, assume it is a reference to one or more parameters.
                     val width = trigger.width;
-                    val containerName = trigger.parent.name
                     val portStructType = variableStructType(trigger.definition,
                         trigger.parent.definition.reactorClass)
 
-                    // FIXME: What if the port is in a bank?  Need to index the container.
                     pr('''
-                        «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width = «width»;
                         // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-                        «nameOfSelfStruct»->_lf_«containerName».«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                * «nameOfSelfStruct»->_lf_«containerName».«trigger.name»_width);
+                        «CUtil.selfRef(trigger.parent)»->«trigger.name»_width = «width»;
+                        «CUtil.selfRef(trigger.parent)»->«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                * «CUtil.selfRef(trigger.parent)»->«trigger.name»_width);
                     ''')
+                    
+                    endScopedReactorBlock(code, trigger.parent);
                 }
             }
         }
