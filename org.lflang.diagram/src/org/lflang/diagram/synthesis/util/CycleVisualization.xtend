@@ -62,7 +62,7 @@ class CycleVisualization extends AbstractSynthesisExtensions {
 	def boolean detectAndHighlightCycles(ReactorInstance rootReactorInstance, Map<ReactorInstance, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
 		val graph = new TopologyGraph(rootReactorInstance)
 		
-        if (!graph.cycles.empty && highlighter !== null) {
+        if (graph.hasCycles() && highlighter !== null) {
 			// Highlight cycles
             for (cycle : graph.cycles) {
                 // A cycle consists of reactions and ports, first find the involved reactor instances
