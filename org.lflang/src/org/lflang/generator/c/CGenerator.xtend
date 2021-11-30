@@ -1347,8 +1347,7 @@ class CGenerator extends GeneratorBase {
         «dockerComposeServices.toString»
         networks:
             default:
-                external:
-                    name: «networkName»
+                name: «networkName»
         ''')
         writeSourceCodeToFile(content.toString.getBytes, dockerComposeFile)
     }
@@ -1439,8 +1438,7 @@ class CGenerator extends GeneratorBase {
                     command: -i «federationID» -n «n»
             networks:
                 default:
-                    external:
-                        name: «networkName»
+                    name: «networkName»
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerComposeFile)
         println("Dockerfile for RTI written to " + dockerComposeFile)
