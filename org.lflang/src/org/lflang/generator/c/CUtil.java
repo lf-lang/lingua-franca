@@ -96,6 +96,23 @@ public class CUtil {
     }
     
     /**
+     * For situations where a reaction reacts to or reads from an output
+     * of a contained reactor or sends to an input of a contained reactor,
+     * then the container's self struct will have a field
+     * (or an array of fields if the contained reactor is a bank) that is
+     * a struct with fields corresponding to those inputs and outputs.
+     * This method returns a reference to that struct or array of structs.
+     * @param reactor The contained reactor.
+     */
+    static public String containedReactorRef(ReactorInstance reactor) {
+        String result = selfRef(reactor.getParent()) + "->_lf_" + reactor.getName();
+        if (reactor.isBank()) {
+            result += "[" + bankIndex(reactor) + "]";
+        }
+        return result;
+    }
+    
+    /**
      * Return a string for referencing the struct with the value and is_present
      * fields of the specified port. This is used for establishing the destination of
      * data for a connection between ports.
