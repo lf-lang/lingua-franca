@@ -27,7 +27,6 @@
 package org.lflang.generator
 
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.ArrayList
@@ -1872,17 +1871,4 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             return new TimeValue(d.interval, d.unit).timeInTargetLanguage
         }
     }
-
-    /**
-     * Write the source code to file.
-     * @param code The code to be written.
-     * @param path The file to write the code to.
-     */
-    protected def writeSourceCodeToFile(byte[] code, String path) {
-        // Write the generated code to the output file.
-        var fOut = new FileOutputStream(new File(path), false);
-        fOut.write(code)
-        fOut.close()
-    }
-    
 }
