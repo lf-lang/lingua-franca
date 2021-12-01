@@ -3441,7 +3441,7 @@ class CGenerator extends GeneratorBase {
      *   of the container of the reaction.
      */
     static def triggerStructName(PortInstance port, ReactorInstance reactor) {
-        return '''«CUtil.selfRef(reactor)»->_lf_«port.parent.name».«port.name»_trigger'''
+        return '''«CUtil.containedReactorRef(port.parent)».«port.name»_trigger'''
     }
     
     /**
@@ -4730,6 +4730,30 @@ class CGenerator extends GeneratorBase {
             }
         }
     }
+    
+    /**
+     * Start a deep scoped block for the specified reactor in situations where
+     * the self struct for the specified reactor is not already in scope
+     * and the self struct of some of its containers may also not be in scope.
+     * Specifically, the reference reactor is assumed to deeply contain the
+     * specified reactor. A scoped block is created for each intermediate
+     * container.  If the reference reactor does not deeply contain the specified
+     * reactor, then nested scoped blocks are created all the way to the top level,
+     * not including the top level.
+     * This must be followed by an {@link endDeepScopedReactorBlock(StringBuilder)}.
+     * @param builder The string builder into which to write.
+     * @param reactor The reactor instance.
+     * @param reference The container.
+     */
+    private def void startDeepScopedReactorBlock(
+        StringBuilder builder, ReactorInstance reactor, ReactorInstance reference
+    ) {
+        startScopedReactorBlock(builder, reactor);
+        val container = reactor.parent;
+        if (container != reference && container.depth > 1) {
+            startDeepScopedReactorBlock(builder, container, reference);
+        }
+    }
 
     /**
      * End a scoped block.
@@ -4752,6 +4776,22 @@ class CGenerator extends GeneratorBase {
                 endScopedBlock(builder);
             }
             endScopedBlock(builder);
+        }
+    }
+
+    /**
+     * End a deep scoped block.
+     * @param builder The string builder into which to write.
+     * @param reactor The reactor instance.
+     * @param reference The container.
+     */
+    private def void endDeepScopedReactorBlock(
+        StringBuilder builder, ReactorInstance reactor, ReactorInstance reference
+    ) {
+        endScopedReactorBlock(builder, reactor);
+        val container = reactor.parent;
+        if (container != reference && container.depth > 1) {
+            endDeepScopedReactorBlock(builder, container, reference);
         }
     }
 
@@ -5556,6 +5596,9 @@ class CGenerator extends GeneratorBase {
                         var portChannelCount = 0;
                         for (eventualSource: port.eventualSources()) {
                             val sourcePort = eventualSource.getPort();
+                            
+                            startDeepScopedReactorBlock(code, sourcePort.parent, instance);
+                            
                             if (sourcePort.isMultiport && port.isMultiport) {
                                 // Both source and destination are multiports.
                                 pr('''
@@ -5591,6 +5634,8 @@ class CGenerator extends GeneratorBase {
                                 ''')
                                 portChannelCount++;
                             }
+                            
+                            endDeepScopedReactorBlock(code, sourcePort.parent, instance);
                         }
                     }
                 }
@@ -5870,7 +5915,7 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate code to allocate the memory needed by reactions for triggering
-     * downstream reactions. Also, record startup and shutdown reactions.
+     * downstream reactions.
      * @param reactions A list of reactions.
      */
     private def void deferredReactionMemory(Iterable<ReactionInstance> reactions) {
@@ -5896,9 +5941,9 @@ class CGenerator extends GeneratorBase {
 
                     pr('''
                         // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-                        «CUtil.selfRef(trigger.parent)»->«trigger.name»_width = «width»;
-                        «CUtil.selfRef(trigger.parent)»->«trigger.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                * «CUtil.selfRef(trigger.parent)»->«trigger.name»_width);
+                        «CUtil.containedReactorRef(trigger.parent)».«trigger.name»_width = «width»;
+                        «CUtil.containedReactorRef(trigger.parent)».«trigger.name» = («portStructType»**)malloc(
+                                sizeof(«portStructType»*) * «width»);
                     ''')
                     
                     endScopedReactorBlock(code, trigger.parent);
