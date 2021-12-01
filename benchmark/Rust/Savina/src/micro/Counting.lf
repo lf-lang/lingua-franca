@@ -1,0 +1,77 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * Micro-benchmark from the Savina benchmark suite.
+ * Intended to measure message passing overhead by stress
+ * testing the mailbox of actors.
+ * See https: //shamsimam.github.io/papers/2014-agere-savina.pdf.
+ *
+ * See documentation in the C++ version
+ *
+ * @author Hannes Klein
+ * @author Clément Fournier
+ */
+
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor ProducerReactor(count_to: u32(1000000)) {
+    state i: u32(0); // current counter value
+    state count_to(count_to);
+
+
+    output outIncrement: {= () =};
+    output outRetrieveResult: {= () =};
+    input inResult: u32;
+
+    logical action count: {= () =};
+
+    reaction(startup) -> count {=
+        ctx.schedule(count, Asap);
+    =}
+
+    reaction(count) -> outIncrement, outRetrieveResult, count {=
+
+        if self.i < self.count_to {
+            ctx.set(outIncrement, ());
+            self.i += 1;
+            ctx.schedule(count, Asap);
+        } else {
+            ctx.set(outRetrieveResult, ());
+        }
+    =}
+
+    reaction(inResult) {=
+        assert_eq!(self.count_to, ctx.get(inResult).unwrap());
+        info!("success");
+    =}
+}
+
+reactor CountingReactor {
+    input inIncrement: {= () =};
+    input inRetrieveResult: {= () =};
+    output outSendResult: u32;
+    state count: u32(0);
+
+    reaction(inIncrement) {=
+        self.count += 1;
+    =}
+    reaction(inRetrieveResult) -> outSendResult {=
+        ctx.set(outSendResult, self.count);
+    =}
+}
+
+main reactor (count_to: u32(1000000)) {
+    runner = new BenchmarkRunner();
+    producer = new ProducerReactor(count_to = count_to);
+
+    counter = new CountingReactor();
+
+    producer.outIncrement -> counter.inIncrement;
+    producer.outRetrieveResult -> counter.inRetrieveResult;
+    counter.outSendResult -> producer.inResult;
+}
