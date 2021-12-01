@@ -36,6 +36,8 @@ target C{
     files: "../include/PseudoRandom.h"
 };
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 // Despite the name, this only collects "finished" messages from all workers
 // and lets the benchmark runner know when all the workers finished
 reactor Sink(num_workers:size_t(10)) {
@@ -131,16 +133,18 @@ reactor Worker(bank_index: size_t(0), num_messages: size_t(20000), num_workers:s
 }
 
 /* [[[cog
-    cog.outl(f'main reactor (numPingsPerReactor:int({numPingsPerReactor}), numReactors:int({numReactors}))')
+    cog.outl(f'main reactor (numIterations:int(12), numPingsPerReactor:int({numPingsPerReactor}), numReactors:int({numReactors}))')
 ]]] */
-main reactor (numPingsPerReactor:size_t(20000), numReactors:size_t(120)) 
+main reactor (numIterations:int(12), numPingsPerReactor:size_t(20000), numReactors:size_t(120)) 
 /// [[[end]]]
 {
-
+    runner = new BenchmarkRunner(numIterations=numIterations)
     sink = new Sink(num_workers=numReactors);
     worker = new[numReactors] Worker(num_messages=numPingsPerReactor, num_workers=numReactors);
   
+    (runner.start)+ -> sink.start, worker.start;
     worker.finished -> sink.worker_finished;
+    sink.finished -> runner.finished;
     
     worker.out_ping -> interleaved(worker.in_ping);    
     worker.out_pong -> interleaved(worker.in_pong);
