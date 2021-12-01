@@ -118,7 +118,7 @@ reactor Arbitrator(numPhilosophers:usize(20)) {
     =}
     
     reaction(finished) -> allFinished {=
-        for fin in finished.into_iter().map(|f| ctx.get(&f)).filter(|f| f.is_some()).map(|f| f.unwrap()) {
+        for fin in finished.into_iter().filter_map(|f| ctx.get(&f)) {
             self.numRetries += fin;
             self.numFinishedPhilosophers += 1;
             if self.num_philosophers == self.numFinishedPhilosophers {
