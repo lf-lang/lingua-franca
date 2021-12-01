@@ -30,7 +30,6 @@ import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.List
-import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -262,7 +261,7 @@ class PythonGenerator extends CGenerator {
 
         for (i : state?.init) {
             if (i.parameter !== null) {
-                list.add(CUtil.getTargetReference(i.parameter))
+                list.add(i.parameter.name)
             } else if (state.isOfTimeType) {
                 list.add(CUtil.VG.getTargetTime(i))
             } else {
@@ -1596,7 +1595,7 @@ class PythonGenerator extends CGenerator {
         // Here, we attempt to convert the parameter value to 
         // integer. If it succeeds, we also initialize it in C.
         // If it fails, we defer the initialization to Python.
-        var nameOfSelfStruct = CUtil.selfRef(instance)
+        var nameOfSelfStruct = CUtil.reactorRef(instance)
         for (parameter : instance.parameters) {
             val initializer =  parameter.getInitializer
             try {
@@ -1642,7 +1641,7 @@ class PythonGenerator extends CGenerator {
     override void generateReactorInstanceExtension(
         ReactorInstance instance, Iterable<ReactionInstance> reactions
     ) {
-        var nameOfSelfStruct = CUtil.selfName(instance)
+        var nameOfSelfStruct = CUtil.reactorRef(instance)
         var reactor = instance.definition.reactorClass.toDefinition
         
          // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -1652,6 +1651,8 @@ class PythonGenerator extends CGenerator {
         ) {
             return
         }
+        
+        startScopedReactorBlock(initializeTriggerObjects, instance);
         
         // Initialize the name field to the unique name of the instance
         pr(initializeTriggerObjects, '''
@@ -1679,6 +1680,7 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
+        endScopedReactorBlock(initializeTriggerObjects, instance);
     }
     
     
