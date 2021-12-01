@@ -372,9 +372,10 @@ public enum TargetProperty {
     /**
      * Directive to let the runtime export its internal dependency graph.
      *
-     * This is a debugging feature and currently only used for C++ programs.
+     * This is a debugging feature and currently only used for C++ and Rust programs.
      */
-    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN, Collections.singletonList(Target.CPP),
+    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN,
+                           List.of(Target.CPP, Target.Rust),
                            (config, value, err) -> {
         config.exportDependencyGraph = ASTUtils.toBoolean(value);
 
