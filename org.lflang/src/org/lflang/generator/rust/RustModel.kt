@@ -183,7 +183,7 @@ data class ChildPortReference(
     override val dataType: TargetCode,
     override val isMultiport: Boolean
 ) : ReactorComponent(), PortLike {
-    val rustFieldOnChildName: String = "__$lfName"
+    val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
     val rustChildName: TargetCode = childName.escapeRustIdent()
@@ -294,10 +294,10 @@ sealed class ReactorComponent {
     /** Simple name of the field in Rust. */
     val rustFieldName: Ident
         get() = when (this) {
-            is TimerData          -> "__$lfName"
-            is PortData           -> "__$lfName" // sync with ChildPortReference.rustFieldOnChildName
+            is TimerData          -> lfName.escapeRustIdent()
+            is PortData           -> lfName.escapeRustIdent() // sync with ChildPortReference.rustFieldOnChildName
             is ChildPortReference -> "__${childName}__$lfName"
-            is ActionData         -> "__$lfName"
+            is ActionData         -> lfName.escapeRustIdent()
         }
 
     companion object {
