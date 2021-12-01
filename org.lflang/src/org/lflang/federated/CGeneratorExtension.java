@@ -145,7 +145,7 @@ public class CGeneratorExtension {
 
         ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(reactorClass);
-        String nameOfSelfStruct = CUtil.selfRef(instance);
+        String nameOfSelfStruct = CUtil.reactorRef(instance);
 
         // Initialize triggers for network input control reactions
         for (Port trigger : federate.networkInputControlReactionsTriggers) {
@@ -171,7 +171,7 @@ public class CGeneratorExtension {
             }
         }
 
-        nameOfSelfStruct = CUtil.selfRef(instance);
+        nameOfSelfStruct = CUtil.reactorRef(instance);
 
         // Initialize the trigger for network output control reactions if it doesn't exists
         if (federate.networkOutputControlReactionsTrigger != null) {

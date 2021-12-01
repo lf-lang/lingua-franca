@@ -60,7 +60,14 @@ public class CUtil {
     //////////////////////////////////////////////////////
     //// Public fields.
 
-    public static final ValueGenerator VG = new ValueGenerator(CUtil::timeInTargetLanguage, CUtil::getTargetReference);
+    /**
+     * Encapsulation of C-specific functions for representing values
+     * in C. This can be overridden in targets that derive from CGenerator.
+     */
+    public static final ValueGenerator VG = new ValueGenerator(
+            CUtil::timeInTargetLanguage,    // Time value readable in C.
+            CUtil::getTargetReference       // Name of a parameter.  FIXME: Not used.
+    );
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -74,99 +81,6 @@ public class CUtil {
      */
     static public String bankIndex(ReactorInstance instance) {
         return instance.uniqueID() + "_bank_index";
-    }
-    
-    /**
-     * Return a reference to the specified port on the self struct of the specified
-     * container reactor. The port is required to have the reactor as either its
-     * parent or its parent parent or an exception will be thrown.
-     * 
-     * The returned string will have one of the following forms:
-     * 
-     * * selfStruct->_lf_portName
-     * * selfStruct->_lf_parent.portName
-     * 
-     * where the first is returned if the container directly contains the port.
-     * The selfStruct points to the port's parent or parent's parent, and if
-     * that parent is a bank, then it will have the form selfStruct[bankIndex],
-     * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
-     * 
-     * If the container is port's parent's parent, and the port's parent is a bank,
-     * then "_lf_parent" will be replaced by "_lf_parent[bankIndex]", where
-     * bank_index is the string returned by bankIndex(port.parent).
-     *
-     * @param port The port.
-     * @param container The container.
-     */
-    static public String portRef(PortInstance port, ReactorInstance container) {
-        if (port.getParent() == container) {
-            String sourceStruct = CUtil.selfRef(port.getParent());
-            return sourceStruct + "->_lf_" + port.getName();
-        } else if (port.getParent().getParent() == container) {
-            String sourceStruct = CUtil.selfRef(port.getParent().getParent());
-            // The form is slightly different depending on whether the port belongs to a bank.
-            if (port.getParent().isBank()) {
-                return sourceStruct + "->_lf_" + port.getParent().getName()
-                        + "[" + bankIndex(port.getParent()) + "]." + port.getName();
-            } else {
-                return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
-            }
-        } else {
-            throw new IllegalArgumentException(
-                "Port " + port.getFullName() + " is not visible to " + container.getFullName()
-            );
-        }
-    }
-    
-    /**
-     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
-     * where it is know that the reference required for the port is to a
-     * sink of data, not a source. This customizes portRef() by figuring out
-     * what the appropriate container.
-     * 
-     * @param port An instance of the port to be referenced.
-     */
-    static public String portRefDestination(PortInstance port) {                
-        if (port.isOutput()) {
-            return portRef(port, port.getParent().getParent());
-        }
-        return portRef(port, port.getParent());
-    }
-
-    /**
-     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
-     * where it is know that the reference required for the port is to a
-     * source of data, not a sink. This customizes portRef() by figuring out
-     * what the appropriate container.
-     * 
-     * @param port An instance of the port to be referenced.
-     */
-    static public String portRefSource(PortInstance port) {                
-        if (port.isInput()) {
-            return portRef(port, port.getParent().getParent());
-        }
-        return portRef(port, port.getParent());
-    }
-
-
-    //////////////////////////////////////////////////////
-    //// FIXME: Get rid of the following.
-
-    /**
-     * For situations where a reaction reacts to or reads from an output
-     * of a contained reactor or sends to an input of a contained reactor,
-     * then the container's self struct will have a field
-     * (or an array of fields if the contained reactor is a bank) that is
-     * a struct with fields corresponding to those inputs and outputs.
-     * This method returns a reference to that struct or array of structs.
-     * @param reactor The contained reactor.
-     */
-    static public String containedReactorRef(ReactorInstance reactor) {
-        String result = selfRef(reactor.getParent()) + "->_lf_" + reactor.getName();
-        if (reactor.isBank()) {
-            result += "[" + bankIndex(reactor) + "]";
-        }
-        return result;
     }
     
     /**
@@ -214,14 +128,76 @@ public class CUtil {
         }
     }
 
-    /** 
-     * Return the unique name for the "self" struct of the specified
-     * reactor instance.
-     * @param instance The reactor instance.
-     * @return A name for the self struct.
+    /**
+     * Return a reference to the specified port on the self struct of the specified
+     * container reactor. The port is required to have the reactor as either its
+     * parent or its parent parent or an exception will be thrown.
+     * 
+     * The returned string will have one of the following forms:
+     * 
+     * * selfStruct->_lf_portName
+     * * selfStruct->_lf_parent.portName
+     * 
+     * where the first is returned if the container directly contains the port.
+     * The selfStruct points to the port's parent or parent's parent, and if
+     * that parent is a bank, then it will have the form selfStruct[bankIndex],
+     * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
+     * 
+     * If the container is port's parent's parent, and the port's parent is a bank,
+     * then "_lf_parent" will be replaced by "_lf_parent[bankIndex]", where
+     * bank_index is the string returned by bankIndex(port.parent).
+     *
+     * @param port The port.
+     * @param container The container.
      */
-    static public String selfName(ReactorInstance instance) {
-        return instance.uniqueID() + "_self";
+    static public String portRef(PortInstance port, ReactorInstance container) {
+        if (port.getParent() == container) {
+            String sourceStruct = CUtil.reactorRef(port.getParent());
+            return sourceStruct + "->_lf_" + port.getName();
+        } else if (port.getParent().getParent() == container) {
+            String sourceStruct = CUtil.reactorRef(port.getParent().getParent());
+            // The form is slightly different depending on whether the port belongs to a bank.
+            if (port.getParent().isBank()) {
+                return sourceStruct + "->_lf_" + port.getParent().getName()
+                        + "[" + bankIndex(port.getParent()) + "]." + port.getName();
+            } else {
+                return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
+            }
+        } else {
+            throw new IllegalArgumentException(
+                "Port " + port.getFullName() + " is not visible to " + container.getFullName()
+            );
+        }
+    }
+    
+    /**
+     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
+     * where it is know that the reference required for the port is to a
+     * sink of data, not a source. This customizes portRef() by figuring out
+     * what the appropriate container.
+     * 
+     * @param port An instance of the port to be referenced.
+     */
+    static public String portRefDestination(PortInstance port) {                
+        if (port.isOutput()) {
+            return portRef(port, port.getParent().getParent());
+        }
+        return portRef(port, port.getParent());
+    }
+
+    /**
+     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
+     * where it is know that the reference required for the port is to a
+     * source of data, not a sink. This customizes portRef() by figuring out
+     * what the appropriate container.
+     * 
+     * @param port An instance of the port to be referenced.
+     */
+    static public String portRefSource(PortInstance port) {                
+        if (port.isInput()) {
+            return portRef(port, port.getParent().getParent());
+        }
+        return portRef(port, port.getParent());
     }
 
     /** 
@@ -233,8 +209,8 @@ public class CUtil {
      * @param instance The reactor instance.
      * @return A reference to the self struct.
      */
-    static public String selfRef(ReactorInstance instance) {
-        var result = selfName(instance);
+    static public String reactorRef(ReactorInstance instance) {
+        var result = instance.uniqueID() + "_self";
         // If this reactor is a member of a bank of reactors, then change
         // the name of its self struct to append [index].
         if (instance.isBank()) {
@@ -243,6 +219,26 @@ public class CUtil {
         return result;
     }
     
+    /**
+     * For situations where a reaction reacts to or reads from an output
+     * of a contained reactor or sends to an input of a contained reactor,
+     * then the container's self struct will have a field
+     * (or an array of fields if the contained reactor is a bank) that is
+     * a struct with fields corresponding to those inputs and outputs.
+     * This method returns a reference to that struct or array of structs.
+     * Note that the returned reference is not to the self struct of the
+     * contained reactor. Use {@link reactorRef(ReactorInstance)} for that.
+     * 
+     * @param reactor The contained reactor.
+     */
+    static public String reactorRefContained(ReactorInstance reactor) {
+        String result = reactorRef(reactor.getParent()) + "->_lf_" + reactor.getName();
+        if (reactor.isBank()) {
+            result += "[" + bankIndex(reactor) + "]";
+        }
+        return result;
+    }
+
     /** 
      * Return a unique type for the "self" struct of the specified
      * reactor class from the reactor class.
@@ -263,7 +259,10 @@ public class CUtil {
         return selfType(instance.getDefinition().getReactorClass());
     }
 
-    /**
+    //////////////////////////////////////////////////////
+    //// FIXME: Not clear what the strategy is with the following inner interface.
+
+        /**
      * FIXME: The following functional interface is throwaway
      *  code, intended only to be used while the C Generator
      *  undergoes a transition period.
@@ -315,52 +314,8 @@ public class CUtil {
         }
     }
 
-    /**
-     * Converts the given commands from strings to their LFCommand
-     * representation.
-     * @param commands A list of commands.
-     * @param factory A command factory.
-     * @param dir The directory in which the commands should be executed.
-     * @return The LFCommand representations of the given commands,
-     * where {@code null} is a placeholder for commands that cannot be
-     * executed.
-     */
-    private static List<LFCommand> getCommands(List<String> commands, GeneratorCommandFactory factory, Path dir) {
-        return commands.stream()
-                       .map(cmd -> List.of(cmd.split("\\s+")))
-                       .filter(tokens -> tokens.size() > 0)
-                       .map(tokens -> factory.createCommand(tokens.get(0), tokens.subList(1, tokens.size()), dir))
-                       .collect(Collectors.toList());
-    }
-
-    /**
-     * Given a representation of time that may include units, return
-     * a string that the target language can recognize as a value.
-     * If units are given, e.g. "msec", then we convert the units to upper
-     * case and return an expression of the form "MSEC(value)".
-     * @param time A TimeValue that represents a time.
-     * @return A string, such as "MSEC(100)" for 100 milliseconds.
-     */
-    public static String timeInTargetLanguage(TimeValue time) {
-        if (time != null) {
-            if (time.unit != TimeUnit.NONE) {
-                return time.unit.name() + '(' + time.time + ')';
-            } else {
-                return String.valueOf(time.time);
-            }
-        }
-        return "0"; // FIXME: do this or throw exception?
-    }
-
-    /**
-     * Generate target code for a parameter reference.
-     *
-     * @param param The parameter to generate code for
-     * @return Parameter reference in target code
-     */
-    public static String getTargetReference(Parameter param) {
-        return param.getName();
-    }
+    //////////////////////////////////////////////////////
+    //// Private functions.
 
     /**
      * If the argument is a multiport, then return a string that
@@ -377,6 +332,35 @@ public class CUtil {
 
     //////////////////////////////////////////////////////
     //// Private methods.
+
+    /**
+     * Convert the given commands from strings to their LFCommand
+     * representation and return a list of LFCommand.
+     * @param commands A list of commands as strings.
+     * @param factory A command factory.
+     * @param dir The directory in which the commands should be executed.
+     * @return The LFCommand representations of the given commands,
+     *  where {@code null} is a placeholder for commands that cannot be
+     *  executed.
+     */
+    private static List<LFCommand> getCommands(List<String> commands, GeneratorCommandFactory factory, Path dir) {
+        return commands.stream()
+                       .map(cmd -> List.of(cmd.split("\\s+")))
+                       .filter(tokens -> tokens.size() > 0)
+                       .map(tokens -> factory.createCommand(tokens.get(0), tokens.subList(1, tokens.size()), dir))
+                       .collect(Collectors.toList());
+    }
+
+    /**
+     * Return target code for a parameter reference, which in
+     * this case is just the parameter name.
+     *
+     * @param param The parameter to generate code for.
+     * @return Parameter reference in target code.
+     */
+    private static String getTargetReference(Parameter param) {
+        return param.getName();
+    }
 
     /**
      * If the argument is a multiport, return a list of strings
@@ -405,5 +389,24 @@ public class CUtil {
             }
         }
         return result;
+    }
+
+    /**
+     * Given a representation of time that may include units, return
+     * a string that the target language can recognize as a value.
+     * If units are given, e.g. "msec", then we convert the units to upper
+     * case and return an expression of the form "MSEC(value)".
+     * @param time A TimeValue that represents a time.
+     * @return A string, such as "MSEC(100)" for 100 milliseconds.
+     */
+    private static String timeInTargetLanguage(TimeValue time) {
+        if (time != null) {
+            if (time.unit != TimeUnit.NONE) {
+                return time.unit.name() + '(' + time.time + ')';
+            } else {
+                return String.valueOf(time.time);
+            }
+        }
+        return "0"; // FIXME: do this or throw exception?
     }
 }
