@@ -3148,7 +3148,7 @@ class CGenerator extends GeneratorBase {
                                     // Add port «port.getFullName» to array of is_present fields.
                                     for (int i = 0; i < «port.width»; i++) {
                                         _lf_is_present_fields[«startTimeStepIsPresentCount» + i] 
-                                                = &«CUtil.sourceRef(port)»[i]->is_present;
+                                                = &«CUtil.portRefSource(port)»[i]->is_present;
                                     }
                                 ''')
                                 if (isFederatedAndDecentralized) {
@@ -3157,7 +3157,7 @@ class CGenerator extends GeneratorBase {
                                         // Add port «port.getFullName» to array of is_present fields.
                                         for (int i = 0; i < «port.width»; i++) {
                                             _lf_intended_tag_fields[«startTimeStepIsPresentCount» + i] 
-                                                    = &«CUtil.sourceRef(port)»[i]->intended_tag;
+                                                    = &«CUtil.portRefSource(port)»[i]->intended_tag;
                                         }
                                     ''')
                                 }
@@ -3167,14 +3167,14 @@ class CGenerator extends GeneratorBase {
                                 pr(temp, '''
                                     // Add port «port.getFullName» to array of is_present fields.
                                     _lf_is_present_fields[«startTimeStepIsPresentCount»] 
-                                            = &«CUtil.sourceRef(port)».is_present;
+                                            = &«CUtil.portRefSource(port)».is_present;
                                 ''')
                                 if (isFederatedAndDecentralized) {
                                     // Intended_tag is only applicable to ports in federated execution.
                                     pr(temp, '''
                                         // Add port «port.getFullName» to array of is_present fields.
                                         _lf_intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                                = &«CUtil.sourceRef(port)».intended_tag;
+                                                = &«CUtil.portRefSource(port)».intended_tag;
                                     ''')
                                 }
                                 startTimeStepIsPresentCount++
@@ -3254,7 +3254,7 @@ class CGenerator extends GeneratorBase {
                             { // Scope to avoid collisions with variable names.
                                 int i = «startTimeStepIsPresentCount»;
                                 for (int j = 0; j < «output.width»; j++) {
-                                    _lf_is_present_fields[i++] = &«CUtil.sourceRef(output)»[j].is_present;
+                                    _lf_is_present_fields[i++] = &«CUtil.portRefSource(output)»[j].is_present;
                                 }
                             }
                         ''')
@@ -3265,7 +3265,7 @@ class CGenerator extends GeneratorBase {
                                 { // Scope to avoid collisions with variable names.
                                     int i = «startTimeStepIsPresentCount»;
                                     for (int j = 0; j < «output.width»; j++) {
-                                        _lf_intended_tag_fields[i++] = &«CUtil.sourceRef(output)»[j].intended_tag;
+                                        _lf_intended_tag_fields[i++] = &«CUtil.portRefSource(output)»[j].intended_tag;
                                     }
                                 }
                                 ''')
@@ -3275,13 +3275,13 @@ class CGenerator extends GeneratorBase {
                         // Output is not a multiport.
                         pr(startTimeStep, '''
                             // Add port «output.getFullName» to array of is_present fields.
-                            _lf_is_present_fields[«startTimeStepIsPresentCount»] = &«CUtil.sourceRef(output)».is_present;
+                            _lf_is_present_fields[«startTimeStepIsPresentCount»] = &«CUtil.portRefSource(output)».is_present;
                         ''')
                         if (isFederatedAndDecentralized) {                            
                             // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                             pr(startTimeStep, '''
                                 // Add port «output.getFullName» to array of Intended_tag fields.
-                                _lf_intended_tag_fields[«startTimeStepIsPresentCount»] = &«CUtil.sourceRef(output)».intended_tag;
+                                _lf_intended_tag_fields[«startTimeStepIsPresentCount»] = &«CUtil.portRefSource(output)».intended_tag;
                             ''')                            
                         }
                         startTimeStepIsPresentCount++
@@ -4889,7 +4889,7 @@ class CGenerator extends GeneratorBase {
                             { // To scope variable j
                                 int j = «eventualSource.startChannel»;
                                 for (int i = «startChannel»; i < «eventualSource.totalWidth» + «startChannel»; i++) {
-                                    «CUtil.destinationRef(port)»[i] = («destStructType»*)«modifier»«CUtil.sourceRef(src)»[j++];
+                                    «CUtil.portRefDestination(port)»[i] = («destStructType»*)«modifier»«CUtil.portRefSource(src)»[j++];
                                 }
                             }
                         ''')
@@ -4898,21 +4898,21 @@ class CGenerator extends GeneratorBase {
                         // Source is a multiport, destination is a single port.
                         pr(temp, '''
                             // Connect «src.getFullName» to port «port.getFullName»
-                            «CUtil.destinationRef(port)» = («destStructType»*)«modifier»«CUtil.sourceRef(src)»[«eventualSource.startChannel»];
+                            «CUtil.portRefDestination(port)» = («destStructType»*)«modifier»«CUtil.portRefSource(src)»[«eventualSource.startChannel»];
                         ''')
                     }
                 } else if (port.isMultiport()) {
                     // Source is a single port, Destination is a multiport.
                     pr(temp, '''
                         // Connect «src.getFullName» to port «port.getFullName»
-                        «CUtil.destinationRef(port)»[«startChannel»] = («destStructType»*)&«CUtil.sourceRef(src)»;
+                        «CUtil.portRefDestination(port)»[«startChannel»] = («destStructType»*)&«CUtil.portRefSource(src)»;
                     ''')
                     startChannel++;
                 } else {
                     // Both ports are single ports.
                     pr(temp, '''
                         // Connect «src.getFullName» to port «port.getFullName»
-                        «CUtil.destinationRef(port)» = («destStructType»*)&«CUtil.sourceRef(src)»;
+                        «CUtil.portRefDestination(port)» = («destStructType»*)&«CUtil.portRefSource(src)»;
                     ''')
                 }
                 // The null argument ensures that both src and port self struct
@@ -5567,14 +5567,14 @@ class CGenerator extends GeneratorBase {
                                 // Connect «port», which gets data from reaction «reaction.index»
                                 // of «instance.getFullName», to «port.getFullName».
                                 for (int i = 0; i < «port.width»; i++) {
-                                    «CUtil.destinationRef(port)»[i] = («destStructType»*)«CUtil.sourceRef(port)»[i];
+                                    «CUtil.portRefDestination(port)»[i] = («destStructType»*)«CUtil.portRefSource(port)»[i];
                                 }
                             ''')
                         } else {
                             pr('''
                                 // Connect «port», which gets data from reaction «reaction.index»
                                 // of «instance.getFullName», to «port.getFullName».
-                                «CUtil.destinationRef(port)» = («destStructType»*)&«CUtil.sourceRef(port)»;
+                                «CUtil.portRefDestination(port)» = («destStructType»*)&«CUtil.portRefSource(port)»;
                             ''')
                         }
                         endScopedReactorBlock(code, port.parent);
@@ -5605,7 +5605,7 @@ class CGenerator extends GeneratorBase {
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
                                     for (int i = 0; i < «eventualSource.totalWidth»; i++) {
-                                        «CUtil.containedPortRef(port)»[i + «portChannelCount»] = («destStructType»*)&«CUtil.sourceRef(sourcePort)»[i + «eventualSource.startChannel»];
+                                        «CUtil.portRefDestination(port)»[i + «portChannelCount»] = («destStructType»*)&«CUtil.portRefSource(sourcePort)»[i + «eventualSource.startChannel»];
                                     }
                                 ''')
                                 portChannelCount += eventualSource.totalWidth;
@@ -5614,7 +5614,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    «CUtil.containedPortRef(port)» = («destStructType»*)&«CUtil.sourceRef(sourcePort)»[«eventualSource.startChannel»];
+                                    «CUtil.portRefDestination(port)» = («destStructType»*)&«CUtil.portRefSource(sourcePort)»[«eventualSource.startChannel»];
                                 ''')
                                 portChannelCount++;
                             } else if (port.isMultiport) {
@@ -5622,7 +5622,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    «CUtil.containedPortRef(port)»[«portChannelCount»] = («destStructType»*)&«CUtil.sourceRef(sourcePort)»;
+                                    «CUtil.portRefDestination(port)»[«portChannelCount»] = («destStructType»*)&«CUtil.portRefSource(sourcePort)»;
                                 ''')
                                 portChannelCount++;
                             } else {
@@ -5630,7 +5630,7 @@ class CGenerator extends GeneratorBase {
                                 pr('''
                                     // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
                                     // of «instance.getFullName», on its self struct.
-                                    «CUtil.containedPortRef(port)» = («destStructType»*)&«CUtil.sourceRef(sourcePort)»;
+                                    «CUtil.portRefDestination(port)» = («destStructType»*)&«CUtil.portRefSource(sourcePort)»;
                                 ''')
                                 portChannelCount++;
                             }
@@ -5706,18 +5706,18 @@ class CGenerator extends GeneratorBase {
                     // a common situation on multiport to bank messaging.
                     if (sendingRange.totalWidth == 1) {
                         pr('''
-                            «CUtil.sourceRef(output)»[«start»].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                            «CUtil.portRefSource(output)»[«start»].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                         ''')
                     } else {
                         pr('''
                             for (int i = «start»; i < «end»; i++) {
-                                «CUtil.sourceRef(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                                «CUtil.portRefSource(output)»[i].num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                             }
                         ''')
                     }
                 } else {
                     pr('''
-                        «CUtil.sourceRef(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                        «CUtil.portRefSource(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                     ''')
                 }
             }
@@ -5764,12 +5764,12 @@ class CGenerator extends GeneratorBase {
                             val end = sendingRange.startChannel + sendingRange.totalWidth;
                             pr('''
                                 for (int i = «start»; i < «end»; i++) {
-                                    «CUtil.sourceRef(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                    «CUtil.portRefSource(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                                 }
                             ''')
                         } else {
                             pr('''
-                                «CUtil.sourceRef(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefSource(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
                     }
@@ -5809,7 +5809,7 @@ class CGenerator extends GeneratorBase {
                             
                     startScopedBlock(code, effect.parent);
                     
-                    val effectRef = CUtil.sourceRef(effect);
+                    val effectRef = CUtil.portRefSource(effect);
 
                     pr('''
                         «effectRef»_width = «effect.width»;
@@ -5998,7 +5998,7 @@ class CGenerator extends GeneratorBase {
                 pr(init, '''
                     for (int i = 0; i < «effect.width»; i++) {
                         «nameOfSelfStruct»->_lf__reaction_«reaction.index».output_produced[i + count]
-                                = &«CUtil.sourceRef(effect)»[i]«connector»is_present;
+                                = &«CUtil.portRefSource(effect)»[i]«connector»is_present;
                     }
                     count += «effect.getWidth()»;
                 ''')
@@ -6007,7 +6007,7 @@ class CGenerator extends GeneratorBase {
                 // The effect is not a multiport nor a port contained by a multiport.
                 pr(init, '''
                     «nameOfSelfStruct»->_lf__reaction_«reaction.index».output_produced[count++]
-                            = &«CUtil.sourceRef(effect)».is_present;
+                            = &«CUtil.portRefSource(effect)».is_present;
                 ''')
                 outputCount += bankWidth;
             }

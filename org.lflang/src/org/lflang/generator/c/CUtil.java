@@ -77,24 +77,81 @@ public class CUtil {
     }
     
     /**
-     * Return a string for referencing the port struct (which has the value
-     * and is_present fields) in the self struct of the port's parent's
-     * parent.  This is used by reactions that are triggered by an output
-     * of a contained reactor and by reactions that send data to inputs
-     * of a contained reactor. This will have one of the following forms:
+     * Return a reference to the specified port on the self struct of the specified
+     * container reactor. The port is required to have the reactor as either its
+     * parent or its parent parent or an exception will be thrown.
      * 
-     * * selfStructRef->_lf_reactorName.portName
-     * * selfStructRef->_lf_reactorName[id].portName
+     * The returned string will have one of the following forms:
      * 
-     * Where the selfStructRef is as returned by selfRef().
+     * * selfStruct->_lf_portName
+     * * selfStruct->_lf_parent.portName
      * 
+     * where the first is returned if the container directly contains the port.
+     * The selfStruct points to the port's parent or parent's parent, and if
+     * that parent is a bank, then it will have the form selfStruct[bankIndex],
+     * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
+     * 
+     * If the container is port's parent's parent, and the port's parent is a bank,
+     * then "_lf_parent" will be replaced by "_lf_parent[bankIndex]", where
+     * bank_index is the string returned by bankIndex(port.parent).
+     *
      * @param port The port.
+     * @param container The container.
      */
-    static public String containedPortRef(PortInstance port) {
-        var destStruct = CUtil.selfRef(port.getParent().getParent());
-        return destStruct + "->_lf_" + reactorRef(port.getParent()) + "." + port.getName();
+    static public String portRef(PortInstance port, ReactorInstance container) {
+        if (port.getParent() == container) {
+            String sourceStruct = CUtil.selfRef(port.getParent());
+            return sourceStruct + "->_lf_" + port.getName();
+        } else if (port.getParent().getParent() == container) {
+            String sourceStruct = CUtil.selfRef(port.getParent().getParent());
+            // The form is slightly different depending on whether the port belongs to a bank.
+            if (port.getParent().isBank()) {
+                return sourceStruct + "->_lf_" + port.getParent().getName()
+                        + "[" + bankIndex(port.getParent()) + "]." + port.getName();
+            } else {
+                return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
+            }
+        } else {
+            throw new IllegalArgumentException(
+                "Port " + port.getFullName() + " is not visible to " + container.getFullName()
+            );
+        }
     }
     
+    /**
+     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
+     * where it is know that the reference required for the port is to a
+     * sink of data, not a source. This customizes portRef() by figuring out
+     * what the appropriate container.
+     * 
+     * @param port An instance of the port to be referenced.
+     */
+    static public String portRefDestination(PortInstance port) {                
+        if (port.isOutput()) {
+            return portRef(port, port.getParent().getParent());
+        }
+        return portRef(port, port.getParent());
+    }
+
+    /**
+     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
+     * where it is know that the reference required for the port is to a
+     * source of data, not a sink. This customizes portRef() by figuring out
+     * what the appropriate container.
+     * 
+     * @param port An instance of the port to be referenced.
+     */
+    static public String portRefSource(PortInstance port) {                
+        if (port.isInput()) {
+            return portRef(port, port.getParent().getParent());
+        }
+        return portRef(port, port.getParent());
+    }
+
+
+    //////////////////////////////////////////////////////
+    //// FIXME: Get rid of the following.
+
     /**
      * For situations where a reaction reacts to or reads from an output
      * of a contained reactor or sends to an input of a contained reactor,
@@ -112,23 +169,6 @@ public class CUtil {
         return result;
     }
     
-    /**
-     * Return a string for referencing the struct with the value and is_present
-     * fields of the specified port. This is used for establishing the destination of
-     * data for a connection between ports.
-     * This will have the following form:
-     * 
-     * * selfStruct->_lf_portName
-     * 
-     * @param port An instance of a destination input port.
-     */
-    static public String destinationRef(PortInstance port) {
-        // Note that if the port is an output, then it must
-        // have dependent reactions, otherwise it would not
-        // be a destination.
-        return selfRef(port.getParent()) + "->_lf_" + port.getName();
-    }
-
     /**
      * Return an expression that, when evaluated in a context with
      * bank index variables defined for the specified reactor and
@@ -171,29 +211,6 @@ public class CUtil {
                     // Position of the parent.
                     + " + " + indexExpression(instance.getParent())
             );
-        }
-    }
-
-    /** 
-     * Return a reference to the specified reactor instance within a self
-     * struct. The result has one of the following forms:
-     * 
-     * * instanceName
-     * * instanceName[id]
-     * 
-     * where "id" is a variable referring to the bank index if the reactor
-     * is a bank.
-     * 
-     * @param instance The reactor instance.
-     * @return A reference to the reactor within a self struct.
-     */
-    static public String reactorRef(ReactorInstance instance) {
-        // If this reactor is a member of a bank of reactors, then change
-        // the name of its self struct to append [index].
-        if (instance.isBank()) {
-            return instance.getName() + "[" + bankIndex(instance) + "]";
-        } else {
-            return instance.getName();
         }
     }
 
@@ -244,44 +261,6 @@ public class CUtil {
      */
     static public String selfType(ReactorInstance instance) {
         return selfType(instance.getDefinition().getReactorClass());
-    }
-
-    /**
-     * Return a string for referencing the data, width, or is_present value of
-     * the specified port that is a source of data.
-     * This will have one of the following forms:
-     * 
-     * * selfStruct->_lf_portName
-     * * selfStruct->_lf_parentName.portName
-     * * selfStruct->_lf_parentName[bankIndex].portName
-     * 
-     * The selfStruct points to the port's parent (for an output) or the
-     * port's parent's parent (for an input), and it that parent
-     * is a bank, then it will have the form selfStruct[bankIndex],
-     * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
-     * 
-     * If the port is an output, then the first form is returned.
-     * The second and third forms are returned for an input, in which case
-     * the "source" is a reaction port's parent's parent. If that parent
-     * is a bank, then the third form results, and bankIndex will be the
-     * value returned by {@link bankIndex(ReactorInstance)} for that parent.
-     * 
-     * @param port An instance of the port to be referenced.
-     */
-    static public String sourceRef(PortInstance port) {                
-        if (port.isOutput()) {
-            String sourceStruct = CUtil.selfRef(port.getParent());
-            return sourceStruct + "->_lf_" + port.getName();
-        } else {
-            String sourceStruct = CUtil.selfRef(port.getParent().getParent());
-            // The form is slightly different depending on whether the port belongs to a bank.
-            if (port.getParent().isBank()) {
-                return sourceStruct + "->_lf_" + port.getParent().getName()
-                        + "[" + bankIndex(port.getParent()) + "]." + port.getName();
-            } else {
-                return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
-            }
-        }
     }
 
     /**
