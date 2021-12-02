@@ -48,7 +48,7 @@ import java.nio.file.Files
  *
  * See [GenerationInfo] for the main model class.
  *
- * @author Clément Fournier
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 @Suppress("unused")
 class RustGenerator(
