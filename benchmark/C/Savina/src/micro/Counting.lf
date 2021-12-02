@@ -134,7 +134,7 @@ main reactor Counting(countTo:int(1000000))
 //[[[end]]]
 { 
     producer = new ProducerReactor(countTo = countTo);
-    runner = new BenchmarkRunner(num_iterations=12);
+    runner = new BenchmarkRunner();
     
     reaction(startup) {=
         printBenchmarkInfo("CountingLFCBenchmark");

@@ -174,7 +174,7 @@ main reactor (numPings:int(100000), numReactors:int(100))
 {
     
     init = new Initializer(numReactors=numReactors, numPings=numPings);    
-    runner = new BenchmarkRunner(num_iterations=12);
+    runner = new BenchmarkRunner();
     reaction(startup) {=
         printBenchmarkInfo("ThreadRingLFCBenchmark");
         printSystemInfo();
