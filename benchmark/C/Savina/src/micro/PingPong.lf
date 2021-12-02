@@ -33,19 +33,26 @@ target C {
     /// [[[end]]]
     fast: true
 };
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 reactor Ping(count:int(1000000)) {
     input receive:int;
+    input start:bool;
     output send:int;
+    output finished:bool;
     state pingsLeft:int(count);
     logical action serve;
-    reaction (startup, serve) -> send {= 
+    reaction (start, serve) -> send {= 
         SET(send, self->pingsLeft--);
     =}
-    reaction (receive) -> serve {=
+    reaction (receive) -> serve, finished {=
         if (self->pingsLeft > 0) {
             schedule(serve, 0);
         } else {
-            request_stop();
+            // reset pingsLeft for next iteration
+            self->pingsLeft = self->count;
+            SET(finished, true);
         }
     =}
 }
@@ -77,8 +84,17 @@ main reactor PingPong(count:int(1000000))
 /// [[[end]]]
 
 {
+    runner = new BenchmarkRunner(num_iterations=12, use_init=false, use_cleanup_iteration=false);
     ping = new Ping(count=count);
     pong = new Pong(expected=count);
+    
+    reaction(startup) -> runner.inStart {=
+        SET(runner.inStart, true);
+        printBenchmarkInfo("PingPongLFCBenchmark");
+        printSystemInfo();
+    =}
+    runner.outIterationStart -> ping.start;
+    ping.finished -> runner.inIterationFinish;
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }
