@@ -272,7 +272,7 @@ cog.outl(f"main reactor (numMeetings:int({numMeetings}), numChameneos:size_t({nu
 main reactor (numMeetings:int(200000), numChameneos:size_t(100)) {
 //[[[end]]]   
     //default: 12 iterations
-    runner = new BenchmarkRunner(num_iterations=12);
+    runner = new BenchmarkRunner();
     mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=numChameneos);
     chameneos = new[numChameneos] ChameneosChameneoReactor(numChameneos=numChameneos);
     

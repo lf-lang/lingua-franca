@@ -113,7 +113,7 @@ cog.outl(f'main reactor (numMessagesPerReactor:int({numMessagesPerReactor}), num
 main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60)) 
 // [[[end]]]
 {
-    runner = new BenchmarkRunner(num_iterations=12);
+    runner = new BenchmarkRunner();
     producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
 
