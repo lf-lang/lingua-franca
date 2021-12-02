@@ -144,7 +144,7 @@ main reactor (numIterations:int(12), numPingsPerReactor:size_t(20000), numReacto
     worker = new[numReactors] Worker(num_messages=numPingsPerReactor, num_workers=numReactors);
     reaction (startup) -> runner.inStart {=
         SET(runner.inStart, true);
-        printBenchmarkInfo("BigReactorLFCppBenchmark");
+        printBenchmarkInfo("BigReactorLFCBenchmark");
         printSystemInfo();
     =}
     (runner.outIterationStart)+ -> sink.start, worker.start;
