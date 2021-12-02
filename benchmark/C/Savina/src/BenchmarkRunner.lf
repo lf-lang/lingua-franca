@@ -45,8 +45,6 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
     
 
     /** Events to switch between the phases of running the iterations. */
-    logical action initBenchmark:bool;
-    logical action cleanupIteration:bool;
     logical action nextIteration:bool;
     logical action done:bool;
     
