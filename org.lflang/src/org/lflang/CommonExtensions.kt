@@ -163,3 +163,8 @@ fun <T> Iterable<T>.joinWithCommasLn(
  * If this list is empty, returns an empty string.
  */
 fun List<TargetCode>.angle() = if (this.isEmpty()) "" else joinWithCommas("<", ">")
+
+/**
+ * Adds braces around this string.
+ */
+fun String.inBlock(): String = "{$this}"
