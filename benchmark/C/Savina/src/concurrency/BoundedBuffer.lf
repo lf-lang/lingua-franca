@@ -65,6 +65,9 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
         #include "deque.c"
     =}
     
+    input start: bool;
+    output finished: bool;
+
     state adjustedBuffersize: size_t(0);
     state pendingData: deque_t;
     state numTerminatedProducers: size_t(0);
@@ -78,7 +81,7 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
     input[numConsumers] consumerAvailable: bool;
     output[numConsumers] consumerData: double;
     
-    reaction(startup) -> producerCommand {=
+    reaction(start) -> producerCommand {=
         // reset local state
         self->adjustedBuffersize = self->bufferSize - self->numProducers;
         self->numTerminatedProducers = 0;
@@ -97,6 +100,7 @@ reactor ManagerReactor(bufferSize: size_t(50), numProducers: size_t(40), numCons
     reaction(consumerAvailable) -> consumerData, producerCommand {=
         // abort if all producers have terminated and all data has been send
         if((self->numTerminatedProducers == self->numProducers) && deque_is_empty(&self->pendingData)) {
+            SET(finished, true);
             return;
         }
         
@@ -150,9 +154,10 @@ reactor ProducerReactor(bank_index: size_t(0), numItemsToProduce: size_t(1000), 
     input produce: bool;
     output data: double
     
+    input reset: bool;
     output finished: bool;
     
-    reaction (startup) {=   
+    reaction (reset) {=   
         // reset local state
         self->prodItem = 0.0;
         self->itemsProduced = 0;
@@ -174,12 +179,14 @@ reactor ConsumerReactor(bank_index: size_t(0), consCost: size_t(25)) {
     
     state consItem: double(0.0);
     
+    input reset: bool;
+
     input data: double;
     output available: bool;
     
     logical action sendAvailable;
     
-    reaction (startup) -> sendAvailable {=
+    reaction (reset) -> sendAvailable {=
         // reset local state
         self->consItem = 0.0;
         schedule(sendAvailable, 0);
@@ -198,6 +205,7 @@ reactor ConsumerReactor(bank_index: size_t(0), consCost: size_t(25)) {
 
 /* [[[cog
   cog.outl('main reactor (')
+  cog.outl(f'    numIterations: size_t({numIterations}),')
   cog.outl(f'    bufferSize: size_t({bufferSize}),')
   cog.outl(f'    prodCost: size_t({prodCost}),')
   cog.outl(f'    consCost: size_t({consCost}),')
@@ -206,6 +214,7 @@ reactor ConsumerReactor(bank_index: size_t(0), consCost: size_t(25)) {
   cog.outl(f'    numProducers: size_t({numProducers})')
 ]]] */
 main reactor (
+    numIterations: size_t(12),
     bufferSize: size_t(50),
     prodCost: size_t(25),
     consCost: size_t(25),
@@ -215,7 +224,17 @@ main reactor (
 // [[[end]]]
 ) {
 
+    runner = new BenchmarkRunner(num_iterations=numIterations)
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=numProducers, numConsumers=numConsumers);
+
+    (runner.start)+ -> manager.start, producers.reset, consumers.reset;
+    manager.finished -> runner.finish;
+
+    reaction(startup) {=
+        printBenchmarkInfo("ProdConsBenchmark")
+        printSystemInfo();
+    =}
+
     producers = new[numProducers] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
     consumers = new[numConsumers] ConsumerReactor(consCost=consCost);
     
