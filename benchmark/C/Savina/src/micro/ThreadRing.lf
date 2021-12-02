@@ -174,15 +174,14 @@ main reactor (numPings:int(100000), numReactors:int(100))
 {
     
     init = new Initializer(numReactors=numReactors, numPings=numPings);    
-    runner = new BenchmarkRunner(num_iterations=12, use_init=false, use_cleanup_iteration=false);
-    reaction(startup) -> runner.inStart {=
-        SET(runner.inStart, true);
+    runner = new BenchmarkRunner(num_iterations=12);
+    reaction(startup) {=
         printBenchmarkInfo("ThreadRingLFCBenchmark");
         printSystemInfo();
     =}
     
-    runner.outIterationStart -> init.inStart;
-    init.outFinished -> runner.inIterationFinish;
+    runner.start -> init.inStart;
+    init.outFinished -> runner.finish;
     
     loopOpener = new ThreadRingReactorLoopOpener();
 

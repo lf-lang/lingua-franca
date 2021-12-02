@@ -134,16 +134,15 @@ main reactor Counting(countTo:int(1000000))
 //[[[end]]]
 { 
     producer = new ProducerReactor(countTo = countTo);
-    runner = new BenchmarkRunner(num_iterations=12, use_init=false, use_cleanup_iteration=false);
+    runner = new BenchmarkRunner(num_iterations=12);
     
-    reaction(startup) -> runner.inStart {=
-        SET(runner.inStart, true);
+    reaction(startup) {=
         printBenchmarkInfo("CountingLFCBenchmark");
         printSystemInfo();
     =}
     
-    runner.outIterationStart -> producer.inStartCounting;
-    producer.finished -> runner.inIterationFinish;
+    runner.start -> producer.inStartCounting;
+    producer.finished -> runner.finish;
     
     counter = new CountingReactor();
 

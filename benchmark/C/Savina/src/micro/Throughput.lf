@@ -113,16 +113,15 @@ cog.outl(f'main reactor (numMessagesPerReactor:int({numMessagesPerReactor}), num
 main reactor (numMessagesPerReactor:int(10000), numWorkers:int(60)) 
 // [[[end]]]
 {
-    runner = new BenchmarkRunner(num_iterations=12, use_init=false, use_cleanup_iteration=false);
+    runner = new BenchmarkRunner(num_iterations=12);
     producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=numWorkers);
     worker = new[numWorkers] ThroughputReactor(totalMessages=numMessagesPerReactor);
 
-    reaction (startup) -> runner.inStart {=
-        SET(runner.inStart, true);
+    reaction (startup) {=
         printBenchmarkInfo("ThroughputLFCBenchmark");
         printSystemInfo();
     =}
-    runner.outIterationStart -> producer.start;
+    runner.start -> producer.start;
     (producer.outMessage)+ -> worker.inMessage;    
-    producer.finished -> runner.inIterationFinish;
+    producer.finished -> runner.finish;
 }
