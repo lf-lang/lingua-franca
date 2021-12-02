@@ -10,6 +10,7 @@ main reactor {
     =}
 
     reaction(shutdown) {=
+        assert!(ctx.is_shutdown());
         assert!(ctx.get_elapsed_logical_time() > delay!(140 msec));
         println!("success");
     =}

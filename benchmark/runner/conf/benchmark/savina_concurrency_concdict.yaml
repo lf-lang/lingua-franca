@@ -41,3 +41,13 @@ targets:
       workers: ["-D", "numWorkers=<value>"]
       messages_per_worker: ["-D", "numMessagesPerWorker=<value>"]
       write_percentage: ["-D", "writePercentage=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Rust/Savina/src/concurrency"
+    lf_file: "concurrency/Dictionary.lf"
+    binary: "dictionary"
+    run_args:
+      messages_per_worker: ["--main-num-messages-per-worker", "<value>"]
+      write_percentage: ["--main-write-percentage", "<value>"]
+      workers: ["--main-num-workers", "<value>"]

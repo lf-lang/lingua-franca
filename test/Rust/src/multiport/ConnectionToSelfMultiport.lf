@@ -1,0 +1,26 @@
+// test a connection from a multiport to another multiport of the same reactor
+target Rust;
+
+reactor Node(num_nodes: usize(4)) {
+    input[num_nodes] in: usize
+    output[num_nodes] out: usize
+    state num_nodes(num_nodes);
+
+    reaction (startup) -> out {=
+        for (i, out) in out.into_iter().enumerate() {
+            ctx.set(out, i)
+        }
+    =}
+    
+    reaction (in) {=
+        let count = r#in.into_iter().filter(|p| ctx.is_present(p)).count();
+        assert_eq!(count, self.num_nodes);
+        println!("success")
+    =}
+}
+
+main reactor(num_nodes: usize(4)) {
+    nodes = new Node(num_nodes=num_nodes);
+    // todo: (nodes.out)+ -> nodes.in;
+    nodes.out -> nodes.in;
+}
