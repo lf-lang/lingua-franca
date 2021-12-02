@@ -16,14 +16,13 @@ target C;
  * 
  * How to use:
  * - Instantiate this reactor in the main reactor of the benchmark.
- * - Connect the ports inStart, outIterationStart, inIterationFinish with
+ * - Connect the ports start, finish with
  *   the appropriate reactors of the benchmark.
- * - Optionally connect the ports for initialization and cleanup.
  * - Create a startup reaction in the main reactor that calls printBenchmarkInfo(),
  * 
  * Prototype startup reaction in the main reactor of a benchmark:
  *     runner = new BenchmarkRunner(num_iterations=num_iterations);
- *     reaction(startup) -> runner.inStart {=
+ *     reaction(startup) {=
  *         printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
  *         printSystemInfo();
  *     =}
@@ -32,18 +31,24 @@ target C;
  * 
  * @author Hannes Klein
  * @author Shaokai Lin
- * @author Matthew Chorlian
+ * @author Matt Chorlian
+ * @author Arthur Deng
  */
 reactor BenchmarkRunner(num_iterations:int(12)) {
 
     /** Signal to start execution. Set this input from a startup reaction in the main reactor. */
-    output inStart:bool;
-    input finished:bool;
+    input inStart:bool;
     
+    /** Signals for starting and finishing the kernel and runtime measurement. */
+    output start:bool;
+    input finish:bool;
     
+
     /** Events to switch between the phases of running the iterations. */
+    logical action initBenchmark:bool;
+    logical action cleanupIteration:bool;
     logical action nextIteration:bool;
-    logical action finish:bool;
+    logical action done:bool;
     
     /** Number of iterations already executed. */
     state count:unsigned(0);
@@ -58,16 +63,20 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
     reaction(startup) -> nextIteration {=
         // Initialize an array of interval_t
         self->measuredTimes = calloc(self->num_iterations, sizeof(interval_t));
-        //start the first iteration
         schedule(nextIteration, 0);
     =}
+   
     
-    reaction(nextIteration) -> start {=
-        interval_t startTime = get_physical_time();
-        SET(start, true);
+    reaction(nextIteration) -> start, done {=
+        if (self->count < self->num_iterations) { 
+            self->startTime = get_physical_time();
+            SET(start, true);
+        } else {
+            schedule(done, 0);
+        }
     =}
     
-    reaction(finished) -> nextIteration, finish {=
+    reaction(finish) -> nextIteration {=
         interval_t end_time = get_physical_time();
         interval_t duration = end_time - self->startTime;
         self->measuredTimes[self->count] = duration;
@@ -75,15 +84,11 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
         
         printf("Iteration: %d\t Duration: %.3f msec\n", self->count, toMS(duration));
         
-        if(self->use_cleanup_iteration) {
-            schedule(cleanupIteration, 0);
-        } else {
-            schedule(nextIteration, 0);
-        }
+        schedule(nextIteration, 0);
+        
     =}
     
-    
-    reaction(finish) {=        
+    reaction(done) {=        
         double* measuredMSTimes = getMSMeasurements(self->measuredTimes, self->num_iterations);
         qsort(measuredMSTimes, self->num_iterations, sizeof(double), comp);
         
@@ -91,10 +96,8 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
         printf("Best Time:\t %.3f msec\n", measuredMSTimes[0]);
         printf("Worst Time:\t %.3f msec\n", measuredMSTimes[self->num_iterations - 1]);
         printf("Median Time:\t %.3f msec\n", median(measuredMSTimes, self->num_iterations));
-        free(self->measuredTimes);
         request_stop();
     =}
-
     
     preamble {=
         
@@ -103,14 +106,14 @@ reactor BenchmarkRunner(num_iterations:int(12)) {
         }
         
         int comp (const void * elem1, const void * elem2) {
-			int f = *((double*)elem1);
-			int s = *((double*)elem2);
-			if (f > s) return  1;
-			if (f < s) return -1;
-			return 0;
-		}
-		
-		static double median(double* execTimes, int size) {
+            int f = *((double*)elem1);
+            int s = *((double*)elem2);
+            if (f > s) return  1;
+            if (f < s) return -1;
+            return 0;
+        }
+        
+        static double median(double* execTimes, int size) {
             if (size == 0) {
                 return 0.0;
             }
