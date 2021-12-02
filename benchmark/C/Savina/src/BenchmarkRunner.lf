@@ -26,36 +26,22 @@ target C;
  *     reaction(startup) -> runner.inStart {=
  *         printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
  *         printSystemInfo();
- *         SET(runner.inStart, true);
  *     =}
  * 
  * @param num_iterations How many times to execute the kernel of the benchmark to measure.
- * @param use_init Benchmarks needs initialization and handles the corresponding signals.
- * @param use_cleanup_iteration Benchmark needs cleanup after each iteration and handles the corresponding signals.
  * 
  * @author Hannes Klein
  * @author Shaokai Lin
+ * @author Matthew Chorlian
  */
-reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanup_iteration:bool(false)) {
+reactor BenchmarkRunner(num_iterations:int(12)) {
 
     /** Signal to start execution. Set this input from a startup reaction in the main reactor. */
-    input inStart:bool;
+    output inStart:bool;
+    input finished:bool;
     
-    /** Signals for starting and finishing the kernel and runtime measurement. */
-    output outIterationStart:bool;
-    input inIterationFinish:bool;
-    
-    /** Signals for initializations that are not part of the measured kernel. */
-    output outInitializeStart:bool;
-    input inInitializeFinish:bool;
-    
-    /** Signals for cleanup operations after each iteration of the kernel. */
-    output outCleanupIterationStart:bool;
-    input inCleanupIterationFinish:bool;
     
     /** Events to switch between the phases of running the iterations. */
-    logical action initBenchmark:bool;
-    logical action cleanupIteration:bool;
     logical action nextIteration:bool;
     logical action finish:bool;
     
@@ -69,45 +55,19 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
     state measuredTimes:interval_t[];
     
     
-    reaction(startup) {=
+    reaction(startup) -> nextIteration {=
         // Initialize an array of interval_t
         self->measuredTimes = calloc(self->num_iterations, sizeof(interval_t));
-    =}
-    
-    reaction(inStart) -> nextIteration, initBenchmark {=
-        if(self->use_init) {
-            schedule(initBenchmark, 0);
-        } else {
-            schedule(nextIteration, 0);
-        }
-    =}
-    
-    reaction(initBenchmark) -> outInitializeStart {=
-        SET(outInitializeStart, true);
-    =}
-    
-    reaction(inInitializeFinish) -> nextIteration {=
+        //start the first iteration
         schedule(nextIteration, 0);
     =}
     
-    reaction(cleanupIteration) -> outCleanupIterationStart {=
-        SET(outCleanupIterationStart, true);
+    reaction(nextIteration) -> start {=
+        interval_t startTime = get_physical_time();
+        SET(start, true);
     =}
     
-    reaction(inCleanupIterationFinish) -> nextIteration {=
-        schedule(nextIteration, 0);
-    =}
-    
-    reaction(nextIteration) -> outIterationStart, finish {=
-        if (self->count < self->num_iterations) { 
-            self->startTime = get_physical_time();
-            SET(outIterationStart, true);
-        } else {
-            schedule(finish, 0);
-        }
-    =}
-    
-    reaction(inIterationFinish) -> nextIteration, cleanupIteration {=
+    reaction(finished) -> nextIteration, finish {=
         interval_t end_time = get_physical_time();
         interval_t duration = end_time - self->startTime;
         self->measuredTimes[self->count] = duration;
@@ -122,6 +82,7 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
         }
     =}
     
+    
     reaction(finish) {=        
         double* measuredMSTimes = getMSMeasurements(self->measuredTimes, self->num_iterations);
         qsort(measuredMSTimes, self->num_iterations, sizeof(double), comp);
@@ -130,8 +91,10 @@ reactor BenchmarkRunner(num_iterations:int(12), use_init:bool(false), use_cleanu
         printf("Best Time:\t %.3f msec\n", measuredMSTimes[0]);
         printf("Worst Time:\t %.3f msec\n", measuredMSTimes[self->num_iterations - 1]);
         printf("Median Time:\t %.3f msec\n", median(measuredMSTimes, self->num_iterations));
+        free(self->measuredTimes);
         request_stop();
     =}
+
     
     preamble {=
         

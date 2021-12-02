@@ -139,17 +139,18 @@ main reactor (numIterations:int(12), numPingsPerReactor:size_t(20000), numReacto
 /// [[[end]]]
 {
     
-    runner = new BenchmarkRunner(num_iterations=numIterations, use_init=false, use_cleanup_iteration=false);
+    runner = new BenchmarkRunner(num_iterations=numIterations);
     sink = new Sink(num_workers=numReactors);
     worker = new[numReactors] Worker(num_messages=numPingsPerReactor, num_workers=numReactors);
+
     reaction (startup) -> runner.inStart {=
-        SET(runner.inStart, true);
         printBenchmarkInfo("BigReactorLFCBenchmark");
         printSystemInfo();
     =}
-    (runner.outIterationStart)+ -> sink.start, worker.start;
+
+    (runner.start)+ -> sink.start, worker.start;
     worker.finished -> sink.worker_finished;
-    sink.finished -> runner.inIterationFinish;
+    sink.finished -> runner.finished;
     
     worker.out_ping -> interleaved(worker.in_ping);    
     worker.out_pong -> interleaved(worker.in_pong);
