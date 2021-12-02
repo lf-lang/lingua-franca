@@ -84,17 +84,16 @@ main reactor PingPong(count:int(1000000))
 /// [[[end]]]
 
 {
-    runner = new BenchmarkRunner(num_iterations=12, use_init=false, use_cleanup_iteration=false);
+    runner = new BenchmarkRunner(num_iterations=12);
     ping = new Ping(count=count);
     pong = new Pong(expected=count);
     
-    reaction(startup) -> runner.inStart {=
-        SET(runner.inStart, true);
+    reaction(startup) {=
         printBenchmarkInfo("PingPongLFCBenchmark");
         printSystemInfo();
     =}
-    runner.outIterationStart -> ping.start;
-    ping.finished -> runner.inIterationFinish;
+    runner.start -> ping.start;
+    ping.finished -> runner.finish;
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }
