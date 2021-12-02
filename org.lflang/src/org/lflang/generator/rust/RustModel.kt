@@ -334,7 +334,7 @@ sealed class ReactorComponent {
                         ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
                         ?: throw InvalidLfSourceException("Not an integer literal", this)
                 time != null      -> time.toRustTimeExpr()
-                code != null      -> code.toText()
+                code != null      -> code.toText().inBlock()
                 else              -> RustTypes.getTargetExpr(this, InferredType.time())
             }
     }
@@ -392,7 +392,7 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
     when {
         it.parameter != null -> it.parameter.name
         it.port != null      -> throw UnsupportedGeneratorFeatureException("Width specs that use a port")
-        it.code != null      -> it.code.toText()
+        it.code != null      -> it.code.toText().inBlock()
         else                 -> it.width.toString()
     }
 }

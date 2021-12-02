@@ -54,7 +54,7 @@ reactor DictionaryImpl(num_workers: usize(20)) {
     state num_requests_served: u32(0);
 
     // Having the action in the dictionary is faster... (this is a c++ comment)
-    logical action send_answers: {= () =};
+    logical action send_answers: unit;
 
     input[num_workers] request: Message;
     output[num_workers] response: u32;

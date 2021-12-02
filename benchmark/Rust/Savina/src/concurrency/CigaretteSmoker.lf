@@ -35,10 +35,10 @@ reactor ArbiterReactor(num_rounds: usize(1000), num_smokers: usize(200)) {
     state num_smokers(num_smokers);
     state num_rounds(num_rounds);
     state roundsSoFar: usize(0);
-    state random: rand::rngs::SmallRng({= {
+    state random: rand::rngs::SmallRng({=
         let seed = num_rounds * num_smokers;
         rand::rngs::SmallRng::seed_from_u64(seed as u64)
-    }=});
+    =});
     
     output[num_smokers] startSmoking: usize;
     
