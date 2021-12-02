@@ -143,14 +143,14 @@ main reactor (numIterations:int(12), numPingsPerReactor:size_t(20000), numReacto
     sink = new Sink(num_workers=numReactors);
     worker = new[numReactors] Worker(num_messages=numPingsPerReactor, num_workers=numReactors);
 
-    reaction (startup) -> runner.inStart {=
+    reaction (startup) {=
         printBenchmarkInfo("BigReactorLFCBenchmark");
         printSystemInfo();
     =}
 
     (runner.start)+ -> sink.start, worker.start;
     worker.finished -> sink.worker_finished;
-    sink.finished -> runner.finished;
+    sink.finished -> runner.finish;
     
     worker.out_ping -> interleaved(worker.in_ping);    
     worker.out_pong -> interleaved(worker.in_pong);
