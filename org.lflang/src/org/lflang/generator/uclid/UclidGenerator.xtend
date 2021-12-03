@@ -29,13 +29,17 @@ package org.lflang.generator
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayList
+import java.util.List
+import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
+import org.lflang.generator.PortInstance
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
+import org.lflang.lf.StateVar
 import org.lflang.Target
 
 import static extension org.lflang.ASTUtils.*
@@ -61,7 +65,15 @@ class UclidGenerator extends GeneratorBase {
     Path outputDir
     
     var ConnectivityGraph connectivityGraph
-    var ReactionInstanceGraph reactionGraph
+    var ReactionInstanceGraph reactionGraph // To be deprecated.
+
+    // Program elements
+    Set<ReactionInstance> reactions
+    List<PortInstance> ports = new ArrayList<PortInstance>() // FIXME: to populate
+    List<StateVar> stateVars = new ArrayList<StateVar>() // FIXME: to populate
+
+    // K
+    int k = 2 // FIXME: to pass in from target property
     
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
@@ -109,6 +121,7 @@ class UclidGenerator extends GeneratorBase {
     
     def buildGraphs() {
         this.reactionGraph = new ReactionInstanceGraph(this.main)
+        this.reactions = this.reactionGraph.nodes
         this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
     }
     
@@ -271,16 +284,15 @@ class UclidGenerator extends GeneratorBase {
         // Application Specific
         ''')
         
+        /* Enumerate over all reactions */
         pr('''
         // Reaction ids
         type rxn_t = enum {
         
-        ''');
-        
-        // Enumerate over all reactions
+        ''')
         indent()
         var i = 0;
-        for (rxn : this.reactionGraph.nodes) {
+        for (rxn : reactions) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
             pr(rxn.toId +
@@ -289,11 +301,23 @@ class UclidGenerator extends GeneratorBase {
         unindent()
         pr('}')
 
-        // State variables and ports
+        /* State variables and ports */
         pr('''
         type state_t = {
-            integer, // _in
-            integer  // out
+        ''')
+        indent()
+        i = 0;
+        for (v : this.stateVars) {
+            pr(v.toString +
+                ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ","))
+        }
+        i = 0;
+        for (p : this.ports) {
+            pr(p.toString +
+                ((i++ == ports.size - 1) ? "" : ","))
+        }
+        unindent()
+        pr('''
         };
         //////////////////////////
          
@@ -307,14 +331,14 @@ class UclidGenerator extends GeneratorBase {
         * Trace Definition *
         *******************/
         const START : integer = 0;
-        const END : integer = 2;
+        const END : integer = 2; // FIXME: add template
         
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
         
         type step_t = integer;
         type event_t = { rxn_t, tag_t, state_t };
-        type trace_t = { 
+        type trace_t = { // FIXME: add template
             event_t,
             event_t,
             event_t
@@ -331,7 +355,7 @@ class UclidGenerator extends GeneratorBase {
          * helper macros *
          ****************/
         // helper macro that returns an element based on index
-        define get(tr : trace_t, i : step_t) : event_t 
+        define get(tr : trace_t, i : step_t) : event_t // FIXME: add template
         = if (i == 0) then tr._1 else (
             if (i == 1) then tr._2 else (
                 if (i == 2) then tr._3 else (
@@ -343,7 +367,7 @@ class UclidGenerator extends GeneratorBase {
         = get(trace, i);
         
         // projection macros
-        define rxn(i : step_t) : rxn_t      = elem(i)._1;
+        define rxn(i : step_t) : rxn_t    = elem(i)._1;
         define  g(i : step_t) : tag_t     = elem(i)._2;
         define  s(i : step_t) : state_t   = elem(i)._3;
 
@@ -351,7 +375,7 @@ class UclidGenerator extends GeneratorBase {
         define    _in(s : state_t) : integer = s._1;
         define    out(s : state_t) : integer = s._2;
         define isNULL(i : step_t) : boolean = rxn(i) == NULL;
-
+         
         ''')
     }
     
@@ -360,6 +384,7 @@ class UclidGenerator extends GeneratorBase {
         /***************************
         * Topological Abstraction *
         ***************************/
+        // FIXME: add template
         define delay(r1, r2 : rxn_t) : interval_t
         = if (r1 == source_1 && r2 == component_1) then zero() else (
             if (r1 == component_1 && r2 == component_2) then sec(1) else (
@@ -371,6 +396,7 @@ class UclidGenerator extends GeneratorBase {
         // FIXME: Would be nice if UCLID supports recursion of macros.
         // Happened-before relation defined for a local reactor.
         // Used to preserve trace ordering.
+        // FIXME: add template
         define hb(e1, e2 : event_t) : boolean
         = tag_earlier(e1._2, e2._2)
             || (tag_same(e1._2, e2._2)
@@ -404,7 +430,7 @@ class UclidGenerator extends GeneratorBase {
                 ==> (exists (j : integer) :: in_range(j)
                     && rxn(j) == upstream 
                     && g(i) == tag_delay(g(j), delay)));
-        
+         
         ''')
     }
     
@@ -434,6 +460,7 @@ class UclidGenerator extends GeneratorBase {
         // Microsteps should be positive
         axiom(forall (i : integer) :: (i > START && i <= END)
             ==> pi2(g(i)) >= 0);
+         
         ''')
     }
     
@@ -443,7 +470,8 @@ class UclidGenerator extends GeneratorBase {
         /**********************
          * Reaction Contracts *
          **********************/
-        
+        // FIXME: add template
+         
         ''')
     }
 
@@ -453,7 +481,8 @@ class UclidGenerator extends GeneratorBase {
         /***************
          * Connections *
          ***************/
-        
+        // FIXME: add template
+         
         ''')
     }
 
@@ -463,7 +492,8 @@ class UclidGenerator extends GeneratorBase {
         /********************
          * Program Topology *
          ********************/
-        
+        // FIXME: add template
+         
         ''')
     }
 
@@ -473,17 +503,13 @@ class UclidGenerator extends GeneratorBase {
         /*********************
          * Initial Condition *
          *********************/
-        // FIXME: Initial condition makes it pass trivially.
+        // FIXME: add template
         define initial_condition() : boolean
         = start == 0
             && rxn(0) == NULL
             && g(0) == {0, 0}
-            && source_out(s(0)) == 0
-            && component__in(s(0)) == 0
-            && component_out(s(0)) == 0
-            && component__s(s(0)) == 0
-            && sink__in(s(0)) == 0
             ;
+         
         ''')
     }
 
@@ -517,6 +543,7 @@ class UclidGenerator extends GeneratorBase {
         property consecution : (forall (i : integer) ::
             (i >= START && i < END) ==> (inv(i) && auxiliary_invariant(i)))
                 ==> (inv(END) && auxiliary_invariant(END));
+         
         ''')
     }
 
@@ -529,7 +556,7 @@ class UclidGenerator extends GeneratorBase {
             print_results;
             v.print_cex;
         }
-        
+         
         ''')
     }
     
