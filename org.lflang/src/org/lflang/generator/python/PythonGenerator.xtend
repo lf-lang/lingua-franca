@@ -1891,11 +1891,11 @@ class PythonGenerator extends CGenerator {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param The root filename (without any extension).
+     * @param The name of the docker file.
      */
-    override writeDockerFile(String filename) {
+    override writeDockerFile(String dockerFileName) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename
+        val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
@@ -1915,7 +1915,7 @@ class PythonGenerator extends CGenerator {
             RUN set -ex && apt-get update && apt-get install -y python3-pip
             COPY . src-gen
             RUN cd src-gen && python3 setup.py install && cd ..
-            ENTRYPOINT ["python3", "src-gen/«filename».py"]
+            ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
         println("Dockerfile written to " + dockerFile)
