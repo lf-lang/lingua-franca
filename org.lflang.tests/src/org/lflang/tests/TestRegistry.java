@@ -171,7 +171,7 @@ public class TestRegistry {
          */
         TestCategory(boolean isCommon) {
             this.isCommon = isCommon;
-            this.path = this.name();
+            this.path = this.name().toLowerCase();
         }
 
         /**

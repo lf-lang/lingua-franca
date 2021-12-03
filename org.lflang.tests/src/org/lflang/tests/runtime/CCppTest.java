@@ -33,7 +33,7 @@ public class CCppTest extends TestBase {
     @Test
     public void runAsCCpp() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::runAsCCppExclusion,
+        runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
                            it -> ASTUtils.changeTargetName(it.fileConfig.resource,
                                                            Target.CCPP.getDisplayName()),
                            TestLevel.EXECUTION, true);
@@ -42,7 +42,7 @@ public class CCppTest extends TestBase {
     /**
      * Exclusion function for runAsCCpp test
      */
-    static private boolean runAsCCppExclusion(TestCategory category) {
+    static private boolean isExcludedFromCCpp(TestCategory category) {
         boolean excluded = false;
         // Don't need to test examples.
         // If any of them uses CCpp, it will
