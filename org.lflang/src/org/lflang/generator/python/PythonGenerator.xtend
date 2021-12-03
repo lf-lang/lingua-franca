@@ -1895,7 +1895,7 @@ class PythonGenerator extends CGenerator {
      */
     override writeDockerFile(String filename) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val dockerFile = srcGenPath + File.separator + filename
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
