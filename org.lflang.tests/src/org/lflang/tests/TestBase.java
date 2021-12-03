@@ -550,6 +550,11 @@ public abstract class TestBase {
 
     /**
      * Return a list of ProcessBuilders used to test the docker option under non-federated execution.
+     * See the following for references on the instructions called:
+     * docker build: https://docs.docker.com/engine/reference/commandline/build/
+     * docker run: https://docs.docker.com/engine/reference/run/
+     * docker image: https://docs.docker.com/engine/reference/commandline/image/
+     * 
      * @param test The test to get the execution command for.
      */
     private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
