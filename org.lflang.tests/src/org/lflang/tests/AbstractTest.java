@@ -158,7 +158,7 @@ public abstract class AbstractTest extends TestBase {
       */
     @Test
     public void runDockerTests() {
-        Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
+        // Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
         Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
         runTestsForTargets(Message.DESC_DOCKER,
                            TestCategory.DOCKER::equals, Configurators::noChanges, TestLevel.EXECUTION,
@@ -172,7 +172,7 @@ public abstract class AbstractTest extends TestBase {
       */
     @Test
     public void runDockerFederatedTests() {
-        Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
+        // Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
         Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_DOCKER_FEDERATED,

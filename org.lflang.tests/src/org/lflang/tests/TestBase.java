@@ -619,7 +619,6 @@ public abstract class TestBase {
         var srcGenPath = test.fileConfig.getSrcGenPath();
         var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
-        System.out.println(relativePathName);
         
         // special case to test docker file generation
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
