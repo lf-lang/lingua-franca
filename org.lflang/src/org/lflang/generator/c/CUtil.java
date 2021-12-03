@@ -50,7 +50,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.util.LFCommand;
 
 /**
- * A collection of utilties for C code generation.
+ * A collection of utilities for C code generation.
  * This class codifies the coding conventions for the C target code generator.
  * I.e., it defines how variables are named and referenced.
  * @author{Edward A. Lee <eal@berkeley.edu>}
@@ -62,11 +62,12 @@ public class CUtil {
 
     /**
      * Encapsulation of C-specific functions for representing values
-     * in C. This can be overridden in targets that derive from CGenerator.
+     * in C. Targets that derive from CGenerator must either reuse this
+     * ValueGenerator or create their own ValueGenerator instances.
      */
     public static final ValueGenerator VG = new ValueGenerator(
             CUtil::timeInTargetLanguage,    // Time value readable in C.
-            CUtil::getTargetReference       // Name of a parameter.  FIXME: Not used.
+            CUtil::getTargetReference       // Name of a parameter.  FIXME: Not used. Edit: getTargetReference.apply is called in the implementation of ValueGenerator, so it is used?
     );
 
     //////////////////////////////////////////////////////
@@ -261,11 +262,21 @@ public class CUtil {
 
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
+    // The {@code ReportCommandErrors} interface allows the
+    // method runBuildCommand to call a protected
+    // method from the CGenerator if that method is passed
+    // using a method reference. The method that is passed
+    // is then interpreted as a ReportCommandErrors instance.
+    // This is a convenient way to factor out part of the
+    // internals of the CGenerator while maintaining
+    // encapsulation, even though the internals of the CGenerator
+    // might seem to be tightly coupled. FIXME: Delete this comment
 
-        /**
-     * FIXME: The following functional interface is throwaway
-     *  code, intended only to be used while the C Generator
-     *  undergoes a transition period.
+    /**
+     * A {@code ReportCommandErrors} is a way to analyze command
+     * output and report any errors that it describes.
+     * FIXME: If the VSCode branch passes code review
+     *  without significant revision, this mechanism will probably be replaced.
      */
     public interface ReportCommandErrors {
         void report(String errors);
