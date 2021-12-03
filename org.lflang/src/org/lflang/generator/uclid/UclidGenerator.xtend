@@ -139,6 +139,47 @@ class UclidGenerator extends GeneratorBase {
         ''')
         indent()
         
+        // Print timing semantics
+        pr_timing_semantics()
+
+        // Reaction IDs and state variables
+        pr_rxn_ids_and_state_vars()
+        
+        // Trace definition
+        pr_trace_def_and_helper_macros()
+        
+        // Topology
+        pr_topological_abstraction()
+        
+        // Reactor semantics
+        pr_reactor_semantics()
+        
+        // Reaction contracts
+        pr_reaction_contracts()
+
+        // Connections
+        pr_connections()
+
+        // Topology
+        pr_program_topology()
+
+        // Initial Condition
+        pr_initial_condition()
+
+        // Properties
+        pr_properties()
+
+        // K-induction
+        pr_k_induction()
+
+        // Control block
+        pr_control_block()
+        
+        unindent()
+        pr('}')
+    }
+
+    def pr_timing_semantics() {
         // [static] definition of time and timing-related operations
         pr('''
         /*******************************
@@ -213,162 +254,142 @@ class UclidGenerator extends GeneratorBase {
             else inf();
          
         ''')
-        
+    }
+
+    // FIXME: generate custom code.
+    def pr_rxn_ids_and_state_vars() {
         // [dynamic] Encode the components and
         // the logical delays present in a reactor system.
         pr('''
         /**********************************
-         * Reactions & connectivity graph *
+         * Reaction IDs & State Variables *
          *********************************/
         
         //////////////////////////
         // Application Specific
         ''')
         
-        // TODO: generate custom code.
         pr('''
-        // Element IDs
-        type id_t = enum {  
-            NULL,                       // NULL 
-            A1, B1, C1,                 // Reactions
-            STARTUP,                    // Actions
-            A_out, B_in, B_out, C_in,   // Ports 
-            B_ramp_exists, C_s          // Variables
+        // Reaction ids
+        type rxn_t = enum {  
+            NULL,    // NULL 
+            AddOne_1 // reactions
+        };
+
+        type state_t = {
+            integer, // _in
+            integer  // out
         };
         //////////////////////////
          
         ''')
-        
-        pr('''
-        /*****************
-         * Trace Element *
-         ****************/
-        type element_t = { id_t, tag_t };
-        
-        // Projection macros
-        define id(e : element_t) : id_t     = e._1;
-        define g(e : element_t) : tag_t     = e._2;
-        
-        define isNULL(e : element_t) : boolean = id(e) == NULL;
-         
-        ''')
-        
+    }
+
+    // FIXME: Accept k as an argument.
+    def pr_trace_def_and_helper_macros() {
         pr('''
         /********************
-         * Trace Definition *
-         *******************/
+        * Trace Definition *
+        *******************/
         const START : integer = 0;
-        const END : integer = 9;
-
+        const END : integer = 2;
+        
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
-
+        
         type step_t = integer;
+        type event_t = { rxn_t, tag_t, state_t };
         type trace_t = { 
-            element_t,
-            element_t,
-            element_t,
-            element_t,
-            element_t,
-            element_t,
-            element_t,
-            element_t,
-            element_t,
-            element_t
+            event_t,
+            event_t,
+            event_t
         };
+        
+        // mark the start of the trace.
+        var start : timestamp_t;
+        assume(start == 0);
+        
+        // declare the trace
+        var trace : trace_t;
 
-        define get(tr : trace_t, i : step_t) : element_t 
+        /*****************
+         * helper macros *
+         ****************/
+        // helper macro that returns an element based on index
+        define get(tr : trace_t, i : step_t) : event_t 
         = if (i == 0) then tr._1 else (
             if (i == 1) then tr._2 else (
                 if (i == 2) then tr._3 else (
-                    if (i == 3) then tr._4 else (
-                        if (i == 4) then tr._5 else (
-                            if (i == 5) then tr._6 else (
-                                if (i == 6) then tr._7 else (
-                                    if (i == 7) then tr._8 else (
-                                        if (i == 8) then tr._9 else (
-                                            if (i == 9) then tr._10 else (
-                                                { NULL, inf() }
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
+                    { NULL, inf(), { 0, 0 } }
                 )
             )
         );
-
-        define in_trace(_tr : trace_t, _e : element_t) : boolean
-        = (exists (j : step_t) :: in_range(j) && get(_tr, j) == _e);
-         
-        ''')
-        
-        // Mark the start of the trace
-        pr('''
-        // Mark the start of the trace.
-        var start : timestamp_t;
-        assume(start == pi1(zero()));
-         
-        ''')
-        
-        // Instantiate the trace        
-        pr('''
-        // Declare the trace
-        // The counterexample reflects a particular frame of reference.
-        var trace : trace_t;
-        
-        // Helper macro that returns an element based on index
-        define elem(i : integer) : element_t
+        define elem(i : step_t) : event_t
         = get(trace, i);
-         
+        
+        // projection macros
+        define rxn(i : step_t) : rxn_t      = elem(i)._1;
+        define  g(i : step_t) : tag_t     = elem(i)._2;
+        define  s(i : step_t) : state_t   = elem(i)._3;
+
+        // application specific: state variables
+        define    _in(s : state_t) : integer = s._1;
+        define    out(s : state_t) : integer = s._2;
+        define isNULL(i : step_t) : boolean = rxn(i) == NULL;
+
         ''')
-        
-        // Encode the topology
-        pr_topology()
-        
-        // Encode the HB relation
-        pr_happened_before()
-        
-        // Encode topological abstraction
-        pr_topo_abstraction()
-        
-        // Encode reactor semantics
-        pr_reactor_semantics()
-        
-        // Encode topological axioms
-        pr_topo_axioms()
-        
-        // [placeholder] Add user-defined properties
-        pr('''
-        // [placeholder] Add user-defined properties here.
-         
-        //////////////////////////////////////////////////
-         
-        ''')
-        
-        pr('''
-        control {
-            v = unroll(0);
-            check;
-            print_results;
-            v.print_cex;
-        }
-         
-        ''')
-        
-        unindent()
-        pr('}')
     }
     
-    def pr_topo_axioms() {
+    def pr_topological_abstraction() {
         pr('''
-        /*******************************
-         * Application-specific axioms *
-         *******************************/
-         
-         
+        /***************************
+        * Topological Abstraction *
+        ***************************/
+        define delay(r1, r2 : rxn_t) : interval_t
+        = if (r1 == source_1 && r2 == component_1) then zero() else (
+            if (r1 == component_1 && r2 == component_2) then sec(1) else (
+                if (r1 == component_2 && r2 == sink_1) then zero() else (
+                    inf()
+                )));
+
+        // Non-federated "happened-before"
+        // FIXME: Would be nice if UCLID supports recursion of macros.
+        // Happened-before relation defined for a local reactor.
+        // Used to preserve trace ordering.
+        define hb(e1, e2 : event_t) : boolean
+        = tag_earlier(e1._2, e2._2)
+            || (tag_same(e1._2, e2._2)
+                && ((e1._1 == source_1 && e2._1 == component_1)
+                || (e1._1 == component_1 && e2._1 == component_2)
+                || (e1._1 == component_2 && e2._1 == sink_1)));
+
+        define startup_triggers(n : rxn_t) : boolean
+        = // if startup is within frame, put the events in the trace.
+            ((start == 0) ==> (exists (i : integer) :: in_range(i)
+                && rxn(i) == n && tag_same(g(i), zero())))
+            // Can ONLY be triggered at (0,0).
+            && !(exists (j : integer) :: in_range(j) && rxn(j) == n
+                && !tag_same(g(j), zero()));
+
+        // Note: The current formulation of "triggers" precludes
+        //       partial reaction triggering chain.
+        // This includes the possibility that upstream does NOT output.
+        define triggers_via_logical_action
+            (upstream, downstream : rxn_t, delay : interval_t) : boolean
+        = forall (i : integer) :: in_range(i)
+            ==> (rxn(i) == downstream 
+                ==> (exists (j : integer) :: in_range(j)
+                    && rxn(j) == upstream 
+                    && g(i) == tag_schedule(g(j), delay)));
+
+        define triggers_via_logical_connection
+            (upstream, downstream : rxn_t, delay : interval_t) : boolean
+        = forall (i : integer) :: in_range(i)
+            ==> (rxn(i) == downstream 
+                ==> (exists (j : integer) :: in_range(j)
+                    && rxn(j) == upstream 
+                    && g(i) == tag_delay(g(j), delay)));
+        
         ''')
     }
     
@@ -378,201 +399,122 @@ class UclidGenerator extends GeneratorBase {
         /*********************
          * Reactor Semantics *
          *********************/
-        
-        // [Important] The trace should respect the HB relation.
-        // In this case, there is no constraint on i, j when hb
-        // fails to establish on both direction (def. of concurrent).
+        /** transition relation **/
+        // transition relation constrains future states
+        // based on previous states.
+
+        // Events are ordered by "happened-before" relation.
         axiom(forall (i, j : integer) :: (in_range(i) && in_range(j))
-            ==> (_hb(elem(i), elem(j)) ==> i < j));
+            ==> (hb(elem(i), elem(j)) ==> i < j));
         
-        // All microsteps are positive
-        axiom(forall (i : integer) :: in_range(i)
-            ==> pi2(g(elem(i))) >= 0);
-
-        // The same event can only trigger once in a logical instant
+        // the same event can only trigger once in a logical instant
         axiom(forall (i, j : integer) :: (in_range(i) && in_range(j))
-            ==> ((id(elem(i)) == id(elem(j)) && i != j)
-                ==> !tag_same(g(elem(i)), g(elem(j)))));
+            ==> ((rxn(i) == rxn(j) && i != j)
+                ==> !tag_same(g(i), g(j))));
 
-        // NULL events should appear in the suffix
-        axiom(forall (j : integer) :: in_range(j) ==> (
-            (id(elem(j)) != NULL) ==> (forall (i : integer) :: in_range(i) ==> 
-            ((i < j) ==> id(elem(i)) != NULL)
-        )));
-        
-        // All tags should be positive
-        axiom(forall (i : integer) :: in_range(i) ==> (
-            pi1(g(elem(i))) >= 0
-        ));
+        // Tags should be positive
+        axiom(forall (i : integer) :: (i > START && i <= END)
+            ==> pi1(g(i)) >= 0);
 
-        // Begin the frame at the start time specified.
-        axiom(forall (i : integer) :: tag_same(g(elem(i)), {start, 0})
-            || tag_later(g(elem(i)), {start, 0}));
-         
+        // Microsteps should be positive
+        axiom(forall (i : integer) :: (i > START && i <= END)
+            ==> pi2(g(i)) >= 0);
         ''')
     }
     
-    // Encode topological abstraction to enable easy code generation.
-    def pr_topo_abstraction() {
+    // Reaction contracts
+    def pr_reaction_contracts() {
         pr('''
-        /***************************
-         * Topological Abstraction *
-         ***************************/
-        define is_multiple_of(a, b : integer) : boolean
-        = exists (c : integer) :: b * c == a;
-
-        define is_closest_starting_point(t : tag_t, period : integer, offset : integer) : boolean
-        = (exists (c : integer) :: (period * c) + offset == pi1(t)
-            // Tick at the next valid instant.
-            && (period * (c - 1) + offset) < start)     
-            // Timer always has mstep of 0.
-            && pi2(t) == 0;                           
-
-        // first & last in trace
-        define first(e : element_t) : boolean
-        = !(exists (i : integer) :: in_range(i) && id(elem(i)) == id(e) && tag_earlier(g(elem(i)), g(e))); 
-
-        define last(e : element_t) : boolean
-        = !(exists (i : integer) :: in_range(i) && id(elem(i)) == id(e) && tag_later(g(elem(i)), g(e))); 
-
-        define is_triggered_by_startup(_id : id_t) : boolean
-        = // If startup is within frame, put the events in the trace.
-        ((start == 0) ==> (exists (i : integer) :: in_range(i)
-            && id(elem(i)) == _id && tag_same(g(elem(i)), startup())))
-        // Can only appear once.
-        && !(exists (j : integer) :: in_range(j) && id(elem(j)) == _id
-            && !tag_same(g(elem(j)), startup()));
-
-        // Can directly use index as HB since this only applies to events
-        // on the same federate.
-        define _is_latest_invocation_in_same_fed_wrt_(a, b : integer) : boolean
-        = !(exists (c : integer) :: in_range(c) 
-            && id(elem(c)) == id(elem(a)) && a < c && c < b);
-
-        define is_triggered_by_timer(_id : id_t) : boolean
-        =   // 1. If the initial event is within frame, show it.
-            (exists (i : integer) :: in_range(i)
-            && id(elem(i)) == _id
-            && is_closest_starting_point(g(elem(i)), pi1(timer_period(_id)),
-                pi1(timer_offset(_id))))
-            // 2. The SPACING between two consecutive timers is the period.
-            && (forall (i, j : integer) :: (in_range(i) && in_range(j) && i < j
-                && id(elem(i)) == _id && id(elem(j)) == _id
-                // ...and there does not exist a 3rd invocation in between
-                && !(exists (k : integer) :: id(elem(k)) == _id && i < k && k < j))
-                    ==> g(elem(j)) == tag_schedule(g(elem(i)), timer_period(_id)))
-            // 3. There does not exist other events in the same federate that 
-            // differ by the last timer invocation by g(last_timer) + period.
-            // In other words, this axiom ensures a timer fires when it needs to.
-            //
-            // a := index of the offending event that occupy the spot of a timer tick.
-            // b := index of non-timer event on the same federate
-            // both in_range's are needed due to !(exists), which turns into a forall.
-            && !(exists (b, a : integer) :: in_range(a) && in_range(b)
-                && id(elem(b)) != _id
-                && _id_same_fed(elem(b), {_id, zero()})
-                && id(elem(a)) == _id
-                && (_is_latest_invocation_in_same_fed_wrt_(a, b)
-                    && tag_later(g(elem(b)), tag_schedule(g(elem(a)), timer_period(_id))) ));
+        /**********************
+         * Reaction Contracts *
+         **********************/
         
-        // This includes the possibility that upstream does NOT output.
-        define is_triggered_by(downstream, upstream : id_t, delay : interval_t) : boolean
-        = (forall (i : integer) :: in_range(i) ==>
-            id(elem(i)) == downstream ==> (exists (j : integer) :: in_range(j)
-                && id(elem(j)) == upstream 
-                && g(elem(i)) == tag_schedule(g(elem(j)), delay))
-        );
-
-        // This macro ensures that the upstream MUST output.
-        define is_definitely_triggered_by(downstream, upstream : id_t,
-            delay : interval_t) : boolean
-        = (forall (i : integer) :: in_range(i) ==>
-            id(elem(i)) == downstream ==> (exists (j : integer) :: in_range(j)
-                && id(elem(j)) == upstream 
-                && g(elem(i)) == tag_schedule(g(elem(j)), delay))
-        ) && 
-        (forall (j : integer) :: in_range(j) ==>
-            id(elem(j)) == upstream ==> (exists (i : integer) :: in_range(i)
-                && id(elem(i)) == downstream 
-                && g(elem(i)) == tag_schedule(g(elem(j)), delay))
-        );
-
-        define is_in_trace(_id : id_t) : boolean
-        = (exists (i : integer) :: in_range(i) && id(elem(i)) == _id);
-         
         ''')
     }
-    
-    // Generate macros that encode dynamic HB relation.
-    def pr_happened_before() {
+
+    // Connections
+    def pr_connections() {
         pr('''
-        // Return true if e1 happened before e2 in the same federate,
-        // by comparing the tags and the priorities of the two events.
-        //
-        // TODO: account for nested reactors in federates.
-        define _hb_same_fed(_e1, _e2 : element_t) : boolean
-        = tag_earlier(g(_e1), g(_e2)) ||
-            (tag_same(g(_e1), g(_e2)) && priority(id(_e1)) < priority(id(_e2)));
+        /***************
+         * Connections *
+         ***************/
         
-        // Return true if e1 happened before e2 in different federates
-        // and e1 has a connection to e2. This check uses the time tags
-        // and the logical delay in the connection.
-        //
-        // FIXME: account for physical connections.
-        define _hb_diff_fed(_e1, _e2 : element_t) : boolean
-        = tag_earlier(tag_delay(g(_e1), connection_delay(id(_e1), id(_e2))), g(_e2))
-            || tag_same(tag_delay(g(_e1), connection_delay(id(_e1), id(_e2))), g(_e2));
-        
-        // Check the happened-before relation between two immediate events.
-        define _hb(_e1, _e2 : element_t) : boolean
-        =   // If two events belong to the same federate,
-            // determine hb via tags.
-            // This is bi-directional.
-            (_id_same_fed(_e1, _e2) && _hb_same_fed(_e1, _e2))
-            // If two events belong to different federates,
-            // check if a connection is present.
-            // This is uni-directional.
-            || (_id_diff_fed(_e1, _e2) && _hb_diff_fed(_e1, _e2));
-        
-        // HB path with 1 edge
-        define hb_1(e1, e2 : element_t) : boolean
-        // Link e1, e2 to the start and end of a path.
-        = exists (a, b : integer) :: in_range(a) && in_range(b) 
-            // Check if a path between e1 and e2 exists.
-            && elem(a) == e1 && elem(b) == e2
-            && _hb(elem(a), elem(b))
-            && a < b; 
-        
-        // HB path with 2 edges
-        define hb_2(e1, e2 : element_t) : boolean
-        // Link e1, e2 to the start and end of a path.
-        = exists (a, b, c : integer) :: elem(a) == e1 && elem(c) == e2 
-            // Check if a path between e1 and e2 exists.
-            && _hb(elem(a), elem(b)) && _hb(elem(b), elem(c))
-            && a < b && b < c;
-        
-        // HB path with 3 edges
-        define hb_3(e1, e2 : element_t) : boolean
-        // Link e1, e2 to the start and end of a path.
-        = exists (a, b, c, d : integer) :: elem(a) == e1 && elem(d) == e2 
-            // Check if a path between e1 and e2 exists.
-            && _hb(elem(a), elem(b)) && _hb(elem(b), elem(c)) && _hb(elem(c), elem(d))
-            && a < b && b < c && c < d;
-        
-        // Transitive "happened-before" definition
-        define hb(e1, e2 : element_t) : boolean
-        = hb_1(e1, e2) || hb_2(e1, e2) || hb_3(e1, e2);
-         
         ''')
     }
-    
-    // Generate macros that contain information about the system topology.
-    def pr_topology() {
+
+    // Topology
+    def pr_program_topology() {
         pr('''
-        /************
-         * Topology *
-         ************/
+        /********************
+         * Program Topology *
+         ********************/
+        
+        ''')
+    }
+
+    // Initial Condition
+    def pr_initial_condition() {
+        pr('''
+        /*********************
+         * Initial Condition *
+         *********************/
+        // FIXME: Initial condition makes it pass trivially.
+        define initial_condition() : boolean
+        = start == 0
+            && rxn(0) == NULL
+            && g(0) == {0, 0}
+            && source_out(s(0)) == 0
+            && component__in(s(0)) == 0
+            && component_out(s(0)) == 0
+            && component__s(s(0)) == 0
+            && sink__in(s(0)) == 0
+            ;
+        ''')
+    }
+
+    // Properties
+    def pr_properties() {
+        pr('''
+        // [placeholder] Add user-defined properties here.
          
+        //////////////////////////////////////////////////
+        
+        ''')
+    }
+
+    // K-induction
+    def pr_k_induction() {
+        pr('''
+        /***************
+        * K-induction *
+        ***************/
+        // initialization
+        property initialization : initial_condition() ==>
+            (forall (i : integer) ::
+                (i >= START && i <= END)
+                    ==> (
+                        inv(i)
+                        && auxiliary_invariant(i)
+                    ));
+
+        // Note: state 0 needs to be unconstrained.
+        // consecution
+        property consecution : (forall (i : integer) ::
+            (i >= START && i < END) ==> (inv(i) && auxiliary_invariant(i)))
+                ==> (inv(END) && auxiliary_invariant(END));
+        ''')
+    }
+
+    // Control block
+    def pr_control_block() {
+        pr('''
+        control {
+            v = unroll(0);
+            check;
+            print_results;
+            v.print_cex;
+        }
+        
         ''')
     }
     
