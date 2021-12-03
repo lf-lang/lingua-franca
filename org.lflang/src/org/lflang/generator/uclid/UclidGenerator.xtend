@@ -61,6 +61,7 @@ class UclidGenerator extends GeneratorBase {
     Path outputDir
     
     var ConnectivityGraph connectivityGraph
+    var ReactionInstanceGraph reactionGraph
     
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
@@ -75,22 +76,6 @@ class UclidGenerator extends GeneratorBase {
         // TODO: remove this.
         super.doGenerate(resource, fsa, context)
         
-        // Traverse the instantiation tree for the connectivity information
-        buildConnectivityGraph()
-        
-        // Create the "src-gen" directory if it doesn't yet exist.
-        var dir = fileConfig.getSrcGenPath.toFile
-        if (!dir.exists()) dir.mkdirs()
-        
-        // Create the "model" directory if it doesn't yet exist.
-        dir = fileConfig.getSrcGenPath.resolve("model").toFile
-        if (!dir.exists()) dir.mkdirs()
-        outputDir = Paths.get(dir.getAbsolutePath)
-        
-        generateModel()
-    }
-    
-    def buildConnectivityGraph() {   
         // FIXME: Does this handle the federated reactor in case of federated execution?    
         for (federate : federates) {
             // Build the instantiation tree if a main reactor is present.
@@ -106,8 +91,25 @@ class UclidGenerator extends GeneratorBase {
                 }   
             }
         }  
+
+        // Build reaction instance graph and connectivity graph
+        buildGraphs()
         
-        this.connectivityGraph = new ConnectivityGraph(this.main)
+        // Create the "src-gen" directory if it doesn't yet exist.
+        var dir = fileConfig.getSrcGenPath.toFile
+        if (!dir.exists()) dir.mkdirs()
+        
+        // Create the "model" directory if it doesn't yet exist.
+        dir = fileConfig.getSrcGenPath.resolve("model").toFile
+        if (!dir.exists()) dir.mkdirs()
+        outputDir = Paths.get(dir.getAbsolutePath)
+        
+        generateModel()
+    }
+    
+    def buildGraphs() {
+        this.reactionGraph = new ReactionInstanceGraph(this.main)
+        this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
     }
     
     protected def generateModel() {     
@@ -271,11 +273,24 @@ class UclidGenerator extends GeneratorBase {
         
         pr('''
         // Reaction ids
-        type rxn_t = enum {  
-            NULL,    // NULL 
-            AddOne_1 // reactions
-        };
+        type rxn_t = enum {
+        
+        ''');
+        
+        // Enumerate over all reactions
+        indent()
+        var i = 0;
+        for (rxn : this.reactionGraph.nodes) {
+            // Print a list of reaction IDs.
+            // Add a comma if not last.
+            pr(rxn.toId +
+                (i++ == this.reactionGraph.nodes.size - 1 ? "" : ","))
+        }
+        unindent()
+        pr('}')
 
+        // State variables and ports
+        pr('''
         type state_t = {
             integer, // _in
             integer  // out

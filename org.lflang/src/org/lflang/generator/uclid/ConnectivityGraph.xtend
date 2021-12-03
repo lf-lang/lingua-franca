@@ -54,9 +54,10 @@ import org.lflang.ConnectivityInfo
     var LinkedHashMap<Pair<ReactionInstance, ReactionInstance>,
         ConnectivityInfo> connectivity = new LinkedHashMap();
     
-    new(ReactorInstance main) {
+    new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
         this.main = main
-        this.reactionGraph = new ReactionInstanceGraph(main)
+        // this.reactionGraph = new ReactionInstanceGraph(main)
+        this.reactionGraph = reactionGraph
         rebuild()
     }
     

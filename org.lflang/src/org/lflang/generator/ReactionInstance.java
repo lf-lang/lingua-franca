@@ -459,6 +459,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         return getName() + " of " + parent.getFullName();
     }
 
+    /**
+     * Return a unique string id.
+     */
+    public String toId() {
+        return (parent.getFullName() + "_" + getName()).replace(".", "_");
+    }
+
     //////////////////////////////////////////////////////
     //// Private variables.
 
