@@ -186,7 +186,7 @@ public abstract class AbstractTest extends TestBase {
         Assumptions.assumeTrue(supportsThreadsOption(), Message.NO_THREAD_SUPPORT);
         this.runTestsForTargets(
             Message.DESC_FOUR_THREADS,
-            Configurators::defaultCategoryExclusion,
+            Configurators::isExcluded,
             Configurators::useFourThreads,
             TestLevel.EXECUTION,
             true
