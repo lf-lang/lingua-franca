@@ -152,6 +152,10 @@ public abstract class AbstractTest extends TestBase {
                            false);
     }
 
+    /** 
+      * Run docker tests, provided that the platform is Linux and the target supports Docker.
+      * Skip if platform is not Linux or target does not support Docker.
+      */
     @Test
     public void runDockerTests() {
         Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
@@ -161,6 +165,11 @@ public abstract class AbstractTest extends TestBase {
                            false);
     }
 
+    /** 
+      * Run federated docker tests, provided that the platform is Linux, the target supports Docker,
+      * and the target supports federated execution. If any of these requirements are not met, skip
+      * the tests.
+      */
     @Test
     public void runDockerFederatedTests() {
         Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
@@ -177,7 +186,7 @@ public abstract class AbstractTest extends TestBase {
         Assumptions.assumeTrue(supportsThreadsOption(), Message.NO_THREAD_SUPPORT);
         this.runTestsForTargets(
             Message.DESC_FOUR_THREADS,
-            Configurators::defaultCategoryExclusion,
+            Configurators::isExcluded,
             Configurators::useFourThreads,
             TestLevel.EXECUTION,
             true

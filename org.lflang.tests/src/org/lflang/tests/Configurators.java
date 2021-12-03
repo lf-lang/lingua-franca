@@ -81,7 +81,7 @@ public class Configurators {
      * Given a test category, return true if it is not one of the default excluded
      * categories.
      */
-    public static boolean defaultCategoryExclusion(TestCategory category) {
+    public static boolean isExcluded(TestCategory category) {
         boolean excluded = false;
         
         // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER are excluded
