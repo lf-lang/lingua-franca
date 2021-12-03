@@ -6,7 +6,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.generator.c.CTypes;
 
-// FIXME: Extending CTargetTypes replicates the behavior that
+// FIXME: Extending CTypes replicates the behavior that
 //  existed in the previous implementation of PythonTypes
 //  (where the generator literally was the TargetTypes instance,
 //  and so the PythonGenerator inherited the CGenerator behavior),

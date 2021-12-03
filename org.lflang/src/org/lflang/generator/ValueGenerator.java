@@ -31,9 +31,10 @@ public final class ValueGenerator {
     }
 
     /**
-     * A {@code GetTargetReference} is a
-     * target-language-specific parameter reference
-     * representation strategy.
+     * A {@code GetTargetReference} instance is a
+     * target-language-specific function. It provides the
+     * target language code that refers to the given
+     * parameter {@code param}.
      */
     public interface GetTargetReference {
         String apply(Parameter param);
