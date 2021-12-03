@@ -1,0 +1,169 @@
+/*
+* This is a minimal example of an alarmclock implemeted using the 
+* features lingua franca supplies.
+* 
+* This is just an extract and simplification from the main project
+* which you can find here: https://github.com/revol-xut/lf-alarm-clock
+*
+* Author: Tassilo Tanneberer <tassilo.tanneberger@tu-dresden.de>
+*/
+
+
+target Cpp{
+    cmake-include: "AlarmClock.cmake",
+    keepalive: true
+};
+
+public preamble {=
+    #include "../../../src/shared_header.hpp"
+=}
+
+reactor Trigger {
+    input input_event: {=Event=};
+    logical action triggered_event: {=std::string=};
+
+    //the input_event will scheduled
+    reaction (input_event) -> triggered_event {=
+        if(input_event.is_present()) {
+            auto extracted = input_event.get().get();
+            const auto t = std::chrono::system_clock::now();
+            std::chrono::seconds desired_time = std::chrono::seconds(extracted->time_stamp_);
+            std::chrono::seconds current_time = 
+                    std::chrono::duration_cast<std::chrono::seconds>(t.time_since_epoch());
+            std::chrono::seconds delta_t = desired_time - current_time;
+            triggered_event.schedule(extracted->message_, delta_t);
+        }
+    =}
+
+    // reaction which will be triggered when a event is due 
+    reaction(triggered_event) {=
+        auto select_random_file = []{
+            std::vector<std::string> files;
+            for (const auto& file : std::filesystem::directory_iterator(kMusicDir)) {
+                files.push_back(file.path().filename());
+            }
+
+            return files[rand() % files.size()];
+        };
+
+        // takes a random audio file and playes it with mpg321
+        if(triggered_event.is_present()){
+            std::cout << "Triggering Event: " << *(triggered_event.get().get()) << std::endl;
+            std::string command = "mpg321 ~/music/AlarmClock/" + select_random_file();
+            if( system(command.c_str()) != 0 ){
+                std::runtime_error("mpc finished with non zero return value");
+            }
+        }
+    =}
+}
+
+reactor Clock {
+    // function which is used to check if a given event has already past
+    private preamble {=
+        auto time_over(const Event& event) noexcept -> bool {
+            const auto p1 = std::chrono::system_clock::now();
+            auto current_time = std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count();
+            return current_time > event.time_stamp_;
+        }
+    =}
+
+    // trigger reactor which handles the execution of the scheduled reaction
+    trigger = new Trigger();
+    // this event will be scheduled and added to persistent storage
+    input event: Event;
+    // list of events
+    output event_dump: {= std::vector<Event> =};
+    // timer which triggers clear and save
+    timer maintance(10 sec, 30 sec);
+
+    // persistant storage
+    state events: std::vector<Event>();
+
+    // reaction that appends new events which will be scheduled
+    // the newtwork reactor is updated
+    reaction (event) -> trigger.input_event, event_dump {=
+        if (event.is_present() and not time_over(*event.get())){
+            trigger.input_event.set(*event.get());
+            events.push_back(*event.get());
+            event_dump.set(events);
+        }
+    =}
+
+    // initiation ... reading file to create state 
+    reaction (startup) -> trigger.input_event, event_dump {=
+        // if the calender file doesn't exists it's created
+        if (not std::filesystem::exists(kFile)){
+            std::ofstream{kFile};
+        }
+
+        std::ifstream file;
+        file.open(kFile);
+
+        std::string line;
+        if(not file.is_open()) {
+            throw std::runtime_error("Cannot open event file!");
+        }
+
+        // iterating through the file every line corresponds to one events (csv)
+        while (file) {
+            std::getline(file, line);
+            if (line.empty()) {
+                break;
+            }
+
+            Event serialized_event {};
+
+            // an event has the shape message;time_stamp\newline
+            std::size_t colon_pos = line.find(";");
+            serialized_event.message_ = line.substr(0, colon_pos);
+            serialized_event.time_stamp_ = static_cast<unsigned int>(
+                std::stoi(line.substr(colon_pos + 1, line.size() - 2))
+            );
+
+            // if the given event is not already in the past it gets schedules by lingua franca
+            if(not time_over(serialized_event)){
+                trigger.input_event.set(serialized_event);
+                events.push_back(serialized_event);
+            }
+        }
+
+        file.close();
+        event_dump.set(events);
+    =}
+
+    // state needs to be saved to file
+    reaction (shutdown, maintance) -> event_dump {=
+        remove_events();
+        save();
+        event_dump.set(events);
+    =}
+
+    method remove_events() {=
+        // list of element which can be removed in the next iteration
+        std::vector<std::size_t> removed_indices;
+        std::size_t index = 0;
+        for(const Event& event: events) {
+            if (time_over(event)){
+                removed_indices.push_back(index);
+            }
+            index++;
+        }
+
+        std::size_t removed_counter = 0;
+        for (std::size_t i : removed_indices) {
+            events.erase(events.begin() + i - removed_counter);
+            removed_counter++;
+        }
+    =}
+
+    method save() {=
+        std::ofstream file(kFile, std::ios::trunc);
+
+        for (const Event& e : events ) {
+            file << e.message_ + ";" + std::to_string(e.time_stamp_) + "\n";
+        }
+
+        file.close();
+    =}
+}
+
