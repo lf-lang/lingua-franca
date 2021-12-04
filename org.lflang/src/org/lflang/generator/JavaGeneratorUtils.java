@@ -10,7 +10,7 @@ import java.lang.CharSequence;
  * generators.
  * This is created to ease our transition from Xtend and
  * possibly Eclipse. All functions in this class should
- * instead by in GeneratorUtils.kt, but Eclipse cannot
+ * instead be in GeneratorUtils.kt, but Eclipse cannot
  * handle Kotlin files.
  */
 public class JavaGeneratorUtils {
