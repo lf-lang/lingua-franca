@@ -3142,7 +3142,7 @@ class CGenerator extends GeneratorBase {
                                     pr(temp, '''
                                         // Port «port.getFullName» has reactions in its parent's parent.
                                         // Point to the trigger struct for those reactions.
-                                        triggerArray[«destRangeCount»] = &«triggerStructName(
+                                        trigger_array[«destRangeCount»] = &«triggerStructName(
                                             destination, 
                                             destination.parent.parent
                                         )»;
@@ -3154,7 +3154,7 @@ class CGenerator extends GeneratorBase {
                                 // Destination is an input port.
                                 pr(temp, '''
                                     // Point to destination port «destination.getFullName»'s trigger struct.
-                                    triggerArray[«destRangeCount»] = &«triggerStructName(destination)»;
+                                    trigger_array[«destRangeCount»] = &«triggerStructName(destination)»;
                                 ''')
                                 // One array entry for each destination range is sufficient.
                                 destRangeCount++;
@@ -3166,27 +3166,21 @@ class CGenerator extends GeneratorBase {
                             { // For scoping
                                 // For reaction «reaction.index» of «name», allocate an
                                 // array of trigger pointers for downstream reactions through port «port.getFullName»
-                                trigger_t** triggerArray = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
+                                trigger_t** trigger_array = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
                                 // Fill the trigger array.
                                 «temp.toString()»
                         ''')
                         if (port.isMultiport()) {
-                        val dereference = port.isInput() ? "*" : ""
+                            val dereference = port.isInput() ? "*" : ""
                             pr(initializeTriggerObjectsEnd, '''
-                                    for (size_t i = «range.startChannel»; i < «range.startChannel + range.channelWidth»; i++)
-                                        _lf_associate_reactions_to_port(
-                                            triggerArray,
-                                            «destRangeCount»,
-                                            &((«dereference»«sourceReference(port)»[i]).reactions)
-                                        );
+                                    reaction_t*** reactionses[«range.channelWidth»]; 
+                                    for (size_t i = 0; i < «range.channelWidth»; i++)
+                                        reactionses[i] = &((«dereference»«sourceReference(port)»[«range.startChannel» + i]).reactions);
+                                    _lf_associate_reactions_to_port(trigger_array, «destRangeCount», reactionses, «range.channelWidth»);
                             ''')
                         } else {
                             pr(initializeTriggerObjectsEnd, '''
-                                    _lf_associate_reactions_to_port(
-                                        triggerArray,
-                                        «destRangeCount»,
-                                        &((«sourceReference(port)»).reactions)
-                                    );
+                                    _lf_associate_reactions_to_port(trigger_array, «destRangeCount», (reaction_t***[]) {&((«sourceReference(port)»).reactions)}, 1);
                             ''')
                         }
                         pr(initializeTriggerObjectsEnd, '''
