@@ -30,3 +30,11 @@ targets:
     binary: "Counting"
     gen_args:
       messages: ["-D", "countTo=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Rust/Savina/src/micro"
+    lf_file: "micro/Counting.lf"
+    binary: "counting"
+    run_args:
+      messages: ["--main-count-to", "<value>"]
