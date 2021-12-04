@@ -62,6 +62,7 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -844,21 +845,21 @@ class CGenerator extends GeneratorBase {
                 }
             }
             val targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename
-            writeSourceCodeToFile(getCode().getBytes(), targetFile)
+            JavaGeneratorUtils.writeSourceCodeToFile(code, targetFile)
             
             
             if (targetConfig.useCmake) {
                 // If cmake is requested, generated the CMakeLists.txt
                 val cmakeGenerator = new CCmakeGenerator(targetConfig, fileConfig)
                 val cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt"
-                writeSourceCodeToFile(
-                cmakeGenerator.generateCMakeCode(
+                JavaGeneratorUtils.writeSourceCodeToFile(
+                    cmakeGenerator.generateCMakeCode(
                         #[cFilename], 
                         topLevelName, 
                         errorReporter,
                         CCppMode,
                         mainDef !== null
-                    ).toString().getBytes(),
+                    ),
                     cmakeFile
                 )
             }
@@ -878,7 +879,7 @@ class CGenerator extends GeneratorBase {
                 // this. 
                 // Create an anonymous Runnable class and add it to the compileThreadPool
                 // so that compilation can happen in parallel.
-                val cleanCode = getCode.removeLineDirectives.getBytes();
+                val cleanCode = getCode.removeLineDirectives
                 val execName = topLevelName
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
@@ -897,7 +898,7 @@ class CGenerator extends GeneratorBase {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
                         }
-                        writeSourceCodeToFile(cleanCode, targetFile)
+                        JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
             }
@@ -1319,7 +1320,7 @@ class CGenerator extends GeneratorBase {
             # Use ENTRYPOINT not CMD so that command-line arguments go through
             ENTRYPOINT ["./bin/«topLevelName»"]
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
         println('''Dockerfile for «topLevelName» written to ''' + dockerFile)
         println('''
             #####################################
@@ -1340,8 +1341,8 @@ class CGenerator extends GeneratorBase {
     def writeFederatesDockerComposeFile(File dir, StringBuilder dockerComposeServices, String networkName) {
         val dockerComposeFileName = 'docker-compose.yml'
         val dockerComposeFile = dir + File.separator + dockerComposeFileName
-        val content = new StringBuilder()
-        pr(content, '''
+        val contents = new StringBuilder()
+        pr(contents, '''
         version: "3.9"
         services:
         «dockerComposeServices.toString»
@@ -1349,7 +1350,7 @@ class CGenerator extends GeneratorBase {
             default:
                 name: «networkName»
         ''')
-        writeSourceCodeToFile(content.toString.getBytes, dockerComposeFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerComposeFile)
     }
 
     /**
@@ -1402,7 +1403,7 @@ class CGenerator extends GeneratorBase {
             # Use ENTRYPOINT not CMD so that command-line arguments go through
             ENTRYPOINT ["./build/RTI"]
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
     }
 
     /**
@@ -1440,11 +1441,10 @@ class CGenerator extends GeneratorBase {
                 default:
                     name: «networkName»
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerComposeFile)
-        println("Dockerfile for RTI written to " + dockerComposeFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerComposeFile)
         println('''
             #############################################
-            To build the docker image, use:
+            To build the docker image of the rti, use:
                
                 docker compose -f «dockerComposeFile» up
             
