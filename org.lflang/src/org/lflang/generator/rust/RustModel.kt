@@ -56,7 +56,10 @@ data class RustTargetProperties(
     /** How the timeout looks like as a Rust expression, eg `Duration::from_millis(40)`. */
     val timeout: TargetCode? = null,
     val timeoutLf: TimeValue? = null,
-    val singleFile: Boolean = false
+    val singleFile: Boolean = false,
+    /** note: zero means "1 per core" */
+    val threads: Int = 0,
+    val dumpDependencyGraph: Boolean = false,
 )
 
 /**
@@ -149,9 +152,17 @@ class ReactorNames(
 data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
+    /**
+     * Contains arguments for _all_ parameters.
+     * The special parameter `bank_index` has the value `"bank_index"`.
+     * The map iteration order must be the order in which
+     * parameters are declared.
+     */
     val args: Map<String, TargetCode>,
     val loc: LocationInfo,
-    val typeArgs: List<TargetCode>
+    val typeArgs: List<TargetCode>,
+    /** If non-null, this is a reactor bank. */
+    val bankWidth: WidthSpec?
 ) {
     /** Sync with [ChildPortReference.rustChildName]. */
     val rustLocalName = lfName.escapeRustIdent()
@@ -470,6 +481,11 @@ object RustModelBuilder {
                 userSpec.rev = runtimeGitRevision
             }
 
+            // override location
+            if (targetConfig.externalRuntimePath != null) {
+                userSpec.localPath = targetConfig.externalRuntimePath
+            }
+
             return userSpec
         }
     }
@@ -479,7 +495,9 @@ object RustModelBuilder {
             keepAlive = this.keepalive,
             timeout = this.timeout?.toRustTimeExpr(),
             timeoutLf = this.timeout,
-            singleFile = this.singleFileProject
+            singleFile = this.singleFileProject,
+            threads = this.threads,
+            dumpDependencyGraph = this.exportDependencyGraph,
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
@@ -576,9 +594,8 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            val value = byName[ithParam.name]?.let {
-                RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
-            }
+            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces) }
+                ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
                 ?: throw InvalidLfSourceException(
                     "Cannot find value of parameter ${ithParam.name}",
@@ -592,7 +609,8 @@ object RustModelBuilder {
             args = args,
             reactorLfName = this.reactorClass.name,
             loc = this.locationInfo(),
-            typeArgs = typeParms.map { it.toText() }
+            typeArgs = typeParms.map { it.toText() },
+            bankWidth = this.widthSpec
         )
     }
 }

@@ -47,6 +47,7 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
@@ -804,7 +805,7 @@ class PythonGenerator extends CGenerator {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
+        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonCode(federate), file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -816,7 +817,7 @@ class PythonGenerator extends CGenerator {
         }
             
         // Create the setup file
-        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath.toString)
+        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile, setupPath.toString)
              
         
     }
@@ -1917,8 +1918,8 @@ class PythonGenerator extends CGenerator {
             RUN cd src-gen && python3 setup.py install && cd ..
             ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
-        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        println("Dockerfile written to " + dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
+        println("Dockerfile for «topLevelName» written to " + dockerFile)
         println('''
             #####################################
             To build the docker image, use:
