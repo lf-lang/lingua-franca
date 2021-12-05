@@ -29,7 +29,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
 import org.lflang.generator.UnsupportedGeneratorFeatureException
-import org.lflang.generator.rust.RustEmitter.generateRustProject
 
 
 /**
@@ -366,7 +365,7 @@ ${"             |        "..declareChildConnections()}
             if (isMultiport) {
                 throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
             } else {
-                "__assembler.new_port::<$dataType>(\"$childName.$lfName\", $portKind)"
+                "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
             }
         }
     }
