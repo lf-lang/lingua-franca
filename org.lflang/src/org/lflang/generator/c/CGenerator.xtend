@@ -530,6 +530,7 @@ class CGenerator extends GeneratorBase {
             "trace.c",
             "utils/pqueue.c",
             "utils/pqueue.h",
+            "utils/pqueue_support.h",
             "utils/vector.c",
             "utils/vector.h",
             "utils/semaphore.h",
@@ -541,8 +542,7 @@ class CGenerator extends GeneratorBase {
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
-            coreFiles.add("threaded/scheduler.h")
-            coreFiles.add("threaded/scheduler.c")
+            addSchedulerFiles(coreFiles);
             coreFiles.add("threaded/reactor_threaded.c")
         }
         
@@ -923,6 +923,19 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Add files needed for the proper function of the runtime scheduler to
+     * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
+     */
+    def addSchedulerFiles(ArrayList<String> coreFiles) {
+        coreFiles.add("threaded/scheduler.h")
+        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
+        targetConfig.compileAdditionalSources.add(
+             "core" + File.separator + "threaded" + File.separator + 
+             "scheduler_" + targetConfig.schedulerType.toString() + ".c"
+        );
     }
     
     /**
