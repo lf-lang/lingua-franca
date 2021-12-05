@@ -16,7 +16,8 @@ target C {
     threads: 0,
     /// [[[end]]]
     cmake-include: "../lib/matrix.cmake",
-    files: ["../lib/matrix.c", "../include/matrix.h"]
+    files: ["../lib/matrix.c", "../include/matrix.h"],
+    build-type: RelWithDebInfo
 };
 
 preamble {=
@@ -123,6 +124,14 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
         #include "matrix.h"
 
         /*
+         * Accesses the given matrix using the assumption that it is the
+         * transpose of the matrix that we wish to represent.
+         */
+        double* transposed_mat_at_d(matrix_t matrix, size_t i, size_t j) {
+            return mat_at_d(matrix, j, i);
+        }
+
+        /*
          * Prints a message if there exists an incorrect entry in the given matrix.
          */
         void check_if_valid(matrix_t C, size_t data_length) {
@@ -164,7 +173,7 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
         for (size_t i = 0; i < self->data_length; ++i) {
             for (size_t j = 0; j < self->data_length; ++j) {
                 *mat_at_d(self->A, i, j) = i;
-                *mat_at_d(self->B, i, j) = j;
+                *transposed_mat_at_d(self->B, i, j) = j;
             }
         }
         SET_NEW_ARRAY(data, 3);
@@ -215,7 +224,6 @@ reactor Manager(num_workers: int(20), data_length: size_t(1024)) {
         mat_destroy_d(self->A);
         mat_destroy_d(self->B);
         mat_destroy_d(self->C);
-        request_stop();
     =}
 }
 
@@ -264,7 +272,7 @@ reactor Worker(threshold: size_t(16384), data_length: size_t(1024)) {
                     for (size_t k = 0; k < wi.dim; ++k) {
                         *mat_at_d(self->C, i, j) += (
                             (*mat_at_d(self->A, i, wi.scA + k))
-                            * (*mat_at_d(self->B, wi.srB + k, j))
+                            * (*transposed_mat_at_d(self->B, wi.srB + k, j))
                         );
                     }
                 }
