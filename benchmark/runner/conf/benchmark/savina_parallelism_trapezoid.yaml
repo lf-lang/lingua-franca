@@ -45,3 +45,14 @@ targets:
       pieces: ["-D", "pieces=<value>"]
       left: ["-D", "left=<value>"]
       right: ["-D", "right=<value>"]
+  lf-rust:
+    copy_sources:
+      - "${lf_path}/benchmark/Rust/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Rust/Savina/src/parallelism/"
+    lf_file: "parallelism/Trapezoidal.lf"
+    binary: "trapezoidal"
+    run_args:
+      pieces: ["--main-num-pieces", "<value>"]
+      left: ["--main-left-end-point", "<value>"]
+      right: ["--main-right-end-point", "<value>"]
+      workers: ["--main-num-workers", "<value>"]
