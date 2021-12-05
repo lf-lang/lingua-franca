@@ -36,6 +36,7 @@ import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.SchedulerOptions;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.TimeUnit;
@@ -194,6 +195,8 @@ public class TargetConfig {
 
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false;
+    
+    public SchedulerOptions schedulerType = SchedulerOptions.GEDF_NP;
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

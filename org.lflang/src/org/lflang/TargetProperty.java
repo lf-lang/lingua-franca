@@ -314,6 +314,16 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.toText(value);
             }),
+    
+    
+    /**
+     * Directive for specifying a specific runtime scheduler, if supported.
+     */
+    SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
+                config.schedulerType = (SchedulerOptions) UnionType.SCHEDULER_UNION
+                        .forName(ASTUtils.toText(value));
+            }),
 
     /**
      * Directive to specify that all code is generated in a single file.
@@ -750,6 +760,7 @@ public enum TargetProperty {
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
+        SCHEDULER_UNION(Arrays.asList(SchedulerOptions.values()), SchedulerOptions.GEDF_NP),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
@@ -1264,6 +1275,15 @@ public enum TargetProperty {
         public String toString() {
             return this.name().toLowerCase();
         }
+    }
+    
+    /**
+     * Supported schedulers.
+     * @author{Soroush Bateni <soroush@utdallas.edu>}
+     */
+    public enum SchedulerOptions {
+        GEDF_NP, // Global EDF non-preemptive
+        PEDF_NP; // Partitioned EDF non-preemptive
     }
 
     /**
