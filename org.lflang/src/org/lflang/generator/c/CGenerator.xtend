@@ -1787,7 +1787,7 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(input, code, '''
                     typedef struct {
-                        reaction_t** reactions;  // This array is null-terminated.
+                        reaction_t** reactions;
                         «input.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -1810,7 +1810,7 @@ class CGenerator extends GeneratorBase {
                 }
                 pr(output, code, '''
                     typedef struct {
-                        reaction_t** reactions;  // This array is null-terminated.
+                        reaction_t** reactions;
                         «output.valueDeclaration»
                         bool is_present;
                         int num_destinations;
@@ -1972,6 +1972,7 @@ class CGenerator extends GeneratorBase {
                     pr(input, body, '''
                         // Multiport input array will be malloc'd later.
                         «variableStructType(input, decl)»** _lf_«input.name»;
+                        void* _lf_«input.name»_reactions;
                         int _lf_«input.name»_width;
                         // Default input (in case it does not get connected)
                         «variableStructType(input, decl)» _lf_default__«input.name»;
@@ -1979,11 +1980,13 @@ class CGenerator extends GeneratorBase {
                     // Add to the destructor code to free the malloc'd memory.
                     pr(input, destructorCode, '''
                         free(self->_lf_«input.name»);
+                        free(self->_lf_«input.name»_reactions);
                     ''')
                 } else {
                     // input is not a multiport.
                     pr(input, body, '''
                         «variableStructType(input, decl)»* _lf_«input.name»;
+                        void* _lf_«input.name»_reactions;
                         // width of -2 indicates that it is not a multiport.
                         int _lf_«input.name»_width;
                         // Default input (in case it does not get connected)
@@ -2007,6 +2010,7 @@ class CGenerator extends GeneratorBase {
                     pr(output, body, '''
                         // Array of output ports.
                         «variableStructType(output, decl)»* _lf_«output.name»;
+                        void* _lf_«output.name»_reactions;
                         int _lf_«output.name»_width;
                         // An array of pointers to the individual ports. Useful
                         // for the SET macros to work out-of-the-box for
@@ -2019,11 +2023,13 @@ class CGenerator extends GeneratorBase {
                     // Add to the destructor code to free the malloc'd memory.
                     pr(output, destructorCode, '''
                         free(self->_lf_«output.name»);
+                        free(self->_lf_«output.name»_reactions);
                         free(self->_lf_«output.name»_pointers);
                     ''')
                 } else {
                     pr(output, body, '''
                         «variableStructType(output, decl)» _lf_«output.name»;
+                        void* _lf_«output.name»_reactions;
                         int _lf_«output.name»_width;
                     ''')
                 }
@@ -3118,7 +3124,15 @@ class CGenerator extends GeneratorBase {
                 // This can happen with reactions in the top-level that have
                 // as an effect a port in a bank.
                 if (currentFederate.contains(port.parent)) {
-                    
+                    pr(initializeTriggerObjectsEnd, '''
+                        { // Start scoping 0
+                            vector_t trigger_arrays = vector_new(4);
+                            vector_t trigger_array_sizes = vector_new(4);
+                            // reactionseses is an vector of pointers to arrays of arrays of pointers to reactions.
+                            // It is triply plural and quintuply indirect.
+                            vector_t reactionseses = vector_new(4);
+                            vector_t reactionses_sizes = vector_new(4);
+                    ''')
                     // If the port is a multiport, then its channels may have different sets
                     // of destinations. For ordinary ports, there will be only one range and
                     // its width will be 1.
@@ -3160,34 +3174,43 @@ class CGenerator extends GeneratorBase {
                                 destRangeCount++;
                             }
                         }
-                    
-                        // Malloc the memory for the arrays.
-                        pr(initializeTriggerObjectsEnd, '''
-                            { // For scoping
-                                // For reaction «reaction.index» of «name», allocate an
-                                // array of trigger pointers for downstream reactions through port «port.getFullName»
-                                trigger_t** trigger_array = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
-                                // Fill the trigger array.
-                                «temp.toString()»
-                        ''')
+                        var setReactionses = new StringBuilder()
                         if (port.isMultiport()) {
                             val dereference = port.isInput() ? "*" : ""
-                            pr(initializeTriggerObjectsEnd, '''
-                                    reaction_t*** reactionses[«range.channelWidth»]; 
-                                    for (size_t i = 0; i < «range.channelWidth»; i++)
-                                        reactionses[i] = &((«dereference»«sourceReference(port)»[«range.startChannel» + i]).reactions);
-                                    _lf_associate_reactions_to_port(trigger_array, «destRangeCount», reactionses, «range.channelWidth»);
+                            pr(setReactionses, '''
+                                for (size_t i = 0; i < «range.channelWidth»; i++)
+                                    reactionses[i] = &((«dereference»«sourceReference(port)»[«range.startChannel» + i]).reactions);
                             ''')
                         } else {
-                            pr(initializeTriggerObjectsEnd, '''
-                                    _lf_associate_reactions_to_port(trigger_array, «destRangeCount», (reaction_t***[]) {&((«sourceReference(port)»).reactions)}, 1);
+                            pr(setReactionses, '''
+                                reactionses[0] = &((«sourceReference(port)»).reactions);
                             ''')
                         }
+                        // Malloc the memory for the arrays.
                         pr(initializeTriggerObjectsEnd, '''
-                            } // End scoping
+                                { // Start scoping 1
+                                    // For reaction «reaction.index» of «name», allocate an
+                                    // array of trigger pointers for downstream reactions through port «port.getFullName»
+                                    trigger_t** trigger_array = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
+                                    // Fill the trigger array.
+                                    «temp»
+                                    vector_push(&trigger_arrays, trigger_array);
+                                    vector_push(&trigger_array_sizes, (void*) «destRangeCount»);
+                                    reaction_t**** reactionses = (reaction_t****) malloc(«range.channelWidth» * sizeof(reaction_t***));
+                                    «setReactionses»
+                                    vector_push(&reactionseses, reactionses);
+                                    vector_push(&reactionses_sizes, (void*) «range.channelWidth»);
+                                } // End scoping 1
                         ''')
                         channelCount += range.channelWidth;
                     }
+                    pr(initializeTriggerObjectsEnd, '''
+                            // This is needed for the destructor of this reactor.
+                            «selfStructName(port.getParent())»->_lf_«port.name»_reactions = _lf_associate_reactions_to_ports(
+                                trigger_arrays, trigger_array_sizes, reactionseses, reactionses_sizes
+                            );
+                        } // End scoping 0
+                    ''');
                 } else {
                     // Count the port even if it is not contained in the federate because effect
                     // may be a bank (it can't be an instance of a bank), so an empty placeholder
