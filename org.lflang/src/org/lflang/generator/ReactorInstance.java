@@ -990,7 +990,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     connection = (Connection)portRef.eContainer();
                 }
                     
-                PortInstance.Range range = portInstance.newRange(
+                PortInstance.Range range = portInstance.new Range(
                         0, 0, portInstance.width * bankWidth, portRef.isInterleaved(), connection
                 );
                 result.add(range);

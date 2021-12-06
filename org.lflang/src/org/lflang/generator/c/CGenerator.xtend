@@ -4809,7 +4809,6 @@ class CGenerator extends GeneratorBase {
         startScopedBlock(builder, null);
         defineSelfStruct(builder, reactor);
 
-        // If the reactor is not a bank, no need to do anything further.
         if (reactor.isBank) {
             val bankIndex = CUtil.bankIndex(reactor);
             if (port.isMultiport) {
@@ -4825,6 +4824,8 @@ class CGenerator extends GeneratorBase {
                     // Send range covers bank member(s). Iterate over bank members.
                     for (int «bankIndex» = «range.startBank»; «bankIndex» < «range.startBank» + «range.totalWidth»; «bankIndex»++) {
                 ''')
+               indent(builder);
+               pr(builder, "int channel = 0;");
             }
         } else if (range.port.isMultiport) {
             // Reactor is not a bank, but port is a multiport.
@@ -4832,12 +4833,14 @@ class CGenerator extends GeneratorBase {
                 // Send range covers channels of a multiport. Iterate over channels.
                 for (int channel = «range.startChannel»; channel < «range.startChannel» + «range.totalWidth»; channel++) {
             ''')
+           indent(builder);
         } else {
             // Not a multiport nor a bank.
             // For consistent depth of nesting, generate a scoped block.
             pr(builder, "{");
+            indent(builder);
+            pr(builder, "int channel = 0;");
         }
-        indent(builder);
     }
     
     /**
@@ -4876,46 +4879,6 @@ class CGenerator extends GeneratorBase {
         endScopedBlock(builder);
     }
     
-    /**
-     * Start a deep scoped block for the specified reactor in situations where
-     * the self struct for the specified reactor is not already in scope
-     * and the self struct of some of its containers may also not be in scope.
-     * Specifically, the reference reactor is assumed to deeply contain the
-     * specified reactor. A scoped block is created for each intermediate
-     * container.  If the reference reactor does not deeply contain the specified
-     * reactor, then nested scoped blocks are created all the way to the top level,
-     * not including the top level.
-     * This must be followed by an {@link endDeepScopedReactorBlock(StringBuilder)}.
-     * @param builder The string builder into which to write.
-     * @param reactor The reactor instance.
-     * @param reference The container.
-     */
-    private def void startDeepScopedReactorBlock(
-        StringBuilder builder, ReactorInstance reactor, ReactorInstance reference
-    ) {
-        startScopedReactorBlock(builder, reactor);
-        val container = reactor.parent;
-        if (container != reference && container.depth > 1) {
-            startDeepScopedReactorBlock(builder, container, reference);
-        }
-    }
-
-    /**
-     * End a deep scoped block.
-     * @param builder The string builder into which to write.
-     * @param reactor The reactor instance.
-     * @param reference The container.
-     */
-    private def void endDeepScopedReactorBlock(
-        StringBuilder builder, ReactorInstance reactor, ReactorInstance reference
-    ) {
-        endScopedReactorBlock(builder, reactor);
-        val container = reactor.parent;
-        if (container != reference && container.depth > 1) {
-            endDeepScopedReactorBlock(builder, container, reference);
-        }
-    }
-
     /**
      * For the specified reactor, print code to the specified builder
      * that defines a pointer to the self struct of the specified
@@ -6211,12 +6174,22 @@ class CGenerator extends GeneratorBase {
                         
                         startScopedRangeBlock(code, range);
                         
+                        // Keep track of which reactors have their self struct declared in scope.
+                        val declared = new HashSet<ReactorInstance>();
+                        declared.add(port.parent);
+                        
                         val temp = new StringBuilder();
                         pr("int destination_index = 0;");
                         var destRangeCount = 0;
                         for (destinationRange : range.destinations) {
                             foundDestinations = true;
                             val destination = destinationRange.getPort();
+                            
+                            if (!declared.contains(destination.parent)) {
+                                // Need to declare the self struct.
+                                declared.add(destination.parent);
+                                defineSelfStruct(temp, destination.parent);
+                            }
     
                             if (destination.isOutput) {
                                 // Include this destination port only if it has at least one
