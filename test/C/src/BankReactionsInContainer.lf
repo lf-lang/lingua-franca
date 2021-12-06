@@ -1,0 +1,44 @@
+/**
+ * This tests an output that is broadcast back to a multiport input of a bank.
+ */
+target C {
+    timeout: 1 sec,
+};
+reactor R {
+    output[2] out:int;
+    input[2] in:int;
+    
+    reaction(startup) -> out {=
+        info_print("Sending 42");
+        SET(out[0], 42);
+        SET(out[1], 43);
+        info_print("Sent");
+    =}
+
+    reaction(in) {=
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+                info_print("Received %d on channel %d", in[i]->value, i);
+            }
+        }
+    =}
+}
+main reactor {
+    s = new[2] R();
+    
+    reaction(startup) -> s.in {=
+        int count = 0;
+        for (int i = 0; i < s_width; i++) {
+            for (int j = 0; j < s[i].in_width; j++) {
+                SET(s[i].in[j], count++);
+            }
+        }
+    =}
+    reaction(s.out) {=
+        for (int j = 0; j < s_width; j++) {
+            for (int i = 0; i < s[j].out_width; i++) {
+                info_print("Outer received %d on channel %d from bank member %d.", s[j].out[i]->value, i, j);
+            }
+        }
+    =}
+}

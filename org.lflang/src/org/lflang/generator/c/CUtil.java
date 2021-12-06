@@ -39,6 +39,7 @@ import org.lflang.TargetConfig.Mode;
 import org.lflang.TimeValue;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ValueGenerator;
 import org.lflang.lf.Parameter;
@@ -199,6 +200,15 @@ public class CUtil {
             return portRef(port, port.getParent().getParent());
         }
         return portRef(port, port.getParent());
+    }
+    
+    /**
+     * Return a reference to the reaction entry on the self struct
+     * of the parent of the specified reaction.
+     * @param reaction The reaction.
+     */
+    static public String reactionRef(ReactionInstance reaction) {
+        return reactorRef(reaction.getParent()) + "->_lf__reaction_" + reaction.index;
     }
 
     /** 
