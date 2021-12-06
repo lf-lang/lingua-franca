@@ -71,7 +71,7 @@ def summarize(benchmark, rng, a_times_ms, b_times_ms, n_boot=10000):
     }
 
 
-def main_files(a, b, rng, results, summary, benefit):
+def main_files(a, b, rng, results, summary, benefit, name0="main", name1="feature"):
     """Do A/B testing on the executables a (main) and b (feature)."""
     for exe in (a, b):
         assert os.access(exe, os.X_OK), "{} is not executable".format(exe)
@@ -84,8 +84,8 @@ def main_files(a, b, rng, results, summary, benefit):
         or benefit(a_times_ms, b_times_ms) > cost(a_times_ms, b_times_ms)
     ):
         exe, times, version = (
-            (a, a_times_ms, "main") if rng.random() > 0.5
-            else (b, b_times_ms, "feature")
+            (a, a_times_ms, name0) if rng.random() > 0.5
+            else (b, b_times_ms, name1)
         )
         output, code = execute_command([exe])
         if code:
@@ -96,7 +96,7 @@ def main_files(a, b, rng, results, summary, benefit):
             new_times = parse_lfc_output(output)
             times += new_times
             for time_ms in new_times:
-                print("{}{}".format(version, round(time_ms)), end=" ")
+                print("{}-{}".format(version, round(time_ms)), end=" ")
                 sys.stdout.flush()
                 results.writerow({
                     "benchmark": benchmark, "version": version, "time_ms": time_ms
@@ -104,11 +104,13 @@ def main_files(a, b, rng, results, summary, benefit):
     print()
     summary.writerow(summarize(benchmark, rng, a_times_ms, b_times_ms))
 
-def main_dirs(a, b, rng, results, summary, benefit):
+def main_dirs(a, b, rng, results, summary, benefit, name0="main", name1="feature"):
     """Do A/B testing on the directories a (main) and b (feature)."""
     a_files = set(os.listdir(a))
     b_files = set(os.listdir(b))
-    pairs = [("main", a_files), ("feature", b_files)]
+    name_a = os.path.basename(os.path.normpath(a))
+    name_b = os.path.basename(os.path.normpath(b))
+    pairs = [(name_a, a_files), (name_b, b_files)]
     for name0, files0, name1, files1 in [
         (*tup, *tup) for tup, tup in zip(pairs, reversed(pairs))
     ]:
@@ -122,7 +124,7 @@ def main_dirs(a, b, rng, results, summary, benefit):
     for exe in sorted(list(a_files.intersection(b_files))):
         main_files(
             os.path.join(a, exe), os.path.join(b, exe),
-            rng, results, summary, benefit
+            rng, results, summary, benefit, name_a, name_b
         )
 
 def set_directory():
