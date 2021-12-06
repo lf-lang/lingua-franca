@@ -25,6 +25,5 @@ cp bin/lfc.ps1 "${outname}/bin/lfc.ps1"
 
 # zip/tar everything - the files will be put into the build_upload directory
 mkdir -p build_upload
-zip -r "build_upload/${outname}.zip" "${outname}"
+zip --symlinks -r "build_upload/${outname}.zip" "${outname}"
 tar cvf "build_upload/${outname}.tar.gz" "${outname}"
-
