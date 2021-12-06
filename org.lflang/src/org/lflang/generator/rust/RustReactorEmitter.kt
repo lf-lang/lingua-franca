@@ -410,11 +410,11 @@ ${"             |        "..declareChildConnections()}
         }
 
     private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
-    // Item is both in inputs and outputs.
-    // We must not generate 2 parameters, instead we generate the
-    // one with the most permissions (Effects means &mut).
-
-    // eg `reaction(act) -> act` must not generate 2 parameters for act,
+        // Item is both in inputs and outputs.
+        // We must not generate 2 parameters, instead we generate the
+        // one with the most permissions (Effects means &mut).
+    
+        // eg `reaction(act) -> act` must not generate 2 parameters for act,
         // we skip the Trigger one and generate the Effects one.
         depKind != DepKind.Effects && this in n.effects
 
