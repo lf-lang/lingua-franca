@@ -140,16 +140,7 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         
         // Construct the full range for this port.
-        // If this is an output, then the width of the range
-        // includes any bank the port is within.
-        Range range;
-        if (isInput()) {
-            range = new Range(0, 0, width, false, null);
-        } else {
-            // For an output port, the entire bank is treated as a send range
-            // because every channel can carry different data.
-            range = new Range(0, 0, width * parent.width(), false, null);
-        }
+        Range range = new Range(0, 0, width * parent.width(), false, null);
         eventualDestinationRanges = eventualDestinations(range);
         return eventualDestinationRanges;
     }

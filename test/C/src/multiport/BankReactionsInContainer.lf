@@ -3,6 +3,7 @@
  */
 target C {
     timeout: 1 sec,
+    logging: DEBUG
 };
 reactor R {
     output[2] out:int;
@@ -30,6 +31,7 @@ main reactor {
         int count = 0;
         for (int i = 0; i < s_width; i++) {
             for (int j = 0; j < s[i].in_width; j++) {
+                info_print("Sending %d to bank %d channel %d.", count, i, j);
                 SET(s[i].in[j], count++);
             }
         }
