@@ -219,25 +219,25 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                 switch (type) {
                 case TRIGGER: {
                     var candidates = new ArrayList<EObject>();
-                    candidates.addAll(allInputs(reactor));
-                    candidates.addAll(allActions(reactor));
-                    candidates.addAll(allTimers(reactor));
                     if (mode != null) {
                         candidates.addAll(mode.getActions());
                         candidates.addAll(mode.getTimers());
                     }
+                    candidates.addAll(allInputs(reactor));
+                    candidates.addAll(allActions(reactor));
+                    candidates.addAll(allTimers(reactor));
                     return Scopes.scopeFor(candidates);
                 }
                 case SOURCE:
                     return super.getScope(variable, reference);
                 case EFFECT: {
                     var candidates = new ArrayList<EObject>();
-                    candidates.addAll(allOutputs(reactor));
-                    candidates.addAll(allActions(reactor));
                     if (mode != null) {
                         candidates.addAll(mode.getActions());
                         candidates.addAll(reactor.getModes());
                     }
+                    candidates.addAll(allOutputs(reactor));
+                    candidates.addAll(allActions(reactor));
                     return Scopes.scopeFor(candidates);
                 }
                 case DEADLINE:
