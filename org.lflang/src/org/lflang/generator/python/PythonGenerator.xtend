@@ -1652,7 +1652,7 @@ class PythonGenerator extends CGenerator {
             return
         }
         
-        startScopedReactorBlock(initializeTriggerObjects, instance);
+        startScopedBlock(initializeTriggerObjects, instance);
         
         // Initialize the name field to the unique name of the instance
         pr(initializeTriggerObjects, '''
@@ -1680,7 +1680,7 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
-        endScopedReactorBlock(initializeTriggerObjects, instance);
+        endScopedBlock(initializeTriggerObjects);
     }
     
     
