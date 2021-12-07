@@ -3591,10 +3591,6 @@ class CGenerator extends GeneratorBase {
             
         var selfStruct = CUtil.reactorRef(instance)
         
-        // Create a variable that will point to this new self struct in
-        // this scope and nested scopes.
-        defineSelfStruct(initializeTriggerObjects, instance);
-
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         startScopedBlock(initializeTriggerObjects, instance);
@@ -3604,8 +3600,12 @@ class CGenerator extends GeneratorBase {
         // Record the self struct on the big array of self structs.
         // FIXME: only works for banks.
         pr(initializeTriggerObjects, '''
-            «selfStruct» = new_«reactorClass.name»();
+            self_structs[«CUtil.indexExpression(instance)»] = new_«reactorClass.name»();
         ''')
+
+        // Create a variable that will point to this new self struct in
+        // this scope and nested scopes.
+        defineSelfStruct(initializeTriggerObjects, instance);
        
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
@@ -4612,7 +4612,7 @@ class CGenerator extends GeneratorBase {
 
         // Start a scoped block so we can define bank index variables without
         // resulting in them being multiply defined.
-        startScopedBlock(builder, null);
+        startScopedBlock(builder);
         // The following defines the self structs only if the parents are not a parent of context.
         defineSelfStruct(builder, source.parent, context);
 
@@ -4684,6 +4684,16 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Start a scoped block, which is a section of code
+     * surrounded by curley braces and indented.
+     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
+     * @param builder The string builder into which to write.
+     */
+    private def void startScopedBlock(StringBuilder builder) {
+        startScopedBlock(builder, null);
+    }
+
+    /**
      * Start a scoped block for the specified reactor.
      * If the reactor is a bank, then this starts a for loop
      * that iterates over the bank members using a standard index
@@ -4730,7 +4740,7 @@ class CGenerator extends GeneratorBase {
         // The first creates a scope in which we can define a pointer to the self
         // struct without fear of redefining.
         if (reactor != main) {
-            startScopedBlock(builder, null);
+            startScopedBlock(builder);
             defineSelfStruct(builder, reactor);
             if (reactor.isBank()) {
                 // Generate of for loop to iterate over the bank members.
@@ -4796,7 +4806,7 @@ class CGenerator extends GeneratorBase {
  
         // The first creates a scope in which we can define a pointer to the self
         // struct without fear of redefining.
-        startScopedBlock(builder, null);
+        startScopedBlock(builder);
         defineSelfStruct(builder, reactor);
 
         if (reactor.isBank) {
@@ -6100,6 +6110,8 @@ class CGenerator extends GeneratorBase {
                 pr(init, "// Reaction writes to an input of a contained reactor.")
                 bankWidth = effect.parent.width;
                 startScopedBlock(init, effect.parent);
+            } else {
+                startScopedBlock(init);
             }
             pr(init, "int count = 0;")
             
@@ -6125,9 +6137,7 @@ class CGenerator extends GeneratorBase {
                 ''')
                 outputCount += bankWidth;
             }
-            if (effect.isInput) {
-                endScopedBlock(init);
-            }
+            endScopedBlock(init);
         }
         pr('''
             // Total number of outputs (single ports and multiport channels)
