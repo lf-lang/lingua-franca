@@ -3590,8 +3590,11 @@ class CGenerator extends GeneratorBase {
                 '// ***** Start initializing ' + fullName + ' of class ' + reactorClass.name)
             
         var selfStruct = CUtil.reactorRef(instance)
-        var structType = CUtil.selfType(reactorClass)
         
+        // Create a variable that will point to this new self struct in
+        // this scope and nested scopes.
+        defineSelfStruct(initializeTriggerObjects, instance);
+
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
         startScopedBlock(initializeTriggerObjects, instance);
@@ -3601,22 +3604,9 @@ class CGenerator extends GeneratorBase {
         // Record the self struct on the big array of self structs.
         // FIXME: only works for banks.
         pr(initializeTriggerObjects, '''
-            self_structs[«CUtil.indexExpression(instance)»] = new_«reactorClass.name»();
+            «selfStruct» = new_«reactorClass.name»();
         ''')
-        
-        // Create a variable that will point to this new self struct in
-        // this scope and nested scopes.  The form is slightly different
-        // depending on whether its in a bank of reactors.
-        if (instance.isBank) {
-            pr(initializeTriggerObjects, '''
-                «structType»** «instance.uniqueID()»_self = («structType»**)&self_structs[«CUtil.indexExpression(instance)»];
-            ''')
-        } else {
-            pr(initializeTriggerObjects, '''
-                «structType»* «instance.uniqueID()»_self = («structType»*)self_structs[«CUtil.indexExpression(instance)»];
-            ''')
-        }
-
+       
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         
@@ -3649,7 +3639,7 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     «selfStruct»->_lf_«input.name»_width = «multiportWidthSpecInC(input, null, instance)»;
                     // Allocate memory for multiport inputs.
-                    «selfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «selfStruct»->_lf_«input.name»_width); 
+                    «selfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «multiportWidthSpecInC(input, null, instance)»); 
                     // Set inputs by default to an always absent default input.
                     for (int i = 0; i < «selfStruct»->_lf_«input.name»_width; i++) {
                         «selfStruct»->_lf_«input.name»[i] = &«selfStruct»->_lf_default__«input.name»;
@@ -4818,6 +4808,7 @@ class CGenerator extends GeneratorBase {
                     int «bankIndex» = «range.startBank»;
                     while (range_count++ < «range.totalWidth») {
                 ''')
+                indent(builder);
             } else {
                 // Bank, but not a multiport.
                  pr(builder, '''
@@ -5652,6 +5643,11 @@ class CGenerator extends GeneratorBase {
                         // The port belongs to a contained reactor, which may be a bank.
                         startScopedReactorBlock(code, port.parent);
                         
+                        // If the port is an input, then the port reference may in the parent's parent.
+                        if (port.isInput() && port.parent.parent !== null) {
+                            defineSelfStruct(code, port.parent.parent);
+                        }
+                        
                         if (port.isMultiport()) {
                             pr('''
                                 // Connect «port», which gets data from reaction «reaction.index»
@@ -5687,7 +5683,11 @@ class CGenerator extends GeneratorBase {
                         // destination port, and there may be multiple sources
                         // if the destination is a multiport.
                         if (port.isMultiport) {
-                            pr("int dst_channel = 0;");
+                            pr('''
+                                {
+                                    int dst_channel = 0;
+                            ''');
+                            indent(code);
                         }
                         for (eventualSource: port.eventualSources()) {
                             val sourcePort = eventualSource.getPort();
@@ -5744,6 +5744,10 @@ class CGenerator extends GeneratorBase {
                                 unindent();
                                 pr("}");
                             }
+                        }
+                        if (port.isMultiport) {
+                            unindent(code);
+                            pr("}");
                         }
                     }
                 }
