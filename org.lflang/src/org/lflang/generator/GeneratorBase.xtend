@@ -27,13 +27,12 @@
 package org.lflang.generator
 
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
-import java.util.ArrayList
 import java.util.List
 import java.util.Map
 import java.util.Set
@@ -106,7 +105,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     /**
      * Constant that specifies how to name generated delay reactors.
      */
-    public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
+    public static val GEN_DELAY_CLASS_NAME = "_lf_GenDelay"
 
     /** 
      * The main (top-level) reactor instance.
@@ -1671,12 +1670,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     private def replaceFederateConnectionsWithActions() {
         val mainReactor = this.mainDef?.reactorClass.toDefinition
 
-        // Since federates are always within the main (federated) reactor,
-        // create a list containing just that one containing instantiation.
-        // This will be used to look up parameter values.
-        val context = new ArrayList<Instantiation>();
-        context.add(mainDef);
-        
         // Each connection in the AST may represent more than one connection between
         // federate instances because of banks and multiports. We need to generate communication
         // for each of these. To do this, we create a ReactorInstance so that we don't have
@@ -1685,69 +1678,64 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         // that those contain.
         val mainInstance = new ReactorInstance(mainReactor, errorReporter, 1)
 
-        for (federate : mainInstance.children) {
+        for (federateReactor : mainInstance.children) {
             // Skip banks and just process the individual instances.
-            if (federate.bankIndex > -2) {
-                val bankIndex = (federate.bankIndex >= 0)? federate.bankIndex : 0
-                val leftFederate = federatesByInstantiation.get(federate.definition).get(bankIndex);
-                for (source : federate.outputs) {
-                    // Skip multiports and process only individual instances.
-                    if (source instanceof MultiportInstance) {
-                        for (containedSource : source.instances) {
-                            replaceConnectionFromSource(containedSource, leftFederate, federate, mainInstance)
-                        }
-                    } else {
-                        replaceConnectionFromSource(source, leftFederate, federate, mainInstance)
-                    }
+            if (federateReactor.bankIndex > -2) {
+                val bankIndex = (federateReactor.bankIndex >= 0)? federateReactor.bankIndex : 0
+                val federateInstance = federatesByInstantiation.get(federateReactor.definition).get(bankIndex);
+                for (input : federateReactor.inputs) {
+                    replaceConnectionFromSource(input, federateInstance, federateReactor, mainInstance)
                 }
             }
         }
     }
     
     /**
-     * Replace the specific connection from the specified port instance, which is assumed to be
-     * a simple port, not a multiport.
-     * @param source The port instance.
-     * @param leftFederate The federate for which this source is an output.
-     * @param federate The reactor instance for that federate.
+     * Replace the connections to the specified input port for the specified federate reactor.
+     * @param input The input port instance.
+     * @param destinationFederate The federate for which this port is an input.
+     * @param federateReactor The reactor instance for that federate.
      * @param mainInstance The main reactor instance.
      */
     def void replaceConnectionFromSource(
-        PortInstance source, FederateInstance leftFederate, ReactorInstance federate, ReactorInstance mainInstance
+        PortInstance input, FederateInstance destinationFederate, ReactorInstance federateReactor, ReactorInstance mainInstance
     ) {
-        for (destination : source.dependentPorts) {
-            // assume the destination is a single port instance, not a multiport.
-            // There shouldn't be any outputs in the destination list
-            // because these would be outputs of the top level.
-            // But if there are, ignore them.
-            if (destination.isInput) {
-                val parentBankIndex = (destination.parent.bankIndex >= 0) ? destination.parent.bankIndex : 0
-                val rightFederate = federatesByInstantiation.get(destination.parent.definition).get(parentBankIndex);
+        var channel = 0; // Next input channel to be replaced.
+        // If the port is not an input, ignore it.
+        if (input.isInput) {
+            for (source : input.immediateSources()) {
+                val sourceBankIndex = (source.getPortInstance().parent.bankIndex >= 0) ? source.getPortInstance().parent.bankIndex : 0
+                val sourceFederate = federatesByInstantiation.get(source.getPortInstance().parent.definition).get(sourceBankIndex);
 
                 // Set up dependency information.
-                var connection = mainInstance.getConnection(source, destination)
+                var connection = mainInstance.getConnection(source.getPortInstance(), input)
                 if (connection === null) {
                     // This should not happen.
-                    errorReporter.reportError(source.definition, "Unexpected error. Cannot find connection for port")
+                    errorReporter.reportError(input.definition, "Unexpected error. Cannot find input connection for port")
                 } else {
-                    if (leftFederate !== rightFederate
+                    if (sourceFederate !== destinationFederate
                             && !connection.physical 
                             && targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
-                        var dependsOnDelays = rightFederate.dependsOn.get(leftFederate)
+                        // Map the delays on connections between federates.
+                        // First see if the cache has been created.
+                        var dependsOnDelays = destinationFederate.dependsOn.get(sourceFederate)
                         if (dependsOnDelays === null) {
+                            // If not, create it.
                             dependsOnDelays = new LinkedHashSet<Delay>()
-                            rightFederate.dependsOn.put(leftFederate, dependsOnDelays)
+                            destinationFederate.dependsOn.put(sourceFederate, dependsOnDelays)
                         }
+                        // Put the delay on the cache.
                         if (connection.delay !== null) {
                             dependsOnDelays.add(connection.delay)
                         } else {
                             // To indicate that at least one connection has no delay, add a null entry.
                             dependsOnDelays.add(null)
                         }
-                        var sendsToDelays = leftFederate.sendsTo.get(rightFederate)
+                        // Map the connections between federates.
+                        var sendsToDelays = sourceFederate.sendsTo.get(destinationFederate)
                         if (sendsToDelays === null) {
                             sendsToDelays = new LinkedHashSet<Delay>()
-                            leftFederate.sendsTo.put(rightFederate, sendsToDelays)
+                            sourceFederate.sendsTo.put(destinationFederate, sendsToDelays)
                         }
                         if (connection.delay !== null) {
                             sendsToDelays.add(connection.delay)
@@ -1757,19 +1745,24 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         }
                     }
 
-                    FedASTUtils.makeCommunication(
-                        source,
-                        destination,
-                        connection,
-                        leftFederate,
-                        federate.bankIndex,
-                        source.index,
-                        rightFederate,
-                        destination.parent.bankIndex,
-                        destination.index,
-                        this,
-                        targetConfig.coordination
-                    )
+                    // Make one communication for each channel.
+                    // FIXME: There is an opportunity for optimization here by aggregating channels.
+                    for (var i = 0; i < source.channelWidth; i++) {
+                        FedASTUtils.makeCommunication(
+                            source.getPortInstance(),
+                            input,
+                            connection,
+                            sourceFederate,
+                            source.getPortInstance().parent.bankIndex,
+                            source.startChannel + i,
+                            destinationFederate,
+                            input.parent.bankIndex,
+                            channel + i,
+                            this,
+                            targetConfig.coordination
+                        );
+                    }
+                    channel += source.channelWidth;
                 }
             }
         }
@@ -1876,17 +1869,4 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             return d.time.toTimeValue.timeInTargetLanguage
         }
     }
-
-    /**
-     * Write the source code to file.
-     * @param code The code to be written.
-     * @param path The file to write the code to.
-     */
-    protected def writeSourceCodeToFile(byte[] code, String path) {
-        // Write the generated code to the output file.
-        var fOut = new FileOutputStream(new File(path), false);
-        fOut.write(code)
-        fOut.close()
-    }
-    
 }

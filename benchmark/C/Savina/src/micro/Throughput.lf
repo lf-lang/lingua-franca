@@ -62,7 +62,6 @@ target C {
     threads: 2,
     /// [[[end]]]
     flags: "-lm",
-    tracing: true
 };
 
 

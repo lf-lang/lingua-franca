@@ -91,9 +91,17 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
 - [ ] reactor inheritance
   - ...
 - [ ] multiports and banks of reactors
-  - [x] `MultiportIn.lf`: support banks of input ports
-  - [x] `MultiportOut.lf`: support banks of output ports
+  - [x] `MultiportIn.lf`: support banks of input ports and connections to individual channels
+  - [x] `MultiportOut.lf`: support banks of output ports and connections to individual channels
   - [x] `MultiportFromHierarchy.lf`: support binding an output bank to an input bank within a composition
+  - [x] `MultiportToBank.lf`: support binding an output multiport to the input of a bank
+  - [x] `MultiportToBank.lf`: support the special `bank_index` parameter
+  - [x] `MultiportToMultiport.lf`: test a connection multiport to multiport (same width)
+  - [x] `MultiportToMultiport2.lf`: test a sparse connection between multiports (some channels are left disconnected)
+  - [x] `FullyConnected.lf`: iterated connection from a bank to a multiport
+  - self connections. These used to cause problems with borrows, and we have to use unsafe code to make this work.
+    - [x] `ConnectionToSelfBank.lf`: connection from a bank to a port of the same reactor
+    - [x] `ConnectionToSelfMultiport.lf`: connection from a multiport to another multiport of the same reactor
 - [x] generics
   - [x] `GenericReactor.lf`: generic reactors may compose, types are properly instantiated
   - [x] `CtorParamGeneric.lf`: ctor parameters may refer to type parameters
