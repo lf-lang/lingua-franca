@@ -713,6 +713,15 @@ public class FileConfig {
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
     }
+
+    /**
+     * Convert a given string path to a unix-style string.
+     * 
+     * This ensures that '/' is used instead of '\' as file separator.
+     */
+    public static String toUnixString(String path) {
+        return path.replace('\\', '/');
+    }
     
     /**
      * Check whether a given file (i.e., a relative path) exists in the given
