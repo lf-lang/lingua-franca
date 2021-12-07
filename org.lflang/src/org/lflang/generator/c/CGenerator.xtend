@@ -6054,6 +6054,8 @@ class CGenerator extends GeneratorBase {
             // If the port is an input of a contained reactor, then, if that
             // contained reactor is a bank, we will have to iterate over bank
             // members.
+            startScopedBlock(init);
+            pr(init, "int count = 0;")
             var bankWidth = 1;
             if (effect.isInput) {
                 pr(init, "// Reaction writes to an input of a contained reactor.")
@@ -6062,7 +6064,6 @@ class CGenerator extends GeneratorBase {
             } else {
                 startScopedBlock(init);
             }
-            pr(init, "int count = 0;")
             
             if (effect.isMultiport()) {
                 // Form is slightly different for inputs vs. outputs.
@@ -6086,6 +6087,7 @@ class CGenerator extends GeneratorBase {
                 ''')
                 outputCount += bankWidth;
             }
+            endScopedBlock(init);
             endScopedBlock(init);
         }
         pr('''

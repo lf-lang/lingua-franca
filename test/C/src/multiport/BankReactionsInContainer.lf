@@ -3,7 +3,6 @@
  */
 target C {
     timeout: 1 sec,
-    logging: DEBUG
 };
 reactor R {
     output[2] out:int;
