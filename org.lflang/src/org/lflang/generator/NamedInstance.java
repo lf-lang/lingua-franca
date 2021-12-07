@@ -24,11 +24,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import java.util.HashMap
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtend.lib.annotations.Accessors
+import java.util.HashMap;
+import org.eclipse.emf.ecore.EObject;
 
 /** 
  * Base class for instances with names in Lingua Franca.
@@ -36,7 +35,7 @@ import org.eclipse.xtend.lib.annotations.Accessors
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-abstract class NamedInstance<T extends EObject> {
+public abstract class NamedInstance<T extends EObject> {
         
     /**
      * Construct a new instance with the specified definition
@@ -47,27 +46,27 @@ abstract class NamedInstance<T extends EObject> {
      * @param definition The definition in the AST for this instance.
      * @param parent The reactor instance that creates this instance.
      */
-    protected new(T definition, ReactorInstance parent) {
+    protected NamedInstance(T definition, ReactorInstance parent) {
         this.definition = definition;
-        this.parent = parent
+        this.parent = parent;
     }
     
     //////////////////////////////////////////////////////
     //// Public fields.
-    
-    /** The Instantiation AST object from which this was created. */
-    @Accessors(PUBLIC_GETTER)
-    protected var T definition
-    
+        
     /** A limit on the number of characters returned by uniqueID. */
-    public static var identifierLengthLimit = 40
+    public static int identifierLengthLimit = 40;
     
-    /** The reactor instance that creates this instance. */
-    public val ReactorInstance parent
-
     //////////////////////////////////////////////////////
     //// Public methods.
 
+    /**
+     * Return the definition, which is the AST node for this object.
+     */
+    public T getDefinition() {
+        return definition;
+    }
+    
     /** 
      * Return the full name of this instance, which has the form
      * "a.b.c", where "c" is the name of this instance, "b" is the name
@@ -78,12 +77,15 @@ abstract class NamedInstance<T extends EObject> {
      * c[index].
      * @return The full name of this instance.
      */
-    def String getFullName() {
-        if (this.parent === null) {
-            this.getName
-        } else {
-            parent.getFullName() + "." + this.getName
+    public String getFullName() {
+        if (_fullName == null) {
+            if (parent == null) {
+                _fullName = getName();
+            } else {
+                _fullName = parent.getFullName() + "." + this.getName();
+            }
         }
+        return _fullName;
     }
     
     /**
@@ -92,28 +94,34 @@ abstract class NamedInstance<T extends EObject> {
      * the same parent.
      * @return The name of this instance within its parent.
      */
-    abstract def String getName();
+    public abstract String getName();
+    
+    /**
+     * Return the parent or null if this is a top-level reactor.
+     */
+    public ReactorInstance getParent() {
+        return parent;
+    }
+    
+    /**
+     * Return the root reactor if it is marked as as main or federated,
+     * and otherwise return null.
+     * @return The main/federated top-level parent.
+     */
+    public ReactorInstance main() {
+        ReactorInstance r = this.root();
+        if (r != null && r.isMainOrFederated()) {
+            return r;
+        }
+        return null;
+    }
     
     /**
      * Return the root reactor, which is the top-level parent.
      * @return The top-level parent.
      */
-    abstract def ReactorInstance root();
-    
-    /**
-     * Returns the root reactor if it is marked as as main or federated, otherwise null.
-     * @return The main/federated top-level parent.
-     */
-    // TODO check if still needed or can be replaced by root()
-    def ReactorInstance main() {
-        val r = this.root()
-        if (r !== null && r.isMainOrFederated()) {
-            return r
-        }
-        return null
-    }
-    
-        
+    public abstract ReactorInstance root();
+            
     /**
      * Return an identifier for this instance, which has the form "a_b_c"
      * or "a_b_c_n", where "c" is the name of this instance, "b" is the name
@@ -126,46 +134,52 @@ abstract class NamedInstance<T extends EObject> {
      * is without the _n suffix) is longer than
      * the static variable identifierLengthLimit, then the name will be
      * truncated. The returned name will be the tail of the name calculated
-     * above with the prefix '__'.
+     * above with the prefix '_'.
      * @return An identifier for this instance that is guaranteed to be
      *  unique within the top-level parent.
      */
-    def String uniqueID() {
-        if (_uniqueID === null) {
+    public String uniqueID() {
+        if (_uniqueID == null) {
             // Construct the unique ID only if it has not been
             // previously constructed.
-            var prefix = getFullNameWithJoiner('_').toLowerCase
+            String prefix = getFullNameWithJoiner("_").toLowerCase();
             
             // Replace all non-alphanumeric (Latin) characters with underscore.
-            prefix = prefix.replaceAll("[^A-Za-z0-9]", "_")
+            prefix = prefix.replaceAll("[^A-Za-z0-9]", "_");
             
             // Truncate, if necessary.
-            if (prefix.length > identifierLengthLimit) {
-                prefix = '__' 
-                    + prefix.substring(prefix.length - identifierLengthLimit + 2)
+            if (prefix.length() > identifierLengthLimit) {
+                prefix = '_' 
+                    + prefix.substring(prefix.length() - identifierLengthLimit + 1);
             }
             
             // Ensure uniqueness.
-            var toplevel = root()
-            if (toplevel._uniqueIDCount === null) {
-                toplevel._uniqueIDCount = new HashMap<String,Integer>()
+            ReactorInstance toplevel = root();
+            if (toplevel.uniqueIDCount == null) {
+                toplevel.uniqueIDCount = new HashMap<String,Integer>();
             }
-            var count = toplevel._uniqueIDCount.get(prefix)
-            if (count === null) {
-                toplevel._uniqueIDCount.put(prefix, 1)
-                _uniqueID = prefix
+            var count = toplevel.uniqueIDCount.get(prefix);
+            if (count == null) {
+                toplevel.uniqueIDCount.put(prefix, 1);
+                _uniqueID = prefix;
             } else {
-                toplevel._uniqueIDCount.put(prefix, count + 1)
+                toplevel.uniqueIDCount.put(prefix, count + 1);
                 // NOTE: The length of this name could exceed
                 // identifierLengthLimit. Is this OK?
-                _uniqueID = prefix + '_' + (count + 1)
+                _uniqueID = prefix + '_' + (count + 1);
             }
         }
-        _uniqueID
+        return _uniqueID;
     }
 
     //////////////////////////////////////////////////////
     //// Protected fields.
+
+    /** The Instantiation AST object from which this was created. */
+    T definition;
+
+    /** The reactor instance that creates this instance. */
+    ReactorInstance parent;
 
     /**
      * Map from a name of the form a_b_c to the number of
@@ -174,7 +188,7 @@ abstract class NamedInstance<T extends EObject> {
      * no entry in this map. This map should be non-null only
      * for the main reactor (the top level).
      */
-    protected HashMap<String,Integer> _uniqueIDCount;
+    HashMap<String,Integer> uniqueIDCount;
 
     //////////////////////////////////////////////////////
     //// Protected methods.
@@ -187,11 +201,12 @@ abstract class NamedInstance<T extends EObject> {
      * at the container in main.
      * @return A string representing this instance.
      */
-    protected def String getFullNameWithJoiner(String joiner) {
-        if (this.parent === null) {
-            this.getName
+    protected String getFullNameWithJoiner(String joiner) {
+        // This is not cached because _uniqueID is cached.
+        if (parent == null) {
+            return this.getName();
         } else {
-            parent.getFullNameWithJoiner(joiner) + joiner + this.getName
+            return parent.getFullNameWithJoiner(joiner) + joiner + this.getName();
         }
     }
 
@@ -199,8 +214,13 @@ abstract class NamedInstance<T extends EObject> {
     //// Private fields.
     
     /**
+     * The full name of this instance.
+     */
+    private String _fullName = null;
+    
+    /**
      * Unique ID for this instance. This is null until
      * uniqueID() is called.
      */
-    String _uniqueID = null;
+    private String _uniqueID = null;
 }

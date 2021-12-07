@@ -1,0 +1,126 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * @author Hannes Klein
+ * @author Felix Wittwer
+ * @author Clément Fournier
+ */
+
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+    cargo-dependencies: {
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        }
+    }
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor Manager(num_workers: usize(100), L: f64(1), R: f64(5), N: u32(10000000)) {
+    // parameters
+    state L(L);
+    state R(R);
+    state N(N);
+    state num_workers(num_workers);
+
+    preamble {=
+        use super::trapezoidal::WorkMessage;
+    =}
+
+    state numTermsReceived: u32(0);
+    state resultArea: f64(0.0);
+
+    output[num_workers] outWorkers: WorkMessage;
+    input[num_workers] inWorkers: f64;
+
+    reaction(startup) -> outWorkers {=
+        let worker_range = (self.R - self.L) / (self.num_workers as f64);
+        let precision = (self.R - self.L) / (self.N as f64);
+
+        for (i, worker) in outWorkers.into_iter().enumerate() {
+            let wl = (worker_range * i as f64) + self.L;
+            let wr = wl + worker_range;
+            ctx.set(worker, WorkMessage { l: wl, r: wr, h: precision })
+        }
+    =}
+
+    reaction(inWorkers) {=
+        for inWorker in inWorkers {
+            if let Some(v) = ctx.get(&inWorker) {
+                self.numTermsReceived += 1;
+                self.resultArea += v;
+            }
+        }
+
+        if self.numTermsReceived as usize == self.num_workers {
+            info!("Area: {}", self.resultArea);
+            ctx.request_stop(Asap);
+        }
+    =}
+}
+
+
+reactor Worker {
+    preamble {=
+        use super::trapezoidal::WorkMessage;
+    =}
+
+    input inManager: WorkMessage;
+    output outManager: f64;
+
+    reaction(inManager) -> outManager {=
+        let WorkMessage { r, l, h } = ctx.get(inManager).unwrap();
+        let n =  ((r - l) / h) as i32;
+        let mut accum_area = 0.0;
+
+        for i in 0..n {
+            let lx: f64 = (i as f64 * h) + l;
+            let rx: f64 = lx + h;
+
+            let ly = fx(lx);
+            let ry = fx(rx);
+
+            accum_area += 0.5 * (ly + ry) * h;
+        }
+
+        ctx.set(outManager, accum_area);
+    =}
+
+    preamble {=
+        // the function to integrate
+        fn fx(x: f64) -> f64 {
+            let a = f64::sin(f64::powf(x, 3.0) - 1.0);
+            let b = x + 1.0;
+            let c = a / b;
+            let d = f64::sqrt(1.0 + f64::exp(f64::sqrt(2.0 * x)));
+            let r = c * d;
+            return r;
+        }
+    =}
+}
+
+
+main reactor (num_pieces: u32(10000000),
+              left_end_point: f64(1.0),
+              right_end_point: f64(5.0),
+              num_workers: usize(100)) {
+    manager = new Manager(num_workers=num_workers, L=left_end_point, R=right_end_point, N=num_pieces);
+    runner = new BenchmarkRunner();
+
+    workers = new[num_workers] Worker();
+
+    workers.outManager -> manager.inWorkers;
+    manager.outWorkers -> workers.inManager;
+
+    preamble {=
+        #[derive(Copy, Clone, Debug)]
+        pub struct WorkMessage {
+            pub l: f64,
+            pub r: f64,
+            pub h: f64,
+        }
+    =}
+}

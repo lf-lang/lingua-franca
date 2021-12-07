@@ -36,6 +36,7 @@ import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -53,7 +54,7 @@ class CppGenerator(
         const val libDir = "/lib/cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "007143225dbc198a5fee233ce125c3584a9541d8"
+        const val defaultRuntimeVersion = "1d5ef9d9dc25bcf30bc4eb94b2316b32f456aaa2"
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
@@ -126,6 +127,17 @@ class CppGenerator(
         fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
+    fun getCmakeVersion(buildPath: Path): String? {
+        val cmd = commandFactory.createCommand("cmake", listOf("--version"), buildPath)
+        val res = cmd.run()
+        if (res == 0) {
+            val regex = "\\d+(\\.\\d+)+".toRegex()
+            val version = regex.find(cmd.output.toString())
+            return version?.value
+        }
+        return null
+    }
+
     fun doCompile(context: IGeneratorContext) {
         val outPath = fileConfig.outPath
 
@@ -135,44 +147,23 @@ class CppGenerator(
         // make sure the build directory exists
         Files.createDirectories(buildPath)
 
-        val cores = Runtime.getRuntime().availableProcessors()
-
-        val makeCommand = commandFactory.createCommand(
-            "cmake",
-            listOf(
-                "--build", ".", "--target", "install", "--parallel", cores.toString(), "--config",
-                targetConfig.cmakeBuildType?.toString() ?: "Release"
-            ),
-            buildPath
-        )
-
-        val cmakeCommand = commandFactory.createCommand(
-            "cmake", listOf(
-                "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
-                "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
-                "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
-                fileConfig.srcGenPath.toUnixString()
-            ),
-            buildPath
-        )
-        if (makeCommand == null || cmakeCommand == null) {
+        // get the installed cmake version and make sure it is at least 3.5
+        val version = getCmakeVersion(buildPath)
+        if (version == null || version.compareVersion("3.5.0") < 0) {
             errorReporter.reportError(
-                "The C++ target requires CMAKE >= 3.02 to compile the generated code. " +
+                "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
             return
         }
 
-        // prepare cmake
-        if (targetConfig.compiler != null) {
-            cmakeCommand.setEnvironmentVariable("CXX", targetConfig.compiler)
-        }
-
         // run cmake
+        val cmakeCommand = createCmakeCommand(buildPath, outPath, reactorCppPath)
         val cmakeReturnCode = cmakeCommand.run(context.cancelIndicator)
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
+            val makeCommand = createMakeCommand(buildPath, version)
             val makeReturnCode = makeCommand.run(context.cancelIndicator)
 
             if (makeReturnCode == 0) {
@@ -185,6 +176,58 @@ class CppGenerator(
         } else {
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
         }
+    }
+
+    private fun String.compareVersion(other: String): Int {
+        val a = this.split(".").map { it.toInt() }
+        val b = other.split(".").map { it.toInt() }
+        for (x in (a zip b)) {
+            val res = x.first.compareTo(x.second)
+            if (res != 0)
+                return res
+        }
+        return 0
+    }
+
+    private fun createMakeCommand(buildPath: Path, version: String): LFCommand {
+        val makeArgs: List<String>
+        if (version.compareVersion("3.12.0") < 0) {
+            errorReporter.reportWarning("CMAKE is older than version 3.12. Parallel building is not supported.")
+            makeArgs =
+                listOf("--build", ".", "--target", "install", "--config", targetConfig.cmakeBuildType?.toString() ?: "Release")
+        } else {
+            val cores = Runtime.getRuntime().availableProcessors()
+            makeArgs = listOf(
+                "--build",
+                ".",
+                "--target",
+                "install",
+                "--parallel",
+                cores.toString(),
+                "--config",
+                targetConfig.cmakeBuildType?.toString() ?: "Release"
+            )
+        }
+
+        return commandFactory.createCommand("cmake", makeArgs, buildPath)
+    }
+
+    private fun createCmakeCommand(buildPath: Path, outPath: Path, reactorCppPath: Path): LFCommand {
+        val cmd = commandFactory.createCommand(
+            "cmake", listOf(
+                "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
+                "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
+                "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
+                fileConfig.srcGenPath.toUnixString()
+            ),
+            buildPath
+        )
+
+        // prepare cmake
+        if (targetConfig.compiler != null) {
+            cmd.setEnvironmentVariable("CXX", targetConfig.compiler)
+        }
+        return cmd
     }
 
     /**
