@@ -87,7 +87,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
-import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
@@ -3080,7 +3079,7 @@ class CGenerator extends GeneratorBase {
                 val temp = new StringBuilder();
                 var nameOfSelfStruct = CUtil.reactorRef(child)
                 
-                startScopedReactorBlock(temp, child);
+                startScopedBlock(temp, child);
 
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
@@ -3108,7 +3107,7 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
-                endScopedReactorBlock(temp, child);
+                endScopedBlock(temp);
 
                 if (foundOne) {
                     pr(startTimeStep, temp.toString());
@@ -3120,7 +3119,7 @@ class CGenerator extends GeneratorBase {
         val temp = new StringBuilder();
         var containerSelfStructName = CUtil.reactorRef(instance)
 
-        startScopedReactorBlock(temp, instance);
+        startScopedBlock(temp, instance);
         
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
@@ -3137,7 +3136,7 @@ class CGenerator extends GeneratorBase {
                         // the input of a contained reactor in the federate.
                         if (currentFederate.contains(port.parent)) {
                             
-                            startScopedReactorBlock(temp, port.parent);
+                            startScopedBlock(temp, port.parent);
                             
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
@@ -3179,7 +3178,7 @@ class CGenerator extends GeneratorBase {
                                 }
                                 startTimeStepIsPresentCount++
                             }
-                            endScopedReactorBlock(temp, port.parent);
+                            endScopedBlock(temp);
                         }
                     }
                 }
@@ -3237,7 +3236,7 @@ class CGenerator extends GeneratorBase {
             }
         }
 
-        endScopedReactorBlock(temp, instance);
+        endScopedBlock(temp);
 
         if (foundOne) pr(startTimeStep, temp.toString());
         
@@ -3245,7 +3244,7 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
                 
-                startScopedReactorBlock(startTimeStep, child);
+                startScopedBlock(startTimeStep, child);
         
                 for (output : child.outputs) {
                     if (output.isMultiport()) {
@@ -3287,7 +3286,7 @@ class CGenerator extends GeneratorBase {
                         startTimeStepIsPresentCount++
                     }
                 }
-                endScopedReactorBlock(startTimeStep, child);
+                endScopedBlock(startTimeStep);
             }
         }
     }
@@ -3402,12 +3401,26 @@ class CGenerator extends GeneratorBase {
     /** 
      * Construct a unique type for the struct of the specified
      * typed variable (port or action) of the specified reactor class.
+     * This is required to be the same as the type name returned by
+     * {@link variableStructType(TriggerInstance<?>)}.
      * @param variable The variable.
      * @param reactor The reactor class.
      * @return The name of the self struct.
      */
     static def variableStructType(Variable variable, ReactorDecl reactor) {
         '''«reactor.name.toLowerCase»_«variable.name»_t'''
+    }
+
+    /** 
+     * Construct a unique type for the struct of the specified
+     * instance (port or action).
+     * This is required to be the same as the type name returned by
+     * {@link variableStructType(Variable, ReactorDecl)}.
+     * @param portOrAction The port or action instance.
+     * @return The name of the self struct.
+     */
+    static def variableStructType(TriggerInstance<?> portOrAction) {
+        '''«portOrAction.parent.reactorDefinition.name.toLowerCase»_«portOrAction.name»_t'''
     }
     
     /** 
@@ -3588,12 +3601,10 @@ class CGenerator extends GeneratorBase {
         var fullName = instance.fullName
         pr(initializeTriggerObjects,
                 '// ***** Start initializing ' + fullName + ' of class ' + reactorClass.name)
-            
-        var selfStruct = CUtil.reactorRef(instance)
         
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
-        startScopedBlock(initializeTriggerObjects, instance);
+        startScopedBlock(initializeTriggerObjects, instance, false);
 
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
@@ -3613,46 +3624,12 @@ class CGenerator extends GeneratorBase {
         generateTraceTableEntries(instance, instance.actions, instance.timers)
         generateReactorInstanceExtension(instance, instance.reactions)
         generateParameterInitialization(instance)
-        
-        // Once parameters are done, we can allocate memory for any multiports.
-        // Allocate memory for outputs.
-        // NOTE: Not done for top level.
-        for (output : reactorClass.toDefinition.outputs) {
-            // If the port is a multiport, create an array.
-            if (JavaAstUtils.isMultiport(output)) {
-                initializeOutputMultiport(initializeTriggerObjects, output, selfStruct, instance)
-            } else {
-                pr(initializeTriggerObjects, '''
-                    // width of -2 indicates that it is not a multiport.
-                    «selfStruct»->_lf_«output.name»_width = -2;
-                ''')
-            }            
-        }
-        
+        initializeOutputMultiports(instance)
+                
         recordStartupAndShutdown(instance.reactions);
 
-        // Next, allocate memory for input. 
-        // NOTE: Not done for top level.
-        for (input : reactorClass.toDefinition.inputs) {
-            // If the port is a multiport, create an array.
-            if (JavaAstUtils.isMultiport(input)) {
-                pr(initializeTriggerObjects, '''
-                    «selfStruct»->_lf_«input.name»_width = «multiportWidthSpecInC(input, null, instance)»;
-                    // Allocate memory for multiport inputs.
-                    «selfStruct»->_lf_«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «multiportWidthSpecInC(input, null, instance)»); 
-                    // Set inputs by default to an always absent default input.
-                    for (int i = 0; i < «selfStruct»->_lf_«input.name»_width; i++) {
-                        «selfStruct»->_lf_«input.name»[i] = &«selfStruct»->_lf_default__«input.name»;
-                    }
-                ''')
-            } else {
-                pr(initializeTriggerObjects, '''
-                    // width of -2 indicates that it is not a multiport.
-                    «selfStruct»->_lf_«input.name»_width = -2;
-                ''')
-            }
-        }
-
+        initializeInputs(instance)
+        
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance);
@@ -3855,18 +3832,52 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code that malloc's memory for an output multiport.
-     * @param builder The generated code is put into builder
-     * @param output The output port to be initialized
-     * @name
+     * Generate code that mallocs memory for any output multiports.
+     * @param reactor The reactor instance.
      */
-    def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
-        val reactor = instance.definition.reactorClass
-        pr(builder, '''
-            «nameOfSelfStruct»->_lf_«output.name»_width = «multiportWidthSpecInC(output, null, instance)»;
-            // Allocate memory for multiport output.
-            «nameOfSelfStruct»->_lf_«output.name» = («variableStructType(output, reactor)»*)calloc(«nameOfSelfStruct»->_lf_«output.name»_width, sizeof(«variableStructType(output, reactor)»)); 
-        ''')
+    def initializeOutputMultiports(ReactorInstance reactor) {
+        for (output : reactor.outputs) {
+            // If the port is a multiport, create an array.
+            if (output.isMultiport) {
+                pr(initializeTriggerObjects, '''
+                    «CUtil.portRef(output)»_width = «output.width»;
+                    // Allocate memory for multiport output.
+                    «CUtil.portRef(output)» = («variableStructType(output)»*)calloc(«CUtil.portRef(output)»_width, sizeof(«variableStructType(output)»)); 
+                ''')
+            } else {
+                pr(initializeTriggerObjects, '''
+                    // width of -2 indicates that it is not a multiport.
+                    «CUtil.portRefSource(output)»_width = -2;
+                ''')
+            }            
+        }
+    }
+    
+    /**
+     * Allocate memory for inputs.
+     * @param reactor The reactor.
+     */
+    def initializeInputs(ReactorInstance reactor) {
+        for (input : reactor.inputs) {
+            val portRef = CUtil.portRef(input)
+            // If the port is a multiport, create an array.
+            if (input.isMultiport) {
+                pr(initializeTriggerObjects, '''
+                    «portRef»_width = «input.width»;
+                    // Allocate memory for multiport inputs.
+                    «portRef» = («variableStructType(input)»**)malloc(sizeof(«variableStructType(input)»*) * «input.width»); 
+                    // Set inputs by default to an always absent default input.
+                    for (int i = 0; i < «input.width»; i++) {
+                        «portRef»[i] = &«CUtil.reactorRef(reactor)»->_lf_default__«input.name»;
+                    }
+                ''')
+            } else {
+                pr(initializeTriggerObjects, '''
+                    // width of -2 indicates that it is not a multiport.
+                    «portRef»_width = -2;
+                ''')
+            }
+        }
     }
     
     /**
@@ -3926,7 +3937,7 @@ class CGenerator extends GeneratorBase {
         val temp = new StringBuilder();
         var foundOne = false;
 
-        startScopedReactorBlock(temp, reactor);
+        startScopedBlock(temp, reactor);
         
         for (r : reactor.reactions) {
             if (federate === null || federate.contains(
@@ -3945,7 +3956,7 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
         }
-        endScopedReactorBlock(temp, reactor);
+        endScopedBlock(temp);
 
         if (foundOne) pr(temp.toString());
         
@@ -4604,8 +4615,7 @@ class CGenerator extends GeneratorBase {
         StringBuilder builder, 
         NamedInstance<?> source, 
         NamedInstance<?> destination,
-        StringBuilder toEnclose,
-        NamedInstance<?> context
+        StringBuilder toEnclose
     ) {
         val sourceParentBanksReversed = new LinkedList<ReactorInstance>();
         var result = 1;
@@ -4613,11 +4623,9 @@ class CGenerator extends GeneratorBase {
         // Start a scoped block so we can define bank index variables without
         // resulting in them being multiply defined.
         startScopedBlock(builder);
-        // The following defines the self structs only if the parents are not a parent of context.
-        defineSelfStruct(builder, source.parent, context);
 
         if (source.parent != destination.parent) {
-            defineSelfStruct(builder, destination.parent, context);
+            defineSelfStruct(builder, destination.parent);
         
             // Initialize parent bank indices and construct a reversed list.
             val sourceParents = source.parents;
@@ -4690,7 +4698,7 @@ class CGenerator extends GeneratorBase {
      * @param builder The string builder into which to write.
      */
     private def void startScopedBlock(StringBuilder builder) {
-        startScopedBlock(builder, null);
+        startScopedBlock(builder, null, true);
     }
 
     /**
@@ -4699,11 +4707,31 @@ class CGenerator extends GeneratorBase {
      * that iterates over the bank members using a standard index
      * variable. If the reactor is null or is not a bank, then this simply
      * starts a scoped block by printing an opening curly brace.
+     * This also adds a declaration of a pointer to the self
+     * struct of the reactor or bank member.
      * This must be followed by an {@link endScopedBlock(StringBuilder)}.
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance.
      */
     private def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
+        startScopedBlock(builder, reactor, true)
+    }
+
+    /**
+     * Start a scoped block for the specified reactor.
+     * If the reactor is a bank, then this starts a for loop
+     * that iterates over the bank members using a standard index
+     * variable. If the reactor is null or is not a bank, then this simply
+     * starts a scoped block by printing an opening curly brace.
+     * If the declare arguement is true, then this also
+     * adds a declaration of a pointer to the self
+     * struct of the reactor or bank member.
+     * This must be followed by an {@link endScopedBlock(StringBuilder)}.
+     * @param builder The string builder into which to write.
+     * @param reactor The reactor instance or null for a simple scoped block.
+     * @param declare True to declare a pointer to the self struct
+     */
+    private def void startScopedBlock(StringBuilder builder, ReactorInstance reactor, boolean declare) {
         if (reactor !== null && reactor.isBank) {
             val index = CUtil.bankIndex(reactor);            
             pr(builder, '''
@@ -4714,6 +4742,7 @@ class CGenerator extends GeneratorBase {
             pr(builder, "{");
         }
         indent(builder);
+        if (declare && reactor != null) defineSelfStruct(builder, reactor);
     }
 
     /**
@@ -4725,45 +4754,6 @@ class CGenerator extends GeneratorBase {
         pr(builder, "}");
     }
     
-    /**
-     * Start a scoped block for the specified reactor in situations where
-     * the self struct for the specified reactor is not already in scope.
-     * If the reactor is a bank, then this starts a for loop
-     * that iterates over the bank members using a standard index
-     * variable. If the reactor is null or is not a bank, then this simply
-     * starts a scoped block by printing an opening curly brace.
-     * This must be followed by an {@link endScopedReactorBlock(StringBuilder)}.
-     * @param builder The string builder into which to write.
-     * @param reactor The reactor instance.
-     */
-    protected def void startScopedReactorBlock(StringBuilder builder, ReactorInstance reactor) {
-        // The first creates a scope in which we can define a pointer to the self
-        // struct without fear of redefining.
-        if (reactor != main) {
-            startScopedBlock(builder);
-            defineSelfStruct(builder, reactor);
-            if (reactor.isBank()) {
-                // Generate of for loop to iterate over the bank members.
-                startScopedBlock(builder, reactor);
-            }
-        }
-    }
-    
-    /**
-     * End a scoped reactor block.
-     * @param builder The string builder into which to write.
-     * @param reactor The reactor instance.
-     */
-    protected def void endScopedReactorBlock(StringBuilder builder, ReactorInstance reactor) {
-        if (reactor != main) {
-            if (reactor.isBank()) {
-                // Close the for loop iterating over bank members.
-                endScopedBlock(builder);
-            }
-            endScopedBlock(builder);
-        }
-    }
-
     /**
      * Start a scoped block for the specified range.
      * 
@@ -4807,7 +4797,6 @@ class CGenerator extends GeneratorBase {
         // The first creates a scope in which we can define a pointer to the self
         // struct without fear of redefining.
         startScopedBlock(builder);
-        defineSelfStruct(builder, reactor);
 
         if (reactor.isBank) {
             val bankIndex = CUtil.bankIndex(reactor);
@@ -4819,28 +4808,32 @@ class CGenerator extends GeneratorBase {
                     while (range_count++ < «range.totalWidth») {
                 ''')
                 indent(builder);
+                defineSelfStruct(builder, reactor);
             } else {
                 // Bank, but not a multiport.
                  pr(builder, '''
                     // Send range covers bank member(s). Iterate over bank members.
                     for (int «bankIndex» = «range.startBank»; «bankIndex» < «range.startBank» + «range.totalWidth»; «bankIndex»++) {
                 ''')
-               indent(builder);
-               pr(builder, "int channel = 0;");
+                indent(builder);
+                pr(builder, "int channel = 0;");
+                defineSelfStruct(builder, reactor);
             }
         } else if (range.port.isMultiport) {
             // Reactor is not a bank, but port is a multiport.
-             pr(builder, '''
+            defineSelfStruct(builder, reactor);
+            pr(builder, '''
                 // Send range covers channels of a multiport. Iterate over channels.
                 for (int channel = «range.startChannel»; channel < «range.startChannel» + «range.totalWidth»; channel++) {
             ''')
-           indent(builder);
+            indent(builder);
         } else {
             // Not a multiport nor a bank.
             // For consistent depth of nesting, generate a scoped block.
             pr(builder, "{");
             indent(builder);
             pr(builder, "int channel = 0;");
+            defineSelfStruct(builder, reactor);
         }
     }
     
@@ -4894,45 +4887,12 @@ class CGenerator extends GeneratorBase {
     private def void defineSelfStruct(
         StringBuilder builder, ReactorInstance reactor
     ) {
-        defineSelfStruct(builder, reactor, null);
-    }
-
-    /**
-     * For the specified reactor, if necessary, print code to the specified builder
-     * that defines a pointer to the self struct of the specified
-     * reactor. 
-     * 
-     * The self struct is necessary if the specified reactor is not main nor
-     * a parent (even indirectly) of the specified instance (or if the
-     * specified instance is null. 
-     * 
-     * If the specified reactor is a bank, then the pointer
-     * is to the array of pointers to the self structs for that bank.
-     * 
-     * @param builder The string builder into which to write.
-     * @param reactor The reactor instance for which to provide a self struct.
-     * @param instance The current object whose parents are all in scope.
-     */
-    private def void defineSelfStruct(
-        StringBuilder builder, ReactorInstance reactor, NamedInstance<?> instance
-    ) {
-        if ((instance !== null && instance.hasParent(reactor)) || reactor == main) {
-            // Assume the self struct is already in scope because the reactor
-            // is a parent of the instance.
-            return;
-        }
         var nameOfSelfStruct = reactor.uniqueID() + "_self";
         var structType = CUtil.selfType(reactor)
-        if (reactor.isBank) {
-            pr(builder, '''
-                «structType»** «nameOfSelfStruct» = («structType»**)&self_structs[«CUtil.indexExpression(reactor.parent)» + «reactor.getIndexOffset»];
-            ''')
-        } else {
-            pr(builder, '''
-                «structType»* «nameOfSelfStruct» = («structType»*)self_structs[«CUtil.indexExpression(reactor)»];
-            ''')
-        }
-     }
+        pr(builder, '''
+            «structType»* «nameOfSelfStruct» = («structType»*)self_structs[«CUtil.indexExpression(reactor)»];
+        ''')
+    }
 
     /**
      * Generate assignments of pointers in the "self" struct of a destination
@@ -4952,11 +4912,13 @@ class CGenerator extends GeneratorBase {
             if (src != port && currentFederate.contains(src.parent)) {
                 val temp = new StringBuilder();
                 // The eventual source is different from the port and is in the federate.
-                val destStructType = variableStructType(
-                    port.definition as TypedVariable,
-                    port.parent.definition.reactorClass
-                )
+                val destStructType = variableStructType(port)
                 
+                // If the src self struct pointer is not already declared, declare it.
+                if (src.parent != port.parent) {
+                    defineSelfStruct(temp, src.parent)
+                }
+                    
                 // There are four cases, depending on whether the source or
                 // destination or both are multiports.
                 if (src.isMultiport()) {
@@ -4964,7 +4926,7 @@ class CGenerator extends GeneratorBase {
                     // address, whereas if it's an output port, we do.
                     var modifier = "&";
                     if (src.isInput()) modifier = "";
-                    
+
                     if (port.isMultiport()) {
                         // Source and destination are both multiports.                        
                         pr(temp, '''
@@ -5000,7 +4962,7 @@ class CGenerator extends GeneratorBase {
                 }
                 // The null argument ensures that both src and port self struct
                 // variables are defined.
-                encloseInBankIteration(code, src, port, temp, null);
+                encloseInBankIteration(code, src, port, temp);
             }
         }
     }
@@ -5563,7 +5525,7 @@ class CGenerator extends GeneratorBase {
         
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
-        startScopedReactorBlock(code, reactor);
+        startScopedBlock(code, reactor);
         
         // If the child has a multiport that is an effect of some reaction in its container,
         // then we have to generate code to allocate memory for arrays pointing to
@@ -5591,7 +5553,7 @@ class CGenerator extends GeneratorBase {
         // output of a contained reactor.
         deferredConnectReactionsToPorts(reactor)
         
-        endScopedReactorBlock(code, reactor)
+        endScopedBlock(code)
         
         // Second batch of initializes cannot be within a for loop
         // iterating over bank members because they iterate over send
@@ -5646,12 +5608,9 @@ class CGenerator extends GeneratorBase {
                     // the input of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
                     if (currentFederate.contains(port.parent)) {
-                        val destStructType = variableStructType(
-                            port.definition as TypedVariable,
-                            port.parent.definition.reactorClass
-                        )
+                        val destStructType = variableStructType(port)
                         // The port belongs to a contained reactor, which may be a bank.
-                        startScopedReactorBlock(code, port.parent);
+                        startScopedBlock(code, port.parent);
                         
                         // If the port is an input, then the port reference may in the parent's parent.
                         if (port.isInput() && port.parent.parent !== null) {
@@ -5673,7 +5632,7 @@ class CGenerator extends GeneratorBase {
                                 «CUtil.portRefDestination(port)» = («destStructType»*)&«CUtil.portRefSource(port)»;
                             ''')
                         }
-                        endScopedReactorBlock(code, port.parent);
+                        endScopedBlock(code);
                     }
                 }
             }
@@ -5684,10 +5643,8 @@ class CGenerator extends GeneratorBase {
                     // of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
                     if (currentFederate.contains(port.parent)) {
-                        val destStructType = variableStructType(
-                            port.definition as TypedVariable,
-                            port.parent.definition.reactorClass
-                        )
+                        val destStructType = variableStructType(port)
+
                         // The port may be deeper in the hierarchy, in which
                         // case, the source port will not be the same as the
                         // destination port, and there may be multiple sources
@@ -5704,7 +5661,7 @@ class CGenerator extends GeneratorBase {
                             
                             if (sourcePort != port) {
                                 // sourcePort is deeper in the hierarchy. Need a
-                                // pointer to the self struct of the destination port.
+                                // pointer to the self struct of the destination port's parent.
                                 pr("{");
                                 indent();
                                 defineSelfStruct(code, port.parent);
@@ -5918,9 +5875,7 @@ class CGenerator extends GeneratorBase {
                     pr("// A reaction writes to a multiport of a child. Allocate memory.")
                     portsHandled.add(effect);
                     
-                    val portStructType = variableStructType(
-                            effect.definition, effect.parent.definition.reactorClass
-                    );
+                    val portStructType = variableStructType(effect)
                             
                     startScopedBlock(code, effect.parent);
                     
@@ -5953,22 +5908,17 @@ class CGenerator extends GeneratorBase {
                 // Port is an effect of a parent's reaction.
                 // That is, the port belongs to the same reactor as the reaction.
                 // The reaction is writing to an output of its container reactor.
-                val nameOfSelfStruct = CUtil.reactorRef(port.parent);
-                val portStructType = variableStructType(
-                    port.definition,
-                    port.parent.definition.reactorClass
-                )
+                val portRef = CUtil.portRef(port);
+                val portStructType = variableStructType(port)
                 
                 pr('''
-                    «nameOfSelfStruct»->_lf_«port.name»_width = «port.width»;
+                    «portRef»_width = «port.width»;
                     // Allocate memory to store output of reaction.
-                    «nameOfSelfStruct»->_lf_«port.name» = («portStructType»*)calloc(«nameOfSelfStruct»->_lf_«port.name»_width,
-                        sizeof(«portStructType»)); 
-                    «nameOfSelfStruct»->_lf_«port.name»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                                        * «nameOfSelfStruct»->_lf_«port.name»_width);
+                    «portRef» = («portStructType»*)calloc(«port.width», sizeof(«portStructType»)); 
+                    «portRef»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) * «port.width»);
                     // Assign each output port pointer to be used in reactions to facilitate user access to output ports
-                    for(int i=0; i < «nameOfSelfStruct»->_lf_«port.name»_width; i++) {
-                         «nameOfSelfStruct»->_lf_«port.name»_pointers[i] = &(«nameOfSelfStruct»->_lf_«port.name»[i]);
+                    for(int i=0; i < «port.width»; i++) {
+                         «portRef»_pointers[i] = &(«portRef»[i]);
                     }
                 ''')
                 // There may be more reactions writing to this port,
@@ -5990,8 +5940,7 @@ class CGenerator extends GeneratorBase {
         ReactionInstance reaction,
         int reactionNumber
     ) {
-        val reactorInstance = reaction.parent;
-        val selfStruct = CUtil.reactorRef(reactorInstance)
+        val reactor = reaction.parent;
         
         // Record the number of reactions that this reaction depends on.
         // This is used for optimization. When that number is 1, the reaction can
@@ -6004,25 +5953,27 @@ class CGenerator extends GeneratorBase {
         ) {
             dominatingReaction = dominatingReaction.findSingleDominatingReaction();
         }
+        val reactionRef = CUtil.reactionRef(reaction);
         if (dominatingReaction !== null 
                 && currentFederate.contains(dominatingReaction.definition)
                 && currentFederate.contains(dominatingReaction.parent)
         ) {
-            // Define the destination struct pointer, if needed.
-            // FIXME: If the destination is a bank, need to define the bank_index variable.
             val temp = new StringBuilder();
 
-            val upstreamReaction = '''«CUtil.reactorRef(dominatingReaction.parent)»->_lf__reaction_«dominatingReaction.index»'''
+            val dominatingReactionRef = CUtil.reactionRef(dominatingReaction)
+            if (dominatingReaction.parent != reaction.parent) {
+                defineSelfStruct(temp, dominatingReaction.parent)
+            }
             pr(temp, '''
-                // Reaction «reactionNumber» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
-                «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = &(«upstreamReaction»);
+                // Reaction «reactionNumber» of «reactor.getFullName» depends on one maximal upstream reaction.
+                «reactionRef».last_enabling_reaction = &(«dominatingReactionRef»);
             ''')
             
-            encloseInBankIteration(code, dominatingReaction, reaction, temp, reaction);
+            encloseInBankIteration(code, dominatingReaction, reaction, temp);
         } else {
             pr('''
-                // Reaction «reactionNumber» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
-                «selfStruct»->_lf__reaction_«reactionNumber».last_enabling_reaction = NULL;
+                // Reaction «reactionNumber» of «reactor.getFullName» does not depend on one maximal upstream reaction.
+                «reactionRef».last_enabling_reaction = NULL;
             ''')
         }
     }
@@ -6049,13 +6000,12 @@ class CGenerator extends GeneratorBase {
                         // Allocate memory to store pointers to the multiport output «trigger.name» 
                         // of a contained reactor «trigger.parent.getFullName»
                     ''')
-                    startScopedReactorBlock(code, trigger.parent);
+                    startScopedBlock(code, trigger.parent);
                     
                     // If the width is given as a numeric constant, then add that constant
                     // to the output count. Otherwise, assume it is a reference to one or more parameters.
                     val width = trigger.width * trigger.parent.width;
-                    val portStructType = variableStructType(trigger.definition,
-                        trigger.parent.definition.reactorClass)
+                    val portStructType = variableStructType(trigger)
 
                     pr('''
                         «CUtil.reactorRefContained(trigger.parent)».«trigger.name»_width = «width»;
@@ -6063,7 +6013,7 @@ class CGenerator extends GeneratorBase {
                                 sizeof(«portStructType»*) * «width»);
                     ''')
                     
-                    endScopedReactorBlock(code, trigger.parent);
+                    endScopedBlock(code);
                 }
             }
         }
@@ -6200,7 +6150,7 @@ class CGenerator extends GeneratorBase {
                             val destination = destinationRange.getPort();
                             
                             if (!declared.contains(destination.parent)) {
-                                // Need to declare the self struct.
+                                // Need to declare the self struct of the destination's parent.
                                 declared.add(destination.parent);
                                 defineSelfStruct(temp, destination.parent);
                             }
