@@ -155,6 +155,18 @@ public final class JavaAstUtils {
     }
 
     /**
+     * Returns the time value represented by the given AST node.
+     */
+    public static TimeValue toTimeValue(Time e) {
+        if (!isValidTime(e)) {
+            // invalid unit, will have been reported by validator
+            return new TimeValue(e.getInterval(), TimeUnit.SECOND);
+        }
+        return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
+    }
+
+
+    /**
      * If the initializer contains exactly one expression,
      * return it. Otherwise return null.
      */
@@ -190,16 +202,11 @@ public final class JavaAstUtils {
         }
     }
 
-    /**
-     * Returns the time value represented by the given AST node.
-     */
-    public static TimeValue toTimeValue(Time e) {
-        return new TimeValue(e.getInterval(), e.getUnit());
-    }
 
     /**
      * If the given string can be recognized as a floating-point number that has a leading decimal point,
      * prepend the string with a zero and return it. Otherwise, return the original string.
+     *
      * @param literal A string might be recognizable as a floating point number with a leading decimal point.
      * @return an equivalent representation of <code>literal
      * </code>
@@ -256,6 +263,16 @@ public final class JavaAstUtils {
     public static boolean isOfTimeType(Parameter param) {
         InferredType t = getInferredType(param);
         return t.isTime && !t.isList;
+    }
+
+    /**
+     * Returns true if the argument denotes a valid time, false otherwise.
+     *
+     * @param t AST node to inspect (non-null).
+     */
+    public static boolean isValidTime(Time t) {
+        return TimeUnit.isValidUnit(t.getUnit())
+            && (t.getUnit() != null || t.getInterval() == 0);
     }
 
     /**

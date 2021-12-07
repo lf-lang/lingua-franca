@@ -33,6 +33,7 @@ import java.util.LinkedHashSet
 import java.util.List
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.TerminalRule
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
@@ -71,7 +72,6 @@ import org.lflang.lf.ReactorDecl
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
 import org.lflang.lf.TupleExpr
 import org.lflang.lf.Type
@@ -79,7 +79,6 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
-import org.eclipse.emf.ecore.util.EcoreUtil
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.JavaAstUtils.*
@@ -338,7 +337,7 @@ class ASTUtils {
         delayParameter.type.id = "time"
         delayParameter.type.time = true
         val defaultTime = factory.createTime
-        defaultTime.unit = TimeUnit.NONE
+        defaultTime.unit = null
         defaultTime.interval = 0
 
         val init = factory.createInitializer
@@ -734,7 +733,7 @@ class ASTUtils {
      * @param e The element to be rendered as a time value.
      */
     def static toTimeValue(Element e) {
-        return new TimeValue(e.time, e.unit)
+        return new TimeValue(e.time, TimeUnit.fromName(e.unit))
     }
 
     /**
@@ -981,7 +980,7 @@ class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     def static boolean isValidTime(Time t) {
-        if (t !== null && t.unit != TimeUnit.NONE) {
+        if (t !== null && t.unit !== null) {
             return true
         }
         return false
@@ -1005,7 +1004,6 @@ class ASTUtils {
         }
         return true
     }
-
 
     /**
      * Given a parameter, return its initial value.
@@ -1088,7 +1086,8 @@ class ASTUtils {
             // Check to be sure that the instantiation is in fact an instantiation
             // of the reactor class for which this is a parameter.
             val instantiation = instantiations.get(0);
-            if (parameter.eContainer !== instantiation.reactorClass) {
+
+            if (!belongsTo(parameter, instantiation)) {
                 throw new IllegalArgumentException("Parameter "
                     + parameter.name
                     + " is not a parameter of reactor instance "
@@ -1132,6 +1131,33 @@ class ASTUtils {
         // there was no assignment in the instantiation. So just use the
         // parameter's initial value.
         return parameter.init.exprs;
+    }
+    
+    /**
+     * Return true if the specified object (a Parameter, Port, Action, or Timer)
+     * belongs to the specified instantiation, meaning that it is defined in
+     * the reactor class being instantiated or one of its base classes.
+     * @param eobject The object.
+     * @param instnatiation The instantiation.
+     */
+    def static boolean belongsTo(EObject eobject, Instantiation instantiation) {
+        val reactor = toDefinition(instantiation.reactorClass);
+        return belongsTo(eobject, reactor);
+    }
+    
+    /**
+     * Return true if the specified object (a Parameter, Port, Action, or Timer)
+     * belongs to the specified reactor, meaning that it is defined in
+     * reactor class or one of its base classes.
+     * @param eobject The object.
+     * @param instnatiation The instantiation.
+     */
+    def static boolean belongsTo(EObject eobject, Reactor reactor) {
+        if (eobject.eContainer === reactor) return true;
+        for (baseClass : reactor.superClasses) {
+            if (belongsTo(eobject, toDefinition(baseClass))) return true;
+        }
+        return false;
     }
     
     /**

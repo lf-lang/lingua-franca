@@ -341,7 +341,7 @@ class TSReactionGenerator(
                 ) {
                     continue;
                 }
-                if (federate.containsReaction(reaction)) {
+                if (federate.contains(reaction)) {
                     generatedReactions.add(reaction)
                 }
             }

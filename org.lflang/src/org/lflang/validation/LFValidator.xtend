@@ -44,6 +44,7 @@ import org.lflang.InferredType
 import org.lflang.ModelInfo
 import org.lflang.Target
 import org.lflang.TargetProperty
+import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -325,10 +326,7 @@ class LFValidator extends BaseLFValidator {
                             Literals.ASSIGNMENT__RHS)
                     } else {
                         // This is a value. Check that units are present.
-                        error("Invalid time units: " + assignment.rhs
-                            + ". Should be one of " + TimeUnit.VALUES.filter [
-                                it != TimeUnit.NONE
-                            ], Literals.ASSIGNMENT__RHS)
+                        error("Missing time unit.", Literals.ASSIGNMENT__RHS)
                     }
                 }
             }

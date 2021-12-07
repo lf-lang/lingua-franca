@@ -5,7 +5,7 @@ target Python {
     coordination: decentralized
 }
 
-// reason for failing: get_current_tag() not supported by the python target
+// reason for failing: STP not supported by the python target
 
 reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
     preamble {=

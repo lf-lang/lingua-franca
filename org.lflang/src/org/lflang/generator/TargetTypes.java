@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
+import org.lflang.TimeUnit;
 import org.lflang.Target;
 import org.lflang.TimeValue;
 import org.lflang.lf.AddExpr;
@@ -109,10 +110,9 @@ public interface TargetTypes {
 
     /**
      * Returns an expression in the target language that corresponds
-     * to a time value ({@link #getTargetTimeType()}), with the given
-     * magnitude and unit. The unit may not be null (use {@link TimeUnit#NONE}).
+     * to the given time value ({@link #getTargetTimeType()}).
      */
-    String getTargetTimeExpr(long magnitude, TimeUnit unit);
+    String getTargetTimeExpr(TimeValue timeValue);
 
     /**
      * Returns an expression in the target language that is the translation
@@ -312,20 +312,13 @@ public interface TargetTypes {
         }
     }
 
-
-    /**
-     * Returns the representation of the given time value in
-     * target code.
-     */
-    default String getTargetTimeExpr(TimeValue tv) {
-        return getTargetTimeExpr(tv.time, tv.unit);
-    }
-
     /**
      * Returns the representation of the given time value in
      * target code.
      */
     default String getTargetTimeExpr(Time t) {
-        return getTargetTimeExpr(t.getInterval(), t.getUnit());
+        return getTargetTimeExpr(JavaAstUtils.toTimeValue(t));
     }
+
+
 }

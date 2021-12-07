@@ -527,6 +527,7 @@ public enum Target {
         case CCPP:
         case CPP:
         case Python:
+        case Rust:
             return true;
         }
         return false;

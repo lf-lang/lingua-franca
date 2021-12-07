@@ -94,8 +94,6 @@ public class ModelInfo {
      */
     public TopologyGraph topologyGraph;
 
-    public List<ReactorInstance> topLevelReactorInstances;
-
     /** Cycles found during topology analysis. */
     private List<Set<NamedInstance<?>>> topologyCycles = List.of();
 
@@ -115,7 +113,7 @@ public class ModelInfo {
         this.instantiationGraph = new InstantiationGraph(model, true);
 
         if (this.instantiationGraph.getCycles().size() == 0) {
-            topLevelReactorInstances = new LinkedList<>();
+            List<ReactorInstance> topLevelReactorInstances = new LinkedList<>();
             var main = model.getReactors().stream().filter(it -> it.isMain() || it.isFederated()).findFirst();
             if (main.isPresent()) {
                 var inst = new ReactorInstance(main.get(), reporter);

@@ -42,15 +42,15 @@ import org.lflang.validation.LFValidator;
 /**
  * Info about a cargo dependency. See {@link TargetProperty#CARGO_DEPENDENCIES}.
  *
- * @author Clément Fournier
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public class CargoDependencySpec {
 
     private final String version;
     private String gitRepo;
     private String rev;
-    private final String gitTag;
-    private final String localPath;
+    private String gitTag;
+    private String localPath;
     private final List<String> features;
 
     CargoDependencySpec(String version,
@@ -93,10 +93,22 @@ public class CargoDependencySpec {
 
     public void setGitRepo(String gitRepo) {
         this.gitRepo = gitRepo;
+        if (gitRepo != null) {
+            this.localPath = null;
+        }
     }
 
     public void setRev(String rev) {
         this.rev = rev;
+    }
+
+    public void setLocalPath(String localPath) {
+        this.localPath = localPath;
+        if (localPath != null) {
+            this.gitRepo = null;
+            this.rev = null;
+            this.gitTag = null;
+        }
     }
 
     /** Returns the list of features that are enabled on the crate. May be null. */

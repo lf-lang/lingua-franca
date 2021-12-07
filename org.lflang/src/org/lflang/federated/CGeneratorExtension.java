@@ -27,6 +27,8 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.ReactorInstance;
