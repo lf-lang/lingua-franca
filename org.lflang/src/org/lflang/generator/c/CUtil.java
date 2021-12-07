@@ -171,7 +171,16 @@ public class CUtil {
             );
         }
     }
-    
+
+    /**
+     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
+     * where the second argument is the parent of the first.
+     * @param port An instance of the port to be referenced.
+     */
+    static public String portRef(PortInstance port) {                
+        return portRef(port, port.getParent());
+    }
+
     /**
      * This is a special case of {@link portRef(PortInstance, ReactorInstance)
      * where it is know that the reference required for the port is to a
@@ -212,21 +221,13 @@ public class CUtil {
     }
 
     /** 
-     * Return the unique reference for the "self" struct of the specified
-     * reactor instance. If the instance is a bank of reactors, this returns
-     * something of the form name_self[bankIndex], where bankIndex is the 
-     * returned by {@link bankIndex(ReactorInstance)}.
-     * 
+     * Return a name for a pointer to the "self" struct of the specified
+     * reactor instance.
      * @param instance The reactor instance.
-     * @return A reference to the self struct.
+     * @return A name to use for a pointer to the self struct.
      */
     static public String reactorRef(ReactorInstance instance) {
         var result = instance.uniqueID() + "_self";
-        // If this reactor is a member of a bank of reactors, then change
-        // the name of its self struct to append [index].
-        if (instance.isBank()) {
-            result += "[" + bankIndex(instance) + "]";
-        }
         return result;
     }
     
