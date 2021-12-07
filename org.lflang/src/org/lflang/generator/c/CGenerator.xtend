@@ -4805,7 +4805,7 @@ class CGenerator extends GeneratorBase {
                     int range_count = 0;
                     int channel = «range.startChannel»;
                     int «bankIndex» = «range.startBank»;
-                    while (range_count++ < «range.totalWidth») {
+                    while (range_count < «range.totalWidth») {
                 ''')
                 indent(builder);
                 defineSelfStruct(builder, reactor);
@@ -4851,6 +4851,7 @@ class CGenerator extends GeneratorBase {
                 // Interleaved. Iterate over channels
                 // then bank members that are within the range.
                 pr(builder, '''
+                    range_count++;
                     «bankIndex»++;
                     if («bankIndex» >= «reactor.width») {
                         channel++;
@@ -4861,6 +4862,7 @@ class CGenerator extends GeneratorBase {
                 // Not interleaved. Iterate over the bank members
                 // then channels that are within the range.
                 pr(builder, '''
+                    range_count++;
                     channel++;
                     if (channel >= «port.width») {
                         «bankIndex»++;
@@ -5825,27 +5827,24 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         // For reference counting, set num_destinations for port «port.parent.name».«port.name».
                     ''')
-                    startScopedBlock(code, port.parent);
                     
                     // The input port may itself have multiple destinations.
                     for (sendingRange : port.eventualDestinations) {
                     
+                        startScopedRangeBlock(code, sendingRange);
+                        
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
-                            val start = sendingRange.startChannel;
-                            val end = sendingRange.startChannel + sendingRange.totalWidth;
                             pr('''
-                                for (int i = «start»; i < «end»; i++) {
-                                    «CUtil.portRefSource(port)»[i]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
-                                }
+                                «CUtil.portRefSource(port)»[channel]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         } else {
                             pr('''
                                 «CUtil.portRefSource(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
+                        endScopedRangeBlock(code, sendingRange);
                     }
-                    endScopedBlock(code);
                 }
             }
         }
@@ -6093,12 +6092,16 @@ class CGenerator extends GeneratorBase {
             // Total number of outputs (single ports and multiport channels)
             // produced by reaction «reaction.index» of «name».
             «CUtil.reactionRef(reaction)».num_outputs = «outputCount»;
-            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
-            // struct for this reaction.
-            «CUtil.reactionRef(reaction)».triggers = (trigger_t***)malloc(«outputCount» * sizeof(trigger_t**));
-            «CUtil.reactionRef(reaction)».triggered_sizes = (int*)malloc(«outputCount» * sizeof(int));
-            «CUtil.reactionRef(reaction)».output_produced = (bool**)malloc(«outputCount» * sizeof(bool*));
         ''')
+        if (outputCount > 0) {
+            pr('''
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                «CUtil.reactionRef(reaction)».triggers = (trigger_t***)malloc(«outputCount» * sizeof(trigger_t**));
+                «CUtil.reactionRef(reaction)».triggered_sizes = (int*)malloc(«outputCount» * sizeof(int));
+                «CUtil.reactionRef(reaction)».output_produced = (bool**)malloc(«outputCount» * sizeof(bool*));
+            ''')
+        }
         
         deferredOptimizeForSingleDominatingReaction(reaction, reaction.index);
 
@@ -6186,12 +6189,21 @@ class CGenerator extends GeneratorBase {
                                 destRangeCount++;
                             }
                         }
+                        
+                        var index = "channel";
+                        if (reaction.parent != port.parent) {
+                            // Reaction is writing to the input port of a contained reactor.
+                            // In this case, the triggered_sizes array size includes the bank
+                            // width, and hence we need to index using range_count rather than
+                            // channel.
+                            index = "range_count";
+                        }
                     
                         // Record the total size of the array.
                         pr('''
                             // Reaction «reaction.index» of «name» triggers «destRangeCount» downstream reactions
                             // through port «port.getFullName»[channel].
-                            «CUtil.reactionRef(reaction)».triggered_sizes[«channelCount» + channel] = «destRangeCount»;
+                            «CUtil.reactionRef(reaction)».triggered_sizes[«channelCount» + «index»] = «destRangeCount»;
                         ''')
                     
                         // Malloc the memory for the arrays.
@@ -6199,7 +6211,7 @@ class CGenerator extends GeneratorBase {
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
                             trigger_t** trigger_array = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
-                            «CUtil.reactionRef(reaction)».triggers[«channelCount» + channel] = trigger_array;
+                            «CUtil.reactionRef(reaction)».triggers[«channelCount» + «index»] = trigger_array;
                             // Fill the trigger array.
                             «temp.toString()»
                         ''')
