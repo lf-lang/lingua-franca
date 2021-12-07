@@ -2137,9 +2137,9 @@ class CGenerator extends GeneratorBase {
                     ''')
                     var reactorIndex = ''
                     if (containedReactor.widthSpec !== null) {
-                        reactorIndex = '[reactorIndex]'
+                        reactorIndex = '[reactor_index]'
                         pr(constructorCode, '''
-                            for (int reactorIndex = 0; reactorIndex < self->_lf_«containedReactor.name»_width; reactorIndex++) {
+                            for (int reactor_index = 0; reactor_index < self->_lf_«containedReactor.name»_width; reactor_index++) {
                         ''')
                         indent(constructorCode)
                     }
@@ -2969,6 +2969,8 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     int «containedReactor.name»_width = self->_lf_«containedReactor.name»_width;
                 ''')
+                // Windows does not support variables in arrays declared on the stack,
+                // so we use the maximum size over all bank members.
                 array = '''[«maxContainedReactorBankWidth(containedReactor, null, 0)»]''';
             }
             pr('''
@@ -3837,12 +3839,19 @@ class CGenerator extends GeneratorBase {
      */
     def initializeOutputMultiports(ReactorInstance reactor) {
         for (output : reactor.outputs) {
+            val portRef = CUtil.portRef(output);
             // If the port is a multiport, create an array.
             if (output.isMultiport) {
+                val portStructType = variableStructType(output);
                 pr(initializeTriggerObjects, '''
-                    «CUtil.portRef(output)»_width = «output.width»;
+                    «portRef»_width = «output.width»;
                     // Allocate memory for multiport output.
-                    «CUtil.portRef(output)» = («variableStructType(output)»*)calloc(«CUtil.portRef(output)»_width, sizeof(«variableStructType(output)»)); 
+                    «CUtil.portRef(output)» = («portStructType»*)calloc(«output.width», sizeof(«portStructType»)); 
+                    «portRef»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) * «output.width»);
+                    // Assign each output port pointer to be used in reactions to facilitate user access to output ports
+                    for(int i=0; i < «output.width»; i++) {
+                         «portRef»_pointers[i] = &(«portRef»[i]);
+                    }
                 ''')
             } else {
                 pr(initializeTriggerObjects, '''
@@ -4697,7 +4706,7 @@ class CGenerator extends GeneratorBase {
      * This must be followed by an {@link endScopedBlock(StringBuilder)}.
      * @param builder The string builder into which to write.
      */
-    private def void startScopedBlock(StringBuilder builder) {
+    protected def void startScopedBlock(StringBuilder builder) {
         startScopedBlock(builder, null, true);
     }
 
@@ -4713,7 +4722,7 @@ class CGenerator extends GeneratorBase {
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance.
      */
-    private def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
+    protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
         startScopedBlock(builder, reactor, true)
     }
 
@@ -4731,7 +4740,7 @@ class CGenerator extends GeneratorBase {
      * @param reactor The reactor instance or null for a simple scoped block.
      * @param declare True to declare a pointer to the self struct
      */
-    private def void startScopedBlock(StringBuilder builder, ReactorInstance reactor, boolean declare) {
+    protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor, boolean declare) {
         if (reactor !== null && reactor.isBank) {
             val index = CUtil.bankIndex(reactor);            
             pr(builder, '''
@@ -4742,14 +4751,14 @@ class CGenerator extends GeneratorBase {
             pr(builder, "{");
         }
         indent(builder);
-        if (declare && reactor != null) defineSelfStruct(builder, reactor);
+        if (declare && reactor !== null) defineSelfStruct(builder, reactor);
     }
 
     /**
      * End a scoped block.
      * @param builder The string builder into which to write.
      */
-    private def void endScopedBlock(StringBuilder builder) {
+    protected def void endScopedBlock(StringBuilder builder) {
         unindent(builder);
         pr(builder, "}");
     }
@@ -5455,7 +5464,7 @@ class CGenerator extends GeneratorBase {
      */
     protected def String getInitializer(ParameterInstance p) {
         // Handle the bank_index parameter.
-        if (p.name.equals("bank_instance")) {
+        if (p.name.equals("bank_index")) {
             return CUtil.bankIndex(p.parent);
         }
         
@@ -5544,9 +5553,7 @@ class CGenerator extends GeneratorBase {
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
         deferredCreateDefaultTokens(reactor);
-        
-        deferredAllocationForEffectsOnOutputs(reactor);
-        
+                
         for (child: reactor.children) {
             deferredInitialize(child, child.reactions);
         }
@@ -5896,38 +5903,6 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * If any output port of the specified reactor is a multiport, then generate code to
-     * allocate memory to store the data produced by those reactions.
-     * The allocated memory is pointed to by a field called `_lf_portname`.
-     * @param reactor A reactor instance.
-     */
-    private def void deferredAllocationForEffectsOnOutputs(ReactorInstance reactor) {
-        for (port : reactor.outputs) {
-            if (port.isMultiport) {
-                // Port is an effect of a parent's reaction.
-                // That is, the port belongs to the same reactor as the reaction.
-                // The reaction is writing to an output of its container reactor.
-                val portRef = CUtil.portRef(port);
-                val portStructType = variableStructType(port)
-                
-                pr('''
-                    «portRef»_width = «port.width»;
-                    // Allocate memory to store output of reaction.
-                    «portRef» = («portStructType»*)calloc(«port.width», sizeof(«portStructType»)); 
-                    «portRef»_pointers = («portStructType»**)malloc(sizeof(«portStructType»*) * «port.width»);
-                    // Assign each output port pointer to be used in reactions to facilitate user access to output ports
-                    for(int i=0; i < «port.width»; i++) {
-                         «portRef»_pointers[i] = &(«portRef»[i]);
-                    }
-                ''')
-                // There may be more reactions writing to this port,
-                // but once we have done the allocation, no need to do anything for those.
-                return;
-            }
-        }
-    }
-
-    /**
      * Set the last_enabling_reaction field of the reaction struct to point
      * to the single dominating upstream reaction, if there is one, or to be
      * NULL if not.
@@ -6001,9 +5976,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                     startScopedBlock(code, trigger.parent);
                     
-                    // If the width is given as a numeric constant, then add that constant
-                    // to the output count. Otherwise, assume it is a reference to one or more parameters.
-                    val width = trigger.width * trigger.parent.width;
+                    val width = trigger.width;
                     val portStructType = variableStructType(trigger)
 
                     pr('''

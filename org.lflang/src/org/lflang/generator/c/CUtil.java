@@ -82,7 +82,7 @@ public class CUtil {
      * @param instance A reactor instance.
      */
     static public String bankIndex(ReactorInstance instance) {
-        return instance.uniqueID() + "_bank_index";
+        return instance.uniqueID() + "_i";
     }
     
     /**
@@ -146,7 +146,7 @@ public class CUtil {
      * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
      * 
      * If the container is port's parent's parent, and the port's parent is a bank,
-     * then "_lf_parent" will be replaced by "_lf_parent[bankIndex]", where
+     * then "_lf_parent" will be replaced by "_lf_parent[bank_index]", where
      * bank_index is the string returned by bankIndex(port.parent).
      *
      * @param port The port.
