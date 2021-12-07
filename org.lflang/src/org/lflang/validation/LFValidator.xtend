@@ -1356,4 +1356,69 @@ class LFValidator extends BaseLFValidator {
             }
         }
     }
+    
+    @Check(FAST)
+    def checkModeStateNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            val names = newArrayList()
+            names += reactor.stateVars.map[name]
+            for (mode : reactor.getModes()) {
+                for (stateVar : mode.stateVars) {
+                    if (names.contains(stateVar.name)) {
+                        error(String.format("Duplicate StateVar '%s' in Reactor '%s'. (State variables are currently scoped on reactor level not modes)", stateVar.name, reactor.name), stateVar, Literals.STATE_VAR__NAME)
+                    }
+                    names += stateVar.name
+                }
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkModeTimerNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            val names = newArrayList()
+            names += reactor.timers.map[name]
+            for (mode : reactor.getModes()) {
+                for (timer : mode.timers) {
+                    if (names.contains(timer.name)) {
+                        error(String.format("Duplicate Timer '%s' in Reactor '%s'. (Timer are currently scoped on reactor level not modes)", timer.name, reactor.name), timer, Literals.STATE_VAR__NAME)
+                    }
+                    names += timer.name
+                }
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkModeActionNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            val names = newArrayList()
+            names += reactor.actions.map[name]
+            for (mode : reactor.getModes()) {
+                for (action : mode.actions) {
+                    if (names.contains(action.name)) {
+                        error(String.format("Duplicate Action '%s' in Reactor '%s'. (Actions are currently scoped on reactor level not modes)", action.name, reactor.name), action, Literals.STATE_VAR__NAME)
+                    }
+                    names += action.name
+                }
+            }
+        }
+    }
+    
+    @Check(FAST)
+    def checkModeInstanceNamespace(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            val names = newArrayList()
+            names += reactor.instantiations.map[name]
+            for (mode : reactor.getModes()) {
+                for (instantiation : mode.instantiations) {
+                    if (names.contains(instantiation.name)) {
+                        error(String.format("Duplicate Instantiation '%s' in Reactor '%s'. (Instantiations are currently scoped on reactor level not modes)", instantiation.name, reactor.name), instantiation, Literals.STATE_VAR__NAME)
+                    }
+                    names += instantiation.name
+                }
+            }
+        }
+    }
+    
 }
