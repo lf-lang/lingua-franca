@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Parameter;
@@ -50,9 +50,9 @@ public class DeadlineInstance {
         if (definition.getDelay() != null) {
             Parameter parm = definition.getDelay().getParameter();
             if (parm != null) {
-                this.maxDelay = ASTUtils.getTimeValue(reaction.parent.initialParameterValue(parm).get(0));
+                this.maxDelay = JavaAstUtils.getTimeValue(reaction.parent.initialParameterValue(parm).get(0));
             } else {
-                this.maxDelay = ASTUtils.getTimeValue(definition.getDelay());
+                this.maxDelay = JavaAstUtils.getTimeValue(definition.getDelay());
             }
         } else {
             this.maxDelay = TimeValue.ZERO;
