@@ -1,0 +1,162 @@
+/*
+ * Modal Reactor Test.
+ * Tests nested reactors with modes.
+ */
+target C {
+    fast: false,
+    timeout: 4 sec
+}
+
+import TraceTesting from "util/TraceTesting.lf"
+
+reactor ResetProcessor {
+    input discard:bool;
+    input character:char;
+    output converted:int;
+    
+    initial mode Converting {
+        converter = new Converter();
+        character -> converter.raw;
+        converter.converted -> converted;
+        
+        reaction(discard) -> Discarding {=
+            SET_MODE(Discarding);
+        =}
+    }
+    
+    mode Discarding {
+        reaction(character) -> converted {=
+            SET(converted, '_');
+        =}
+
+        reaction(character) -> Converting {=
+            SET_MODE(Converting);
+        =}
+    }
+}
+
+reactor HistoryProcessor {
+    input discard:bool;
+    input character:char;
+    output converted:int;
+    
+    initial mode Converting {
+        converter = new Converter();
+        character -> converter.raw;
+        converter.converted -> converted;
+        
+        reaction(discard) -> Discarding {=
+            SET_MODE(Discarding);
+        =}
+    }
+    
+    mode Discarding {
+        reaction(character) -> converted {=
+            SET(converted, '_');
+        =}
+
+        reaction(character) -> Converting continue {=
+            SET_MODE(Converting);
+        =}
+    }
+}
+
+reactor Converter {
+    input raw:char;
+    output converted:int;
+
+    preamble {=
+        #include <stdio.h>
+    =}
+
+    initial mode Upper {
+        reaction(raw) -> converted, Lower {=
+            char c = raw->value;
+            if (c >= 'a' && c <= 'z') {
+                SET(converted, c - 32);
+            } else {
+                SET(converted, c);
+            }
+            if (c == ' ') {
+                SET_MODE(Lower);
+            }
+        =}
+    }
+    mode Lower {
+        reaction(raw) -> converted, Upper {=
+            char c = raw->value;
+            if (c >= 'A' && c <= 'Z') {
+                SET(converted, c + 32);
+            } else {
+                SET(converted, c);
+            }
+            if (c == ' ') {
+                SET_MODE(Upper);
+            }
+        =}
+    }
+}
+
+reactor InputFeeder(message:string("")) {
+    output character:char;
+    state idx:int(0);
+    
+    timer t(0, 250msec);
+    
+    preamble {=
+        #include <string.h>
+    =}
+    
+    reaction(t) -> character {=
+        if (self->idx < strlen(self->message)) {
+            SET(character, *(self->message + self->idx));
+            self->idx++;
+        }
+    =}
+}
+
+main reactor {
+    timer stepper(1sec, 1sec)
+    
+    feeder = new InputFeeder(message="Hello World!")
+    reset_processor = new HistoryProcessor()
+    history_processor = new ResetProcessor()
+    
+    feeder.character -> reset_processor.character
+    feeder.character -> history_processor.character
+    
+    test = new TraceTesting(
+        events_size = 2,
+        trace_size = 77, 
+        trace = (
+            0,0,0,1,1,0,0,
+            750000000,0,0,1,1,0,0,
+            250000000,1,1,0,1,0,0,
+            0,0,1,0,1,1,1,
+            750000000,0,1,0,1,1,1,
+            250000000,1,1,0,1,0,1,
+            500000000,0,1,1,1,0,1,
+            500000000,1,1,0,1,0,1,
+            0,0,1,0,1,1,1,
+            750000000,0,1,0,1,1,1,
+            250000000,1,1,0,1,0,1
+        ), training = true)
+
+    // Trigger mode change
+    reaction(stepper) -> reset_processor.discard, history_processor.discard {=
+        SET(reset_processor.discard, true);
+        SET(history_processor.discard, true);
+    =}
+    
+    reaction(reset_processor.converted) {=
+        printf("Reset: %c", reset_processor.converted->value);
+    =}
+    
+    reaction(history_processor.converted) {=
+        printf("History: %c", history_processor.converted->value);
+    =}
+    
+    reset_processor.converted,
+    history_processor.converted
+    -> test.events
+}
