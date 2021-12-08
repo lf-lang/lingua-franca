@@ -1,7 +1,6 @@
-// Test asynchronous callbacks that trigger a physical action.
 target Cpp {
-    keepalice: true
-    cmake-include: "AsyncCallback.cmake"
+    keepalive: true,
+    cmake-include: "../concurrent/AsyncCallback.cmake"
 };
 
 main reactor {
