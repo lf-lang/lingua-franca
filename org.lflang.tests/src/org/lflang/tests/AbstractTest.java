@@ -56,6 +56,13 @@ public abstract class AbstractTest extends TestBase {
         return false;
     }
 
+    /**
+     * Whether to enable {@link #runDockerNonfederatedTests()} and {@link #runDockerFederatedTests()}.
+     */
+    protected boolean supportsDockerOption() {
+        return false;
+    }
+
 
     @Test
     public void runExampleTests() {
@@ -145,13 +152,41 @@ public abstract class AbstractTest extends TestBase {
                            false);
     }
 
+    /** 
+      * Run docker tests, provided that the platform is Linux and the target supports Docker.
+      * Skip if platform is not Linux or target does not support Docker.
+      */
+    @Test
+    public void runDockerTests() {
+        Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
+        Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
+        runTestsForTargets(Message.DESC_DOCKER,
+                           TestCategory.DOCKER::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
+    /** 
+      * Run federated docker tests, provided that the platform is Linux, the target supports Docker,
+      * and the target supports federated execution. If any of these requirements are not met, skip
+      * the tests.
+      */
+    @Test
+    public void runDockerFederatedTests() {
+        Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
+        Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+        runTestsForTargets(Message.DESC_DOCKER_FEDERATED,
+                           TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
 
     @Test
     public void runWithFourThreads() {
         Assumptions.assumeTrue(supportsThreadsOption(), Message.NO_THREAD_SUPPORT);
         this.runTestsForTargets(
             Message.DESC_FOUR_THREADS,
-            Configurators::defaultCategoryExclusion,
+            Configurators::isExcluded,
             Configurators::useFourThreads,
             TestLevel.EXECUTION,
             true
