@@ -1695,7 +1695,7 @@ class CGenerator extends GeneratorBase {
                             var delayTime = delay.getTargetTime
                             if (delay.parameter !== null) {
                                 // The delay is given as a parameter reference. Find its value.
-                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
+                                delayTime = delay.parameter.defaultAsTimeValue.timeInTargetLanguage
                             }
                             pr(rtiCode, '''
                                 if («delayTime» < candidate_tmp) {
@@ -5193,8 +5193,8 @@ class CGenerator extends GeneratorBase {
                 runCommand.add(topLevelName)
             }
             runCommand.add("-o")
-            runCommand.add(targetConfig.timeout.time.toString)
-            runCommand.add(targetConfig.timeout.unit.toString)
+            runCommand.add(targetConfig.timeout.magnitude.toString)
+            runCommand.add(targetConfig.timeout.unit.canonicalName)
         }
         
     }
