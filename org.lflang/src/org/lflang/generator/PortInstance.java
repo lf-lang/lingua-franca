@@ -25,6 +25,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.generator;
 
+import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -112,10 +113,13 @@ public class PortInstance extends TriggerInstance<Port> {
     /**
      * Return a list of ranges of this port, where each range sends
      * to a list of destination ports that receive data from the range of
-     * this port. Each destination port is annotated with the channel
+     * this port.
+     * This list of ranges includes every part of this port exactly
+     * once.
+     * Each destination port is annotated with the channel
      * range on which it receives data.
-     * The ports listed are only ports that are sources for reactions,
-     * not relay ports that the data may go through on the way.
+     * The destination ports listed are only ports that are sources for
+     * reactions, not relay ports that the data may go through on the way.
      * 
      * If this port itself has dependent reactions,
      * that this port will be included as a destination in all items
@@ -163,11 +167,9 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         
         // If this port has dependent reactions, then add an entry for this port.
-        if (dependentReactions.size() > 0) {
-            SendRange thisPort = new SendRange(0, width);
-            thisPort.destinations.add(new Range(0, width));
-            result.add(thisPort);
-        }
+        result.add(new SendRange(
+            0, width, dependentReactions.size() > 0 ? List.of(new Range(0, width)) : List.of()
+        ));
 
         for (PortInstance destinationPort: destinationPorts) {
             // If the destination port has no dependent reactions, skip it.
@@ -181,13 +183,10 @@ public class PortInstance extends TriggerInstance<Port> {
                 if (source.getPortInstance() == this) {
                     // This destinationPort receives data from the channel range
                     // given by source of port. Add to the result list.
-                    SendRange sendingRange = new SendRange(
-                            source.startChannel, source.channelWidth
-                    );
-                    Range receivingRange = destinationPort.newRange(
-                            destinationChannel, source.channelWidth);
-                    sendingRange.destinations.add(receivingRange);
-                    result.add(sendingRange);
+                    result.add(new SendRange(
+                            source.startChannel, source.channelWidth,
+                            List.of(destinationPort.newRange(destinationChannel, source.channelWidth))
+                    ));
                 }
                 destinationChannel += source.channelWidth;
             }
@@ -202,7 +201,10 @@ public class PortInstance extends TriggerInstance<Port> {
                 // Ranges have the same starting point.
                 if (candidate.channelWidth <= next.channelWidth) {
                     // Can use all of the channels. Import the destinations.
-                    candidate.destinations.addAll(next.destinations);
+                    List<Range> aggregated = new ArrayList();
+                    aggregated.addAll(next.destinations);
+                    aggregated.addAll(candidate.destinations);
+                    candidate = new SendRange(candidate.startChannel, candidate.channelWidth, aggregated);
                     if (candidate.channelWidth < next.channelWidth) {
                         // The next range has more channels connected to this sender.
                         next.startChannel += candidate.channelWidth;
@@ -228,9 +230,9 @@ public class PortInstance extends TriggerInstance<Port> {
                     // Ranges overlap. Have to split candidate.
                     SendRange candidateTail = new SendRange(
                             next.startChannel, 
-                            candidate.channelWidth - (next.startChannel - candidate.startChannel)
+                            candidate.channelWidth - (next.startChannel - candidate.startChannel),
+                            Collections.unmodifiableList(candidate.destinations)
                     );
-                    candidateTail.destinations.addAll(candidate.destinations);
                     result.add(candidateTail);
                     candidate.channelWidth -= candidateTail.channelWidth;
                     // Put next back on the list.
@@ -439,16 +441,6 @@ public class PortInstance extends TriggerInstance<Port> {
     }
 
     /**
-     * Create a SendingChannelRange representing a subset of the channels of this port.
-     * @param startChannel The lower end of the channel range.
-     * @param channelWidth The width of the range.
-     * @return A new instance of Range.
-     */
-    protected SendRange newDestinationRange(int startChannel, int channelWidth) {
-        return new SendRange(startChannel, channelWidth);
-    }
-
-    /**
      * Create a Range representing a subset of the channels of this port.
      * @param startChannel The lower end of the channel range.
      * @param channelWidth The width of the range.
@@ -562,14 +554,9 @@ public class PortInstance extends TriggerInstance<Port> {
      */
     public class SendRange extends Range {
         
-        public SendRange(int startChannel, int channelWidth) {
+        public SendRange(int startChannel, int channelWidth, List<Range> destinations) {
             super(startChannel, channelWidth);
-            
-            if (PortInstance.this.isMultiport) {
-                destinations = new ArrayList<Range>();
-            } else {
-                destinations = new ArrayList<Range>(1);
-            }
+            this.destinations = destinations;
         }
 
         public int getNumberOfDestinationReactors() {
@@ -584,7 +571,11 @@ public class PortInstance extends TriggerInstance<Port> {
             return _numberOfDestinationReactors;
         }
 
-        public List<Range> destinations;
+        public List<Range> getDestinations() {
+            return Collections.unmodifiableList(destinations);
+        }
+
+        private List<Range> destinations;
         private int _numberOfDestinationReactors = -1; // Never access this directly.
     }
     

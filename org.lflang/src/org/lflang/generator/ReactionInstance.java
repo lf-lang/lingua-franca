@@ -359,7 +359,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                 for (PortInstance.SendRange senderRange
                         : ((PortInstance)effect).eventualDestinations()) {
                     for (PortInstance.Range destinationRange
-                            : senderRange.destinations) {
+                            : senderRange.getDestinations()) {
                         dependentReactionsCache.addAll(
                                 destinationRange.getPortInstance().dependentReactions);
                     }
