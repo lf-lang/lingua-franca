@@ -1,5 +1,5 @@
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2021, Kiel University.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -22,18 +22,21 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import java.util.LinkedList
-import org.lflang.lf.Mode
-import org.lflang.lf.VarRef
+import java.util.LinkedList;
+import java.util.List;
+
+import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransitionTypes;
+import org.lflang.lf.VarRef;
 
 /**
  * Representation of a runtime instance of a mode.
  *  
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
-class ModeInstance extends NamedInstance<Mode> {
+public class ModeInstance extends NamedInstance<Mode> {
 
     /**
      * Create a new reaction instance from the specified definition
@@ -44,29 +47,29 @@ class ModeInstance extends NamedInstance<Mode> {
      * @param definition A mode definition.
      * @param parent The parent reactor instance, which cannot be null.
      */
-    protected new(Mode definition, ReactorInstance parent) {
-        super(definition, parent)
+    protected ModeInstance(Mode definition, ReactorInstance parent) {
+        super(definition, parent);
         
-        collectMembers()
+        collectMembers();
     }
     
     ////////////////////////////////////////////////////
     // Member fields.
     
     /** The action instances belonging to this mode instance. */
-    public val actions = new LinkedList<ActionInstance>
+    public List<ActionInstance> actions = new LinkedList<ActionInstance>();
     
     /** The reactor instances belonging to this mode instance, in order of declaration. */
-    public val instantiations = new LinkedList<ReactorInstance>
+    public List<ReactorInstance> instantiations = new LinkedList<ReactorInstance>();
 
     /** List of reaction instances for this reactor instance. */
-    public val reactions = new LinkedList<ReactionInstance>
+    public List<ReactionInstance> reactions = new LinkedList<ReactionInstance>();
 
     /** The timer instances belonging to this reactor instance. */
-    public val timers = new LinkedList<TimerInstance>
+    public List<TimerInstance> timers = new LinkedList<TimerInstance>();
     
     /** The outgoing transitions of this mode. */
-    public val transitions = new LinkedList<Transition>
+    public List<Transition> transitions = new LinkedList<Transition>();
 
     ////////////////////////////////////////////////////
     // Public methods.
@@ -75,29 +78,32 @@ class ModeInstance extends NamedInstance<Mode> {
      * Return the name of this mode.
      * @return The name of this mode.
      */
-    override String getName() {
-        return this.definition.name
+    @Override
+    public String getName() {
+        return this.definition.getName();
     }
     
     /**
      * {@inheritDoc}
      */
-    override ReactorInstance root() {
-        parent.root()
+    @Override
+    public ReactorInstance root() {
+        return parent.root();
     }
 
     /**
      * Return a descriptive string.
      */
-    override toString() {
-        getName + " of " + parent.getFullName
+    @Override
+    public String toString() {
+        return getName() + " of " + parent.getFullName();
     }
     
     /**
      * Returns true iff this mode is the initial mode of this reactor instance.
      */
-    def isInitial() {
-        return definition.initial
+    public boolean isInitial() {
+        return definition.isInitial();
     }
     
     /**
@@ -105,14 +111,14 @@ class ModeInstance extends NamedInstance<Mode> {
      * Requires that all mode instances and other contents
      * (reactions, etc.) of the parent reactor are created.
      */
-    def setupTranstions() {
-        transitions.clear()
-        for (reaction : reactions) {
-            for (effect : reaction.definition.effects) {
+    public void setupTranstions() {
+        transitions.clear();
+        for (var reaction : reactions) {
+            for (var effect : reaction.definition.getEffects()) {
                 if (effect instanceof VarRef) {
-                    val target = effect.variable
+                    var target = effect.getVariable();
                     if (target instanceof Mode) {
-                        transitions += new Transition(this, parent.lookupModeInstance(target), reaction, effect)
+                        transitions.add(new Transition(this, parent.lookupModeInstance((Mode) target), reaction, effect));
                     }
                 }
             }
@@ -122,78 +128,84 @@ class ModeInstance extends NamedInstance<Mode> {
     /**
      * Returns true iff this mode contains the given instance.
      */
-    def boolean contains(NamedInstance<?> instance) {
-        return switch(instance) {
-            TimerInstance: timers.contains(instance)
-            ActionInstance: actions.contains(instance)
-            ReactorInstance: instantiations.contains(instance)
-            ReactionInstance: reactions.contains(instance)
-            default: false
+    public boolean contains(NamedInstance<?> instance) {
+        if (instance instanceof TimerInstance) {
+            return timers.contains(instance);
+        } else if (instance instanceof ActionInstance) {
+            return actions.contains(instance);
+        } else if (instance instanceof ReactorInstance) {
+            return instantiations.contains(instance);
+        } else if (instance instanceof ReactionInstance) {
+            return reactions.contains(instance);
+        } else {
+            return false;
         }
     }
 
     ////////////////////////////////////////////////////
     // Private methods.
     
-    private def collectMembers() {
+    private void collectMembers() {
         // Collect timers
-        for (decl : definition.timers) {
-            val instance = parent.lookupTimerInstance(decl)
-            if (instance !== null) {
-                this.timers.add(instance)
+        for (var decl : definition.getTimers()) {
+            var instance = parent.lookupTimerInstance(decl);
+            if (instance != null) {
+                this.timers.add(instance);
             }
         }
         
         // Collect actions
-        for (decl : definition.actions) {
-            val instance = parent.lookupActionInstance(decl)
-            if (instance !== null) {
-                this.actions.add(instance)
+        for (var decl : definition.getActions()) {
+            var instance = parent.lookupActionInstance(decl);
+            if (instance != null) {
+                this.actions.add(instance);
             }
         }
         
         // Collect reactor instantiation
-        for (decl : definition.instantiations) {
-            val instance = parent.lookupReactorInstance(decl)
-            if (instance !== null) {
-                this.instantiations.add(instance)
+        for (var decl : definition.getInstantiations()) {
+            var instance = parent.lookupReactorInstance(decl);
+            if (instance != null) {
+                this.instantiations.add(instance);
             }
         }
         
         // Collect reactions
-        for (decl : definition.reactions) {
-            val instance = parent.lookupReactionInstance(decl)
-            if (instance !== null) {
-                this.reactions.add(instance)
+        for (var decl : definition.getReactions()) {
+            var instance = parent.lookupReactionInstance(decl);
+            if (instance != null) {
+                this.reactions.add(instance);
             }
         }
     }
 
     ////////////////////////////////////////////////////
     // Data class.
-        
+    
     public static class Transition extends NamedInstance<VarRef> {
-        public val ModeInstance source
-        public val ModeInstance target
-        public val ReactionInstance reaction
+        public final ModeInstance source;
+        public final ModeInstance target;
+        public final ReactionInstance reaction;
         
-        new(ModeInstance source, ModeInstance target, ReactionInstance reaction, VarRef definition) {
-            super(definition, source.parent)
-            this.source = source
-            this.target = target
-            this.reaction = reaction
+        Transition(ModeInstance source, ModeInstance target, ReactionInstance reaction, VarRef definition) {
+            super(definition, source.parent);
+            this.source = source;
+            this.target = target;
+            this.reaction = reaction;
         }
         
-        override getName() {
-            return this.source.name + " -> " + this.target + " by " + this.reaction.name
+        @Override
+        public String getName() {
+            return this.source.getName() + " -> " + this.target + " by " + this.reaction.getName();
         }
         
-        override root() {
-            return this.parent.root()
+        @Override
+        public ReactorInstance root() {
+            return this.parent.root();
         }
         
-        def getType() {
-            return definition.modeTransitionType
+        public ModeTransitionTypes getType() {
+            return definition.getModeTransitionType();
         }
         
     }
