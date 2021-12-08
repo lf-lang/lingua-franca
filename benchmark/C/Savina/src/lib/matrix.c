@@ -46,4 +46,3 @@ void mat_destroy_i(matrix_t matrix) {
     assert(matrix.type == MAT_INT);
     free(matrix.data_i);
 }
-

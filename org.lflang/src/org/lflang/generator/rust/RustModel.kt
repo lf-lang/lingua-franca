@@ -56,7 +56,10 @@ data class RustTargetProperties(
     /** How the timeout looks like as a Rust expression, eg `Duration::from_millis(40)`. */
     val timeout: TargetCode? = null,
     val timeoutLf: TimeValue? = null,
-    val singleFile: Boolean = false
+    val singleFile: Boolean = false,
+    /** note: zero means "1 per core" */
+    val threads: Int = 0,
+    val dumpDependencyGraph: Boolean = false,
 )
 
 /**
@@ -149,9 +152,17 @@ class ReactorNames(
 data class NestedReactorInstance(
     val lfName: Ident,
     val reactorLfName: String,
+    /**
+     * Contains arguments for _all_ parameters.
+     * The special parameter `bank_index` has the value `"bank_index"`.
+     * The map iteration order must be the order in which
+     * parameters are declared.
+     */
     val args: Map<String, TargetCode>,
     val loc: LocationInfo,
-    val typeArgs: List<TargetCode>
+    val typeArgs: List<TargetCode>,
+    /** If non-null, this is a reactor bank. */
+    val bankWidth: WidthSpec?
 ) {
     /** Sync with [ChildPortReference.rustChildName]. */
     val rustLocalName = lfName.escapeRustIdent()
@@ -291,7 +302,7 @@ sealed class ReactorComponent {
 
     companion object {
 
-        private val DEFAULT_TIME_UNIT_IN_TIMER: TimeUnit = TimeUnit.MSEC
+        private val DEFAULT_TIME_UNIT_IN_TIMER: TimeUnit = TimeUnit.MILLI
 
         /**
          * Convert an AST node for a reactor component to the corresponding dependency type.
@@ -320,7 +331,7 @@ sealed class ReactorComponent {
                 parameter != null -> "${parameter.name}.clone()"
                 literal != null   ->
                     literal.toIntOrNull()
-                        ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
+                        ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
                         ?: throw InvalidLfSourceException("Not an integer literal", this)
                 time != null      -> time.toRustTimeExpr()
                 code != null      -> code.toText()
@@ -386,11 +397,8 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
     }
 }
 
-fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
-private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
-
-private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
-    RustTypes.getTargetTimeExpression(interval, unit)
+fun TimeValue.toRustTimeExpr(): TargetCode = RustTypes.getTargetTimeExpr(this)
+private fun Time.toRustTimeExpr(): TargetCode = this.toTimeValue().toRustTimeExpr()
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
@@ -470,6 +478,11 @@ object RustModelBuilder {
                 userSpec.rev = runtimeGitRevision
             }
 
+            // override location
+            if (targetConfig.externalRuntimePath != null) {
+                userSpec.localPath = targetConfig.externalRuntimePath
+            }
+
             return userSpec
         }
     }
@@ -479,7 +492,9 @@ object RustModelBuilder {
             keepAlive = this.keepalive,
             timeout = this.timeout?.toRustTimeExpr(),
             timeoutLf = this.timeout,
-            singleFile = this.singleFileProject
+            singleFile = this.singleFileProject,
+            threads = this.threads,
+            dumpDependencyGraph = this.exportDependencyGraph,
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
@@ -565,7 +580,7 @@ object RustModelBuilder {
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
-                        defaultValueAsTimeValue = ASTUtils.getInitialTimeValue(it),
+                        defaultValueAsTimeValue = JavaAstUtils.getDefaultAsTimeValue(it),
                     )
                 }
             )
@@ -576,9 +591,8 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            val value = byName[ithParam.name]?.let {
-                RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces)
-            }
+            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces) }
+                ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
                 ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
                 ?: throw InvalidLfSourceException(
                     "Cannot find value of parameter ${ithParam.name}",
@@ -592,7 +606,8 @@ object RustModelBuilder {
             args = args,
             reactorLfName = this.reactorClass.name,
             loc = this.locationInfo(),
-            typeArgs = typeParms.map { it.toText() }
+            typeArgs = typeParms.map { it.toText() },
+            bankWidth = this.widthSpec
         )
     }
 }

@@ -24,14 +24,12 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import org.eclipse.xtend.lib.annotations.Accessors
-import org.lflang.TimeValue
-import org.lflang.lf.TimeUnit
-import org.lflang.lf.Timer
-
-import static extension org.lflang.ASTUtils.*
+import org.lflang.JavaAstUtils;
+import org.lflang.TimeValue;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Timer;
 
 /**
  * Instance of a timer.
@@ -39,46 +37,61 @@ import static extension org.lflang.ASTUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class TimerInstance extends TriggerInstance<Timer> {
-    
+public class TimerInstance extends TriggerInstance<Timer> {
+
     /** The global default for offset. */
-    public static val DEFAULT_OFFSET = new TimeValue(0, TimeUnit.NONE)
+    public static final TimeValue DEFAULT_OFFSET = TimeValue.ZERO;
+
     /** The global default for period. */
-    public static val DEFAULT_PERIOD = new TimeValue(0, TimeUnit.NONE)
-    
-    @Accessors(PUBLIC_GETTER)
-	protected TimeValue offset = DEFAULT_OFFSET
-    @Accessors(PUBLIC_GETTER)
-    protected TimeValue period = DEFAULT_PERIOD
-	
-	/**
+    public static final TimeValue DEFAULT_PERIOD = TimeValue.ZERO;
+
+    private TimeValue offset = DEFAULT_OFFSET;
+
+    private TimeValue period = DEFAULT_PERIOD;
+
+    /**
 	 * Create a new timer instance.
 	 * If the definition is null, then this is a startup timer.
 	 * @param definition The AST definition, or null for startup.
 	 * @param parent The parent reactor.
 	 */
-	new(Timer definition, ReactorInstance parent) {
-		super(definition, parent)
-        if (parent === null) {
-            throw new InvalidSourceException('Cannot create an TimerInstance with no parent.')
+    public TimerInstance(Timer definition, ReactorInstance parent) {
+		super(definition, parent);
+        if (parent == null) {
+            throw new InvalidSourceException("Cannot create an TimerInstance with no parent.");
         }
-        if (definition !== null) {
-            if (definition.offset !== null) {
-                if (definition.offset.parameter !== null) {
-                    val parm = definition.offset.parameter
-                    this.offset = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
+        if (definition != null) {
+            if (definition.getOffset() != null) {
+                if (definition.getOffset().getParameter() != null) {
+                    Parameter parm = definition.getOffset().getParameter();
+                    this.offset = JavaAstUtils.getTimeValue(parent.initialParameterValue(parm).get(0));
                 } else {
-                    this.offset = definition.offset.timeValue
+                    this.offset = JavaAstUtils.getTimeValue(definition.getOffset());
                 }
             }
-            if (definition.period !== null) {
-                if (definition.period.parameter !== null) {
-                    val parm = definition.period.parameter
-                    this.period = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
+            if (definition.getPeriod() != null) {
+                if (definition.getPeriod().getParameter() != null) {
+                    Parameter parm = definition.getPeriod().getParameter();
+                    this.period = JavaAstUtils.getTimeValue(parent.initialParameterValue(parm).get(0));
                 } else {
-                    this.period = definition.period.timeValue
+                    this.period = JavaAstUtils.getTimeValue(definition.getPeriod());
                 }
             }
         }
     }
+
+    /**
+     * Get the value of the offset parameter.
+     */
+    public TimeValue getOffset() {
+        return offset;
+    }
+
+    /**
+     * Get the value of the offset parameter.
+     */
+    public TimeValue getPeriod() {
+        return period;
+    }
+
 }
