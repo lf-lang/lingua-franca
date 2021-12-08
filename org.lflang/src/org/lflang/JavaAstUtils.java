@@ -33,6 +33,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Time;
+import java.lang.IllegalArgumentException;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 
@@ -156,7 +157,7 @@ public final class JavaAstUtils {
     public static TimeValue toTimeValue(Time e) {
         if (!isValidTime(e)) {
             // invalid unit, will have been reported by validator
-            return new TimeValue(e.getInterval(), TimeUnit.SECOND);
+            throw new IllegalArgumentException();
         }
         return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
     }
