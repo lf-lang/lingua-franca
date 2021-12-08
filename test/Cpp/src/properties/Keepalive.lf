@@ -24,6 +24,7 @@ main reactor {
 
     reaction(a) {=
         success = true;
+        environment()->sync_shutdown();
     =}
 
     reaction(shutdown) {=
