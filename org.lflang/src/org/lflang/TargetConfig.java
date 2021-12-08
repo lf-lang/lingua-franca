@@ -217,7 +217,7 @@ public class TargetConfig {
      * If true, the resulting binary will output a graph visualizing all reaction dependencies.
      *
      * This option is currently only used for C++ and Rust. This export function is a valuable tool
-     * for debugging LF programs and helps to understand the dependencies inferred by the C++ runtime.
+     * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
      */
     public boolean exportDependencyGraph = false;
 
