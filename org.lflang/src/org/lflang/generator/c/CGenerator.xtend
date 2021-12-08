@@ -701,7 +701,7 @@ class CGenerator extends GeneratorBase {
                 // If there are startup reactions, store them in an array.
                 if (startupReactionCount > 0) {
                     pr('''
-                        // Array of pointers to timer triggers to be scheduled in _lf_trigger_startup_reactions().
+                        // Array of pointers to reactions to be scheduled in _lf_trigger_startup_reactions().
                         reaction_t* _lf_startup_reactions[«startupReactionCount»];
                     ''')
                 } else {
@@ -2640,30 +2640,39 @@ class CGenerator extends GeneratorBase {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (reaction : reactions) {
-            val instance = reaction.parent;
-            val nameOfSelfStruct = CUtil.reactorRef(instance)
+            val reactor = reaction.parent;
+            
+            startScopedBlock(initializeTriggerObjects);
+            pr(initializeTriggerObjects, "int count = 0;");
+            startScopedBlock(initializeTriggerObjects, reactor);
+            val reactionRef = CUtil.reactionRef(reaction)
             
             // Next handle triggers of the reaction that come from a multiport output
             // of a contained reactor.  Also, handle startup and shutdown triggers.
             for (trigger : reaction.triggers) {
                 if (trigger.isStartup) {
                     pr(initializeTriggerObjects, '''
-                        _lf_startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reaction.index»;
+                        _lf_startup_reactions[«startupReactionCount» + count++] = &«reactionRef»;
                     ''')
+                    startupReactionCount += reactor.width;
                 } else if (trigger.isShutdown) {
                     pr(initializeTriggerObjects, '''
-                        _lf_shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->_lf__reaction_«reaction.index»;
+                        _lf_shutdown_reactions[«shutdownReactionCount» + count++] = &«reactionRef»;
                     ''')
+                    shutdownReactionCount += reactor.width;
 
                     if (targetConfig.tracing !== null) {
-                        val description = getShortenedName(instance)
+                        val description = getShortenedName(reactor)
+                        val reactorRef = CUtil.reactorRef(reactor)
                         pr(initializeTriggerObjects, '''
-                            _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->_lf__shutdown),
+                            _lf_register_trace_event(«reactorRef», &(«reactorRef»->_lf__shutdown),
                                     trace_trigger, "«description».shutdown");
                         ''')
                     }
                 }
             }
+            endScopedBlock(initializeTriggerObjects);
+            endScopedBlock(initializeTriggerObjects);
         }
     }
 
