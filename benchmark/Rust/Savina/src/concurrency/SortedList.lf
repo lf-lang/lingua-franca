@@ -1,0 +1,287 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ * 
+ * This benchmark is very similar to the concurrent Dictionary benchmark.
+ * It only uses a sorted linked list instead of a dictionary.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+
+target Rust {
+    build-type: Release,
+    cargo-features: ["cli"],
+    rust-include: "../lib/pseudo_random.rs",
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Manager(numWorkers: usize(20)) {
+    state num_workers(numWorkers);
+    
+    state numWorkersTerminated: usize(0);
+    
+    input start: unit;
+    output finished: unit;
+    
+    input[numWorkers] workersFinished: unit;
+
+    logical action finish: unit;
+    
+    reaction(finish) -> finished {=
+        ctx.set(finished, ());
+    =}
+    
+    reaction(workersFinished) -> finish {=
+        for (i, worker) in workersFinished.into_iter().enumerate() {
+            if ctx.is_present(&worker) {
+                self.numWorkersTerminated += 1;
+                
+                if self.numWorkersTerminated == self.num_workers {
+                    ctx.schedule(finish, Asap);
+                }
+            }
+        }
+    =}
+    
+    reaction(start) {=
+        // reset local state
+        self.numWorkersTerminated = 0;
+    =}
+}
+
+reactor Worker(
+    bank_index: usize(0),
+    numMessagesPerWorker: usize(8000),
+    writePercentage: usize(10),
+    sizePercentage: usize(1)
+) {
+    state bank_index(bank_index);
+    state num_messages_per_worker(numMessagesPerWorker);
+    state write_percentage(writePercentage);
+    state size_percentage(sizePercentage);
+    
+    state messageCount: usize(0);
+    state random: PseudoRandomGenerator;
+    
+    input doWork: unit;
+    output finished: unit;
+    
+    output request: Message;
+    input response: i32;
+    
+    preamble {=
+        use crate::pseudo_random::PseudoRandomGenerator;
+    =}
+    
+    reaction(doWork, response) -> request, finished {=
+        if ctx.is_present(doWork) {
+            // reset local state
+            self.messageCount = 0;
+            self.random = PseudoRandomGenerator::from(
+                (self.bank_index + 
+                self.num_messages_per_worker +
+                self.write_percentage +
+                self.size_percentage) as u64
+            );
+        }
+        
+        if self.messageCount < self.num_messages_per_worker {
+            self.messageCount += 1;
+            let num = self.random.gen_range(0..100) as usize;
+            
+            if num < self.size_percentage {
+                ctx.set(request, Message {mtype: AccessType::Size, value: -1});
+            } else if num < (self.size_percentage + self.write_percentage) {
+                ctx.set(request, Message {mtype: AccessType::Write, value: self.random.next() as i32});
+            } else {
+                ctx.set(request, Message {mtype: AccessType::Contains, value: self.random.next() as i32});
+            }
+        } else {
+            // signal that work is complete
+            ctx.set(finished, ());
+        }
+    =}
+    
+    preamble {=
+        #[derive(Copy, Clone)]
+        pub enum AccessType {
+            Write,
+            Size,
+            Contains,
+        }
+        
+        #[derive(Copy, Clone)]
+        pub struct Message {
+            pub mtype: AccessType,
+            pub value: i32,
+        }
+    =}
+}
+
+reactor SortedListImpl(numWorkers: usize(20)) {
+    
+    state dataList: SortedLinkedList<isize>;
+    state responsesToSend: Vec<i32>({= vec![-1; numWorkers] =}) ;
+    
+    input printResult: unit;
+    input[numWorkers] requests: Message;
+    output[numWorkers] responses: i32;
+    
+    logical action sendResponses: unit;
+    
+    preamble {=
+        use crate::reactors::worker::{Message, AccessType};
+    =}
+    
+    reaction(printResult) {=
+        // check result
+        println!("List Size = {}", self.dataList.len());
+        
+        // reset local state
+        self.dataList.clear();
+    =}
+    
+    reaction(sendResponses) -> responses {=
+        for (i, response) in responses.into_iter().enumerate() {
+            ctx.set(response, self.responsesToSend[i]);
+            info!("Reply to worker {} with {}", i, self.responsesToSend[i]);
+        }
+    =}
+    
+    reaction(requests) -> sendResponses {=
+        ctx.schedule(sendResponses, Asap);
+        
+        for (i, request) in requests.into_iter().enumerate() {
+            let msg = ctx.get(&request).unwrap();
+            match msg.mtype {
+                AccessType::Contains => {
+                    self.responsesToSend[i] = {
+                        if self.dataList.contains(&(msg.value as isize)) {
+                            1
+                        } else {
+                            0
+                        }
+                    };
+                    info!("Worker {} checks if {} is contained in the list", i, msg.value);
+                },
+                AccessType::Write => {
+                    self.dataList.add(&(msg.value as isize));
+                    self.responsesToSend[i] = msg.value;
+                    info!("Worker {} writes {}", i, msg.value);
+                },
+                AccessType::Size => {
+                    self.responsesToSend[i] = self.dataList.len() as i32;
+                    info!("Worker {} reads the list size", i);
+                }
+            }
+        }
+    =}
+    
+    preamble {=
+        use std::collections::LinkedList;
+        use std::cmp::{PartialEq, PartialOrd};
+        
+        // Linked list sorted in ascending order
+        pub struct SortedLinkedList<T> {
+            list: LinkedList<T>,
+        }
+        
+        impl <T: PartialEq + PartialOrd + Copy> SortedLinkedList<T> {
+            pub fn new() -> Self {
+                SortedLinkedList::<T> {
+                    list: LinkedList::<T>::new(),
+                }
+            }
+            
+            pub fn is_empty(&self) -> bool {
+                self.list.is_empty()
+            }
+            
+            pub fn add(&mut self, item: &T) {
+                if self.list.is_empty() {
+                    self.list.push_back(*item);
+                } else if item < self.list.front().unwrap() {
+                    self.list.push_front(*item); 
+                } else if self.list.back().unwrap() < item {
+                    self.list.push_back(*item);  
+                } else {
+                    for (i, ele) in self.list.iter().enumerate() {
+                        if item < ele {
+                            // split list before ele to insert item
+                            let mut back = self.list.split_off(i - 1);
+                            self.list.push_back(*item);
+                            // put back together
+                            self.list.append(&mut back);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            pub fn contains(&self, item: &T) -> bool {
+                self.list.contains(item)
+            }
+            
+            pub fn len(&self) -> usize {
+                self.list.len()            
+            }
+            
+            pub fn clear(&mut self) {
+                self.list.clear();
+            }
+        }
+        
+        impl <T: Default + PartialEq + PartialOrd + Copy> Default for SortedLinkedList<T> {
+            fn default() -> Self {
+                SortedLinkedList::<T>::new()
+            }
+        }
+    =}
+    
+}
+
+main reactor (numIterations: usize(12), numMessagesPerWorker: usize(8000), writePercentage: usize(10), sizePercentage:usize(1), numWorkers: usize(20)) {
+    state num_iterations(numIterations);
+    state num_messages_per_worker(numMessagesPerWorker);
+    state write_percentage(writePercentage);
+    state size_percentage(sizePercentage);
+    state num_workers(numWorkers);
+    
+    manager = new Manager(numWorkers=numWorkers);
+    workers = new[numWorkers] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
+    sortedList = new SortedListImpl(numWorkers=numWorkers);
+    
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+        
+    reaction(startup) {=
+        print_benchmark_info("SortedListBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "numMessagesPerWorker",
+            self.num_messages_per_worker,
+            "writePercentage",
+            self.write_percentage,
+            "sizePercentage",
+            self.size_percentage,
+            "numWorkers",
+            self.num_workers
+        );
+        print_system_info();
+    =}
+    
+    (runner.start)+ -> manager.start, workers.doWork;
+    manager.finished -> runner.finished;
+    manager.finished -> sortedList.printResult;
+   
+    workers.request -> sortedList.requests;
+    sortedList.responses -> workers.response;
+    workers.finished -> manager.workersFinished;
+    
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}  
+}
+
