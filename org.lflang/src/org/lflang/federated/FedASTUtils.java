@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
@@ -128,9 +128,7 @@ public class FedASTUtils {
             // the minDelay.
             if (connection.getDelay() != null) {
                 action.setMinDelay(factory.createValue());
-                action.getMinDelay().setTime(factory.createTime());
-                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
-                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
+                action.getMinDelay().setTime(connection.getDelay().getTime());
             }
         } else {
             action.setOrigin(ActionOrigin.LOGICAL);
@@ -456,16 +454,11 @@ public class FedASTUtils {
                 }
             }
         }
-        
-        TimeValue maxSTP = new TimeValue(0, TimeUnit.NONE);
-        for (Value value : safe(STPList)) {
-            TimeValue tValue = ASTUtils.getTimeValue(value);
-            if(maxSTP.isEarlierThan(tValue)) {
-                maxSTP = tValue;
-            }
-        }
-        
-        return maxSTP;
+
+        return STPList.stream()
+                      .map(JavaAstUtils::getTimeValue)
+                      .filter(Objects::nonNull)
+                      .reduce(TimeValue.ZERO, TimeValue::max);
     }
     
     /**
