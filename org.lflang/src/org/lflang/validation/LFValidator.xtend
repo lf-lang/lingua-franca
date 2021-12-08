@@ -71,7 +71,6 @@ import org.lflang.lf.Serializer
 import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
 import org.lflang.lf.Type
 import org.lflang.lf.TypedVariable
@@ -306,10 +305,7 @@ class LFValidator extends BaseLFValidator {
                     if (v.parameter === null) {
                         // This is a value. Check that units are present.
                     error(
-                        "Invalid time units: " + assignment.rhs +
-                            ". Should be one of " + TimeUnit.VALUES.filter [
-                                it != TimeUnit.NONE
-                            ], Literals.ASSIGNMENT__RHS)
+                        "Missing time unit.", Literals.ASSIGNMENT__RHS)
                     } else {
                         // This is a reference to another parameter. Report problem.
                 error(
@@ -740,10 +736,7 @@ class LFValidator extends BaseLFValidator {
                 if (init.time === null) {
                     if (init !== null && !init.isZero) {
                         if (init.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.PARAMETER__INIT)
+                            error("Missing time unit.", Literals.PARAMETER__INIT)
                         } else {
                             error("Invalid time literal.",
                                 Literals.PARAMETER__INIT)
@@ -1137,10 +1130,7 @@ class LFValidator extends BaseLFValidator {
                             if (init !== null && !init.isZero) {
                                 if (init.isInteger) {
                                     error(
-                                        "Missing time units. Should be one of " +
-                                            TimeUnit.VALUES.filter [
-                                                it != TimeUnit.NONE
-                                            ], Literals.STATE_VAR__INIT)
+                                        "Missing time unit.", Literals.STATE_VAR__INIT)
                                 } else {
                                     error("Invalid time literal.",
                                         Literals.STATE_VAR__INIT)
@@ -1265,20 +1255,14 @@ class LFValidator extends BaseLFValidator {
             } else if (value.time === null) {
                 if (value.literal !== null && !value.literal.isZero) {
                     if (value.literal.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.VALUE__LITERAL)
+                            error("Missing time unit.", Literals.VALUE__LITERAL)
                         } else {
                             error("Invalid time literal.",
                                 Literals.VALUE__LITERAL)
                         }
                 } else if (value.code !== null && !value.code.isZero) {
                     if (value.code.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.VALUE__CODE)
+                            error("Missing time unit", Literals.VALUE__CODE)
                         } else {
                             error("Invalid time literal.",
                                 Literals.VALUE__CODE)
@@ -1328,11 +1312,11 @@ class LFValidator extends BaseLFValidator {
             if (!(varRef.eContainer instanceof Connection)) {
                 error("interleaved can only be used in connections.", Literals.VAR_REF__INTERLEAVED)
             }
-            
+
             if (varRef.variable instanceof Port) {
                 // This test only works correctly if the variable is actually a port. If it is not a port, other
                 // validator rules will produce error messages.
-                if (varRef.container === null || varRef.container.widthSpec === null || 
+                if (varRef.container === null || varRef.container.widthSpec === null ||
                     (varRef.variable as Port).widthSpec === null
                 ) {
                     error("interleaved can only be used for multiports contained within banks.", Literals.VAR_REF__INTERLEAVED)
