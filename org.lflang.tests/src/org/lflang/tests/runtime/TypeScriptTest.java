@@ -16,7 +16,7 @@ import org.lflang.tests.AbstractTest;
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public class TypeScriptTest extends AbstractTest {
-    TypeScriptTest() {
+    public TypeScriptTest() {
         super(Target.TS);
     }
     
