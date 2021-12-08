@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
@@ -38,7 +39,7 @@ import org.lflang.tests.AbstractTest;
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
  */
 public class PythonTest extends AbstractTest {
 
@@ -46,59 +47,79 @@ public class PythonTest extends AbstractTest {
         super(Target.Python);
     }
 
+    @Override
+    protected boolean supportsFederatedExecution() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsThreadsOption() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsDockerOption() {
+        return true;
+    }
+
     @Test
-    @Override public void runGenericTests() {
+    @Override 
+    public void runGenericTests() {
         super.runGenericTests();
     }
 
     @Test
-    @Override public void runTargetSpecificTests() {
+    @Override 
+    public void runTargetSpecificTests() {
         super.runTargetSpecificTests();
     }
 
     @Test
-    @Override public void runMultiportTests() {
+    @Override 
+    public void runMultiportTests() {
         super.runMultiportTests();
     }
     
     @Test
     @Override
     public void runSerializationTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_SERIALIZATION,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runSerializationTests();
     }
 
     @Test
     @Disabled("TODO")
-    @Override public void runAsFederated() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_AS_FEDERATED,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+    @Override 
+    public void runAsFederated() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runAsFederated();
     }
 
 
     @Test
-    @Override public void runConcurrentTests() {
+    @Override 
+    public void runConcurrentTests() {
         super.runConcurrentTests();
     }
 
     @Test
-    @Override public void runFederatedTests() {
-        // Skip the test if the OS is Windows
-        if(isWindows()) { 
-            printSkipMessage(Message.DESC_FEDERATED,
-                    Message.NO_WINDOWS_SUPPORT);
-            return; 
-        }
+    @Override
+    public void runFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runFederatedTests();
+    }
+
+    @Test
+    @Override 
+    public void runDockerTests() {
+        super.runDockerTests();
+    }
+
+    @Test
+    @Disabled("TODO: add docker support for federated python programs.")
+    @Override 
+    public void runDockerFederatedTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        super.runDockerFederatedTests();
     }
 }

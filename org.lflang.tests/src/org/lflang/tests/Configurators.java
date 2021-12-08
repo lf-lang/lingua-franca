@@ -81,18 +81,18 @@ public class Configurators {
      * Given a test category, return true if it is not one of the default excluded
      * categories.
      */
-    public static boolean defaultCategoryExclusion(TestCategory category) {
-        if (category != TestCategory.CONCURRENT && category != TestCategory.FEDERATED &&
-            category != TestCategory.EXAMPLE) {
-            // Check if running on Windows
-            if (TestBase.isWindows()) {
-                // SERIALIZATION and TARGET tests are currently not
-                // supported on Windows.
-                return category != TestCategory.SERIALIZATION &&
-                    category != TestCategory.TARGET;
-            }
-            return true;
-        }
-        return false;
+    public static boolean isExcluded(TestCategory category) {
+        boolean excluded = false;
+        
+        // CONCURRENT, FEDERATED, EXAMPLE, DOCKER_FEDERATED, DOCKER are excluded
+        excluded |= (category == TestCategory.CONCURRENT 
+                    || category == TestCategory.FEDERATED 
+                    || category == TestCategory.EXAMPLE 
+                    || category == TestCategory.DOCKER_FEDERATED 
+                    || category == TestCategory.DOCKER);
+
+        // SERIALIZATION and TARGET tests are excluded on Windows.
+        excluded |= (TestBase.isWindows() && (category == TestCategory.SERIALIZATION || category == TestCategory.TARGET));
+        return !excluded;
     }
 }

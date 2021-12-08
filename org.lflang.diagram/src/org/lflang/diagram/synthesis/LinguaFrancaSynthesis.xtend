@@ -1,3 +1,27 @@
+/*************
+* Copyright (c) 2020, Kiel University.
+*
+* Redistribution and use in source and binary forms, with or without modification,
+* are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+*    this list of conditions and the following disclaimer.
+*
+* 2. Redistributions in binary form must reproduce the above copyright notice,
+*    this list of conditions and the following disclaimer in the documentation
+*    and/or other materials provided with the distribution.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+* ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
 package org.lflang.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
@@ -60,7 +84,6 @@ import org.lflang.diagram.synthesis.util.ReactorIcons
 import org.lflang.diagram.synthesis.util.SynthesisErrorReporter
 import org.lflang.diagram.synthesis.util.UtilityExtensions
 import org.lflang.generator.ActionInstance
-import org.lflang.generator.MultiportInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -141,6 +164,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static val SynthesisOption SHOW_PORT_NAMES = SynthesisOption.createCheckOption("Port names", true).setCategory(APPEARANCE)
     public static val SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
+    public static val SynthesisOption SHOW_REACTION_LEVEL = SynthesisOption.createCheckOption("Reaction Level", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
@@ -166,6 +190,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_PORT_NAMES,
 			SHOW_MULTIPORT_WIDTH,
 			SHOW_REACTION_CODE,
+            SHOW_REACTION_LEVEL,
 			SHOW_REACTION_ORDER_EDGES,
 			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
@@ -378,15 +403,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val inputPorts = <PortInstance, KPort>newHashMap
 			val outputPorts = <PortInstance, KPort>newHashMap
 			for (input : instance.inputs.reverseView) {
-			    // Add only single ports and multiports (not their contained individual ports).
-			    if (input.isMultiport() || input.multiportIndex < 0) {
-				    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
-			    }
+    		    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
 			}
 			for (output : instance.outputs) {
-                if (output.isMultiport() || output.multiportIndex < 0) {
-				    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
-			    }
+			    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
 			}
 			// Mark ports
 			inputPorts.values.forEach[setProperty(REACTOR_INPUT, true)]
@@ -558,7 +578,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (entry : reactorInstance.children.reverseView.indexed) {
 			val child = entry.value
 			// Do not render individual reactors in a bank.
-			if (child.getBankMaster() === null) {
+			if (child.getBank() === null) {
 			    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
 			    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
 			    nodes += rNodes
@@ -663,11 +683,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect outputs
 			port = null // create new ports
 			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
-			    // Skip this effect if it is a multiport or a multiport instance other than index 0.
-			    // or contained in a bank with index other than 0.
+			    // Skip this effect if it is contained in a bank with index other than 0.
 			    if (!(effect instanceof PortInstance) 
-			        || ((effect as PortInstance).multiportIndex <= 0
-			           && effect.parent.bankIndex <= 0)
+			        || (effect.parent.bankIndex <= 0)
 			    ) {
                     port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
                         port
@@ -681,25 +699,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     } else if (effect instanceof PortInstance) {
                         var KPort dst = null
                         if (effect.isOutput) {
-                            // If this is a reaction driving a multiport
-                            // output of the container, only show one
-                            // connection, not one for each member of
-                            // the multiport. Also, skip the multiport itself.
-                            if (effect.multiportIndex() == 0) {
-                                dst = parentOutputPorts.get(effect.multiportParent)
-                            } else {
-                                dst = parentOutputPorts.get(effect)
-                            }
+                            dst = parentOutputPorts.get(effect)
                         } else {
-                            // If this is a reaction driving a multiport
-                            // input of a contained reactor, only show one
-                            // connection, not one for each member of
-                            // the multiport. Also, skip the multiport itself.
-                            if (effect.multiportIndex() == 0) {
-                                dst = inputPorts.get(effect.multiportParent.parent, effect.multiportParent)
-                            } else {
-                                dst = inputPorts.get(effect.parent, effect)
-                            }
+                            dst = inputPorts.get(effect.parent, effect)
                         }
                         if (dst !== null) {
                             createDependencyEdge(effect).connect(port, dst)
@@ -934,13 +936,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return createEdge => [
 			associateWith(associate)
 			addPolyline() => [
+                boldLineSelectionStyle()
+                addJunctionPointDecorator()
 				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
 					lineStyle = LineStyle.CUSTOM
 					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
 				} else {
 					lineStyle = LineStyle.DASH
 				}
-				boldLineSelectionStyle()
 			]
 		]
 	}
@@ -951,12 +954,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
+                boldLineSelectionStyle()
+			    addJunctionPointDecorator()
 				if (multiport) {
                     // Render multiport connections and bank connections in bold.
                     lineWidth = 2.2f
                     lineCap = LineCap.CAP_SQUARE
+                    // Adjust junction point size
+                    setJunctionPointDecorator(it.junctionPointRendering, 6, 6)
 				}
-				boldLineSelectionStyle()
 			]
 		]
 	}
@@ -967,13 +973,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
+                boldLineSelectionStyle()
+                addJunctionPointDecorator()
 				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
 					lineStyle = LineStyle.CUSTOM
 					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
 				} else {
 					lineStyle = LineStyle.DASH
 				}
-				boldLineSelectionStyle()
 			]
 		]
 	}
@@ -1056,7 +1063,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		    label = ""
 		}
 		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
-            if (lfPort instanceof MultiportInstance) {
+            if (lfPort.isMultiport) {
                 // TODO Fix unresolvable references in ReactorInstance
                 label += "[" + lfPort.width + "]"
             }

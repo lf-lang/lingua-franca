@@ -25,7 +25,7 @@
 package org.lflang.generator;
 
 import org.eclipse.emf.ecore.EObject;
-import org.jetbrains.annotations.Nullable;
+// import org.jetbrains.annotations.Nullable;
 
 /**
  * An exception that occurred during code generation. May also
@@ -33,14 +33,14 @@ import org.jetbrains.annotations.Nullable;
  */
 public class GenerationException extends RuntimeException { // note that this is an unchecked exception.
 
-    @Nullable
+    /* @Nullable */
     private final EObject location;
 
     public GenerationException(String message) {
         this(null, message, null);
     }
 
-    public GenerationException(@Nullable EObject location, String message) {
+    public GenerationException(/* @Nullable */ EObject location, String message) {
         this(location, message, null);
     }
 
@@ -49,7 +49,7 @@ public class GenerationException extends RuntimeException { // note that this is
 
     }
 
-    public GenerationException(@Nullable EObject location, String message, Throwable cause) {
+    public GenerationException(/* @Nullable */ EObject location, String message, Throwable cause) {
         super(message, cause);
         this.location = location;
     }
@@ -58,7 +58,7 @@ public class GenerationException extends RuntimeException { // note that this is
         this(null, null, cause);
     }
 
-    @Nullable
+    /* @Nullable */
     public EObject getLocation() {
         return location;
     }

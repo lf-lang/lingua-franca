@@ -16,4 +16,12 @@
 # If it causes problems, we can throw it away or hide it.
 [workspace]
 members = ["*"]
-exclude = ["target", "generics"]
+exclude = ["target", "multiport", "generics"]
+
+[profile.release-with-min-size] # use `build-type: MinSizeRel`
+inherits = "release"
+opt-level = "s"
+
+[profile.release-with-debug-info] # use `build-type: RelWithDebInfo`
+inherits = "release"
+debug = true

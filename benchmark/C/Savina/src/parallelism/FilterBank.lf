@@ -1,0 +1,263 @@
+/**
+ * Copyright (C) 2021 UC Berkeley and TU Dresden
+ * 
+ * This benchmark has 8 parallel filters, each of which consists of a
+ * pipeline of a delay line, an FIR filter, a peculiar downsampler,
+ * another delay line, and another FIR filter.  A Combiner
+ * then adds the results from all the filters, which are (oddly) always 0.0.
+ * 
+ * The Source produces a sawtooth waveform from 0 to 999, then repeating.
+ * The delay lines delay their inputs by 16384 samples, so the first
+ * 16383 outputs are zero. Actually, since the first output of the Source is 0.0,
+ * the first 16384 outputs are zero. The FIR filters each wait for
+ * peek_length = 16384 samples before producing any output, and as a
+ * consequence, the second FIR filter will only do any work once.
+ * Moreover, because of the peculiar SampleFilter, its collected
+ * inputs will all be 0.0, so the output will be 0.0.
+ * In the first execution of the first FIR filter, all inputs have been 0.0,
+ * so the first output will be 0.0. The next 16383 outputs will be zero'd
+ * out by the SampleFilter, so the first 16384 inputs to the second delay
+ * are also all 0.0. The second FIR filter will only receive 0.0, so its
+ * output will be 0.0. The FIR filters have odd arbitrary coefficients,
+ * but those don't matter because the data is all 0.0.
+ * 
+ * For more details on this benchmark, see the Cpp version from which it was derived:
+ * https://github.com/lf-lang/lingua-franca/blob/master/benchmark/Cpp/Savina/src/parallelism/FilterBank.lf.
+ * 
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Edward A. Lee
+ */
+
+target C {
+    /* [[[cog
+      if (threaded_runtime=="True"):
+          cog.outl(f"threads: {threads},")
+      else:
+          cog.outl("threads: 0,")
+    ]]] */
+    threads: 0,
+    /// [[[end]]]
+    fast: true,
+    /* [[[cog
+        cog.outl(f'timeout: {time_steps} msec // Specifies number of samples.')
+    ]]] */
+    timeout: 34816 msec // Specifies number of samples.
+    /// [[[end]]]
+};
+
+/**
+ * Send an output every 1 msec.
+ */
+reactor Producer {
+    output next: bool;
+
+    timer t(0, 1 msec);
+    
+    reaction (t) -> next {=
+        SET(next, true);
+    =}
+}
+
+/**
+ * Produce outputs every 1 msec from 0 to maxValue - 1,
+ * then start over again at 0.
+ */
+reactor Source(maxValue:int(1000)) {
+    input next: bool;
+    output value: double;
+
+    state current: size_t(0);
+    
+    reaction (next) -> value {=
+        SET(value, self->current);
+        // info_print("Source output: %d", self->current);
+        self->current = (self->current + 1) % self->maxValue;
+    =}
+}
+
+reactor Bank(bank_index: size_t(0), columns: size_t(16384), channels: size_t(8)) {    
+    input in: double;
+    output out: double;
+        
+    delay0 = new Delay(length=columns);
+    fir0 = new FirFilter(bank_index=bank_index, peek_length=columns, first = true);
+    sample = new SampleFilter(sample_rate=columns);
+    delay1 = new Delay(length=columns);
+    fir1 = new FirFilter(bank_index=bank_index, peek_length=columns, first = false);
+    
+    in -> delay0.in;
+    delay0.out -> fir0.in;
+    fir0.out -> sample.in;
+    sample.out -> delay1.in;
+    delay1.out -> fir1.in;
+    fir1.out -> out;   
+}
+
+/**
+ * Delay inputs by length. The first length - 1
+ * outputs will be 0.0, followed by the inputs in the order
+ * of arrival.  Each output is produced when an input is received.
+ */
+reactor Delay(length: size_t(16383), period:time(1 msec)) {
+    state buffer:double*({=NULL=});
+    state pointer: size_t(0); // Current read and write position.
+    
+    input in: double;
+    output out: double;
+        
+    reaction(startup) {=
+        self->buffer = calloc(self->length - 1, sizeof(double));
+        self->pointer = 0;
+    =}
+    
+    reaction(in) -> out {=
+        // info_print("Delay %d output: %f", self->pointer, self->buffer[self->pointer]);
+        SET(out, self->buffer[self->pointer]);
+        self->buffer[self->pointer++] = in->value;
+        // info_print("Delay input: %f", in->value);
+        if (self->pointer >= self->length - 1) {
+            self->pointer = 0;
+        }
+    =}
+    
+    reaction(shutdown) {=
+        free(self->buffer);
+    =}
+}
+
+/**
+ * This is a subsampling FIR filter that collects peek_length
+ * inputs, and once it has received all of them, produces an
+ * output that is the inner product of the collected inputs and
+ * the coefficients.  The coefficients are two arbitrary vectors
+ * used in the Savina suite; if first is true, then these are
+ * for the first bank of filters in the program. Otherwise, they
+ * are for the second bank.
+ * @param peek_length The number of samples to collect before
+ *  starting to produce outputs.
+ */
+reactor FirFilter(bank_index:size_t(0), peek_length:size_t(16384), first:bool(true)) {
+    state data:double*({=NULL=});
+    state data_index: size_t(0);
+    state coefficients:double*({=NULL=});
+    state data_full: bool(false);
+    
+    input in: double;
+    output out: double;
+    
+    reaction(startup) {=
+        // Allocate local state.
+        self->data = calloc(self->peek_length, sizeof(double));
+        
+        // Initialize coefficients.
+        self->coefficients = calloc(self->peek_length, sizeof(double));
+        if (self->first) {
+            for(size_t i = 0; i < self->peek_length; i++) {
+                self->coefficients[i] = (1.0 * i * self->peek_length) 
+                        + (1.0 * self->bank_index * self->peek_length) 
+                        + self->bank_index + i + self->bank_index + 1;
+            }
+        } else {
+            for(size_t i = 0; i < self->peek_length; i++) {
+                self->coefficients[i] = (1.0 * i * self->bank_index) 
+                        + (1.0 * self->bank_index * self->bank_index) 
+                        + self->bank_index + i;
+            }
+        }
+        self->data_index = 0;
+    =}
+    
+    reaction(in) -> out {=
+        self->data[self->data_index++] = in->value;
+        
+        if(self->data_index == self->peek_length) {
+            self->data_full = true; // Sufficient initial data has arrived.
+            self->data_index = 0;
+        }
+        if (self->data_full) {
+            double sum = 0.0;
+            for (size_t i = 0; i < self->peek_length; i++) {
+                sum += self->data[i] * self->coefficients[self->peek_length - i - 1];
+            }
+            SET(out, sum);
+            // info_print("FIR filter %d,%d outputting %f.", self->bank_index, (self->first) ? 0 : 1, sum);
+        }
+    =}
+
+    reaction(shutdown) {=
+        free(self->data);
+        free(self->coefficients);
+    =}
+}
+/**
+ * Output one of every sample_rate inputs. Output 0.0 for the
+ * intervening inputs.  That is, upon arrive of an input, if
+ * its count is a multiple of sample_rate, output it, and otherwise
+ * output 0.0.
+ */
+reactor SampleFilter(sample_rate: size_t(16384)) {
+    state samples_received: size_t(0);
+    
+    input in: double;
+    output out: double;
+    
+    reaction(in) -> out {=
+        if(self->samples_received == 0) {
+            // info_print("SampleFilter outputting %f.", in->value);
+            SET(out, in->value);
+        } else {
+            // info_print("SampleFilter outputting %f.", 0.0);
+            SET(out, 0.0);
+        }
+        self->samples_received = (self->samples_received + 1) % self->sample_rate;
+    =}
+}
+
+/**
+ * Sum all the inputs.
+ */
+reactor Combine(channels: size_t(8)) {
+    input[channels] inValues: double;
+    output out: double;
+        
+    reaction(inValues) -> out {=
+        double sum = 0;
+        for(int i = 0; i < inValues_width; i++) {
+            if (inValues[i]->is_present) {
+                sum += inValues[i]->value;
+            }
+        }
+        SET(out, sum);
+    =}
+}
+
+reactor Sink(print_rate: size_t(100)) {
+    input in: double;
+    state count: size_t(0);
+    
+    reaction(in) {=
+        double result = in->value;
+        
+        if(self->count++ % self->print_rate == 0) {
+            info_print("SinkActor: result = %f.", result);
+        }
+    =}
+}
+
+/* [[[cog
+    cog.outl(f'main reactor (columns: size_t({columns}), channels: size_t({channels})) {{')
+]]] */
+main reactor (columns: size_t(16384), channels: size_t(8)) {
+/// [[[end]]]
+    producer = new Producer();
+    source = new Source();
+    banks = new[channels] Bank(columns=columns, channels=channels);
+    combine = new Combine(channels=channels);
+    sink = new Sink(print_rate=100);
+    
+    producer.next -> source.next;
+    (source.value)+ -> banks.in;
+    banks.out -> combine.inValues;
+    combine.out -> sink.in;
+}
