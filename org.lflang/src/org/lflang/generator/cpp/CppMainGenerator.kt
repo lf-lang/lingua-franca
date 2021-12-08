@@ -116,11 +116,13 @@ class CppMainGenerator(
             |    t = std::make_unique<Timeout>("Timeout", & e, timeout);
             |  }
             |
-            |  // execute the reactor program
+            |  // assemble reactor program
             |  e.assemble();
+        ${" |".. if (targetConfig.exportDependencyGraph) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
+            |
+            |  // start execution
             |  auto thread = e.startup();
             |  thread.join();
-        ${" |".. if (targetConfig.exportDependencyGraph) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
             |  return 0;
             |}
         """.trimMargin()
