@@ -19,6 +19,8 @@ target C {
     /// [[[end]]]
 }
 
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 reactor RateComputer(bank_index: size_t(0), startRate: double(3.46), rateIncrement: double(0.0025)) {
     
     state rate: double;
