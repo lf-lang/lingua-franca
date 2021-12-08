@@ -25,7 +25,8 @@
 package org.lflang
 
 import org.lflang.generator.TargetCode
-import java.util.Locale
+import org.lflang.util.StringUtil
+import java.util.*
 
 /**
  * Parse and return an integer from this string, much
@@ -60,9 +61,23 @@ internal fun <T> List<T>.headAndTail() = Pair(first(), tail())
 
 /**
  * Return [this] string surrounded with double quotes.
+ * This escapes the string's content (see [escapeStringLiteral]).
  */
-internal fun String.withDQuotes() = "\"$this\""
+internal fun String.withDQuotes() = "\"${this.escapeStringLiteral()}\""
 
+/**
+ * Return [this] string with some common escapes to place it
+ * into a string literal.
+ */
+fun String.escapeStringLiteral() =
+    replace(Regex("[\\\\ \t\"]")) {
+        when (it.value) {
+            "\\" -> "\\\\"
+            "\t" -> "\\t"
+            "\"" -> "\\\""
+            else -> it.value
+        }
+    }
 
 /**
  * Remove quotation marks (double XOR single quotes)
@@ -79,20 +94,13 @@ internal fun String.withoutQuotes(): String {
  */
 internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
 
-
 /**
  * Convert a string in Camel case to snake case. E.g.
  * `MinimalReactor` will be converted to `minimal_reactor`.
  * The string is assumed to be a single camel case identifier
  * (no whitespace).
  */
-fun String.camelToSnakeCase(): String {
-    val words = this.split(Regex("(?<![A-Z])(?=[A-Z])"))
-        .map { it.toLowerCase(Locale.ROOT) }
-        .filter { it.isNotEmpty() }
-
-    return words.joinToString("_")
-}
+fun String.camelToSnakeCase(): String = StringUtil.camelToSnakeCase(this)
 
 private val nlPattern = Regex("\\R\\s+")
 

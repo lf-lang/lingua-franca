@@ -47,6 +47,7 @@
           <emptyLine />
         </value>
       </option>
+      <option name="JD_DO_NOT_WRAP_ONE_LINE_COMMENTS" value="true" />
       <option name="JD_PRESERVE_LINE_FEEDS" value="true" />
     </JavaCodeStyleSettings>
     <JetCodeStyleSettings>

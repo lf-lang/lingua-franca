@@ -2,6 +2,7 @@ package org.lflang.tests.runtime;
 
 import java.util.EnumSet;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.ASTUtils;
@@ -31,23 +32,25 @@ public class CCppTest extends TestBase {
      */
     @Test
     public void runAsCCpp() {
-        if(isWindows()) {
-            printSkipMessage(Message.DESC_AS_CCPP,
-                             Message.NO_WINDOWS_SUPPORT);
-            return;
-        }
-
-        EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
-        categories.removeAll(EnumSet.of(
-            // Don't need to test examples.
-            // If any of them uses CCpp, it will
-            // be tested when compileExamples is
-            // run.
-            TestCategory.EXAMPLE));
-
-        runTestsForTargets(Message.DESC_AS_CCPP, categories::contains,
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
                            it -> ASTUtils.changeTargetName(it.fileConfig.resource,
                                                            Target.CCPP.getDisplayName()),
                            TestLevel.EXECUTION, true);
+    }
+
+    /**
+     * Exclusion function for runAsCCpp test
+     */
+    static private boolean isExcludedFromCCpp(TestCategory category) {
+        boolean excluded = false;
+        // Don't need to test examples.
+        // If any of them uses CCpp, it will
+        // be tested when compileExamples is
+        // run.
+        excluded |= (category == TestCategory.EXAMPLE);
+        excluded |= (isWindows() && (category == TestCategory.DOCKER_FEDERATED));
+        excluded |= (isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER));
+        return !excluded;
     }
 }

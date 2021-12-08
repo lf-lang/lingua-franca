@@ -1,12 +1,13 @@
 /**
- * Parallelism benchmark from the Savina benchmark suite.
- * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
- *
- * TODO evaluate the maxValue parameter and create the pipeline accordingly.
- *
+ * Copyright (C) 2021 UC Berkeley and TU Dresden
+ * 
+ * For more details on this benchmark, see the Cpp version from which it was derived:
+ * https://github.com/lf-lang/lingua-franca/blob/master/benchmark/Cpp/Savina/src/parallelism/RadixSort.lf.
+ * 
  * @author Hannes Klein
  * @author Abanob Bostouros
  * @author Matthew Chorlian
+ * @author Christian Menard
  */
 
 
@@ -26,9 +27,7 @@ preamble {=
     #include "PseudoRandom.h"
 =}
 
-
 reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
-
 
    preamble {=
         void printBenchmarkInfo(char* benchmarkId) {
@@ -37,16 +36,15 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
     =}
 
     state numValuesSent:int(0);
-    state random:PseudoRandom*;
-    input inStart:bool;
+    state random:PseudoRandom;
 
-    output outNextSortReactor:{=long=};
+    output outValue:{=long=};
 
     logical action sendRandomNum;
 
-    reaction(inStart) -> sendRandomNum {=
+    reaction(startup) -> sendRandomNum {=
         // Initialize the random state variable
-        self->random = (PseudoRandom*)malloc(sizeof(PseudoRandom));
+        initPseudoRandom(&self->random, self->seed);
         
         // reset local state
         self->numValuesSent = 0;
@@ -55,13 +53,12 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
         schedule(sendRandomNum, 0);
     =}
 
-    reaction(sendRandomNum) -> outNextSortReactor, sendRandomNum {=
-        self->random->mValue = self->seed;
+    reaction(sendRandomNum) -> outValue, sendRandomNum {=
 
         if(self->numValuesSent < self->numValues) {
-             long candidate = labs(nextLong(self->random)) % self->maxValue;
-             printf("%ld",candidate);
-             SET(outNextSortReactor,candidate);
+             long candidate = labs(nextLong(&self->random)) % self->maxValue;
+             //printf("%ld",candidate);
+             SET(outValue, candidate);
              self->numValuesSent += 1;
              schedule(sendRandomNum,0);
         }
@@ -69,8 +66,7 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
 }
 
 
-reactor SortActor(numValues:int(100000), radixIndex:int(-1)) {
-
+reactor Sorter(numValues:int(100000), bank_index:int(-1)) {
 
     state orderingArray:{=long[]=};
     state valuesSoFar:int(0);
@@ -84,7 +80,7 @@ reactor SortActor(numValues:int(100000), radixIndex:int(-1)) {
     logical action sendBufferedValues;
 
     reaction(startup) {=
-        self->radix = 1l << self->radixIndex;
+        self->radix = 1l << self->bank_index;
         self->orderingArray = calloc(self->numValues, sizeof(long));
     =}
 
@@ -119,10 +115,13 @@ reactor SortActor(numValues:int(100000), radixIndex:int(-1)) {
             self->sendPos = 0;
         }
     =}
+    
+    reaction(shutdown) {=
+        free(self->orderingArray);
+    =}
 }
 
 reactor ValidationReactor(numValues:int(100000)) {
-
 
     state sumSoFar:double(0.0);
     state valuesSoFar:int(0);
@@ -131,9 +130,8 @@ reactor ValidationReactor(numValues:int(100000)) {
     state errorValueInt:int(-1);
 
     input inValue:{=long=};
-    logical action outFinished:bool;
 
-    reaction(inValue) -> outFinished {=
+    reaction(inValue) {=
 
         long value = inValue->value;
         self->valuesSoFar += 1;
@@ -158,65 +156,23 @@ reactor ValidationReactor(numValues:int(100000)) {
             self->errorValueLong = -1;
             self->errorValueInt = -1;
 
-            schedule(outFinished,0);
+            request_stop();
         }
-    =}
-    reaction(outFinished){=
-      request_stop();
     =}
 }
 
 
 /* [[[cog
-    cog.outl(f'main reactor RadixSort(dataSize:int({dataSize}), maxValue:long({maxValue}), seed:long({seed}))')
+    import math
+    numBits = int(math.log2(int(maxValue))) # this always rounds down
+    cog.outl(f'main reactor RadixSort(dataSize:int({dataSize}), maxValue:long({maxValue}), numBits:unsigned({numBits}), seed:long({seed})) {{')
 ]]] */
-main reactor RadixSort(dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) 
+main reactor RadixSort(dataSize:int(100000), maxValue:long(1152921504606846976), numBits:unsigned(60), seed:long(2048)) {
 // [[[end]]]
 
-{
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);
+    sorters = new[numBits] Sorter(numValues=dataSize);
 
-    //validator.outFinished -> source.inStart;
-
-    reaction(startup) -> source.inStart {=
-        //printBenchmarkInfo("RadixSortBenchmark");
-        //printArgs("numIterations", self->numIterations, "dataSize", self->dataSize, "maxValue", self->maxValue, "seed", self->seed);
-        //printSystemInfo();
-        SET(source.inStart,true);
-    =}
-
-    /* [[[cog
-      for i in range(60):
-        cog.outl(f'sorter{i} = new SortActor(numValues=dataSize, radixIndex={i});')
-    ]]] */
-    sorter0 = new SortActor(numValues=dataSize, radixIndex=0);
-    sorter1 = new SortActor(numValues=dataSize, radixIndex=1);
-    sorter2 = new SortActor(numValues=dataSize, radixIndex=2);
-    sorter3 = new SortActor(numValues=dataSize, radixIndex=3);
-    sorter4 = new SortActor(numValues=dataSize, radixIndex=4);
-    sorter5 = new SortActor(numValues=dataSize, radixIndex=5);
-    sorter6 = new SortActor(numValues=dataSize, radixIndex=6);
-    sorter7 = new SortActor(numValues=dataSize, radixIndex=7);
-    sorter8 = new SortActor(numValues=dataSize, radixIndex=8);
-    sorter9 = new SortActor(numValues=dataSize, radixIndex=9);
-    // [[[end]]]
-
-    source.outNextSortReactor -> sorter0.inValue;
-    sorter9.outValue -> validator.inValue;
-
-    /* [[[cog
-      for i in range(60-1):
-        cog.outl(f'sorter{i}.outValue -> sorter{i+1}.inValue;')
-    ]]] */
-    sorter0.outValue -> sorter1.inValue;
-    sorter1.outValue -> sorter2.inValue;
-    sorter2.outValue -> sorter3.inValue;
-    sorter3.outValue -> sorter4.inValue;
-    sorter4.outValue -> sorter5.inValue;
-    sorter5.outValue -> sorter6.inValue;
-    sorter6.outValue -> sorter7.inValue;
-    sorter7.outValue -> sorter8.inValue;
-    sorter8.outValue -> sorter9.inValue;
-    // [[[end]]]
+    source.outValue, sorters.outValue -> sorters.inValue, validator.inValue;
 }

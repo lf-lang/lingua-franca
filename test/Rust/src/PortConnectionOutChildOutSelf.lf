@@ -18,7 +18,7 @@ reactor Sink {
     input inp: i32;
     state done: bool(false);
     reaction(inp) {=
-        assert_matches!(ctx.get(inp), Some(76600));
+        assert_eq!(ctx.get(inp), Some(76600));
         println!("Success");
         self.done = true;
     =}
@@ -34,7 +34,7 @@ main reactor {
     state done: bool(false);
 
     reaction(parent.out) {=
-        assert_matches!(ctx.get(parent__out), Some(76600));
+        assert_eq!(ctx.get(parent__out), Some(76600));
         println!("Success");
         self.done = true;
     =}

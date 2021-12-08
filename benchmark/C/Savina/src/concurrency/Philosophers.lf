@@ -1,17 +1,8 @@
 /**
- * Philosopher benchmark from the Savina benchmark suite for actor languages and frameworks.
- * The original benchmarks are available at https://github.com/shamsmahmood/savina.
+ * Copyright (C) 2020 TU Dresden and UC Berkeley
  * 
- * This program takes advantage of particular features of LF to model the timing of the
- * philosophers. Specifically, it has top-level parameters that specify the amount of time
- * that philosophers spend eating and thinking.  With the "fast" target option set to true,
- * this does not actually affect the execution time, but rather better models a physical
- * scenario.
- * 
- * See, Shams Imam and Vivek  Sarkar, "Savina - An Actor Benchmark Suite: Enabling Empirical
- * Evaluation of Actor Libraries," AGERE! '14: Proceedings of the 4th International Workshop
- * on Programming based on Actors Agents & Decentralized Control, October 2014, Pages 67–80,
- * https://doi.org/10.1145/2687357.2687368
+ * For more details on this benchmark, see the Cpp version from which it was derived:
+ * https://github.com/lf-lang/lingua-franca/blob/master/benchmark/Cpp/Savina/src/concurrency/Philosophers.lf.
  * 
  * @author Christian Menard
  * @author Edward A. Lee
@@ -25,18 +16,13 @@ target C {
     ]]] */
     threads: 0,
     /// [[[end]]]
-    fast: true,
+    logging: warn
 };
 
 reactor Philosopher(
-    eating_time:time(1 sec), // (Logical) time spent eating.
-    thinking_time:time(1 sec), // (Logical) time spent thinking.
-    instance:int(0),     // Instance number in a bank of reactors.
-    count:int(10000),    // Having eaten this many times, send finished.
-    starvation_threshold:int(1000), // Print a starvation message when denied this many times.
-    verbose:bool(false)  // Print verbose messages.
+    bank_index:int(0),     // Instance number in a bank of reactors.
+    count:int(10000)    // Having eaten this many times, send finished.
 ) {
-    input start:bool;
     output finished:bool;
     
     input eat:bool;
@@ -45,76 +31,36 @@ reactor Philosopher(
     output done:bool;
     
     state times_eaten:int;
-    state times_denied:int;
- 
-    logical action done_eating;
-    logical action done_thinking;
-    
-    reaction(start) -> hungry {=
-        if(self->verbose) {
-            printf("Hello! I am philosopher %d, and I am very hungry!\n", self->instance);
-        }
+
+    reaction(startup) -> hungry {=
+        info_print("Hello! I am philosopher %d, and I am very hungry!", self->bank_index);
         self->times_eaten = 0;
-        self->times_denied = 0;
-        SET(hungry, true);   
-    =}
-    
-    reaction(done_eating) -> done, finished, done_thinking {=
-        // ... put forks away
-        SET(done, true); // signal that I am done eating
-        if(self->verbose) {
-            printf("Philosopher %d is thinking.\n", self->instance);
-        }
-        if (self->times_eaten < self->count) {
-            schedule(done_thinking, self->thinking_time);
-        } else {
-            // Now I am really not hungry anymore!
-            SET(finished, true);
-        } 
-    =}
-    
-    reaction(done_thinking) -> hungry {=
-        if(self->verbose) {
-            printf("*********** Current time is %lld\n", get_elapsed_logical_time());
-            printf("Philosopher %d is hungry.\n", self->instance);
-        }
         SET(hungry, true);
     =}
     
-    reaction(eat) -> done_eating {=
+    reaction(eat) -> done, finished, hungry {=
         // ... take left and right fork
-        if (!eat->is_present) {
-            fprintf(stderr, "ERROR: reaction to eat triggered with no input.\n");
-        }
-        if(self->verbose) {
-            printf("*********** Current time is %lld\n", get_elapsed_logical_time());
-            printf("Philosopher %d is eating.\n", self->instance);
-        }
+        info_print("Philosopher %d is eating.", self->bank_index);
         self->times_eaten++;
-        self->times_denied = 0;
-        schedule(done_eating, self->eating_time);
+        SET(done, true);
+        
+        if (self->times_eaten == self->count) {
+            SET(finished, true);
+        } else {
+            SET(hungry, true);
+        }
     =}
-
-    reaction(denied) -> done_thinking {=
-        self->times_denied++;
-        if (self->times_denied == self->starvation_threshold) {
-            printf("Philosopher %d is starving!\n", self->instance);
-        }
-        if(self->verbose) {
-            printf("*********** Current time is %lld\n", get_elapsed_logical_time());
-            printf("Philosopher %d was denied and is thinking.\n", self->instance);
-        }
+   
+    reaction(denied) -> hungry {=
+        info_print("Philosopher %d was denied and is thinking.", self->bank_index);
 
         // Well, I will just try again...
-        schedule(done_thinking, self->thinking_time);
+        SET(hungry, true);
     =}
 }
 
-reactor Arbitrator(
-    num_philosophers:int(20),
-    count:int(10000),
-    verbose:bool(false)
-) {
+reactor Arbitrator(num_philosophers:int(20)) {
+
     preamble {=
         /*
          * Try to acquire both forks for a philosopher. Returns true if
@@ -142,12 +88,16 @@ reactor Arbitrator(
             forks[instance] = false; // left
             forks[(instance + 1) % num_philosophers] = false; // right
          }
+         
+         enum Reply {
+            INVALID = 0,
+            EAT = 1,
+            DENIED = 2,
+        };
     =}
         
-    /** Signal to philosopher to start an iteration. */
-    output[num_philosophers] philosopher_start:bool; 
     /** Signal from philosopher that it has eaten enough times in the iteration. */
-    input[num_philosophers] philosopher_finished:bool;
+    input[num_philosophers] finished:bool;
     
     /** Signal from philosopher that it is ready to eat. */
     input[num_philosophers] hungry:bool;
@@ -159,58 +109,47 @@ reactor Arbitrator(
     output[num_philosophers] denied:bool;
     
     state forks:bool[];
+    state replies:int[];
     state finished_philosophers:int(0);
     state arbitration_id:int(0);
     state retries:int(0);
     
+    logical action send_replies;
+    
     reaction(startup) {=
         self->forks = calloc(self->num_philosophers, sizeof(bool));
+        self->replies = calloc(self->num_philosophers, sizeof(int));
     =}
-    
-    reaction(startup) -> philosopher_start {=
-        if (self->verbose) {
-            printf("Starting the arbitrator\n");
-        }
-        self->finished_philosophers = 0;
-        self->retries = 0;
 
-        // Broadcast a `start` signal to all philosophers.
-        for(int i = 0; i < philosopher_start_width; i++) {
-            SET(philosopher_start[i], true);
+    reaction(send_replies) -> eat, denied {=
+        for(size_t i = 0; i < self->num_philosophers; i++) {
+            if (self->replies[i] == EAT) {
+                SET(eat[i], true);
+            } else if (self->replies[i] == DENIED) {
+                SET(denied[i], true);
+            }
         }
+        memset(self->replies, INVALID, sizeof(int) * self->num_philosophers);
     =}
 
     reaction(done) {=
         for(int i = 0; i < done_width; i++) {
             if (done[i]->is_present) {
-                if (self->verbose) {
-                    printf("Arbitrator: Philosopher %d signals that they are done eating.\n", i);
-                }
                 free_forks(self->forks, i, self->num_philosophers);
             }
         }
     =}
         
-    reaction(hungry) -> eat, denied {= 
+    reaction(hungry) -> send_replies {= 
         // Iterate over all philosophers, each time starting from a different one.
         // This arbitration ensures that no philosopher has to starve.
         for(int i = self->arbitration_id; i < self->arbitration_id + self->num_philosophers; i++) {
             int j = i % self->num_philosophers;
             if (hungry[j]->is_present) {
-                if (self->verbose) {
-                    printf("*********** Current time is %lld\n", get_elapsed_logical_time());
-                    printf("Arbitrator: Philosopher %d signals that they are hungry.\n", j);
-                }
                 if (acquire_forks(self->forks, j, self->num_philosophers)) {
-                    if (self->verbose) {
-                        printf("Arbitrator tells philosopher %d to eat.\n", j);
-                    }
-                    SET(eat[j], true); 
+                    self->replies[j] = EAT; 
                 } else {
-                    if (self->verbose) {
-                        printf("Arbitrator denies philosopher %d to eat.\n", j);
-                    }
-                    SET(denied[j], true);
+                    self->replies[j] = DENIED;
                     self->retries++;
                 }    
             }
@@ -220,47 +159,34 @@ reactor Arbitrator(
         if (self->arbitration_id == self->num_philosophers) {
             self->arbitration_id = 0;
         }
+        schedule(send_replies, 0);
     =}
     
-    reaction (philosopher_finished) {=
-        for(int i = 0; i < philosopher_finished_width; i++) {
-            if (philosopher_finished[i]->is_present) {
+    reaction (finished) {=
+        for(int i = 0; i < finished_width; i++) {
+            if (finished[i]->is_present) {
                 self->finished_philosophers++;
             }
         }
         
-        if (self->verbose) {
-            printf("Arbitrator: Number of finished philosophers: %d\n", self->finished_philosophers);
-        }
-        
         if (self->finished_philosophers == self->num_philosophers) {
-            printf("Arbitrator: All philosophers are sated. Number of denials to philosophers: %d\n", self->retries);
+            printf("Arbitrator: All philosophers are sated. Number of denials to philosophers: %d", self->retries);
             request_stop();
         }        
     =}
 }
 
-main reactor Philosophers(
-    num_philosophers:int(20),
-    iterations:int(12),
-    count:int(10),
-    eating_time:time(1 sec), // (Logical) time spent eating.
-    thinking_time:time(600 msec), // (Logical) time spent thinking.
-    verbose:bool(true) 
-) {    
-    arbitrator = new Arbitrator(count=count, verbose=verbose, num_philosophers = num_philosophers);
-    philosophers = new[num_philosophers] Philosopher(
-        count=count,
-        verbose=verbose,
-        eating_time=eating_time,
-        thinking_time = thinking_time
-    );
+/* [[[cog
+  cog.outl(f"main reactor Philosophers(num_philosophers:int({numPhilosophers}), count:int({numEatingRounds})) {{")
+]]] */
+main reactor Philosophers(num_philosophers:int(20), count:int(10000)) {
+/// [[[end]]]   
+    arbitrator = new Arbitrator(num_philosophers = num_philosophers);
+    philosophers = new[num_philosophers] Philosopher(count=count);
     
-    arbitrator.philosopher_start -> philosophers.start;
-    philosophers.finished -> arbitrator.philosopher_finished;
-    
-    philosophers.hungry -> arbitrator.hungry;
-    philosophers.done -> arbitrator.done;
     arbitrator.eat -> philosophers.eat;
     arbitrator.denied -> philosophers.denied;
+    philosophers.hungry -> arbitrator.hungry;
+    philosophers.done -> arbitrator.done;
+    philosophers.finished -> arbitrator.finished;
 }

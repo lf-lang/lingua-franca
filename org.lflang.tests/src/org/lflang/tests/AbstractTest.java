@@ -3,6 +3,7 @@ package org.lflang.tests;
 import java.util.EnumSet;
 import java.util.List;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
@@ -17,14 +18,8 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public abstract class AbstractTest extends TestBase {
 
     /**
-     * Whether to enable {@link #runWithFourThreads()}.
-     */
-    protected boolean supportsThreadsOption() {
-        return false;
-    }
-
-    /**
      * Construct a test instance that runs tests for a single target.
+     *
      * @param target The target to run tests for.
      */
     protected AbstractTest(Target target) {
@@ -38,51 +33,92 @@ public abstract class AbstractTest extends TestBase {
     protected AbstractTest(List<Target> targets) {
         super(targets);
     }
-    
+
+
+    /**
+     * Whether to enable {@link #runWithFourThreads()}.
+     */
+    protected boolean supportsThreadsOption() {
+        return false;
+    }
+
+    /**
+     * Whether to enable {@link #runFederatedTests()}.
+     */
+    protected boolean supportsFederatedExecution() {
+        return false;
+    }
+
+    /**
+     * Whether to enable {@link #runTypeParameterTests()}.
+     */
+    protected boolean supportsGenericTypes() {
+        return false;
+    }
+
+    /**
+     * Whether to enable {@link #runDockerNonfederatedTests()} and {@link #runDockerFederatedTests()}.
+     */
+    protected boolean supportsDockerOption() {
+        return false;
+    }
+
+
     @Test
     public void runExampleTests() {
-        runTestsForTargets("Description: Run example tests.",
+        runTestsForTargets(Message.DESC_EXAMPLE_TESTS,
                 TestCategory.EXAMPLE_TEST::equals, Configurators::noChanges,
                 TestLevel.EXECUTION, false);
     }
 
     @Test
     public void validateExamples() {
-        runTestsForTargets("Description: Validate examples.",
+        runTestsForTargets(Message.DESC_EXAMPLES,
                 TestCategory.EXAMPLE::equals, Configurators::noChanges, TestLevel.VALIDATION,
                 false);
     }
 
     @Test
     public void runGenericTests() {
-        runTestsForTargets("Description: Run generic tests (threads = 0).",
+        runTestsForTargets(Message.DESC_GENERIC,
                            TestCategory.GENERIC::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runTargetSpecificTests() {
-        runTestsForTargets("Description: Run target-specific tests (threads = 0).",
+        runTestsForTargets(Message.DESC_TARGET_SPECIFIC,
                            TestCategory.TARGET::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runMultiportTests() {
-        runTestsForTargets("Description: Run multiport tests (threads = 0).",
+        runTestsForTargets(Message.DESC_MULTIPORT,
                            TestCategory.MULTIPORT::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
+    public void runTypeParameterTests() {
+        Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
+        runTestsForTargets(Message.DESC_TYPE_PARMS,
+                           TestCategory.GENERICS::equals, Configurators::useSingleThread,
+                           TestLevel.EXECUTION, false);
+    }
+
+
+    @Test
     public void runSerializationTests() {
-        runTestsForTargets("Description: Run serialization tests (threads = 0).",
+        runTestsForTargets(Message.DESC_SERIALIZATION,
                            TestCategory.SERIALIZATION::equals, Configurators::useSingleThread,
                            TestLevel.EXECUTION, false);
     }
 
     @Test
     public void runAsFederated() {
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+
         EnumSet<TestCategory> categories = EnumSet.allOf(TestCategory.class);
         categories.removeAll(EnumSet.of(TestCategory.CONCURRENT,
                                         TestCategory.FEDERATED,
@@ -110,24 +146,50 @@ public abstract class AbstractTest extends TestBase {
 
     @Test
     public void runFederatedTests() {
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_FEDERATED,
                            TestCategory.FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
+    /** 
+      * Run docker tests, provided that the platform is Linux and the target supports Docker.
+      * Skip if platform is not Linux or target does not support Docker.
+      */
+    @Test
+    public void runDockerTests() {
+        Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
+        Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
+        runTestsForTargets(Message.DESC_DOCKER,
+                           TestCategory.DOCKER::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           false);
+    }
+
+    /** 
+      * Run federated docker tests, provided that the platform is Linux, the target supports Docker,
+      * and the target supports federated execution. If any of these requirements are not met, skip
+      * the tests.
+      */
+    @Test
+    public void runDockerFederatedTests() {
+        Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
+        Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
+        Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+        runTestsForTargets(Message.DESC_DOCKER_FEDERATED,
+                           TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
                            false);
     }
 
 
     @Test
     public void runWithFourThreads() {
-        if (supportsThreadsOption()) {
-            this.runTestsForTargets(
-                Message.DESC_FOUR_THREADS,
-                Configurators::defaultCategoryExclusion,
-                Configurators::useFourThreads,
-                TestLevel.EXECUTION,
-                true
-            );
-        } else {
-            printSkipMessage(Message.DESC_FOUR_THREADS, Message.NO_THREAD_SUPPORT);
-        }
+        Assumptions.assumeTrue(supportsThreadsOption(), Message.NO_THREAD_SUPPORT);
+        this.runTestsForTargets(
+            Message.DESC_FOUR_THREADS,
+            Configurators::isExcluded,
+            Configurators::useFourThreads,
+            TestLevel.EXECUTION,
+            true
+        );
     }
 }

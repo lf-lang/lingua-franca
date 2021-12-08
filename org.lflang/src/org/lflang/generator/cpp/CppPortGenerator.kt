@@ -60,7 +60,7 @@ class CppPortGenerator(private val reactor: Reactor) {
         }
 
     private fun generateConstructorInitializer(port: Port) = with(port) {
-        val width = port.widthSpec.toCode()
+        val width = port.widthSpec.toCppCode()
         """
             // initialize port $name
             ${name}.reserve($width);

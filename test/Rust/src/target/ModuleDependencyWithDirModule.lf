@@ -1,0 +1,15 @@
+// The same as CompositionWithPorts.lf, but as a single file project
+target Rust {
+    rust-include: "testmod",
+};
+
+main reactor {
+    timer t(0);
+
+    reaction(t) {=
+        use crate::testmod::*;
+        assert_eq!(44, something());
+        assert_eq!("other", other::from_other());
+        println!("success");
+    =}
+}

@@ -67,21 +67,21 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     def rebuild() {
         this.clear()
         addNodesAndEdges(main)
-            // Assign a level to each reaction. 
-            // If there are cycles present in the graph, it will be detected here.
-            val leftoverReactions = assignLevels()
-            if (leftoverReactions.nodeCount != 0) {
-                // The validator should have caught cycles, but if there is a bug in some
-                // AST transform such that it introduces cycles, then it is possible to have them
-                // only detected here. An end user should never see this.
-                main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
-                throw new InvalidSourceException("Reactions form a cycle!")
-            }
-            // Traverse the graph again, now starting from the leaves,
-            // to set the chain IDs.
-            assignChainIDs(true)
+        // Assign a level to each reaction. 
+        // If there are cycles present in the graph, it will be detected here.
+        val leftoverReactions = assignLevels()
+        if (leftoverReactions.nodeCount != 0) {
+            // The validator should have caught cycles, but if there is a bug in some
+            // AST transform such that it introduces cycles, then it is possible to have them
+            // only detected here. An end user should never see this.
+            main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
+            throw new InvalidSourceException("Reactions form a cycle!")
+        }
+        // Traverse the graph again, now starting from the leaves,
+        // to set the chain IDs.
+        assignChainIDs(false)
 
-            // Propagate any declared deadline upstream.
+        // Propagate any declared deadline upstream.
         propagateDeadlines()
 
     }
@@ -200,7 +200,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             }    
         } else {
             for (node: this.nodes) {
-            node.chainID = 1
+                node.chainID = 1
             }    
         }
     }
@@ -301,8 +301,8 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             // Reactions in the containing reactor.
         port.dependsOnReactions.forEach[this.addEdge(reaction, it)]
         // Reactions in upstream reactors.
-        if (port.dependsOnPort !== null) {
-            addUpstreamReactions(port.dependsOnPort, reaction)
+        for (upstreamPort : port.dependsOnPorts) {
+            addUpstreamReactions(upstreamPort.portInstance, reaction)
         }
     }
 
@@ -314,11 +314,11 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      */
     protected def void addDownstreamReactions(PortInstance port,
         ReactionInstance reaction) {
-            // Reactions in the containing reactor.
+        // Reactions in the containing reactor.
         port.dependentReactions.forEach[this.addEdge(it, reaction)]
         // Reactions in downstream reactors.
         for (downstreamPort : port.dependentPorts) {
-            addDownstreamReactions(downstreamPort, reaction)
+            addDownstreamReactions(downstreamPort.portInstance, reaction)
         }
     }
 

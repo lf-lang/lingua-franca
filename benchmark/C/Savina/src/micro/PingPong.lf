@@ -33,7 +33,7 @@ target C {
     /// [[[end]]]
     fast: true
 };
-reactor Ping(count:int(10000000)) {
+reactor Ping(count:int(1000000)) {
     input receive:int;
     output send:int;
     state pingsLeft:int(count);
@@ -49,12 +49,13 @@ reactor Ping(count:int(10000000)) {
         }
     =}
 }
-reactor Pong(expected:int(10000000)) {
+reactor Pong(expected:int(1000000)) {
     input receive:int;
     output send:int;
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
+        // info_print("Received %d", receive->value);
         SET(send, receive->value);   
     =}
     reaction(shutdown) {=

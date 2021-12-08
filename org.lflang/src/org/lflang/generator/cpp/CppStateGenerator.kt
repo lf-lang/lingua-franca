@@ -42,7 +42,7 @@ class CppStateGenerator(private val reactor: Reactor) {
         when {
             it.parameter != null -> it.parameter.name
             state.isOfTimeType   -> it.toTime()
-            else                 -> it.toCode()
+            else                 -> it.toCppCode()
         }
     }
 

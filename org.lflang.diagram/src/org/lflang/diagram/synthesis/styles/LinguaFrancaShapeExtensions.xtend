@@ -1,3 +1,27 @@
+/*************
+* Copyright (c) 2020, Kiel University.
+*
+* Redistribution and use in source and binary forms, with or without modification,
+* are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+*    this list of conditions and the following disclaimer.
+*
+* 2. Redistributions in binary form must reproduce the above copyright notice,
+*    this list of conditions and the following disclaimer in the documentation
+*    and/or other materials provided with the distribution.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+* ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
 package org.lflang.diagram.synthesis.styles
 
 import de.cau.cs.kieler.klighd.KlighdConstants
@@ -32,11 +56,11 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.xtend.lib.annotations.Data
-import org.lflang.TimeValue
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment
 import org.lflang.diagram.synthesis.util.UtilityExtensions
 import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 
@@ -266,6 +290,19 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				suppressSelectability
 			]
 		}
+
+        // optional reaction level
+        if (SHOW_REACTION_LEVEL.booleanValue) {
+            // Force calculation of levels for reactions. This calculation
+            // will only be done once. Note that if this fails due to a causality loop,
+            // then some reactions will have level -1.s
+            reaction.root().assignLevels();
+            contentContainer.addText("level: " + Long.toString(reaction.level)) => [
+                fontBold = false
+                noSelectionStyle
+                suppressSelectability
+            ]
+        }
 
 		// optional code content
 		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.definition.code.body.nullOrEmpty

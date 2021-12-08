@@ -29,6 +29,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
 import org.lflang.joinWithCommas
@@ -47,7 +48,7 @@ import java.nio.file.Files
  *
  * See [GenerationInfo] for the main model class.
  *
- * @author Clément Fournier
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 @Suppress("unused")
 class RustGenerator(
@@ -79,24 +80,35 @@ class RustGenerator(
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
+            val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
+            Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
             invokeRustCompiler()
         }
     }
 
     private fun invokeRustCompiler() {
+
         val args = mutableListOf<String>().apply {
             this += listOf(
                 "+nightly",
                 "build",
-                "--release", // enable optimisations
                 // note that this option is unstable for now and requires rust nightly ...
                 "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
                 "-Z", "unstable-options", // ... and that feature flag
             )
 
-            if (targetConfig.cargoFeatures.isNotEmpty()) {
+            val buildType = targetConfig.rust.buildType
+            if (buildType == BuildType.RELEASE) {
+                this += "--release"
+            } else if (buildType != BuildType.DEBUG) {
+                this += "--profile"
+                this += buildType.cargoProfileName
+            }
+
+
+            if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
-                this += targetConfig.cargoFeatures.joinWithCommas()
+                this += targetConfig.rust.cargoFeatures.joinWithCommas()
             }
 
             this += targetConfig.compilerFlags

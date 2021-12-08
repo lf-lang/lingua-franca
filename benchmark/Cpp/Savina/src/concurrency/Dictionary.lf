@@ -124,12 +124,14 @@ reactor DictionaryImpl(numWorkers: size_t{20}) {
                     answersToSend[i] = msg->value;
                     reactor::log::Info() << "Worker " << i << " writes " << msg->value << " to key " << msg->key;
                 } else if(msg->type == AccessType::Read) {
-                    // read the value. If the key is not yet present, this will add it and initialize the value to 0.
-                    // This does not match 100% the Savina implementation which returns null if the key is not present,
-                    // but should do a similar job.
-                    int value = dataMap[msg->key];
+                    // Find the value. If the key is not present, return -1
+                    auto it = dataMap.find(msg->key);
+                    int value{0};
+                    if (it != dataMap.end()) {
+                        value = it->second;    
+                    }
                     answersToSend[i] = value;
-                    reactor::log::Info() << "Worker " << i << " reads key " << msg->key << "; response is " << value; 
+                    reactor::log::Info() << "Worker " << i << " reads key " << msg->key << "; response is " << value;
                 }
             }
         }

@@ -46,13 +46,6 @@ public class TypeScriptTest extends AbstractTest {
     
     @Test
     @Override
-    public void runAsFederated() {
-        printSkipMessage(Message.DESC_FEDERATED,
-                         Message.NO_TS_SUPPORT);
-    }
-        
-    @Test
-    @Override
     public void runConcurrentTests() {
         super.runConcurrentTests();
     }

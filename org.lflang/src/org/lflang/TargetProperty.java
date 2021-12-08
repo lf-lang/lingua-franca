@@ -25,16 +25,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.xtext.util.RuntimeIOException;
+
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.generator.InvalidLfSourceException;
+import org.lflang.generator.rust.CargoDependencySpec;
+import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
@@ -54,43 +60,37 @@ public enum TargetProperty {
      * Directive to let the generator use the custom build command.
      */
     BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
                 config.buildCommands = ASTUtils.toListOfStrings(value);
             }),
     
     /**
      * Directive to specify the target build type such as 'Release' or 'Debug'.
+     * This is also used in the Rust target to select a Cargo profile.
      */
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust), (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
                         .forName(ASTUtils.toText(value));
+                // set it there too, because the default is different.
+                config.rust.setBuildType(config.cmakeBuildType);
             }),
-
-    /**
-     * Directive for specifying Cargo features of the generated
-     * program to enable.
-     */
-    CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
-                   List.of(Target.Rust), (config, value) -> {
-        config.cargoFeatures = ASTUtils.toListOfStrings(value);
-    }),
 
     /**
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
-                config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-                        .forName(ASTUtils.toText(value));
-            }),
+               Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+        config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
+            .forName(ASTUtils.toText(value));
+    }),
     
     /**
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
             DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
-            (config, value) -> {
+            (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
                             .forName(entry.getName());
@@ -133,14 +133,14 @@ public enum TargetProperty {
      * can be adjusted in the included file.
      */
     CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
-            Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value) -> {
+            Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value, err) -> {
                 config.cmakeIncludes = ASTUtils.toListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of cmake-includes can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
-            (config, value) -> {
+            (config, value, err) -> {
                 config.cmakeIncludes.addAll(ASTUtils.toListOfStrings(value));
             }),
     
@@ -150,7 +150,7 @@ public enum TargetProperty {
      * The default is enabled.
      */
     CMAKE("cmake", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
                 config.useCmake = ASTUtils.toBoolean(value);
             }),
     
@@ -158,7 +158,7 @@ public enum TargetProperty {
      * Directive to specify the target compiler.
      */
     COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
-            (config, value) -> {
+            (config, value, err) -> {
                 config.compiler = ASTUtils.toText(value);
             }),
     
@@ -167,7 +167,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     DOCKER("docker", UnionType.DOCKER_UNION,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.dockerOptions = new DockerOptions();
@@ -195,7 +195,7 @@ public enum TargetProperty {
      * compiled binary.
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.externalRuntimePath = ASTUtils.toText(value);
             }),
 
@@ -204,7 +204,7 @@ public enum TargetProperty {
      * faster than physical time.
      */
     FAST("fast", PrimitiveType.BOOLEAN, Target.ALL,
-            (config, value) -> {
+            (config, value, err) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
             }),
     
@@ -213,14 +213,14 @@ public enum TargetProperty {
      * processed by the code generator.
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, Target.ALL,
-            (config, value) -> {
+            (config, value, err) -> {
                 config.fileNames = ASTUtils.toListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of files can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
-            (config, value) -> {
+            (config, value, err) -> {
                 config.fileNames.addAll(ASTUtils.toListOfStrings(value));
             }),
     
@@ -228,7 +228,7 @@ public enum TargetProperty {
      * Flags to be passed on to the target compiler.
      */
     FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
-            Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
                 config.compilerFlags = ASTUtils.toListOfStrings(value);
             }),
     
@@ -237,7 +237,7 @@ public enum TargetProperty {
      */
     COORDINATION("coordination", UnionType.COORDINATION_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
-            (config, value) -> {
+            (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
                         .forName(ASTUtils.toText(value));
             }),
@@ -247,7 +247,7 @@ public enum TargetProperty {
      */
     COORDINATION_OPTIONS("coordination-options",
             DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
-            (config, value) -> {
+            (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
                             .forName(entry.getName());
@@ -267,7 +267,7 @@ public enum TargetProperty {
      * are no more events in the event queue.
      */
     KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Target.ALL,
-            (config, value) -> {
+            (config, value, err) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
     
@@ -275,7 +275,7 @@ public enum TargetProperty {
      * Directive to specify the grain at which to report log messages during execution.
      */
     LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
-            (config, value) -> {
+            (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.toText(value));
             }),
@@ -285,7 +285,7 @@ public enum TargetProperty {
      */
     NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
             Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
-            (config, value) -> {
+            (config, value, err) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
     
@@ -293,7 +293,7 @@ public enum TargetProperty {
      * Directive to disable validation of reactor rules at runtime.
      */
     NO_RUNTIME_VALIDATION("no-runtime-validation", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.noRuntimeValidation = ASTUtils.toBoolean(value);
             }),
     
@@ -303,7 +303,7 @@ public enum TargetProperty {
      */
     PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
-            (config, value) -> {
+            (config, value, err) -> {
                 config.protoFiles = ASTUtils.toListOfStrings(value);
             }),
 
@@ -311,7 +311,7 @@ public enum TargetProperty {
      * Directive for specifying a specific version of the reactor runtime library.
      */
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value) -> {
+            Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.toText(value);
             }),
 
@@ -319,7 +319,7 @@ public enum TargetProperty {
      * Directive to specify that all code is generated in a single file.
      */
     SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
-            List.of(Target.Rust), (config, value) -> {
+            List.of(Target.Rust), (config, value, err) -> {
                 config.singleFileProject = ASTUtils.toBoolean(value);
             }),
 
@@ -328,7 +328,7 @@ public enum TargetProperty {
      */
     THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
             Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
-            (config, value) -> {
+            (config, value, err) -> {
                 config.threads = ASTUtils.toInteger(value);
             }),
     
@@ -336,7 +336,7 @@ public enum TargetProperty {
      * Directive to specify the execution timeout.
      */
     TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
-            (config, value) -> {
+            (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
     
@@ -345,7 +345,7 @@ public enum TargetProperty {
      * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
-            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value) -> {
+            Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python), (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     if (ASTUtils.toBoolean(value)) {
                         config.tracing = new TracingOptions();
@@ -356,13 +356,13 @@ public enum TargetProperty {
                     config.tracing = new TracingOptions();
                     for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                         TracingOption option = (TracingOption) DictionaryType.TRACING_DICT
-                                .forName(entry.getName());
+                            .forName(entry.getName());
                         switch (option) {
-                            case TRACE_FILE_NAME:
-                                config.tracing.traceFileName = ASTUtils.toText(entry.getValue());
-                                break;
-                            default:
-                                break;
+                        case TRACE_FILE_NAME:
+                            config.tracing.traceFileName = ASTUtils.toText(entry.getValue());
+                            break;
+                        default:
+                            break;
                         }
                     }
                 }
@@ -372,18 +372,96 @@ public enum TargetProperty {
     /**
      * Directive to let the runtime export its internal dependency graph.
      *
-     * This is a debugging feature and currently only used for C++ programs.
+     * This is a debugging feature and currently only used for C++ and Rust programs.
      */
-    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN, Collections.singletonList(Target.CPP),
-                           (config, value) -> {
+    EXPORT_DEPENDENCY_GAPH("export-dependency-graph", PrimitiveType.BOOLEAN,
+                           List.of(Target.CPP, Target.Rust),
+                           (config, value, err) -> {
         config.exportDependencyGraph = ASTUtils.toBoolean(value);
-    });
-    
+
+    }),
+
+    /**
+     * List of module files to link into the crate as top-level.
+     * For instance, a {@code target Rust { rust-modules: [ "foo.rs" ] }}
+     * will cause the file to be copied into the generated project,
+     * and the generated `main.rs` will include it with a `mod foo;`.
+     * If one of the paths is a directory, it must contain a `mod.rs`
+     * file, and all its contents are copied.
+     */
+    RUST_INCLUDE("rust-include",
+                 UnionType.FILE_OR_FILE_ARRAY,
+                 List.of(Target.Rust), (config, value, err) -> {
+        Path referencePath;
+        try {
+            referencePath = FileConfig.toPath(value.eResource().getURI()).toAbsolutePath();
+        } catch (IOException e) {
+            err.reportError(value, "Invalid path? " + e.getMessage());
+            throw new RuntimeIOException(e);
+        }
+
+        // we'll resolve relative paths to check that the files
+        // are as expected.
+
+        if (value.getLiteral() != null) {
+            Path resolved = referencePath.resolveSibling(ASTUtils.withoutQuotes(value.getLiteral()));
+
+            config.rust.addAndCheckTopLevelModule(resolved, value, err);
+        } else if (value.getArray() != null) {
+            for (Element element : value.getArray().getElements()) {
+                String literal = ASTUtils.withoutQuotes(element.getLiteral());
+                Path resolved = referencePath.resolveSibling(literal);
+                config.rust.addAndCheckTopLevelModule(resolved, element, err);
+            }
+        }
+    }),
+
+    /**
+     * Directive for specifying Cargo features of the generated
+     * program to enable.
+     */
+    CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
+                   List.of(Target.Rust), (config, value, err) -> {
+        config.rust.setCargoFeatures(ASTUtils.toListOfStrings(value));
+    }),
+
+    /**
+     * Dependency specifications for Cargo. This property looks like this:
+     * <pre>{@code
+     * cargo-dependencies: {
+     *    // Name-of-the-crate: "version"
+     *    rand: "0.8",
+     *    // Equivalent to using an explicit map:
+     *    rand: {
+     *      version: "0.8"
+     *    },
+     *    // The map allows specifying more details
+     *    rand: {
+     *      // A path to a local unpublished crate.
+     *      // Note 'path' is mutually exclusive with 'version'.
+     *      path: "/home/me/Git/local-rand-clone"
+     *    },
+     *    rand: {
+     *      version: "0.8",
+     *      // you can specify cargo features
+     *      features: ["some-cargo-feature",]
+     *    }
+     * }
+     * }</pre>
+     */
+    CARGO_DEPENDENCIES("cargo-dependencies",
+                       CargoDependenciesPropertyType.INSTANCE,
+                       List.of(Target.Rust), (config, value, err) -> {
+        config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
+    }),
+
+    ;
+
     /**
      * String representation of this target property.
      */
     public final String description;
-    
+
     /**
      * List of targets that support this property. If a property is used for
      * a target that does not support it, a warning reported during
@@ -395,38 +473,48 @@ public enum TargetProperty {
      * The type of values that can be assigned to this property.
      */
     public final TargetPropertyType type;
-    
+
     /**
      * Function that given a configuration object and an Element AST node
      * sets the configuration. It is assumed that validation already
      * occurred, so this code should be straightforward.
      */
-    public final BiConsumer<TargetConfig, Element> setter;
-    
+    public final PropertyParser setter;
+
     /**
      * Function that given a configuration object and an Element AST node
      * sets the configuration. It is assumed that validation already
      * occurred, so this code should be straightforward.
      */
-    public final BiConsumer<TargetConfig, Element> updater;
-    
+    public final PropertyParser updater;
+
+    @FunctionalInterface
+    private interface PropertyParser {
+
+        /**
+         * Parse the given element into the given target config.
+         * May use the error reporter to report format errors.
+         */
+        void parseIntoTargetConfig(TargetConfig config, Element element, ErrorReporter err);
+    }
+
     /**
      * Private constructor for target properties.
-     * 
+     *
      * @param description String representation of this property.
      * @param type        The type that values assigned to this property
      *                    should conform to.
      * @param supportedBy List of targets that support this property.
      * @param setter      Function for configuration updates.
      */
-    private TargetProperty(String description, TargetPropertyType type,
-            List<Target> supportedBy,
-            BiConsumer<TargetConfig, Element> setter) {
+    TargetProperty(String description, TargetPropertyType type,
+                   List<Target> supportedBy,
+                   PropertyParser setter) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
         this.setter = setter;
-        this.updater = (config, value) -> { /* Ignore the update by default */ };
+        this.updater = (config, value, err) -> { /* Ignore the update by default */ };
     }
     
     /**
@@ -440,31 +528,45 @@ public enum TargetProperty {
      * @param setter      Function for setting configuration values.
      * @param updater     Function for updating configuration values.
      */
-    private TargetProperty(String description, TargetPropertyType type,
-            List<Target> supportedBy,
-            BiConsumer<TargetConfig, Element> setter,
-            BiConsumer<TargetConfig, Element> updater) {
+    TargetProperty(String description, TargetPropertyType type,
+                   List<Target> supportedBy,
+                   PropertyParser setter,
+                   PropertyParser updater) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
         this.setter = setter;
         this.updater = updater;
     }
-    
+
+    /**
+     * Return the name of the property in lingua franca. This
+     * is suitable for use as a key in a target properties block.
+     * It may be an invalid identifier in other languages (may
+     * contains dashes {@code -}).
+     */
+    public String getDisplayName() {
+        return description;
+    }
+
     /**
      * Set the given configuration using the given target properties.
-     * 
+     *
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
+     * @param err        Error reporter on which property format errors will be reported
      */
-    public static void set(TargetConfig config,
-            List<KeyValuePair> properties) {
+    public static void set(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
                 // Mark the specified target property as set by the user
                 config.setByUser.add(p);
-                p.setter.accept(config, property.getValue());
+                try {
+                    p.setter.parseIntoTargetConfig(config, property.getValue(), err);
+                } catch (InvalidLfSourceException e) {
+                    err.reportError(e.getNode(), e.getProblem());
+                }
             }
         });
     }
@@ -475,47 +577,37 @@ public enum TargetProperty {
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
      */
-    public static void update(TargetConfig config,
-            List<KeyValuePair> properties) {
+    public static void update(TargetConfig config, List<KeyValuePair> properties,ErrorReporter err) {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
-                p.updater.accept(config, property.getValue());
+                p.updater.parseIntoTargetConfig(config, property.getValue(), err);
             }
         });
     }
-    
+
     /**
      * Update one of the target properties, given by 'propertyName'.
      * For convenience, a list of target properties (e.g., taken from
      * a file or resource) can be passed without any filtering. This
      * function will do nothing if the list of target properties doesn't
      * include the property given by 'propertyName'.
-     * 
-     * @param config The target config to apply the update to.
-     * @param propertyName The name of the target property.
+     *
+     * @param config     The target config to apply the update to.
+     * @param property   The target property.
      * @param properties AST node that holds all the target properties.
+     * @param err        Error reporter on which property format errors will be reported
      */
-    public static void updateOne(
-            TargetConfig config,
-            String propertyName,
-            List<KeyValuePair> properties
-            ) {
-        TargetProperty p = forName(propertyName);
-        if (p != null) {
-            Element value = properties
-                    .stream()
-                    .filter(
-                            property -> property.getName().equals(propertyName)
-                    ).findFirst()
-                    .map(o -> { return o.getValue(); }).orElse(null);
-            if (value != null) {
-                p.updater.accept(
-                        config, 
-                        value
-                );
-            }
-        }
+    public static void updateOne(TargetConfig config, TargetProperty property, List<KeyValuePair> properties, ErrorReporter err) {
+        properties.stream()
+            .filter(p -> p.getName().equals(property.getDisplayName()))
+            .findFirst()
+            .map(KeyValuePair::getValue)
+            .ifPresent(value -> property.updater.parseIntoTargetConfig(
+                config,
+                value,
+                err
+            ));
     }
 
     /**
@@ -544,12 +636,15 @@ public enum TargetProperty {
     }
 
     // Inner classes for the various supported types.
-    
+
+
+
     /**
      * Interface for dictionary elements. It associates an entry with a type.
      */
     public interface DictionaryElement {
-        public TargetPropertyType getType();
+
+        TargetPropertyType getType();
     }
 
     /**
@@ -563,7 +658,7 @@ public enum TargetProperty {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
         DOCKER_DICT(Arrays.asList(DockerOption.values())),
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
-        TRACING_DICT(Arrays.asList(TracingOption.values())); 
+        TRACING_DICT(Arrays.asList(TracingOption.values()));
         
         /**
          * The keys and assignable types that are allowed in this dictionary.
@@ -831,9 +926,10 @@ public enum TargetProperty {
     }
     
     /**
-     * Enumeration of Cmake build types.
+     * Enumeration of Cmake build types. These are also mapped
+     * to Cargo profiles for the Rust target (see {@link org.lflang.generator.rust.RustTargetConfig})
      * 
-     * @author{Christian Menard <christian.menard@tu-dresden.de>}
+     * @author Christian Menard {@literal <christian.menard@tu-dresden.de>}
      */
     public enum BuildType {
         RELEASE("Release"), 
@@ -844,12 +940,12 @@ public enum TargetProperty {
         /**
          * Alias used in toString method.
          */
-        private String alias;
+        private final String alias;
         
         /**
          * Private constructor for Cmake build types.
          */
-        private BuildType(String alias) {
+        BuildType(String alias) {
             this.alias = alias;
         }
         
@@ -1202,4 +1298,5 @@ public enum TargetProperty {
             return this.type;
         }
     }
+
 }

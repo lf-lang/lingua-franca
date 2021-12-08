@@ -8,9 +8,17 @@ import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.FileFilter;
+import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -31,7 +39,6 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.CommonExtensionsKt;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -42,6 +49,8 @@ import org.lflang.generator.StandaloneContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.util.StringUtil;
+import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -110,21 +119,32 @@ public abstract class TestBase {
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String NO_CPP_SUPPORT = "Not supported by reactor-cpp.";
-        public static final String NO_RUST_SUPPORT = "Not supported by reactor-rust.";
-        public static final String NO_TS_SUPPORT = "Not supported by reactor-ts.";
         public static final String NOT_FOR_CODE_COV = "Unlikely to help improve code coverage.";
-        public static final String ALWAYS_MULTITHREADED = "The reactor-ccp runtime is always multithreaded.";
+        public static final String ALWAYS_MULTITHREADED = "The reactor-cpp runtime is always multithreaded.";
         public static final String NO_THREAD_SUPPORT = "Target does not support the 'threads' property.";
+        public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
+        public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
+        public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
+        public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
+        public static final String DESC_GENERIC = "Run generic tests (threads = 0).";
+        public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
+        public static final String DESC_EXAMPLES = "Validate examples.";
+        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
+        public static final String DESC_MULTIPORT = "Run multiport tests (threads = 0).";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
+        public static final String DESC_DOCKER = "Run docker tests.";
+        public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
+
+        /* Missing dependency messages */
+        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
     }
 
     /** Constructor for test classes that test a single target. */
@@ -204,7 +224,7 @@ public abstract class TestBase {
      * it should be included in this test run or not.
      * @param configurator A procedure for configuring the tests.
      * @param level The level of testing to be performed during this run.
-     * @param copy Whether or not to work on copies of tests in the test.
+     * @param copy Whether to work on copies of tests in the test.
      * registry.
      */
     protected void runTestsFor(List<Target> subset,
@@ -228,6 +248,24 @@ public abstract class TestBase {
         return OS.contains("win");
     }
 
+     /**
+     * Determine whether the current platform is MacOS.
+     * @return true if the current platform is MacOS, false otherwise.
+     */
+    protected static boolean isMac() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return OS.contains("mac");
+    }
+
+    /**
+     * Determine whether the current platform is Linux.
+     * @return true if the current platform is Linux, false otherwise.
+     */
+    protected static boolean isLinux() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return OS.contains("linux");
+    }
+
     /**
      * End output redirection.
      */
@@ -244,8 +282,8 @@ public abstract class TestBase {
      * @param test The test to redirect outputs to.
      */
     private static void redirectOutputs(LFTest test) {
-        System.setOut(new PrintStream(test.out));
-        System.setErr(new PrintStream(test.err));
+        System.setOut(new PrintStream(test.getOutputStream()));
+        System.setErr(new PrintStream(test.getOutputStream()));
     }
 
 
@@ -278,20 +316,6 @@ public abstract class TestBase {
             throw new RuntimeIOException(e);
         }
         checkAndReportFailures(tests);
-    }
-
-    /**
-     * Print a header that describes a collection of tests, followed by a reason
-     * for skipping the tests.
-     *
-     * @param description A string the describes the collection of tests.
-     * @param reason A string that describes why the tests are not performed.
-     */
-    protected void printSkipMessage(String description, String reason) {
-        for (var target : this.targets) {
-           printTestHeader(target, description);
-           System.out.println("Warning! Skipping because: " + reason);
-        }
     }
 
     /**
@@ -436,51 +460,189 @@ public abstract class TestBase {
      * an error code.
      */
     private void execute(LFTest test) {
-        final ProcessBuilder pb = getExecCommand(test);
-        if (pb == null) {
+        final List<ProcessBuilder> pbList = getExecCommand(test);
+        if (pbList.isEmpty()) {
             return;
         }
         try {
-            var p = pb.start();
-            var stdout = test.execLog.recordStdOut(p);
-            var stderr = test.execLog.recordStdErr(p);
-            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                stdout.interrupt();
-                stderr.interrupt();
-                p.destroyForcibly();
-                test.result = Result.TEST_TIMEOUT;
-            } else {
-                if (p.exitValue() == 0) {
-                    test.result = Result.TEST_PASS;
+            for (ProcessBuilder pb : pbList) {
+                var p = pb.start();
+                var stdout = test.execLog.recordStdOut(p);
+                var stderr = test.execLog.recordStdErr(p);
+                if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
+                    stdout.interrupt();
+                    stderr.interrupt();
+                    p.destroyForcibly();
+                    test.result = Result.TEST_TIMEOUT;
+                    return;
                 } else {
-                    test.result = Result.TEST_FAIL;
+                    if (p.exitValue() != 0) {
+                        test.result = Result.TEST_FAIL;
+                        return;
+                    }
                 }
             }
-
         } catch (Exception e) {
             test.result = Result.TEST_FAIL;
+            return;
+        }
+        test.result = Result.TEST_PASS;
+    }
+
+    /**
+     * Return a Mapping of federateName -> absolutePathToDockerFile.
+     * Expects the docker file to be two levels below where the source files are generated (ex. srcGenPath/nameOfFederate/*Dockerfile)
+     * @param test The test to get the execution command for.
+     */
+    private Map<String, Path> getFederatedDockerFiles(LFTest test) {
+        Map<String, Path> fedNameToDockerFile = new HashMap<>();
+        File[] srcGenFiles = test.fileConfig.getSrcGenPath().toFile().listFiles();
+        for (File srcGenFile : srcGenFiles) {
+            if (srcGenFile.isDirectory()) {
+                File[] dockerFile = srcGenFile.listFiles(new FileFilter() {
+                    @Override
+                    public boolean accept(File pathName) {
+                        return pathName.getName().endsWith("Dockerfile");
+                    }
+                });
+                assert dockerFile.length == 1;
+                fedNameToDockerFile.put(srcGenFile.getName(), dockerFile[0].getAbsoluteFile().toPath());
+            }
+        }
+        return fedNameToDockerFile;
+    }
+
+    /**
+     * Return the content of the bash script used for testing docker option in federated execution. 
+     * @param fedNameToDockerFile A mapping of federateName -> absolutePathToDockerFile
+     * @param testNetworkName The name of the network used for testing the docker option. 
+     *                        See https://github.com/lf-lang/lingua-franca/wiki/Containerized-Execution#federated-execution for more details.
+     */
+    private String getDockerRunScript(Map<String, Path> fedNameToDockerFile, String testNetworkName) {
+        StringBuilder shCode = new StringBuilder();
+        shCode.append("#!/bin/bash\n");
+        int n = fedNameToDockerFile.size();
+        shCode.append("pids=\"\"\n");
+        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:test -i 1 -n %d &\n", testNetworkName, n));
+        shCode.append("pids+=\"$!\"\nsleep 3\n");
+        for (String fedName : fedNameToDockerFile.keySet()) {
+            Path dockerFile = fedNameToDockerFile.get(fedName);
+            shCode.append(String.format("docker run --rm --network=%s %s:test -i 1 &\n", testNetworkName, fedName));
+            shCode.append("pids+=\" $!\"\n");
+        }
+        shCode.append("for p in $pids; do\n");
+        shCode.append("    if wait $p; then\n");
+        shCode.append("        :\n");
+        shCode.append("    else\n");
+        shCode.append("        exit 1\n");
+        shCode.append("    fi\n");
+        shCode.append("done\n");
+        return shCode.toString();
+    }
+
+    /**
+     * Returns true if docker exists, false otherwise.
+     */
+    private boolean checkDockerExists() {
+        LFCommand checkCommand = LFCommand.get("docker", Arrays.asList("info"));
+        return checkCommand.run() == 0;
+    }
+
+    /**
+     * Return a list of ProcessBuilders used to test the docker option under non-federated execution.
+     * See the following for references on the instructions called:
+     * docker build: https://docs.docker.com/engine/reference/commandline/build/
+     * docker run: https://docs.docker.com/engine/reference/run/
+     * docker image: https://docs.docker.com/engine/reference/commandline/image/
+     * 
+     * @param test The test to get the execution command for.
+     */
+    private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
+        if (!checkDockerExists()) {
+            System.out.println(Message.MISSING_DOCKER);
+            return Arrays.asList(new ProcessBuilder("exit", "1"));
+        }
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var dockerPath = srcGenPath.resolve(test.fileConfig.name + ".Dockerfile");
+        return Arrays.asList(new ProcessBuilder("docker", "build", "-t", "lingua_franca:test", "-f", dockerPath.toString(), srcGenPath.toString()), 
+                             new ProcessBuilder("docker", "run", "--rm", "lingua_franca:test"),
+                             new ProcessBuilder("docker", "image", "rm", "lingua_franca:test"));
+    }
+
+    /**
+     * Return a list of ProcessBuilders used to test the docker option under federated execution.
+     * @param test The test to get the execution command for.
+     */
+    private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
+        if (!checkDockerExists()) {
+            System.out.println(Message.MISSING_DOCKER);
+            return Arrays.asList(new ProcessBuilder("exit", "1"));
+        }
+        var rtiPath = test.fileConfig.getSrcGenBasePath().resolve("RTI");
+        var rtiDockerPath = rtiPath.resolve("rti.Dockerfile");
+        Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
+        try {
+            File testScript = File.createTempFile("dockertest", null);
+            testScript.deleteOnExit();
+            if (!testScript.setExecutable(true)) {
+                throw new IOException("Failed to make test script executable");
+            }
+            FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
+            String testNetworkName = "linguaFrancaTestNetwork";
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(getDockerRunScript(fedNameToDockerFile, testNetworkName));
+            bufferedWriter.close();
+            List<ProcessBuilder> execCommands = new ArrayList<>();
+            execCommands.add(new ProcessBuilder("docker", "network", "create", testNetworkName));
+            execCommands.add(new ProcessBuilder("docker", "build", "-t", "rti:test", "-f", rtiDockerPath.toString(), rtiPath.toString()));
+            for (String fedName : fedNameToDockerFile.keySet()) {
+                Path dockerFile = fedNameToDockerFile.get(fedName);
+                execCommands.add(new ProcessBuilder("docker", "build", "-t", fedName + ":test", "-f", dockerFile.toString(), dockerFile.getParent().toString()));
+            }
+            execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
+            execCommands.add(new ProcessBuilder("docker", "image", "rm", "rti:test"));
+            for (String fedName : fedNameToDockerFile.keySet()) {
+                Path dockerFile = fedNameToDockerFile.get(fedName);
+                execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));
+            }
+            execCommands.add(new ProcessBuilder("docker", "network", "rm", testNetworkName));
+            return execCommands;
+        } catch (IOException e) {
+            return Arrays.asList(new ProcessBuilder("exit", "1"));
         }
     }
 
     /**
-     * Return a preconfigured ProcessBuilder for the command
+     * Return a list of preconfigured ProcessBuilder(s) for the command(s)
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private ProcessBuilder getExecCommand(LFTest test) {
+    private List<ProcessBuilder> getExecCommand(LFTest test) {
         final var nameWithExtension = test.srcFile.getFileName().toString();
         final var nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'));
+        
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
+        var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
+        
+        // special case to test docker file generation
+        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
+            return getNonfederatedDockerExecCommand(test);
+        } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
+            return getFederatedDockerExecCommand(test);
+        }
+
+        var binPath = test.fileConfig.binPath;
+        var binaryName = nameOnly;
 
         switch (test.target) {
         case C:
         case CPP:
         case Rust:
         case CCPP: {
-            var binPath = test.fileConfig.binPath;
-            var binaryName = nameOnly;
             if (test.target == Target.Rust) {
                 // rust binaries uses snake_case
-                binaryName = CommonExtensionsKt.camelToSnakeCase(binaryName);
+                binaryName = StringUtil.camelToSnakeCase(binaryName);
             }
             // Adjust binary extension if running on Window
             if (System.getProperty("os.name").startsWith("Windows")) {
@@ -492,34 +654,48 @@ public abstract class TestBase {
                 // Running the command as .\binary.exe does not work on Windows for
                 // some reason... Thus we simply pass the full path here, which
                 // should work across all platforms
-                return new ProcessBuilder(fullPath.toString()).directory(binPath.toFile());
+                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
             } else {
                 test.issues.append(fullPath).append(": No such file or directory.").append(System.lineSeparator());
                 test.result = Result.NO_EXEC_FAIL;
-                return null;
+                return new ArrayList<>();
             }
         }
         case Python: {
-            var srcGen = test.fileConfig.getSrcGenPath();
-            var fullPath = srcGen.resolve(nameOnly + ".py");
+            var fullPath = binPath.resolve(binaryName);
             if (Files.exists(fullPath)) {
-                return new ProcessBuilder("python3", fullPath.getFileName().toString())
-                    .directory(srcGen.toFile());
+                // If execution script exists, run it.
+                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
+            }
+            fullPath = srcGenPath.resolve(nameOnly + ".py");
+            if (Files.exists(fullPath)) {
+                return Arrays.asList(new ProcessBuilder("python3", fullPath.getFileName().toString())
+                    .directory(srcGenPath.toFile()));
             } else {
                 test.result = Result.NO_EXEC_FAIL;
                 test.issues.append("File: ").append(fullPath).append(System.lineSeparator());
-                return null;
+                return new ArrayList<>();
             }
         }
         case TS: {
+            // Adjust binary extension if running on Window
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                binaryName += ".exe";
+            }
+            var fullPath = binPath.resolve(binaryName);
+            if (Files.exists(fullPath)) {
+                // If execution script exists, run it.
+                return Arrays.asList(new ProcessBuilder(fullPath.toString()).directory(binPath.toFile()));
+            }
+            // If execution script does not exist, run .js directly.
             var dist = test.fileConfig.getSrcGenPath().resolve("dist");
             var file = dist.resolve(nameOnly + ".js");
             if (Files.exists(file)) {
-                return new ProcessBuilder("node", file.toString());
+                return Arrays.asList(new ProcessBuilder("node", file.toString()));
             } else {
                 test.result = Result.NO_EXEC_FAIL;
                 test.issues.append("File: ").append(file).append(System.lineSeparator());
-                return null;
+                return new ArrayList<>();
             }
         }
         default:
