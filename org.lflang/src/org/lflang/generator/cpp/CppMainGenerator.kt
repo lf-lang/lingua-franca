@@ -59,7 +59,7 @@ class CppMainGenerator(
             |
             |#include "time_parser.hh"
             |
-            |class Timeout : public reactor::Reactor {
+            |class __lf_Timeout : public reactor::Reactor {
             | private:
             |  reactor::Timer timer;
             |
@@ -67,7 +67,7 @@ class CppMainGenerator(
             |
             |
             | public:
-            |  Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
+            |  __lf_Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
             |    : reactor::Reactor(name, env)
             |    , timer{ "timer", this, reactor::Duration::zero(), timeout } {}
             |
@@ -111,9 +111,9 @@ class CppMainGenerator(
             |  ${generateMainReactorInstantiation()}
             |
             |  // optionally instantiate the timeout reactor
-            |  std::unique_ptr<Timeout> t{nullptr};
+            |  std::unique_ptr<__lf_Timeout> t{nullptr};
             |  if (timeout != reactor::Duration::zero()) {
-            |    t = std::make_unique<Timeout>("Timeout", & e, timeout);
+            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", & e, timeout);
             |  }
             |
             |  // execute the reactor program
