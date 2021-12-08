@@ -151,6 +151,8 @@ public class TestRegistry {
         MULTIPORT(true),
         /** Tests about federated execution. */
         FEDERATED(true),
+        /** Tests about specific target properties. */
+        PROPERTIES(true),
 
         // non-shared tests
         DOCKER(false),
