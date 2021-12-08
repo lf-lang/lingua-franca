@@ -1,6 +1,0 @@
-*.jar
-*.vsix
-.vscode
-node_modules/*
-out/*
-.gradle/*
