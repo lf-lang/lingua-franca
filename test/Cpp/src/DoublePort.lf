@@ -32,12 +32,11 @@ reactor Print {
     input in:int;
     input in2:int;
     reaction(in, in2) {=
-        auto elapsed_time = get_elapsed_logical_time();
         if(in.is_present()){
-            reactor::log::Info() << "At tag (" << elapsed_time << ", " << get_logical_time() 
+            reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step() 
             << "), received in = " << *in.get();
         } else if (in2.is_present()){
-            reactor::log::Info() << "At tag (" << elapsed_time << ", " << get_logical_time() 
+            reactor::log::Info() << "At tag (" << get_elapsed_logical_time() << ", " << environment()->logical_time().micro_step() 
             << "), received in2 = " << *in2.get();
         }
 
