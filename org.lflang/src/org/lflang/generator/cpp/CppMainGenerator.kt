@@ -119,6 +119,7 @@ class CppMainGenerator(
             |  // assemble reactor program
             |  e.assemble();
         ${" |".. if (targetConfig.exportDependencyGraph) "e.export_dependency_graph(\"${main.name}.dot\");" else ""}
+        ${" |".. if (targetConfig.exportToYaml) "e.dump_to_yaml(\"${main.name}.yaml\");" else ""}
             |
             |  // start execution
             |  auto thread = e.startup();

@@ -216,10 +216,20 @@ public class TargetConfig {
     /**
      * If true, the resulting binary will output a graph visualizing all reaction dependencies.
      *
-     * This option is currently only used for C++. This export function is a valuable tool for debugging
-     * LF programs and helps to understand the dependencies inferred by the C++ runtime.
+     * This option is currently only used for C++ and Rust. This export function is a valuable tool
+     * for debugging LF programs and helps to understand the dependencies inferred by the C++ runtime.
      */
     public boolean exportDependencyGraph = false;
+
+
+    /**
+     * If true, the resulting binary will output a yaml file describing the whole reactor structure
+     * of the program.
+     *
+     * This option is currently only used for C++. This export function is a valuable tool for debugging
+     * LF programs and performing external analysis.
+     */
+    public boolean exportToYaml = false;
 
 
     /** Rust-specific configuration. */
