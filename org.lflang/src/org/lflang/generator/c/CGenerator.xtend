@@ -47,6 +47,8 @@ import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
+import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty
@@ -465,7 +467,9 @@ class CGenerator extends GeneratorBase {
      * generation.
      * @param resource The resource containing the source code.
      * @param fsa The file system access (used to write the result).
-     * @param context FIXME: Undocumented argument. No idea what this is.
+     * @param context The context in which the generator is
+     *     invoked, including whether it is cancelled and
+     *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -873,7 +877,13 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty && !federate.isRemote) {
+            if (
+                !targetConfig.noCompile
+                && targetConfig.buildCommands.nullOrEmpty
+                && !federate.isRemote
+                // This code is unreachable in LSP_FAST mode, so that check is omitted.
+                && fileConfig.getCompilerMode() != Mode.LSP_MEDIUM
+            ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
                 // this. 
@@ -928,7 +938,7 @@ class CGenerator extends GeneratorBase {
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
-    
+
     /**
      * Generate the _lf_trigger_startup_reactions function.
      */
@@ -1695,7 +1705,7 @@ class CGenerator extends GeneratorBase {
                             var delayTime = delay.getTargetTime
                             if (delay.parameter !== null) {
                                 // The delay is given as a parameter reference. Find its value.
-                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
+                                delayTime = delay.parameter.defaultAsTimeValue.timeInTargetLanguage
                             }
                             pr(rtiCode, '''
                                 if («delayTime» < candidate_tmp) {
@@ -5193,8 +5203,8 @@ class CGenerator extends GeneratorBase {
                 runCommand.add(topLevelName)
             }
             runCommand.add("-o")
-            runCommand.add(targetConfig.timeout.time.toString)
-            runCommand.add(targetConfig.timeout.unit.toString)
+            runCommand.add(targetConfig.timeout.magnitude.toString)
+            runCommand.add(targetConfig.timeout.unit.canonicalName)
         }
         
     }
@@ -5235,7 +5245,9 @@ class CGenerator extends GeneratorBase {
     // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^file:(/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile(
+        "^(file://(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+    );
     
     /** Given a line of text from the output of a compiler, return
      *  an instance of ErrorFileAndLine if the line is recognized as
@@ -5253,10 +5265,10 @@ class CGenerator extends GeneratorBase {
         val matcher = compileErrorPattern.matcher(line)
         if (matcher.find()) {
             val result = new ErrorFileAndLine()
-            result.filepath = matcher.group(1)
-            result.line = matcher.group(2)
-            result.character = matcher.group(3)
-            result.message = matcher.group(4)
+            result.filepath = matcher.group("path")
+            result.line = matcher.group("line")
+            result.character = matcher.group("column")
+            result.message = matcher.group("message")
             
             if (!result.message.toLowerCase.contains("error:")) {
                 result.isError = false
