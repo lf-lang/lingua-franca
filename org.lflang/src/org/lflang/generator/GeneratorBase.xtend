@@ -58,6 +58,7 @@ import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
+import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
 import org.lflang.federated.FederateInstance
@@ -77,7 +78,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.Time
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
@@ -457,8 +457,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // enable support for them.
             enableSupportForSerialization(context.cancelIndicator);
         }
-        
-        
+
+
     }
 
     /**
@@ -745,13 +745,18 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      */
     def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
-            if (time.unit != TimeUnit.NONE) {
-                return time.unit.name() + '(' + time.time + ')'
+            if (time.unit !== null) {
+                return time.unit.cMacroName + '(' + time.magnitude + ')'
             } else {
-                return time.time.toString()
+                return time.magnitude.toString()
             }
         }
         return "0" // FIXME: do this or throw exception?
+    }
+
+    // note that this is moved out by #544
+    final def String cMacroName(TimeUnit unit) {
+        return unit.canonicalName.toUpperCase
     }
 
     /**
@@ -991,7 +996,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     def writeDockerFile(String dockerFileName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.")
     }
-    
+
 
     /**
      * Parsed error message from a compiler is returned here.
@@ -1501,29 +1506,22 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return An RTI-compatible (ie. C target) time string
      */
     protected def getRTITime(Delay d) {
-        var TimeValue time
         if (d.parameter !== null) {
             return d.toText
         }
 
-        time = new TimeValue(d.interval, d.unit)
-
-        if (time.unit != TimeUnit.NONE) {
-            return time.unit.name() + '(' + time.time + ')'
-        } else {
-            return time.time.toString()
-        }
+        return d.time.toTimeValue.timeInTargetLanguage
     }
-    
-    
-    
+
+
+
     /**
      * Remove triggers in each federates' network reactions that are defined in remote federates.
-     * 
+     *
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
      * might reference data structures in remote federates and cause compile errors.
-     * 
+     *
      * @param instance The reactor instance to remove these ports from if any.
      *  Can be null.
      */
@@ -1834,7 +1832,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * @return A time string in the target language
      */
     protected def getTargetTime(Time t) {
-        val value = new TimeValue(t.interval, t.unit)
+        val value = new TimeValue(t.interval, TimeUnit.fromName(t.unit))
         return value.timeInTargetLanguage
     }
 
@@ -1865,7 +1863,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         if (v.time !== null) {
             return v.time.targetTime
         } else if (v.isZero) {
-            val value = new TimeValue(0, TimeUnit.NONE)
+            val value = TimeValue.ZERO
             return value.timeInTargetLanguage
         }
         return v.toText
@@ -1875,7 +1873,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         if (d.parameter !== null) {
             return d.toText
         } else {
-            return new TimeValue(d.interval, d.unit).timeInTargetLanguage
+            return d.time.toTimeValue.timeInTargetLanguage
         }
     }
 }
