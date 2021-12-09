@@ -37,6 +37,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.generator.PortInstance
+import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.lf.StateVar
@@ -130,13 +131,13 @@ class UclidGenerator extends GeneratorBase {
         code = new StringBuilder()
         var filename = outputDir.resolve("main.ucl").toString
         generateMain()
-        writeSourceCodeToFile(getCode.getBytes, filename)
+        JavaGeneratorUtils.writeSourceCodeToFile(getCode, filename)
         
         // Generate run.sh
         code = new StringBuilder()
         filename = outputDir.resolve("run.sh").toString
         generateRunScript()
-        writeSourceCodeToFile(getCode.getBytes, filename)
+        JavaGeneratorUtils.writeSourceCodeToFile(getCode, filename)
     }
     
     protected def generateMain() {

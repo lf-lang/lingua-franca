@@ -183,6 +183,7 @@ public class LFGenerator extends AbstractGenerator {
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
+        }
 
         // If the verification flag is true, generate a UCLID5 model from
         // the static information.
