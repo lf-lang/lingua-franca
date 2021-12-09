@@ -34,7 +34,6 @@ import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.LFCommand
@@ -282,34 +281,23 @@ object CppTypes : TargetTypes {
 
     override fun getTargetUndefinedType() = "void"
 
-    override fun getTargetTimeExpression(magnitude: Long, unit: TimeUnit): String =
-        if (magnitude == 0L) "reactor::Duration::zero()"
-        else magnitude.toString() + unit.cppUnit
+    override fun getTargetTimeExpr(timeValue: TimeValue): String =
+        with (timeValue) {
+            if (magnitude == 0L) "reactor::Duration::zero()"
+            else magnitude.toString() + unit.cppUnit
+        }
 
 }
 /** Get a C++ representation of a LF unit. */
-val TimeUnit.cppUnit
+val TimeUnit?.cppUnit
     get() = when (this) {
-        TimeUnit.NSEC    -> "ns"
-        TimeUnit.NSECS   -> "ns"
-        TimeUnit.USEC    -> "us"
-        TimeUnit.USECS   -> "us"
-        TimeUnit.MSEC    -> "ms"
-        TimeUnit.MSECS   -> "ms"
-        TimeUnit.SEC     -> "s"
-        TimeUnit.SECS    -> "s"
+        TimeUnit.NANO    -> "ns"
+        TimeUnit.MICRO   -> "us"
+        TimeUnit.MILLI   -> "ms"
         TimeUnit.SECOND  -> "s"
-        TimeUnit.SECONDS -> "s"
-        TimeUnit.MIN     -> "min"
-        TimeUnit.MINS    -> "min"
         TimeUnit.MINUTE  -> "min"
-        TimeUnit.MINUTES -> "min"
         TimeUnit.HOUR    -> "h"
-        TimeUnit.HOURS   -> "h"
         TimeUnit.DAY     -> "d"
-        TimeUnit.DAYS    -> "d"
         TimeUnit.WEEK    -> "d*7"
-        TimeUnit.WEEKS   -> "d*7"
-        TimeUnit.NONE    -> ""
         else             -> ""
     }
