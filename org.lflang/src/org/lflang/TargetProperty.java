@@ -761,7 +761,7 @@ public enum TargetProperty {
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
                 CoordinationType.CENTRALIZED),
-        SCHEDULER_UNION(Arrays.asList(SchedulerOptions.values()), SchedulerOptions.GEDF_NP),
+        SCHEDULER_UNION(Arrays.asList(SchedulerOptions.values()), SchedulerOptions.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
@@ -1285,6 +1285,11 @@ public enum TargetProperty {
     public enum SchedulerOptions {
         GEDF_NP, // Global EDF non-preemptive
         PEDF_NP; // Partitioned EDF non-preemptive
+        
+        public static SchedulerOptions getDefault() {
+            return GEDF_NP;
+        }
+        
     }
 
     /**

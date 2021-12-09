@@ -196,7 +196,8 @@ public class TargetConfig {
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false;
     
-    public SchedulerOptions schedulerType = SchedulerOptions.GEDF_NP;
+    /** What runtime scheduler to use. */
+    public SchedulerOptions schedulerType = SchedulerOptions.getDefault();
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

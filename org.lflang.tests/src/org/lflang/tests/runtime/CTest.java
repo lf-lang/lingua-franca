@@ -63,6 +63,11 @@ public class CTest extends AbstractTest {
     protected boolean supportsDockerOption() {
         return true;
     }
+    
+    @Override
+    protected boolean supportsSchedulerSwapping() {
+        return true;
+    }
 
     @Test
     @Override

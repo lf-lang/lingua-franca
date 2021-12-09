@@ -126,6 +126,7 @@ public abstract class TestBase {
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
         public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
+        public static final String NO_SCHED_SWAPPING_SUPPORT = "Target does not support runtime scheduler swapping.";
 
         /* Descriptions of collections of tests. */
         public static final String DESC_SERIALIZATION = "Run serialization tests (threads = 0).";
@@ -142,6 +143,7 @@ public abstract class TestBase {
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests (threads = 0)";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_FOUR_THREADS = "Run non-concurrent and non-federated tests (threads = 4).";
+        public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
 
         /* Missing dependency messages */
         public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
