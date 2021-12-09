@@ -60,7 +60,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * Report a warning or error on the specified object
      *
      * The caller should not throw an exception so execution can continue. This
-     * will print the error message to stderr. If running in INTEGRATED mode
+     * will print the error message to stderr. If running in EPOCH mode
      * (within the Eclipse IDE), then this also adds a marker to the editor.
      * 
      * @param message  The error message.
@@ -87,7 +87,7 @@ public class EclipseErrorReporter implements ErrorReporter {
      * Report a warning or error on the specified line of the specified file.
      *
      * The caller should not throw an exception so execution can continue. This
-     * will print the error message to stderr. If running in INTEGRATED mode
+     * will print the error message to stderr. If running in EPOCH mode
      * (within the Eclipse IDE), then this also adds a marker to the editor.
      * 
      * @param message  The error message.
@@ -109,11 +109,11 @@ public class EclipseErrorReporter implements ErrorReporter {
             System.err.println(header + ": " + file.toString() + line.toString()
                     + "\n" + message);
 
-        // If running in INTEGRATED mode, create a marker in the IDE for the
+        // If running in EPOCH mode, create a marker in the IDE for the
         // error.
         // See:
         // https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+        if (fileConfig.getCompilerMode() == Mode.EPOCH) {
             final IResource iResource = file != null
                     ? fileConfig.getIResource(file)
                     : fileConfig.iResource;
