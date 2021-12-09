@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.TargetProperty.SchedulerOptions;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -63,6 +64,13 @@ public abstract class AbstractTest extends TestBase {
         return false;
     }
 
+    
+    /**
+     * Whether to test different {@link org.lflang.TargetProperty#SchedulerOptions}.
+     */
+    protected boolean supportsSchedulerSwapping() {
+        return false;
+    }
 
     @Test
     public void runExampleTests() {
@@ -191,5 +199,29 @@ public abstract class AbstractTest extends TestBase {
             TestLevel.EXECUTION,
             true
         );
+    }
+    
+    @Test
+    public void runWithNonDefaultSchedulers() {
+        Assumptions.assumeTrue(supportsSchedulerSwapping(), Message.NO_SCHED_SWAPPING_SUPPORT);
+        for (SchedulerOptions scheduler: SchedulerOptions.values()) {
+            if (scheduler == SchedulerOptions.getDefault()) continue;
+            
+            this.runTestsForTargets(
+                Message.DESC_SCHED_SWAPPING + scheduler.toString() +".",
+                Configurators::noneExcluded,
+                test -> {
+                    test.getContext()
+                        .getArgs()
+                        .setProperty(
+                                "scheduler", 
+                                scheduler.toString()
+                                ); 
+                    return true;
+                },
+                TestLevel.EXECUTION,
+                true
+            );
+        }
     }
 }
