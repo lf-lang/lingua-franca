@@ -99,7 +99,7 @@ class CCmakeGenerator {
         cMakeCode.append("\n");
         
         // Set the log level
-        cMakeCode.append("add_compile_definitions(LOG_LEVEL="+targetConfig.logLevel+")\n");
+        cMakeCode.append("add_compile_definitions(LOG_LEVEL="+targetConfig.logLevel.ordinal()+")\n");
         
         // Set the build type
         cMakeCode.append("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
