@@ -406,7 +406,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         createMainInstance()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (mainDef !== null) {
+        if (fileConfig.compilerMode == Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -787,13 +787,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
             // execute the command
             val returnCode = cmd.run()
 
-            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
+            if (returnCode != 0 && fileConfig.compilerMode === Mode.STANDALONE) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
+            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode !== Mode.STANDALONE) {
                 reportCommandErrors(cmd.errors.toString())
                 return
             }
@@ -1000,6 +1000,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         public var character = "0"
         public var message = ""
         public var isError = true // false for a warning.
+        override String toString() {
+          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+        }
     }
 
     /**
@@ -1192,8 +1195,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.  This should only be called if
-     * mode == INTEGRATED.
+     * marks on the appropriate lines. This should not be called in standalone
+     * mode.
      * 
      * @param stderr The output on standard error of executing a command.
      */
@@ -1217,8 +1220,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                         errorReporter.reportError(path, lineNumber, message.toString())
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
-                      
-                    if (originalPath.compareTo(path) != 0) {
+
+                    if (originalPath.toFile != path.toFile) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1270,7 +1273,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath.compareTo(path) != 0) {
+            if (originalPath.toFile != path.toFile) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
@@ -1284,12 +1287,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
         }
     }
 
-    /** If the mode is INTEGRATED (the code generator is running in an
+    /** If the mode is EPOCH (the code generator is running in an
      *  an Eclipse IDE), then refresh the project. This will ensure that
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (fileConfig.compilerMode == Mode.INTEGRATED) {
+        if (fileConfig.compilerMode == Mode.EPOCH) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator

@@ -295,7 +295,10 @@ public class TargetConfig {
 
     public enum Mode {
         STANDALONE,
-        INTEGRATED,
+        EPOCH,
+        LSP_FAST,
+        LSP_MEDIUM,
+        LSP_SLOW,
         UNDEFINED
     }
 

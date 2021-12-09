@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
+import java.nio.file.Path
 
 /**
  * If this reactor declaration is an import, then
@@ -142,6 +143,13 @@ val StateVar.isOfTimeType: Boolean get() = JavaAstUtils.isOfTimeType(this)
  * @see ASTUtils.toText
  */
 fun Code.toText(): String = ASTUtils.toText(this)
+
+/**
+ * Translate this code element into its tagged textual
+ * representation.
+ * @see ASTUtils.toTaggedText
+ */
+fun Code.toTaggedText(): String = ASTUtils.toTaggedText(this)
 
 /**
  * Translate this code element into its textual representation.
