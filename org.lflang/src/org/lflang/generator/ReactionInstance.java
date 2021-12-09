@@ -30,11 +30,11 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -278,7 +278,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * Inferred deadline. Defaults to the maximum long value.
      */
-    public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC);
+    public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO);
 
     /**
      * The level in the dependence graph. -1 indicates that the level
@@ -290,7 +290,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Index of order of occurrence within the reactor definition.
      * The first reaction has index 0, the second index 1, etc.
      */
-    public int index = -1;
+    public int index;
 
     /**
      * Whether or not this reaction is ordered with respect to other

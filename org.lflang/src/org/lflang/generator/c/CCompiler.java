@@ -128,12 +128,12 @@ public class CCompiler {
         
         int returnCode = compile.run(cancelIndicator);
 
-        if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+        if (returnCode != 0 && fileConfig.getCompilerMode() == Mode.STANDALONE) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+returnCode);
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+        if (compile.getErrors().toString().length() > 0 && fileConfig.getCompilerMode() != Mode.STANDALONE) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
         
@@ -146,7 +146,7 @@ public class CCompiler {
     
     /**
      * Return a command to compile the specified C file using a native compiler 
-     * (generally gcc unless overriden by the user).
+     * (generally gcc unless overridden by the user).
      * This produces a C specific compile command.
      * 
      * @param fileToCompile The C filename without the .c extension.

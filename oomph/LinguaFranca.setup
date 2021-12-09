@@ -357,6 +357,8 @@
             name="de.cau.cs.kieler.klighd.view.feature.source.feature.group"/>
         <requirement
             name="de.cau.cs.kieler.klighd.ui.contrib3x"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.lsp"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
