@@ -50,7 +50,6 @@ import static extension org.lflang.ASTUtils.*
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
- 
 class UclidGenerator extends GeneratorBase {
     
     ////////////////////////////////////////////
