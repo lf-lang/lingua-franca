@@ -1178,7 +1178,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             for (PortInstance.Range range: rightRanges) {
                 rightWidth += range.channelWidth;
             }
-            if (leftWidth > rightWidth) {
+            if (leftWidth == 0 || rightWidth == 0) {
+                return; // Only if listPortInstances already raised an "Not a port" error.
+            } else if (leftWidth > rightWidth) {
                 reporter.reportWarning(connection, 
                         "Source is wider than the destination. Outputs will be lost.");
             } else if (leftWidth < rightWidth && !connection.isIterated()) {
