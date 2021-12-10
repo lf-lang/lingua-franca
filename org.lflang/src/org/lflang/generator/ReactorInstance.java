@@ -103,7 +103,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public fields.
 
     /** The action instances belonging to this reactor instance. */
-    public List<ActionInstance> actions = new ArrayList<ActionInstance>();
+    public List<ActionInstance> actions = new ArrayList<>();
 
     /**
      * The contained reactor instances, in order of declaration.
@@ -111,22 +111,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
-    public List<ReactorInstance> children = new ArrayList<ReactorInstance>();
+    public List<ReactorInstance> children = new ArrayList<>();
 
     /** The input port instances belonging to this reactor instance. */
-    public List<PortInstance> inputs = new ArrayList<PortInstance>();
+    public List<PortInstance> inputs = new ArrayList<>();
 
     /** The output port instances belonging to this reactor instance. */
-    public List<PortInstance> outputs = new ArrayList<PortInstance>();
+    public List<PortInstance> outputs = new ArrayList<>();
 
     /** The parameters of this instance. */
-    public List<ParameterInstance> parameters = new ArrayList<ParameterInstance>();
+    public List<ParameterInstance> parameters = new ArrayList<>();
 
     /** List of reaction instances for this reactor instance. */
-    public List<ReactionInstance> reactions = new ArrayList<ReactionInstance>();
+    public List<ReactionInstance> reactions = new ArrayList<>();
 
     /** The timer instances belonging to this reactor instance. */
-    public List<TimerInstance> timers = new ArrayList<TimerInstance>();
+    public List<TimerInstance> timers = new ArrayList<>();
     
     /** The mode instances belonging to this reactor instance. */
     public List<ModeInstance> modes = new ArrayList<ModeInstance>();
@@ -428,7 +428,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public List<Instantiation> instantiations() {
         if (_instantiations == null) {
-            _instantiations = new ArrayList<Instantiation>();
+            _instantiations = new ArrayList<>();
             if (definition != null) {
                 _instantiations.add(definition);
                 if (parent != null) {
@@ -724,7 +724,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * connection.
      */
     protected Map<PortInstance, Map<PortInstance, Connection>> connectionTable 
-            = new LinkedHashMap<PortInstance, Map<PortInstance, Connection>>();
+            = new LinkedHashMap<>();
     
     /**
      * For a root reactor instance only, this will be a queue of reactions
@@ -734,7 +734,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * that have been assigned level 0 during construction because they have
      * no dependencies on other reactions.
      */
-    protected Deque<ReactionInstance> reactionsWithLevels = new ArrayDeque<ReactionInstance>();
+    protected Deque<ReactionInstance> reactionsWithLevels = new ArrayDeque<>();
 
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
@@ -752,7 +752,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * in any order and concurrently even though they are in the same reactor.
      * FIXME: Remove this when the language provides syntax.
      */
-    protected Set<Reaction> unorderedReactions = new LinkedHashSet<Reaction>();
+    protected Set<Reaction> unorderedReactions = new LinkedHashSet<>();
 
     /** The nested list of instantiations that created this reactor instance. */
     protected List<Instantiation> _instantiations;
@@ -796,8 +796,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected TriggerInstance<? extends Variable> getOrCreateStartup(TriggerRef trigger) {
         if (startupTrigger == null) {
-            startupTrigger = new TriggerInstance<BuiltinTriggerVariable>(
-                    TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
+            startupTrigger = new TriggerInstance<>(
+                TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
         }
         return startupTrigger;
     }
@@ -807,8 +807,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected TriggerInstance<? extends Variable> getOrCreateShutdown(TriggerRef trigger) {
         if (shutdownTrigger == null) {
-            shutdownTrigger = new TriggerInstance<BuiltinTriggerVariable>(
-                    TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
+            shutdownTrigger = new TriggerInstance<>(
+                TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
         }
         return shutdownTrigger;
     }
@@ -887,7 +887,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     /**
      * Create reactor instance resulting from the specified top-level instantiation.
-     * @param instance The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The parent, or null for the main rector.
      * @param reporter The error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
@@ -916,9 +916,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
+     * @param reporter The error reporter.
      * @param reactorIndex -1 for an ordinary reactor, -2 for a
      *  placeholder for a bank of reactors, or the index of the
      *  reactor in a bank of reactors otherwise.
@@ -971,7 +971,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // before instantiating the children.
             var width = width(definition.getWidthSpec());
             if (width > 0) {
-                this.bankMembers = new ArrayList<ReactorInstance>(width);
+                this.bankMembers = new ArrayList<>(width);
                 for (var index = 0; index < width; index++) {
                     var childInstance = new ReactorInstance(
                         definition, parent, reporter, index, depth, desiredDepth, this.unorderedReactions
@@ -1072,7 +1072,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     private void addDestination(PortInstance source, PortInstance destination, Connection connection) {
         Map<PortInstance, Connection> srcConnections = connectionTable.get(source);
         if (srcConnections == null) {
-            srcConnections = new LinkedHashMap<PortInstance, Connection>();
+            srcConnections = new LinkedHashMap<>();
             connectionTable.put(source, srcConnections);
         }
         srcConnections.put(destination, connection);
@@ -1137,12 +1137,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         // connections map.
         Map<PortInstance, Set<PortInstance>> map = connections.get(connection);
         if (map == null) {
-            map = new LinkedHashMap<PortInstance, Set<PortInstance>>();
+            map = new LinkedHashMap<>();
             connections.put(connection, map);
         }
         Set<PortInstance> destinations = map.get(src);
         if (destinations == null) {
-            destinations = new LinkedHashSet<PortInstance>();
+            destinations = new LinkedHashSet<>();
             map.put(src, destinations);
         }
         destinations.add(dst);
@@ -1242,7 +1242,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`.
      */
     private List<PortInstance.Range> listPortInstances(List<VarRef> references) {
-        List<PortInstance.Range> result = new ArrayList<PortInstance.Range>();
+        List<PortInstance.Range> result = new ArrayList<>();
         for (VarRef portRef : references) {
             // Simple error checking first.
             if (!(portRef.getVariable() instanceof Port)) {
@@ -1276,7 +1276,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         // NOTE: Here, we get multiplicative complexity (bank width times port width).
                         // We assume all ports in each bank have the same width.
                         // First, get an array of bank members so as to not have to look up each time.
-                        List<PortInstance> bankPorts = new ArrayList<PortInstance>();
+                        List<PortInstance> bankPorts = new ArrayList<>();
                         for (ReactorInstance b : reactor.bankMembers) {
                             bankPorts.add(b.lookupPortInstance((Port) portRef.getVariable()));
                         }
@@ -1308,7 +1308,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * this includes only the connections to and from the first element of the bank
      */
     private Map<Connection, Map<PortInstance, Set<PortInstance>>> connections 
-            = new LinkedHashMap<Connection, Map<PortInstance, Set<PortInstance>>>();
+            = new LinkedHashMap<>();
 
     /**
      * Indicator of whether levels have already been assigned.

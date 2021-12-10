@@ -27,6 +27,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.SlowIntegratedContext;
 import org.lflang.lf.Reactor;
 
 /**
@@ -260,7 +261,7 @@ public class FileConfig {
      * Get the specified uri as an Eclipse IResource or, if it is not found, then
      * return the iResource for the main file.
      * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * system, and when running in EPOCH mode, for some things, you cannot access
      * files by referring to their file system location. Instead, you have to refer
      * to them relative the workspace root. This is required, for example, when marking
      * the file with errors or warnings or when deleting those marks. 
@@ -654,6 +655,7 @@ public class FileConfig {
     
     private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
         if (resource.getURI().isPlatform()) {
+            // Case 1: we are in the RCA.
             File srcFile = toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
@@ -663,10 +665,32 @@ public class FileConfig {
                 }
             }
         } else if (context instanceof StandaloneContext) {
+            // Case 2: We are in the command-line compiler.
             return ((StandaloneContext)context).getPackageRoot();
         }
-        
-        throw new IOException("Unable to determine the package root.");
+        // Case 3: We are in a language server.
+        return findPackageRoot(toPath(resource));
+    }
+
+    /**
+     * Find the package root by looking for an 'src'
+     * directory. If none can be found, return the current
+     * working directory instead.
+     *
+     * @param input The *.lf file to find the package root
+     *              for.
+     * @return The package root, or the current working
+     * directory if none exists.
+     */
+    public static Path findPackageRoot(final Path input) {
+        Path p = input;
+        do {
+            p = p.getParent();
+            if (p == null) {
+                return Paths.get(".").toAbsolutePath();
+            }
+        } while (!p.toFile().getName().equals("src"));
+        return p.getParent();
     }
     
     /**
@@ -812,21 +836,23 @@ public class FileConfig {
      
      /**
       * Determine which mode the compiler is running in.
-      * Integrated mode means that it is running within an Eclipse IDE.
+      * Integrated mode means that it is running within an IDE or text editor.
       * Standalone mode means that it is running on the command line.
       * 
       * FIXME: Not sure if that us the right place for this function. But
       *  the decision which mode we are in depends on a file (the resource),
       *  thus it seems to fit here.
+      * FIXME: If/when we move away from Xtext, which limits our ability to
+      *  include info in the context about whether we are in Epoch or LSP_FAST,
+      *  it would be preferable not to rely on a method like this that has to
+      *  translate a weird assortment of data into an enum.
       */
      public Mode getCompilerMode() {
-         if (resource.getURI().isPlatform()) {
-             return Mode.INTEGRATED;
-         } else if (resource.getURI().isFile()) {
-             return Mode.STANDALONE;
-         } else {
-             System.err.println("ERROR: Source file protocol is not recognized: " + resource.getURI());
-             return Mode.UNDEFINED;
+         if (context instanceof StandaloneContext) return Mode.STANDALONE;
+         if (resource.getURI().isPlatform()) return Mode.EPOCH;
+         if (context instanceof SlowIntegratedContext) {
+             return ((SlowIntegratedContext) context).getMustBeComplete() ? Mode.LSP_SLOW : Mode.LSP_MEDIUM;
          }
+         return Mode.LSP_FAST;
      }
 }
