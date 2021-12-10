@@ -4,7 +4,7 @@ import os
 import tempfile
 
 # The code is modeled after the file sync example at https://docs.ray.io/en/latest/advanced.html#inter-process-synchronization-using-filelock
-# The purpose of the code is to demo Ray's ability to use a file lock for synchronization.
+# The purpose of the code is to demo Ray's ability to use a file lock for inter-process synchronization.
 # However, this example shows non-deterministic results across multiple runs.
 
 ''' The original code from the example:

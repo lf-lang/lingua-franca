@@ -31,20 +31,25 @@ reactor MainFunc(N(3)) {
     state doneCount(0);
     
     reaction(startup) -> doWrite {=
+        # Create tmpfiles for writing
         _, tmpfile = tempfile.mkstemp()
         self.tmpfile = tmpfile
-
+        
+        # Set doWrite to notify Writers.
         for i in range(self.N):
             doWrite[i].set((self.tmpfile, f"hi there {i}!\n"))
     =}
 
     reaction(doneWriting) {=
+        # If a Writer finishes writing, increment doneCount.
+        # There are only 3 Writers, so we can request_shutdown() when doneCount == 3.
         self.doneCount += 1
         if self.doneCount == 3:
             request_shutdown()
     =}
 
     reaction(shutdown) {=
+        # Print results and clean up.
         try:
             with open(self.tmpfile) as f:
                 print(f.read())

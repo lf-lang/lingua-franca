@@ -19,26 +19,33 @@ main reactor {
     state doneCount(0);
     
     reaction(startup) -> doWrite {=
+        # Create tmpfiles for writing.
         _, tmpfile = tempfile.mkstemp()
         self.tmpfile = tmpfile
-        
+
+        # Schedule actions to write to tmpfile.
         for i in range(3):
             doWrite.schedule(0, f"hi there {i}!\n")    
     =}
 
     reaction(doWrite) -> doneWriting {=
+        # Write to tmpfile.
         with open(self.tmpfile, "a") as f:
             f.write(doWrite.value)
+        
+        # Schedule action to increment doneCount.
         doneWriting.schedule(0)
     =}
 
     reaction(doneWriting) {=
+        # increment doneCount.
         self.doneCount += 1
         if self.doneCount == 3:
             request_stop()
     =}
 
     reaction(shutdown) {=
+        # Print results and clean up.
         try:
             with open(self.tmpfile) as f:
                 print(f.read())
