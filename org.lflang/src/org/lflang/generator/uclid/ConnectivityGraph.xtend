@@ -36,38 +36,31 @@ import java.util.Set
  * This graph represents the connectivity between system components,
  * which indicates counterfactual causality between events generated
  * by connected components.
+ *
+ * TODO:
+ * 1. Handle timers.
  * 
  * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
  */
  class ConnectivityGraph extends DirectedGraph<ReactionInstance> {
 
-    /**
-     * The main reactor instance that this graph is associated with
-     */
+    // The main reactor instance that this graph is associated with
     var ReactorInstance main
 
-    /**
-     * The reaction upon which the connectivity graph is built
-     */
+    // The reaction upon which the connectivity graph is built
     var ReactionInstanceGraph reactionGraph
     
-    /**
-     * Adjacency map from a pair of reactions (i.e. components)
-     * to a pair (to be extended to triplet) containing a boolean
-     * (whether it is a connection) and a TimeValue (logical time delay).
-     */
+    // Adjacency map from a pair of reactions (i.e. components)
+    // to a pair (to be extended to triplet) containing a boolean
+    // (whether it is a connection) and a TimeValue (logical time delay).
     var LinkedHashMap<Pair<ReactionInstance, ReactionInstance>,
         ConnectivityInfo> connectivity = new LinkedHashMap();
     
-    /**
-     * The set of ports
-     */
+    // The set of ports
     // FIXME: why is this field not by default public?
     public var Set<PortInstance> ports = new HashSet();
 
-    /**
-     * Constructor
-     */
+    // Constructor
     new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
         this.main = main
         this.reactionGraph = reactionGraph
@@ -81,6 +74,8 @@ import java.util.Set
     def rebuild() {
         this.clear()
         println("========== Building Connectivity Graph ==========")
+        // FIXME: Can we just pass in one source instead of iterating
+        // over all the nodes?
         for (node : this.reactionGraph.nodes) {
             addNodesAndEdges(node)
         }
@@ -92,6 +87,9 @@ import java.util.Set
      * 
      * FIXME:
      * 1. Do we need transitive edges?
+     *    No. Handle transitivity in the code generation logic.
+     *
+     * @param reaction The upstream reaction instance to be added to the graph.
      */
     protected def void addNodesAndEdges(ReactionInstance reaction) {
         // Add the current reaction to the connectivity graph.

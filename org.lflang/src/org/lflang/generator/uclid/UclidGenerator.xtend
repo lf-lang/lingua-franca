@@ -48,12 +48,6 @@ import static extension org.lflang.ASTUtils.*
 /**
  * Generator for Uclid models.
  * 
- * Connectivity graph needs to preserve the following info:
- * 1. Components,
- * 2. Connectivity edges (connection, action, timer),
- *   - Types of connectivity edges (logical, physical)
- *   - Delays on the edges 
- * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
  
@@ -65,18 +59,23 @@ class UclidGenerator extends GeneratorBase {
     // The output directory where the model is stored
     Path outputDir
     
-    var ConnectivityGraph connectivityGraph
-    var ReactionInstanceGraph reactionGraph // To be deprecated.
+    // The reaction graph upon which the connectivity graph is built
+    var ReactionInstanceGraph reactionGraph
 
-    // Program elements
+    // The connectivity graph that contains runtime connections
+    // and a set of port runtime instances
+    var ConnectivityGraph connectivityGraph
+
+    // Data structures storing info about the runtime topology
     var Set<ReactionInstance>                   reactions
     var Set<PortInstance>                       ports
     var List<Pair<ReactorInstance, StateVar>>   stateVars
         = new ArrayList<Pair<ReactorInstance, StateVar>>()
 
     // K
-    int k = 2 // FIXME: to pass in from target property
+    int k = 2 // FIXME: pass K in from target property
     
+    // Constructor
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
         super(fileConfig, errorReporter)
     }
@@ -118,20 +117,14 @@ class UclidGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
         outputDir = Paths.get(dir.getAbsolutePath)
         
+        // Generate the Uclid model.
         generateModel()
     }
-    
-    private def populateGraphsAndLists() {
-        this.reactionGraph = new ReactionInstanceGraph(this.main)
-        this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
-        this.reactions = this.reactionGraph.nodes
 
-        // Ports are populated during the construction of the connectivity graph
-        this.ports = this.connectivityGraph.ports
-        // Populate state variables by traversing reactor instances
-        populateStateVars(this.main)
-    }
-
+    /**
+     * @brief Recursively add state variables to the stateVars list.
+     * @param reactor A reactor instance from which the search begins.
+     */
     private def populateStateVars(ReactorInstance reactor) {
         var defn = reactor.reactorDefinition
         var stateVars = defn.getStateVars
@@ -147,7 +140,24 @@ class UclidGenerator extends GeneratorBase {
             populateStateVars(child)
         }
     }
+
+    /**
+     * Populate the data structures.
+     */
+    private def populateGraphsAndLists() {
+        this.reactionGraph = new ReactionInstanceGraph(this.main)
+        this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
+        this.reactions = this.reactionGraph.nodes
+
+        // Ports are populated during the construction of the connectivity graph
+        this.ports = this.connectivityGraph.ports
+        // Populate state variables by traversing reactor instances
+        populateStateVars(this.main)
+    }
     
+    /**
+     * Generate the Uclid model and a runner script.
+     */
     protected def generateModel() {     
         // Generate main.ucl and print to file
         code = new StringBuilder()
