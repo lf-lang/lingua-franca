@@ -1,0 +1,48 @@
+/**
+ * LF implementation of file-write synchronization using a single reactor.
+ * Lock is not required for deterministic outcome.
+ *
+ * @author Hou Seng (Steven) Wong
+ */
+
+target Python;
+
+preamble {=
+    import os
+    import tempfile
+=}
+
+main reactor {
+    logical action doneWriting;
+    logical action doWrite;
+    state tmpfile;
+    state doneCount(0);
+    
+    reaction(startup) -> doWrite {=
+        _, tmpfile = tempfile.mkstemp()
+        self.tmpfile = tmpfile
+        
+        for i in range(3):
+            doWrite.schedule(0, f"hi there {i}!\n")    
+    =}
+
+    reaction(doWrite) -> doneWriting {=
+        with open(self.tmpfile, "a") as f:
+            f.write(doWrite.value)
+        doneWriting.schedule(0)
+    =}
+
+    reaction(doneWriting) {=
+        self.doneCount += 1
+        if self.doneCount == 3:
+            request_stop()
+    =}
+
+    reaction(shutdown) {=
+        try:
+            with open(self.tmpfile) as f:
+                print(f.read())
+        finally:
+            os.remove(self.tmpfile)
+    =}
+}
