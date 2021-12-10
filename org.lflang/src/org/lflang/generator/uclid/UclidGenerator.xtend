@@ -69,9 +69,10 @@ class UclidGenerator extends GeneratorBase {
     var ReactionInstanceGraph reactionGraph // To be deprecated.
 
     // Program elements
-    var Set<ReactionInstance>   reactions
-    var Set<PortInstance>       ports
-    var List<StateVar>          stateVars = new ArrayList<StateVar>() // FIXME: to populate
+    var Set<ReactionInstance>                   reactions
+    var Set<PortInstance>                       ports
+    var List<Pair<ReactorInstance, StateVar>>   stateVars
+        = new ArrayList<Pair<ReactorInstance, StateVar>>()
 
     // K
     int k = 2 // FIXME: to pass in from target property
@@ -120,11 +121,31 @@ class UclidGenerator extends GeneratorBase {
         generateModel()
     }
     
-    def populateGraphsAndLists() {
+    private def populateGraphsAndLists() {
         this.reactionGraph = new ReactionInstanceGraph(this.main)
         this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
         this.reactions = this.reactionGraph.nodes
+
+        // Ports are populated during the construction of the connectivity graph
         this.ports = this.connectivityGraph.ports
+        // Populate state variables by traversing reactor instances
+        populateStateVars(this.main)
+    }
+
+    private def populateStateVars(ReactorInstance reactor) {
+        var defn = reactor.reactorDefinition
+        var stateVars = defn.getStateVars
+
+        // Prefix state vars with reactor name
+        // and add them to the list
+        for (s : stateVars) {
+            this.stateVars.add(new Pair(reactor, s))
+        }
+
+        // Populate state variables recursively
+        for (child : reactor.children) {
+            populateStateVars(child)
+        }
     }
     
     protected def generateModel() {     
