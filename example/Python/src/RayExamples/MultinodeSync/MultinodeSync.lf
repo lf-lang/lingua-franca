@@ -1,0 +1,61 @@
+/**
+ * LF implementation of wait-signal synchronization using multiple reactors.
+ * The "Go" reactors can be hosted remotely in federated execution.
+ *
+ * @author Hou Seng (Steven) Wong
+ */
+
+target Python;
+
+reactor Go {
+    input doWait;
+    input doGo;
+    output waiting;
+    state i;
+    reaction(doWait) -> waiting {=
+        self.i = doWait.value
+        print(f"{self.i}: waiting")
+
+        # Tell the Signal reactor that it is waiting
+        waiting.set(1)
+    =}
+
+    reaction(doGo) {=
+        print(f"{self.i}: go")
+    =}
+}
+
+reactor Signal(N(4)) {
+    input[N] waiting;
+    output[N] doWait;
+    output doGo;
+    state waitCount(0);
+    
+    reaction(startup) -> doWait {=
+        # Tell the Go reactors to wait.
+        for i in range(self.N):
+            doWait[i].set(i)
+    =}
+
+    reaction(waiting) -> doGo {=
+        # Count the number of waiting Go reactors
+        for i in waiting:
+            if i.is_present:
+                self.waitCount += 1
+
+        # If every Go reactors is waiting, tell them to go.
+        if self.waitCount == self.N:
+            print("ready...")
+            print("set..")
+            doGo.set(1)
+    =}
+}
+
+main reactor {
+    signal = new Signal(N=4);
+    go = new[4] Go();
+
+    signal.doWait -> go.doWait;
+    (signal.doGo)+ -> go.doGo;
+    go.waiting -> signal.waiting;
+}

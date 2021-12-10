@@ -17,6 +17,7 @@ reactor Writer {
     input doWrite;
     output doneWriting;
     reaction(doWrite) -> doneWriting {=
+        # Write "text" to tmpfile.
         tmpfile, text = doWrite.value
         with open(tmpfile, "a") as f:
             f.write(text)
@@ -44,8 +45,8 @@ reactor MainFunc(N(3)) {
         # If a Writer finishes writing, increment doneCount.
         # There are only 3 Writers, so we can request_shutdown() when doneCount == 3.
         self.doneCount += 1
-        if self.doneCount == 3:
-            request_shutdown()
+        if self.doneCount == self.N:
+            request_stop()
     =}
 
     reaction(shutdown) {=
