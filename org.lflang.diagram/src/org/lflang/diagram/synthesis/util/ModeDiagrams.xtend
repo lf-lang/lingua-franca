@@ -51,6 +51,7 @@ import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.emf.ecore.util.EcoreUtil
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
+import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 import org.lflang.generator.ModeInstance
@@ -116,14 +117,14 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                 // Expanded Rectangle
                 node.addModeFigure(mode, true) => [
                     setProperty(KlighdProperties.EXPANDED_RENDERING, true)
-                    addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+                    addDoubleClickAction(MemorizingExpandCollapseAction.ID)
     
                     if (SHOW_HYPERLINKS.booleanValue) {
                         // Collapse button
                         addTextButton(TEXT_HIDE_ACTION) => [
                             setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-                            addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                            addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+                            addSingleClickAction(MemorizingExpandCollapseAction.ID)
+                            addDoubleClickAction(MemorizingExpandCollapseAction.ID)
                         ]
                     }
                     
@@ -134,7 +135,7 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                 node.addModeFigure(mode, false) => [
                     setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
                     if (mode.hasContent) {
-                        addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+                        addDoubleClickAction(MemorizingExpandCollapseAction.ID)
                     }
     
                     if (SHOW_HYPERLINKS.booleanValue) {
@@ -142,8 +143,8 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                         if (mode.hasContent) {
                             addTextButton(TEXT_SHOW_ACTION) => [
                                 setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
-                                addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-                                addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+                                addSingleClickAction(MemorizingExpandCollapseAction.ID)
+                                addDoubleClickAction(MemorizingExpandCollapseAction.ID)
                             ]
                         }
                     }
@@ -170,7 +171,7 @@ class ModeDiagrams extends AbstractSynthesisExtensions {
                 children += modeNodes.values
                 
                 val fig = addModeContainerFigure => [
-                    addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+                    addDoubleClickAction(MemorizingExpandCollapseAction.ID)
                 ]
                 if (modeChildren.get(null).empty) {
                     fig.invisible = true

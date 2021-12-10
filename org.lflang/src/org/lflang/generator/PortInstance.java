@@ -52,7 +52,7 @@ public class PortInstance extends TriggerInstance<Port> {
     /**
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The parent.
      */
     public PortInstance(Port definition, ReactorInstance parent) {
@@ -62,7 +62,7 @@ public class PortInstance extends TriggerInstance<Port> {
     /**
      * Create a port instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The parent.
      * @param errorReporter An error reporter, or null to throw exceptions.
      */

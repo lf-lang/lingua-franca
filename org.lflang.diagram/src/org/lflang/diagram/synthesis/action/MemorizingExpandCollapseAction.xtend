@@ -44,7 +44,7 @@ import static extension org.lflang.diagram.synthesis.util.NamedInstanceUtil.*
  */
 class MemorizingExpandCollapseAction extends AbstractAction {
     
-    public static val MEM_EXPAND_COLLAPSE_ACTION_ID = "org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction"
+    public static val ID = "org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction"
     
     /** The related synthesis option */
     public static val SynthesisOption MEMORIZE_EXPANSION_STATES = SynthesisOption.createCheckOption("Remember Collapsed/Expanded Reactors", true)

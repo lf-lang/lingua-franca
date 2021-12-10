@@ -40,7 +40,6 @@ import org.lflang.TargetProperty.TargetPropertyType
 import org.lflang.TimeValue
 import org.lflang.lf.LfPackage
 import org.lflang.lf.Model
-import org.lflang.lf.TimeUnit
 import org.lflang.lf.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -480,6 +479,88 @@ class LinguaFrancaValidationTest {
         ''').assertNoErrors()
             
     }
+
+
+    /**
+     * Let cyclic dependencies be broken by "after" clauses with zero delay.
+     */
+    @Test
+    def void afterBreaksCycle2() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 0 sec
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
+    }
+
+
+    /**
+     * Let cyclic dependencies be broken by "after" clauses with zero delay and no units.
+     */
+    @Test
+    def void afterBreaksCycle3() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 0
+                b.y -> a.x
+            }
+            
+        ''').assertNoErrors()
+            
+    }
+
+    /**
+     * Detect missing units in "after" clauses with delay greater than zero.
+     */
+    @Test
+    def void nonzeroAfterMustHaveUnits() {
+        parseWithoutError('''
+            target C
+            
+            reactor X {
+                input x:int;
+                output y:int;
+                reaction(x) -> y {=
+                =}
+            }
+            
+            main reactor {
+                a = new X()
+                b = new X()
+                a.y -> b.x after 1
+            }
+            
+        ''').assertError(LfPackage::eINSTANCE.time,
+            null, 'Missing time unit.')
+            
+    }
+
+
     
     /**
      * Report non-zero time value without units.
@@ -494,9 +575,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        ''').assertError(LfPackage::eINSTANCE.value,
-            null, "Missing time units. Should be one of " +
-            TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+        ''').assertError(LfPackage::eINSTANCE.value, null, "Missing time unit.")
     }    
     
     /**
@@ -693,8 +772,7 @@ class LinguaFrancaValidationTest {
 		model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Type declaration missing.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
-            "Missing time units. Should be one of " +
-            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+            "Missing time unit.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Invalid time literal.")
         model.assertError(LfPackage::eINSTANCE.parameter, null,
@@ -708,8 +786,7 @@ class LinguaFrancaValidationTest {
         model.assertError(LfPackage::eINSTANCE.parameter, null,
             "Uninitialized parameter.")
        	model.assertError(LfPackage::eINSTANCE.value, null,
-            "Missing time units. Should be one of " +
-            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+            "Missing time unit.")
     }  
     
     

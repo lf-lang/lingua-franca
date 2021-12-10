@@ -252,7 +252,7 @@ Connection:
 // must be zero), the clause must be ended with a semicolon. If units are given,
 // the semicolon is optional.
 Delay:
-    'after' (parameter=[Parameter] | (interval=INT ((unit=TimeUnit))))
+    'after' (parameter=[Parameter] | time=TypedTime)
 ;
 
 // Chooses the serializer to use for the connection
@@ -275,7 +275,7 @@ Element:
     keyvalue=KeyValuePairs 
     | array=Array
     | literal=Literal 
-    | (time=INT unit=TimeUnit) 
+    | (time=INT unit=TimeUnit)
     | id=Path;
 
 ///////// Pieces
@@ -343,6 +343,12 @@ Value:
 
 Time:
     (interval=INT unit=TimeUnit)
+;
+
+// This production is used when we know integer literals are
+// to be interpreted as time.
+TypedTime returns Time:
+    (interval=INT unit=TimeUnit?)
 ;
 
 Port:
@@ -415,6 +421,7 @@ terminal WS: (' '|'\t'|'\r'|'\n')+;
 
 terminal TRUE:  'true' | 'True';
 terminal FALSE: 'false' | 'False';
+
 terminal ID: ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 
 terminal INT returns ecore::EInt:     ('0'..'9')+;
@@ -496,16 +503,10 @@ enum ActionOrigin:
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
-enum TimeUnit:
-    NONE |
-    NSEC='nsec' | NSECS='nsecs' |
-    USEC='usec' | USECS='usecs' |
-    MSEC='msec' | MSECS='msecs' |
-    SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' |
-    MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' |
-    HOUR='hour' | HOURS='hours' |
-    DAY='day' | DAYS='days' |
-    WEEK='week' | WEEKS='weeks';
+// Note: time units are not keywords, otherwise it would reserve
+// a lot of useful identifiers (like 's' or 'd').
+// The validator ensures the unit is valid.
+TimeUnit: ID;
 
 enum ModeTransitionTypes:
     RESET='reset' | HISTORY='continue';
@@ -534,10 +535,6 @@ Token:
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public' |
-    // Time units
-    'nsec' | 'nsecs' | 'usec' | 'usecs' | 'msec' | 'msecs' | 'sec' | 'secs' | 
-    'second' | 'seconds' | 'min' | 'mins' | 'minute' | 'minutes' | 'hour' |
-    'hours' | 'day' | 'days' | 'week' | 'weeks' |
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets

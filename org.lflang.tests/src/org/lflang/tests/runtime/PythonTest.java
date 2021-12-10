@@ -116,7 +116,6 @@ public class PythonTest extends AbstractTest {
     }
 
     @Test
-    @Disabled("TODO: add docker support for federated python programs.")
     @Override 
     public void runDockerFederatedTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);

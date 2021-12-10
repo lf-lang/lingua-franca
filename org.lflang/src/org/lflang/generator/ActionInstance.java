@@ -26,12 +26,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.TimeUnit;
 
 /**
  * Instance of an action.
@@ -39,7 +38,22 @@ import org.lflang.lf.TimeUnit;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public class ActionInstance extends TriggerInstance<Action> {
-    
+
+    /** The constant default for a minimum delay. */
+    public static final TimeValue DEFAULT_MIN_DELAY = TimeValue.ZERO;
+
+    /** The minimum delay for this action. */
+    private TimeValue minDelay = DEFAULT_MIN_DELAY;
+
+    /** The minimum spacing between action events. */
+    private TimeValue minSpacing = null;
+
+    /** The replacement policy for when minimum spacing is violated. */
+    private String policy = null;
+
+    /** Indicator of whether the action is physical. */
+    private boolean physical;
+
     /**
      * Create a new action instance.
      * If the definition is null, then this is a shutdown action.
@@ -55,19 +69,19 @@ public class ActionInstance extends TriggerInstance<Action> {
             if (definition.getMinDelay() != null) {
                 Parameter parm = definition.getMinDelay().getParameter();
                 if (parm != null) {
-                    this.minDelay = ASTUtils.getTimeValue(
+                    this.minDelay = JavaAstUtils.getTimeValue(
                             parent.lookupParameterInstance(parm).init.get(0));
                 } else {
-                    this.minDelay = ASTUtils.getTimeValue(definition.getMinDelay());
+                    this.minDelay = JavaAstUtils.getTimeValue(definition.getMinDelay());
                 }
             }
             if (definition.getMinSpacing() != null) {
                 Parameter parm = definition.getMinSpacing().getParameter();
                 if (parm != null) {
-                    this.minSpacing = ASTUtils.getTimeValue(
+                    this.minSpacing = JavaAstUtils.getTimeValue(
                             parent.lookupParameterInstance(parm).init.get(0));
                 } else {
-                    this.minSpacing = ASTUtils.getTimeValue(definition.getMinSpacing());
+                    this.minSpacing = JavaAstUtils.getTimeValue(definition.getMinSpacing());
                 }
             }
             if (definition.getOrigin() == ActionOrigin.PHYSICAL) {
@@ -76,15 +90,6 @@ public class ActionInstance extends TriggerInstance<Action> {
             policy = definition.getPolicy();
         }
     }
-    
-    //////////////////////////////////////////////////////
-    //// Public fields.
-
-    /** The constant default for a minimum delay. */
-    public static TimeValue DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE);
-        
-    //////////////////////////////////////////////////////
-    //// Public methods.
 
     /** Return the minimum delay for this action. */
     public TimeValue getMinDelay() {
@@ -106,18 +111,4 @@ public class ActionInstance extends TriggerInstance<Action> {
         return physical;
     }
 
-    //////////////////////////////////////////////////////
-    //// Protected fields.
-
-    /** The minimum delay for this action. */
-    TimeValue minDelay = DEFAULT_MIN_DELAY;
-    
-    /** The minimum spacing between action events. */
-    TimeValue minSpacing = null;
-    
-    /** The replacement policy for when minimum spacing is violated. */
-    String policy = null;
-    
-    /** Indicator of whether the action is physical. */
-    boolean physical;
 }
