@@ -27,23 +27,28 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import org.lflang.graph.DirectedGraph
-import java.util.LinkedHashMap
 import org.lflang.ConnectivityInfo
+import java.util.LinkedHashMap
+import java.util.HashSet
+import java.util.Set
 
 /**
  * This graph represents the connectivity between system components,
  * which indicates counterfactual causality between events generated
  * by connected components.
  * 
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
  */
  class ConnectivityGraph extends DirectedGraph<ReactionInstance> {
-     
+
     /**
-     * The main reactor instance that this graph is associated with.
+     * The main reactor instance that this graph is associated with
      */
     var ReactorInstance main
-    
+
+    /**
+     * The reaction upon which the connectivity graph is built
+     */
     var ReactionInstanceGraph reactionGraph
     
     /**
@@ -54,33 +59,39 @@ import org.lflang.ConnectivityInfo
     var LinkedHashMap<Pair<ReactionInstance, ReactionInstance>,
         ConnectivityInfo> connectivity = new LinkedHashMap();
     
+    /**
+     * The set of ports
+     */
+    // FIXME: why is this field not by default public?
+    public var Set<PortInstance> ports = new HashSet();
+
+    /**
+     * Constructor
+     */
     new(ReactorInstance main, ReactionInstanceGraph reactionGraph) {
         this.main = main
-        // this.reactionGraph = new ReactionInstanceGraph(main)
         this.reactionGraph = reactionGraph
         rebuild()
     }
     
     /**
      * Rebuild this graph by first clearing and then re-extracting
-     * info from the reaction graph (for now (We will build extensions
-     * on top of the reaction graph to capture more components later.)).
+     * info from the reaction graph.
      */
     def rebuild() {
         this.clear()
-        
         println("========== Building Connectivity Graph ==========")
         for (node : this.reactionGraph.nodes) {
             addNodesAndEdges(node)
         }
+        println("Ports: " + this.ports)
     }
     
     /**
-     * Build the graph by adding nodes and edges based on the reaction graph.
+     * @brief Build the graph by adding nodes and edges based on the reaction graph.
      * 
      * FIXME:
-     * 1. Add nodes.
-     * 2. Add edges based on connection map in the reactor instance.
+     * 1. Do we need transitive edges?
      */
     protected def void addNodesAndEdges(ReactionInstance reaction) {
         // Add the current reaction to the connectivity graph.
@@ -89,35 +100,36 @@ import org.lflang.ConnectivityInfo
         // Recursively add downstream nodes.
         println("Reaction " + reaction + " has the following downstream nodes.")
         var downstreamAdjNodes = this.reactionGraph.getDownstreamAdjacentNodes(reaction)
-        for (node : downstreamAdjNodes) {
-            println(node)
-            
-            // Recursively add downstream nodes to the graph.
-            addNodesAndEdges(node)
+        for (downstream : downstreamAdjNodes) {
+            println(downstream)
             
             // Add an edge
-            this.addEdge(node, reaction)
+            this.addEdge(downstream, reaction)
             
             // Store logical delay between the two reactions.
             // Logical delays can be induced by connections
             // or actions.
-            var effects = reaction.effects
-            var sources = node.sources
-            var key     = new Pair(reaction, node)
-            var info    = new ConnectivityInfo(false, false, 0)
-            
+            var effects = reaction.effects  // Effects of the upstream element
+            var sources = downstream.sources      // Sources of the downstream element
+            var key     = new Pair(reaction, downstream)            
             for (e : effects) {
+                // Collect ports
+                if (e instanceof PortInstance) ports.add(e)
+
                 for (s : sources) {
-                    // If these two reactions are linked by an action.
+                    // Collect ports
+                    if (s instanceof PortInstance) ports.add(s)
+
+                    // If these two reactions are linked by an action,
+                    // add the corresponding connectivity info to the graph.
                     if (s == e) {
                         if (s instanceof ActionInstance) {
                             // Add the delay info to the connectivity hashmap.
-                            info = new ConnectivityInfo(false, s.isPhysical, s.minDelay.toNanoSeconds)
-                            
+                            var info = new ConnectivityInfo(reaction, downstream, false, s.isPhysical, s.minDelay.toNanoSeconds)
                             if (connectivity.get(key) === null) {
                                 connectivity.put(key, info)
-                                println("New connectivity info added. isConnection: " + info.isConnection
-                                    + ", isPhysical: " + info.isPhysical + ", delay: " + info.delay)
+                                println("New connectivity info added")
+                                printInfo(info)
                             }
                         }
                         else {
@@ -137,17 +149,31 @@ import org.lflang.ConnectivityInfo
                                 // FIXME: is there a better way to get int value?
                                 
                                 // FIXME: get delay
-                                info = new ConnectivityInfo(true, connection.isPhysical, 0)
+                                var info = new ConnectivityInfo(reaction, downstream, true, connection.isPhysical, 0)
                                 // connectivity.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
                                 if (connectivity.get(key) === null) {
                                     connectivity.put(key, info)
-                                    println("New connectivity info added. isConnection: " + info.isConnection
-                                        + ", isPhysical: " + info.isPhysical + ", delay: " + info.delay)                                }
+                                    println("New connectivity info added")
+                                    printInfo(info)
+                                }
                             }
                         }
                     }
                 }
             }
+
+            // Recursively add downstream nodes to the graph.
+            addNodesAndEdges(downstream)
         }
+    }
+
+    protected def void printInfo(ConnectivityInfo info) {
+        println("Connectivity info:\n"
+            + "------------------------------\n"
+            + "upstream: " + info.upstream + "\n"
+            + "downstream: " + info.downstream + "\n"
+            + "isConnection: " + info.isConnection + "\n"
+            + "isPhysical: " + info.isPhysical + "\n"
+            + "delay: " + info.delay)
     }
  }

@@ -69,9 +69,9 @@ class UclidGenerator extends GeneratorBase {
     var ReactionInstanceGraph reactionGraph // To be deprecated.
 
     // Program elements
-    Set<ReactionInstance> reactions
-    List<PortInstance> ports = new ArrayList<PortInstance>() // FIXME: to populate
-    List<StateVar> stateVars = new ArrayList<StateVar>() // FIXME: to populate
+    var Set<ReactionInstance>   reactions
+    var Set<PortInstance>       ports
+    var List<StateVar>          stateVars = new ArrayList<StateVar>() // FIXME: to populate
 
     // K
     int k = 2 // FIXME: to pass in from target property
@@ -106,7 +106,7 @@ class UclidGenerator extends GeneratorBase {
         }  
 
         // Build reaction instance graph and connectivity graph
-        buildGraphs()
+        populateGraphsAndLists()
         
         // Create the "src-gen" directory if it doesn't yet exist.
         var dir = fileConfig.getSrcGenPath.toFile
@@ -120,10 +120,11 @@ class UclidGenerator extends GeneratorBase {
         generateModel()
     }
     
-    def buildGraphs() {
+    def populateGraphsAndLists() {
         this.reactionGraph = new ReactionInstanceGraph(this.main)
-        this.reactions = this.reactionGraph.nodes
         this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
+        this.reactions = this.reactionGraph.nodes
+        this.ports = this.connectivityGraph.ports
     }
     
     protected def generateModel() {     
@@ -307,14 +308,16 @@ class UclidGenerator extends GeneratorBase {
         type state_t = {
         ''')
         indent()
+        println(this.stateVars)
+        println(this.ports)
         i = 0;
         for (v : this.stateVars) {
-            pr(v.toString +
+            pr("integer" + // FIXME: expand to other data types
                 ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ","))
         }
         i = 0;
         for (p : this.ports) {
-            pr(p.toString +
+            pr("integer" + // FIXME: expand to other data types
                 ((i++ == ports.size - 1) ? "" : ","))
         }
         unindent()
@@ -332,22 +335,30 @@ class UclidGenerator extends GeneratorBase {
         * Trace Definition *
         *******************/
         const START : integer = 0;
-        const END : integer = 2; // FIXME: add template
+        const END : integer = «k»;
         
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
         
         type step_t = integer;
         type event_t = { rxn_t, tag_t, state_t };
-        type trace_t = { // FIXME: add template
-            event_t,
-            event_t,
-            event_t
+        type trace_t = {
+        ''')
+        indent()
+        for (var i = 0; i < k + 1; i++) {
+            pr("event_t" +
+                (i == k ? "" : ","))
+        }
+        unindent()
+        var varSize = this.stateVars.size + this.ports.size
+        var integerInit = "0, ".repeat(varSize)
+        integerInit = integerInit.substring(0, integerInit.length - 2)
+        pr('''
         };
         
         // mark the start of the trace.
         var start : timestamp_t;
-        assume(start == 0);
+        // assume(start == 0);
         
         // declare the trace
         var trace : trace_t;
@@ -360,7 +371,7 @@ class UclidGenerator extends GeneratorBase {
         = if (i == 0) then tr._1 else (
             if (i == 1) then tr._2 else (
                 if (i == 2) then tr._3 else (
-                    { NULL, inf(), { 0, 0 } }
+                    { NULL, inf(), { «integerInit» } } // FIXME: buggy
                 )
             )
         );
@@ -368,14 +379,14 @@ class UclidGenerator extends GeneratorBase {
         = get(trace, i);
         
         // projection macros
-        define rxn(i : step_t) : rxn_t    = elem(i)._1;
-        define  g(i : step_t) : tag_t     = elem(i)._2;
-        define  s(i : step_t) : state_t   = elem(i)._3;
+        define rxn(i : step_t) : rxn_t     = elem(i)._1;
+        define   g(i : step_t) : tag_t     = elem(i)._2;
+        define   s(i : step_t) : state_t   = elem(i)._3;
 
         // application specific: state variables
         define    _in(s : state_t) : integer = s._1;
         define    out(s : state_t) : integer = s._2;
-        define isNULL(i : step_t) : boolean = rxn(i) == NULL;
+        define isNULL(i : step_t)  : boolean = rxn(i) == NULL;
          
         ''')
     }
