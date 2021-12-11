@@ -82,6 +82,7 @@ public class CUtil {
      * @param instance A reactor instance.
      */
     static public String bankIndex(ReactorInstance instance) {
+        if (!instance.isBank()) return "0";
         return instance.uniqueID() + "_i";
     }
 

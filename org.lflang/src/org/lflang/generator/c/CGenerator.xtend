@@ -3163,14 +3163,15 @@ class CGenerator extends GeneratorBase {
                             }
                             startScopedBankChannelIteration(temp, port, "count");
                             val portRef = CUtil.portRefNested(port);
+                            val con = (port.isMultiport)? "->" : ".";
                             
                             pr(temp, '''
-                                _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«portRef»->is_present;
+                                _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«portRef»«con»is_present;
                             ''')
                             if (isFederatedAndDecentralized) {
                                 // Intended_tag is only applicable to ports in federated execution.
                                 pr(temp, '''
-                                    _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«portRef»->intended_tag;
+                                    _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«portRef»«con»intended_tag;
                                 ''')
                             }
                             startTimeStepIsPresentCount += port.width * port.parent.width;
@@ -3637,12 +3638,12 @@ class CGenerator extends GeneratorBase {
         generateTraceTableEntries(instance, instance.actions, instance.timers)
         generateReactorInstanceExtension(instance, instance.reactions)
         generateParameterInitialization(instance)
+        
         initializeOutputMultiports(instance)
-                
+        initializeInputMultiports(instance)
+        
         recordStartupAndShutdown(instance.reactions);
 
-        initializeInputs(instance)
-        
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance);
@@ -3877,19 +3878,15 @@ class CGenerator extends GeneratorBase {
      * Allocate memory for inputs.
      * @param reactor The reactor.
      */
-    def initializeInputs(ReactorInstance reactor) {
-        if (!reactor.inputs.isEmpty()) {
-            startScopedBlock(initializeTriggerObjects, reactor);
-        }
+    def initializeInputMultiports(ReactorInstance reactor) {
         for (input : reactor.inputs) {
-            val portRef = CUtil.portRef(input)
             val portRefName = CUtil.portRefName(input)
             // If the port is a multiport, create an array.
             if (input.isMultiport) {
                 pr(initializeTriggerObjects, '''
                     «portRefName»_width = «input.width»;
                     // Allocate memory for multiport inputs.
-                    «portRef» = («variableStructType(input)»**)malloc(sizeof(«variableStructType(input)»*) * «input.width»); 
+                    «portRefName» = («variableStructType(input)»**)malloc(sizeof(«variableStructType(input)»*) * «input.width»); 
                     // Set inputs by default to an always absent default input.
                     for (int i = 0; i < «input.width»; i++) {
                         «portRefName»[i] = &«CUtil.reactorRef(reactor)»->_lf_default__«input.name»;
@@ -3901,9 +3898,6 @@ class CGenerator extends GeneratorBase {
                     «portRefName»_width = -2;
                 ''')
             }
-        }
-        if (!reactor.inputs.isEmpty()) {
-            endScopedBlock(initializeTriggerObjects);
         }
     }
     
@@ -5139,6 +5133,7 @@ class CGenerator extends GeneratorBase {
     private def void defineSelfStruct(
         StringBuilder builder, ReactorInstance reactor
     ) {
+        if (reactor === null) return;
         var nameOfSelfStruct = reactor.uniqueID() + "_self";
         var structType = CUtil.selfType(reactor)
         pr(builder, '''
@@ -5162,12 +5157,16 @@ class CGenerator extends GeneratorBase {
                 val dst = dstRange.port;
                 val destStructType = variableStructType(dst)
                 if (currentFederate.contains(dst.parent)) {
+                    
+                    val mod = (dst.isMultiport)? "" : "&";
+                    
                     startScopedRangeBlock(code, srcRange, dstRange);
                     if (src.isInput) {
-                        // Source port is written to by reaction in port's parent's parent.
+                        // Source port is written to by reaction in port's parent's parent
+                        // and ultimate destination is further downstream.
                         pr('''
                             // Connect «src.getFullName» to port «dst.getFullName»
-                            «CUtil.portRefNested(dst)» = («destStructType»*)&«CUtil.portRef(src)»;
+                            «CUtil.portRef(dst)» = («destStructType»*)«mod»«CUtil.portRefNested(src)»;
                         ''')
                     } else if (src == dst) {
                         // An output port of a contained reactor is triggering a reaction.
@@ -5806,142 +5805,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /**
-     * Connect inputs that get sent data from a reaction rather than from
-     * another contained reactor and reactions that are triggered by an
-     * output of a contained reactor.
-     * @param instance The reactor instance that contains the reactions.
-     */
-    private def deferredConnectReactionsToPorts(ReactorInstance instance) {
-        var foundOne = true;
-        val temp = new StringBuilder();
-                
-        for (reaction : instance.reactions) {
-            // First handle the effects that are inputs of contained reactors.
-            for (port : reaction.effects.filter(PortInstance)) {
-                if (port.definition instanceof Input) {
-                    // This reaction is sending to an input. Must be
-                    // the input of a contained reactor. If the contained reactor is
-                    // not in the federate, then we don't do anything here.
-                    if (currentFederate.contains(port.parent)) {
-                        foundOne = true;
-                        
-                        pr(temp, '''
-                            // Connect «port», which gets data from reaction «reaction.index»
-                            // of «instance.getFullName», to «port.getFullName».
-                        ''')
-
-                        val destStructType = variableStructType(port)
-                        // The port belongs to a contained reactor, which may be a bank.
-                        startScopedBlock(temp, port.parent);
-                        startChannelIteration(temp, port);
-                                                
-                        pr(temp, '''
-                            «CUtil.portRef(port)» = («destStructType»*)«CUtil.portRefNested(port)»;
-                        ''')
-                        endChannelIteration(temp, port);
-                        endScopedBlock(temp);
-                    }
-                }
-            }
-            // Next handle the sources that are outputs of contained reactors.
-            for (port : reaction.sources.filter(PortInstance)) {
-                if (port.isOutput) {
-                    // This reaction is receiving data from an output
-                    // of a contained reactor. If the contained reactor is
-                    // not in the federate, then we don't do anything here.
-                    if (currentFederate.contains(port.parent)) {
-                        foundOne = true;
-                        
-                        val destStructType = variableStructType(port);
-                        
-                        
-                        // FIXME FIXME FIXME 
-                        // startScopedRangeBlock()
-                        // Also maybe use eventualDestinations instead of EventualSources.
-                        
-
-                        // The port may be deeper in the hierarchy, in which
-                        // case, the source port will not be the same as the
-                        // destination port, and there may be multiple sources
-                        // if the destination is a multiport.
-                        if (port.isMultiport) {
-                            pr('''
-                                {
-                                    int dst_channel = 0;
-                            ''');
-                            indent(code);
-                        }
-                        for (eventualSource: port.eventualSources()) {
-                            // FIXME // write to temp
-                            val sourcePort = eventualSource.getPort();
-                            
-                            if (sourcePort != port) {
-                                // sourcePort is deeper in the hierarchy. Need a
-                                // pointer to the self struct of the destination port's parent.
-                                pr("{");
-                                indent();
-                                defineSelfStruct(code, port.parent);
-                            }
-                            
-                            startScopedRangeBlock(code, eventualSource);
-                            /* FIXME
-                            if (sourcePort.isMultiport && port.isMultiport) {
-                                // Both source and destination are multiports.
-                                pr('''
-                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
-                                    // of «instance.getFullName», on its self struct.
-                                    «CUtil.portRefDestination(port)»[dst_channel++]
-                                            = («destStructType»*)&«CUtil.portRefSource(sourcePort)»[channel];
-                                    if (dst_channel >= «port.width») dst_channel = 0;
-                                ''')
-                            } else if (sourcePort.isMultiport) {
-                                // Destination is not a multiport, so the channelWidth of the source port should be 1.
-                                pr('''
-                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
-                                    // of «instance.getFullName», on its self struct.
-                                    «CUtil.portRefDestination(port)» 
-                                            = («destStructType»*)&«CUtil.portRefSource(sourcePort)»[channel];
-                                ''')
-                            } else if (port.isMultiport) {
-                                // Source is not a multiport, but the destination is.
-                                pr('''
-                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
-                                    // of «instance.getFullName», on its self struct.
-                                    «CUtil.portRefDestination(port)»[dst_channel++] 
-                                            = («destStructType»*)&«CUtil.portRefSource(sourcePort)»;
-                                    if (dst_channel >= «port.width») dst_channel = 0;
-                                ''')
-                            } else {
-                                // Neither is a multiport.
-                                pr('''
-                                    // Record output «sourcePort.getFullName», which triggers reaction «reaction.index»
-                                    // of «instance.getFullName», on its self struct.
-                                    «CUtil.portRefDestination(port)» 
-                                            = («destStructType»*)&«CUtil.portRefSource(sourcePort)»;
-                                ''')
-                            }
-                            * 
-                            */
-                            
-                            endScopedRangeBlock(code, eventualSource);
-
-                            if (sourcePort != port) {
-                                unindent();
-                                pr("}");
-                            }
-                        }
-                        if (port.isMultiport) {
-                            unindent(code);
-                            pr("}");
-                        }
-                    }
-                }
-            }
-        }
-        if (foundOne) pr(temp.toString)
-    }
-    
     /** 
      * For each output of the specified reactor that has a token type
      * (type* or type[]), create a default token and put it on the self struct.
@@ -6038,7 +5901,7 @@ class CGenerator extends GeneratorBase {
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
                             pr('''
-                                «CUtil.portRefNested(port)»[channel]->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port)»->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         } else {
                             pr('''
@@ -6080,7 +5943,7 @@ class CGenerator extends GeneratorBase {
                             
                     startScopedBlock(code, effect.parent);
                     
-                    val effectRef = CUtil.portRefNested(effect);
+                    val effectRef = CUtil.portRefNestedName(effect);
 
                     pr('''
                         «effectRef»_width = «effect.width»;
@@ -6362,8 +6225,11 @@ class CGenerator extends GeneratorBase {
                                 destRangeCount++;
                             }
                         }
-                        var index = CUtil.channelIndex(port);
-                        if (reaction.parent != port.parent) {
+                        var index = "0";
+                        if (port.isMultiport) {
+                            index = CUtil.channelIndex(port);
+                        }
+                        if (reaction.parent != port.parent && port.parent.isBank) {
                             // The port may be an input of a contained reactor bank.
                             index = "range_count";
                         }

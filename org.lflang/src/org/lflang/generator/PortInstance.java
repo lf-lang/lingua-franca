@@ -205,11 +205,9 @@ public class PortInstance extends TriggerInstance<Port> {
                 }
                 // Dependent port overlaps the range of interest.
                 // Get a new range that possibly subsets the target range.
-                // Modify the "interleaved" status by combining that of
-                // the source range and the destination.
                 // Argument is guaranteed by above checks to be less than
                 // dep.totalWidth, so the result will not be null.
-                Range subDep = dep.tail(srcRange.getStartOffset() - depWidthCovered);
+                Range subDep = dep.tail(depWidthCovered - srcRange.getStartOffset());
                 // The following argument is guaranteed to be greater than
                 // depWidthCovered - srcRange.getStartOffset().
                 subDep = subDep.truncate(srcRange.getTotalWidth());
@@ -229,6 +227,7 @@ public class PortInstance extends TriggerInstance<Port> {
                     // dep range is exhausted. Get another one.
                     if (!dependentPorts.hasNext()) break; // This should be an error.
                     dep = dependentPorts.next();
+                    depWidthCovered = 0;
                 }
             }
         }
