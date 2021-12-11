@@ -5160,23 +5160,23 @@ class CGenerator extends GeneratorBase {
                     
                     val mod = (dst.isMultiport)? "" : "&";
                     
+                    pr('''
+                        // Connect «src.getFullName» to port «dst.getFullName»
+                    ''')
                     startScopedRangeBlock(code, srcRange, dstRange);
                     if (src.isInput) {
                         // Source port is written to by reaction in port's parent's parent
                         // and ultimate destination is further downstream.
                         pr('''
-                            // Connect «src.getFullName» to port «dst.getFullName»
                             «CUtil.portRef(dst)» = («destStructType»*)«mod»«CUtil.portRefNested(src)»;
                         ''')
                     } else if (src == dst) {
                         // An output port of a contained reactor is triggering a reaction.
                         pr('''
-                            // Connect «src.getFullName» to port «dst.getFullName»
                             «CUtil.portRefNested(dst)» = («destStructType»*)&«CUtil.portRef(src)»;
                         ''')
                     } else {
                         pr('''
-                            // Connect «src.getFullName» to port «dst.getFullName»
                             «CUtil.portRef(dst)» = («destStructType»*)&«CUtil.portRef(src)»;
                         ''')
                     }

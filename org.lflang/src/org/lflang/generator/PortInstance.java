@@ -512,8 +512,27 @@ public class PortInstance extends TriggerInstance<Port> {
          */
         @Override
         public Range tail(int offset) {
-            SendRange result = (SendRange)super.tail(offset);
-            if (result == null) return null;
+            // NOTE: Cannot use the superclass because it returns a Range, not a SendRange.
+            if (offset == 0) return this;
+            if (offset >= totalWidth) return null;
+
+            int channelWidth = PortInstance.this.width;
+            int bankWidth = PortInstance.this.parent.width();
+            
+            int banksToConsume, channelsToConsume;
+            if (interleaved) {
+                banksToConsume = offset / bankWidth;
+                channelsToConsume = offset % bankWidth;
+            } else {
+                banksToConsume = offset / channelWidth;
+                channelsToConsume = offset % channelWidth;
+            }
+            SendRange result = new SendRange(
+                    startChannel + channelsToConsume,
+                    startBank + banksToConsume,
+                    totalWidth - offset
+            );
+
             for (Range destination : destinations) {
                 result.destinations.add(destination.tail(offset));
             }
@@ -521,8 +540,9 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         
         /**
-         * Return a new SendRange that is converted to belong to the
-         * port in the specified range.  If the total widths are not
+         * Return a new SendRange that is like this one, but
+         * converted to belong to the port in the specified range.
+         * If the total widths are not
          * the same, then the minimum of the two widths is returned.
          * If the specified srcRange is interleaved, then the interleaved
          * property of each of the returned destinations will be toggled.
@@ -555,7 +575,8 @@ public class PortInstance extends TriggerInstance<Port> {
          */
         @Override
         protected SendRange truncate(int newWidth) {
-            SendRange result = (SendRange)super.truncate(newWidth);
+            if (newWidth >= totalWidth) return this;
+            SendRange result = new SendRange(startChannel, startBank, newWidth);
             for (Range destination : destinations) {
                 result.destinations.add(destination.truncate(newWidth));
             }
