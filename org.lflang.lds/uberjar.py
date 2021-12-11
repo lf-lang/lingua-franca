@@ -34,7 +34,18 @@ from fnmatch import fnmatch
 from os.path import isfile, isdir, join, abspath, relpath, dirname, basename
 
 IGNORED_JARS = [
-    'org.apache.ant*'
+    'org.apache.ant*',
+    # The following libraries are part of the org.jetbrains.kotlin.bundled-compiler plugin but are not required at runtime.
+    'kotlin-compiler.jar',
+    'intellij-core-analysis.jar',
+    'kotlin-plugin-parts.jar',
+    'kotlin-script-runtime.jar',
+    'kotlin-scripting-compiler.jar',
+    'ide-dependencies.jar',
+    'kotlin-scripting-compiler-impl.jar',
+    'kotlin-scripting-common.jar',
+    'kotlin-scripting-jvm.jar',
+    'ide-common.jar'
 ]
 IGNORE_NESTED_JARS = [
 ]
@@ -71,6 +82,7 @@ IGNORED_FILES = [
     'META-INF/NOTICE.txt',
     'META-INF/NOTICE',
     'META-INF/p2.inf',
+    'META-INF/versions/*/module-info.class',
     'OSGI-INF/l10n/bundle.properties',
     'docs/*',
     '*readme.txt',
@@ -173,7 +185,7 @@ def extract(args, extracted, merged, klighd):
     jars = sorted(os.listdir(args.source))
     processed_jars = [] # Tuples of plugin name and jar
     for jar in jars:
-        if not jar.endswith('.jar'):
+        if not jar.endswith('.jar') or any(fnmatch(jar, ign) for ign in IGNORED_JARS):
             print('Skipping file:', jar)
             continue
         elif klighd and any(fnmatch(jar, ign) for ign in KLIGHD_JARS_BLACKLIST) and not any(fnmatch(jar, req) for req in KLIGHD_JARS_WHITELIST):
