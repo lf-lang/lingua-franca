@@ -88,12 +88,23 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
         return builtinTriggerType;
     }
     
-    /** Return the reaction instances that are triggered by this trigger. */
+    /** 
+     * Return the reaction instances that are triggered by this trigger.
+     * If this port is an output, then the reaction instances
+     * belong to the parent of the port's parent. If the port
+     * is an input, then the reaction instances belong to the
+     * port's parent.
+     */
     public Set<ReactionInstance> getDependentReactions() {
         return dependentReactions;
     }
 
-    /** Reaction instances that may send outputs via this port. */
+    /** 
+     * Return the reaction instances that may send data via this port.
+     * If this port is an input, then the reaction instance
+     * belongs to parent of the port's parent. If it is an output,
+     * the the reaction instance belongs to the port's parent.
+     */
     public Set<ReactionInstance> getDependsOnReactions() {
         return dependsOnReactions;
     };
@@ -133,10 +144,21 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     
     BuiltinTrigger builtinTriggerType = null;
     
-    /** Reaction instances that are triggered by this trigger. */
+    /** 
+     * Reaction instances that are triggered by this trigger.
+     * If this port is an output, then the reaction instances
+     * belong to the parent of the port's parent. If the port
+     * is an input, then the reaction instances belong to the
+     * port's parent.
+     */
     Set<ReactionInstance> dependentReactions = new LinkedHashSet<ReactionInstance>();
 
-    /** Reaction instances that may send outputs via this port. */
+    /** 
+     * Reaction instances that may send data via this port.
+     * If this port is an input, then the reaction instance
+     * belongs to parent of the port's parent. If it is an output,
+     * the the reaction instance belongs to the port's parent.
+     */
     Set<ReactionInstance> dependsOnReactions = new LinkedHashSet<ReactionInstance>();
     
     /////////////////////////////////////////////
