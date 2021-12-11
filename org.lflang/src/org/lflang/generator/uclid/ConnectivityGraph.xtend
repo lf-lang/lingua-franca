@@ -28,7 +28,7 @@ package org.lflang.generator
 
 import org.lflang.graph.DirectedGraph
 import org.lflang.ConnectivityInfo
-import java.util.LinkedHashMap
+import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
 
@@ -53,8 +53,8 @@ import java.util.Set
     // Adjacency map from a pair of reactions (i.e. components)
     // to a pair (to be extended to triplet) containing a boolean
     // (whether it is a connection) and a TimeValue (logical time delay).
-    var LinkedHashMap<Pair<ReactionInstance, ReactionInstance>,
-        ConnectivityInfo> connectivity = new LinkedHashMap();
+    public var HashMap<Pair<ReactionInstance, ReactionInstance>,
+        ConnectivityInfo> connectivity = new HashMap();
     
     // The set of ports
     // FIXME: why is this field not by default public?
@@ -113,7 +113,6 @@ import java.util.Set
             for (e : effects) {
                 // Collect ports
                 if (e instanceof PortInstance) ports.add(e)
-
                 for (s : sources) {
                     // Collect ports
                     if (s instanceof PortInstance) ports.add(s)
@@ -123,15 +122,15 @@ import java.util.Set
                     if (s == e) {
                         if (s instanceof ActionInstance) {
                             // Add the delay info to the connectivity hashmap.
-                            var info = new ConnectivityInfo(reaction, downstream, false, s.isPhysical, s.minDelay.toNanoSeconds)
+                            var info = new ConnectivityInfo(false, s.isPhysical, s.minDelay.toNanoSeconds, null, null)
                             if (connectivity.get(key) === null) {
                                 connectivity.put(key, info)
                                 println("New connectivity info added")
-                                printInfo(info)
+                                printInfo(key)
                             }
                         }
                         else {
-                            // FIXME: this should not happen.
+                            throw new RuntimeException('Unhandled case: The source is equal to the effect, but it is not an ActionInstance.')
                         }
                     }
                     else {
@@ -147,12 +146,12 @@ import java.util.Set
                                 // FIXME: is there a better way to get int value?
                                 
                                 // FIXME: get delay
-                                var info = new ConnectivityInfo(reaction, downstream, true, connection.isPhysical, 0)
+                                var info = new ConnectivityInfo(true, connection.isPhysical, 0, s as PortInstance, e as PortInstance)
                                 // connectivity.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
                                 if (connectivity.get(key) === null) {
                                     connectivity.put(key, info)
                                     println("New connectivity info added")
-                                    printInfo(info)
+                                    printInfo(key)
                                 }
                             }
                         }
@@ -165,11 +164,12 @@ import java.util.Set
         }
     }
 
-    protected def void printInfo(ConnectivityInfo info) {
+    protected def void printInfo(Pair<ReactionInstance, ReactionInstance> key) {
+        var info = connectivity.get(key)
         println("Connectivity info:\n"
             + "------------------------------\n"
-            + "upstream: " + info.upstream + "\n"
-            + "downstream: " + info.downstream + "\n"
+            + "upstream: " + key.getKey + "\n"
+            + "downstream: " + key.getValue + "\n"
             + "isConnection: " + info.isConnection + "\n"
             + "isPhysical: " + info.isPhysical + "\n"
             + "delay: " + info.delay)

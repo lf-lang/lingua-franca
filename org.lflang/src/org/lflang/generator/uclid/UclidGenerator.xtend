@@ -30,10 +30,12 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.List
+import java.util.Map
 import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.lflang.ConnectivityInfo
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.generator.PortInstance
@@ -124,7 +126,7 @@ class UclidGenerator extends GeneratorBase {
      * @brief Recursively add state variables to the stateVars list.
      * @param reactor A reactor instance from which the search begins.
      */
-    private def populateStateVars(ReactorInstance reactor) {
+    private def void populateStateVars(ReactorInstance reactor) {
         var defn = reactor.reactorDefinition
         var stateVars = defn.getStateVars
 
@@ -176,14 +178,14 @@ class UclidGenerator extends GeneratorBase {
         /*******************************
          * Auto-generated UCLID5 model *
          ******************************/
-         
         ''')
+        pr('')
         
         // Start the main module
         pr('''
         module main {
-         
         ''')
+        pr('')
         indent()
         
         // Print timing semantics
@@ -299,8 +301,8 @@ class UclidGenerator extends GeneratorBase {
         = if (!isInf(t1) && !isInf(t2))
             then { pi1(t1) - pi1(t2), pi2(t1) - pi2(t2) }
             else inf();
-         
         ''')
+        pr('')
     }
 
     // FIXME: generate custom code.
@@ -334,6 +336,7 @@ class UclidGenerator extends GeneratorBase {
         pr('}')
 
         /* State variables and ports */
+        // FIXME: expand to data types other than integer
         pr('''
         type state_t = {
         ''')
@@ -342,20 +345,26 @@ class UclidGenerator extends GeneratorBase {
         println(this.ports)
         i = 0;
         for (v : this.stateVars) {
-            pr("integer" + // FIXME: expand to other data types
-                ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ","))
+            pr(
+                "integer"
+                + ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ",")
+                + " \t// " + stateVarToString(v, ".")
+            )
         }
         i = 0;
         for (p : this.ports) {
-            pr("integer" + // FIXME: expand to other data types
-                ((i++ == ports.size - 1) ? "" : ","))
+            pr(
+                "integer"
+                + ((i++ == ports.size - 1) ? "" : ",")
+                + " \t// " + p.getFullName
+            )
         }
         unindent()
         pr('''
         };
         //////////////////////////
-         
         ''')
+        pr('')
     }
 
     // FIXME: Accept k as an argument.
@@ -372,20 +381,22 @@ class UclidGenerator extends GeneratorBase {
         
         type step_t = integer;
         type event_t = { rxn_t, tag_t, state_t };
-        type trace_t = {
         ''')
+        pr('''
+        // Generate «k+1» events for «k»-induction.
+        ''')
+        pr("type trace_t = {")
         indent()
         for (var i = 0; i < k + 1; i++) {
             pr("event_t" +
                 (i == k ? "" : ","))
         }
         unindent()
+        pr('};')
         var varSize = this.stateVars.size + this.ports.size
         var integerInit = "0, ".repeat(varSize)
         integerInit = integerInit.substring(0, integerInit.length - 2)
         pr('''
-        };
-        
         // mark the start of the trace.
         var start : timestamp_t;
         // assume(start == 0);
@@ -396,15 +407,22 @@ class UclidGenerator extends GeneratorBase {
         /*****************
          * helper macros *
          ****************/
+        ''')
+
+        pr('''
         // helper macro that returns an element based on index
-        define get(tr : trace_t, i : step_t) : event_t // FIXME: add template
-        = if (i == 0) then tr._1 else (
-            if (i == 1) then tr._2 else (
-                if (i == 2) then tr._3 else (
-                    { NULL, inf(), { «integerInit» } } // FIXME: buggy
-                )
-            )
-        );
+        define get(tr : trace_t, i : step_t) : event_t =
+        ''')
+        for (var j = 0; j < varSize; j++) {
+            pr('''
+            if (i == «j») then tr._«j+1» else (
+            ''')
+        }
+        pr('''
+        { NULL, inf(), { «integerInit» } } «")".repeat(varSize)»;
+        ''')
+
+        pr('''
         define elem(i : step_t) : event_t
         = get(trace, i);
         
@@ -414,11 +432,24 @@ class UclidGenerator extends GeneratorBase {
         define   s(i : step_t) : state_t   = elem(i)._3;
 
         // application specific: state variables
-        define    _in(s : state_t) : integer = s._1;
-        define    out(s : state_t) : integer = s._2;
         define isNULL(i : step_t)  : boolean = rxn(i) == NULL;
-         
         ''')
+        pr('')
+        // FIXME: Finish generating 
+        var i = 0;
+        for (v : this.stateVars) {
+            pr('''
+            define «stateVarToString(v, "_")»(s : state_t) : integer = s._«i+1»;
+            ''')
+            i++;
+        }
+        for (p : this.ports) {
+            pr('''
+            define «p.getFullName.replace(".", "_")»(s : state_t) : integer = s._«i+1»;
+            ''')
+            i++;
+        }
+        pr('')
     }
     
     def pr_topological_abstraction() {
@@ -426,26 +457,56 @@ class UclidGenerator extends GeneratorBase {
         /***************************
         * Topological Abstraction *
         ***************************/
-        // FIXME: add template
-        define delay(r1, r2 : rxn_t) : interval_t
-        = if (r1 == source_1 && r2 == component_1) then zero() else (
-            if (r1 == component_1 && r2 == component_2) then sec(1) else (
-                if (r1 == component_2 && r2 == sink_1) then zero() else (
-                    inf()
-                )));
+        ''')
+
+        // Generate the delay macro
+        pr('''
+        // Delay macro
+        define delay(r1, r2 : rxn_t) : interval_t =
+        ''')
+        indent()
+        var i = 0
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
+            connectivityGraph.connectivity.entrySet()) {
+            pr('''
+            if (r1 == «entry.getKey.getKey.toId» && r2 == «entry.getKey.getValue.toId») then nsec(«entry.getValue.delay») else (
+            ''')
+            i++;
+        }
+        pr('inf()')
+        var closingBrackets = ')'.repeat(i)
+        pr('''
+        «closingBrackets»;
+        ''')
+        unindent()
 
         // Non-federated "happened-before"
         // FIXME: Would be nice if UCLID supports recursion of macros.
         // Happened-before relation defined for a local reactor.
         // Used to preserve trace ordering.
-        // FIXME: add template
-        define hb(e1, e2 : event_t) : boolean
+        pr('''
+        // Non-federated "happened-before"
+        define hb(e1, e2 : event_t) : boolean =
         = tag_earlier(e1._2, e2._2)
-            || (tag_same(e1._2, e2._2)
-                && ((e1._1 == source_1 && e2._1 == component_1)
-                || (e1._1 == component_1 && e2._1 == component_2)
-                || (e1._1 == component_2 && e2._1 == sink_1)));
+            || (tag_same(e1._2, e2._2) && (
+        ''')
+        indent()
+        indent()
+        i = 0
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
+            connectivityGraph.connectivity.entrySet()) {
+            var upstream    = entry.getKey.getKey.toId
+            var downstream  = entry.getKey.getValue.toId
+            pr('''
+            «i == 0 ? "" : "|| "»(e1._1 == «upstream» && e2._1 == «downstream»)
+            ''')
+            i++;
+        }
+        unindent()
+        unindent()
+        pr('));')    
 
+        pr('''
         define startup_triggers(n : rxn_t) : boolean
         = // if startup is within frame, put the events in the trace.
             ((start == 0) ==> (exists (i : integer) :: in_range(i)
@@ -472,8 +533,8 @@ class UclidGenerator extends GeneratorBase {
                 ==> (exists (j : integer) :: in_range(j)
                     && rxn(j) == upstream 
                     && g(i) == tag_delay(g(j), delay)));
-         
         ''')
+        pr('')
     }
     
     // Encode reactor semantics
@@ -502,8 +563,8 @@ class UclidGenerator extends GeneratorBase {
         // Microsteps should be positive
         axiom(forall (i : integer) :: (i > START && i <= END)
             ==> pi2(g(i)) >= 0);
-         
         ''')
+        pr('')
     }
     
     // Reaction contracts
@@ -512,9 +573,24 @@ class UclidGenerator extends GeneratorBase {
         /**********************
          * Reaction Contracts *
          **********************/
-        // FIXME: add template
-         
         ''')
+        pr('')
+        for (rxn : this.reactions) {
+            pr('''
+            /* Pre/post conditions for «rxn.toId» */
+            axiom(forall (i : integer) :: (i > START && i <= END) ==>
+                (rxn(i) == «rxn.toId» ==>
+            ''')
+            indent()
+            // FIXME: Use LF macros to fill in this part.
+            // Currently users have to fill in manually.
+            pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
+            unindent()
+            pr('''
+            ));
+            ''')
+            pr('')
+        }
     }
 
     // Connections
@@ -523,9 +599,27 @@ class UclidGenerator extends GeneratorBase {
         /***************
          * Connections *
          ***************/
-        // FIXME: add template
          
         ''')
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
+            connectivityGraph.connectivity.entrySet()) {
+            // Check if two reactions are linked by a connection
+            // if so, the output port and the input port should
+            // hold the same value.
+            // FIXME: finish generating connections
+            if (entry.getValue.isConnection) {
+                var upstream    = entry.getKey.getKey.toId
+                var downstream  = entry.getKey.getValue.toId
+                pr('''
+                // source.out -> component._in 
+                axiom(forall (i : integer) :: (i >= START && i <= END)
+                    ==> (
+                        (rxn(i) == source_1 ==> component__in(s(i)) == source_out(s(i)))
+                        && (rxn(i) != source_1 ==> component__in(s(i)) == component__in(s(i - 1)))
+                    ));
+                ''')
+            }
+        }
     }
 
     // Topology
@@ -561,8 +655,8 @@ class UclidGenerator extends GeneratorBase {
         // [placeholder] Add user-defined properties here.
          
         //////////////////////////////////////////////////
-        
         ''')
+        pr('')
     }
 
     // K-induction
@@ -585,8 +679,8 @@ class UclidGenerator extends GeneratorBase {
         property consecution : (forall (i : integer) ::
             (i >= START && i < END) ==> (inv(i) && auxiliary_invariant(i)))
                 ==> (inv(END) && auxiliary_invariant(END));
-         
         ''')
+        pr('')
     }
 
     // Control block
@@ -598,8 +692,8 @@ class UclidGenerator extends GeneratorBase {
             print_results;
             v.print_cex;
         }
-         
         ''')
+        pr('')
     }
     
     protected def generateRunScript() {
@@ -643,6 +737,12 @@ class UclidGenerator extends GeneratorBase {
 
     override getTarget() {
         return Target.C // FIXME: How to make this target independent?
+    }
+
+    protected def String stateVarToString(Pair<ReactorInstance, StateVar> s, String delimiter) {
+        if (delimiter.equals("_"))
+            return (s.getKey.getFullName + delimiter + s.getValue.name).replace(".", "_")
+        else return (s.getKey.getFullName + delimiter + s.getValue.name)
     }
     
     /////////////////////////////////////////////////

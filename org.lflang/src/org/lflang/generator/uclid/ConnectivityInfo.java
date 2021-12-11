@@ -24,6 +24,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import org.lflang.generator.PortInstance;
+
 /**
  * Connectivity info class
  * 
@@ -31,23 +33,23 @@ package org.lflang;
  */
 public class ConnectivityInfo {
     
-    public Object   upstream;
-    public Object   downstream;
     public boolean  isConnection;
     public boolean  isPhysical;
     public long     delay;
+    public PortInstance upPort;
+    public PortInstance downPort;
     
     public ConnectivityInfo(
-        Object  _upstream,
-        Object  _downstream,
         boolean _isConnection, 
         boolean _isPhysical, 
-        long    _delay
+        long    _delay,
+        PortInstance _upPort,
+        PortInstance _downPort
     ){
-        upstream        =   _upstream;
-        downstream      =   _downstream;
         isConnection    =   _isConnection;
         isPhysical      =   _isPhysical;
         delay           =   _delay;
+        upPort          =   _upPort;
+        downPort        =   _downPort;
     }
 }
