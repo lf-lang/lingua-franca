@@ -76,7 +76,7 @@ public class CUtil {
 
     /**
      * Return a name of a variable to refer to the bank index of a reactor
-     * in a bank. This is has the form uniqueID_bank_index where uniqueID
+     * in a bank. This is has the form uniqueID_i where uniqueID
      * is an identifier for the instance that is guaranteed to be different
      * from the ID of any other instance in the program.
      * @param instance A reactor instance.
@@ -84,7 +84,31 @@ public class CUtil {
     static public String bankIndex(ReactorInstance instance) {
         return instance.uniqueID() + "_i";
     }
-    
+
+    /**
+     * Variant of {@link bankIndex(ReactorInstance) that generates a
+     * slightly different variable name. This is intended to be used as
+     * a second variable when simultaneously iterating over two banks that
+     * may in fact be the same bank. This is has the form uniqueID_j where uniqueID
+     * is an identifier for the instance that is guaranteed to be different
+     * from the ID of any other instance in the program.
+     * @param instance A reactor instance.
+     */
+    static public String bankIndexDst(ReactorInstance instance) {
+        return instance.uniqueID() + "_j";
+    }
+
+    /**
+     * Return a name of a variable to refer to the channel index of a port
+     * in a bank. This is has the form uniqueID_c where uniqueID
+     * is an identifier for the instance that is guaranteed to be different
+     * from the ID of any other instance in the program.
+     * @param instance A reactor instance.
+     */
+    static public String channelIndex(PortInstance port) {
+        return port.uniqueID() + "_c";
+    }
+
     /**
      * Return an expression that, when evaluated in a context with
      * bank index variables defined for the specified reactor and
@@ -138,79 +162,94 @@ public class CUtil {
      * The returned string will have one of the following forms:
      * 
      * * selfStruct->_lf_portName
+     * * selfStruct->_lf_portName[i]
      * * selfStruct->_lf_parent.portName
+     * * selfStruct->_lf_parent.portName[i]
+     * * selfStruct->_lf_parent[j].portName
+     * * selfStruct->_lf_parent[j].portName[i]
      * 
-     * where the first is returned if the container directly contains the port.
-     * The selfStruct points to the port's parent or parent's parent, and if
-     * that parent is a bank, then it will have the form selfStruct[bankIndex],
-     * where bankIndex is the string returned by {@link bankIndex(ReactorInstance)}.
+     * where the index j is present if the parent is a bank and is
+     * the string returned by {@link bankIndex(ReactorInstance)}, and
+     * the index i is present if the port is a multiport and is
+     * the string returned by {@link channelIndex(PortInstance)}.
      * 
-     * If the container is port's parent's parent, and the port's parent is a bank,
-     * then "_lf_parent" will be replaced by "_lf_parent[bank_index]", where
-     * bank_index is the string returned by bankIndex(port.parent).
+     * The first two forms are used if isNested is false,
+     * and the remaining four are used if isNested is true.
+     * Set isNested to true when referencing a port belonging
+     * to a contained reactor.
      *
      * @param port The port.
-     * @param container The container.
+     * @param isNested True to return a reference relative to the parent's parent.
+     * @param includeChannelIndex True to include the channel index at the end.
      */
-    static public String portRef(PortInstance port, ReactorInstance container) {
-        if (port.getParent() == container) {
-            String sourceStruct = CUtil.reactorRef(port.getParent());
-            return sourceStruct + "->_lf_" + port.getName();
-        } else if (port.getParent().getParent() == container) {
-            String sourceStruct = CUtil.reactorRef(port.getParent().getParent());
-            // The form is slightly different depending on whether the port belongs to a bank.
-            if (port.getParent().isBank()) {
-                return sourceStruct + "->_lf_" + port.getParent().getName()
-                        + "[" + bankIndex(port.getParent()) + "]." + port.getName();
-            } else {
-                return sourceStruct + "->_lf_" + port.getParent().getName() + "." + port.getName();
-            }
+    static public String portRef(
+            PortInstance port, boolean isNested, boolean includeChannelIndex
+    ) {
+        String channel = "";
+        if (port.isMultiport() && includeChannelIndex) {
+            channel = "[" + channelIndex(port) + "]";
+        }
+        if (isNested) {
+            return reactorRefContained(port.getParent()) + "." + port.getName() + channel;
         } else {
-            throw new IllegalArgumentException(
-                "Port " + port.getFullName() + " is not visible to " + container.getFullName()
-            );
+            String sourceStruct = CUtil.reactorRef(port.getParent());
+            return sourceStruct + "->_lf_" + port.getName() + channel;
         }
     }
-
+    
     /**
-     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
-     * where the second argument is the parent of the first.
+     * Special case of {@link portRef(PortInstance, boolean, boolean)}
+     * that provides a reference to the port on the self struct of the
+     * port's parent.  This is used when an input port triggers a reaction
+     * in the port's parent or when an output port is written to by
+     * a reaction in the port's parent.
+     * This is equivalent to calling `portRef(port, false, true)`.
      * @param port An instance of the port to be referenced.
      */
     static public String portRef(PortInstance port) {                
-        return portRef(port, port.getParent());
+        return portRef(port, false, true);
     }
 
     /**
-     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
-     * where it is know that the reference required for the port is to a
-     * sink of data, not a source. This customizes portRef() by figuring out
-     * what the appropriate container.
-     * 
+     * Return the portRef without the channel indexing.
+     * This is useful for deriving a reference to the _width variable.
      * @param port An instance of the port to be referenced.
      */
-    static public String portRefDestination(PortInstance port) {                
-        if (port.isOutput()) {
-            return portRef(port, port.getParent().getParent());
-        }
-        return portRef(port, port.getParent());
+    static public String portRefName(PortInstance port) {                
+        return portRef(port, false, false);
     }
 
     /**
-     * This is a special case of {@link portRef(PortInstance, ReactorInstance)
-     * where it is know that the reference required for the port is to a
-     * source of data, not a sink. This customizes portRef() by figuring out
-     * what the appropriate container.
-     * 
-     * @param port An instance of the port to be referenced.
+     * Special case of {@link portRef(PortInstance, boolean, boolean)}
+     * that provides a reference to the port on the self struct of the
+     * parent of the port's parent.  This is used when an input port
+     * is written to by a reaction in the parent of the port's parent,
+     * or when an output port triggers a reaction in the parent of the
+     * port's parent.
+     * This is equivalent to calling `portRef(port, true, true)`.
+     *
+     * @param port The port.
      */
-    static public String portRefSource(PortInstance port) {                
-        if (port.isInput()) {
-            return portRef(port, port.getParent().getParent());
-        }
-        return portRef(port, port.getParent());
+    static public String portRefNested(PortInstance port) {
+        return portRef(port, true, true);
     }
-    
+
+    /**
+     * Special case of {@link portRef(PortInstance, boolean, boolean)}
+     * that provides a reference to the port on the self struct of the
+     * parent of the port's parent, but without the channel indexing,
+     * even if it is a multiport.  This is used when an input port
+     * is written to by a reaction in the parent of the port's parent,
+     * or when an output port triggers a reaction in the parent of the
+     * port's parent.
+     * This is equivalent to calling `portRef(port, true, false)`.
+     *
+     * @param port The port.
+     */
+    static public String portRefNestedName(PortInstance port) {
+        return portRef(port, true, false);
+    }
+
     /**
      * Return a reference to the reaction entry on the self struct
      * of the parent of the specified reaction.
