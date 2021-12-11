@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime
 import numpy as np
+import pandas as pd
 import os
 import sys
 import csv
@@ -169,6 +170,7 @@ def main(args):
                 "If the first argument is a file, the second must also be a file."
             )
             main_files(a, b, rng, results, summary, benefit)
+    pd.read_csv('summary.csv').sort_values('change', ascending=False).to_csv('summary.csv')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
