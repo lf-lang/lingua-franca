@@ -995,25 +995,7 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects.toString)
         pr('// Allocate memory.')
         pr('// Populate arrays of trigger pointers.')
-        pr('''
-            vector_t trigger_arrays = vector_new(4);
-            vector_t trigger_array_sizes = vector_new(4);
-            // reactionseses is an vector of pointers to arrays of arrays of pointers to reactions.
-            // It is triply plural and quintuply indirect.
-            vector_t reactionseses = vector_new(4);
-            vector_t reactionses_sizes = vector_new(4);
-        ''')
         pr(initializeTriggerObjectsEnd.toString)
-        pr('''
-            // FIXME: The array that is returned by this funcion call must be saved somewhere
-            //  so that it can be freed on teardown, at the same time as when all of the reactors
-            //  are freed. Currently, the reactors do not appear to be freed, and last I checked
-            //  Valgrind said there was a memory leak.
-            _lf_associate_reactions_to_ports(
-                trigger_arrays, trigger_array_sizes, reactionseses, reactionses_sizes
-            );
-        ''');
-
         doDeferredInitialize(federate)
 
         // Put the code here to set up the tables that drive resetting is_present and
@@ -3142,6 +3124,15 @@ class CGenerator extends GeneratorBase {
                 // This can happen with reactions in the top-level that have
                 // as an effect a port in a bank.
                 if (currentFederate.contains(port.parent)) {
+                    pr(initializeTriggerObjectsEnd, '''
+                        { // Start scoping 0
+                            vector_t trigger_arrays = vector_new(4);
+                            vector_t trigger_array_sizes = vector_new(4);
+                            // reactionseses is an vector of pointers to arrays of arrays of pointers to reactions.
+                            // It is triply plural and quintuply indirect.
+                            vector_t reactionseses = vector_new(4);
+                            vector_t reactionses_sizes = vector_new(4);
+                    ''')
                     // If the port is a multiport, then its channels may have different sets
                     // of destinations. For ordinary ports, there will be only one range and
                     // its width will be 1.
@@ -3213,6 +3204,13 @@ class CGenerator extends GeneratorBase {
                         ''')
                         channelCount += range.channelWidth;
                     }
+                    pr(initializeTriggerObjectsEnd, '''
+                            // This is needed for the destructor of this reactor.
+                            «selfStructName(port.getParent())»->_lf_«port.name»_reactions = _lf_associate_reactions_to_ports(
+                                trigger_arrays, trigger_array_sizes, reactionseses, reactionses_sizes
+                            );
+                        } // End scoping 0
+                    ''');
                 } else {
                     // Count the port even if it is not contained in the federate because effect
                     // may be a bank (it can't be an instance of a bank), so an empty placeholder
