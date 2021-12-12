@@ -63,15 +63,15 @@ class UclidGenerator extends GeneratorBase {
     // The reaction graph upon which the connectivity graph is built
     var ReactionInstanceGraph reactionGraph
 
-    // The connectivity graph that contains runtime connections
-    // and a set of port runtime instances
-    var ConnectivityGraph connectivityGraph
-
     // Data structures storing info about the runtime topology
     var Set<ReactionInstance>                   reactions
     var Set<PortInstance>                       ports
     var List<Pair<ReactorInstance, StateVar>>   stateVars
         = new ArrayList<Pair<ReactorInstance, StateVar>>()
+
+    // The connectivity graph captures _counterfactual causality_
+    // relations between adjacent reactions.
+    var ConnectivityGraph connectivityGraph
 
     // K
     int k = 2 // FIXME: pass K in from target property
@@ -94,7 +94,6 @@ class UclidGenerator extends GeneratorBase {
         for (federate : federates) {
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
-                // generateReactorFederated(this.mainDef.reactorClass, federate)
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
@@ -103,6 +102,10 @@ class UclidGenerator extends GeneratorBase {
                         this.errorReporter
                     )
                 }   
+            }
+            else {
+                println("WARNING: No main reactor detected. No model is generated.")
+                return
             }
         }  
 
@@ -179,13 +182,12 @@ class UclidGenerator extends GeneratorBase {
          * Auto-generated UCLID5 model *
          ******************************/
         ''')
-        pr('')
         
         // Start the main module
         pr('''
         module main {
         ''')
-        pr('')
+        newline()
         indent()
         
         // Print timing semantics
@@ -301,7 +303,7 @@ class UclidGenerator extends GeneratorBase {
             then { pi1(t1) - pi1(t2), pi2(t1) - pi2(t2) }
             else inf();
         ''')
-        pr('')
+        newline()
     }
 
     // FIXME: generate custom code.
@@ -326,7 +328,7 @@ class UclidGenerator extends GeneratorBase {
         for (rxn : reactions) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
-            pr(rxn.toId + ',')
+            pr(rxn.getFullNameWithJoiner('_') + ',')
         }
         pr('NULL')
         unindent()
@@ -345,7 +347,7 @@ class UclidGenerator extends GeneratorBase {
             pr(
                 "integer"
                 + ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ",")
-                + " \t// " + stateVarToId(v, ".")
+                + " \t// " + stateVarFullNameWithJoiner(v, ".")
             )
         }
         i = 0;
@@ -364,19 +366,19 @@ class UclidGenerator extends GeneratorBase {
         i = 0;
         for (v : this.stateVars) {
             pr('''
-            define «stateVarToId(v, "_")»(s : state_t) : integer = s._«i+1»;
+            define «stateVarFullNameWithJoiner(v, "_")»(s : state_t) : integer = s._«i+1»;
             ''')
             i++;
         }
         for (p : this.ports) {
             pr('''
-            define «portToId(p)»(s : state_t) : integer = s._«i+1»;
+            define «p.getFullNameWithJoiner('_')»(s : state_t) : integer = s._«i+1»;
             ''')
             i++;
         }
-        pr('')
+        newline()
         pr('//////////////////////////')
-        pr('')
+        newline()
     }
 
     // FIXME: Accept k as an argument.
@@ -405,13 +407,13 @@ class UclidGenerator extends GeneratorBase {
         }
         unindent()
         pr('};')
+        newline()
         var varSize = this.stateVars.size + this.ports.size
         var integerInit = "0, ".repeat(varSize)
         integerInit = integerInit.substring(0, integerInit.length - 2)
         pr('''
         // mark the start of the trace.
         var start : timestamp_t;
-        // assume(start == 0);
         
         // declare the trace
         var trace : trace_t;
@@ -425,15 +427,15 @@ class UclidGenerator extends GeneratorBase {
         // helper macro that returns an element based on index
         define get(tr : trace_t, i : step_t) : event_t =
         ''')
-        for (var j = 0; j < varSize; j++) {
+        for (var j = 0; j < k+1; j++) {
             pr('''
             if (i == «j») then tr._«j+1» else (
             ''')
-        }
+        } 
         pr('''
-        { NULL, inf(), { «integerInit» } } «")".repeat(varSize)»;
+        { NULL, inf(), { «integerInit» } } «")".repeat(k+1)»;
         ''')
-        pr('')
+        newline()
         pr('''
         define elem(i : step_t) : event_t
         = get(trace, i);
@@ -444,7 +446,7 @@ class UclidGenerator extends GeneratorBase {
         define s        (i : step_t) : state_t  = elem(i)._3;
         define isNULL   (i : step_t) : boolean  = rxn(i) == NULL;
         ''')
-        pr('')
+        newline()
     }
     
     def pr_topological_abstraction() {
@@ -464,7 +466,7 @@ class UclidGenerator extends GeneratorBase {
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
             connectivityGraph.connectivity.entrySet()) {
             pr('''
-            if (r1 == «entry.getKey.getKey.toId» && r2 == «entry.getKey.getValue.toId») then nsec(«entry.getValue.delay») else (
+            if (r1 == «entry.getKey.getKey.getFullNameWithJoiner('_')» && r2 == «entry.getKey.getValue.getFullNameWithJoiner('_')») then nsec(«entry.getValue.delay») else (
             ''')
             i++;
         }
@@ -474,6 +476,7 @@ class UclidGenerator extends GeneratorBase {
         «closingBrackets»;
         ''')
         unindent()
+        newline()
 
         // Non-federated "happened-before"
         // FIXME: Would be nice if UCLID supports recursion of macros.
@@ -490,16 +493,20 @@ class UclidGenerator extends GeneratorBase {
         i = 0
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
             connectivityGraph.connectivity.entrySet()) {
-            var upstream    = entry.getKey.getKey.toId
-            var downstream  = entry.getKey.getValue.toId
+            var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
+            var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
             pr('''
             «i == 0 ? "" : "|| "»(e1._1 == «upstream» && e2._1 == «downstream»)
             ''')
             i++;
         }
+        // If there are no counterfactual reaction pairs,
+        // simply put a "true" there.
+        if (i == 0) pr('true')
         unindent()
         unindent()
-        pr('));')    
+        pr('));')
+        newline() 
 
         pr('''
         define startup_triggers(n : rxn_t) : boolean
@@ -529,7 +536,7 @@ class UclidGenerator extends GeneratorBase {
                     && rxn(j) == upstream 
                     && g(i) == tag_delay(g(j), delay)));
         ''')
-        pr('')
+        newline()
     }
     
     // Encode reactor semantics
@@ -559,7 +566,7 @@ class UclidGenerator extends GeneratorBase {
         axiom(forall (i : integer) :: (i > START && i <= END)
             ==> pi2(g(i)) >= 0);
         ''')
-        pr('')
+        newline()
     }
     
     // Reaction contracts
@@ -569,12 +576,12 @@ class UclidGenerator extends GeneratorBase {
          * Reaction Contracts *
          **********************/
         ''')
-        pr('')
+        newline()
         for (rxn : this.reactions) {
             pr('''
-            /* Pre/post conditions for «rxn.toId» */
+            /* Pre/post conditions for «rxn.getFullName» */
             axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                (rxn(i) == «rxn.toId» ==>
+                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==>
             ''')
             indent()
             // FIXME: Use LF macros to fill in this part.
@@ -584,7 +591,7 @@ class UclidGenerator extends GeneratorBase {
             pr('''
             ));
             ''')
-            pr('')
+            newline()
         }
     }
 
@@ -595,25 +602,25 @@ class UclidGenerator extends GeneratorBase {
          * Connections *
          ***************/
         ''')
-        pr('')
+        newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
             connectivityGraph.connectivity.entrySet()) {
             // Check if two reactions are linked by a connection
             // if so, the output port and the input port should
             // hold the same value.
             if (entry.getValue.isConnection) {
-                var upstreamRxn    = entry.getKey.getKey.toId
-                var upstreamPort   = entry.getValue.upstreamPort
-                var downstreamPort = entry.getValue.downstreamPort
+                var upstreamRxn    = entry.getKey.getKey.getFullNameWithJoiner('_')
+                var upstreamPort   = entry.getValue.upstreamPort.getFullName
+                var downstreamPort = entry.getValue.downstreamPort.getFullName
                 pr('''
                 // «upstreamPort» -> «downstreamPort» 
                 axiom(forall (i : integer) :: (i >= START && i <= END)
                     ==> (
-                        (rxn(i) == «upstreamRxn» ==> «portToId(downstreamPort)»(s(i)) == «portToId(upstreamPort)»(s(i)))
-                        && (rxn(i) != «upstreamRxn» ==> «portToId(downstreamPort)»(s(i)) == «portToId(downstreamPort)»(s(i - 1)))
+                        (rxn(i) == «upstreamRxn» ==> «downstreamPort»(s(i)) == «upstreamPort»(s(i)))
+                        && (rxn(i) != «upstreamRxn» ==> «downstreamPort»(s(i)) == «downstreamPort»(s(i - 1)))
                     ));
                 ''')
-                pr('')
+                newline()
             }
         }
     }
@@ -625,43 +632,47 @@ class UclidGenerator extends GeneratorBase {
          * Program Topology *
          ********************/         
         ''')
-        pr('')
+        newline()
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
             connectivityGraph.connectivity.entrySet()) {
-            var upstreamRxn     = entry.getKey.getKey.toId
-            var downstreamRxn   = entry.getKey.getValue.toId
+            var upstreamRxn     = entry.getKey.getKey
+            var downstreamRxn   = entry.getKey.getValue
+            var upstreamName    = upstreamRxn.getFullName
+            var downstreamName  = downstreamRxn.getFullName
+            var upstreamId      = upstreamRxn.getFullNameWithJoiner('_')
+            var downstreamId    = downstreamRxn.getFullNameWithJoiner('_')
             var conn            = entry.getValue
             // Upstream triggers downstream via a logical connection.
             if (conn.isConnection && !conn.isPhysical) {
                 pr('''
-                // «upstreamRxn» triggers «downstreamRxn» via a logical connection.
-                axiom(triggers_via_logical_connection(«upstreamRxn», «downstreamRxn»,
-                    delay(«upstreamRxn», «downstreamRxn»)));
+                // «upstreamName» triggers «downstreamName» via a logical connection.
+                axiom(triggers_via_logical_connection(«upstreamId», «downstreamId»,
+                    delay(«upstreamId», «downstreamId»)));
                 ''')
             }
             // Upstream triggers downstream via a physical connection.
             else if (conn.isConnection && conn.isPhysical) {
                 pr('''
-                // «upstreamRxn» triggers «downstreamRxn» via a physical connection.
-                axiom(triggers_via_physical_connection(«upstreamRxn», «downstreamRxn»));
+                // «upstreamName» triggers «downstreamName» via a physical connection.
+                axiom(triggers_via_physical_connection(«upstreamId», «downstreamId»));
                 ''')
             }
             // Upstream triggers downstream via a logical action.
             else if (!conn.isConnection && conn.isPhysical) {
                 pr('''
-                // «upstreamRxn» triggers «downstreamRxn» via a logical action.
-                axiom(triggers_via_logical_action(«upstreamRxn», «downstreamRxn»,
-                    delay(«upstreamRxn», «downstreamRxn»)));
+                // «upstreamName» triggers «downstreamName» via a logical action.
+                axiom(triggers_via_logical_action(«upstreamId», «downstreamId»,
+                    delay(«upstreamId», «downstreamId»)));
                 ''')
             }
             // Upstream triggers downstream via a physical action.
             else {
                 pr('''
-                // «upstreamRxn» triggers «downstreamRxn» via a physical action.
-                axiom(triggers_via_physical_action(«upstreamRxn», «downstreamRxn»));
+                // «upstreamName» triggers «downstreamName» via a physical action.
+                axiom(triggers_via_physical_action(«upstreamId», «downstreamId»));
                 ''')
             }
-            pr('')
+            newline()
         }
     }
 
@@ -680,15 +691,16 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (v : this.stateVars) {
             pr('''
-            && «stateVarToId(v, "_")»(s(0)) == 0
+            && «stateVarFullNameWithJoiner(v, "_")»(s(0)) == 0
             ''')
         }
         for (p : this.ports) {
             pr('''
-            && «portToId(p)»(s(0)) == 0
+            && «p.getFullNameWithJoiner('_')»(s(0)) == 0
             ''')
         }
         pr(';')
+        newline()
         unindent()
     }
 
@@ -704,7 +716,7 @@ class UclidGenerator extends GeneratorBase {
             true;   // TODO: replace
         //////////////////////////////////////////////////
         ''')
-        pr('')
+        newline()
     }
 
     // K-induction
@@ -728,7 +740,7 @@ class UclidGenerator extends GeneratorBase {
             (i >= START && i < END) ==> (inv(i) && auxiliary_invariant(i)))
                 ==> (inv(END) && auxiliary_invariant(END));
         ''')
-        pr('')
+        newline()
     }
 
     // Control block
@@ -741,7 +753,7 @@ class UclidGenerator extends GeneratorBase {
             v.print_cex;
         }
         ''')
-        pr('')
+        newline()
     }
     
     protected def generateRunScript() {
@@ -765,41 +777,24 @@ class UclidGenerator extends GeneratorBase {
     
     /////////////////////////////////////////////////
     //// Helper functions
-    
-    protected def ArrayList<String> populateIds() {
-        var triggerIDs = new ArrayList<String>();
-        for (r : reactors) {
-            for (rxn : r.getReactions()) {
-                for (t : rxn.getTriggers) {
-                    if (t.isStartup()) {
-                        triggerIDs.add(r.name + '_' + 'startup')
-                    }
-                    else if (t instanceof VarRef) {
-                        triggerIDs.add(r.name + '_' + t.variable.name)
-                    }
-                }
-            }
-        }
-        return triggerIDs
+
+    protected def String stateVarFullNameWithJoiner(Pair<ReactorInstance, StateVar> s, String joiner) {
+        if (joiner.equals("_"))
+            return (s.getKey.getFullName + joiner + s.getValue.name).replace(".", "_")
+        else return (s.getKey.getFullName + joiner + s.getValue.name)
     }
 
-    override getTarget() {
-        return Target.C // FIXME: How to make this target independent?
-    }
-
-    protected def String stateVarToId(Pair<ReactorInstance, StateVar> s, String delimiter) {
-        if (delimiter.equals("_"))
-            return (s.getKey.getFullName + delimiter + s.getValue.name).replace(".", "_")
-        else return (s.getKey.getFullName + delimiter + s.getValue.name)
-    }
-
-    protected def String portToId(PortInstance p) {
-        return p.getFullName.replace(".", "_")
+    protected def newline() {
+        pr('')
     }
     
     /////////////////////////////////////////////////
     //// Functions from generatorBase
     
+    override getTarget() {
+        return Target.C // FIXME: How to make this target independent?
+    }
+
     override generateDelayBody(Action action, VarRef port) {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }

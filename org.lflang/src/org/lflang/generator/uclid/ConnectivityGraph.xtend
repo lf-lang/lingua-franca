@@ -57,7 +57,6 @@ import java.util.Set
         ConnectivityInfo> connectivity = new HashMap();
     
     // The set of ports
-    // FIXME: why is this field not by default public?
     public var Set<PortInstance> ports = new HashSet();
 
     // Constructor
@@ -94,35 +93,39 @@ import java.util.Set
     protected def void addNodesAndEdges(ReactionInstance reaction) {
         // Add the current reaction to the connectivity graph.
         this.addNode(reaction)
+        
+        // Collect port instances that can influence the upstream reaction
+        // Note: The dangling ports are ignored in this case.
+        var upstreamSources = reaction.sources
+        var upstreamEffects = reaction.effects
+        for (e : upstreamEffects) {
+            if (e instanceof PortInstance) ports.add(e)
+        }
+        for (s : upstreamSources) {
+            if (s instanceof PortInstance) ports.add(s)
+        }
             
         // Recursively add downstream nodes.
         println("Reaction " + reaction + " has the following downstream nodes.")
         var downstreamAdjNodes = this.reactionGraph.getDownstreamAdjacentNodes(reaction)
-        for (downstream : downstreamAdjNodes) {
-            println(downstream)
-            
+        for (downstream : downstreamAdjNodes) {            
             // Add an edge
+            println(downstream)
             this.addEdge(downstream, reaction)
             
             // Store logical delay between the two reactions.
             // Logical delays can be induced by connections
             // or actions.
-            var effects = reaction.effects  // Effects of the upstream element
-            var sources = downstream.sources      // Sources of the downstream element
+            var downstreamSources = downstream.sources      // Sources of the downstream element
             var key     = new Pair(reaction, downstream)            
-            for (e : effects) {
-                // Collect ports
-                if (e instanceof PortInstance) ports.add(e)
-                for (s : sources) {
-                    // Collect ports
-                    if (s instanceof PortInstance) ports.add(s)
-
+            for (ue : upstreamEffects) {
+                for (ds : downstreamSources) {
                     // If these two reactions are linked by an action,
                     // add the corresponding connectivity info to the graph.
-                    if (s == e) {
-                        if (s instanceof ActionInstance) {
+                    if (ds == ue) {
+                        if (ds instanceof ActionInstance) {
                             // Add the delay info to the connectivity hashmap.
-                            var info = new ConnectivityInfo(false, s.isPhysical, s.minDelay.toNanoSeconds, null, null)
+                            var info = new ConnectivityInfo(false, ds.isPhysical, ds.minDelay.toNanoSeconds, null, null)
                             if (connectivity.get(key) === null) {
                                 connectivity.put(key, info)
                                 println("New connectivity info added")
@@ -134,19 +137,13 @@ import java.util.Set
                         }
                     }
                     else {
-                        if (s instanceof PortInstance && e instanceof PortInstance) {
-                            var connection = main.getConnection(e as PortInstance, s as PortInstance)
-                            println(s)
-                            println(e)
+                        if (ds instanceof PortInstance && ue instanceof PortInstance) {
+                            var connection = main.getConnection(ue as PortInstance, ds as PortInstance)
                             println("connection: " + connection)
                             if (connection !== null) {
-                                // FIXME: how to break break for loops in xtend?
-                                // FIXME: what is the relationship between delay and TimeValue.
-                                // Add the delay info to the connectivity hashmap.
-                                // FIXME: is there a better way to get int value?
-                                
+                                // FIXME: what is the relationship between delay and TimeValue.                                
                                 // FIXME: get delay
-                                var info = new ConnectivityInfo(true, connection.isPhysical, 0, s as PortInstance, e as PortInstance)
+                                var info = new ConnectivityInfo(true, connection.isPhysical, 0, ds as PortInstance, ue as PortInstance)
                                 // connectivity.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
                                 if (connectivity.get(key) === null) {
                                     connectivity.put(key, info)
