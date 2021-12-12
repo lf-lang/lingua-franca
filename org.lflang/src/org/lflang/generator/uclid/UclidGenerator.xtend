@@ -204,9 +204,6 @@ class UclidGenerator extends GeneratorBase {
         
         // Reactor semantics
         pr_reactor_semantics()
-        
-        // Reaction contracts
-        pr_reaction_contracts()
 
         // Connections
         pr_connections()
@@ -217,8 +214,11 @@ class UclidGenerator extends GeneratorBase {
         // Initial Condition
         pr_initial_condition()
 
+        // Reaction contracts
+        pr_reaction_contracts()
+
         // Properties
-        pr_properties()
+        pr_invariants()
 
         // K-induction
         pr_k_induction()
@@ -486,26 +486,33 @@ class UclidGenerator extends GeneratorBase {
         // Non-federated "happened-before"
         define hb(e1, e2 : event_t) : boolean
         = tag_earlier(e1._2, e2._2)
-            || (tag_same(e1._2, e2._2) && (
         ''')
         indent()
         indent()
         i = 0
+        var str = '''
+        || (tag_same(e1._2, e2._2) && (
+        '''
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
             connectivityGraph.connectivity.entrySet()) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
-            pr('''
+            str += '''
             «i == 0 ? "" : "|| "»(e1._1 == «upstream» && e2._1 == «downstream»)
-            ''')
+            '''
             i++;
         }
         // If there are no counterfactual reaction pairs,
         // simply put a "true" there.
-        if (i == 0) pr('true')
+        if (i != 0) {
+            pr(str)
+            pr('));')
+        }
+        else {
+            pr(';')
+        }
         unindent()
         unindent()
-        pr('));')
         newline() 
 
         pr('''
@@ -567,32 +574,6 @@ class UclidGenerator extends GeneratorBase {
             ==> pi2(g(i)) >= 0);
         ''')
         newline()
-    }
-    
-    // Reaction contracts
-    def pr_reaction_contracts() {
-        pr('''
-        /**********************
-         * Reaction Contracts *
-         **********************/
-        ''')
-        newline()
-        for (rxn : this.reactions) {
-            pr('''
-            /* Pre/post conditions for «rxn.getFullName» */
-            axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==>
-            ''')
-            indent()
-            // FIXME: Use LF macros to fill in this part.
-            // Currently users have to fill in manually.
-            pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
-            unindent()
-            pr('''
-            ));
-            ''')
-            newline()
-        }
     }
 
     // Connections
@@ -704,8 +685,40 @@ class UclidGenerator extends GeneratorBase {
         unindent()
     }
 
+        // Reaction contracts
+    def pr_reaction_contracts() {
+        pr('''
+        /**********************
+         * Reaction Contracts *
+         **********************/
+        ''')
+        newline()
+        for (rxn : this.reactions) {
+            pr('''
+            /* Pre/post conditions for «rxn.getFullName» */
+            axiom(forall (i : integer) :: (i > START && i <= END) ==>
+                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==>
+            ''')
+            indent()
+            // FIXME: Use LF macros to fill in this part.
+            // Currently users have to fill in manually.
+            pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
+            unindent()
+            pr('''
+            ));
+            ''')
+            newline()
+        }
+    }
+
     // Properties
-    def pr_properties() {
+    def pr_invariants() {
+        pr('''
+        /**************
+         * Invariants *
+         **************/
+        ''')
+        newline()
         pr('''
         // [placeholder] Add user-defined properties here.
         define inv(i : step_t) : boolean =
