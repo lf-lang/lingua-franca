@@ -79,24 +79,27 @@ public class CUtil {
      * in a bank. This is has the form uniqueID_i where uniqueID
      * is an identifier for the instance that is guaranteed to be different
      * from the ID of any other instance in the program.
+     * If the instance is not a bank, return "0".
      * @param instance A reactor instance.
      */
     static public String bankIndex(ReactorInstance instance) {
-        if (!instance.isBank()) return "0";
-        return instance.uniqueID() + "_i";
+        return bankIndex(instance, null);
     }
 
     /**
-     * Variant of {@link bankIndex(ReactorInstance) that generates a
-     * slightly different variable name. This is intended to be used as
-     * a second variable when simultaneously iterating over two banks that
-     * may in fact be the same bank. This is has the form uniqueID_j where uniqueID
+     * Return a name of a variable to refer to the bank index of a reactor
+     * in a bank. This is has the form uniqueID_suffix where uniqueID
      * is an identifier for the instance that is guaranteed to be different
-     * from the ID of any other instance in the program.
+     * from the ID of any other instance in the program and suffix is the
+     * specified suffix.  If the suffix is null, then "_i" is used.
+     * If the instance is not a bank, return "0".
      * @param instance A reactor instance.
+     * @param suffix The suffix or null to use a default suffix.
      */
-    static public String bankIndexDst(ReactorInstance instance) {
-        return instance.uniqueID() + "_j";
+    static public String bankIndex(ReactorInstance instance, String suffix) {
+        if (!instance.isBank()) return "0";
+        if (suffix == null) suffix = "_i";
+        return instance.uniqueID() + suffix;
     }
 
     /**
@@ -135,22 +138,51 @@ public class CUtil {
      * @param prefix The prefix used for index variables for bank members.
      */
     static public String indexExpression(ReactorInstance instance) {
+        return indexExpression(instance, null);
+    }
+
+    /**
+     * Return an expression that, when evaluated in a context with
+     * bank index variables defined for the specified reactor and
+     * any container(s) that are also banks, returns a unique index
+     * for a runtime reactor instance. This can be used to maintain an
+     * array of runtime instance objects, each of which will have a
+     * unique index.
+     * 
+     * This is rather complicated because
+     * this reactor instance and any of its parents may actually
+     * represent a bank of runtime reactor instances rather a single
+     * runtime instance. This method returns an expression that should
+     * be evaluatable in any target language that uses + for addition
+     * and * for multiplication and has defined variables in the context
+     * in which this will be evaluated that specify which bank member is
+     * desired for this reactor instance and any of its parents that is
+     * a bank.  The names of these variables need to be values returned
+     * by {@link bankIndex(ReactorInstance, String)}), where the second
+     * argument is the specified suffix.
+     * 
+     * If this is a top-level reactor, this returns "0".
+     * 
+     * @param prefix The prefix used for index variables for bank members.
+     * @param suffix The suffix to use for bank indices, or null to use the default.
+     */
+    static public String indexExpression(ReactorInstance instance, String suffix) {
         if (instance.getDepth() == 0) return("0");
         if (instance.isBank()) {
             return(
                     // Position of the bank member relative to the bank.
-                    bankIndex(instance) + " * " + instance.getNumReactorInstances()
+                    bankIndex(instance, suffix) + " * " + instance.getNumReactorInstances()
                     // Position of the bank within its parent.
                     + " + " + instance.getIndexOffset()
                     // Position of the parent.
-                    + " + " + indexExpression(instance.getParent())
+                    + " + " + indexExpression(instance.getParent(), suffix)
             );
         } else {
             return(
                     // Position within the parent.
                     instance.getIndexOffset()
                     // Position of the parent.
-                    + " + " + indexExpression(instance.getParent())
+                    + " + " + indexExpression(instance.getParent(), suffix)
             );
         }
     }
@@ -182,18 +214,20 @@ public class CUtil {
      * @param port The port.
      * @param isNested True to return a reference relative to the parent's parent.
      * @param includeChannelIndex True to include the channel index at the end.
+     * @param suffix An optional suffix to append to the struct variable name.
      */
     static public String portRef(
-            PortInstance port, boolean isNested, boolean includeChannelIndex
+            PortInstance port, boolean isNested, boolean includeChannelIndex, String suffix
     ) {
         String channel = "";
+        if (suffix == null) suffix = "";
         if (port.isMultiport() && includeChannelIndex) {
             channel = "[" + channelIndex(port) + "]";
         }
         if (isNested) {
-            return reactorRefContained(port.getParent()) + "." + port.getName() + channel;
+            return reactorRefContained(port.getParent(), suffix) + "." + port.getName() + channel;
         } else {
-            String sourceStruct = CUtil.reactorRef(port.getParent());
+            String sourceStruct = CUtil.reactorRef(port.getParent(), suffix);
             return sourceStruct + "->_lf_" + port.getName() + channel;
         }
     }
@@ -204,11 +238,25 @@ public class CUtil {
      * port's parent.  This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true)`.
+     * This is equivalent to calling `portRef(port, false, true, null)`.
      * @param port An instance of the port to be referenced.
      */
     static public String portRef(PortInstance port) {                
-        return portRef(port, false, true);
+        return portRef(port, false, true, null);
+    }
+
+    /**
+     * Special case of {@link portRef(PortInstance, boolean, boolean)}
+     * that provides a reference to the port on the self struct of the
+     * port's parent.  This is used when an input port triggers a reaction
+     * in the port's parent or when an output port is written to by
+     * a reaction in the port's parent.
+     * This is equivalent to calling `portRef(port, false, true, suffix)`.
+     * @param port An instance of the port to be referenced.
+     * @param suffix An optional suffix to append to the struct variable name.
+     */
+    static public String portRef(PortInstance port, String suffix) {                
+        return portRef(port, false, true, suffix);
     }
 
     /**
@@ -217,9 +265,19 @@ public class CUtil {
      * @param port An instance of the port to be referenced.
      */
     static public String portRefName(PortInstance port) {                
-        return portRef(port, false, false);
+        return portRef(port, false, false, null);
     }
 
+    /**
+     * Return the portRef without the channel indexing.
+     * This is useful for deriving a reference to the _width variable.
+     * @param port An instance of the port to be referenced.
+     * @param suffix An optional suffix to append to the struct variable name.
+     */
+    static public String portRefName(PortInstance port, String suffix) {                
+        return portRef(port, false, false, suffix);
+    }
+    
     /**
      * Special case of {@link portRef(PortInstance, boolean, boolean)}
      * that provides a reference to the port on the self struct of the
@@ -232,7 +290,23 @@ public class CUtil {
      * @param port The port.
      */
     static public String portRefNested(PortInstance port) {
-        return portRef(port, true, true);
+        return portRef(port, true, true, null);
+    }
+
+    /**
+     * Special case of {@link portRef(PortInstance, boolean, boolean)}
+     * that provides a reference to the port on the self struct of the
+     * parent of the port's parent.  This is used when an input port
+     * is written to by a reaction in the parent of the port's parent,
+     * or when an output port triggers a reaction in the parent of the
+     * port's parent.
+     * This is equivalent to calling `portRef(port, true, true)`.
+     *
+     * @param port The port.
+     * @param suffix An optional suffix to append to the struct variable name.
+     */
+    static public String portRefNested(PortInstance port, String suffix) {
+        return portRef(port, true, true, suffix);
     }
 
     /**
@@ -248,7 +322,24 @@ public class CUtil {
      * @param port The port.
      */
     static public String portRefNestedName(PortInstance port) {
-        return portRef(port, true, false);
+        return portRef(port, true, false, null);
+    }
+
+    /**
+     * Special case of {@link portRef(PortInstance, boolean, boolean)}
+     * that provides a reference to the port on the self struct of the
+     * parent of the port's parent, but without the channel indexing,
+     * even if it is a multiport.  This is used when an input port
+     * is written to by a reaction in the parent of the port's parent,
+     * or when an output port triggers a reaction in the parent of the
+     * port's parent.
+     * This is equivalent to calling `portRef(port, true, false)`.
+     *
+     * @param port The port.
+     * @param suffix An optional suffix to append to the struct variable name.
+     */
+    static public String portRefNestedName(PortInstance port, String suffix) {
+        return portRef(port, true, false, suffix);
     }
 
     /**
@@ -267,8 +358,19 @@ public class CUtil {
      * @return A name to use for a pointer to the self struct.
      */
     static public String reactorRef(ReactorInstance instance) {
-        var result = instance.uniqueID() + "_self";
-        return result;
+        return reactorRef(instance, null);
+    }
+
+    /** 
+     * Return a name for a pointer to the "self" struct of the specified
+     * reactor instance.
+     * @param instance The reactor instance.
+     * @return A name to use for a pointer to the self struct.
+     * @param suffix An optional suffix to append to the struct variable name.
+     */
+    static public String reactorRef(ReactorInstance instance, String suffix) {
+        if (suffix == null) suffix = "";
+        return instance.uniqueID() + "_self" + suffix;
     }
     
     /**
@@ -284,7 +386,24 @@ public class CUtil {
      * @param reactor The contained reactor.
      */
     static public String reactorRefContained(ReactorInstance reactor) {
-        String result = reactorRef(reactor.getParent()) + "->_lf_" + reactor.getName();
+        return reactorRefContained(reactor, null);
+    }
+
+    /**
+     * For situations where a reaction reacts to or reads from an output
+     * of a contained reactor or sends to an input of a contained reactor,
+     * then the container's self struct will have a field
+     * (or an array of fields if the contained reactor is a bank) that is
+     * a struct with fields corresponding to those inputs and outputs.
+     * This method returns a reference to that struct or array of structs.
+     * Note that the returned reference is not to the self struct of the
+     * contained reactor. Use {@link reactorRef(ReactorInstance)} for that.
+     * 
+     * @param reactor The contained reactor.
+     * @param suffix An optional suffix to append to the struct variable name.
+     */
+    static public String reactorRefContained(ReactorInstance reactor, String suffix) {
+        String result = reactorRef(reactor.getParent(), suffix) + "->_lf_" + reactor.getName();
         if (reactor.isBank()) {
             result += "[" + bankIndex(reactor) + "]";
         }

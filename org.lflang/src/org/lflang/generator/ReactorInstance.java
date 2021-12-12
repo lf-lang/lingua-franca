@@ -857,6 +857,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Connect the given left port range to the given right port range.
+     * This method consolidates the interleaved state on the destination
+     * side.  That is, it sets the interleaved state of the destination
+     * to the exclusive OR of the interleaved state of the two ranges,
+     * and sets the interleaved state of the source to false.
      * @param src The source range.
      * @param dst The destination range.
      */
@@ -864,6 +868,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             PortInstance.Range src,
             PortInstance.Range dst
     ) {
+        if (src.interleaved) {
+            dst = dst.toggleInterleaved();
+            src = src.toggleInterleaved();
+        }
         src.getPort().dependentPorts.add(dst);
         dst.getPort().dependsOnPorts.add(src);
     }
@@ -948,7 +956,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     
     /**
      * Given a list of port references, as found on either side of a connection,
-     * return a list of the port instances referenced. These may be multiports,
+     * return a list of the port instance ranges referenced. These may be multiports,
      * and may be ports of a contained bank (a port representing ports of the bank
      * members) so the returned list includes ranges of banks and channels.
      * 
