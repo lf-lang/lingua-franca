@@ -323,13 +323,12 @@ class UclidGenerator extends GeneratorBase {
         type rxn_t = enum {
         ''')
         indent()
-        var i = 0;
         for (rxn : reactions) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
-            pr(rxn.toId +
-                (i++ == this.reactionGraph.nodes.size - 1 ? "" : ","))
+            pr(rxn.toId + ',')
         }
+        pr('NULL')
         unindent()
         pr('};')
 
@@ -341,7 +340,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         println(this.stateVars)
         println(this.ports)
-        i = 0;
+        var i = 0;
         for (v : this.stateVars) {
             pr(
                 "integer"
@@ -361,9 +360,7 @@ class UclidGenerator extends GeneratorBase {
         pr('};')
         pr('''
         // State variable projection macros
-        define isNULL(i : step_t)  : boolean = rxn(i) == NULL;
         ''')
-        pr('')
         i = 0;
         for (v : this.stateVars) {
             pr('''
@@ -442,9 +439,10 @@ class UclidGenerator extends GeneratorBase {
         = get(trace, i);
         
         // projection macros
-        define rxn(i : step_t) : rxn_t     = elem(i)._1;
-        define   g(i : step_t) : tag_t     = elem(i)._2;
-        define   s(i : step_t) : state_t   = elem(i)._3;
+        define rxn      (i : step_t) : rxn_t    = elem(i)._1;
+        define g        (i : step_t) : tag_t    = elem(i)._2;
+        define s        (i : step_t) : state_t  = elem(i)._3;
+        define isNULL   (i : step_t) : boolean  = rxn(i) == NULL;
         ''')
         pr('')
     }
@@ -452,8 +450,8 @@ class UclidGenerator extends GeneratorBase {
     def pr_topological_abstraction() {
         pr('''
         /***************************
-        * Topological Abstraction *
-        ***************************/
+         * Topological Abstraction *
+         ***************************/
         ''')
 
         // Generate the delay macro
@@ -483,7 +481,7 @@ class UclidGenerator extends GeneratorBase {
         // Used to preserve trace ordering.
         pr('''
         // Non-federated "happened-before"
-        define hb(e1, e2 : event_t) : boolean =
+        define hb(e1, e2 : event_t) : boolean
         = tag_earlier(e1._2, e2._2)
             || (tag_same(e1._2, e2._2) && (
         ''')
@@ -699,7 +697,11 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         // [placeholder] Add user-defined properties here.
         define inv(i : step_t) : boolean =
-            true;
+            true;   // TODO: replace
+
+        // Auxiliary invariant
+        define auxiliary_invariant(i : integer) : boolean =
+            true;   // TODO: replace
         //////////////////////////////////////////////////
         ''')
         pr('')
