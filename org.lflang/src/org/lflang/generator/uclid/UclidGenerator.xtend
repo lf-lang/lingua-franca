@@ -50,7 +50,7 @@ import static extension org.lflang.ASTUtils.*
 /**
  * Generator for Uclid models.
  * 
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * @author Shaokai Lin {@literal <shaokai@eecs.berkeley.edu>}
  */
 class UclidGenerator extends GeneratorBase {
     
@@ -234,18 +234,17 @@ class UclidGenerator extends GeneratorBase {
         /*******************************
          * Time and Related Operations *
          ******************************/
-        type timestamp_t = integer; // Unit is nanoseconds
+        type timestamp_t = integer;                     // The unit is nanoseconds
         type microstep_t = integer;
         type tag_t = {
             timestamp_t,
             microstep_t
         };
-        // FIXME: in LF, the interval is an integer.
         type interval_t  = tag_t;
         
         // Projection macros
-        define pi1(t : tag_t)   : timestamp_t   = t._1;         // Get timestamp from tag
-        define pi2(t : tag_t)   : microstep_t   = t._2;         // Get microstep from tag
+        define pi1(t : tag_t) : timestamp_t = t._1;     // Get timestamp from tag
+        define pi2(t : tag_t) : microstep_t = t._2;     // Get microstep from tag
         
         // Interval constructor
         define zero() : interval_t
@@ -322,7 +321,6 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         // Reaction ids
         type rxn_t = enum {
-        
         ''')
         indent()
         var i = 0;
@@ -333,7 +331,7 @@ class UclidGenerator extends GeneratorBase {
                 (i++ == this.reactionGraph.nodes.size - 1 ? "" : ","))
         }
         unindent()
-        pr('}')
+        pr('};')
 
         /* State variables and ports */
         // FIXME: expand to data types other than integer
@@ -348,7 +346,7 @@ class UclidGenerator extends GeneratorBase {
             pr(
                 "integer"
                 + ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ",")
-                + " \t// " + stateVarToString(v, ".")
+                + " \t// " + stateVarToId(v, ".")
             )
         }
         i = 0;
@@ -360,10 +358,27 @@ class UclidGenerator extends GeneratorBase {
             )
         }
         unindent()
+        pr('};')
         pr('''
-        };
-        //////////////////////////
+        // State variable projection macros
+        define isNULL(i : step_t)  : boolean = rxn(i) == NULL;
         ''')
+        pr('')
+        i = 0;
+        for (v : this.stateVars) {
+            pr('''
+            define «stateVarToId(v, "_")»(s : state_t) : integer = s._«i+1»;
+            ''')
+            i++;
+        }
+        for (p : this.ports) {
+            pr('''
+            define «portToId(p)»(s : state_t) : integer = s._«i+1»;
+            ''')
+            i++;
+        }
+        pr('')
+        pr('//////////////////////////')
         pr('')
     }
 
@@ -421,7 +436,7 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         { NULL, inf(), { «integerInit» } } «")".repeat(varSize)»;
         ''')
-
+        pr('')
         pr('''
         define elem(i : step_t) : event_t
         = get(trace, i);
@@ -430,25 +445,7 @@ class UclidGenerator extends GeneratorBase {
         define rxn(i : step_t) : rxn_t     = elem(i)._1;
         define   g(i : step_t) : tag_t     = elem(i)._2;
         define   s(i : step_t) : state_t   = elem(i)._3;
-
-        // application specific: state variables
-        define isNULL(i : step_t)  : boolean = rxn(i) == NULL;
         ''')
-        pr('')
-        // FIXME: Finish generating 
-        var i = 0;
-        for (v : this.stateVars) {
-            pr('''
-            define «stateVarToString(v, "_")»(s : state_t) : integer = s._«i+1»;
-            ''')
-            i++;
-        }
-        for (p : this.ports) {
-            pr('''
-            define «p.getFullName.replace(".", "_")»(s : state_t) : integer = s._«i+1»;
-            ''')
-            i++;
-        }
         pr('')
     }
     
@@ -599,25 +596,26 @@ class UclidGenerator extends GeneratorBase {
         /***************
          * Connections *
          ***************/
-         
         ''')
+        pr('')
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
             connectivityGraph.connectivity.entrySet()) {
             // Check if two reactions are linked by a connection
             // if so, the output port and the input port should
             // hold the same value.
-            // FIXME: finish generating connections
             if (entry.getValue.isConnection) {
-                var upstream    = entry.getKey.getKey.toId
-                var downstream  = entry.getKey.getValue.toId
+                var upstreamRxn    = entry.getKey.getKey.toId
+                var upstreamPort   = entry.getValue.upstreamPort
+                var downstreamPort = entry.getValue.downstreamPort
                 pr('''
-                // source.out -> component._in 
+                // «upstreamPort» -> «downstreamPort» 
                 axiom(forall (i : integer) :: (i >= START && i <= END)
                     ==> (
-                        (rxn(i) == source_1 ==> component__in(s(i)) == source_out(s(i)))
-                        && (rxn(i) != source_1 ==> component__in(s(i)) == component__in(s(i - 1)))
+                        (rxn(i) == «upstreamRxn» ==> «portToId(downstreamPort)»(s(i)) == «portToId(upstreamPort)»(s(i)))
+                        && (rxn(i) != «upstreamRxn» ==> «portToId(downstreamPort)»(s(i)) == «portToId(downstreamPort)»(s(i - 1)))
                     ));
                 ''')
+                pr('')
             }
         }
     }
@@ -627,10 +625,46 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         /********************
          * Program Topology *
-         ********************/
-        // FIXME: add template
-         
+         ********************/         
         ''')
+        pr('')
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
+            connectivityGraph.connectivity.entrySet()) {
+            var upstreamRxn     = entry.getKey.getKey.toId
+            var downstreamRxn   = entry.getKey.getValue.toId
+            var conn            = entry.getValue
+            // Upstream triggers downstream via a logical connection.
+            if (conn.isConnection && !conn.isPhysical) {
+                pr('''
+                // «upstreamRxn» triggers «downstreamRxn» via a logical connection.
+                axiom(triggers_via_logical_connection(«upstreamRxn», «downstreamRxn»,
+                    delay(«upstreamRxn», «downstreamRxn»)));
+                ''')
+            }
+            // Upstream triggers downstream via a physical connection.
+            else if (conn.isConnection && conn.isPhysical) {
+                pr('''
+                // «upstreamRxn» triggers «downstreamRxn» via a physical connection.
+                axiom(triggers_via_physical_connection(«upstreamRxn», «downstreamRxn»));
+                ''')
+            }
+            // Upstream triggers downstream via a logical action.
+            else if (!conn.isConnection && conn.isPhysical) {
+                pr('''
+                // «upstreamRxn» triggers «downstreamRxn» via a logical action.
+                axiom(triggers_via_logical_action(«upstreamRxn», «downstreamRxn»,
+                    delay(«upstreamRxn», «downstreamRxn»)));
+                ''')
+            }
+            // Upstream triggers downstream via a physical action.
+            else {
+                pr('''
+                // «upstreamRxn» triggers «downstreamRxn» via a physical action.
+                axiom(triggers_via_physical_action(«upstreamRxn», «downstreamRxn»));
+                ''')
+            }
+            pr('')
+        }
     }
 
     // Initial Condition
@@ -644,16 +678,28 @@ class UclidGenerator extends GeneratorBase {
         = start == 0
             && rxn(0) == NULL
             && g(0) == {0, 0}
-            ;
-         
         ''')
+        indent()
+        for (v : this.stateVars) {
+            pr('''
+            && «stateVarToId(v, "_")»(s(0)) == 0
+            ''')
+        }
+        for (p : this.ports) {
+            pr('''
+            && «portToId(p)»(s(0)) == 0
+            ''')
+        }
+        pr(';')
+        unindent()
     }
 
     // Properties
     def pr_properties() {
         pr('''
         // [placeholder] Add user-defined properties here.
-         
+        define inv(i : step_t) : boolean =
+            true;
         //////////////////////////////////////////////////
         ''')
         pr('')
@@ -739,10 +785,14 @@ class UclidGenerator extends GeneratorBase {
         return Target.C // FIXME: How to make this target independent?
     }
 
-    protected def String stateVarToString(Pair<ReactorInstance, StateVar> s, String delimiter) {
+    protected def String stateVarToId(Pair<ReactorInstance, StateVar> s, String delimiter) {
         if (delimiter.equals("_"))
             return (s.getKey.getFullName + delimiter + s.getValue.name).replace(".", "_")
         else return (s.getKey.getFullName + delimiter + s.getValue.name)
+    }
+
+    protected def String portToId(PortInstance p) {
+        return p.getFullName.replace(".", "_")
     }
     
     /////////////////////////////////////////////////

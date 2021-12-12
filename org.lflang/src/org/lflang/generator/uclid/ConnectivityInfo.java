@@ -29,27 +29,27 @@ import org.lflang.generator.PortInstance;
 /**
  * Connectivity info class
  * 
- * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
+ * @author Shaokai Lin {@literal <shaokai@eecs.berkeley.edu>}
  */
 public class ConnectivityInfo {
     
     public boolean  isConnection;
     public boolean  isPhysical;
     public long     delay;
-    public PortInstance upPort;
-    public PortInstance downPort;
+    public PortInstance upstreamPort;
+    public PortInstance downstreamPort;
     
     public ConnectivityInfo(
         boolean _isConnection, 
         boolean _isPhysical, 
         long    _delay,
-        PortInstance _upPort,
-        PortInstance _downPort
+        PortInstance _upstreamPort,
+        PortInstance _downstreamPort
     ){
         isConnection    =   _isConnection;
         isPhysical      =   _isPhysical;
         delay           =   _delay;
-        upPort          =   _upPort;
-        downPort        =   _downPort;
+        upstreamPort    =   _upstreamPort;
+        downstreamPort  =   _downstreamPort;
     }
 }
