@@ -3159,9 +3159,13 @@ class CGenerator extends GeneratorBase {
                             if (port.parent != instance) {
                                 // The port belongs to contained reactor, so we also have
                                 // iterate over the instance bank members.
+                                startScopedBlock(temp);
+                                pr(temp, "int count = 0;");
                                 startScopedBlock(temp, instance);
+                                startScopedBankChannelIteration(temp, port, null);
+                            } else {
+                                startScopedBankChannelIteration(temp, port, "count");
                             }
-                            startScopedBankChannelIteration(temp, port, "count");
                             val portRef = CUtil.portRefNested(port);
                             val con = (port.isMultiport)? "->" : ".";
                             
@@ -3174,10 +3178,17 @@ class CGenerator extends GeneratorBase {
                                     _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«portRef»«con»intended_tag;
                                 ''')
                             }
-                            startTimeStepIsPresentCount += port.width * port.parent.width;
 
-                            endScopedBankChannelIteration(temp, port, "count");
-                            if (port.parent != instance) endScopedBlock(temp);
+                            if (port.parent != instance) {
+                                startTimeStepIsPresentCount += port.width * port.parent.width * instance.width;
+                                pr(temp, "count++;");
+                                endScopedBlock(temp);
+                                endScopedBlock(temp);
+                                endScopedBankChannelIteration(temp, port, null);
+                            } else {
+                                startTimeStepIsPresentCount += port.width * port.parent.width;
+                                endScopedBankChannelIteration(temp, port, "count");
+                            }
                        }
                     }
                 }
@@ -3200,7 +3211,7 @@ class CGenerator extends GeneratorBase {
                             startScopedBlock(temp, instance);
                             startScopedBankChannelIteration(temp, port, "count");
                             
-                            val portRef = CUtil.portRef(port, true, true);
+                            val portRef = CUtil.portRef(port, true, true, null);
                             
                             pr(temp, '''
                                 _lf_tokens_with_ref_count[«startTimeStepTokens» + count].token = &«portRef»->token;
@@ -3250,35 +3261,39 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             if (currentFederate.contains(child) && child.outputs.size > 0) {
                 
+                startScopedBlock(temp);
+                pr(temp, '''int count = 0;''');
                 startScopedBlock(temp, child);
         
+                var channelCount = 0;
                 for (output : child.outputs) {
-                    foundOne = true;
-                    
-                    pr(temp, '''
-                        // Add port «output.getFullName» to array of is_present fields.
-                    ''')
-                    startScopedBlock(temp);
-                    pr(temp, '''int count = 0;''');
-                    startChannelIteration(temp, output);
-                    
-                    pr(temp, '''
-                        _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)».is_present;
-                    ''')
-                    
-                    if (isFederatedAndDecentralized) {
-                        // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
+                    if (!output.dependsOnReactions.isEmpty){
+                        foundOne = true;
+                        
                         pr(temp, '''
-                            // Add port «output.getFullName» to array of intended_tag fields.
-                            _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)»[j].intended_tag;
+                            // Add port «output.getFullName» to array of is_present fields.
                         ''')
+                        startChannelIteration(temp, output);
+                        
+                        pr(temp, '''
+                            _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)».is_present;
+                        ''')
+                        
+                        if (isFederatedAndDecentralized) {
+                            // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
+                            pr(temp, '''
+                                // Add port «output.getFullName» to array of intended_tag fields.
+                                _lf_intended_tag_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)»[j].intended_tag;
+                            ''')
+                        }
+                        
+                        pr(temp, '''count++;''');
+                        channelCount += output.width;
+                        endChannelIteration(temp, output);
                     }
-                    startTimeStepIsPresentCount += output.width;
-                    
-                    pr(temp, '''count++;''');
-                    endChannelIteration(temp, output);
-                    endScopedBlock(temp);
                 }
+                startTimeStepIsPresentCount += channelCount * child.width;
+                endScopedBlock(temp);
                 endScopedBlock(temp);
             }
         }
@@ -5024,7 +5039,6 @@ class CGenerator extends GeneratorBase {
     protected def void startScopedRangeBlock(
         StringBuilder builder, PortInstance.Range srcRange, PortInstance.Range dstRange
     ) {
-        val dst = dstRange.port;
         val src = srcRange.port;
         val width = (srcRange.totalWidth <= dstRange.totalWidth)? srcRange.totalWidth : dstRange.totalWidth;
                         
@@ -5042,20 +5056,19 @@ class CGenerator extends GeneratorBase {
         // Need to change SendRange so that startBank is an array of length equal to
         // the depth of the port's container.
 
-        if (dst.parent.isBank && dst.isInput) {
+        if (src.parent.isBank && src.isOutput) {
+            // Need to specify a suffix to avoid a variable name collision.
             pr(builder, '''
-                int «CUtil.bankIndexDst(dst.parent)» = «dstRange.startBank»;
+                int «CUtil.bankIndex(src.parent, "_src")» = «srcRange.startBank»;
             ''')
         }
-        if (dst.isMultiport) {
+        if (src.isMultiport) {
             pr(builder, '''
-                int «CUtil.channelIndex(dst)» = «dstRange.startChannel»;
+                int «CUtil.channelIndex(src)» = «srcRange.startChannel»;
             ''')
         }
-        startScopedRangeBlock(builder, srcRange);
-        if (dst.parent != src.parent) {
-            defineSelfStruct(builder, dst.parent);
-        }
+        startScopedRangeBlock(builder, dstRange);
+        defineSelfStruct(builder, src.parent, "_src");
     }
     
     /**
@@ -5069,53 +5082,54 @@ class CGenerator extends GeneratorBase {
     ) {
         val src = srcRange.port;
         val dst = dstRange.port;
+        val sfx = "_src";
         // If an output port is triggering a reaction in its parent's parent,
         // then the destination and source may be the same port. In that case,
         // we want to avoid double incrementing the bank and channel variables.
         if (dst != src) {
-            // Sadly, xtend doesn't seem to support XOR operator in Java.
-            // val interleaved = srcRange.interleaved ^ dstRange.interleaved;
+            // Interleaved status is normally stored in the destination only,
+            // but just in case, calculate the XOR.
             val interleaved = (srcRange.interleaved || dstRange.interleaved)
                     && !(srcRange.interleaved && dstRange.interleaved);
             if (interleaved) {
-                if (dst.parent.isBank && dst.isInput) {
+                if (src.parent.isBank && src.isOutput) {
                     pr(builder, '''
-                        «CUtil.bankIndexDst(dst.parent)»++;
+                        «CUtil.bankIndex(src.parent, sfx)»++;
                     ''')
-                    if (dst.isMultiport) {
+                    if (src.isMultiport) {
                         pr(builder, '''
-                            if («CUtil.bankIndexDst(dst.parent)» >= «dst.parent.width») {
-                                «CUtil.bankIndexDst(dst.parent)» = 0;
-                                «CUtil.channelIndex(dst)»++;
+                            if («CUtil.bankIndex(src.parent, sfx)» >= «src.parent.width») {
+                                «CUtil.bankIndex(src.parent, sfx)» = 0;
+                                «CUtil.channelIndex(src)»++;
                             }
                         ''')
                     }
-                } else if (dst.isMultiport) {
+                } else if (src.isMultiport) {
                     pr(builder, '''
-                        «CUtil.channelIndex(dst)»++;
+                        «CUtil.channelIndex(src)»++;
                     ''')
                 }
             } else {
-                if (dst.isMultiport) {
+                if (src.isMultiport) {
                     pr(builder, '''
-                        «CUtil.channelIndex(dst)»++;
+                        «CUtil.channelIndex(src)»++;
                     ''')
-                    if (dst.parent.isBank && dst.isInput) {
+                    if (src.parent.isBank && src.isOutput) {
                         pr(builder, '''
-                            if («CUtil.channelIndex(dst)» >= «dst.width») {
-                                «CUtil.channelIndex(dst)» = 0;
-                                «CUtil.bankIndexDst(dst.parent)»++;
+                            if («CUtil.channelIndex(src)» >= «src.width») {
+                                «CUtil.channelIndex(src)» = 0;
+                                «CUtil.bankIndex(src.parent, sfx)»++;
                             }
                         ''')
                     }
-                } else if (dst.parent.isBank && dst.isInput) {
+                } else if (src.parent.isBank && src.isInput) {
                     pr(builder, '''
-                        «CUtil.bankIndexDst(dst.parent)»++;
+                        «CUtil.bankIndex(src.parent, sfx)»++;
                     ''')
                 }
             }
         }
-        endScopedRangeBlock(builder, srcRange);
+        endScopedRangeBlock(builder, dstRange);
         endScopedBlock(builder);
     }
 
@@ -5133,11 +5147,30 @@ class CGenerator extends GeneratorBase {
     private def void defineSelfStruct(
         StringBuilder builder, ReactorInstance reactor
     ) {
+        defineSelfStruct(builder, reactor, null);
+    }
+
+    /**
+     * For the specified reactor, print code to the specified builder
+     * that defines a pointer to the self struct of the specified
+     * reactor. 
+     * 
+     * If the specified reactor is a bank, then the pointer
+     * is to the array of pointers to the self structs for that bank.
+     * 
+     * @param builder The string builder into which to write.
+     * @param reactor The reactor instance for which to provide a self struct.
+     * @param suffix An optional suffix to append to the variable name.
+     */
+    private def void defineSelfStruct(
+        StringBuilder builder, ReactorInstance reactor, String suffix
+    ) {
         if (reactor === null) return;
         var nameOfSelfStruct = reactor.uniqueID() + "_self";
+        if (suffix !== null) nameOfSelfStruct += suffix;
         var structType = CUtil.selfType(reactor)
         pr(builder, '''
-            «structType»* «nameOfSelfStruct» = («structType»*)self_structs[«CUtil.indexExpression(reactor)»];
+            «structType»* «nameOfSelfStruct» = («structType»*)self_structs[«CUtil.indexExpression(reactor, suffix)»];
         ''')
     }
 
@@ -5164,20 +5197,23 @@ class CGenerator extends GeneratorBase {
                         // Connect «src.getFullName» to port «dst.getFullName»
                     ''')
                     startScopedRangeBlock(code, srcRange, dstRange);
+                    // Above uses suffix "_src" for the self struct for the source range.
+                    val sfx = "_src";
+                    
                     if (src.isInput) {
                         // Source port is written to by reaction in port's parent's parent
                         // and ultimate destination is further downstream.
                         pr('''
-                            «CUtil.portRef(dst)» = («destStructType»*)«mod»«CUtil.portRefNested(src)»;
+                            «CUtil.portRef(dst)» = («destStructType»*)«mod»«CUtil.portRefNested(src, sfx)»;
                         ''')
                     } else if (src == dst) {
                         // An output port of a contained reactor is triggering a reaction.
                         pr('''
-                            «CUtil.portRefNested(dst)» = («destStructType»*)&«CUtil.portRef(src)»;
+                            «CUtil.portRefNested(dst)» = («destStructType»*)&«CUtil.portRef(src, sfx)»;
                         ''')
                     } else {
                         pr('''
-                            «CUtil.portRef(dst)» = («destStructType»*)&«CUtil.portRef(src)»;
+                            «CUtil.portRef(dst)» = («destStructType»*)&«CUtil.portRef(src, sfx)»;
                         ''')
                     }
                     endScopedRangeBlock(code, srcRange, dstRange);

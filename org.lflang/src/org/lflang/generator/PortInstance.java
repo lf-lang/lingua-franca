@@ -179,7 +179,11 @@ public class PortInstance extends TriggerInstance<Port> {
         if (!srcRange.getPort().dependentReactions.isEmpty()) {
             // This will be the final result if there are no connections.
             SendRange candidate = srcPort.new SendRange(
-                    srcRange.startChannel, srcRange.startBank, srcRange.totalWidth
+                    srcRange.startChannel, 
+                    srcRange.startBank, 
+                    srcRange.totalWidth,
+                    srcRange.interleaved, 
+                    srcRange.connection
             );
             candidate.destinations.add(srcRange);
             result.add(candidate);
@@ -480,15 +484,13 @@ public class PortInstance extends TriggerInstance<Port> {
      * all of which have the same width as this channel range.
      * It also includes a field representing the number of destination
      * reactors.
-     * 
-     * Note that the interleaved status of the base class is meaningless for a
-     * SendRange because of the destinations may be interleaved and some not.
-     * Also, the connection argument makes no sense.
      */
     public class SendRange extends Range {
         
-        public SendRange(int startChannel, int startBank, int totalWidth) {
-            super(startChannel, startBank, totalWidth, false, null);
+        public SendRange(
+            int startChannel, int startBank, int totalWidth, boolean interleaved, Connection connection
+        ) {
+            super(startChannel, startBank, totalWidth, interleaved, connection);
         }
 
         public int getNumberOfDestinationReactors() {
@@ -530,7 +532,9 @@ public class PortInstance extends TriggerInstance<Port> {
             SendRange result = new SendRange(
                     startChannel + channelsToConsume,
                     startBank + banksToConsume,
-                    totalWidth - offset
+                    totalWidth - offset,
+                    interleaved,
+                    connection
             );
 
             for (Range destination : destinations) {
@@ -556,7 +560,7 @@ public class PortInstance extends TriggerInstance<Port> {
                 reference = truncate(srcRange.totalWidth);
             }
             SendRange result = srcRange.getPort().new SendRange(
-                    srcRange.startChannel, srcRange.startBank, totalWidth
+                    srcRange.startChannel, srcRange.startBank, totalWidth, interleaved, connection
             );
             if (srcRange.interleaved) {
                 // Toggle the destination interleaved status.
@@ -576,7 +580,7 @@ public class PortInstance extends TriggerInstance<Port> {
         @Override
         protected SendRange truncate(int newWidth) {
             if (newWidth >= totalWidth) return this;
-            SendRange result = new SendRange(startChannel, startBank, newWidth);
+            SendRange result = new SendRange(startChannel, startBank, newWidth, interleaved, connection);
             for (Range destination : destinations) {
                 result.destinations.add(destination.truncate(newWidth));
             }
