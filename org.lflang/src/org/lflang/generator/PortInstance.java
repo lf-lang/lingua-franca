@@ -148,7 +148,9 @@ public class PortInstance extends TriggerInstance<Port> {
         // the ports that this port sends to. Then use eventualSource to get
         // the ranges of this port that send to each destination.
         PriorityQueue<SendRange> result = new PriorityQueue<SendRange>();
-
+        final SendRange blanketSendRange = new SendRange(
+            0, width, dependentReactions.size() > 0 ? List.of(new Range(0, width)) : List.of()
+        );
         Set<PortInstance> destinationPorts = null;
         if (isOutput()) {
             // For an output, obtain the destination ports from the parent
@@ -156,7 +158,7 @@ public class PortInstance extends TriggerInstance<Port> {
             ReactorInstance container = parent.getParent();
             // If the port's parent has no parent, then there are no destinations.
             if (container == null) {
-                return new LinkedList<SendRange>();
+                return List.of(blanketSendRange);
             }
             
             destinationPorts = container.transitiveClosure(this);
@@ -166,10 +168,7 @@ public class PortInstance extends TriggerInstance<Port> {
             destinationPorts = parent.transitiveClosure(this);
         }
         
-        // If this port has dependent reactions, then add an entry for this port.
-        result.add(new SendRange(
-            0, width, dependentReactions.size() > 0 ? List.of(new Range(0, width)) : List.of()
-        ));
+        result.add(blanketSendRange);
 
         for (PortInstance destinationPort: destinationPorts) {
             // If the destination port has no dependent reactions, skip it.
