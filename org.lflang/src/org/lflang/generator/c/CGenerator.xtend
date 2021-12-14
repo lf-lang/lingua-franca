@@ -4742,6 +4742,7 @@ class CGenerator extends GeneratorBase {
         if (port.isMultiport) {
             val channel = CUtil.channelIndex(port);
             pr(builder, '''
+                // Port «port.fullName» is a multiport. Iterate over its channels.
                 for (int «channel» = 0; «channel» < «port.width»; «channel»++) {
             ''')
             indent(builder);
@@ -4890,7 +4891,7 @@ class CGenerator extends GeneratorBase {
      * range is interleaved. 
      * The order of the iterations is specified by the range.
      * 
-     * In all cases, it stops the iteration when the
+     * In all cases, this stops the iteration when the
      * total width of the range has been covered.
      * 
      * This must be followed by a call to
@@ -4906,7 +4907,7 @@ class CGenerator extends GeneratorBase {
         
         pr(builder, '''
             // Iterate over range of «port.fullName» with starting offset «range.start»,
-            // and total width «range.totalWidth».
+            // and width «range.width».
         ''')
  
         // The first creates a scope in which we can define a pointer to the self
@@ -4923,18 +4924,20 @@ class CGenerator extends GeneratorBase {
         // We need to iterate backwards over the iteration order.
         for (var i = iterationOrder.size() - 1; i >= 0; i--) {
             val instance = iterationOrder.get(i);
-            if (instance === port) {
+            if (instance === port && port.isMultiport) {
                 startChannelIteration(builder, port);
-            } else {
+            } else if (instance instanceof ReactorInstance) {
                 // Instance is a parent reactor.
-                startScopedBlock(builder, instance as ReactorInstance);
+                startScopedBlock(builder, instance);
             }
         }
         // Allow code to execute only if we are in range.
-        pr(builder, '''
-            if (range_count >= «range.start») {
-        ''')
-        indent(builder);
+        if (range.start > 0) {
+            pr(builder, '''
+                if (range_count >= «range.start») {
+            ''')
+            indent(builder);
+        }
     }
 
     /**
@@ -4947,24 +4950,32 @@ class CGenerator extends GeneratorBase {
     ) {
         val port = range.instance;
 
-        pr(builder, "}"); // End of predicate on range_count.
-        unindent(builder);
-        pr(builder, '''
-            range_count++;
-            if (range_count >= «range.start» + «range.width») break;
-        ''')
+        if (range.start > 0) {
+            unindent(builder);
+            pr(builder, "}"); // End of predicate on range_count.
+        }
+        if (range.width > 1) {
+            pr(builder, '''
+                range_count++;
+            ''')
+        }
         
         val iterationOrder = range.iterationOrder();
         
         // We need to iterate backwards over the iteration order.
         for (var i = iterationOrder.size() - 1; i >= 0; i--) {
             val instance = iterationOrder.get(i);
-            pr(builder, '''
-                if (range_count >= «range.start» + «range.width») break;
-            ''')
-            if (instance === port) {
+            if (instance === port && port.isMultiport) {
+                pr(builder, '''
+                    if (range_count >= «range.start» + «range.width») break;
+                ''')
                 endChannelIteration(builder, port);
-            } else {
+            } else if (instance instanceof ReactorInstance) {
+                if (instance.isBank) {
+                    pr(builder, '''
+                        if (range_count >= «range.start» + «range.width») break;
+                    ''')
+                }
                 // Instance is a parent reactor.
                 endScopedBlock(builder);
             }
@@ -4996,7 +5007,7 @@ class CGenerator extends GeneratorBase {
         StringBuilder builder, Range<PortInstance> srcRange, Range<PortInstance> dstRange
     ) {
         val src = srcRange.instance;
-        val width = (srcRange.totalWidth <= dstRange.totalWidth)? srcRange.totalWidth : dstRange.totalWidth;
+        val width = (srcRange.width <= dstRange.width)? srcRange.width : dstRange.width;
         val sfx = "_src";
                         
         pr(builder, '''
@@ -5008,6 +5019,10 @@ class CGenerator extends GeneratorBase {
         // Define additional variables for range2.
         startScopedBlock(builder);
         
+        // Define the self struct for the top-level, in case there are top-level reactions
+        // that send to inputs of contained reactors.
+        defineSelfStruct(builder, src.root, sfx);
+        
         // Declare the variables needed for the source range.
         // These need to be initialized to starting indices.
         val srcIteration = srcRange.iterationOrder();
@@ -5015,13 +5030,17 @@ class CGenerator extends GeneratorBase {
         for (i : srcIteration) {
             val init = (srcRange.start / factor) % i.width;
             if (i instanceof PortInstance) {
-                pr(builder, '''
-                    int «CUtil.channelIndex(i)» = «init»;
-                ''')
-            } else {
-                pr(builder, '''
-                    int «CUtil.bankIndex(i as ReactorInstance, sfx)» = «init»;
-                ''')
+                if (i.isMultiport && i != dstRange.instance) {
+                    pr(builder, '''
+                        int «CUtil.channelIndex(i)» = «init»;
+                    ''')
+                }
+            } else if (i instanceof ReactorInstance) {
+                if (i.isBank) {
+                    pr(builder, '''
+                        int «CUtil.bankIndex(i, sfx)» = «init»;
+                    ''')                    
+                }
             }
             factor *= i.width;
         }
@@ -5047,15 +5066,23 @@ class CGenerator extends GeneratorBase {
         val src = srcRange.instance;
         val dst = dstRange.instance;
         val sfx = "_src";
-        // If an output port is triggering a reaction in its parent's parent,
-        // then the destination and source may be the same port. In that case,
-        // we want to avoid double incrementing the bank and channel variables.
-        if (dst != src) {
-            val srcIteration = srcRange.iterationOrder();
-            for (i : srcIteration) {
-                if (i instanceof PortInstance) {
-                    // No need to do anything if it's not a multiport.
-                    if (i.isMultiport) {
+
+        val srcIteration = srcRange.iterationOrder();
+        for (i : srcIteration) {
+            if (i instanceof PortInstance) {
+                // No need to do anything if it's not a multiport.
+                if (i.isMultiport) {
+                    if (dst == src) {
+                        // If the source and destination ports are the same, then we do not
+                        // need to increment or reset the channel index. But we do still need
+                        // to check whether to increment the next bank variable.
+                        // If an output port is triggering a reaction in its parent's parent,
+                        // then the destination and source may be the same port.
+                        pr(builder, '''
+                            if («CUtil.channelIndex(i)» >= «i.width» - 1) { // At end.
+                        ''')
+                        indent(builder);
+                    } else {
                         pr(builder, '''
                             «CUtil.channelIndex(i)»++;
                             if («CUtil.channelIndex(i)» >= «i.width») {
@@ -5063,32 +5090,36 @@ class CGenerator extends GeneratorBase {
                         ''')
                         indent(builder);
                     }
-                } else if (i instanceof ReactorInstance) {
-                    // No need to do anything if it's not a bank.
-                    if (i.isBank) {
-                        pr(builder, '''
-                            «CUtil.bankIndex(i, sfx)»++;
-                            if («CUtil.bankIndex(i, sfx)» >= «i.width») {
-                                «CUtil.bankIndex(i, sfx)» = 0;
-                        ''')
-                        indent(builder);
-                    }
+                }
+            } else if (i instanceof ReactorInstance) {
+                // Need to increment these indices even if the source and
+                // destination are the same port because these variables have a
+                // different suffix from those being used to index the destination.
+                // No need to do anything if it's not a bank.
+                if (i.isBank) {
+                    pr(builder, '''
+                        «CUtil.bankIndex(i, sfx)»++;
+                        if («CUtil.bankIndex(i, sfx)» >= «i.width») {
+                            «CUtil.bankIndex(i, sfx)» = 0;
+                    ''')
+                    indent(builder);
                 }
             }
-            // Now need to close all these if blocks.
-            for (i : srcIteration) {
-                if (i instanceof PortInstance) {
-                    // No need to do anything if it's not a multiport.
-                    if (i.isMultiport) {
-                        unindent(builder);
-                        pr(builder, "}");
-                    }
-                } else if (i instanceof ReactorInstance) {
-                    // No need to do anything if it's not a bank.
-                    if (i.isBank) {
-                        unindent(builder);
-                        pr(builder, "}");
-                    }
+        }
+        // Now need to close all these if blocks.
+        for (i : srcIteration) {
+            if (i instanceof PortInstance) {
+                // No need to do anything if it's not a multiport or if
+                // the source and destination ports are the same.
+                if (i.isMultiport) {
+                    unindent(builder);
+                    pr(builder, "}");
+                }
+            } else if (i instanceof ReactorInstance) {
+                // No need to do anything if it's not a bank.
+                if (i.isBank) {
+                    unindent(builder);
+                    pr(builder, "}");
                 }
             }
         }
@@ -6249,7 +6280,7 @@ class CGenerator extends GeneratorBase {
                             // Fill the trigger array.
                             «temp.toString()»
                         ''')
-                        channelCount += range.totalWidth;
+                        channelCount += range.width;
                         
                         endScopedRangeBlock(code, range);
                     }

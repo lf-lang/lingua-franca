@@ -1087,7 +1087,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
                     // Make one communication for each channel.
                     // FIXME: There is an opportunity for optimization here by aggregating channels.
-                    for (var i = 0; i < source.totalWidth; i++) {
+                    for (var i = 0; i < source.width; i++) {
                         FedASTUtils.makeCommunication(
                             source.instance,
                             input,
@@ -1102,7 +1102,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                             targetConfig.coordination
                         );
                     }
-                    channel += source.totalWidth;
+                    channel += source.width;
                 }
             }
         }

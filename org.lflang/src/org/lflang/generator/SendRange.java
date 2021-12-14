@@ -116,31 +116,6 @@ public class SendRange extends Range.Port {
     }
 
     /**
-     * Return a new SendRange that is like this one, but
-     * converted to the specified upstream range. The returned
-     * SendRange inherits the destinations of this range.
-     * 
-     * Normally, the total width of the specified range is
-     * the same as that of this range, but if it is not,
-     * then the minimum of the two widths is returned.
-     * 
-     * @param srcRange A new source range.
-     */
-    protected SendRange newSendRange(Range<PortInstance> srcRange) {
-        SendRange reference = this;
-        if (srcRange.totalWidth > totalWidth) {
-            srcRange = srcRange.head(totalWidth);
-        } else if (srcRange.totalWidth < totalWidth) {
-            reference = head(srcRange.totalWidth);
-        }
-        SendRange result = new SendRange(srcRange.instance, srcRange.start, srcRange.width);
-        
-        result.destinations.addAll(reference.destinations);
-
-        return result;
-    }
-
-    /**
      * Return a new SendRange that represents the leftover elements
      * starting at the specified offset. If the offset is greater
      * than or equal to the width, then this returns null.
@@ -157,6 +132,35 @@ public class SendRange extends Range.Port {
 
         for (Range<PortInstance> destination : destinations) {
             result.destinations.add(destination.tail(offset));
+        }
+        return result;
+    }
+
+    //////////////////////////////////////////////////////////
+    //// Protected methods
+
+    /**
+     * Return a new SendRange that is like this one, but
+     * converted to the specified upstream range. The returned
+     * SendRange inherits the destinations of this range.
+     * 
+     * Normally, the width of the specified range is
+     * the same as that of this range, but if it is not,
+     * then the minimum of the two widths is returned.
+     * 
+     * @param srcRange A new source range.
+     */
+    protected SendRange newSendRange(Range<PortInstance> srcRange) {
+        SendRange reference = this;
+        if (srcRange.width > width) {
+            srcRange = srcRange.head(width);
+        } else if (srcRange.width < width) {
+            reference = head(srcRange.width);
+        }
+        SendRange result = new SendRange(srcRange.instance, srcRange.start, srcRange.width);
+        
+        for (Range<PortInstance> dst : reference.destinations) { 
+            result.destinations.add(dst.head(srcRange.width));
         }
         return result;
     }

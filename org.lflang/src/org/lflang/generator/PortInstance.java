@@ -299,26 +299,26 @@ public class PortInstance extends TriggerInstance<Port> {
         Iterator<Range<PortInstance>> dependentPorts = srcPort.dependentPorts.iterator();
         if (dependentPorts.hasNext()) {
             Range<PortInstance> dep = dependentPorts.next();
-            while(srcWidthCovered < srcRange.totalWidth) {
-                if (srcRange.start >= depWidthCovered + dep.totalWidth) {
+            while(srcWidthCovered < srcRange.width) {
+                if (srcRange.start >= depWidthCovered + dep.width) {
                     // Destination is fully before this range.
-                    depWidthCovered += dep.totalWidth;
+                    depWidthCovered += dep.width;
                     if (!dependentPorts.hasNext()) break; // This should be an error.
                     dep = dependentPorts.next();
                     continue;
                 }
-                if (depWidthCovered >= srcRange.start + srcRange.totalWidth) {
+                if (depWidthCovered >= srcRange.start + srcRange.width) {
                     // Source range is covered. We are finished.
                     break;
                 }
                 // Dependent port overlaps the range of interest.
                 // Get a new range that possibly subsets the target range.
                 // Argument is guaranteed by above checks to be less than
-                // dep.totalWidth, so the result will not be null.
+                // dep.width, so the result will not be null.
                 Range<PortInstance> subDep = dep.tail(depWidthCovered - srcRange.start);
                 // The following argument is guaranteed to be greater than
                 // depWidthCovered - srcRange.getStartOffset().
-                subDep = subDep.head(srcRange.totalWidth);
+                subDep = subDep.head(srcRange.width);
                             
                 // At this point, dep is the subrange of the dependent port of interest.
                 // Recursively get the send ranges of that destination port.
@@ -329,9 +329,9 @@ public class PortInstance extends TriggerInstance<Port> {
                 for (SendRange dstSend : dstSendRanges) {
                     queue.add(dstSend.newSendRange(srcRange));
                 }
-                depWidthCovered += subDep.totalWidth;
-                srcWidthCovered += subDep.totalWidth;
-                if (dep.start + dep.totalWidth <= subDep.start + subDep.totalWidth) {
+                depWidthCovered += subDep.width;
+                srcWidthCovered += subDep.width;
+                if (dep.start + dep.width <= subDep.start + subDep.width) {
                     // dep range is exhausted. Get another one.
                     if (!dependentPorts.hasNext()) break; // This should be an error.
                     dep = dependentPorts.next();
@@ -351,15 +351,15 @@ public class PortInstance extends TriggerInstance<Port> {
             }
             if (candidate.start == next.start) {
                 // Ranges have the same starting point. Need to merge them.
-                if (candidate.totalWidth <= next.totalWidth) {
+                if (candidate.width <= next.width) {
                     // Can use all of the channels of candidate.
                     // Import the destinations of next and split it.
                     candidate.destinations.addAll(next.destinations);
-                    if (candidate.totalWidth < next.totalWidth) {
+                    if (candidate.width < next.width) {
                         // The next range has more channels connected to this sender.
-                        next = (SendRange)next.tail(candidate.totalWidth);
+                        next = (SendRange)next.tail(candidate.width);
                         // Truncate the destinations just imported.
-                        candidate = candidate.head(candidate.totalWidth);
+                        candidate = candidate.head(candidate.width);
                     } else {
                         // We are done with next and can discard it.
                         next = queue.poll();
