@@ -43,6 +43,19 @@ public preamble {=
     #include <deque>
     #include <cmath>
     #include "Matrix.hh"
+
+    template<class T>
+    class TransposedMatrix {
+    private:
+        std::vector<T> data;
+        size_t size_x;
+
+    public:
+        TransposedMatrix(size_t size_x, size_t size_y) : data(size_x * size_y), size_x(size_x) {}
+
+        const T& at(size_t x, size_t y) const { return data[y*size_x+x]; }
+        T& at(size_t x, size_t y) { return data[y*size_x+x]; }
+    };
     
     struct WorkItem {
         size_t srA; // srA = start row in matrix A
@@ -58,7 +71,7 @@ public preamble {=
 
 reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
     state A: Matrix<double>(dataLength, dataLength);
-    state B: Matrix<double>(dataLength, dataLength);
+    state B: TransposedMatrix<double>(dataLength, dataLength);
     state C: Matrix<double>(dataLength, dataLength);
     
     state workQueue: std::deque<{=reactor::ImmutableValuePtr<WorkItem>=}>;
@@ -69,7 +82,7 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
     input start: void;
     output finished: void;
     
-    output data: {=std::tuple<const Matrix<double>*, const Matrix<double>*, Matrix<double>*>=};
+    output data: {=std::tuple<const Matrix<double>*, const TransposedMatrix<double>*, Matrix<double>*>=};
     output[numWorkers] doWork: WorkItem;
     input[numWorkers] moreWork: {=std::array<reactor::ImmutableValuePtr<WorkItem>, 8>=};
    
@@ -149,10 +162,10 @@ reactor Manager(numWorkers: size_t{20}, dataLength: size_t{1024}) {
 reactor Worker(threshold: size_t{16384}) {
 
     state A: {=const Matrix<double>*=};
-    state B: {=const Matrix<double>*=};
+    state B: {=const TransposedMatrix<double>*=};
     state C: {=Matrix<double>*=};
     
-    input data: {=std::tuple<const Matrix<double>*, const Matrix<double>*, Matrix<double>*>=};
+    input data: {=std::tuple<const Matrix<double>*, const TransposedMatrix<double>*, Matrix<double>*>=};
     input doWork: WorkItem;    
     output moreWork: {=std::array<reactor::ImmutableValuePtr<WorkItem>, 8>=};
     

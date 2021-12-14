@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.JavaAstUtils;
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Time;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 
@@ -21,6 +21,8 @@ import org.lflang.lf.Value;
  *
  * TODO currently, {@link GeneratorBase} implements this interface,
  *  it should instead contain an instance.
+ *
+ * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public interface TargetTypes {
 
@@ -73,13 +75,12 @@ public interface TargetTypes {
 
     /**
      * Returns an expression in the target language that corresponds
-     * to a time value ({@link #getTargetTimeType()}), with the given
-     * magnitude and unit. The unit may not be null (use {@link TimeUnit#NONE}).
+     * to the given time value ({@link #getTargetTimeType()}).
      */
-    default String getTargetTimeExpression(long magnitude, TimeUnit unit) {
+    default String getTargetTimeExpr(TimeValue timeValue) {
         // todo make non-default when we reuse this for all generators,
         //  all targets should support this.
-        Objects.requireNonNull(unit);
+        Objects.requireNonNull(timeValue);
         throw new UnsupportedGeneratorFeatureException("Time expressions");
     }
 
@@ -191,7 +192,7 @@ public interface TargetTypes {
      */
     default String getTargetExpr(Value value, InferredType type) {
         if (ASTUtils.isZero(value) && type != null && type.isTime) {
-            return getTargetTimeExpression(0, TimeUnit.NONE);
+            return getTargetTimeExpr(TimeValue.ZERO);
         } else if (value.getParameter() != null) {
             return escapeIdentifier(value.getParameter().getName());
         } else if (value.getTime() != null) {
@@ -205,20 +206,11 @@ public interface TargetTypes {
         }
     }
 
-
-    /**
-     * Returns the representation of the given time value in
-     * target code.
-     */
-    default String getTargetTimeExpr(TimeValue tv) {
-        return getTargetTimeExpression(tv.time, tv.unit);
-    }
-
     /**
      * Returns the representation of the given time value in
      * target code.
      */
     default String getTargetTimeExpr(Time t) {
-        return getTargetTimeExpression(t.getInterval(), t.getUnit());
+        return getTargetTimeExpr(new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit())));
     }
 }
