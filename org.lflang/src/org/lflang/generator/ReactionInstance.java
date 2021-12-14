@@ -320,12 +320,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Next, add reactions that get data from this one via a port.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
-                for (PortInstance.SendRange senderRange
+                for (SendRange senderRange
                         : ((PortInstance)effect).eventualDestinations()) {
-                    for (PortInstance.Range destinationRange
+                    for (Range<PortInstance> destinationRange
                             : senderRange.destinations) {
                         dependentReactionsCache.addAll(
-                                destinationRange.getPort().dependentReactions);
+                                destinationRange.instance.dependentReactions);
                     }
                 }
             }
@@ -361,9 +361,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         for (TriggerInstance<? extends Variable> source : sources) {
             if (source instanceof PortInstance) {
                 // First, add reactions that send data through an intermediate port.
-                for (PortInstance.Range senderRange
+                for (Range<PortInstance> senderRange
                         : ((PortInstance)source).eventualSources()) {
-                    dependsOnReactionsCache.addAll(senderRange.getPort().dependsOnReactions);
+                    dependsOnReactionsCache.addAll(senderRange.instance.dependsOnReactions);
                 }
                 // Then, add reactions that send directly to this port.
                 dependsOnReactionsCache.addAll(source.dependsOnReactions);

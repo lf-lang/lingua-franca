@@ -742,7 +742,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     } else {
                         outputPorts.get(leftPort.parent, leftPort)
                     }
-                val rightPort = rightRange.getPort();
+                val rightPort = rightRange.instance;
                 val target = if (rightPort.parent == reactorInstance) {
                         parentOutputPorts.get(rightPort)
                     } else {

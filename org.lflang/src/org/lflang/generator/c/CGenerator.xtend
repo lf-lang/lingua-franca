@@ -68,8 +68,10 @@ import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.NamedInstance
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
+import org.lflang.generator.Range
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
+import org.lflang.generator.SendRange
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
@@ -4881,94 +4883,58 @@ class CGenerator extends GeneratorBase {
     /**
      * Start a scoped block for the specified range.
      * 
-     * If the port of the range is contained by a bank, then this
-     * generates an iteration that iterates over the range.
+     * If the port of the range is contained by any banks, then this
+     * generates iterations over the range of bank members.
      * If the port is also a multiport, then the iteration is over bank
      * members and channels, where the order depends on whether the
      * range is interleaved. 
-     * If the range is interleaved, then it iterates first over
-     * channels (with index given by {@link CUtil.channelIndex(PortInstance)})
-     * and then over banks (with
-     * index given by {@link CUtil.bankIndex(ReactorInstance)}.
-     * Otherwise, it iterates first over banks and then over
-     * channels.
-     * 
-     * If the port is a multiport but its container is not a bank,
-     * then the generated iteration is only over channels (with
-     * index variable named given by {@link CUtil.channelIndex(PortInstance)}).
-     * 
-     * If the port is not a multiport nor is its parent a bank,
-     * then this just generates a scoped section that defines
-     * a pointer to the self struct of the parent of the range's port.
+     * The order of the iterations is specified by the range.
      * 
      * In all cases, it stops the iteration when the
      * total width of the range has been covered.
      * 
      * This must be followed by a call to
-     * {@link endScopedRangeBlock(StringBuilder, PortInstance.Range)}.
+     * {@link endScopedRangeBlock(StringBuilder, Range<PortInstance>)}.
      * 
      * @param builder The string builder into which to write.
      * @param range The send range.
      */
     protected def void startScopedRangeBlock(
-        StringBuilder builder, PortInstance.Range range
+        StringBuilder builder, Range<PortInstance> range
     ) {
-        val port = range.port;
-        val reactor = port.parent;
+        val port = range.instance;
         
         pr(builder, '''
-            // Iterate over range of «range.port.fullName» with starting channel «range.startChannel»,
-            // starting bank «range.startBank», and total width «range.totalWidth».
+            // Iterate over range of «port.fullName» with starting offset «range.start»,
+            // and total width «range.totalWidth».
         ''')
  
         // The first creates a scope in which we can define a pointer to the self
         // struct without fear of redefining.
         startScopedBlock(builder);
         
-        val channelVariable = CUtil.channelIndex(port);
-
-        if (reactor.isBank) {
-            val bankIndex = CUtil.bankIndex(reactor);
-            if (port.isMultiport) {
-                pr(builder, '''
-                    int range_count = 0;
-                    int «channelVariable» = «range.startChannel»;
-                    int «bankIndex» = «range.startBank»;
-                    while (range_count < «range.totalWidth») {
-                ''')
-                indent(builder);
-                defineSelfStruct(builder, reactor);
+        // Include range_count variable so generated code can safely use it.
+        pr(builder, '''
+            int range_count = 0;
+        ''');
+        
+        val iterationOrder = range.iterationOrder();
+        
+        // We need to iterate backwards over the iteration order.
+        for (var i = iterationOrder.size() - 1; i >= 0; i--) {
+            val instance = iterationOrder.get(i);
+            if (instance === port) {
+                startChannelIteration(builder, port);
             } else {
-                // Bank, but not a multiport.
-                 pr(builder, '''
-                    // Send range covers bank member(s). Iterate over bank members.
-                    int range_count = 0;
-                    for (int «bankIndex» = «range.startBank»; «bankIndex» < «range.startBank» + «range.totalWidth»; «bankIndex»++) {
-                ''')
-                indent(builder);
-                pr(builder, '''int «channelVariable» = 0;''');
-                defineSelfStruct(builder, reactor);
+                // Instance is a parent reactor.
+                startScopedBlock(builder, instance as ReactorInstance);
             }
-        } else if (port.isMultiport) {
-            // Reactor is not a bank, but port is a multiport.
-            defineSelfStruct(builder, reactor);
-            pr(builder, '''
-                // Send range covers channels of a multiport. Iterate over channels.
-                int range_count = 0;
-                for (int «channelVariable» = «range.startChannel»; «channelVariable» < «range.startChannel» + «range.totalWidth»; «channelVariable»++) {
-            ''')
-            indent(builder);
-        } else {
-            // Not a multiport nor a bank.
-            // For consistent depth of nesting, generate a scoped block.
-            pr(builder, "{");
-            indent(builder);
-            // Include range_count variable so generated code can safely use it.
-            pr(builder, '''
-                int range_count = 0;
-            ''');
-            defineSelfStruct(builder, reactor);
         }
+        // Allow code to execute only if we are in range.
+        pr(builder, '''
+            if (range_count >= «range.start») {
+        ''')
+        indent(builder);
     }
 
     /**
@@ -4977,52 +4943,42 @@ class CGenerator extends GeneratorBase {
      * @param range The send range.
      */
     protected def void endScopedRangeBlock(
-        StringBuilder builder, PortInstance.Range range
+        StringBuilder builder, Range<PortInstance> range
     ) {
-        val port = range.port;
-        val reactor = port.parent;
-        val channelVariable = CUtil.channelIndex(port);
-        if (reactor.isBank && range.port.isMultiport) {
-            val bankIndex = CUtil.bankIndex(reactor);
-            if (range.interleaved) {
-                // Interleaved. Iterate over channels
-                // then bank members that are within the range.
-                pr(builder, '''
-                    range_count++;
-                    «bankIndex»++;
-                    if («bankIndex» >= «reactor.width») {
-                        «channelVariable»++;
-                        «bankIndex» = 0;
-                    }
-                ''')
-            } else {
-                // Not interleaved. Iterate over the bank members
-                // then channels that are within the range.
-                pr(builder, '''
-                    range_count++;
-                    «channelVariable»++;
-                    if («channelVariable» >= «port.width») {
-                        «bankIndex»++;
-                        «channelVariable» = 0;
-                    }
-                ''')
-            }
-        } else if (reactor.isBank || range.port.isMultiport) {
+        val port = range.instance;
+
+        pr(builder, "}"); // End of predicate on range_count.
+        unindent(builder);
+        pr(builder, '''
+            range_count++;
+            if (range_count >= «range.start» + «range.width») break;
+        ''')
+        
+        val iterationOrder = range.iterationOrder();
+        
+        // We need to iterate backwards over the iteration order.
+        for (var i = iterationOrder.size() - 1; i >= 0; i--) {
+            val instance = iterationOrder.get(i);
             pr(builder, '''
-                range_count++;
+                if (range_count >= «range.start» + «range.width») break;
             ''')
+            if (instance === port) {
+                endChannelIteration(builder, port);
+            } else {
+                // Instance is a parent reactor.
+                endScopedBlock(builder);
+            }
         }
-        endScopedBlock(builder);
         endScopedBlock(builder);
     }
     
     /**
      * Start a scoped block for the specified pair of ranges. This is like
-     * {@link startScopedRangeBlock(StringBuilder, PortInstance.Range),
+     * {@link startScopedRangeBlock(StringBuilder, Range<PortInstance>),
      * except that it also defines bank and channel indices for the second
      * range and iterates over the minimum width of the two ranges.
      * This must be followed by a call to
-     * {@link endScopedRangeBlock(StringBuilder, PortInstance.Range, PortInstance.Range)}.
+     * {@link endScopedRangeBlock(StringBuilder, Range<PortInstance>, Range<PortInstance>)}.
      * 
      * To allow for the possibility that the srcRange and dstRange
      * refer to ports with the same parent, the variables used to
@@ -5037,15 +4993,15 @@ class CGenerator extends GeneratorBase {
      * @param dstRange The destination range.
      */
     protected def void startScopedRangeBlock(
-        StringBuilder builder, PortInstance.Range srcRange, PortInstance.Range dstRange
+        StringBuilder builder, Range<PortInstance> srcRange, Range<PortInstance> dstRange
     ) {
-        val src = srcRange.port;
+        val src = srcRange.instance;
         val width = (srcRange.totalWidth <= dstRange.totalWidth)? srcRange.totalWidth : dstRange.totalWidth;
                         
         pr(builder, '''
-            // Iterate over range1 of «srcRange.port.fullName» with starting channel «srcRange.startChannel»
-            // and starting bank «srcRange.startBank», and range2 of «dstRange.port.fullName» with starting
-            // channel «dstRange.startChannel» and starting bank «dstRange.startBank», with total width «width».
+            // Iterate over range1 of «src.fullName» with starting offset «srcRange.start»,
+            // and range2 of «dstRange.instance.fullName» with starting offset «dstRange.start»,
+            // with total width «width».
         ''')
         
         // Define additional variables for range2.
@@ -5059,12 +5015,12 @@ class CGenerator extends GeneratorBase {
         if (src.parent.isBank && src.isOutput) {
             // Need to specify a suffix to avoid a variable name collision.
             pr(builder, '''
-                int «CUtil.bankIndex(src.parent, "_src")» = «srcRange.startBank»;
+                int «CUtil.bankIndex(src.parent, "_src")» = «srcRange.start»;
             ''')
         }
         if (src.isMultiport) {
             pr(builder, '''
-                int «CUtil.channelIndex(src)» = «srcRange.startChannel»;
+                int «CUtil.channelIndex(src)» = «srcRange.start»;
             ''')
         }
         startScopedRangeBlock(builder, dstRange);
@@ -5078,10 +5034,10 @@ class CGenerator extends GeneratorBase {
      * @param dstRange The destination range.
      */
     protected def void endScopedRangeBlock(
-        StringBuilder builder, PortInstance.Range srcRange, PortInstance.Range dstRange
+        StringBuilder builder, Range<PortInstance> srcRange, Range<PortInstance> dstRange
     ) {
-        val src = srcRange.port;
-        val dst = dstRange.port;
+        val src = srcRange.instance;
+        val dst = dstRange.instance;
         val sfx = "_src";
         // If an output port is triggering a reaction in its parent's parent,
         // then the destination and source may be the same port. In that case,
@@ -5089,8 +5045,8 @@ class CGenerator extends GeneratorBase {
         if (dst != src) {
             // Interleaved status is normally stored in the destination only,
             // but just in case, calculate the XOR.
-            val interleaved = (srcRange.interleaved || dstRange.interleaved)
-                    && !(srcRange.interleaved && dstRange.interleaved);
+            val interleaved = false;
+            // FIXME FIXME (srcRange.interleaved || dstRange.interleaved) && !(srcRange.interleaved && dstRange.interleaved);
             if (interleaved) {
                 if (src.parent.isBank && src.isOutput) {
                     pr(builder, '''
@@ -5187,7 +5143,7 @@ class CGenerator extends GeneratorBase {
         if (!currentFederate.contains(src.parent)) return;
         for (srcRange: src.eventualDestinations()) {
             for (dstRange : srcRange.destinations) {
-                val dst = dstRange.port;
+                val dst = dstRange.instance;
                 val destStructType = variableStructType(dst)
                 if (currentFederate.contains(dst.parent)) {
                     
@@ -6209,7 +6165,7 @@ class CGenerator extends GeneratorBase {
                     // its width will be 1.
                     // We generate the code to fill the triggers array first in a temporary code buffer,
                     // so that we can simultaneously calculate the size of the total array.
-                    for (PortInstance.SendRange range : port.eventualDestinations()) {
+                    for (SendRange range : port.eventualDestinations()) {
                         
                         startScopedRangeBlock(code, range);
                         
@@ -6222,7 +6178,7 @@ class CGenerator extends GeneratorBase {
                         var destRangeCount = 0;
                         for (destinationRange : range.destinations) {
                             foundDestinations = true;
-                            val destination = destinationRange.getPort();
+                            val destination = destinationRange.instance;
                             
                             if (!declared.contains(destination.parent)) {
                                 // Need to declare the self struct of the destination's parent.

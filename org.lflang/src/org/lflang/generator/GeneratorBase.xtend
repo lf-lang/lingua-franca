@@ -34,11 +34,8 @@ import java.util.LinkedHashSet
 import java.util.List
 import java.util.Map
 import java.util.Set
-import java.util.regex.Pattern
 import java.util.stream.Collectors
 import org.eclipse.core.resources.IMarker
-import org.eclipse.core.resources.IResource
-import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -50,7 +47,6 @@ import org.lflang.InferredType
 import org.lflang.MainConflictChecker
 import org.lflang.Target
 import org.lflang.TargetConfig
-import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
@@ -58,19 +54,16 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
+import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
-import org.lflang.lf.Parameter
-import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
-import org.lflang.lf.StateVar
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Generator base class for specifying core functionality
@@ -1053,10 +1046,10 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                 // Need ReactorInstance support for ranges.
                 // val sourceBankIndex = (source.getPort().parent.bankIndex >= 0) ? source.getPort().parent.bankIndex : 0
                 val sourceBankIndex = 0
-                val sourceFederate = federatesByInstantiation.get(source.getPort().parent.definition).get(sourceBankIndex);
+                val sourceFederate = federatesByInstantiation.get(source.instance.parent.definition).get(sourceBankIndex);
 
                 // Set up dependency information.
-                var connection = source.connection;
+                var connection = null as Connection// FIXME FIXME source.connection;
                 if (connection === null) {
                     // This should not happen.
                     errorReporter.reportError(input.definition, "Unexpected error. Cannot find input connection for port")
@@ -1095,14 +1088,14 @@ abstract class GeneratorBase extends JavaGeneratorBase {
 
                     // Make one communication for each channel.
                     // FIXME: There is an opportunity for optimization here by aggregating channels.
-                    for (var i = 0; i < source.getTotalWidth(); i++) {
+                    for (var i = 0; i < source.totalWidth; i++) {
                         FedASTUtils.makeCommunication(
-                            source.getPort(),
+                            source.instance,
                             input,
                             connection,
                             sourceFederate,
                             0, // FIXME: source.getPort().parent.bankIndex,
-                            source.startChannel + i,
+                            source.start + i,
                             destinationFederate,
                             0, // FIXME: input.parent.bankIndex,
                             channel + i,
@@ -1110,7 +1103,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                             targetConfig.coordination
                         );
                     }
-                    channel += source.getTotalWidth();
+                    channel += source.totalWidth;
                 }
             }
         }

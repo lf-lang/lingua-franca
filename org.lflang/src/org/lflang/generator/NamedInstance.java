@@ -123,6 +123,13 @@ public abstract class NamedInstance<T extends EObject> {
     }
     
     /**
+     * Return the width of this port, which in this base class is 1.
+     */
+    public int getWidth() {
+        return width;
+    }
+    
+    /**
      * Return true if this instance has the specified parent
      * (possibly indirectly, anywhere up the hierarchy).
      */
@@ -247,6 +254,13 @@ public abstract class NamedInstance<T extends EObject> {
      * for the main reactor (the top level).
      */
     HashMap<String,Integer> uniqueIDCount;
+
+    /** 
+     * The width of this instance. This is 1 for everything
+     * except a PortInstance representing a multiport and a
+     * ReactorInstance representing a bank.
+     */
+    int width = 1;
 
     //////////////////////////////////////////////////////
     //// Protected methods.
