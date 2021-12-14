@@ -183,7 +183,14 @@ reactor SortedListImpl(numWorkers: usize(20)) {
         use std::collections::LinkedList;
         use std::cmp::{PartialEq, PartialOrd};
         
-        // Linked list sorted in ascending order
+        // Linked list sorted in ascending order.
+        // We are using the standard library here for a linked list, instead of
+        // directly porting the naive C++ implementation.
+        // This might have performance side effects, because the standard
+        // implementation might have some allocation optimisations the naive
+        // C++ implementation doesn't.
+        // Otherwise, the way it is operated on should be comparable in
+        // terms of performance.
         pub struct SortedLinkedList<T> {
             list: LinkedList<T>,
         }
