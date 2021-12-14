@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
@@ -128,9 +128,7 @@ public class FedASTUtils {
             // the minDelay.
             if (connection.getDelay() != null) {
                 action.setMinDelay(factory.createValue());
-                action.getMinDelay().setTime(factory.createTime());
-                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
-                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
+                action.getMinDelay().setTime(connection.getDelay().getTime());
             }
         } else {
             action.setOrigin(ActionOrigin.LOGICAL);
@@ -206,9 +204,9 @@ public class FedASTUtils {
         int receivingPortID = destinationFederate.networkMessageActions.size();
         
         // Establish references to the involved ports.
-        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setContainer(source.getParent().getDefinition());
         sourceRef.setVariable(source.getDefinition());
-        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setContainer(destination.getParent().getDefinition());
         destRef.setVariable(destination.getDefinition());
         
         if (!connection.isPhysical()) {            
@@ -217,7 +215,7 @@ public class FedASTUtils {
             // as a trigger to keep the overall dependency structure. 
             // This is useful when assigning levels.
             VarRef senderOutputPort = factory.createVarRef();
-            senderOutputPort.setContainer(source.parent.getDefinition());
+            senderOutputPort.setContainer(source.getParent().getDefinition());
             senderOutputPort.setVariable(source.getDefinition());
             networkReceiverReaction.getTriggers().add(senderOutputPort);
             // Add this trigger to the list of disconnected network reaction triggers
@@ -298,12 +296,12 @@ public class FedASTUtils {
         Input newTriggerForControlReactionInput = factory.createInput();       
 
         // Set the container and variable according to the network port
-        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setContainer(destination.getParent().getDefinition());
         destRef.setVariable(destination.getDefinition());
-        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setContainer(source.getParent().getDefinition());
         sourceRef.setVariable(source.getDefinition());
         
-        Reactor top = destination.parent.parent.reactorDefinition;
+        Reactor top = destination.getParent().getParent().reactorDefinition;
         
         newTriggerForControlReactionInput.setName(ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
         newTriggerForControlReactionInput.setType(portType);         
@@ -335,7 +333,7 @@ public class FedASTUtils {
                 destination.getDefinition(),
                 instance,
                 generator, 
-                destination.parent.reactorDefinition
+                destination.getParent().reactorDefinition
         );
 
         reaction.getCode()
@@ -402,7 +400,7 @@ public class FedASTUtils {
         // Find a list of STP offsets (if any exists)
         if (generator.isFederatedAndDecentralized()) {
             for (Reaction r : safe(reactionsWithPort)) {
-                if (!instance.containsReaction(r)) {
+                if (!instance.contains(r)) {
                     continue;
                 }
                 // If STP offset is determined, add it
@@ -439,7 +437,7 @@ public class FedASTUtils {
                             .getVariable())).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
-                    if (!instance.containsReaction(r)) {
+                    if (!instance.contains(r)) {
                         continue;
                     }
                     // If STP offset is determined, add it
@@ -456,16 +454,11 @@ public class FedASTUtils {
                 }
             }
         }
-        
-        TimeValue maxSTP = new TimeValue(0, TimeUnit.NONE);
-        for (Value value : safe(STPList)) {
-            TimeValue tValue = ASTUtils.getTimeValue(value);
-            if(maxSTP.isEarlierThan(tValue)) {
-                maxSTP = tValue;
-            }
-        }
-        
-        return maxSTP;
+
+        return STPList.stream()
+                      .map(JavaAstUtils::getTimeValue)
+                      .filter(Objects::nonNull)
+                      .reduce(TimeValue.ZERO, TimeValue::max);
     }
     
     /**
@@ -533,9 +526,9 @@ public class FedASTUtils {
 
 
         // Establish references to the involved ports.
-        sourceRef.setContainer(source.parent.getDefinition());
+        sourceRef.setContainer(source.getParent().getDefinition());
         sourceRef.setVariable(source.getDefinition());
-        destRef.setContainer(destination.parent.getDefinition());
+        destRef.setContainer(destination.getParent().getDefinition());
         destRef.setVariable(destination.getDefinition());
         
         // Configure the sending reaction.
@@ -592,7 +585,7 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        Reactor top = source.parent.parent.reactorDefinition; // Top-level reactor.
+        Reactor top = source.getParent().getParent().reactorDefinition; // Top-level reactor.
         
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
@@ -601,7 +594,7 @@ public class FedASTUtils {
         // Add the output from the contained reactor as a source to
         // the reaction to preserve precedence order.
         VarRef newPortRef = factory.createVarRef();
-        newPortRef.setContainer(source.parent.getDefinition());
+        newPortRef.setContainer(source.getParent().getDefinition());
         newPortRef.setVariable(source.getDefinition());
         reaction.getSources().add(newPortRef);
 

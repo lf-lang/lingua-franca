@@ -40,3 +40,8 @@ def parse_lfc_output(lines):
             times.append(ns / 1000000.0)
 
     return times
+
+def parse_lf_rust_output(lines):
+    # note: for the rust target, the log line is printed by
+    # the BenchmarkRunner reactor, and not by the runtime directly.
+    return parse_lfc_output(lines)

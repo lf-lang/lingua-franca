@@ -32,6 +32,8 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Time;
+import java.lang.IllegalArgumentException;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 
@@ -150,15 +152,86 @@ public final class JavaAstUtils {
     }
 
     /**
-     * If the given string can be recognized as a floating-point number that has a leading decimal point, 
+     * Returns the time value represented by the given AST node.
+     */
+    public static TimeValue toTimeValue(Time e) {
+        if (!isValidTime(e)) {
+            // invalid unit, will have been reported by validator
+            throw new IllegalArgumentException();
+        }
+        return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
+    }
+
+    /**
+     * If the given string can be recognized as a floating-point number that has a leading decimal point,
      * prepend the string with a zero and return it. Otherwise, return the original string.
+     *
      * @param literal A string might be recognizable as a floating point number with a leading decimal point.
      * @return an equivalent representation of <code>literal
      * </code>
      */
     public static String addZeroToLeadingDot(String literal) {
         Matcher m = ABBREVIATED_FLOAT.matcher(literal);
-        if (m.matches()) return literal.replace(".", "0.");
+        if (m.matches()) {
+            return literal.replace(".", "0.");
+        }
         return literal;
     }
+
+    /**
+     * Assuming that the given value denotes a valid time,
+     * return a time value.
+     */
+    public static TimeValue getTimeValue(Value v) {
+        if (v.getParameter() != null) {
+            return getDefaultAsTimeValue(v.getParameter());
+        } else if (v.getTime() != null) {
+            return toTimeValue(v.getTime());
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * If the parameter is of time type, return its default value.
+     * Otherwise, return null.
+     */
+    public static TimeValue getDefaultAsTimeValue(Parameter p) {
+        if (isOfTimeType(p)) {
+            var init = p.getInit().get(0);
+            if (init != null) {
+                return getTimeValue(init);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return whether the given state variable is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(StateVar state) {
+        InferredType t = getInferredType(state);
+        return t.isTime && !t.isList;
+    }
+
+    /**
+     * Return whether the given parameter is inferred
+     * to a time type.
+     */
+    public static boolean isOfTimeType(Parameter param) {
+        InferredType t = getInferredType(param);
+        return t.isTime && !t.isList;
+    }
+
+    /**
+     * Returns true if the argument denotes a valid time, false otherwise.
+     *
+     * @param t AST node to inspect (non-null).
+     */
+    public static boolean isValidTime(Time t) {
+        return TimeUnit.isValidUnit(t.getUnit())
+            && (t.getUnit() != null || t.getInterval() == 0);
+    }
+
 }
