@@ -302,7 +302,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         port.dependsOnReactions.forEach[this.addEdge(reaction, it)]
         // Reactions in upstream reactors.
         for (upstreamPort : port.dependsOnPorts) {
-            addUpstreamReactions(upstreamPort.getPort(), reaction)
+            addUpstreamReactions(upstreamPort.instance, reaction)
         }
     }
 
@@ -318,7 +318,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         port.dependentReactions.forEach[this.addEdge(it, reaction)]
         // Reactions in downstream reactors.
         for (downstreamPort : port.dependentPorts) {
-            addDownstreamReactions(downstreamPort.getPort(), reaction)
+            addDownstreamReactions(downstreamPort.instance, reaction)
         }
     }
 

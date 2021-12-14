@@ -300,8 +300,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * as returned by width().
      */
     public int getTotalNumReactorInstances() {
-        if (width() < 0 || numReactorInstances < 0) return -1;
-        return width() * numReactorInstances;
+        if (width < 0 || numReactorInstances < 0) return -1;
+        return width * numReactorInstances;
     }
     
     /** 
@@ -575,21 +575,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         transitiveClosure(source, result);
         return result;
     }
-
-    /**
-     * If this is a bank of reactors, return the width or -1 if it cannot
-     * be determined. Otherwise, return 1.
-     * @return The width, or -1 if it cannot be determined.
-     */
-    public int width() {
-        WidthSpec widthSpec = definition.getWidthSpec();
-        if (widthSpec != null) {
-            // We need the instantiations list of the containing reactor,
-            // not this one.
-            return ASTUtils.width(widthSpec, parent.instantiations());
-        }
-        return 1;
-    }
     
     //////////////////////////////////////////////////////
     //// Protected fields.
@@ -724,8 +709,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (source.isInput()) {
             destinations.add(source);
         }
-        for (PortInstance.Range dst : source.dependentPorts) {
-            PortInstance destination = dst.getPort();
+        for (Range<PortInstance> dst : source.dependentPorts) {
+            PortInstance destination = dst.instance;
             destinations.add(destination);
             if (destination.isInput()) {
                 // Destination may have further destinations lower in the hierarchy.
@@ -789,6 +774,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
             return;
         }
+        
+        setInitialWidth();
         
         // Apply overrides and instantiate parameters for this reactor instance.
         for (Parameter parameter : ASTUtils.allParameters(reactorDefinition)) {
@@ -865,15 +852,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param dst The destination range.
      */
     private void connectPortInstances(
-            PortInstance.Range src,
-            PortInstance.Range dst
+            Range<PortInstance> src,
+            Range<PortInstance> dst
     ) {
-        if (src.interleaved) {
-            dst = dst.toggleInterleaved();
-            src = src.toggleInterleaved();
-        }
-        src.getPort().dependentPorts.add(dst);
-        dst.getPort().dependsOnPorts.add(src);
+        src.instance.dependentPorts.add(dst);
+        dst.instance.dependsOnPorts.add(src);
     }
 
     /**
@@ -887,9 +870,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<PortInstance.Range> leftPorts = listPortInstances(connection.getLeftPorts());
-            Iterator<PortInstance.Range> srcRanges = leftPorts.iterator();
-            Iterator<PortInstance.Range> dstRanges = listPortInstances(connection.getRightPorts()).iterator();
+            List<Range<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts());
+            Iterator<Range<PortInstance>> srcRanges = leftPorts.iterator();
+            Iterator<Range<PortInstance>> dstRanges = listPortInstances(connection.getRightPorts()).iterator();
             
             // Check for empty lists.
             if (!srcRanges.hasNext()) {
@@ -902,11 +885,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 return;
             }
             
-            PortInstance.Range src = srcRanges.next();
-            PortInstance.Range dst = dstRanges.next();
+            Range<PortInstance> src = srcRanges.next();
+            Range<PortInstance> dst = dstRanges.next();
 
             while(true) {
-                if (dst.getTotalWidth() == src.getTotalWidth()) {
+                if (dst.totalWidth == src.totalWidth) {
                     connectPortInstances(src, dst);
                     if (!dstRanges.hasNext()) {
                         if (srcRanges.hasNext()) {
@@ -925,20 +908,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     }
                     dst = dstRanges.next();
                     src = srcRanges.next();
-                } else if (dst.getTotalWidth() < src.getTotalWidth()) {
+                } else if (dst.totalWidth < src.totalWidth) {
                     // Split the left range in two.
-                    connectPortInstances(src.truncate(dst.getTotalWidth()), dst);
-                    src = src.tail(dst.getTotalWidth());
+                    connectPortInstances(src.head(dst.totalWidth), dst);
+                    src = src.tail(dst.totalWidth);
                     if (!dstRanges.hasNext()) {
                         reporter.reportWarning(connection, 
                                 "Source is wider than the destination. Outputs will be lost.");
                         break;
                     }
                     dst = dstRanges.next();
-                } else if (src.getTotalWidth() < dst.getTotalWidth()) {
+                } else if (src.totalWidth < dst.totalWidth) {
                     // Split the right range in two.
-                    connectPortInstances(src, dst.truncate(src.getTotalWidth()));
-                    dst = dst.tail(src.getTotalWidth());
+                    connectPortInstances(src, dst.head(src.totalWidth));
+                    dst = dst.tail(src.totalWidth);
                     if (!srcRanges.hasNext()) {
                         if (connection.isIterated()) {
                             srcRanges = leftPorts.iterator();
@@ -969,8 +952,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * With the interleaved marking, the returned range represents the sequence
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
      */
-    private List<PortInstance.Range> listPortInstances(List<VarRef> references) {
-        List<PortInstance.Range> result = new ArrayList<PortInstance.Range>();
+    private List<Range<PortInstance>> listPortInstances(List<VarRef> references) {
+        List<Range<PortInstance>> result = new ArrayList<Range<PortInstance>>();
         for (VarRef portRef : references) {
             // Simple error checking first.
             if (!(portRef.getVariable() instanceof Port)) {
@@ -989,24 +972,33 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (reactor != null) {
                 PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
                 
-                // If the reactor is a contained reactor that is a bank, get its width.
-                int bankWidth = 1;
-                if (reactor != this) bankWidth = reactor.width();
-                
-                Connection connection = null;
-                if (portRef.eContainer() instanceof Connection) {
-                    connection = (Connection)portRef.eContainer();
+                Range<PortInstance> range = new Range.Port(portInstance);
+                if (portRef.isInterleaved()) {
+                    // Toggle interleaving at the depth of this reactor, which
+                    // contains the Connection.  This is not necessarily the reactor
+                    // that is the parent of the port.
+                    range = range.toggleInterleaved(this);
                 }
-                    
-                PortInstance.Range range = portInstance.new Range(
-                        0, 0, portInstance.width * bankWidth, portRef.isInterleaved(), connection
-                );
                 result.add(range);
             }
         }
         return result;
     }
 
+    /**
+     * If this is a bank of reactors, set the width.
+     * It will be set to -1 if it cannot
+     * be determined.
+     */
+    private void setInitialWidth() {
+        WidthSpec widthSpec = definition.getWidthSpec();
+        if (widthSpec != null) {
+            // We need the instantiations list of the containing reactor,
+            // not this one.
+            width = ASTUtils.width(widthSpec, parent.instantiations());
+        }
+    }
+    
     //////////////////////////////////////////////////////
     //// Private fields.
 
