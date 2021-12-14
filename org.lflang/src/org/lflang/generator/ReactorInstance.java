@@ -890,39 +890,45 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             Range<PortInstance> dst = dstRanges.next();
 
             while(true) {
-                if (dst.totalWidth == src.totalWidth) {
+                if (dst.width == src.width) {
                     connectPortInstances(src, dst);
                     if (!dstRanges.hasNext()) {
                         if (srcRanges.hasNext()) {
+                            // Should not happen (checked by the validator).
                             reporter.reportWarning(connection, 
                                     "Source is wider than the destination. Outputs will be lost.");
                         }
                         break;
-                    } else if (!srcRanges.hasNext()) {
+                    }
+                    if (!srcRanges.hasNext()) {
                         if (connection.isIterated()) {
                             srcRanges = leftPorts.iterator();
                         } else {
-                            reporter.reportWarning(connection, 
-                                    "Destination is wider than the source. Inputs will be missing.");
+                            if (dstRanges.hasNext()) {
+                                // Should not happen (checked by the validator).
+                                reporter.reportWarning(connection, 
+                                        "Destination is wider than the source. Inputs will be missing.");
+                            }
                             break;
                         }
                     }
                     dst = dstRanges.next();
                     src = srcRanges.next();
-                } else if (dst.totalWidth < src.totalWidth) {
-                    // Split the left range in two.
-                    connectPortInstances(src.head(dst.totalWidth), dst);
-                    src = src.tail(dst.totalWidth);
+                } else if (dst.width < src.width) {
+                    // Split the left (src) range in two.
+                    connectPortInstances(src.head(dst.width), dst);
+                    src = src.tail(dst.width);
                     if (!dstRanges.hasNext()) {
+                        // Should not happen (checked by the validator).
                         reporter.reportWarning(connection, 
                                 "Source is wider than the destination. Outputs will be lost.");
                         break;
                     }
                     dst = dstRanges.next();
-                } else if (src.totalWidth < dst.totalWidth) {
-                    // Split the right range in two.
-                    connectPortInstances(src, dst.head(src.totalWidth));
-                    dst = dst.tail(src.totalWidth);
+                } else if (src.width < dst.width) {
+                    // Split the right (dst) range in two.
+                    connectPortInstances(src, dst.head(src.width));
+                    dst = dst.tail(src.width);
                     if (!srcRanges.hasNext()) {
                         if (connection.isIterated()) {
                             srcRanges = leftPorts.iterator();
@@ -980,10 +986,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 
                 Range<PortInstance> range = new Range.Port(portInstance, connection);
                 if (portRef.isInterleaved()) {
-                    // Toggle interleaving at the depth of this reactor, which
-                    // contains the Connection.  This is not necessarily the reactor
+                    // Toggle interleaving at the depth of the reactor
                     // that is the parent of the port.
-                    range = range.toggleInterleaved(this);
+                    // FIXME: Here, we are assuming that the interleaved()
+                    // keyword is only allowed on the multiports contained by
+                    // contained reactors.
+                    range = range.toggleInterleaved(portInstance.parent);
                 }
                 result.add(range);
             }

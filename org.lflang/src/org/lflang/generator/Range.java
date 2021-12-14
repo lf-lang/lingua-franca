@@ -39,15 +39,15 @@ import org.lflang.lf.Connection;
  * program.  There are three levels of detail:
  * 
  * * The abstract syntax tree (AST).
- * * The instantiation graph (IG).
+ * * The compile-time instance graph (CIG).
  * * The runtime instance graph (RIG).
  * 
  * In the AST, each reactor class is represented once.
- * In the IG, each reactor class is represented as many times as it is
+ * In the CIG, each reactor class is represented as many times as it is
  * instantiated, except that a bank has only one representation (as
- * in the graphical rendition). Equivalently, each IG node has a unique
+ * in the graphical rendition). Equivalently, each CIG node has a unique
  * full name, even though it may represent many runtime instances.
- * The IG is represented by
+ * The CIG is represented by
  * {@link NamedInstance<T extends EObject>} and its derived classes.
  * In the RIG, each bank is expanded so each bank member and
  * each port channel is represented.
@@ -67,18 +67,32 @@ import org.lflang.lf.Connection;
  * the same dependencies.
  * 
  * A Range represents an adjacent set of RIG objects (port channels, reactions
- * reactors). Specifically, it is a list of RIG objects, each of which may have
- * a width greater than one, listed in the order in which they should be iterated
- * over, plus a start offset into the expanded list and a width of the range.
+ * reactors). For example, it can represent port channels 2 through 5 in a multiport
+ * of width 10.  The width in this case is 4. If such a port is
+ * contained by one or more banks of reactors, then channels 2 through 5
+ * of one bank member form a contiguous range. If you want channels 2 through 5
+ * of all bank members, then this needs to be represented with multiple ranges.
  * 
- * The simplest Ranges are those where the corresponding IG node represents
- * only one runtime instance (its ig_instance is not (deeply) within a bank 
- * and is not a multiport). In this case, the Range and all its RIG objects
- * will have width = 1.
+ * The maxWidth is the width of the instance multiplied by the widths of
+ * each of its containers. For example, if a port of width 4 is contained by
+ * a bank of width 2 that is then contained by a bank of width 3, then
+ * the maxWidth will be 2*3*4 = 24.
+ * 
+ * The function iterationOrder returns a list that includes the instance
+ * of this range and all its containers, except the top-level reactor (main
+ * or federated).  The order of this list is the order in which an
+ * iteration over the RIG objects represented by this range should be
+ * iterated. If the instance is a PortInstance, then this order will
+ * depend on whether connections at any level of the hierarchy are
+ * interleaved.
+ * 
+ * The simplest Ranges are those where the corresponding CIG node represents
+ * only one runtime instance (its instance is not (deeply) within a bank 
+ * and is not a multiport). In this case, the Range and all the objects
+ * returned by iterationOrder will have width 1.
  * 
  * In a more complex instance, consider a bank A of width 2 that contains a
  * bank B of width 2 that contains a port instance P with width 2. .
- * 
  * There are a total of 8 instances of P, which we can name:
  * 
  *      A0.B0.P0
@@ -90,12 +104,12 @@ import org.lflang.lf.Connection;
  *      A1.B1.P0
  *      A1.B1.P1
  * 
- * If there is no interleaving, the list of RIG objects will be P, B, A,
+ * If there is no interleaving, iterationOrder() returns [P, B, A],
  * indicating that they should be iterated by incrementing the index of P
- * first, then the index of B, then the index of A.
+ * first, then the index of B, then the index of A, as done above.
  * 
  * If the connection within B to port P is interleaved, then the order
- * of iteration will be B, P, A, resulting in the list:
+ * of iteration order will be [B, P, A], resulting in the list:
  * 
  *      A0.B0.P0
  *      A0.B1.P0
@@ -107,7 +121,7 @@ import org.lflang.lf.Connection;
  *      A1.B1.P1
  *      
  *  If the connection within A to B is also interleaved, then the order
- *  will be A, B, P, resulting in the list:
+ *  will be [A, B, P], resulting in the list:
  *  
  *      A0.B0.P0
  *      A1.B0.P0
@@ -119,7 +133,7 @@ import org.lflang.lf.Connection;
  *      A1.B1.P1
  * 
  * Finally, if the connection within A to B is interleaved, but not the
- * connection within B to P, then the order will be A, P, B, resulting in
+ * connection within B to P, then the order will be [A, P, B], resulting in
  * the list:
  * 
  *      A0.B0.P0
@@ -132,9 +146,10 @@ import org.lflang.lf.Connection;
  *      A1.B1.P1
  * 
  * A Range is a contiguous subset of one of the above lists, given by
- * a start offset and a width.
+ * a start offset and a width that is less than or equal to maxWidth.
  * 
- * The head and tail functions split such a range.
+ * For a Range with width greater than 1,
+ * the head() and tail() functions split the range.
  * 
  * This class and subclasses are designed to be immutable.
  * Modifications always return a new Range.
@@ -175,20 +190,22 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
             Connection connection
     ) {
         this.instance = instance;
-        int totalWidth = instance.width;
+        this.start = start;
+        this.connection = connection;
+        
+        int maxWidth = instance.width; // Initial value.
         NamedInstance<?> parent = instance.parent;
         while (parent.depth > 0) {
-            totalWidth *= parent.width;
+            maxWidth *= parent.width;
             parent = parent.parent;
         }
-        this.start = start;
-        if (width > 0 && width + start < totalWidth) {
+        this.maxWidth = maxWidth;
+
+        if (width > 0 && width + start < maxWidth) {
             this.width = width;
         } else {
-            this.width = totalWidth - start;
+            this.width = maxWidth - start;
         }
-        this.totalWidth = totalWidth;
-        this.connection = connection;
     }
     
     //////////////////////////////////////////////////////////
@@ -203,8 +220,8 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     /** The start offset of this range. */
     public final int start;
     
-    /** The total width of the list of instances. */
-    public final int totalWidth;
+    /** The maximum width of any range with this instance. */
+    public final int maxWidth;
     
     /** The width of this range. */
     public final int width;
@@ -269,20 +286,21 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
             } else {
                 result.add(parent);
             }
+            parent = parent.parent;
         }
         return result;
     }
 
     /**
      * Return a new range that represents the leftover elements
-     * starting at the specified offset. If the offset is greater
-     * than or equal to the width, then this returns null.
+     * starting at the specified offset relative to start.
+     * If start + offset is greater than or equal to the maxWidth, then this returns null.
      * If this offset is 0 then this returns this range unmodified.
      * @param offset The number of elements to consume. 
      */
     public Range<T> tail(int offset) {
         if (offset == 0) return this;
-        if (offset >= width) return null;
+        if (start + offset >= maxWidth) return null;
         return new Range<T>(instance, start + offset, width - offset, connection);
     }
     
@@ -295,7 +313,7 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
      */
     public Range<T> toggleInterleaved(ReactorInstance reactor) {
         Set<ReactorInstance> newInterleaved = new HashSet<ReactorInstance>(_interleaved);
-        if (newInterleaved.contains(reactor)) {
+        if (_interleaved.contains(reactor)) {
             newInterleaved.remove(reactor);
         } else {
             newInterleaved.add(reactor);
