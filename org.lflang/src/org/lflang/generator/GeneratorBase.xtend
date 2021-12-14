@@ -54,7 +54,6 @@ import org.lflang.federated.FederateInstance
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.Action
-import org.lflang.lf.Connection
 import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
@@ -1049,7 +1048,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                 val sourceFederate = federatesByInstantiation.get(source.instance.parent.definition).get(sourceBankIndex);
 
                 // Set up dependency information.
-                var connection = null as Connection// FIXME FIXME source.connection;
+                var connection = source.connection;
                 if (connection === null) {
                     // This should not happen.
                     errorReporter.reportError(input.definition, "Unexpected error. Cannot find input connection for port")

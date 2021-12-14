@@ -4997,6 +4997,7 @@ class CGenerator extends GeneratorBase {
     ) {
         val src = srcRange.instance;
         val width = (srcRange.totalWidth <= dstRange.totalWidth)? srcRange.totalWidth : dstRange.totalWidth;
+        val sfx = "_src";
                         
         pr(builder, '''
             // Iterate over range1 of «src.fullName» with starting offset «srcRange.start»,
@@ -5007,24 +5008,31 @@ class CGenerator extends GeneratorBase {
         // Define additional variables for range2.
         startScopedBlock(builder);
         
-        // FIXME FIXME: This will fail if the destination is deeply nested within a bank
-        // or if it is nested within multiple banks.
-        // Need to change SendRange so that startBank is an array of length equal to
-        // the depth of the port's container.
-
-        if (src.parent.isBank && src.isOutput) {
-            // Need to specify a suffix to avoid a variable name collision.
-            pr(builder, '''
-                int «CUtil.bankIndex(src.parent, "_src")» = «srcRange.start»;
-            ''')
+        // Declare the variables needed for the source range.
+        // These need to be initialized to starting indices.
+        val srcIteration = srcRange.iterationOrder();
+        var factor = 1;
+        for (i : srcIteration) {
+            val init = (srcRange.start / factor) % i.width;
+            if (i instanceof PortInstance) {
+                pr(builder, '''
+                    int «CUtil.channelIndex(i)» = «init»;
+                ''')
+            } else {
+                pr(builder, '''
+                    int «CUtil.bankIndex(i as ReactorInstance, sfx)» = «init»;
+                ''')
+            }
+            factor *= i.width;
         }
-        if (src.isMultiport) {
-            pr(builder, '''
-                int «CUtil.channelIndex(src)» = «srcRange.start»;
-            ''')
-        }
+        
         startScopedRangeBlock(builder, dstRange);
-        defineSelfStruct(builder, src.parent, "_src");
+        
+        for (i : srcIteration) {
+            if (i instanceof ReactorInstance) {
+                defineSelfStruct(builder, i, sfx);
+            }
+        }
     }
     
     /**
@@ -5043,45 +5051,44 @@ class CGenerator extends GeneratorBase {
         // then the destination and source may be the same port. In that case,
         // we want to avoid double incrementing the bank and channel variables.
         if (dst != src) {
-            // Interleaved status is normally stored in the destination only,
-            // but just in case, calculate the XOR.
-            val interleaved = false;
-            // FIXME FIXME (srcRange.interleaved || dstRange.interleaved) && !(srcRange.interleaved && dstRange.interleaved);
-            if (interleaved) {
-                if (src.parent.isBank && src.isOutput) {
-                    pr(builder, '''
-                        «CUtil.bankIndex(src.parent, sfx)»++;
-                    ''')
-                    if (src.isMultiport) {
+            val srcIteration = srcRange.iterationOrder();
+            for (i : srcIteration) {
+                if (i instanceof PortInstance) {
+                    // No need to do anything if it's not a multiport.
+                    if (i.isMultiport) {
                         pr(builder, '''
-                            if («CUtil.bankIndex(src.parent, sfx)» >= «src.parent.width») {
-                                «CUtil.bankIndex(src.parent, sfx)» = 0;
-                                «CUtil.channelIndex(src)»++;
-                            }
+                            «CUtil.channelIndex(i)»++;
+                            if («CUtil.channelIndex(i)» >= «i.width») {
+                                «CUtil.channelIndex(i)» = 0;
                         ''')
+                        indent(builder);
                     }
-                } else if (src.isMultiport) {
-                    pr(builder, '''
-                        «CUtil.channelIndex(src)»++;
-                    ''')
+                } else if (i instanceof ReactorInstance) {
+                    // No need to do anything if it's not a bank.
+                    if (i.isBank) {
+                        pr(builder, '''
+                            «CUtil.bankIndex(i, sfx)»++;
+                            if («CUtil.bankIndex(i, sfx)» >= «i.width») {
+                                «CUtil.bankIndex(i, sfx)» = 0;
+                        ''')
+                        indent(builder);
+                    }
                 }
-            } else {
-                if (src.isMultiport) {
-                    pr(builder, '''
-                        «CUtil.channelIndex(src)»++;
-                    ''')
-                    if (src.parent.isBank && src.isOutput) {
-                        pr(builder, '''
-                            if («CUtil.channelIndex(src)» >= «src.width») {
-                                «CUtil.channelIndex(src)» = 0;
-                                «CUtil.bankIndex(src.parent, sfx)»++;
-                            }
-                        ''')
+            }
+            // Now need to close all these if blocks.
+            for (i : srcIteration) {
+                if (i instanceof PortInstance) {
+                    // No need to do anything if it's not a multiport.
+                    if (i.isMultiport) {
+                        unindent(builder);
+                        pr(builder, "}");
                     }
-                } else if (src.parent.isBank && src.isInput) {
-                    pr(builder, '''
-                        «CUtil.bankIndex(src.parent, sfx)»++;
-                    ''')
+                } else if (i instanceof ReactorInstance) {
+                    // No need to do anything if it's not a bank.
+                    if (i.isBank) {
+                        unindent(builder);
+                        pr(builder, "}");
+                    }
                 }
             }
         }

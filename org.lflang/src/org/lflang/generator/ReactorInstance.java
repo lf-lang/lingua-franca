@@ -870,9 +870,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<Range<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts());
+            List<Range<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
             Iterator<Range<PortInstance>> srcRanges = leftPorts.iterator();
-            Iterator<Range<PortInstance>> dstRanges = listPortInstances(connection.getRightPorts()).iterator();
+            Iterator<Range<PortInstance>> dstRanges 
+                    = listPortInstances(connection.getRightPorts(), connection).iterator();
             
             // Check for empty lists.
             if (!srcRanges.hasNext()) {
@@ -951,8 +952,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
      * With the interleaved marking, the returned range represents the sequence
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
+     * 
+     * @param references The variable references on one side of the connection.
+     * @param connection The connection.
      */
-    private List<Range<PortInstance>> listPortInstances(List<VarRef> references) {
+    private List<Range<PortInstance>> listPortInstances(
+            List<VarRef> references, Connection connection
+    ) {
         List<Range<PortInstance>> result = new ArrayList<Range<PortInstance>>();
         for (VarRef portRef : references) {
             // Simple error checking first.
@@ -972,7 +978,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (reactor != null) {
                 PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
                 
-                Range<PortInstance> range = new Range.Port(portInstance);
+                Range<PortInstance> range = new Range.Port(portInstance, connection);
                 if (portRef.isInterleaved()) {
                     // Toggle interleaving at the depth of this reactor, which
                     // contains the Connection.  This is not necessarily the reactor
