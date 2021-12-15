@@ -22,7 +22,7 @@ main reactor SlowingClock {
     =}
     reaction(a) -> a {=
         auto elapsed_logical_time = get_elapsed_logical_time();
-        reactor::log::Info() << "Logical time since start: " << elapsed_logical_time.count() << " nsec.";
+        reactor::log::Info() << "Logical time since start: " << elapsed_logical_time;
         if(elapsed_logical_time != expected_time) {
             reactor::log::Error() << "Expected time to be: " << expected_time;
             exit(1);
