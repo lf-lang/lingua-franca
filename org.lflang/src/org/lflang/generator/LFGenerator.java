@@ -187,9 +187,14 @@ public class LFGenerator extends AbstractGenerator {
 
         // If the verification flag is true, generate a UCLID5 model from
         // the static information.
-        if (generator.targetConfig.smt) {
-            GeneratorBase uclidGen = new UclidGenerator(fileConfig, errorReporter);
-            uclidGen.doGenerate(resource, fsa, context);
+        if (generator.targetConfig.verification != null) {
+            if (generator.targetConfig.verification.engine.equals("uclid")
+                && generator.targetConfig.verification.tactic.equals("induction")) {
+                GeneratorBase uclidGen = new UclidGenerator(fileConfig, errorReporter);
+                uclidGen.doGenerate(resource, fsa, context);
+            } else {
+                throw new RuntimeException("The verification method is not supported.");
+            }
         }
     }
 

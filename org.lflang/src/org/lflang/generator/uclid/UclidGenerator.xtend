@@ -74,7 +74,7 @@ class UclidGenerator extends GeneratorBase {
     var ConnectivityGraph connectivityGraph
 
     // K
-    int k = 2 // FIXME: pass K in from target property
+    int k
     
     // Constructor
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -130,6 +130,9 @@ class UclidGenerator extends GeneratorBase {
      * @param reactor A reactor instance from which the search begins.
      */
     private def void populateStateVars(ReactorInstance reactor) {
+        // Set k
+        this.k = targetConfig.verification.steps
+        
         var defn = reactor.reactorDefinition
         var stateVars = defn.getStateVars
 
@@ -396,6 +399,7 @@ class UclidGenerator extends GeneratorBase {
         type step_t = integer;
         type event_t = { rxn_t, tag_t, state_t };
         ''')
+        pr('')
         pr('''
         // Generate «k+1» events for «k»-induction.
         ''')
@@ -697,7 +701,7 @@ class UclidGenerator extends GeneratorBase {
             pr('''
             /* Pre/post conditions for «rxn.getFullName» */
             axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==>
+                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> (
             ''')
             indent()
             // FIXME: Use LF macros to fill in this part.
@@ -705,7 +709,7 @@ class UclidGenerator extends GeneratorBase {
             pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
             unindent()
             pr('''
-            ));
+            )));
             ''')
             newline()
         }

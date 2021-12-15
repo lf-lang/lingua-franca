@@ -467,9 +467,28 @@ public enum TargetProperty {
     /**
      * Directive to generate smt files for formal analysis.
      */
-    SMT("smt", PrimitiveType.BOOLEAN, Target.ALL,
+    VERIFICATION("verification", DictionaryType.VERIFICATION_DICT, Target.ALL,
         (config, value, err) -> {
-            config.smt = ASTUtils.toBoolean(value);
+            // config.smt = ASTUtils.toBoolean(value);
+            for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                VerificationOption option = (VerificationOption) DictionaryType.VERIFICATION_DICT
+                        .forName(entry.getName());
+                switch (option) {
+                    case ENGINE:
+                        config.verification.engine = ASTUtils
+                                .toText(entry.getValue());
+                        break;
+                    case TACTIC:
+                        config.verification.tactic = ASTUtils
+                                .toText(entry.getValue());
+                        break;
+                    case STEPS:
+                        config.verification.steps = ASTUtils
+                                .toInteger(entry.getValue());
+                    default:
+                        break;
+                }
+            }
         }),
 
     ;
@@ -675,7 +694,8 @@ public enum TargetProperty {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
         DOCKER_DICT(Arrays.asList(DockerOption.values())),
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
-        TRACING_DICT(Arrays.asList(TracingOption.values()));
+        TRACING_DICT(Arrays.asList(TracingOption.values())),
+        VERIFICATION_DICT(Arrays.asList(VerificationOption.values()));
         
         /**
          * The keys and assignable types that are allowed in this dictionary.
@@ -1299,6 +1319,41 @@ public enum TargetProperty {
             this.description = alias;
             this.type = type;
         }
+        
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
+    
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+
+    /**
+     * Verification options.
+     * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
+     */
+    public enum VerificationOption implements DictionaryElement {
+        ENGINE("engine", PrimitiveType.STRING),
+        TACTIC("tactic", PrimitiveType.STRING),
+        STEPS("steps", PrimitiveType.NON_NEGATIVE_INTEGER);
+        
+        public final PrimitiveType type;
+        
+        private final String description;
+        
+        private VerificationOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+        
         
         /**
          * Return the description of this dictionary element.
