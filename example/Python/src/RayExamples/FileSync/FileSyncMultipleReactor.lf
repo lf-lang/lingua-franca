@@ -1,7 +1,6 @@
 /**
  * LF implementation of file-write synchronization using multiple reactors.
  * The "Writer" reactors can be hosted remotely in federated execution.
- * Lock is not required for deterministic outcome.
  *
  * @author Hou Seng (Steven) Wong
  */
@@ -30,15 +29,22 @@ reactor MainFunc(N(3)) {
     output[N] doWrite;
     state tmpfile;
     state doneCount(0);
+    logical action startWrite;
     
-    reaction(startup) -> doWrite {=
+    reaction(startup) -> startWrite {=
         # Create tmpfiles for writing
         _, tmpfile = tempfile.mkstemp()
         self.tmpfile = tmpfile
         
-        # Set doWrite to notify Writers.
-        for i in range(self.N):
+        # Schedule startWrite action
+        startWrite.schedule(0, 0)
+    =}
+
+    reaction(startWrite) -> doWrite, startWrite {=
+        i = startWrite.value
+        if i < self.N:
             doWrite[i].set((self.tmpfile, f"hi there {i}!\n"))
+            startWrite.schedule(0, i + 1)
     =}
 
     reaction(doneWriting) {=
