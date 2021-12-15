@@ -749,6 +749,19 @@ class LFValidator extends BaseLFValidator {
             if (param.inferredType.isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE)
             }
+        } 
+        if(this.target == Target.CPP) {
+            val container = param.eContainer
+            val reactor = container as Reactor
+            if(reactor.isMain){ 
+                // we need to check for the cli parameters that are always taken
+                val myList = #['t', 'threads', 'o', 'timeout', 'k', 'keepalive', 
+                                'f', 'fast', 'help']
+                if(myList.contains(param.name)){
+                    error("Cli parameter name is allready in use by Lingua Franca",
+                    Literals.PARAMETER__NAME)
+                }
+            }
         }
 
         if (isCBasedTarget &&
@@ -761,8 +774,7 @@ class LFValidator extends BaseLFValidator {
         
         if(!param.braces.isNullOrEmpty && this.target != Target.CPP) {
             error("Brace initializers are only supported for the C++ target", Literals.PARAMETER__BRACES)
-        }
-        
+        }      
     }
 
     @Check(FAST)
