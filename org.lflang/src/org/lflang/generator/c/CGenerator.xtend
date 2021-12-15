@@ -965,8 +965,8 @@ class CGenerator extends GeneratorBase {
     }
     
     override checkModalReactorSupport(boolean _) {
-        // Modal reactors are currently only supported for single threaded non federated applications
-        super.checkModalReactorSupport(!isFederated && targetConfig.threads == 0)
+        // Modal reactors are currently only supported for non federated applications
+        super.checkModalReactorSupport(!isFederated)
     }
     
     /**
