@@ -1,0 +1,30 @@
+// This tests send data through a contained reactor
+target Cpp;
+reactor Gain {
+    input gainin:int;
+    output y:int;
+    reaction(gainin) -> y {=
+        reactor::log::Info() << "Gain received " << *gainin.get();
+        y.set(*gainin.get()*2);
+    =}
+}
+reactor Wrapper {
+    input x:int;
+    output y:int;
+    gain = new Gain();
+    x -> gain.gainin;
+    gain.y -> y;
+}
+main reactor CompositionGain {
+    wrapper = new Wrapper();
+    reaction(startup) -> wrapper.x {=
+        wrapper.x.set(42);
+    =}
+    reaction(wrapper.y) {=
+        reactor::log::Info() << "Received " << *wrapper.y.get();
+        if (*wrapper.y.get() != 42*2) {
+            reactor::log::Error() << "Received value should have been " << 42 * 2;
+            exit(2);
+        }
+    =}
+}
