@@ -61,7 +61,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     }
     
     /**
-     * Rebuild this graph by clearing is an repeating the traversal that 
+     * Rebuild this graph by clearing and repeating the traversal that 
      * adds all the nodes and edges.
      */
     def rebuild() {
