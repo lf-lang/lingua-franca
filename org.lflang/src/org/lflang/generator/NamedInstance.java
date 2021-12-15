@@ -123,7 +123,9 @@ public abstract class NamedInstance<T extends EObject> {
     }
     
     /**
-     * Return the width of this port, which in this base class is 1.
+     * Return the width of this instance, which in this base class is 1.
+     * Subclasses PortInstance and ReactorInstance change this to the
+     * multiport and bank widths respectively.
      */
     public int getWidth() {
         return width;
