@@ -24,7 +24,7 @@ main reactor ImportComposition {
         auto receive_time = get_elapsed_logical_time();
         reactor::log::Info() << "Received " << *imp_comp.y.get() << " at time " << receive_time;
         received = true;
-        if(receive_time.count() != 55000000LL) {
+        if(receive_time != 55ms) {
             reactor::log::Error() << "ERROR: Received time should have been: 55,000,000.";
             exit(1);
         }
