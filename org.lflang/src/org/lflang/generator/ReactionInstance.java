@@ -423,4 +423,25 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Cache of the set of upstream reactions. */
     private Set<ReactionInstance> dependsOnReactionsCache;
+    
+    /**
+     * Array of runtime instances of this reaction.
+     * This has length 1 unless the reaction is contained
+     * by one or more banks.  Suppose that this reaction
+     * has depth 3, with full name r0.r1.r2.r. The top-level
+     * reactor is r0, which contains r1, which contains r2,
+     * which contains this reaction r.  Suppose the widths
+     * of the containing reactors are w0, w1, and w2, and
+     * we are interested in the instance at bank indexes
+     * b0, b1, and b2.  That instance is in this array at
+     * location FIXME
+     */
+    FIXME
+
+    ///////////////////////////////////////////////////////////
+    //// Inner classes
+
+    /** Inner class representing a runtime instance. */
+    public static class Runtime {
+    }
 }

@@ -24,12 +24,12 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.generator
+package org.lflang.generator;
 
-import java.util.ArrayList
-import java.util.LinkedHashSet
-import java.util.Set
-import org.lflang.graph.DirectedGraph
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import org.lflang.graph.DirectedGraph;
 
 /**
  * This graph represents the dependencies between reaction instances.
@@ -39,37 +39,38 @@ import org.lflang.graph.DirectedGraph
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
-    
-    /**
-     * The main reactor instance that this graph is associated with.
-     */
-    var ReactorInstance main
-    
-    /**
-     * Count of the number of chains while assigning chainIDs.
-     */
-    int branchCount = 1
+class ReactionInstanceGraph extends DirectedGraph<ReactionInstanceGraph.ReactionRuntimeInstance> {
     
     /**
      * Create a new graph by traversing the maps in the named instances 
      * embedded in the hierarchy of the program. 
      */
-    new(ReactorInstance main) {
-        this.main = main
-        rebuild()
+    public ReactionInstanceGraph(ReactorInstance main) {
+        this.main = main;
+        rebuild();
     }
+
+    ///////////////////////////////////////////////////////////
+    //// Public fields
+
+    /**
+     * The main reactor instance that this graph is associated with.
+     */
+    public final ReactorInstance main;
+    
+    ///////////////////////////////////////////////////////////
+    //// Public methods
     
     /**
      * Rebuild this graph by clearing and repeating the traversal that 
      * adds all the nodes and edges.
      */
-    def rebuild() {
-        this.clear()
-        addNodesAndEdges(main)
+    public void rebuild() {
+        this.clear();
+        addNodesAndEdges(main);
         // Assign a level to each reaction. 
         // If there are cycles present in the graph, it will be detected here.
-        val leftoverReactions = assignLevels()
+        val leftoverReactions = assignLevels();
         if (leftoverReactions.nodeCount != 0) {
             // The validator should have caught cycles, but if there is a bug in some
             // AST transform such that it introduces cycles, then it is possible to have them
@@ -79,18 +80,17 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         }
         // Traverse the graph again, now starting from the leaves,
         // to set the chain IDs.
-        assignChainIDs(false)
+        assignChainIDs(false);
 
         // Propagate any declared deadline upstream.
-        propagateDeadlines()
-
+        propagateDeadlines();
     }
 
     /**
      * Return the single dominating reaction if the given reaction has one, or
      * null otherwise.
      */
-    def findSingleDominatingReaction(ReactionInstance reaction) {
+    public findSingleDominatingReaction(ReactionInstance reaction) {
         val reactions = getUpstreamAdjacentNodes(reaction)
         if (reactions.size == 1) {
             return reactions.get(0)
@@ -120,60 +120,6 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         return result
     }
     
-    /**
-     * Analyze the dependencies between reactions and assign each reaction
-     * instance a level.
-     * This procedure is based on Kahn's algorithm for topological sorting.
-     * Rather than establishing a total order, we establish a partial order.
-     * In this order, the level of each reaction is the least upper bound of
-     * the levels of the reactions it depends on.
-     *
-     * @return If any cycles are present in the dependency graph, then a graph
-     * containing the nodes in the cycle is returned. Otherwise, null is
-     * returned.
-     */
-    private def DirectedGraph<ReactionInstance> assignLevels() {
-        val graph = this.copy
-        var start = new ArrayList(graph.rootNodes)
-        
-        // All root nodes start with level 0.
-        for (origin : start) {
-            origin.level = 0
-        }
-
-        // No need to do any of this if there are no root nodes; 
-        // the graph must be cyclic.
-        if (!graph.rootNodes.isEmpty) {
-            while (!start.empty) {
-                val origin = start.remove(0)
-                val toRemove = new LinkedHashSet<ReactionInstance>()
-                // Visit effect nodes.
-                for (effect : graph.getDownstreamAdjacentNodes(origin)) {
-                    // Stage edge between origin and effect for removal.
-                    toRemove.add(effect)
-                    
-                    // Update level of downstream node.
-                    effect.level = Math.max(effect.level, origin.level+1)    
-                }
-                // Remove visited edges.
-                for (effect : toRemove) {
-                    graph.removeEdge(effect, origin)
-                    // If the effect node has no more incoming edges,
-                    // then move it in the start set.
-                    if (graph.getUpstreamAdjacentNodes(effect).size == 0) {
-                        start.add(effect)
-                    }
-                }
-                
-                // Remove visited origin.
-                graph.removeNode(origin)
-                
-            }
-        }
-        // If, after all of this, there are still any nodes left, 
-        // then the graph must be cyclic.
-        return graph
-    }
     
     /**
      * Analyze the dependencies between reactions and assign each reaction
@@ -322,6 +268,8 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         }
     }
 
+    ///////////////////////////////////////////////////////////
+    //// Protected methods
     
     /**
      * Build the graph by adding nodes and edges based on the given reactor 
@@ -360,5 +308,71 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         for (child : reactor.children) {
             addNodesAndEdges(child)
         }
+    }
+    
+    ///////////////////////////////////////////////////////////
+    //// Protected fields
+    
+    /**
+     * Count of the number of chains while assigning chainIDs.
+     */
+    int branchCount = 1;
+    
+    ///////////////////////////////////////////////////////////
+    //// Private methods
+
+    /**
+     * Analyze the dependencies between reactions and assign each reaction
+     * instance a level.
+     * This procedure is based on Kahn's algorithm for topological sorting.
+     * Rather than establishing a total order, we establish a partial order.
+     * In this order, the level of each reaction is the least upper bound of
+     * the levels of the reactions it depends on.
+     *
+     * @return If any cycles are present in the dependency graph, then a graph
+     * containing the nodes in the cycle is returned. Otherwise, null is
+     * returned.
+     */
+    private DirectedGraph<ReactionInstance> assignLevels() {
+        val graph = this.copy;
+        var start = new ArrayList(graph.rootNodes);
+        
+        // All root nodes start with level 0.
+        for (origin : start) {
+            origin.level = 0;
+        }
+
+        // No need to do any of this if there are no root nodes; 
+        // the graph must be cyclic.
+        if (!graph.rootNodes.isEmpty) {
+            while (!start.empty) {
+                val origin = start.remove(0)
+                val toRemove = new LinkedHashSet<ReactionInstance>()
+                // Visit effect nodes.
+                for (effect : graph.getDownstreamAdjacentNodes(origin)) {
+                    // Stage edge between origin and effect for removal.
+                    toRemove.add(effect)
+                    
+                    // Update level of downstream node.
+                    effect.level = Math.max(effect.level, origin.level+1)    
+                }
+                // Remove visited edges.
+                for (effect : toRemove) {
+                    graph.removeEdge(effect, origin)
+                    // If the effect node has no more incoming edges,
+                    // then move it in the start set.
+                    if (graph.getUpstreamAdjacentNodes(effect).size == 0) {
+                        start.add(effect)
+                    }
+                }
+                
+                // Remove visited origin.
+                graph.removeNode(origin)
+                
+            }
+        }
+        // If, after all of this, there are still any nodes left, 
+        // then the graph must be cyclic.
+        return graph;
     }
 }
