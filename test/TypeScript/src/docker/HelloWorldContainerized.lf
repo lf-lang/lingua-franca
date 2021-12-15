@@ -1,4 +1,6 @@
-target TypeScript;
+target TypeScript {
+    docker: true
+};
 
 import HelloWorldInside from "../HelloWorld.lf"
 
