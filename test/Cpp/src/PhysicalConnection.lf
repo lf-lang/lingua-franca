@@ -16,10 +16,10 @@ reactor Source {
 reactor Destination {
     input in:int;
     reaction(in) {=
-        auto time{get_elapsed_logical_time()};
-        reactor::log::Info() << "Received " << *in.get() << " at logical time " << time << ".";
+        auto time{get_elapsed_physical_time()};
+        reactor::log::Info() << "Received " << *in.get() << " at physical time " << time << ".";
         if(time <= reactor::Duration::zero()) {
-            reactor::log::Error() << "ERROR: Logical time should have been greater than zero.";
+            reactor::log::Error() << "ERROR: Physical time should have been greater than zero.";
             exit(1);
         }
     =}
