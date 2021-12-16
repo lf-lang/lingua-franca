@@ -35,7 +35,7 @@ import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.ConnectivityInfo
+import org.lflang.CausalityInfo
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.generator.PortInstance
@@ -60,7 +60,7 @@ class UclidGenerator extends GeneratorBase {
     // The output directory where the model is stored
     Path outputDir
     
-    // The reaction graph upon which the connectivity graph is built
+    // The reaction graph upon which the causality graph is built
     var ReactionInstanceGraph reactionGraph
 
     // Data structures storing info about the runtime topology
@@ -69,9 +69,9 @@ class UclidGenerator extends GeneratorBase {
     var List<Pair<ReactorInstance, StateVar>>   stateVars
         = new ArrayList<Pair<ReactorInstance, StateVar>>()
 
-    // The connectivity graph captures _counterfactual causality_
+    // The causality graph captures _counterfactual causality_
     // relations between adjacent reactions.
-    var ConnectivityGraph connectivityGraph
+    var CausalityGraph causalityGraph
 
     // K
     int k
@@ -109,7 +109,7 @@ class UclidGenerator extends GeneratorBase {
             }
         }  
 
-        // Build reaction instance graph and connectivity graph
+        // Build reaction instance graph and causality graph
         populateGraphsAndLists()
         
         // Create the "src-gen" directory if it doesn't yet exist.
@@ -153,11 +153,11 @@ class UclidGenerator extends GeneratorBase {
      */
     private def populateGraphsAndLists() {
         this.reactionGraph = new ReactionInstanceGraph(this.main)
-        this.connectivityGraph = new ConnectivityGraph(this.main, this.reactionGraph)
+        this.causalityGraph = new CausalityGraph(this.main, this.reactionGraph)
         this.reactions = this.reactionGraph.nodes
 
-        // Ports are populated during the construction of the connectivity graph
-        this.ports = this.connectivityGraph.ports
+        // Ports are populated during the construction of the causality graph
+        this.ports = this.causalityGraph.ports
         // Populate state variables by traversing reactor instances
         populateStateVars(this.main)
     }
@@ -467,8 +467,8 @@ class UclidGenerator extends GeneratorBase {
         ''')
         indent()
         var i = 0
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
-            connectivityGraph.connectivity.entrySet()) {
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
+            causalityGraph.causality.entrySet()) {
             pr('''
             if (r1 == «entry.getKey.getKey.getFullNameWithJoiner('_')» && r2 == «entry.getKey.getValue.getFullNameWithJoiner('_')») then nsec(«entry.getValue.delay») else (
             ''')
@@ -497,8 +497,8 @@ class UclidGenerator extends GeneratorBase {
         var str = '''
         || (tag_same(e1._2, e2._2) && (
         '''
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
-            connectivityGraph.connectivity.entrySet()) {
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
+            causalityGraph.causality.entrySet()) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
             str += '''
@@ -588,8 +588,8 @@ class UclidGenerator extends GeneratorBase {
          ***************/
         ''')
         newline()
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
-            connectivityGraph.connectivity.entrySet()) {
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
+            causalityGraph.causality.entrySet()) {
             // Check if two reactions are linked by a connection
             // if so, the output port and the input port should
             // hold the same value.
@@ -618,8 +618,8 @@ class UclidGenerator extends GeneratorBase {
          ********************/         
         ''')
         newline()
-        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, ConnectivityInfo> entry :
-            connectivityGraph.connectivity.entrySet()) {
+        for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
+            causalityGraph.causality.entrySet()) {
             var upstreamRxn     = entry.getKey.getKey
             var downstreamRxn   = entry.getKey.getValue
             var upstreamName    = upstreamRxn.getFullName

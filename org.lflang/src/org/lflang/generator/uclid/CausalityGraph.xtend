@@ -1,4 +1,4 @@
-/** A graph that represents the connectivity between system components. */
+/** A graph that represents the causality between system components. */
 
 /*************
 Copyright (c) 2021, The University of California at Berkeley.
@@ -27,13 +27,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import org.lflang.graph.DirectedGraph
-import org.lflang.ConnectivityInfo
+import org.lflang.CausalityInfo
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
 
 /**
- * This graph represents the connectivity between system components,
+ * This graph represents the causality between system components,
  * which indicates counterfactual causality between events generated
  * by connected components.
  *
@@ -42,19 +42,19 @@ import java.util.Set
  * 
  * @author{Shaokai Lin <shaokai@eecs.berkeley.edu>}
  */
- class ConnectivityGraph extends DirectedGraph<ReactionInstance> {
+ class CausalityGraph extends DirectedGraph<ReactionInstance> {
 
     // The main reactor instance that this graph is associated with
     var ReactorInstance main
 
-    // The reaction upon which the connectivity graph is built
+    // The reaction upon which the causality graph is built
     var ReactionInstanceGraph reactionGraph
     
     // Adjacency map from a pair of reactions (i.e. components)
     // to a pair (to be extended to triplet) containing a boolean
     // (whether it is a connection) and a TimeValue (logical time delay).
     public var HashMap<Pair<ReactionInstance, ReactionInstance>,
-        ConnectivityInfo> connectivity = new HashMap();
+        CausalityInfo> causality = new HashMap();
     
     // The set of ports
     public var Set<PortInstance> ports = new HashSet();
@@ -91,7 +91,7 @@ import java.util.Set
      * @param reaction The upstream reaction instance to be added to the graph.
      */
     protected def void addNodesAndEdges(ReactionInstance reaction) {
-        // Add the current reaction to the connectivity graph.
+        // Add the current reaction to the causality graph.
         this.addNode(reaction)
         
         // Collect port instances that can influence the upstream reaction
@@ -121,14 +121,14 @@ import java.util.Set
             for (ue : upstreamEffects) {
                 for (ds : downstreamSources) {
                     // If these two reactions are linked by an action,
-                    // add the corresponding connectivity info to the graph.
+                    // add the corresponding causality info to the graph.
                     if (ds == ue) {
                         if (ds instanceof ActionInstance) {
-                            // Add the delay info to the connectivity hashmap.
-                            var info = new ConnectivityInfo(false, ds.isPhysical, ds.minDelay.toNanoSeconds, null, null)
-                            if (connectivity.get(key) === null) {
-                                connectivity.put(key, info)
-                                println("New connectivity info added")
+                            // Add the delay info to the causality hashmap.
+                            var info = new CausalityInfo(false, ds.isPhysical, ds.minDelay.toNanoSeconds, null, null)
+                            if (causality.get(key) === null) {
+                                causality.put(key, info)
+                                println("New causality info added")
                                 printInfo(key)
                             }
                         }
@@ -143,11 +143,11 @@ import java.util.Set
                             if (connection !== null) {
                                 // FIXME: what is the relationship between delay and TimeValue.                                
                                 // FIXME: get delay
-                                var info = new ConnectivityInfo(true, connection.isPhysical, 0, ds as PortInstance, ue as PortInstance)
-                                // connectivity.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
-                                if (connectivity.get(key) === null) {
-                                    connectivity.put(key, info)
-                                    println("New connectivity info added")
+                                var info = new CausalityInfo(true, connection.isPhysical, 0, ds as PortInstance, ue as PortInstance)
+                                // causality.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
+                                if (causality.get(key) === null) {
+                                    causality.put(key, info)
+                                    println("New causality info added")
                                     printInfo(key)
                                 }
                             }
@@ -162,7 +162,7 @@ import java.util.Set
     }
 
     protected def void printInfo(Pair<ReactionInstance, ReactionInstance> key) {
-        var info = connectivity.get(key)
+        var info = causality.get(key)
         println("Connectivity info:\n"
             + "------------------------------\n"
             + "upstream: " + key.getKey + "\n"

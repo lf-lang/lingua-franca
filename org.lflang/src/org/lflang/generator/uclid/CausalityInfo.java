@@ -31,7 +31,7 @@ import org.lflang.generator.PortInstance;
  * 
  * @author Shaokai Lin {@literal <shaokai@eecs.berkeley.edu>}
  */
-public class ConnectivityInfo {
+public class CausalityInfo {
     
     public boolean  isConnection;
     public boolean  isPhysical;
@@ -39,7 +39,7 @@ public class ConnectivityInfo {
     public PortInstance upstreamPort;
     public PortInstance downstreamPort;
     
-    public ConnectivityInfo(
+    public CausalityInfo(
         boolean _isConnection, 
         boolean _isPhysical, 
         long    _delay,
