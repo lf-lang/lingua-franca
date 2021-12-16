@@ -235,7 +235,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Create a deadline instance if one has been defined.
         if (this.definition.getDeadline() != null) {
             this.declaredDeadline = new DeadlineInstance(
-                this.definition.getDeadline(), this);
+                this.definition.getDeadline());
         }
     }
 
