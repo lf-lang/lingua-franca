@@ -302,7 +302,7 @@ sealed class ReactorComponent {
 
     companion object {
 
-        private val DEFAULT_TIME_UNIT_IN_TIMER: TimeUnit = TimeUnit.MSEC
+        private val DEFAULT_TIME_UNIT_IN_TIMER: TimeUnit = TimeUnit.MILLI
 
         /**
          * Convert an AST node for a reactor component to the corresponding dependency type.
@@ -331,7 +331,7 @@ sealed class ReactorComponent {
                 parameter != null -> "${parameter.name}.clone()"
                 literal != null   ->
                     literal.toIntOrNull()
-                        ?.let { toRustTimeExpr(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER) }
+                        ?.let { TimeValue(it.toLong(), DEFAULT_TIME_UNIT_IN_TIMER).toRustTimeExpr() }
                         ?: throw InvalidLfSourceException("Not an integer literal", this)
                 time != null      -> time.toRustTimeExpr()
                 code != null      -> code.toText().inBlock()
@@ -395,11 +395,8 @@ fun WidthSpec.toRustExpr(): String = terms.joinToString(" + ") {
     }
 }
 
-fun TimeValue.toRustTimeExpr(): TargetCode = toRustTimeExpr(time, unit)
-private fun Time.toRustTimeExpr(): TargetCode = toRustTimeExpr(interval.toLong(), unit)
-
-private fun toRustTimeExpr(interval: Long, unit: TimeUnit): TargetCode =
-    RustTypes.getTargetTimeExpression(interval, unit)
+fun TimeValue.toRustTimeExpr(): TargetCode = RustTypes.getTargetTimeExpr(this)
+private fun Time.toRustTimeExpr(): TargetCode = this.toTimeValue().toRustTimeExpr()
 
 /** Regex to match a target code block, captures the insides as $1. */
 private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
@@ -581,7 +578,7 @@ object RustModelBuilder {
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
-                        defaultValueAsTimeValue = ASTUtils.getInitialTimeValue(it),
+                        defaultValueAsTimeValue = JavaAstUtils.getDefaultAsTimeValue(it),
                     )
                 }
             )
