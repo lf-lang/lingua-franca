@@ -182,11 +182,13 @@ public final class JavaAstUtils {
      * Assuming that the given value denotes a valid time,
      * return a time value.
      */
-    public static TimeValue getTimeValue(Value v) {
+    public static TimeValue getTimeValue(Value v) {;
         if (v.getParameter() != null) {
             return getDefaultAsTimeValue(v.getParameter());
         } else if (v.getTime() != null) {
             return toTimeValue(v.getTime());
+        } else if (v.getLiteral() != null && v.getLiteral().equals("0")) {
+            return TimeValue.ZERO;
         } else {
             return null;
         }
