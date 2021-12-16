@@ -519,6 +519,7 @@ class CGenerator extends GeneratorBase {
         // Note that these files will be copied from the class path, therefore, the path
         // separator must always be '/'.
         var coreFiles = newArrayList(
+            "reactor_common.h",
             "reactor_common.c",
             "reactor.h",
             "tag.h",
@@ -540,7 +541,7 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("reactor.c")
         } else {
             addSchedulerFiles(coreFiles);
-            coreFiles.add("threaded/reactor_threaded.c")
+            addThreadedFiles(coreFiles);
         }
         
         addPlatformFiles(coreFiles);
@@ -936,14 +937,43 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Add files needed for the proper function of the threaded runtime to
+     * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
+     */
+    def addThreadedFiles(ArrayList<String> coreFiles) {
+        coreFiles.add("threaded/reactor_threaded.c");
+        // Add wait_until
+        coreFiles.add("threaded/wait_until.h");
+        coreFiles.add("threaded/impl/wait_until.c");
+        targetConfig.compileAdditionalSources.add(
+             "core" + File.separator + "threaded" + File.separator + "impl" + File.separator +
+             "wait_until.c"
+        );
+        // Add worker files
+        coreFiles.add("threaded/worker.h");
+        coreFiles.add("threaded/impl/worker.c");
+        targetConfig.compileAdditionalSources.add(
+             "core" + File.separator + "threaded" + File.separator + "impl" + File.separator +
+             "worker.c"
+        );
+        // Add next
+        coreFiles.add("threaded/next.h");
+        coreFiles.add("threaded/impl/next.c");
+        targetConfig.compileAdditionalSources.add(
+             "core" + File.separator + "threaded" + File.separator + "impl" + File.separator +
+             "next.c"
+        );
+    }
+    
+    /**
      * Add files needed for the proper function of the runtime scheduler to
      * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
      */
     def addSchedulerFiles(ArrayList<String> coreFiles) {
         coreFiles.add("threaded/scheduler.h")
-        coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
+        coreFiles.add("threaded/impl/scheduler/scheduler_" + targetConfig.schedulerType.toString() + ".c");
         targetConfig.compileAdditionalSources.add(
-             "core" + File.separator + "threaded" + File.separator + 
+             "core" + File.separator + "threaded" + File.separator + "impl" + File.separator + "scheduler" + File.separator +
              "scheduler_" + targetConfig.schedulerType.toString() + ".c"
         );
     }
