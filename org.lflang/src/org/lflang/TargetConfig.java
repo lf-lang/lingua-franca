@@ -60,7 +60,7 @@ public class TargetConfig {
      * The mode of clock synchronization to be used in federated programs.
      * The default is 'initial'.
      */
-    public ClockSyncMode clockSync = ClockSyncMode.INITIAL;
+    public ClockSyncMode clockSync = ClockSyncMode.INIT;
 
     /**
      * Clock sync options.
