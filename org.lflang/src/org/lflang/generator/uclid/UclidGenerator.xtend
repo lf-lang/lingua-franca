@@ -595,8 +595,8 @@ class UclidGenerator extends GeneratorBase {
             // hold the same value.
             if (entry.getValue.isConnection) {
                 var upstreamRxn    = entry.getKey.getKey.getFullNameWithJoiner('_')
-                var upstreamPort   = entry.getValue.upstreamPort.getFullName
-                var downstreamPort = entry.getValue.downstreamPort.getFullName
+                var upstreamPort   = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
+                var downstreamPort = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
                 pr('''
                 // «upstreamPort» -> «downstreamPort» 
                 axiom(forall (i : integer) :: (i >= START && i <= END)
@@ -643,7 +643,7 @@ class UclidGenerator extends GeneratorBase {
                 ''')
             }
             // Upstream triggers downstream via a logical action.
-            else if (!conn.isConnection && conn.isPhysical) {
+            else if (!conn.isConnection && !conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a logical action.
                 axiom(triggers_via_logical_action(«upstreamId», «downstreamId»,
