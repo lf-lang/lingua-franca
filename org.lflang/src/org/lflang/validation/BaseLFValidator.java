@@ -31,16 +31,34 @@ import java.util.Map;
 
 import org.eclipse.emf.common.util.DiagnosticChain;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckMode;
+import org.eclipse.xtext.validation.CheckType;
+
+import org.lflang.TimeUnit;
+import org.lflang.lf.Delay;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Time;
 
 public class BaseLFValidator extends AbstractLFValidator {
 
+    @Check(CheckType.FAST)
+    public void checkTime(Time time) {
+        int magnitude = time.getInterval();
+        String unit = time.getUnit();
+        if (unit == null && magnitude != 0) {
+            error("Missing time unit.", Literals.TIME__UNIT);
+        } if (!TimeUnit.isValidUnit(unit)) {
+            error("Invalid time unit '" + unit + "'. Should be one of " + TimeUnit.list() + ".", Literals.TIME__UNIT);
+        }
+    }
+
     /**
      * Provides convenient access to the inner state of the validator.
-     * 
+     * <p>
      * The validator only gives protected access to its own state. With
      * this class, we can grant access to the inner state to other objects.
-     * 
+     *
      * @author Christian Menard <christian.menard@tu-dresden.de>
      */
     protected class ValidatorStateAccess {

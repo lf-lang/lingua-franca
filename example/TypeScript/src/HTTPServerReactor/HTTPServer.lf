@@ -8,6 +8,7 @@ main reactor {
         import * as https from "https"
         import * as http from "http"
     =}
+    state count:number(0);
     state server:{=http.Server | undefined=}({=undefined=});
     physical action serverRequest:{= [ http.IncomingMessage, http.ServerResponse ] =};
     reaction (startup) -> serverRequest {=
@@ -26,6 +27,8 @@ main reactor {
             let req = requestArray[0];
             let res = requestArray[1];
             res.writeHead(200);
+            count++;
+            res.write("ping count: " + count + "\n");
             res.end("hello world\n");
         }
     =}
