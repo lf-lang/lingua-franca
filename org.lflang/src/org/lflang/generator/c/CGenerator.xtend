@@ -472,6 +472,7 @@ class CGenerator extends GeneratorBase {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        printMain();
 
         if (errorsOccurred) return;
         
@@ -5183,6 +5184,17 @@ class CGenerator extends GeneratorBase {
             // Enable support for proto serialization
             enabledSerializers.add(SupportedSerializers.PROTO)
         }
+    }
+
+    /**
+     * Print the main function.
+     */
+    def printMain() {
+        pr('''
+            int main(int argc, char* argv[]) {
+                return lf_reactor_c_main(argc, argv);
+            }
+        ''')
     }
     
     /**
