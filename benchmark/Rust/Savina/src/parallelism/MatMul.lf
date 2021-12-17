@@ -1,0 +1,272 @@
+/**
+ * Copyright (C) 2020 TU Dresden
+ *
+ * This benchmarks implements a parallel matrix multiplication algorithm.
+ * Overall, the benchmark uses a divide-and-conquer approach that is very
+ * similar to the N Queens benchmark. The Manager at first produces a WorkItem
+ * that encompasses the whole problem, and the workers then split the work items
+ * into smaller chunks that they send back to the manager. Only if the problem
+ * size is below a threshold, the workers perform an actual multiplication over
+ * a subset of the matrix. When the problem is split, always 8 new work items
+ * are generated.
+ *
+ * It is important to note that the Savina implementation makes a severe
+ * mistake. Both the operand matrices and the result matrix are stored in shared
+ * memory. For the operands, this is not much of an issue since they are
+ * read-only. However, the matrix is written to by all workers using an
+ * accumulate (read-write) operation. Since multiple workers can write to the
+ * same cell simultaneously, we have a race condition. This makes the result
+ * nondeterministic. The problem is illustrated nicely by the Akka
+ * implementation which, on my machine and in the default configuration, prints
+ * "valid: false". Due to the nature of race conditions, this might be hard to
+ * reproduce on other machines. However, I found that when we change the problem
+ * size, the error appears or disappears sometimes.
+ *
+ * This implementation in LF reproduces the mistake described above. This is to
+ * replicate the same behaviour. If we would only fix the LF variant, this would
+ * make a comparison to the Akka version hard. This is of course less than
+ * ideal...
+ *
+ * @author Christian Menard
+ * @author Hannes Klein
+ * @author Johannes Hayeß
+ */
+
+target Rust {
+    build-type: Debug,
+    cargo-features: [ "cli" ],
+    rust-include: "../lib/matrix.rs",
+    cargo-dependencies: {
+        reactor_rt: {
+            features: ["parallel-runtime"]
+        },
+    }
+};
+
+import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
+
+reactor Manager(numWorkers: usize(20), dataLength: usize(1024)) {
+    state data_length(dataLength);
+
+    state A: Arc<Matrix<f64>>;
+    state B: Arc<TransposedMatrix<f64>>;
+    state C: Arc<Mutex<Matrix<f64>>>;
+
+    state workQueue: VecDeque<WorkItem>;
+
+    logical action next;
+    logical action done;
+
+    input start: unit;
+    output finished: unit;
+
+    output data: {=(Arc<Matrix<f64>>, Arc<TransposedMatrix<f64>>, Arc<Mutex<Matrix<f64>>>)=};
+    output[numWorkers] doWork: WorkItem;
+    input[numWorkers] moreWork: {=[WorkItem; 8]=};
+
+    reaction(startup) {=
+        // Fill both input arrays with data    
+        let (a, b) = {
+            let mut a = Matrix::<f64>::new(self.data_length, self.data_length);
+            let mut b = TransposedMatrix::<f64>::new(self.data_length, self.data_length);
+            
+            for i in 0..self.data_length {
+                for j in 0..self.data_length {
+                    a.set(i, j, i as f64);
+                    b.set(i, j, j as f64);
+                }
+            }
+            
+            (Arc::new(a), Arc::new(b))
+        };
+        
+        self.A = a;
+        self.B = b;
+    =}
+
+    reaction(start) -> data, next {=
+        // reset the result matrix C
+        let c = Matrix::<f64>::new(self.data_length, self.data_length);
+        self.C = Arc::new(Mutex::new(c));
+
+        // send pointers to all 3 matrixes to the workers
+        ctx.set(data, (Arc::clone(&self.A), Arc::clone(&self.B), Arc::clone(&self.C)));
+
+        // produce the first work item, instructing the worker to multiply the complete matrix
+        let numBlocks = self.data_length * self.data_length;
+        let item = WorkItem{srA: 0, scA: 0, srB: 0, scB: 0, srC: 0, scC: 0, numBlocks, dim: self.data_length};
+        self.workQueue.push_back(item);
+        // and start the first iteration
+        ctx.schedule(next, Asap);
+    =}
+
+    reaction(next) -> next, done, doWork {=
+        if self.workQueue.is_empty() {
+            // we are done if there is no more work
+            ctx.schedule(done, Asap);
+        } else {
+            // send a work item to each worker (until there is no more work)
+            for (queue_item, do_work) in self.workQueue.drain(..).zip(doWork) {
+                ctx.set(do_work, queue_item);
+            }
+            // and schedule the next iteration
+            ctx.schedule(next, Asap);
+        }
+    =}
+
+    reaction(moreWork) {=
+        // append all work items received from the workers to the internal work queue
+        for port in moreWork {
+            if let Some(items) = ctx.get(&port) {
+                if !items.is_empty() {
+                    items.iter().for_each(|i| self.workQueue.push_back(*i));
+                }
+            }
+        }
+    =}
+
+    reaction(done) -> finished {=
+        let c = self.C.lock().unwrap();
+        let valid = is_valid(&c, self.data_length);
+        info!("Result valid = {}", valid);
+        ctx.set(finished, ());
+    =}
+
+    preamble {=
+        use crate::matrix::{Matrix, TransposedMatrix};
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+
+        #[derive(Default, Clone, Copy)]
+        pub struct WorkItem {
+            pub srA: usize, // srA = start row in matrix A
+            pub scA: usize, // scA = start column in matrix A
+            pub srB: usize,
+            pub scB: usize,
+            pub srC: usize,
+            pub scC: usize,
+            pub numBlocks: usize, // total number of elements per block in both dimensions
+            pub dim: usize, // number of elements in one dimension in one block
+        }
+        
+        pub fn is_valid(matrix: &Matrix<f64>, data_length: usize) -> bool {
+            for i in 0..data_length {
+                for j in 0..data_length {
+                    let actual = matrix.get(i, j);
+                    let expected = 1.0 * ((data_length * i * j) as f64);
+                    if ((actual-expected).abs() > 0.0001) { // allow some rounding errors
+                        info!("Validation failed for (i,j)={},{} with ({},{})", i, j, actual, expected);
+                        return false;
+                    }
+                }
+            }
+            true
+        }
+    =}
+}
+
+reactor Worker(threshold: usize(16384)) {
+    state threshold(threshold);
+
+    state A: Arc<Matrix<f64>>;
+    state B: Arc<TransposedMatrix<f64>>;
+    state C: Arc<Mutex<Matrix<f64>>>;
+
+    input data: {=(Arc<Matrix<f64>>, Arc<TransposedMatrix<f64>>, Arc<Mutex<Matrix<f64>>>)=};
+    input doWork: WorkItem;
+    output moreWork: {=[WorkItem; 8]=};
+    
+    preamble {=
+        use crate::reactors::manager::WorkItem;
+        use crate::matrix::{Matrix, TransposedMatrix};
+        use std::sync::{Arc, Mutex};
+    =}
+
+    reaction (data) {=
+        ctx.use_ref_opt(data, |(a, b, c)| {
+            self.A = a.clone();
+            self.B = b.clone();
+            self.C = c.clone();    
+        });
+    =}
+
+    reaction(doWork) -> moreWork {=
+        let wi = ctx.get(doWork).unwrap();
+
+        // If the number of blocks to process is above the threshold,
+        // then we split the problem into smaller chunks and generate more work items
+        if wi.numBlocks > self.threshold {
+            let mut work_queue = [WorkItem::default(); 8];
+
+            let dim = wi.dim / 2;
+            let numBlocks = wi.numBlocks / 4;
+
+            work_queue[0] = WorkItem{srA: wi.srA      , scA: wi.scA      , srB: wi.srB      , scB: wi.scB      , srC: wi.srC      , scC: wi.scC      , numBlocks, dim};
+            work_queue[1] = WorkItem{srA: wi.srA      , scA: wi.scA + dim, srB: wi.srB + dim, scB: wi.scB      , srC: wi.srC      , scC: wi.scC      , numBlocks, dim};
+            work_queue[2] = WorkItem{srA: wi.srA      , scA: wi.scA      , srB: wi.srB      , scB: wi.scB + dim, srC: wi.srC      , scC: wi.scC + dim, numBlocks, dim};
+            work_queue[3] = WorkItem{srA: wi.srA      , scA: wi.scA + dim, srB: wi.srB + dim, scB: wi.scB + dim, srC: wi.srC      , scC: wi.scC + dim, numBlocks, dim};
+            work_queue[4] = WorkItem{srA: wi.srA + dim, scA: wi.scA      , srB: wi.srB      , scB: wi.scB      , srC: wi.srC + dim, scC: wi.scC      , numBlocks, dim};
+            work_queue[5] = WorkItem{srA: wi.srA + dim, scA: wi.scA + dim, srB: wi.srB + dim, scB: wi.scB      , srC: wi.srC + dim, scC: wi.scC      , numBlocks, dim};
+            work_queue[6] = WorkItem{srA: wi.srA + dim, scA: wi.scA      , srB: wi.srB      , scB: wi.scB + dim, srC: wi.srC + dim, scC: wi.scC + dim, numBlocks, dim};
+            work_queue[7] = WorkItem{srA: wi.srA + dim, scA: wi.scA + dim, srB: wi.srB + dim, scB: wi.scB + dim, srC: wi.srC + dim, scC: wi.scC + dim, numBlocks, dim};
+
+            ctx.set(moreWork, work_queue);
+        } else {
+            // otherwise we compute the result directly
+            let end_r = wi.srC + wi.dim;
+            let end_c = wi.scC + wi.dim;
+            
+            let mut c = self.C.lock().unwrap();
+
+            for i in wi.srC..end_r {
+                for j in wi.scC..end_c {
+                    for k in 0..wi.dim {
+                        let v = self.A.get(i, wi.scA + k) * self.B.get(wi.srB + k, j);
+                        c.set(i, j, v);
+                    }
+                }
+            }
+        }
+    =}
+}
+
+main reactor (numIterations: usize(12), dataLength: usize(1024), blockThreshold: usize(16384), priorities: usize(10), numWorkers: usize(20)) {
+    state num_iterations(numIterations);
+    state data_length(dataLength);
+    state block_threshold(blockThreshold);
+    state priorities(priorities);
+    state num_workers(numWorkers);
+
+    // The priorities parameter is not used, but we keep it for compatibility with Akka
+    runner = new BenchmarkRunner(num_iterations=numIterations);
+    manager = new Manager(numWorkers=numWorkers, dataLength=dataLength);
+    workers = new[numWorkers] Worker(threshold=blockThreshold)
+
+    reaction(startup) {=
+        print_benchmark_info("MatMulBenchmark");
+        print_args!(
+            "numIterations",
+            self.num_iterations,
+            "dataLength",
+            self.data_length,
+            "blockThreshold",
+            self.block_threshold,
+            "priorities",
+            self.priorities,
+            "numWorkers",
+            self.num_workers
+        );
+        print_system_info();
+    =}
+
+    runner.start -> manager.start;
+    manager.finished -> runner.finished;
+
+    (manager.data)+ -> workers.data;
+    manager.doWork -> workers.doWork;
+    workers.moreWork -> manager.moreWork;
+
+    preamble {=
+        use crate::{print_args,reactors::benchmark_runner::{print_system_info, print_benchmark_info}};
+    =}
+}
