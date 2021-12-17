@@ -516,7 +516,6 @@ class CGenerator extends GeneratorBase {
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
         
-        // Add ctarget.c to the sources
         targetConfig.compileAdditionalSources.add("ctarget.c");
 
         // Copy the required core library files into the target file system.
@@ -650,7 +649,7 @@ class CGenerator extends GeneratorBase {
             
             // Copy the core lib
             fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
-            
+            fileConfig.copyFileFromClassPath("/lib/c/reactor-c/Platform.cmake", fileConfig.getSrcGenPath.toString() + File.separator + "Platform.cmake")
             // Copy the header files
             copyTargetHeaderFile()
             

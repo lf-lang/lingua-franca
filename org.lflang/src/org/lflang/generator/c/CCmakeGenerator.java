@@ -105,36 +105,18 @@ class CCmakeGenerator {
         cMakeCode.append("endif()\n");
         
         cMakeCode.append("set(CoreLib core)\n");
+        cMakeCode.append("set(PlatformLib platform)\n");
         cMakeCode.append("\n");
         
-        cMakeCode.append("# Check which system we are running on to select the correct platform support\n");
-        cMakeCode.append("# file and assign the file's path to LF_PLATFORM_FILE\n");
-        cMakeCode.append("if(${CMAKE_SYSTEM_NAME} STREQUAL \"Linux\")\n");
-        cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_linux_support.c)\n");
         if (CppMode) {
             // Suppress warnings about const char*.
-            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
+            cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
         }
-        cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Darwin\")\n");
-        cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_macos_support.c)\n");
-        if (CppMode) {
-            // Suppress warnings about const char*.
-            cMakeCode.append("    set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
-        }
-        cMakeCode.append("elseif(${CMAKE_SYSTEM_NAME} STREQUAL \"Windows\")\n");
-        cMakeCode.append("    set(LF_PLATFORM_FILE ${CoreLib}/platform/lf_windows_support.c)\n");
-        cMakeCode.append("    set(CMAKE_SYSTEM_VERSION 10.0)\n");
-        cMakeCode.append("    message(\"Using Windows SDK version ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}\")\n");
-        cMakeCode.append("else()\n");
-        cMakeCode.append("    message(FATAL_ERROR \"Your platform is not supported!"+
-                " The C target supports Linux, MacOS and Windows.\")\n");
-        cMakeCode.append("endif()\n");
-        cMakeCode.append("\n");
-        
+        cMakeCode.append("include(Platform.cmake)\n\n");
+
         cMakeCode.append("include_directories(${CoreLib})\n");
         cMakeCode.append("include_directories(${CoreLib}/platform)\n");
-        cMakeCode.append("include_directories(${CoreLib}/federated)\n");
-        cMakeCode.append("\n");
+        cMakeCode.append("include_directories(${CoreLib}/federated)\n\n");
         
         cMakeCode.append("set(LF_MAIN_TARGET "+executableName+")\n");
         if (hasMain) {
