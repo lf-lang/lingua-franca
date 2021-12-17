@@ -24,24 +24,48 @@
  * @author Johannes Hayeß
  */
 
+#[derive(Default)]
 pub struct Matrix<T> {
     data: Vec<T>,
     size_y: usize,
 }
 
-impl<T: Default> Matrix<T> {
+#[derive(Default)]
+pub struct TransposedMatrix<T> {
+    data: Vec<T>,
+    size_x: usize,
+}
+
+impl<T: Default + Clone + Copy> Matrix<T> {
     pub fn new(size_x: usize, size_y: usize) -> Self {
         Matrix::<T> {
-            data: vec![T::default(); size_x, size_y],
+            data: vec![T::default(); size_x * size_y],
             size_y,
         }
     }
 
     pub fn get(&self, x: usize, y: usize) -> &T {
-        data[x * size_y + y]
+        &self.data[x * self.size_y + y]
     }
 
     pub fn set(&mut self, x: usize, y: usize, value: T) {
-        data[x * size_y + y] = value;
+        self.data[x * self.size_y + y] = value;
+    }
+}
+
+impl<T: Default + Clone + Copy> TransposedMatrix<T> {
+    pub fn new(size_x: usize, size_y: usize) -> Self {
+        TransposedMatrix::<T> {
+            data: vec![T::default(); size_x * size_y],
+            size_x,
+        }
+    }
+
+    pub fn get(&self, x: usize, y: usize) -> &T {
+        &self.data[y * self.size_x + x]
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, value: T) {
+        self.data[y * self.size_x + x] = value;
     }
 }
