@@ -33,14 +33,9 @@
  */
 
 target Rust {
-    build-type: Debug,
+    build-type: Release,
     cargo-features: [ "cli" ],
     rust-include: "../lib/matrix.rs",
-    cargo-dependencies: {
-        reactor_rt: {
-            features: ["parallel-runtime"]
-        },
-    }
 };
 
 import BenchmarkRunner from "../lib/BenchmarkRunner.lf";
