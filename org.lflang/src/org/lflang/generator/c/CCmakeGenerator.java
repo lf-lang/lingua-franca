@@ -83,6 +83,7 @@ class CCmakeGenerator {
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileConfig.toUnixString(relativePath));
         }
+        cMakeCode.append("\n");
         
         cMakeCode.append("cmake_minimum_required(VERSION 3.13)\n");
         cMakeCode.append("project("+executableName+" LANGUAGES C)\n");
@@ -98,14 +99,18 @@ class CCmakeGenerator {
         cMakeCode.append("set(CMAKE_CXX_STANDARD_REQUIRED ON)\n");
         cMakeCode.append("\n");
         
-        // Set the log level
-        cMakeCode.append("add_compile_definitions(LOG_LEVEL="+targetConfig.logLevel.ordinal()+")\n");
+        cMakeCode.append("# Compile definitions\n");
+        for (String definition: targetConfig.compileDefinitions) {
+            cMakeCode.append("add_compile_definitions("+definition+")\n");
+        }
+        cMakeCode.append("\n");
         
         // Set the build type
         cMakeCode.append("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
         cMakeCode.append("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
         cMakeCode.append("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)\n");
         cMakeCode.append("endif()\n");
+        cMakeCode.append("\n");
         
         cMakeCode.append("set(CoreLib core)\n");
         cMakeCode.append("\n");

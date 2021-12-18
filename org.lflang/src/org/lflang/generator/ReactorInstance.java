@@ -178,6 +178,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     if (candidateLevel > 0 && candidateLevel > downstream.level) {
                         // Can assign a level to downstream.
                         downstream.level = candidateLevel;
+                        if (candidateLevel > maxReactionLevel) {
+                            maxReactionLevel = candidateLevel;
+                        }
                         reactionsWithLevels.add(downstream);
                     }
                 }
@@ -289,7 +292,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return null;
     }
-
+    
+    /**
+     * Return the maximum reaction level in this reactor instance.
+     */
+    public long getMaxReactionLevel() {
+        return maxReactionLevel;
+    }
+    
     /** 
      * Override the base class to append [index] if this reactor
      * is in a bank of reactors.
@@ -743,6 +753,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
      */
     protected int depth = 0;
+    
+    /**
+     * Maximum reaction level of all reactions contained in this reactor instance.
+     */
+    protected long maxReactionLevel = 0;
 
     //////////////////////////////////////////////////////
     //// Protected methods.

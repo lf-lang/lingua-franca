@@ -499,6 +499,8 @@ class CGenerator extends GeneratorBase {
                 this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, errorReporter, 
                     this.unorderedReactions)
                 this.main.assignLevels();
+                // Add the maximum reaction level as a compile-time definition
+                targetConfig.compileDefinitions.add("MAX_REACTION_LEVEL="+this.main.maxReactionLevel);
                 // Avoid compile errors by removing disconnected network ports.
                 // This must be done after assigning levels.  
                 removeRemoteFederateConnectionPorts(main);
@@ -3660,25 +3662,10 @@ class CGenerator extends GeneratorBase {
      * Return a string that defines the log level.
      */
     static def String defineLogLevel(GeneratorBase generator) {
-        // FIXME: if we align the levels with the ordinals of the
-        // enum (see CppGenerator), then we don't need this function.
-        switch(generator.targetConfig.logLevel) {
-            case ERROR: '''
-                #define LOG_LEVEL 0
-            '''
-            case WARN: '''
-                #define LOG_LEVEL 1
-            '''
-            case INFO: '''
-                #define LOG_LEVEL 2
-            ''' 
-            case LOG: '''
-                #define LOG_LEVEL 3
-            '''
-            case DEBUG: '''
-                #define LOG_LEVEL 4
-            '''
-        }
+        generator.targetConfig.compileDefinitions.add("LOG_LEVEL="+generator.targetConfig.logLevel.ordinal);
+        '''
+            #define LOG_LEVEL «generator.targetConfig.logLevel.ordinal»
+        '''
     }
     
     /**
@@ -5123,23 +5110,13 @@ class CGenerator extends GeneratorBase {
         pr(this.defineLogLevel)
         
         if (isFederated) {
-            // FIXME: Instead of checking
-            // #ifdef FEDERATED, we could
-            // use #if (NUMBER_OF_FEDERATES > 1)
-            // To me, the former is more accurate.
-            pr('''
-                #define FEDERATED
-            ''')
+            targetConfig.compileDefinitions.add("FEDERATED");
             if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
-                pr('''
-                    #define FEDERATED_CENTRALIZED
-                ''')                
+                targetConfig.compileDefinitions.add("FEDERATED_CENTRALIZED");                
             } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
-                pr('''
-                    #define FEDERATED_DECENTRALIZED
-                ''')
+                targetConfig.compileDefinitions.add("FEDERATED_DECENTRALIZED");  
             }
         }
                         
