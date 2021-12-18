@@ -146,7 +146,6 @@ public abstract class NamedInstance<T extends EObject> {
         return false;
     }
     
-
     /**
      * Return a list of all the parents starting with the root().
      */
@@ -189,6 +188,15 @@ public abstract class NamedInstance<T extends EObject> {
         }
     }
             
+    /**
+     * Set the width. This method is here for testing only and should
+     * not be used for any other purpose.
+     * @param width The new width.
+     */
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
     /**
      * Return an identifier for this instance, which has the form "a_b_c"
      * or "a_b_c_n", where "c" is the name of this instance, "b" is the name
