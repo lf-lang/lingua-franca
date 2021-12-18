@@ -1027,7 +1027,7 @@ class CGenerator extends GeneratorBase {
         // between inputs and outputs.
         pr(startTimeStep.toString)
 
-        setReactionPriorities(main, federate)
+        setReactionPriorities(main)
 
         initializeFederate(federate)
         unindent()
@@ -3971,16 +3971,14 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate to conditionally generate code for
      *  contained reactors or null if there are no federates.
      */
-    def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
+    def void setReactionPriorities(ReactorInstance reactor) {
         val temp = new StringBuilder();
         var foundOne = false;
 
         startScopedBlock(temp, reactor);
         
         for (r : reactor.reactions) {
-            if (federate === null || federate.contains(
-                r.definition
-            )) {
+            if (currentFederate.contains(r.definition)) {
                 foundOne = true;
                 val reactionStructName = '''«CUtil.reactorRef(reactor)»->_lf__reaction_«r.index»'''
                 // xtend doesn't support bitwise operators...
@@ -3999,8 +3997,8 @@ class CGenerator extends GeneratorBase {
         if (foundOne) pr(temp.toString());
         
         for (child : reactor.children) {
-            if (federate.contains(child)) {
-                setReactionPriorities(child, federate)
+            if (currentFederate.contains(child)) {
+                setReactionPriorities(child)
             }
         }
     }

@@ -96,6 +96,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions);
     }
 
+    /**
+     * Create a new instantiation with the specified parent.
+     * This constructor is here to allow for unit tests.
+     * It should not be used for any other purpose.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
+     * @param parent The parent reactor instance.
+     */
+    public ReactorInstance(Reactor reactor, ErrorReporter reporter, ReactorInstance parent) {
+        this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, null);
+    }
+
     //////////////////////////////////////////////////////
     //// Public fields.
 

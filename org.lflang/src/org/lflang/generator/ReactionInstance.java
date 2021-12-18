@@ -26,8 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.lflang.TimeValue;
@@ -275,18 +277,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public Set<TriggerInstance<? extends Variable>> triggers
             = new LinkedHashSet<TriggerInstance<? extends Variable>>();
 
-    /**
-     * Sources through which this reaction instance has been visited.
-     */
-    public Set<ReactionInstance> visited = new LinkedHashSet<ReactionInstance>();
-
-    /**
-     * Counter that indicates how many times this node has been visited during
-     * the graph traversal that sets the chainIDs. Only when this counter hits zero
-     * shall the traversal continue to explore chains beyond this node.
-     */
-    public int visitsLeft = 0;
-
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -393,7 +383,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public String getName() {
         return "reaction_" + this.index;
     }
-    
+        
     /**
      * Purge 'portInstance' from this reaction, removing it from the list
      * of triggers, sources, effects, and reads.
@@ -413,6 +403,51 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     @Override
     public String toString() {
         return getName() + " of " + parent.getFullName();
+    }
+
+    //////////////////////////////////////////////////////
+    //// Protected methods.
+
+    /**
+     * Return an array of runtime instances of this reaction in a
+     * **natural order**, defined as follows.
+     * 
+     * The size of the array is the product of the widths of all of the
+     * container ReactorInstance objects. If none of these is a bank,
+     * then the size will be 1. Otherwise, the array is indexed as
+     * follows.  Definitions:
+     * 
+     * * The containers are c0 (the top level), c1 (contained
+     *   by the top level), through cn (the immediate container).
+     * * The widths of these containers are w0 (equal to 1, since the top-level
+     *   cannot be a bank), w1, through wn.
+     * * The bank indices within these containers are b0 (always equal to 0)
+     *   through bn.
+     * 
+     * Then the index is
+     * 
+     *     bn + wn * ( ... (b2 + w2 * (b1 + w1 * (b0 + w0))) ... )
+     *     
+     * Since b0 + w0 = 1, that last part is not needed.
+     *     
+     * This method creates this array the first time it is called, but then
+     * holds on to it.  The array is used by {@link ReactionInstanceGraph}
+     * to determine and record levels and deadline for runtime instances
+     * of reactors.
+     */
+    protected List<Runtime> getRuntimeInstances() {
+        if (runtimeInstances != null) return runtimeInstances;
+        int size = 1;
+        ReactorInstance p = parent;
+        while (p != null) {
+            size *= p.width;
+            p = p.parent;
+        }
+        runtimeInstances = new ArrayList<Runtime>(size);
+        for (int i = 0; i < size; i++) {
+            runtimeInstances.add(new Runtime());
+        }
+        return runtimeInstances;
     }
 
     //////////////////////////////////////////////////////
@@ -436,12 +471,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * b0, b1, and b2.  That instance is in this array at
      * location FIXME
      */
-    FIXME
+    private List<Runtime> runtimeInstances;
 
     ///////////////////////////////////////////////////////////
     //// Inner classes
 
     /** Inner class representing a runtime instance. */
     public static class Runtime {
+        public int level = 0;
+        public TimeValue deadline = TimeValue.MAX_VALUE;
     }
 }

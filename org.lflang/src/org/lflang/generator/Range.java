@@ -1,4 +1,4 @@
-/* Abstract class for ranges of NamedInstance. */
+/* A representation of a range of runtime instances for a NamedInstance. */
 
 /*
 Copyright (c) 2019-2021, The University of California at Berkeley.
@@ -25,8 +25,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.lflang.generator;
 
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -155,7 +156,7 @@ import org.lflang.lf.Connection;
  * Modifications always return a new Range.
  *
  * @author{Edward A. Lee <eal@berkeley.edu>}
-*/
+ */
 public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     
     /**
@@ -252,6 +253,82 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     }
     
     /**
+     * Return a set of identifiers for runtime instances of the specified instance 
+     * that lie within this range. If the specified instance is not this Range's
+     * instance nor any of its containers, then the returned result be
+     * an empty list. Otherwise, it will a list of **natural identifiers**,
+     * as defined below, for the instances within the range.
+     * 
+     * Each **natural identifier** is the integer value of a mixed-radix number
+     * defined as follows:
+     * 
+     * * The low-order digit is the is the index of the runtime instance of
+     *   the specified NamedInstance within its container. If the NamedInstance
+     *   is a PortInstance, this will be the multiport channel or 0 if it is not a
+     *   multiport. If the NamedInstance is a ReactorInstance, then it will be the bank
+     *   index or 0 if the reactor is not a bank.  The radix for this digit will be
+     *   the multiport width or bank width or 1 if the NamedInstance is neither a
+     *   multiport nor a bank.
+     *   
+     * * The next digit will be the bank index of the container of the specified
+     *   NamedInstance or 0 if it is not a bank.
+     *   
+     * * The remaining digits will be bank indices of containers up to but not
+     *   including the top-level reactor (there is no point in including the top-level
+     *   reactor because it is never a bank.
+     *   
+     * Each index that is returned can be used as an index into an array of
+     * runtime instances that is assumed to be in a **natural order**.
+     */
+    public Set<Integer> instances(NamedInstance<?> i) {
+        Set<Integer> result = new LinkedHashSet<Integer>(width);
+        
+        List<Integer> radixes = new ArrayList<Integer>(i.depth);
+        List<Integer> digits = new ArrayList<Integer>(i.depth);
+        List<Integer> permutation = new ArrayList<Integer>(i.depth);
+        
+        // Pre-fill the permutation array with the natural order.
+        for (int j = 0; j < i.depth; j++) permutation.add(j);
+                
+        // Construct the radix and permutation arrays.
+        // Meanwhile, check whether the specified instance is indeed in the list.
+        boolean foundMatch = false;
+        int stride = 1;
+        int count = 0;
+        for (NamedInstance<?> io : iterationOrder()) {
+            if (io.depth <= i.depth) { 
+                // Instance is shallower than or equal to the desired one.
+                radixes.add(io.width);
+                permutation.set(i.depth - io.depth, count);
+                digits.add(0);
+                if (i == io) foundMatch = true;
+                count++;
+            } else {
+                // Instance is deeper than the desired one.
+                stride *= io.width;
+            }
+        }
+        if (!foundMatch) return result;
+                
+        // Iterate over the range in its own order.
+        count = 0;
+        MixedRadixInt indices = new MixedRadixInt(digits, radixes);
+        while (count < start + width) {
+            if (count >= start) {
+                // Found an instance to include in the list.
+                // Permute it to get natural order.
+                MixedRadixInt natural = indices.permute(permutation);
+                result.add(natural.get());
+            }
+            count++;
+            if (count % stride == 0) {
+                indices.increment();
+            }
+        }
+        return result;
+    }
+
+    /**
      * Return a new Range that is identical to this range but
      * with width reduced to the specified width.
      * If the new width is greater than or equal to the width
@@ -276,7 +353,7 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
      * shallower).
      */
     public List<NamedInstance<?>> iterationOrder() {
-        LinkedList<NamedInstance<?>> result = new LinkedList<NamedInstance<?>>();
+        ArrayList<NamedInstance<?>> result = new ArrayList<NamedInstance<?>>();
         result.add(instance);
         ReactorInstance parent = instance.parent;
         while (parent.depth > 0) {
@@ -331,6 +408,9 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     //////////////////////////////////////////////////////////
     //// Public inner classes
     
+    /**
+     * Special case of Range for PortInstance.
+     */
     public static class Port extends Range<PortInstance> {
         public Port(PortInstance instance) {
             super(instance, null);
