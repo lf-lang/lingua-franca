@@ -114,7 +114,7 @@ public class ModelInfo {
                 topLevelReactorInstances.add(inst);
             } else {
                 model.getReactors().forEach(
-                    it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))
+                    it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter))
                 );
             }
             // don't store the graph into a field, only the cycles.

@@ -410,25 +410,18 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /**
      * Return an array of runtime instances of this reaction in a
-     * **natural order**, defined as follows.
+     * **natural order**, defined as follows.  The position within the
+     * returned list of the runtime instance is given by a mixed-radix
+     * number where the low-order digit is the bank index within the
+     * container reactor (or 0 if it is not a bank), the second low order
+     * digit is the bank index of the container's container (or 0 if
+     * it is not a bank), etc., until the container that is directly
+     * contained by the top level (the top-level reactor need not be
+     * included because its index is always 0).
      * 
-     * The size of the array is the product of the widths of all of the
+     * The size of the returned array is the product of the widths of all of the
      * container ReactorInstance objects. If none of these is a bank,
-     * then the size will be 1. Otherwise, the array is indexed as
-     * follows.  Definitions:
-     * 
-     * * The containers are c0 (the top level), c1 (contained
-     *   by the top level), through cn (the immediate container).
-     * * The widths of these containers are w0 (equal to 1, since the top-level
-     *   cannot be a bank), w1, through wn.
-     * * The bank indices within these containers are b0 (always equal to 0)
-     *   through bn.
-     * 
-     * Then the index is
-     * 
-     *     bn + wn * ( ... (b2 + w2 * (b1 + w1 * (b0 + w0))) ... )
-     *     
-     * Since b0 + w0 = 1, that last part is not needed.
+     * then the size will be 1.
      *     
      * This method creates this array the first time it is called, but then
      * holds on to it.  The array is used by {@link ReactionInstanceGraph}
@@ -445,7 +438,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         runtimeInstances = new ArrayList<Runtime>(size);
         for (int i = 0; i < size; i++) {
-            runtimeInstances.add(new Runtime());
+            Runtime r = new Runtime();
+            if (declaredDeadline != null) {
+                r.deadline = declaredDeadline.maxDelay;
+            }
+            runtimeInstances.add(r);
         }
         return runtimeInstances;
     }
@@ -480,5 +477,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public static class Runtime {
         public int level = 0;
         public TimeValue deadline = TimeValue.MAX_VALUE;
+        public Runtime dominatingReaction = null;
     }
 }
