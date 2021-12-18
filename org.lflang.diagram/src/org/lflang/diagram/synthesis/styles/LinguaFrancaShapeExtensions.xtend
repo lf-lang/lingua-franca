@@ -295,8 +295,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             // Force calculation of levels for reactions. This calculation
             // will only be done once. Note that if this fails due to a causality loop,
             // then some reactions will have level -1.
-            reaction.root().assignLevels();
-            contentContainer.addText("level: " + Long.toString(reaction.level)) => [
+            val levels = reaction.getLevels().join(", ");
+            contentContainer.addText("level(s): " + levels) => [
                 fontBold = false
                 noSelectionStyle
                 suppressSelectability
