@@ -72,12 +72,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         this.index = index;
         this.isUnordered = isUnordered;
         
-        // If the reaction has no port triggers or sources, then
-        // we can immediately assign it a level.
-        // We also record it in the root reactor instance
-        // so that other reactions can be assigned levels as well.
-        boolean dependsOnPorts = false;
-        
         // Identify the dependencies for this reaction.
         // First handle the triggers.
         for (TriggerRef trigger : definition.getTriggers()) {
@@ -104,15 +98,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                                 this.triggers.add(portInstance);
                             }
                         }
-                    }
-                    // Mark this reaction as depending on a port and therefore not
-                    // eligible to be assigned level 0. However,
-                    // if the port is not connected and doesn't depend on any reactions,
-                    // then it does not interfere with this reaction being given level 0.
-                    if (portInstance != null
-                            && (portInstance.dependsOnPorts.size() > 0 
-                            || portInstance.dependsOnReactions.size() > 0)) {
-                        dependsOnPorts = true;
                     }
                 } else if (variable instanceof Action) {
                     var actionInstance = parent.lookupActionInstance(
@@ -158,27 +143,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         }
                     }
                 }
-                // Mark this reaction as depending on a port and therefore not
-                // eligible to be assigned level 0. However,
-                // if the port is not connected and doesn't depend on any reactions,
-                // then it does not interfere with this reaction being given level 0.
-                if (portInstance != null
-                        && (portInstance.dependsOnPorts.size() > 0 
-                        || portInstance.dependsOnReactions.size() > 0)) {
-                    dependsOnPorts = true;
-                }
             }
         }
         
-        // Initialize the root's readyReactions queue, which it uses
-        // to compute levels.
-        if (!dependsOnPorts) {
-            if (isUnordered || index == 0) {
-                level = 0L;
-            }
-            root().reactionsWithLevels.add(this);
-        }
-
         // Finally, handle the effects.
         for (VarRef effect : definition.getEffects()) {
             Variable variable = effect.getVariable();
@@ -245,12 +212,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Inferred deadline. Defaults to the maximum long value.
      */
     public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC);
-
-    /**
-     * The level in the dependence graph. -1 indicates that the level
-     * has not yet been assigned.
-     */
-    public long level = -1L;
 
     /**
      * Index of order of occurrence within the reactor definition.
@@ -372,6 +333,21 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             return upstream.next();
         }
         return null;
+    }
+    
+    /**
+     * Return a set of levels that instances of this reaction have.
+     * A ReactionInstance may have more than one level if it lies within
+     * a bank and its dependencies on other reactions pass through multiports.
+     */
+    public Set<Integer> getLevels() {
+        Set<Integer> result = new LinkedHashSet<Integer>();
+        // Force calculation of levels if it has not been done.
+        parent.assignLevels();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.level);
+        }
+        return result;
     }
 
     /**

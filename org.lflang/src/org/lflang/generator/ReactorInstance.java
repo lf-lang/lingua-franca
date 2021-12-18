@@ -26,9 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -157,49 +155,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * in V + E, where V is the number of vertices (reactions) and E
      * is the number of edges (dependencies between reactions).
      * 
-     * @return True if successful and false if a causality cycle exists.
+     * @return An empty graph if successful and otherwise a graph
+     *  with runtime reaction instances that form cycles.
      */
-    public boolean assignLevels() {
-        if (root() != this) {
-            return root().assignLevels();
-        } else {
-            // This operation is relatively expensive, so we cache the result.
-            // This will need a mechanism to force recomputation if
-            // this class ever supports mutations (e.g. in a Java target).
-            if (levelsAssignedAlready > 0) return true;
-            
-            int count = 0;
-            while (!reactionsWithLevels.isEmpty()) {
-                ReactionInstance reaction = reactionsWithLevels.poll();
-                count++;
-                // Check downstream reactions to see whether they can get levels assigned.
-                for (ReactionInstance downstream : reaction.dependentReactions()) {
-                    // Check whether all upstream of downstream have levels.
-                    long candidateLevel = reaction.level + 1L;
-                    for (ReactionInstance upstream : downstream.dependsOnReactions()) {
-                        if (upstream.level < 0L) {
-                            // downstream reaction is not ready to get a level.
-                            candidateLevel = -1L;
-                            break;
-                        } else if (candidateLevel < upstream.level + 1L) {
-                            candidateLevel = upstream.level + 1L;
-                        }
-                    }
-                    if (candidateLevel > 0 && candidateLevel > downstream.level) {
-                        // Can assign a level to downstream.
-                        downstream.level = candidateLevel;
-                        reactionsWithLevels.add(downstream);
-                    }
-                }
-            }
-            if (count < root().totalNumberOfReactions()) {
-                reporter.reportError(definition, "Reactions form a causality cycle!");
-                levelsAssignedAlready = 0;
-                return false;
-            }
-            levelsAssignedAlready = 1;
-            return true;
+    public ReactionInstanceGraph assignLevels() {
+        if (depth != 0) return root().assignLevels();
+        if (cachedReactionLoopGraph == null) {
+            cachedReactionLoopGraph = new ReactionInstanceGraph(this);
         }
+        return cachedReactionLoopGraph;
     }
     
     /** 
@@ -214,6 +178,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         return null;
+    }
+    
+    /**
+     * Clear any cached data.
+     * This is useful if a mutation has been realized.
+     */
+    public void clearCaches() {
+        cachedReactionLoopGraph = null;
+        totalNumberOfReactionsCache = -1;
     }
 
     /**
@@ -591,16 +564,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //////////////////////////////////////////////////////
     //// Protected fields.
 
-    /**
-     * For a root reactor instance only, this will be a queue of reactions
-     * that either have been assigned an initial level or are ready to be
-     * assigned levels. During construction of a top-level ReactorInstance,
-     * this queue will be populated with reactions anywhere in the hierarchy
-     * that have been assigned level 0 during construction because they have
-     * no dependencies on other reactions.
-     */
-    protected Deque<ReactionInstance> reactionsWithLevels = new ArrayDeque<ReactionInstance>();
-
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
 
@@ -672,28 +635,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return shutdownTrigger;
     }
     
-    /** 
-     * Collect all reactions that have not been assigned a level and
-     * return the list.
-     * @param reactor The reactor for which to check reactions.
-     * @param result The list to add reactions to.
-     * @return The list of reactions without levels.
-     */
-    protected List<ReactionInstance> reactionsWithoutLevels(
-        ReactorInstance reactor,
-        List<ReactionInstance> result
-    ) {
-        for (ReactionInstance reaction : reactor.reactions) {
-            if (reaction.level < 0L) {
-                result.add(reaction);
-            }
-        }
-        for (ReactorInstance child : reactor.children) {
-            reactionsWithoutLevels(child, result);
-        }
-        return result;
-    }
-
     /** 
      * Add to the specified destinations set all ports that receive data from the 
      * specified source. This includes inputs and outputs at the same level 
@@ -1029,12 +970,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Private fields.
 
     /**
-     * Indicator of whether levels have already been assigned.
-     * This has value 0 if no attempt has been made, 1 if levels have been
-     * succesfully assigned, and -1 if a causality loop has prevented levels
-     * from being assigned.
+     * Cached reaction graph containing reactions that form a causality loop.
      */
-    private int levelsAssignedAlready = 0;
+    private ReactionInstanceGraph cachedReactionLoopGraph = null;
     
     /** 
      * One plus the number of contained reactor instances
