@@ -255,7 +255,7 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     /**
      * Return a set of identifiers for runtime instances of the specified instance 
      * that lie within this range. If the specified instance is not this Range's
-     * instance nor any of its containers, then the returned result be
+     * instance nor any of its parents, then the returned result be
      * an empty list. Otherwise, it will a list of **natural identifiers**,
      * as defined below, for the instances within the range.
      * 

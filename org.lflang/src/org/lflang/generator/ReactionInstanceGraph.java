@@ -1,4 +1,4 @@
-/** A graph that represents the dependencies between reaction instances. */
+/** A graph that represents causality cycles formed by reaction instances. */
 
 /*************
 Copyright (c) 2021, The University of California at Berkeley.
@@ -28,20 +28,28 @@ package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+
+import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.graph.DirectedGraph;
+import org.lflang.lf.Variable;
 
 /**
- * This graph represents the dependencies between reaction runtime instances.
+ * This class analyzes the dependencies between reaction runtime instances.
  * For each ReactionInstance, there may be more than one runtime instance because
  * the ReactionInstance may be nested within one or more banks.
  * In the worst case, of these runtime instances may have distinct dependencies,
  * and hence distinct levels in the graph. Moreover, some of these instances
  * may be involved in cycles while others are not.
  * 
- * Upon creation, the runtime instances are created if necessary and stored
- * in the ReactionInstance.  These instances assigned levels (maximum number of
- * upstream reaction instances).
+ * Upon construction of this class, the runtime instances are created if necessary,
+ * stored each ReactionInstance, and assigned levels (maximum number of
+ * upstream reaction instances), deadlines, and single dominating reactions.
+ * 
+ * After creation, the resulting graph will be empty unless there are causality
+ * cycles, in which case, the resulting graph is a graph of runtime reaction
+ * instances that form cycles.
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
@@ -69,20 +77,6 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
     //// Public methods
     
     /**
-     * Return the single dominating reaction if the given reaction has one, or
-     * null otherwise.
-     */
-    public ReactionInstance.Runtime findSingleDominatingReaction(ReactionInstance.Runtime r) {
-        Set<ReactionInstance.Runtime> reactions = getUpstreamAdjacentNodes(r);
-        if (reactions.size() == 1) {
-            for(ReactionInstance.Runtime reaction : reactions) {
-                return reaction;
-            }
-        }
-        return null;
-    }
-
-    /**
      * Rebuild this graph by clearing and repeating the traversal that 
      * adds all the nodes and edges.
      */
@@ -91,12 +85,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         addNodesAndEdges(main);
         // Assign a level to each reaction. 
         // If there are cycles present in the graph, it will be detected here.
-        Set<ReactionInstance.Runtime> leftoverReactions = assignLevels();
-        if (leftoverReactions.size() != 0) {
-            // The validator should have caught cycles, but if there is a bug in some
-            // AST transform such that it introduces cycles, then it is possible to have them
-            // only detected here. An end user should never see this.
-            main.reporter.reportError("Reactions form a cycle! " + leftoverReactions.toString());
+        assignLevels();
+        if (nodeCount() != 0) {
+            // The graph has cycles.
+            main.reporter.reportError("Reactions form a cycle! " + toString());
             throw new InvalidSourceException("Reactions form a cycle!");
         }
     }
@@ -111,11 +103,37 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
      * @param reaction The reaction to relate downstream reactions to.
      */
     protected void addDownstreamReactions(PortInstance port, ReactionInstance reaction) {
-        // Reactions in the containing reactor.
-        port.dependentReactions.forEach[this.addEdge(it, reaction)]
-        // Reactions in downstream reactors.
-        for (downstreamPort : port.dependentPorts) {
-            addDownstreamReactions(downstreamPort.instance, reaction)
+        // This is a scary piece of code because of the richness of possible
+        // interconnections using banks and multiports. For any program without
+        // banks and multiports, each of these for loops iterates exactly once.
+        List<Runtime> srcRuntimes = reaction.getRuntimeInstances();
+        for (SendRange sendRange : port.eventualDestinations()) {
+            for (int srcIndex : sendRange.instances(reaction.parent)) {
+                for (Range<PortInstance> dstRange : sendRange.destinations) {
+                    for (int dstIndex : dstRange.instances(dstRange.instance.parent)) {
+                        for (ReactionInstance dstReaction : dstRange.instance.dependsOnReactions) {
+                            List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
+                            Runtime srcRuntime = srcRuntimes.get(srcIndex);
+                            Runtime dstRuntime = dstRuntimes.get(dstIndex);
+                            addEdge(srcRuntime, dstRuntime);
+                            
+                            // Propagate the deadlines, if any.
+                            if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
+                                srcRuntime.deadline = dstRuntime.deadline;
+                            }
+                            
+                            // If this seems to be a single dominating reaction, set it.
+                            // If another upstream reaction shows up, then this will be
+                            // reset to null.
+                            if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1) {
+                                dstRuntime.dominatingReaction = srcRuntime;
+                            } else {
+                                dstRuntime.dominatingReaction = null;
+                            }
+                        }
+                    }
+                }
+            } 
         }
     }
 
@@ -127,29 +145,36 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
     protected void addNodesAndEdges(ReactorInstance reactor) {
         ReactionInstance previousReaction = null;
         for (ReactionInstance reaction : reactor.reactions) {
+            List<Runtime> runtimes = reaction.getRuntimeInstances();
+            
             // Add reactions of this reactor.
-            this.addNode(reaction);
+            for (Runtime runtime : runtimes) {
+                this.addNode(runtime);                
+            }
             
-            // Reactions that depend on a port that this reaction writes to
-            // also, by transitivity, depend on this reaction instance.
-            reaction.effects.filter(PortInstance).forEach [ effect |
-                addDownstreamReactions(effect, reaction)
-            ]
-            
-            // Reactions that write to such a port are also reactions that
-            // that this reaction depends on, by transitivity.
-            reaction.sources.filter(PortInstance).forEach [ source |
-                addUpstreamReactions(source, reaction)
-            ]
             // If this is not an unordered reaction, then create a dependency
             // on any previously defined reaction.
             if (!reaction.isUnordered) {
                 // If there is an earlier reaction in this same reactor, then
-                // create a link in the reaction graph.
-                if (previousReaction !== null) {
-                    this.addEdge(reaction, previousReaction)
+                // create a link in the reaction graph for all runtime instances.
+                if (previousReaction != null) {
+                    List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
+                    int count = 0;
+                    for (Runtime runtime : runtimes) {
+                        this.addEdge(runtime, previousRuntimes.get(count));
+                        count++;
+                    }
                 }
                 previousReaction = reaction;
+            }
+
+            // Add downstream reactions. Note that this is sufficient.
+            // We don't need to also add upstream reactions because this reaction
+            // will be downstream of those upstream reactions.
+            for (TriggerInstance<? extends Variable> effect : reaction.effects) {
+                if (effect instanceof PortInstance) {
+                    addDownstreamReactions((PortInstance)effect, reaction);
+                }
             }
         }
         // Recursively add nodes and edges from contained reactors.
@@ -158,84 +183,52 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         }
     }
     
-    /**
-     * Add to the graph edges between the given reaction and all the reactions
-     * that the specified port depends on.
-     * @param port The port that the given reaction as as a source.
-     * @param reaction The reaction to relate upstream reactions to.
-     */
-    protected void addUpstreamReactions(PortInstance port, ReactionInstance.Runtime reaction) {
-        // Reactions in the containing reactor.
-        port.dependsOnReactions.forEach[this.addEdge(reaction, it)];
-        // Reactions in upstream reactors.
-        for (upstreamPort : port.dependsOnPorts) {
-            addUpstreamReactions(upstreamPort.instance, reaction)
-        }
-    }
-
-    ///////////////////////////////////////////////////////////
-    //// Protected fields
-    
-    /**
-     * Count of the number of chains while assigning chainIDs.
-     */
-    int branchCount = 1;
-    
     ///////////////////////////////////////////////////////////
     //// Private methods
 
     /**
      * Analyze the dependencies between reactions and assign each reaction
-     * instance a level.
+     * instance a level. This method removes nodes from this graph as it
+     * assigns levels. Any remaining nodes are part of causality cycles.
+     * 
      * This procedure is based on Kahn's algorithm for topological sorting.
      * Rather than establishing a total order, we establish a partial order.
      * In this order, the level of each reaction is the least upper bound of
      * the levels of the reactions it depends on.
-     *
-     * @return If any cycles are present in the dependency graph, then a graph
-     * containing the nodes in the cycle is returned. Otherwise, null is
-     * returned.
      */
-    private Set<ReactionInstance.Runtime> assignLevels() {
-        ReactionInstanceGraph graph = this.copy;
-        List<ReactionInstance.Runtime> start = new ArrayList<ReactionInstance.Runtime>(graph.rootNodes());
+    private void assignLevels() {
+        List<ReactionInstance.Runtime> start = new ArrayList<ReactionInstance.Runtime>(rootNodes());
         
         // All root nodes start with level 0.
-        for (ReactionInstance.Runtime origin : start) {
+        for (Runtime origin : start) {
             origin.level = 0;
         }
 
         // No need to do any of this if there are no root nodes; 
         // the graph must be cyclic.
-        if (!graph.rootNodes.isEmpty) {
-            while (!start.empty) {
-                val origin = start.remove(0);
-                val toRemove = new LinkedHashSet<ReactionInstance>();
-                // Visit effect nodes.
-                for (effect : graph.getDownstreamAdjacentNodes(origin)) {
-                    // Stage edge between origin and effect for removal.
-                    toRemove.add(effect)
-                    
-                    // Update level of downstream node.
-                    effect.level = Math.max(effect.level, origin.level+1)    
-                }
-                // Remove visited edges.
-                for (effect : toRemove) {
-                    graph.removeEdge(effect, origin)
-                    // If the effect node has no more incoming edges,
-                    // then move it in the start set.
-                    if (graph.getUpstreamAdjacentNodes(effect).size == 0) {
-                        start.add(effect)
-                    }
-                }
+        while (!start.isEmpty()) {
+            Runtime origin = start.remove(0);
+            Set<Runtime> toRemove = new LinkedHashSet<Runtime>();
+            // Visit effect nodes.
+            for (Runtime effect : getDownstreamAdjacentNodes(origin)) {
+                // Stage edge between origin and effect for removal.
+                toRemove.add(effect);
                 
-                // Remove visited origin.
-                graph.removeNode(origin)
-                
+                // Update level of downstream node.
+                effect.level = Math.max(effect.level, origin.level+1);   
             }
+            // Remove visited edges.
+            for (Runtime effect : toRemove) {
+                removeEdge(effect, origin);
+                // If the effect node has no more incoming edges,
+                // then move it in the start set.
+                if (getUpstreamAdjacentNodes(effect).size() == 0) {
+                    start.add(effect);
+                }
+            }
+            
+            // Remove visited origin.
+            removeNode(origin);
         }
-        // If, after all of this, there are still any nodes left, 
-        // then the graph must be cyclic.
-        return graph;
     }
 }
