@@ -101,6 +101,11 @@ public class TargetConfig {
      * Additional sources to add to the compile command if appropriate.
      */
     public List<String> compileAdditionalSources = new ArrayList<>();
+    
+    /**
+     * Additional (preprocessor) definitions to add to the compile command if appropriate.
+     */
+    public List<String> compileDefinitions = new ArrayList<>();
 
     /**
      * Additional libraries to add to the compile command using the "-l" command-line option.
