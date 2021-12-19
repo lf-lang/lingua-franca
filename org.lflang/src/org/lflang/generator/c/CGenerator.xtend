@@ -3978,15 +3978,23 @@ class CGenerator extends GeneratorBase {
         startScopedBlock(temp, reactor);
         
         for (r : reactor.reactions) {
+            val levels = r.getLevels();
+            if (levels.size != 1) {
+                throw new RuntimeException("FIXME: Temporarily can't handle reactions with multiple levels.");
+            }
+            var level = -1;
+            for (l : levels) {
+                level = l;
+            }
             if (currentFederate.contains(r.definition)) {
                 foundOne = true;
                 val reactionStructName = '''«CUtil.reactorRef(reactor)»->_lf__reaction_«r.index»'''
                 // xtend doesn't support bitwise operators...
-                val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, r.level)
+                val indexValue = XtendUtil.longOr(r.deadline.toNanoSeconds << 16, level)
                 val reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL"
                 pr(temp, '''
                     «reactionStructName».chain_id = «r.chainID.toString»;
-                    // index is the OR of level «r.level» and 
+                    // index is the OR of level «level» and 
                     // deadline «r.deadline.toNanoSeconds» shifted left 16 bits.
                     «reactionStructName».index = «reactionIndex»;
                 ''')
