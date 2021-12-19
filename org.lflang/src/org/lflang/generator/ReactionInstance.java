@@ -328,7 +328,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * null otherwise.
      */
     public ReactionInstance findSingleDominatingReaction() {
-        if (dependsOnReactions().size() == 1) {
+        // FIXME: Temporary solution.
+        if (getRuntimeInstances().size() == 1 && dependsOnReactions().size() == 1) {
             Iterator<ReactionInstance> upstream = dependsOnReactionsCache.iterator();
             return upstream.next();
         }
