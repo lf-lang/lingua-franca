@@ -111,11 +111,11 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
             for (int srcIndex : sendRange.instances(reaction.parent)) {
                 for (Range<PortInstance> dstRange : sendRange.destinations) {
                     for (int dstIndex : dstRange.instances(dstRange.instance.parent)) {
-                        for (ReactionInstance dstReaction : dstRange.instance.dependsOnReactions) {
+                        for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
                             List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                             Runtime srcRuntime = srcRuntimes.get(srcIndex);
                             Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                            addEdge(srcRuntime, dstRuntime);
+                            addEdge(dstRuntime, srcRuntime);
                             
                             // Propagate the deadlines, if any.
                             if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
