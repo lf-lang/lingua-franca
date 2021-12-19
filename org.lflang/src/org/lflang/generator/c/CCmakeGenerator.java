@@ -121,12 +121,16 @@ class CCmakeGenerator {
         cMakeCode.append("set(LF_MAIN_TARGET "+executableName+")\n");
         if (hasMain) {
             cMakeCode.append("# Declare a new executable target and list all its sources\n");
-            cMakeCode.append("add_executable( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
-                               String.join("\n", additionalSources)+")\n");
+            cMakeCode.append(
+                "add_executable(${LF_MAIN_TARGET} " + String.join("\n", sources)
+                + " ${CoreLib}/platform/${LF_PLATFORM_FILE} " + String.join("\n", additionalSources) + ")\n"
+            );
         } else {
             cMakeCode.append("# Declare a new library target and list all its sources\n");
-            cMakeCode.append("add_library( ${LF_MAIN_TARGET} "+String.join("\n", sources)+" ${LF_PLATFORM_FILE} "+
-                               String.join("\n", additionalSources)+")\n");
+            cMakeCode.append(
+                "add_library(${LF_MAIN_TARGET} " + String.join("\n", sources)
+                + " ${CoreLib}/platform/${LF_PLATFORM_FILE} " + String.join("\n", additionalSources) + ")\n"
+            );
         }
         cMakeCode.append("\n");
 
