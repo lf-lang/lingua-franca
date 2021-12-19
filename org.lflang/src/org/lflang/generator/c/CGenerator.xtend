@@ -525,14 +525,14 @@ class CGenerator extends GeneratorBase {
         var coreFiles = newArrayList(
             "reactor_common.c",
             "reactor.h",
-            "pqueue.c",
-            "pqueue.h",
+            "utils/pqueue.c",
+            "utils/pqueue.h",
             "tag.h",
             "tag.c",
             "trace.h",
             "trace.c",
-            "util.h", 
-            "util.c", 
+            "utils/util.h", 
+            "utils/util.c", 
             "platform.h"
             );
         if (targetConfig.threads === 0) {
