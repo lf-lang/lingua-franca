@@ -143,7 +143,7 @@ import java.util.Set
                             if (connection !== null) {
                                 // FIXME: what is the relationship between delay and TimeValue.                                
                                 // FIXME: get delay
-                                var info = new CausalityInfo(true, connection.isPhysical, 0, ds as PortInstance, ue as PortInstance)
+                                var info = new CausalityInfo(true, connection.isPhysical, 0, ue as PortInstance, ds as PortInstance)
                                 // causality.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
                                 if (causality.get(key) === null) {
                                     causality.put(key, info)
