@@ -99,10 +99,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * This constructor is here to allow for unit tests.
      * It should not be used for any other purpose.
      * @param reactor The top-level reactor.
-     * @param reporter The error reporter.
      * @param parent The parent reactor instance.
+     * @param reporter The error reporter.
      */
-    public ReactorInstance(Reactor reactor, ErrorReporter reporter, ReactorInstance parent) {
+    public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter) {
         this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, null);
     }
 
@@ -181,12 +181,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Clear any cached data.
+     * Clear any cached data in this reactor and its children.
      * This is useful if a mutation has been realized.
      */
     public void clearCaches() {
         cachedReactionLoopGraph = null;
         totalNumberOfReactionsCache = -1;
+        for (ReactorInstance child : children) {
+            child.clearCaches();
+        }
+        for (PortInstance port : inputs) {
+            port.clearCaches();
+        }
+        for (PortInstance port : outputs) {
+            port.clearCaches();
+        }
     }
 
     /**
@@ -818,10 +827,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * side.  That is, it sets the interleaved state of the destination
      * to the exclusive OR of the interleaved state of the two ranges,
      * and sets the interleaved state of the source to false.
+     * 
+     * NOTE: This method is public to enable its use in unit tests.
+     * Otherwise, it should be private. This is why it is defined here.
+     * 
      * @param src The source range.
      * @param dst The destination range.
      */
-    private void connectPortInstances(
+    public static void connectPortInstances(
             Range<PortInstance> src,
             Range<PortInstance> dst
     ) {

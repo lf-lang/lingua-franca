@@ -294,49 +294,38 @@ public class PortInstance extends TriggerInstance<Port> {
         }
 
         // Start with ports that are downstream of the range.
-        int srcWidthCovered = 0;
-        int depWidthCovered = 0;
+        Range<PortInstance> wSrcRange = srcRange;  // Working source range.
         Iterator<Range<PortInstance>> dependentPorts = srcPort.dependentPorts.iterator();
         if (dependentPorts.hasNext()) {
-            Range<PortInstance> dep = dependentPorts.next();
-            while(srcWidthCovered < srcRange.width) {
-                if (srcRange.start >= depWidthCovered + dep.width) {
-                    // Destination is fully before this range.
-                    depWidthCovered += dep.width;
-                    if (!dependentPorts.hasNext()) break; // This should be an error.
-                    dep = dependentPorts.next();
-                    continue;
+            Range<PortInstance> wDstRange = dependentPorts.next();
+            while(true) {
+                if (wSrcRange == null) {
+                    // Source range has been fully covered, but there are more
+                    // destinations.  For multicast, start over with the source.
+                    wSrcRange = srcRange;
                 }
-                if (depWidthCovered >= srcRange.start + srcRange.width) {
-                    // Source range is covered. We are finished.
-                    break;
+                if (wDstRange == null) {
+                    // Destination range is covered.
+                    if (!dependentPorts.hasNext()) break; // All done.
+                    wDstRange = dependentPorts.next();
                 }
-                // Dependent port overlaps the range of interest.
-                // Get a new range that possibly subsets the target range.
-                // Argument is guaranteed by above checks to be less than
-                // dep.width, so the result will not be null.
-                Range<PortInstance> subDep = dep.tail(depWidthCovered - srcRange.start);
-                // The following argument is guaranteed to be greater than
-                // depWidthCovered - srcRange.getStartOffset().
-                subDep = subDep.head(srcRange.width);
+                // Cover the minimum of the two widths.
+                int width = Math.min(wSrcRange.width, wDstRange.width);
+                
+                // Destinations may be a subset.
+                Range<PortInstance> subDst = wDstRange.head(width);
                             
                 // At this point, dep is the subrange of the dependent port of interest.
                 // Recursively get the send ranges of that destination port.
-                List<SendRange> dstSendRanges = eventualDestinations(subDep);
+                List<SendRange> dstSendRanges = eventualDestinations(subDst);
                 
                 // For each returned SendRange, convert it to a SendRange
                 // for the srcRange port rather than the dep port.
                 for (SendRange dstSend : dstSendRanges) {
-                    queue.add(dstSend.newSendRange(srcRange));
+                    queue.add(dstSend.newSendRange(wSrcRange.head(width)));
                 }
-                depWidthCovered += subDep.width;
-                srcWidthCovered += subDep.width;
-                if (dep.start + dep.width <= subDep.start + subDep.width) {
-                    // dep range is exhausted. Get another one.
-                    if (!dependentPorts.hasNext()) break; // This should be an error.
-                    dep = dependentPorts.next();
-                    depWidthCovered = 0;
-                }
+                wSrcRange = wSrcRange.tail(width);
+                wDstRange = wDstRange.tail(width);
             }
         }
 
@@ -354,7 +343,9 @@ public class PortInstance extends TriggerInstance<Port> {
                 if (candidate.width <= next.width) {
                     // Can use all of the channels of candidate.
                     // Import the destinations of next and split it.
-                    candidate.destinations.addAll(next.destinations);
+                    for (Range<PortInstance> destination : next.destinations) {
+                        candidate.destinations.add(destination.head(candidate.width));
+                    }
                     if (candidate.width < next.width) {
                         // The next range has more channels connected to this sender.
                         next = (SendRange)next.tail(candidate.width);

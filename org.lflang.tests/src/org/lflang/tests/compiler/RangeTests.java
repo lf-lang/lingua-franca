@@ -3,11 +3,8 @@ package org.lflang.tests.compiler;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.xtext.testing.InjectWith;
-import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.generator.PortInstance;
@@ -16,10 +13,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
-import org.lflang.tests.LFInjectorProvider;
 
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
 public class RangeTests {
 
     private ErrorReporter reporter = new DefaultErrorReporter();
@@ -32,12 +26,12 @@ public class RangeTests {
         
         Reactor a = factory.createReactor();
         a.setName("A");
-        ReactorInstance ai = new ReactorInstance(a, reporter, maini);
+        ReactorInstance ai = new ReactorInstance(a, maini, reporter);
         ai.setWidth(2);
         
         Reactor b = factory.createReactor();
         b.setName("B");
-        ReactorInstance bi = new ReactorInstance(b, reporter, ai);
+        ReactorInstance bi = new ReactorInstance(b, ai, reporter);
         bi.setWidth(2);
 
         Port p = factory.createPort();

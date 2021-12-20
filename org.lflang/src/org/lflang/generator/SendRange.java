@@ -27,6 +27,7 @@ package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -136,6 +137,20 @@ public class SendRange extends Range.Port {
         return result;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder();
+        result.append(super.toString());
+        result.append("->[");
+        List<String> dsts = new LinkedList<String>();
+        for (Range<PortInstance> dst : destinations) {
+            dsts.add(dst.toString());
+        }
+        result.append(String.join(", ", dsts));
+        result.append("]");
+        return result.toString();
+    }
+
     //////////////////////////////////////////////////////////
     //// Protected methods
 
@@ -143,10 +158,8 @@ public class SendRange extends Range.Port {
      * Return a new SendRange that is like this one, but
      * converted to the specified upstream range. The returned
      * SendRange inherits the destinations of this range.
-     * 
-     * Normally, the width of the specified range is
-     * the same as that of this range, but if it is not,
-     * then the minimum of the two widths is returned.
+     * The width of the resulting range is
+     * the minimum of the two widths.
      * 
      * @param srcRange A new source range.
      */
