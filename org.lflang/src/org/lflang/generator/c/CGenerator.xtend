@@ -476,6 +476,7 @@ class CGenerator extends GeneratorBase {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        printMain();
 
         if (errorsOccurred) return;
         
@@ -515,7 +516,6 @@ class CGenerator extends GeneratorBase {
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
         
-        // Add ctarget.c to the sources
         targetConfig.compileAdditionalSources.add("ctarget.c");
 
         // Copy the required core library files into the target file system.
@@ -531,9 +531,10 @@ class CGenerator extends GeneratorBase {
             "tag.c",
             "trace.h",
             "trace.c",
-            "util.h", 
-            "util.c", 
-            "platform.h"
+            "util.h",
+            "util.c",
+            "platform.h",
+            "platform/Platform.cmake"
             );
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
@@ -649,7 +650,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the core lib
             fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
-            
             // Copy the header files
             copyTargetHeaderFile()
             
@@ -5174,6 +5174,17 @@ class CGenerator extends GeneratorBase {
             // Enable support for proto serialization
             enabledSerializers.add(SupportedSerializers.PROTO)
         }
+    }
+
+    /**
+     * Print the main function.
+     */
+    def printMain() {
+        pr('''
+            int main(int argc, char* argv[]) {
+                return lf_reactor_c_main(argc, argv);
+            }
+        ''')
     }
     
     /**
