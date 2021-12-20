@@ -41,6 +41,7 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.CodeMap
 import org.lflang.generator.InvalidSourceException
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -601,6 +602,24 @@ class ASTUtils {
             }
         }
         return ""
+    }
+
+    /**
+     * Translate the given code into its textual representation,
+     * with a tag inserted to establish this representation's
+     * correspondence to the generated code. This tag is an
+     * implementation detail that is internal to the code
+     * generator.
+     * @param code the AST node to render as a string
+     * @return a textual representation of {@code code}
+     */
+    def static String toTaggedText(Code code) {
+        // FIXME: Duplicates work already done in
+        //  GeneratorBase::prSourceLineNumber. It does not
+        //  make sense for both methods to persist in the
+        //  code base at once.
+        val text = toText(code)
+        return CodeMap.Correspondence.tag(code, text, true)
     }
     
     def static toText(TypeParm t) {
