@@ -429,10 +429,13 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		
 		val labelParts = newArrayList
 		if (timer.offset !== TimerInstance.DEFAULT_OFFSET && timer.offset !== null) {
-        labelParts += timer.offset.toString
+            labelParts += timer.offset.toString
 		}
 		if (timer.period !== TimerInstance.DEFAULT_PERIOD && timer.period !== null) {
-        labelParts += timer.period.toString
+		    if (timer.offset === TimerInstance.DEFAULT_OFFSET) {
+		        labelParts += timer.offset.toString
+            }
+            labelParts += timer.period.toString
 		}
 		if (!labelParts.empty) {
 			node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)
