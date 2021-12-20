@@ -17,8 +17,8 @@ import org.eclipse.xtext.ide.server.ILanguageServerAccess;
 class LFLanguageServerExtension implements ILanguageServerExtension {
 
     /** The IntegratedBuilder instance that handles all build requests for the current session. */
-    private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule()
-        ).createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
+    private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
+        .createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
 
     @Override
     public void initialize(ILanguageServerAccess access) {

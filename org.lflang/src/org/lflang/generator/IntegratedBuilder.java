@@ -54,17 +54,18 @@ public class IntegratedBuilder {
      * Generates code from the Lingua Franca file {@code f}.
      * @param uri the URI of a Lingua Franca file
      */
-    public void run(URI uri, boolean complete) {
+    public GeneratorResult run(URI uri, boolean complete) {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
         //  org.lflang.lfc.Main. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
             FileConfig.findPackageRoot(Path.of(uri.path())).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
         );
         List<EObject> parseRoots = getResource(uri).getContents();
-        if (parseRoots.isEmpty()) return;
+        if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
         validate(uri, errorReporter);
-        if (!errorReporter.getErrorsOccurred()) doGenerate(uri, complete);
+        if (!errorReporter.getErrorsOccurred()) return doGenerate(uri, complete);
+        else return GeneratorResult.FAILED;
     }
 
     /* ------------------------- PRIVATE METHODS ------------------------- */
@@ -87,8 +88,10 @@ public class IntegratedBuilder {
      * Generates code from the contents of {@code f}.
      * @param uri the URI of a Lingua Franca file
      */
-    private void doGenerate(URI uri, boolean complete) {
-        generator.generate(getResource(uri), fileAccess, new SlowIntegratedContext(complete));
+    private GeneratorResult doGenerate(URI uri, boolean complete) {
+        SlowIntegratedContext context = new SlowIntegratedContext(complete);
+        generator.generate(getResource(uri), fileAccess, context);
+        return context.getResult();
     }
 
     /**
