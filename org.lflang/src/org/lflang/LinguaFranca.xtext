@@ -85,7 +85,8 @@ QualifiedNameWithWildcard:
  * Declaration of a reactor class.
  */
 Reactor:
-    {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)? 
+    {Reactor} (attributes+=Attribute)*
+    ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)? 
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
@@ -138,7 +139,7 @@ TargetDecl:
  *  - if the `time` type is specified, either a proper time interval and unit
  *  must be given, or a literal or code that denotes zero.
  */
- StateVar:
+StateVar:
     'state' name=ID (
         (':' (type=Type))? 
         ((parens+='(' (init+=Value (','  init+=Value)*)? parens+=')')
@@ -192,6 +193,7 @@ Action:
     (':' type=Type)? ';'?;
 
 Reaction:
+    (attributes+=Attribute)*
     ('reaction')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
@@ -246,6 +248,94 @@ Delay:
 // Chooses the serializer to use for the connection
 Serializer:
     'serializer' type=STRING
+;
+
+/////////// Attributes
+
+/**
+ * Attributes of a reactor or reaction
+ */
+Attribute:
+    '@' attrName=AttrName '(' attrParms+=AttrParm (',' attrParms+=AttrParm)* ')'
+;
+
+// FIXME: Use the validator to make sure that first order logic is
+// used only when verification attributes are used.
+AttrParm:
+    STRING 
+    | PropositionalLogic
+;
+
+/////////// For verification
+PropositionalLogic:
+    (propositions+=LogicalExpr)+
+;
+
+LogicalExpr:
+    Equivalence
+;
+
+Equivalence:
+    Implication ('<==>' Implication)*;
+
+Implication:
+    Disjunction ('==>' Disjunction)*;
+
+Disjunction:
+    Conjunction ('\\/' Conjunction)*;
+
+Conjunction:
+    Inversion ('/\\' Inversion)*;
+
+Inversion:
+    LogicalAtom
+    | '!' LogicalAtom
+;
+
+// FIXME: putting () here instead of [] does not work.
+LogicalAtom:
+    BooleanAtom
+    | '[' LogicalExpr ']'
+;
+
+BooleanAtom:
+    TRUE | FALSE
+    | IDRef
+    | ArithExpr RelOp ArithExpr
+;
+
+IDRef:
+    ID | 'prev' ID
+;
+
+RelOp:
+    '<' | '<=' | '==' | '>=' | '>'
+;
+
+ArithExpr:
+    Subtraction
+;
+
+Subtraction:
+    Addition ('-' Addition)*
+;
+
+Addition:
+    Division ('+' Division)*
+;
+
+Division:
+    Multiplication ('/' Multiplication)*
+;
+
+Multiplication:
+    ArithAtom ('*' ArithAtom)*
+;
+
+ArithAtom:
+    SignedInt
+    | IDRef
+    | '(' ArithExpr ')'
 ;
 
 /////////// For target parameters
@@ -488,6 +578,11 @@ enum ActionOrigin:
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
+// PRE='pre' | POST='post' | PREPOST='prepost' |
+// can be written as INV
+enum AttrName:
+    INVARIANT='inv' | PROPERTY='property';
+
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').
 // The validator ensures the unit is valid.
@@ -517,6 +612,10 @@ Token:
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public' |
+    // Verification
+    'inv' | 'property' | 'prev' |
+    '==>' | '<==>' | '/\\' | '\\/' |
+    '<=' | '==' | '>=' | 
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
