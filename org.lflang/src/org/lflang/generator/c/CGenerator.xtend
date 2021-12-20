@@ -3304,15 +3304,13 @@ class CGenerator extends GeneratorBase {
      * @param actions The actions.
      */
     private def generateActionInitializations(Iterable<ActionInstance> actions) {
-        var foundOne = null as ActionInstance;
-        val temp = new StringBuilder();
         for (action : actions) {
             if (!action.isShutdown) {
-                foundOne = action;
                 val triggerStructName = CUtil.reactorRef(action.parent) + "->_lf__"  + action.name;
                 var minDelay = action.minDelay
                 var minSpacing = action.minSpacing
-                pr(temp, '''
+                pr(initializeTriggerObjects, '''
+                    // Initializing action «action.fullName»
                     «triggerStructName».offset = «CUtil.VG.getTargetTime(minDelay)»;
                     «IF minSpacing !== null»
                         «triggerStructName».period = «CUtil.VG.getTargetTime(minSpacing)»;
@@ -3322,11 +3320,6 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
             triggerCount += action.parent.width;
-        }
-        if (foundOne !== null) {
-            startScopedBlock(initializeTriggerObjects, foundOne.parent);
-            pr(initializeTriggerObjects, temp.toString);
-            endScopedBlock(initializeTriggerObjects);
         }
     }
 
@@ -3358,6 +3351,7 @@ class CGenerator extends GeneratorBase {
             triggerCount += timer.parent.width;
         }
         if (foundOne !== null) {
+            pr(initializeTriggerObjects, '''// Initializing timer «foundOne.fullName».''');
             startScopedBlock(initializeTriggerObjects);
             pr(initializeTriggerObjects, "int count = 0;");
             startScopedBlock(initializeTriggerObjects, foundOne.parent);
@@ -6209,17 +6203,26 @@ class CGenerator extends GeneratorBase {
                     // so that we can simultaneously calculate the size of the total array.
                     val sfx = "_dst";
                     for (SendRange srcRange : port.eventualDestinations()) {
-                        // Make a pass to count destination ranges, putting code in temp.
-                        val temp = new StringBuilder();
+                        for (dstRange : srcRange.destinations) {
+                            startScopedRangeBlockOutside(code, dstRange, sfx);
+                        }
                         startScopedRangeBlock(code, srcRange, null);
-                        pr("int destination_index = 0;");
-                        var dstRangeCount = 0; // Count the number of entries needed in the triggers array.
+                        pr('''
+                            // Reaction «reaction.index» of «name» triggers «srcRange.destinations.size» downstream reactions
+                            // through port «port.getFullName».
+                            «CUtil.reactionRef(reaction)».triggered_sizes[«channelCount» + «CUtil.channelIndex(port)»] = «srcRange.destinations.size»;
+                            // For reaction «reaction.index» of «name», allocate an
+                            // array of trigger pointers for downstream reactions through port «port.getFullName»
+                            trigger_t** trigger_array = (trigger_t**)malloc(«srcRange.destinations.size» * sizeof(trigger_t*));
+                            «CUtil.reactionRef(reaction)».triggers[«channelCount» + «CUtil.channelIndex(port)»] = trigger_array;
+                            // Fill the trigger array.
+                            int destination_index = 0; // In case of multicast.
+                        ''')
                         for (dstRange : srcRange.destinations) {
                             foundDestinations = true;
                             val dst = dstRange.instance;
                             
-                            
-                            startScopedRangeBlock(temp, dstRange, sfx);
+                            startScopedRangeBlockInside(code, dstRange, sfx);
                                                             
                             if (dst.isOutput) {
                                 // Include this destination port only if it has at least one
@@ -6231,47 +6234,35 @@ class CGenerator extends GeneratorBase {
                                     }
                                 }
                                 if (belongs) {
-                                    pr(temp, '''
+                                    pr('''
                                         // Port «port.getFullName» has reactions in its parent's parent.
                                         // Point to the trigger struct for those reactions.
                                         trigger_array[destination_index++] = &«CUtil.triggerRefNested(dst, sfx)»;
                                     ''')
-                                    dstRangeCount += dstRange.width;
+                                } else {
+                                    // Put in a NULL pointer.
+                                    pr('''
+                                        // Port «port.getFullName» has reactions in its parent's parent.
+                                        // But those are not in the federation.
+                                        trigger_array[destination_index++] = NULL;
+                                    ''')
                                 }
                             } else {
                                 // Destination is an input port.
-                                pr(temp, '''
+                                pr('''
                                     // Point to destination port «dst.getFullName»'s trigger struct.
                                     trigger_array[destination_index++] = &«CUtil.triggerRef(dst, sfx)»;
                                 ''')
-                                dstRangeCount += dstRange.width;
                             }
-                            endScopedRangeBlock(temp, dstRange, sfx);
-                        }
-                        var index = "0";
-                        if (port.isMultiport) {
-                            index = CUtil.channelIndex(port);
-                        }
-                        if (reaction.parent != port.parent && port.parent.isBank) {
-                            // The port may be an input of a contained reactor bank.
-                            index = "range_count";
+                            endScopedRangeBlockInside(code, dstRange, sfx);
                         }
                     
-                        // Malloc the memory for the arrays.
-                        pr('''
-                            // Reaction «reaction.index» of «name» triggers «dstRangeCount» downstream reactions
-                            // through port «port.getFullName».
-                            «CUtil.reactionRef(reaction)».triggered_sizes[«channelCount» + «index»] = «dstRangeCount»;
-                            // For reaction «reaction.index» of «name», allocate an
-                            // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** trigger_array = (trigger_t**)malloc(«dstRangeCount» * sizeof(trigger_t*));
-                            «CUtil.reactionRef(reaction)».triggers[«channelCount» + «index»] = trigger_array;
-                            // Fill the trigger array.
-                            «temp.toString()»
-                        ''')
                         channelCount += srcRange.width;
                         
                         endScopedRangeBlock(code, srcRange, null);
+                        for (dstRange : srcRange.destinations) {
+                            endScopedRangeBlockOutside(code, dstRange, sfx);
+                        }
                     }
                 }
                 if (!foundDestinations) {

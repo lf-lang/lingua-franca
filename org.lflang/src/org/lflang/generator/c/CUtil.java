@@ -108,6 +108,7 @@ public class CUtil {
      * in a bank. This is has the form uniqueID_c where uniqueID
      * is an identifier for the instance that is guaranteed to be different
      * from the ID of any other instance in the program.
+     * If the port is not a multiport, then return the string "0".
      * @param instance A reactor instance.
      */
     static public String channelIndex(PortInstance port) {
