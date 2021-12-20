@@ -953,6 +953,7 @@ class CGenerator extends GeneratorBase {
      */
     def addSchedulerFiles(ArrayList<String> coreFiles) {
         coreFiles.add("threaded/scheduler.h")
+        coreFiles.add("threaded/scheduler_sync_tag_advance.c")
         coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
         targetConfig.compileAdditionalSources.add(
              "core" + File.separator + "threaded" + File.separator + 
