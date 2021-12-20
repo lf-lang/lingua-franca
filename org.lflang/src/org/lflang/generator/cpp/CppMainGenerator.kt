@@ -59,7 +59,7 @@ class CppMainGenerator(
             |
             |#include "time_parser.hh"
             |
-            |class Timeout : public reactor::Reactor {
+            |class __lf_Timeout : public reactor::Reactor {
             | private:
             |  reactor::Timer timer;
             |
@@ -67,7 +67,7 @@ class CppMainGenerator(
             |
             |
             | public:
-            |  Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
+            |  __lf_Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
             |    : reactor::Reactor(name, env)
             |    , timer{ "timer", this, reactor::Duration::zero(), timeout } {}
             |
@@ -88,8 +88,8 @@ class CppMainGenerator(
             |    .add_options()
             |      ("t,threads", "the number of worker threads used by the scheduler", cxxopts::value<unsigned>(threads)->default_value(std::to_string(threads)), "'unsigned'")
             |      ("o,timeout", "Time after which the execution is aborted.", cxxopts::value<reactor::Duration>(timeout)->default_value(time_to_string(timeout)), "'FLOAT UNIT'")
-            |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive))
-            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast))
+            |      ("k,keepalive", "Continue execution even when there are no events to process.", cxxopts::value<bool>(keepalive)->default_value("${targetConfig.keepalive}"))
+            |      ("f,fast", "Allow logical time to run faster than physical time.", cxxopts::value<bool>(fast)->default_value("${targetConfig.fastMode}"))
             |      ("help", "Print help");
             |      
         ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
@@ -111,9 +111,9 @@ class CppMainGenerator(
             |  ${generateMainReactorInstantiation()}
             |
             |  // optionally instantiate the timeout reactor
-            |  std::unique_ptr<Timeout> t{nullptr};
+            |  std::unique_ptr<__lf_Timeout> t{nullptr};
             |  if (timeout != reactor::Duration::zero()) {
-            |    t = std::make_unique<Timeout>("Timeout", & e, timeout);
+            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", & e, timeout);
             |  }
             |
             |  // execute the reactor program
