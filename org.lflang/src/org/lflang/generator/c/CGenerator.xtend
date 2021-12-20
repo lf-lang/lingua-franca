@@ -755,10 +755,14 @@ class CGenerator extends GeneratorBase {
                         // Array of pointers to mode states to be handled in _lf_handle_mode_changes().
                         reactor_mode_state_t* _lf_modal_reactor_states[«modalReactorCount»];
                         int _lf_modal_reactor_states_size = «modalReactorCount»;
-                        // Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().
-                        mode_state_variable_reset_data_t _lf_modal_state_reset[«modalStateResetCount»];
-                        int _lf_modal_state_reset_size = «modalStateResetCount»;
                     ''')
+                    if (modalStateResetCount > 0) {
+                        pr('''
+                            // Array of reset data for state variables nested in modes. Used in _lf_handle_mode_changes().
+                            mode_state_variable_reset_data_t _lf_modal_state_reset[«modalStateResetCount»];
+                            int _lf_modal_state_reset_size = «modalStateResetCount»;
+                        ''')
+                    }
                 }
                 
                 // Generate function to return a pointer to the action trigger_t
@@ -868,7 +872,7 @@ class CGenerator extends GeneratorBase {
                     // Generate mode change detection
                     pr('''
                         void _lf_handle_mode_changes() {
-                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size, _lf_modal_state_reset, _lf_modal_state_reset_size);
+                            _lf_process_mode_changes(_lf_modal_reactor_states, _lf_modal_reactor_states_size, «modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL"», «modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : 0»);
                         }
                     ''')
                 }
