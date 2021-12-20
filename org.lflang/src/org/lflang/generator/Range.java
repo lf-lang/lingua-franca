@@ -35,7 +35,7 @@ import org.lflang.lf.Connection;
 
 /**
  * Class representing a range of runtime instance objects
- * (port channels, reactions, etc.). This class and its derived classes
+ * (port channels, reactors, reactions, etc.). This class and its derived classes
  * have the most detailed information about the structure of a Lingua Franca
  * program.  There are three levels of detail:
  * 
@@ -251,7 +251,7 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
             return 1;
         }
     }
-    
+
     /**
      * Return a set of identifiers for runtime instances of the specified instance 
      * that lie within this range. If the specified instance is not this Range's
@@ -367,6 +367,40 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
         }
         return result;
     }
+    
+    /**
+     * Return the nearest containing ReactorInstance for this instance.
+     * If this instance is a ReactorInstance, then return it.
+     * Otherwise, return its parent.
+     */
+    public ReactorInstance parentReactor() {
+        if (instance instanceof ReactorInstance) {
+            return (ReactorInstance)instance;
+        } else {
+            return instance.getParent();
+        }
+
+    }
+    /**
+     * Return a list of start indices for this instance and all its parents
+     * except the top-level reactor in hierarchy order, with this instance's
+     * start position listed first. For any instance that is neither a
+     * multiport nor a bank, the index will be 0.
+     */
+    public List<Integer> startIndices() {
+        List<Integer> result = new ArrayList<Integer>(instance.depth);
+        // Populate the result with default zeros.
+        for (int i = 0; i < instance.depth; i++) {
+            result.add(0);
+        }
+        int factor = 1;
+        for (NamedInstance<?> i : iterationOrder()) {
+            int iStart = (start / factor) % i.width;
+            factor *= i.width;
+            result.set(instance.depth - i.depth, iStart);
+        }
+        return result;
+    }
 
     /**
      * Return a new range that represents the leftover elements
@@ -404,6 +438,12 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     public String toString() {
         return instance.getFullName() + "(" + start + "," + width + ")";
     }
+    
+    //////////////////////////////////////////////////////////
+    //// Protected variables
+    
+    /** Record of which levels are interleaved. */
+    Set<ReactorInstance> _interleaved = new HashSet<ReactorInstance>();
 
     //////////////////////////////////////////////////////////
     //// Public inner classes
@@ -422,10 +462,4 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
             super(instance, start, width, connection);
         }
     }
-
-    //////////////////////////////////////////////////////////
-    //// Protected variables
-    
-    /** Record of which levels are interleaved. */
-    Set<ReactorInstance> _interleaved = new HashSet<ReactorInstance>();
 }

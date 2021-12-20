@@ -752,7 +752,7 @@ class CGenerator extends GeneratorBase {
                     for (action : federate.networkMessageActions) {
                         // Find the corresponding ActionInstance.
                         val actionInstance = main.lookupActionInstance(action)
-                        triggers.add(triggerStructName(actionInstance))
+                        triggers.add(CUtil.triggerRef(actionInstance, null))
                     }
                     var actionTableCount = 0
                     for (trigger : triggers) {
@@ -2647,9 +2647,6 @@ class CGenerator extends GeneratorBase {
             val temp = new StringBuilder();
             var foundOne = false;
             
-            startScopedBlock(temp);
-            pr(temp, "int count = 0;");
-            startScopedBlock(temp, reactor);
             val reactionRef = CUtil.reactionRef(reaction)
             
             // Next handle triggers of the reaction that come from a multiport output
@@ -2657,16 +2654,16 @@ class CGenerator extends GeneratorBase {
             for (trigger : reaction.triggers) {
                 if (trigger.isStartup) {
                     pr(temp, '''
-                        _lf_startup_reactions[«startupReactionCount» + count++] = &«reactionRef»;
+                        _lf_startup_reactions[_lf_startup_reactions_count++] = &«reactionRef»;
                     ''')
-                    startupReactionCount += reactor.width;
+                    startupReactionCount += reactor.getTotalWidth();
                     foundOne = true;
                 } else if (trigger.isShutdown) {
                     pr(temp, '''
-                        _lf_shutdown_reactions[«shutdownReactionCount» + count++] = &«reactionRef»;
+                        _lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &«reactionRef»;
                     ''')
                     foundOne = true;
-                    shutdownReactionCount += reactor.width;
+                    shutdownReactionCount += reactor.getTotalWidth();
 
                     if (targetConfig.tracing !== null) {
                         val description = getShortenedName(reactor)
@@ -2678,8 +2675,6 @@ class CGenerator extends GeneratorBase {
                     }
                 }
             }
-            endScopedBlock(temp);
-            endScopedBlock(temp);
             if (foundOne) pr(initializeTriggerObjects, temp.toString);
         }
     }
@@ -3275,7 +3270,7 @@ class CGenerator extends GeneratorBase {
                         pr(temp, '''
                             // Add port «output.getFullName» to array of is_present fields.
                         ''')
-                        startChannelIteration(temp, output);
+                        startChannelIteration(temp, output, null);
                         
                         pr(temp, '''
                             _lf_is_present_fields[«startTimeStepIsPresentCount» + count] = &«CUtil.portRef(output)».is_present;
@@ -3465,29 +3460,6 @@ class CGenerator extends GeneratorBase {
           reactor.name.toLowerCase + "reaction_function_" + reactionIndex
     }
 
-    /** Return a reference to the trigger_t struct of the specified
-     *  trigger instance (input port or action). This trigger_t struct
-     *  is on the self struct.
-     *  @param instance The port or action instance.
-     *  @return The name of the trigger struct.
-     */
-    static def triggerStructName(TriggerInstance<? extends Variable> instance) {
-        return CUtil.reactorRef(instance.parent) 
-                + '''->_lf__'''
-                + instance.name
-    }
-    
-    /** Return a reference to the trigger_t struct for the specified output
-     *  port of a contained reactor that triggers a reaction in the specified reactor.
-     *  @param port The output port of a contained reactor.
-     *  @param reaction The reaction triggered by this port.
-     *  @return The name of the trigger struct, which is in the self struct
-     *   of the container of the reaction.
-     */
-    static def triggerStructName(PortInstance port, ReactorInstance reactor) {
-        return '''«CUtil.reactorRefContained(port.parent)».«port.name»_trigger'''
-    }
-    
     /**
      * Generates C code to retrieve port->member
      * This function is used for clarity and is called whenever struct is allocated on heap memory.
@@ -3498,7 +3470,6 @@ class CGenerator extends GeneratorBase {
     def getHeapPortMember(String portName, String member) '''
         «portName»->«member»
     '''
-    
     
     /**
      * Return the operator used to retrieve struct members
@@ -3600,6 +3571,11 @@ class CGenerator extends GeneratorBase {
         generateReactorInstanceExtension(main, reactionsInFederate);
         generateParameterInitialization(main);
         
+        pr(initializeTriggerObjects, '''
+            int _lf_startup_reactions_count = 0;
+            int _lf_shutdown_reactions_count = 0;
+        ''');
+        
         for (child: main.children) {
             if (currentFederate.contains(child)) {
                 generateReactorInstance(child);
@@ -3635,7 +3611,7 @@ class CGenerator extends GeneratorBase {
         
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and create an enclosing for loop.
-        startScopedBlock(initializeTriggerObjects, instance, false);
+        startScopedBlock(initializeTriggerObjects, instance, false, null);
 
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
@@ -4743,10 +4719,11 @@ class CGenerator extends GeneratorBase {
      * This is required to be followed by {@link endChannelIteration(StringBuilder, PortInstance}.
      * @param builder Where to write the code.
      * @param port The port.
+     * @param suffix A suffix to use for variable names or null for default.
      */
-    protected def void startChannelIteration(StringBuilder builder, PortInstance port) {
+    protected def void startChannelIteration(StringBuilder builder, PortInstance port, String suffix) {
         if (port.isMultiport) {
-            val channel = CUtil.channelIndex(port);
+            val channel = CUtil.channelIndex(port, suffix);
             pr(builder, '''
                 // Port «port.fullName» is a multiport. Iterate over its channels.
                 for (int «channel» = 0; «channel» < «port.width»; «channel»++) {
@@ -4778,7 +4755,7 @@ class CGenerator extends GeneratorBase {
      * @param builder The string builder into which to write.
      */
     protected def void startScopedBlock(StringBuilder builder) {
-        startScopedBlock(builder, null, false);
+        startScopedBlock(builder, null, false, null);
     }
 
     /**
@@ -4797,7 +4774,7 @@ class CGenerator extends GeneratorBase {
      * @param reactor The reactor instance.
      */
     protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
-        startScopedBlock(builder, reactor, true)
+        startScopedBlock(builder, reactor, true, null)
     }
 
     /**
@@ -4816,10 +4793,13 @@ class CGenerator extends GeneratorBase {
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance or null for a simple scoped block.
      * @param declare True to declare a pointer to the self struct
+     * @param suffix A suffix to use for variable names or null for default.
      */
-    protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor, boolean declare) {
+    protected def void startScopedBlock(
+        StringBuilder builder, ReactorInstance reactor, boolean declare, String suffix
+    ) {
         if (reactor !== null && reactor.isBank) {
-            val index = CUtil.bankIndex(reactor);            
+            val index = CUtil.bankIndex(reactor, suffix);            
             pr(builder, '''
                 // Reactor is a bank. Iterate over bank members.
                 for (int «index» = 0; «index» < «reactor.width»; «index»++) {
@@ -4828,7 +4808,7 @@ class CGenerator extends GeneratorBase {
             pr(builder, "{");
         }
         indent(builder);
-        if (declare && reactor !== null) defineSelfStruct(builder, reactor);
+        if (declare && reactor !== null) defineSelfStruct(builder, reactor, suffix);
     }
 
     /**
@@ -4862,7 +4842,7 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''int «count» = 0;''');
         }
         startScopedBlock(builder, port.parent);
-        startChannelIteration(builder, port);
+        startChannelIteration(builder, port, null);
     }
 
     /**
@@ -4905,9 +4885,10 @@ class CGenerator extends GeneratorBase {
      * 
      * @param builder The string builder into which to write.
      * @param range The send range.
+     * @param suffix A suffix to use for variable names or null for default.
      */
     protected def void startScopedRangeBlock(
-        StringBuilder builder, Range<PortInstance> range
+        StringBuilder builder, Range<PortInstance> range, String suffix
     ) {
         val port = range.instance;
         
@@ -4916,8 +4897,6 @@ class CGenerator extends GeneratorBase {
             // and width «range.width».
         ''')
  
-        // The first creates a scope in which we can define a pointer to the self
-        // struct without fear of redefining.
         startScopedBlock(builder);
         
         // Include range_count variable so generated code can safely use it.
@@ -4931,10 +4910,10 @@ class CGenerator extends GeneratorBase {
         for (var i = iterationOrder.size() - 1; i >= 0; i--) {
             val instance = iterationOrder.get(i);
             if (instance === port && port.isMultiport) {
-                startChannelIteration(builder, port);
+                startChannelIteration(builder, port, suffix);
             } else if (instance instanceof ReactorInstance) {
                 // Instance is a parent reactor.
-                startScopedBlock(builder, instance);
+                startScopedBlock(builder, instance, true, suffix);
             }
         }
         // Allow code to execute only if we are in range.
@@ -4950,9 +4929,10 @@ class CGenerator extends GeneratorBase {
      * End a scoped block for the specified range.
      * @param builder The string builder into which to write.
      * @param range The send range.
+     * @param suffix A suffix to use for variable names or null for default.
      */
     protected def void endScopedRangeBlock(
-        StringBuilder builder, Range<PortInstance> range
+        StringBuilder builder, Range<PortInstance> range, String suffix
     ) {
         val port = range.instance;
 
@@ -4988,47 +4968,38 @@ class CGenerator extends GeneratorBase {
         }
         endScopedBlock(builder);
     }
-    
+
     /**
-     * Start a scoped block for the specified pair of ranges. This is like
-     * {@link startScopedRangeBlock(StringBuilder, Range<PortInstance>),
-     * except that it also defines bank and channel indices for the second
-     * range and iterates over the minimum width of the two ranges.
+     * Start a scoped block for the specified range in preparation for
+     * putting a scoped block inside the iteration produced by
+     * {@link #startScopedRangeBlock(StringBuilder, Range<PortInstance>)}.
+     * This is meant to be used when iterating over two ranges with the same width.
+     * 
      * This must be followed by a call to
-     * {@link endScopedRangeBlock(StringBuilder, Range<PortInstance>, Range<PortInstance>)}.
+     * {@link #endScopedRangeBlockOutside(StringBuilder, Range<PortInstance>, String)}.
      * 
      * To allow for the possibility that the srcRange and dstRange
      * refer to ports with the same parent, the variables used to
-     * refer to bank indices have to be different.  To get the pointer
-     * to the self struct for the srcRange port, use
-     * {@link CUtil.portRef(PortInstance)}, and
-     * to get a pointer to the self struct for the destination,
-     * use {@link CUtil.portRefDestination(PortInstance)}.
+     * refer to bank indices have to be different.  This function
+     * uses the specified suffix on variable names.
      * 
      * @param builder The string builder into which to write.
      * @param srcRange The source range.
-     * @param dstRange The destination range.
+     * @param suffix A suffix to use on variable names.
      */
-    protected def void startScopedRangeBlock(
-        StringBuilder builder, Range<PortInstance> srcRange, Range<PortInstance> dstRange
+    protected def void startScopedRangeBlockOutside(
+        StringBuilder builder, Range<PortInstance> srcRange, String suffix
     ) {
         val src = srcRange.instance;
-        val width = (srcRange.width <= dstRange.width)? srcRange.width : dstRange.width;
-        val sfx = "_src";
                         
         pr(builder, '''
-            // Iterate over range1 of «src.fullName» with starting offset «srcRange.start»,
-            // and range2 of «dstRange.instance.fullName» with starting offset «dstRange.start»,
-            // with total width «width».
+            // Define variables to iterate over range1 of «src.fullName» 
+            // with starting offset «srcRange.start» and width «srcRange.width».
         ''')
         
-        // Define additional variables for range2.
+        // Define additional variables for range.
         startScopedBlock(builder);
-        
-        // Define the self struct for the top-level, in case there are top-level reactions
-        // that send to inputs of contained reactors.
-        defineSelfStruct(builder, src.root, sfx);
-        
+                
         // Declare the variables needed for the source range.
         // These need to be initialized to starting indices.
         val srcIteration = srcRange.iterationOrder();
@@ -5036,26 +5007,66 @@ class CGenerator extends GeneratorBase {
         for (i : srcIteration) {
             val init = (srcRange.start / factor) % i.width;
             if (i instanceof PortInstance) {
-                if (i.isMultiport && i != dstRange.instance) {
+                if (i.isMultiport) {
                     pr(builder, '''
-                        int «CUtil.channelIndex(i)» = «init»;
+                        int «CUtil.channelIndex(i, suffix)» = «init»;
                     ''')
                 }
             } else if (i instanceof ReactorInstance) {
                 if (i.isBank) {
                     pr(builder, '''
-                        int «CUtil.bankIndex(i, sfx)» = «init»;
+                        int «CUtil.bankIndex(i, suffix)» = «init»;
                     ''')                    
                 }
             }
             factor *= i.width;
         }
+    }
+
+    /**
+     * End the block started with
+     * {@link #startScopedRangeBlockOutside(StringBuilder, Range<PortInstance>, String)}.
+     * 
+     * @param builder The string builder into which to write.
+     * @param srcRange The source range.
+     * @param suffix A suffix to use on variable names.
+     */
+    protected def void endScopedRangeBlockOutside(
+        StringBuilder builder, Range<PortInstance> srcRange, String suffix
+    ) {
+        endScopedBlock(builder);
+    }
+    
+    /**
+     * Start a scoped block for the specified ranges to be put inside the
+     * iteration generated by
+     * {@link #startScopedRangeBlock(StringBuilder, Range<PortInstance>)},
+     * when iterating over two ranges with the same width.
+     * 
+     * This must be followed by a call to
+     * {@link #endScopedRangeBlockInside(StringBuilder, Range<PortInstance>, String)}.
+     * 
+     * To allow for the possibility that the srcRange and dstRange
+     * refer to ports with the same parent, the variables used to
+     * refer to bank indices have to be different.  This function
+     * uses the specified suffix on variable names.
+     * 
+     * @param builder The string builder into which to write.
+     * @param range The source range.
+     * @param suffix A suffix to use on variable names or null for the default.
+     */
+    protected def void startScopedRangeBlockInside(
+        StringBuilder builder, Range<PortInstance> range, String suffix
+    ) {
+        val src = range.instance;
         
-        startScopedRangeBlock(builder, dstRange);
+        // Define the self struct for the top-level, in case there are top-level reactions
+        // that send to inputs of contained reactors.
+        defineSelfStruct(builder, src.root, suffix);
         
-        for (i : srcIteration) {
+        for (i : range.iterationOrder()) {
             if (i instanceof ReactorInstance) {
-                defineSelfStruct(builder, i, sfx);
+                defineSelfStruct(builder, i, suffix);
             }
         }
     }
@@ -5063,39 +5074,23 @@ class CGenerator extends GeneratorBase {
     /**
      * End a scoped block for the specified send range.
      * @param builder The string builder into which to write.
-     * @param srcRange The source range.
-     * @param dstRange The destination range.
+     * @param range The source range.
+     * @param suffix A suffix to use on variable names or null for the default.
      */
-    protected def void endScopedRangeBlock(
-        StringBuilder builder, Range<PortInstance> srcRange, Range<PortInstance> dstRange
+    protected def void endScopedRangeBlockInside(
+        StringBuilder builder, Range<PortInstance> range, String suffix
     ) {
-        val src = srcRange.instance;
-        val dst = dstRange.instance;
-        val sfx = "_src";
-
-        val srcIteration = srcRange.iterationOrder();
+        val srcIteration = range.iterationOrder();
         for (i : srcIteration) {
             if (i instanceof PortInstance) {
                 // No need to do anything if it's not a multiport.
                 if (i.isMultiport) {
-                    if (dst == src) {
-                        // If the source and destination ports are the same, then we do not
-                        // need to increment or reset the channel index. But we do still need
-                        // to check whether to increment the next bank variable.
-                        // If an output port is triggering a reaction in its parent's parent,
-                        // then the destination and source may be the same port.
-                        pr(builder, '''
-                            if («CUtil.channelIndex(i)» >= «i.width» - 1) { // At end.
-                        ''')
-                        indent(builder);
-                    } else {
-                        pr(builder, '''
-                            «CUtil.channelIndex(i)»++;
-                            if («CUtil.channelIndex(i)» >= «i.width») {
-                                «CUtil.channelIndex(i)» = 0;
-                        ''')
-                        indent(builder);
-                    }
+                    pr(builder, '''
+                        «CUtil.channelIndex(i, suffix)»++;
+                        if («CUtil.channelIndex(i, suffix)» >= «i.width») {
+                            «CUtil.channelIndex(i, suffix)» = 0;
+                    ''')
+                    indent(builder);
                 }
             } else if (i instanceof ReactorInstance) {
                 // Need to increment these indices even if the source and
@@ -5104,9 +5099,9 @@ class CGenerator extends GeneratorBase {
                 // No need to do anything if it's not a bank.
                 if (i.isBank) {
                     pr(builder, '''
-                        «CUtil.bankIndex(i, sfx)»++;
-                        if («CUtil.bankIndex(i, sfx)» >= «i.width») {
-                            «CUtil.bankIndex(i, sfx)» = 0;
+                        «CUtil.bankIndex(i, suffix)»++;
+                        if («CUtil.bankIndex(i, suffix)» >= «i.width») {
+                            «CUtil.bankIndex(i, suffix)» = 0;
                     ''')
                     indent(builder);
                 }
@@ -5129,8 +5124,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        endScopedRangeBlock(builder, dstRange);
-        endScopedBlock(builder);
     }
 
     /**
@@ -5160,7 +5153,8 @@ class CGenerator extends GeneratorBase {
      * 
      * @param builder The string builder into which to write.
      * @param reactor The reactor instance for which to provide a self struct.
-     * @param suffix An optional suffix to append to the variable name.
+     * @param suffix An optional suffix to append to the variable name and
+     *  to index names for banks.
      */
     private def void defineSelfStruct(
         StringBuilder builder, ReactorInstance reactor, String suffix
@@ -5196,7 +5190,9 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         // Connect «src.getFullName» to port «dst.getFullName»
                     ''')
-                    startScopedRangeBlock(code, srcRange, dstRange);
+                    startScopedRangeBlockOutside(code, srcRange, "_src");
+                    startScopedRangeBlock(code, dstRange, null);
+                    startScopedRangeBlockInside(code, srcRange, "_src");
                     // Above uses suffix "_src" for the self struct for the source range.
                     val sfx = "_src";
                     
@@ -5216,7 +5212,9 @@ class CGenerator extends GeneratorBase {
                             «CUtil.portRef(dst)» = («destStructType»*)&«CUtil.portRef(src, sfx)»;
                         ''')
                     }
-                    endScopedRangeBlock(code, srcRange, dstRange);
+                    endScopedRangeBlockInside(code, srcRange, "_src");
+                    endScopedRangeBlock(code, dstRange, null);
+                    endScopedRangeBlockOutside(code, srcRange, "_src");
                 }
             }
         }
@@ -5857,7 +5855,7 @@ class CGenerator extends GeneratorBase {
                 // If the rootType is 'void', we need to avoid generating the code
                 // 'sizeof(void)', which some compilers reject.
                 val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                startChannelIteration(code, output);
+                startChannelIteration(code, output, null);
                 pr('''
                     «CUtil.portRef(output)».token = _lf_create_token(«size»);
                 ''')
@@ -5886,15 +5884,15 @@ class CGenerator extends GeneratorBase {
         // instance because it may have a reaction to an output of this instance.
         for (output : reactor.outputs) {
             for (sendingRange : output.eventualDestinations) {
-                pr("// For reference counting, set num_destinations for port " + output.name);
+                pr("// For reference counting, set num_destinations for port " + output.fullName + ".");
                 
-                startScopedRangeBlock(code, sendingRange);
+                startScopedRangeBlock(code, sendingRange, null);
                 
                 pr('''
                     «CUtil.portRef(output)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                 ''')
                 
-                endScopedRangeBlock(code, sendingRange);
+                endScopedRangeBlock(code, sendingRange, null);
             }
         }
     }
@@ -5932,7 +5930,7 @@ class CGenerator extends GeneratorBase {
                     // The input port may itself have multiple destinations.
                     for (sendingRange : port.eventualDestinations) {
                     
-                        startScopedRangeBlock(code, sendingRange);
+                        startScopedRangeBlock(code, sendingRange, null);
                         
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
@@ -5944,7 +5942,7 @@ class CGenerator extends GeneratorBase {
                                 «CUtil.portRefNested(port)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
-                        endScopedRangeBlock(code, sendingRange);
+                        endScopedRangeBlock(code, sendingRange, null);
                     }
                 }
             }
@@ -6074,8 +6072,8 @@ class CGenerator extends GeneratorBase {
                     val portStructType = variableStructType(trigger)
 
                     pr('''
-                        «CUtil.reactorRefContained(trigger.parent)».«trigger.name»_width = «width»;
-                        «CUtil.reactorRefContained(trigger.parent)».«trigger.name» = («portStructType»**)malloc(
+                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name»_width = «width»;
+                        «CUtil.reactorRefNested(trigger.parent)».«trigger.name» = («portStructType»**)malloc(
                                 sizeof(«portStructType»*) * «width»);
                     ''')
                     
@@ -6209,32 +6207,25 @@ class CGenerator extends GeneratorBase {
                     // its width will be 1.
                     // We generate the code to fill the triggers array first in a temporary code buffer,
                     // so that we can simultaneously calculate the size of the total array.
-                    for (SendRange range : port.eventualDestinations()) {
-                        
-                        startScopedRangeBlock(code, range);
-                        
-                        // Keep track of which reactors have their self struct declared in scope.
-                        val declared = new HashSet<ReactorInstance>();
-                        declared.add(port.parent);
-                        
+                    val sfx = "_dst";
+                    for (SendRange srcRange : port.eventualDestinations()) {
+                        // Make a pass to count destination ranges, putting code in temp.
                         val temp = new StringBuilder();
+                        startScopedRangeBlock(code, srcRange, null);
                         pr("int destination_index = 0;");
-                        var destRangeCount = 0;
-                        for (destinationRange : range.destinations) {
+                        var dstRangeCount = 0; // Count the number of entries needed in the triggers array.
+                        for (dstRange : srcRange.destinations) {
                             foundDestinations = true;
-                            val destination = destinationRange.instance;
+                            val dst = dstRange.instance;
                             
-                            if (!declared.contains(destination.parent)) {
-                                // Need to declare the self struct of the destination's parent.
-                                declared.add(destination.parent);
-                                defineSelfStruct(temp, destination.parent);
-                            }
-    
-                            if (destination.isOutput) {
+                            
+                            startScopedRangeBlock(temp, dstRange, sfx);
+                                                            
+                            if (dst.isOutput) {
                                 // Include this destination port only if it has at least one
                                 // reaction in the federation.
                                 var belongs = false;
-                                for (destinationReaction : destination.dependentReactions) {
+                                for (destinationReaction : dst.dependentReactions) {
                                     if (currentFederate.contains(destinationReaction.parent)) {
                                         belongs = true
                                     }
@@ -6243,23 +6234,19 @@ class CGenerator extends GeneratorBase {
                                     pr(temp, '''
                                         // Port «port.getFullName» has reactions in its parent's parent.
                                         // Point to the trigger struct for those reactions.
-                                        trigger_array[destination_index++] = &«triggerStructName(
-                                            destination, 
-                                            destination.parent.parent
-                                        )»;
+                                        trigger_array[destination_index++] = &«CUtil.triggerRefNested(dst, sfx)»;
                                     ''')
-                                    // One array entry for each destination range is sufficient.
-                                    destRangeCount++;
+                                    dstRangeCount += dstRange.width;
                                 }
                             } else {
                                 // Destination is an input port.
                                 pr(temp, '''
-                                    // Point to destination port «destination.getFullName»'s trigger struct.
-                                    trigger_array[destination_index++] = &«triggerStructName(destination)»;
+                                    // Point to destination port «dst.getFullName»'s trigger struct.
+                                    trigger_array[destination_index++] = &«CUtil.triggerRef(dst, sfx)»;
                                 ''')
-                                // One array entry for each destination range is sufficient.
-                                destRangeCount++;
+                                dstRangeCount += dstRange.width;
                             }
+                            endScopedRangeBlock(temp, dstRange, sfx);
                         }
                         var index = "0";
                         if (port.isMultiport) {
@@ -6270,25 +6257,21 @@ class CGenerator extends GeneratorBase {
                             index = "range_count";
                         }
                     
-                        // Record the total size of the array.
-                        pr('''
-                            // Reaction «reaction.index» of «name» triggers «destRangeCount» downstream reactions
-                            // through port «port.getFullName».
-                            «CUtil.reactionRef(reaction)».triggered_sizes[«channelCount» + «index»] = «destRangeCount»;
-                        ''')
-                    
                         // Malloc the memory for the arrays.
                         pr('''
+                            // Reaction «reaction.index» of «name» triggers «dstRangeCount» downstream reactions
+                            // through port «port.getFullName».
+                            «CUtil.reactionRef(reaction)».triggered_sizes[«channelCount» + «index»] = «dstRangeCount»;
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** trigger_array = (trigger_t**)malloc(«destRangeCount» * sizeof(trigger_t*));
+                            trigger_t** trigger_array = (trigger_t**)malloc(«dstRangeCount» * sizeof(trigger_t*));
                             «CUtil.reactionRef(reaction)».triggers[«channelCount» + «index»] = trigger_array;
                             // Fill the trigger array.
                             «temp.toString()»
                         ''')
-                        channelCount += range.width;
+                        channelCount += srcRange.width;
                         
-                        endScopedRangeBlock(code, range);
+                        endScopedRangeBlock(code, srcRange, null);
                     }
                 }
                 if (!foundDestinations) {
