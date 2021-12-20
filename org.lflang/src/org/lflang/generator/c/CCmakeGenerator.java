@@ -112,7 +112,7 @@ class CCmakeGenerator {
             // Suppress warnings about const char*.
             cMakeCode.append("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")\n");
         }
-        cMakeCode.append("include(Platform.cmake)\n\n");
+        cMakeCode.append("include(${CoreLib}/platform/Platform.cmake)\n\n");
 
         cMakeCode.append("include_directories(${CoreLib})\n");
         cMakeCode.append("include_directories(${CoreLib}/platform)\n");
@@ -161,7 +161,7 @@ class CCmakeGenerator {
             for (String source: additionalSources) {
                 cMakeCode.append("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)\n");
             }
-            cMakeCode.append("set_source_files_properties(${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
+            cMakeCode.append("set_source_files_properties(${CoreLib}/platform/${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)\n");
         }
         
         if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
