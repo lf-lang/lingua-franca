@@ -336,7 +336,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         // Reroute connections that have delays associated with them via generated delay reactors.
         transformDelays()
 
-        // Invoke this function a second time because transformations may have introduced new reactors!
+        // Invoke these functions a second time because transformations may have introduced new reactors!
         setReactorsAndInstantiationGraph()
 
         // First, produce any preamble code that the code generator needs

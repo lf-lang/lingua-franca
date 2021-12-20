@@ -55,14 +55,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * Create a new reaction instance from the specified definition
      * within the specified parent. This constructor should be called
-     * only by the ReactionInstance class.
+     * only by the ReactorInstance class, but it is public to enable unit tests.
      * @param definition A reaction definition.
      * @param parent The parent reactor instance, which cannot be null.
      * @param isUnordered Indicator that this reaction is unordered w.r.t. other reactions.
      * @param index The index of the reaction within the reactor (0 for the
      * first reaction, 1 for the second, etc.).
      */
-    protected ReactionInstance(
+    public ReactionInstance(
             Reaction definition, 
             ReactorInstance parent, 
             boolean isUnordered, 
