@@ -533,7 +533,8 @@ class CGenerator extends GeneratorBase {
             "trace.c",
             "util.h",
             "util.c",
-            "platform.h"
+            "platform.h",
+            "platform/Platform.cmake"
             );
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
@@ -649,7 +650,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the core lib
             fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
-            fileConfig.copyFileFromClassPath("/lib/c/reactor-c/Platform.cmake", fileConfig.getSrcGenPath.toString() + File.separator + "Platform.cmake")
             // Copy the header files
             copyTargetHeaderFile()
             
