@@ -108,6 +108,12 @@ public class CTest extends AbstractTest {
     
     @Test
     @Override
+    public void runWithNonDefaultSchedulers() {
+        super.runWithNonDefaultSchedulers();
+    }
+    
+    @Test
+    @Override
     public void runSerializationTests() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runSerializationTests();
