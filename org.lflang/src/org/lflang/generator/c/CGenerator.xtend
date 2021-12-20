@@ -47,6 +47,8 @@ import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.InferredType
+import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.Target
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty
@@ -465,13 +467,16 @@ class CGenerator extends GeneratorBase {
      * generation.
      * @param resource The resource containing the source code.
      * @param fsa The file system access (used to write the result).
-     * @param context FIXME: Undocumented argument. No idea what this is.
+     * @param context The context in which the generator is
+     *     invoked, including whether it is cancelled and
+     *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        printMain();
 
         if (errorsOccurred) return;
         
@@ -513,7 +518,6 @@ class CGenerator extends GeneratorBase {
         dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
         
-        // Add ctarget.c to the sources
         targetConfig.compileAdditionalSources.add("ctarget.c");
 
         // Copy the required core library files into the target file system.
@@ -535,8 +539,9 @@ class CGenerator extends GeneratorBase {
             "utils/semaphore.h",
             "utils/semaphore.c",
             "utils/util.h", 
-            "utils/util.c", 
-            "platform.h"
+            "utils/util.c",
+            "platform.h",
+            "platform/Platform.cmake"
             );
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
@@ -653,7 +658,6 @@ class CGenerator extends GeneratorBase {
             
             // Copy the core lib
             fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
-            
             // Copy the header files
             copyTargetHeaderFile()
             
@@ -881,7 +885,13 @@ class CGenerator extends GeneratorBase {
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty && !federate.isRemote) {
+            if (
+                !targetConfig.noCompile
+                && targetConfig.buildCommands.nullOrEmpty
+                && !federate.isRemote
+                // This code is unreachable in LSP_FAST mode, so that check is omitted.
+                && fileConfig.getCompilerMode() != Mode.LSP_MEDIUM
+            ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
                 // this. 
@@ -936,7 +946,7 @@ class CGenerator extends GeneratorBase {
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
-    
+
     /**
      * Add files needed for the proper function of the runtime scheduler to
      * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
@@ -5161,6 +5171,17 @@ class CGenerator extends GeneratorBase {
             enabledSerializers.add(SupportedSerializers.PROTO)
         }
     }
+
+    /**
+     * Print the main function.
+     */
+    def printMain() {
+        pr('''
+            int main(int argc, char* argv[]) {
+                return lf_reactor_c_main(argc, argv);
+            }
+        ''')
+    }
     
     /**
      * Parse the target parameters and set flags to the runCommand
@@ -5231,7 +5252,9 @@ class CGenerator extends GeneratorBase {
     // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^file:(/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile(
+        "^(file://(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+    );
     
     /** Given a line of text from the output of a compiler, return
      *  an instance of ErrorFileAndLine if the line is recognized as
@@ -5249,10 +5272,10 @@ class CGenerator extends GeneratorBase {
         val matcher = compileErrorPattern.matcher(line)
         if (matcher.find()) {
             val result = new ErrorFileAndLine()
-            result.filepath = matcher.group(1)
-            result.line = matcher.group(2)
-            result.character = matcher.group(3)
-            result.message = matcher.group(4)
+            result.filepath = matcher.group("path")
+            result.line = matcher.group("line")
+            result.character = matcher.group("column")
+            result.message = matcher.group("message")
             
             if (!result.message.toLowerCase.contains("error:")) {
                 result.isError = false
