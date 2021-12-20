@@ -41,6 +41,7 @@ import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.ValueGenerator;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -110,7 +111,20 @@ public class CUtil {
      * @param instance A reactor instance.
      */
     static public String channelIndex(PortInstance port) {
-        return port.uniqueID() + "_c";
+        return channelIndex(port, null);
+    }
+
+    /**
+     * Return a name of a variable to refer to the channel index of a port
+     * in a bank. This is has the form uniqueIDsuffix where uniqueID
+     * is an identifier for the instance that is guaranteed to be different
+     * from the ID of any other instance in the program.
+     * @param suffix The suffix on the name, or null to use the default "_c".
+     */
+    static public String channelIndex(PortInstance port, String suffix) {
+        if (!port.isMultiport()) return "0";
+        if (suffix == null) suffix = "_c";
+        return port.uniqueID() + suffix;
     }
 
     /**
@@ -140,7 +154,7 @@ public class CUtil {
     static public String indexExpression(ReactorInstance instance) {
         return indexExpression(instance, null);
     }
-
+    
     /**
      * Return an expression that, when evaluated in a context with
      * bank index variables defined for the specified reactor and
@@ -186,7 +200,7 @@ public class CUtil {
             );
         }
     }
-
+    
     /**
      * Return a reference to the specified port on the self struct of the specified
      * container reactor. The port is required to have the reactor as either its
@@ -225,7 +239,7 @@ public class CUtil {
             channel = "[" + channelIndex(port) + "]";
         }
         if (isNested) {
-            return reactorRefContained(port.getParent(), suffix) + "." + port.getName() + channel;
+            return reactorRefNested(port.getParent(), suffix) + "." + port.getName() + channel;
         } else {
             String sourceStruct = CUtil.reactorRef(port.getParent(), suffix);
             return sourceStruct + "->_lf_" + port.getName() + channel;
@@ -348,7 +362,17 @@ public class CUtil {
      * @param reaction The reaction.
      */
     static public String reactionRef(ReactionInstance reaction) {
-        return reactorRef(reaction.getParent()) + "->_lf__reaction_" + reaction.index;
+        return reactionRef(reaction, null);
+    }
+
+    /**
+     * Return a reference to the reaction entry on the self struct
+     * of the parent of the specified reaction.
+     * @param reaction The reaction.
+     * @param suffix A suffix to use for the parent reactor or null for the default.
+     */
+    static public String reactionRef(ReactionInstance reaction, String suffix) {
+        return reactorRef(reaction.getParent(), suffix) + "->_lf__reaction_" + reaction.index;
     }
 
     /** 
@@ -385,8 +409,8 @@ public class CUtil {
      * 
      * @param reactor The contained reactor.
      */
-    static public String reactorRefContained(ReactorInstance reactor) {
-        return reactorRefContained(reactor, null);
+    static public String reactorRefNested(ReactorInstance reactor) {
+        return reactorRefNested(reactor, null);
     }
 
     /**
@@ -402,7 +426,7 @@ public class CUtil {
      * @param reactor The contained reactor.
      * @param suffix An optional suffix to append to the struct variable name.
      */
-    static public String reactorRefContained(ReactorInstance reactor, String suffix) {
+    static public String reactorRefNested(ReactorInstance reactor, String suffix) {
         String result = reactorRef(reactor.getParent(), suffix) + "->_lf_" + reactor.getName();
         if (reactor.isBank()) {
             result += "[" + bankIndex(reactor) + "]";
@@ -428,6 +452,46 @@ public class CUtil {
      */
     static public String selfType(ReactorInstance instance) {
         return selfType(instance.getDefinition().getReactorClass());
+    }
+
+    /** Return a reference to the trigger_t struct of the specified
+     *  trigger instance (input port or action). This trigger_t struct
+     *  is on the self struct.
+     *  @param instance The port or action instance.
+     *  @return The name of the trigger struct.
+     */
+    static public String triggerRef(TriggerInstance<? extends Variable> instance) {
+        return triggerRef(instance, null);
+    }
+
+    /** Return a reference to the trigger_t struct of the specified
+     *  trigger instance (input port or action). This trigger_t struct
+     *  is on the self struct.
+     *  @param instance The port or action instance.
+     *  @param suffix The suffix to use for the reactor reference or null for default.
+     *  @return The name of the trigger struct.
+     */
+    static public String triggerRef(TriggerInstance<? extends Variable> instance, String suffix) {
+        return reactorRef(instance.getParent(), suffix) 
+                + "->_lf__"
+                + instance.getName();
+    }
+    
+    /** Return a reference to the trigger_t struct for the specified
+     *  port of a contained reactor.
+     *  @param port The output port of a contained reactor.
+     */
+    static public String triggerRefNested(PortInstance port) {
+        return triggerRefNested(port, null);
+    }
+
+    /** Return a reference to the trigger_t struct for the specified
+     *  port of a contained reactor.
+     *  @param port The output port of a contained reactor.
+     *  @param suffix The suffix to use for the reactor reference or null for default.
+     */
+    static public String triggerRefNested(PortInstance port, String suffix) {
+        return reactorRefNested(port.getParent(), suffix) + "." + port.getName() + "_trigger";
     }
 
     //////////////////////////////////////////////////////

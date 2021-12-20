@@ -289,6 +289,23 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return width * numReactorInstances;
     }
     
+    /**
+     * If this reactor is a bank or any of its parents is a bank,
+     * return the total number of runtime instances, which is the product
+     * of the widths of all the parents.
+     * Return -1 if the width cannot be determined.
+     */
+    public int getTotalWidth() {
+        if (width <= 0) return -1;
+        if (depth > 0) {
+            int parentWidth = parent.getTotalWidth();
+            if (parentWidth <= 0) return -1;
+            return (parentWidth * width);
+        } else {
+            return 1;
+        }
+    }
+    
     /** 
      * Return the trigger instances (input ports, timers, and actions
      * that trigger reactions) belonging to this reactor instance.

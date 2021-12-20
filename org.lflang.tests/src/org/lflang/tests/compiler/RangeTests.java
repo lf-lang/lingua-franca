@@ -1,5 +1,6 @@
 package org.lflang.tests.compiler;
 
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.xtext.testing.InjectWith;
@@ -50,6 +51,8 @@ public class RangeTests {
         
         Assertions.assertEquals(8, range.maxWidth);
         
+        Assertions.assertEquals(".A.B.P(3,4)", range.toString());
+
         // The results expected below are derived from the class comment for Range,
         // which includes this example.
         Set<Integer> instances = range.instances(pi);
@@ -61,16 +64,31 @@ public class RangeTests {
         instances = range.instances(ai);
         Assertions.assertEquals(Set.of(0, 1), instances);
         
+        // Test startIndices.
+        Assertions.assertEquals(List.of(1, 1, 0), range.startIndices());
+        
+        // Make first interleaved version.
         range = range.toggleInterleaved(bi);
         instances = range.instances(pi);
         Assertions.assertEquals(Set.of(3, 4, 6, 5), instances);
 
+        // Test startIndices.
+        Assertions.assertEquals(List.of(1, 1, 0), range.startIndices());
+
+        // Make second interleaved version.
         range = range.toggleInterleaved(ai);
         instances = range.instances(pi);
         Assertions.assertEquals(Set.of(6, 1, 5, 3), instances);
 
+        // Test startIndices.
+        Assertions.assertEquals(List.of(0, 1, 1), range.startIndices());
+
+        // Make third interleaved version.
         range = range.toggleInterleaved(bi);
         instances = range.instances(pi);
         Assertions.assertEquals(Set.of(5, 2, 6, 3), instances);
+
+        // Test startIndices.
+        Assertions.assertEquals(List.of(1, 0, 1), range.startIndices());
     }
 }

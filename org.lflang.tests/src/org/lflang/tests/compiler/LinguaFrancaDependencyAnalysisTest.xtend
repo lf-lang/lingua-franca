@@ -105,7 +105,8 @@ class LinguaFrancaDependencyAnalysisTest {
 
         try {
             val instance = new ReactorInstance(mainDef.reactorClass.toDefinition, new DefaultErrorReporter());
-            new ReactionInstanceGraph(instance)
+            // FIXME: Why is the following not visible??????????????
+            // new ReactionInstanceGraph(instance)
             Assertions.fail("No cycle detected")
         } catch(InvalidSourceException e) {
             Assertions.assertTrue(e.message != null && e.message.contains("Reactions form a cycle!"),
