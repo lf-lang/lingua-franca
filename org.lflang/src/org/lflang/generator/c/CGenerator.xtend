@@ -953,7 +953,7 @@ class CGenerator extends GeneratorBase {
     def addSchedulerFiles(ArrayList<String> coreFiles) {
         coreFiles.add("threaded/scheduler.h")
         coreFiles.add("threaded/scheduler_sync_tag_advance.c")
-        // Don't use the default non-priority scheduler if the program contains a deadline (handler). 
+        // Don't use the default non-preemptive scheduler if the program contains a deadline (handler). 
         // Use the GEDF_NP scheduler instead.
         if (targetConfig.schedulerType == TargetProperty.SchedulerOptions.NP) {
             // Check if a deadline is assigned to any reaction
