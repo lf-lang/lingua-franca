@@ -32,6 +32,7 @@ import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
+import java.util.List
 import java.util.Set
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -64,11 +65,13 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
+import org.lflang.generator.SlowIntegratedContext
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
@@ -89,6 +92,7 @@ import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
+import org.lflang.util.LFCommand
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -907,7 +911,10 @@ class CGenerator extends GeneratorBase {
                         if (!cCompiler.runCCompiler(execName, main === null, generator, context.cancelIndicator)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
-                        }
+                            // If finish has already been called, it is illegal and makes no sense. However,
+                            //  if finish has already been called, then this must be a federated execution.
+                            if (!isFederated) finish(context, GeneratorResult.Status.FAILED, null);
+                        } else if (!isFederated) finish(context, GeneratorResult.Status.COMPILED, execName);
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
@@ -926,17 +933,39 @@ class CGenerator extends GeneratorBase {
         
         // Restore the base filename.
         topLevelName = baseFilename
-        
+
         // If a build directive has been given, invoke it now.
         // Note that the code does not get cleaned in this case.
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
-                runBuildCommand()
+                runBuildCommand();
+                finish(context, GeneratorResult.Status.COMPILED, fileConfig.name);
+            } else if (isFederated) {
+                finish(context, GeneratorResult.Status.COMPILED, fileConfig.name);
             }
+        } else {
+            finish(context, GeneratorResult.Status.GENERATED, null);
         }
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+
+    /**
+     * Informs the context of the result of this code generation process, if
+     * applicable.
+     * @param execName The name of the executable produced by this code
+     * generation process, or {@code null} if no executable was produced.
+     */
+    def finish(IGeneratorContext context, GeneratorResult.Status status, String execName) {
+        if (context instanceof SlowIntegratedContext) {
+            context.finish(new GeneratorResult(
+                status,
+                execName == null ? null : fileConfig.binPath.resolve(execName),
+                LFCommand.get("." + File.separator + execName, List.of(), fileConfig.binPath),
+                null
+            ));
+        }
     }
 
     /**

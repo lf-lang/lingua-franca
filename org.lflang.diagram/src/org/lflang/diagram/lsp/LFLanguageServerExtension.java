@@ -1,13 +1,17 @@
 package org.lflang.diagram.lsp;
 
-import org.lflang.generator.IntegratedBuilder;
-import org.lflang.LFStandaloneSetup;
-import org.lflang.LFRuntimeModule;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
+import org.eclipse.lsp4j.jsonrpc.CompletableFutures;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.eclipse.xtext.ide.server.ILanguageServerAccess;
+
+import org.lflang.generator.IntegratedBuilder;
+import org.lflang.LFStandaloneSetup;
+import org.lflang.LFRuntimeModule;
 
 /**
  * Provides Lingua-Franca-specific extensions to the
@@ -30,9 +34,9 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
      * Franca file specified by {@code uri}.
      * @param uri the URI of the LF file of interest
      */
-    @JsonNotification("generator/build")
-    public void build(String uri) {
-        builder.run(URI.createURI(uri), true);
+    @JsonRequest("generator/build")
+    public CompletableFuture<String> build(String uri) {
+        return CompletableFutures.computeAsync(cancelToken -> builder.run(URI.createURI(uri), true).getUserMessage());
     }
 
     /**
