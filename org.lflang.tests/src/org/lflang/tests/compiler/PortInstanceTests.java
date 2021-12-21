@@ -93,7 +93,7 @@ public class PortInstanceTests {
         connect(p, s);
 
         sr = p.eventualDestinations();
-        Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.s(0,1)], .A.p(1,2)->[.E.s(1,2), .C.r(0,2)]]", sr.toString());
+        Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.s(0,1)], .A.p(1,2)->[.C.r(0,2), .E.s(1,2)]]", sr.toString());
 
         // Add hierarchical reactors that further split the ranges.
         maini.clearCaches();
@@ -108,7 +108,7 @@ public class PortInstanceTests {
         connect(s, 1, 2, u, 0, 2);
 
         sr = p.eventualDestinations();
-        Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.s(0,1)], .A.p(1,2)->[.E.s(1,2), .C.r(0,2)]]", sr.toString());
+        Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.F.t(0,1), .E.s(0,1)], .A.p(1,2)->[.C.r(0,2), .E.s(1,2), .E.G.u(0,2)]]", sr.toString());
     }
     
     /**

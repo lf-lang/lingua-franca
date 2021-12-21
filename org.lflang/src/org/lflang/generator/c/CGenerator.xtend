@@ -5054,6 +5054,8 @@ class CGenerator extends GeneratorBase {
     ) {
         val src = range.instance;
         
+        startScopedBlock(builder);
+        
         // Define the self struct for the top-level, in case there are top-level reactions
         // that send to inputs of contained reactors.
         defineSelfStruct(builder, src.root, suffix);
@@ -5118,6 +5120,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
+        endScopedBlock(builder);
     }
 
     /**

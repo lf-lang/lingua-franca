@@ -234,6 +234,7 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
      * Compare ranges by first comparing their start offset, and then,
      * if these are equal, comparing their widths. This comparison is
      * meaningful only for ranges that have the same instances.
+     * Note that this can return 0 even if equals() does not return true.
      */
     @Override
     public int compareTo(Range<?> o) {

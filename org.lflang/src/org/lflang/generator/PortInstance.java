@@ -318,11 +318,17 @@ public class PortInstance extends TriggerInstance<Port> {
                 // At this point, dep is the subrange of the dependent port of interest.
                 // Recursively get the send ranges of that destination port.
                 List<SendRange> dstSendRanges = eventualDestinations(subDst);
+                // Widths of these ranges add up to the width of subDst.
                 
                 // For each returned SendRange, convert it to a SendRange
                 // for the srcRange port rather than the dep port.
+                int sendOffset = 0;
                 for (SendRange dstSend : dstSendRanges) {
-                    queue.add(dstSend.newSendRange(wSrcRange.head(width)));
+                    queue.add(dstSend.newSendRange(wSrcRange.tail(sendOffset).head(dstSend.width)));
+                    sendOffset += dstSend.width;
+                    if (sendOffset >= subDst.width) {
+                        sendOffset = 0;
+                    }
                 }
                 wSrcRange = wSrcRange.tail(width);
                 wDstRange = wDstRange.tail(width);
@@ -348,9 +354,9 @@ public class PortInstance extends TriggerInstance<Port> {
                     }
                     if (candidate.width < next.width) {
                         // The next range has more channels connected to this sender.
-                        next = (SendRange)next.tail(candidate.width);
-                        // Truncate the destinations just imported.
-                        candidate = candidate.head(candidate.width);
+                        // Put it back on the queue an poll for a new next.
+                        queue.add(next.tail(candidate.width));
+                        next = queue.poll();
                     } else {
                         // We are done with next and can discard it.
                         next = queue.poll();
@@ -364,7 +370,7 @@ public class PortInstance extends TriggerInstance<Port> {
             } else {
                 // Because the result list is sorted, next starts at
                 // a higher channel than candidate.
-                if (candidate.start + candidate.start <= next.start) {
+                if (candidate.start + candidate.width <= next.start) {
                     // Can use candidate as is and make next the new candidate.
                     result.add(candidate);
                     candidate = next;
