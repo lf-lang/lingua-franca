@@ -67,10 +67,10 @@ public class ActionInstance extends TriggerInstance<Action> {
         }
         if (definition != null) {
             if (definition.getMinDelay() != null) {
-                this.minDelay = JavaAstUtils.getTimeValue(definition.getMinDelay());
+                this.minDelay = parent.getTimeValue(definition.getMinDelay());
             }
             if (definition.getMinSpacing() != null) {
-                this.minSpacing = JavaAstUtils.getTimeValue(definition.getMinSpacing());
+                this.minSpacing = parent.getTimeValue(definition.getMinSpacing());
             }
             if (definition.getOrigin() == ActionOrigin.PHYSICAL) {
                 physical = true;

@@ -38,9 +38,12 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.JavaAstUtils;
+import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -672,6 +675,36 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             return ASTUtils.width(widthSpec, parent.instantiations());
         }
         return ASTUtils.width(widthSpec, instantiations());
+    }
+
+    /**
+     * Assuming that the given value denotes a valid time, return a time value.
+     *
+     * If the value is given as a parameter reference, this will look up the
+     * precise time value assigned to this reactor instance.
+     */
+    public TimeValue getTimeValue(Value v) {
+        Parameter p = v.getParameter();
+        if (p != null) {
+            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).init.get(0));
+        } else {
+            return JavaAstUtils.getLiteralTimeValue(v);
+        }
+    }
+
+    /**
+     * Assuming that the given delay denotes a valid time, return a time value.
+     *
+     * If the delay is given as a parameter reference, this will look up the
+     * precise time value assigned to this reactor instance.
+     */
+    public TimeValue getTimeValue(Delay d) {
+        Parameter p = d.getParameter();
+        if (p != null) {
+            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).init.get(0));
+        } else {
+            return JavaAstUtils.toTimeValue(d.getTime());
+        }
     }
     
     //////////////////////////////////////////////////////
