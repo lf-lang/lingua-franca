@@ -28,14 +28,12 @@ package org.lflang;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
@@ -1288,7 +1286,7 @@ public enum TargetProperty {
         PEDF_NP;    // Partitioned EDF non-preemptive
         
         public static SchedulerOptions getDefault() {
-            return GEDF_NP;
+            return NP;
         }
         
     }
