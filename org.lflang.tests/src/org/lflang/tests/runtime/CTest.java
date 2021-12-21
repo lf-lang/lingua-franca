@@ -66,7 +66,7 @@ public class CTest extends AbstractTest {
     
     @Override
     protected boolean supportsSchedulerSwapping() {
-        return false;
+        return true;
     }
 
     @Test

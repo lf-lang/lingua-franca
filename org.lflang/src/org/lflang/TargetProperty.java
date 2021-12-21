@@ -1282,8 +1282,8 @@ public enum TargetProperty {
     public enum SchedulerOptions {
         NP,         // Non-preemptive
         GEDF_NP,    // Global EDF non-preemptive
-        GEDF_NP_CI, // Global EDF non-preemptive with chain ID
-        PEDF_NP;    // Partitioned EDF non-preemptive
+        GEDF_NP_CI; // Global EDF non-preemptive with chain ID
+//        PEDF_NP;    // Partitioned EDF non-preemptive (FIXME)
         
         public static SchedulerOptions getDefault() {
             return NP;
