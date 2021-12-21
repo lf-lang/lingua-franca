@@ -953,11 +953,26 @@ class CGenerator extends GeneratorBase {
     def addSchedulerFiles(ArrayList<String> coreFiles) {
         coreFiles.add("threaded/scheduler.h")
         coreFiles.add("threaded/scheduler_sync_tag_advance.c")
+        // Don't use the default non-priority scheduler if the program contains a deadline (handler). 
+        // Use the GEDF_NP scheduler instead.
+        if (targetConfig.schedulerType == TargetProperty.SchedulerOptions.NP) {
+            // Check if a deadline is assigned to any reaction
+            if (reactors.filter[reactor |
+                // Filter reactors that contain at least one reaction 
+                // that has a deadline handler.
+                return reactor.allReactions.filter[ reaction |
+                    return reaction.deadline !== null
+                ].size > 0;
+            ].size > 0) {
+                targetConfig.schedulerType = TargetProperty.SchedulerOptions.GEDF_NP;
+            }        
+        }
         coreFiles.add("threaded/scheduler_" + targetConfig.schedulerType.toString() + ".c");
         targetConfig.compileAdditionalSources.add(
              "core" + File.separator + "threaded" + File.separator + 
              "scheduler_" + targetConfig.schedulerType.toString() + ".c"
         );
+        System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
     }
     
     /**
