@@ -71,6 +71,27 @@ public class SendRange extends Range.Port {
     //// Public methods
 
     /**
+     * Override the base class to add additional comparisons so that
+     * ordering is never ambiguous. This means that sorting will be deterministic.
+     * Note that this can return 0 even if equals() does not return true.
+     */
+    @Override
+    public int compareTo(Range<?> o) {
+        int result = super.compareTo(o);
+        if (result == 0) {
+            // Longer destination lists come first.
+            if (destinations.size() > ((SendRange)o).destinations.size()) {
+                return -1;
+            } else if (destinations.size() == ((SendRange)o).destinations.size()) {
+                return instance.getFullName().compareTo(o.instance.getFullName());
+            } else {
+                return 1;
+            }
+        }
+        return result;
+    }
+
+    /**
      * Return the total number of destination reactors. Specifically, this
      * is the number of distinct reactors that have one or more ports
      * with dependent reactions in the reactor.
@@ -105,7 +126,7 @@ public class SendRange extends Range.Port {
     @Override
     public SendRange head(int newWidth) {
         // NOTE: Cannot use the superclass because it returns a Range, not a SendRange.
-        if (newWidth >= width) return this;
+        // Also, cannot return this without applying head() to the destinations.
         if (newWidth <= 0) return null;
 
         SendRange result = new SendRange(instance, start, newWidth);
@@ -127,7 +148,8 @@ public class SendRange extends Range.Port {
      */
     @Override
     public SendRange tail(int offset) {
-        if (offset == 0) return this;
+        // NOTE: Cannot use the superclass because it returns a Range, not a SendRange.
+        // Also, cannot return this without applying tail() to the destinations.
         if (offset >= width) return null;
         SendRange result = new SendRange(instance, start + offset, width - offset);
 
