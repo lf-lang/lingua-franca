@@ -179,13 +179,11 @@ public final class JavaAstUtils {
     }
 
     /**
-     * Assuming that the given value denotes a valid time,
+     * Assuming that the given value denotes a valid time literal,
      * return a time value.
      */
-    public static TimeValue getTimeValue(Value v) {;
-        if (v.getParameter() != null) {
-            return getDefaultAsTimeValue(v.getParameter());
-        } else if (v.getTime() != null) {
+    public static TimeValue getLiteralTimeValue(Value v) {;
+        if (v.getTime() != null) {
             return toTimeValue(v.getTime());
         } else if (v.getLiteral() != null && v.getLiteral().equals("0")) {
             return TimeValue.ZERO;
@@ -202,7 +200,7 @@ public final class JavaAstUtils {
         if (isOfTimeType(p)) {
             var init = p.getInit().get(0);
             if (init != null) {
-                return getTimeValue(init);
+                return getLiteralTimeValue(init);
             }
         }
         return null;

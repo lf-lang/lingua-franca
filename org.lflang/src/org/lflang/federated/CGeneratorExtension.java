@@ -231,20 +231,10 @@ public class CGeneratorExtension {
      */
     public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
         String additionalDelayString = "NEVER";
+
         if (delay != null) {
-            if (delay.getParameter() != null) {
-                // The parameter has to be parameter of the main reactor.
-                // And that value has to be a Time.
-                Value value = delay.getParameter().getInit().get(0);
-                if (value.getTime() != null) {
-                    additionalDelayString = Long.toString(JavaAstUtils.getTimeValue(value).toNanoSeconds());
-                } else if (value.getLiteral() != null) {
-                    // If no units are given, e.g. "0", then use the literal.
-                    additionalDelayString = value.getLiteral();
-                }
-            } else {
-                additionalDelayString = Long.toString(JavaAstUtils.toTimeValue(delay.getTime()).toNanoSeconds());
-            }
+            TimeValue tv = generator.main.getTimeValue(delay);
+            additionalDelayString = Long.toString(tv.toNanoSeconds());
         }
         return additionalDelayString;
     }

@@ -1528,7 +1528,7 @@ class CGenerator extends GeneratorBase {
                 val reactorInstance = main.getChildReactorInstance(federate.instantiation)
                 for (param : reactorInstance.parameters) {
                     if (param.name.equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                        val stp = param.init.get(0).getTimeValue
+                        val stp = param.init.get(0).getLiteralTimeValue
                         if (stp !== null) {                        
                             pr('''
                                 set_stp_offset(«stp.timeInTargetLanguage»);
