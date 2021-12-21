@@ -1,5 +1,5 @@
 /*
- * 
+ * Utility reactor to record and test execution traces.
  */
 target C;
 
@@ -25,7 +25,7 @@ reactor TraceTesting(events_size:int(0), trace_size:int(0), trace:int[](0), trai
         
         if (self->training) {
             // Save time
-            self->recorded_events = realloc(self->recorded_events, sizeof(int) * (self->recorded_events_next + 1 + 2 * self->events_size));
+            self->recorded_events = (int*) realloc(self->recorded_events, sizeof(int) * (self->recorded_events_next + 1 + 2 * self->events_size));
             self->recorded_events[self->recorded_events_next++] = curr_reaction_delay; 
         } else {
             if (self->trace_idx >= self->trace_size) {
