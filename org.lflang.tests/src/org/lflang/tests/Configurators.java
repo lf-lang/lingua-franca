@@ -97,9 +97,14 @@ public class Configurators {
     }
     
     /**
-     * Report all test categories as included.
+     * Report all test categories as included except examples.
      */
-    public static boolean noneExcluded(TestCategory category) {
-        return true;
+    public static boolean examplesExcluded(TestCategory category) {
+        boolean excluded = false;
+        
+        // EXAMPLE is excluded
+        excluded |= (category == TestCategory.EXAMPLE);
+        
+        return !excluded;
     }
 }
