@@ -456,7 +456,7 @@ public class FedASTUtils {
         }
 
         return STPList.stream()
-                      .map(value -> generator.main.lookupReactorInstance(instance.instantiation).getTimeValue(value))
+                      .map(JavaAstUtils::getLiteralTimeValue)
                       .filter(Objects::nonNull)
                       .reduce(TimeValue.ZERO, TimeValue::max);
     }
