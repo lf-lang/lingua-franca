@@ -599,7 +599,7 @@ class CGenerator extends GeneratorBase {
                 )
             )
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-        System.out.println("******** Using "+numOfCompileThreads+" threads.");
+        System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         for (federate : federates) {
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
