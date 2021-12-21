@@ -34,6 +34,7 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -231,9 +232,16 @@ public class CGeneratorExtension {
      */
     public static String getNetworkDelayLiteral(Delay delay, CGenerator generator) {
         String additionalDelayString = "NEVER";
-
         if (delay != null) {
-            TimeValue tv = generator.main.getTimeValue(delay);
+            Parameter p = delay.getParameter();
+            TimeValue tv;
+            if (delay.getParameter() != null) {
+                // The parameter has to be parameter of the main reactor.
+                // And that value has to be a Time.
+                tv = JavaAstUtils.getDefaultAsTimeValue(p);
+            } else {
+                tv = JavaAstUtils.toTimeValue(delay.getTime());
+            }
             additionalDelayString = Long.toString(tv.toNanoSeconds());
         }
         return additionalDelayString;
