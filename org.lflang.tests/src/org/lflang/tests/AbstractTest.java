@@ -209,7 +209,7 @@ public abstract class AbstractTest extends TestBase {
             
             this.runTestsForTargets(
                 Message.DESC_SCHED_SWAPPING + scheduler.toString() +".",
-                Configurators::noneExcluded,
+                Configurators::examplesExcluded,
                 test -> {
                     test.getContext()
                         .getArgs()
