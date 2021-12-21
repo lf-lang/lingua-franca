@@ -84,6 +84,11 @@ public class LFCommand {
      */
     public OutputStream getErrors() { return errors; }
 
+    /** Get this command's program and arguments. */
+    public List<String> command() { return processBuilder.command(); }
+
+    /** Get this command's working directory. */
+    public File directory() { return processBuilder.directory(); }
 
     /**
      * Get a String representation of the stored command

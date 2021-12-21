@@ -19,7 +19,7 @@ public class GeneratorResult {
     /**
      * A {@code Status} is a level of completion of a code generation task.
      */
-    enum Status {
+    public enum Status {
         NOTHING(gr -> ""),  // Code generation was not performed.
         CANCELLED(gr -> "Code generation was cancelled."),
         FAILED(gr -> "Code generation failed."),  // This may be due to a failed validation check, in which case the
@@ -54,7 +54,7 @@ public class GeneratorResult {
 
     private final Status status;
     private final Path executable;
-    private final List<LFCommand> commands;
+    private final LFCommand command;
     private final Map<Path, CodeMap> codeMaps;
 
     /**
@@ -63,14 +63,13 @@ public class GeneratorResult {
      * @param executable The file that stores the final output of the code
      * generation task. Examples include a fully linked binary or a Python
      * file that can be passed to the Python interpreter.
-     * @param commands A sequence of commands that together are sufficient to
-     * run the executable, preferably from the project root.
+     * @param command A command that runs the executable.
      * @param codeMaps A mapping from generated files to their CodeMaps.
      */
-    public GeneratorResult(Status status, Path executable, List<LFCommand> commands, Map<Path, CodeMap> codeMaps) {
+    public GeneratorResult(Status status, Path executable, LFCommand command, Map<Path, CodeMap> codeMaps) {
         this.status = status != null ? status : Status.NOTHING;
         this.executable = executable;
-        this.commands = commands != null ? commands : List.of();
+        this.command = command;
         this.codeMaps = codeMaps != null ? codeMaps : Collections.emptyMap();
     }
 
@@ -81,7 +80,7 @@ public class GeneratorResult {
      * with status {@code status}
      */
     private static GeneratorResult incompleteGeneratorResult(Status status) {
-        return new GeneratorResult(status, null, Collections.emptyList(), Collections.emptyMap());
+        return new GeneratorResult(status, null, null, Collections.emptyMap());
     }
 
     /** Returns the status of {@code this}. */
@@ -89,9 +88,12 @@ public class GeneratorResult {
         return status;
     }
 
-    /** Returns the commands needed to execute the executable. */
-    public List<String> getExecuteCommands() {
-        return commands.stream().map(LFCommand::toString).collect(Collectors.toList());
+    /**
+     * Returns the command needed to execute the executable, or `null` if
+     * there is no such command.
+     */
+    public List<String> getExecuteCommand() {
+        return command == null ? null : command.command();
     }
 
     /**
