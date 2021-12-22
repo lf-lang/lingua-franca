@@ -49,6 +49,7 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
             constraints.setClient((KGraphLanguageClient) languageClient);
             rectPack.setClient((KGraphLanguageClient) languageClient);
             LanguageServerErrorReporter.setClient(languageClient);
+            lfExtension.setClient(languageClient);
         }
     }
     

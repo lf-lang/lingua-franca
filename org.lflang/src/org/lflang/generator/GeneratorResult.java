@@ -4,7 +4,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.lflang.util.LFCommand;
 
@@ -20,10 +19,10 @@ public class GeneratorResult {
      * A {@code Status} is a level of completion of a code generation task.
      */
     public enum Status {
-        NOTHING(gr -> ""),  // Code generation was not performed.
-        CANCELLED(gr -> "Code generation was cancelled."),
-        FAILED(gr -> "Code generation failed."),  // This may be due to a failed validation check, in which case the
-        // problem will be displayed in the editor.
+        NOTHING(result -> ""),  // Code generation was not performed.
+        CANCELLED(result -> "Code generation was cancelled."),
+        FAILED(result -> ""),  // This may be due to a failed validation check, in which case the problem will be displayed
+        // in the editor. This makes a message unnecessary.
         GENERATED(GetUserMessage.COMPLETED),
         COMPILED(GetUserMessage.COMPLETED);  // Some targets (e.g., Python) will never have this status.
 
@@ -32,10 +31,10 @@ public class GeneratorResult {
          * {@code GeneratorResult} into a human-readable report for the end user.
          */
         public interface GetUserMessage {
-            GetUserMessage COMPLETED = gr -> {
-                if (gr.executable != null) {
+            GetUserMessage COMPLETED = result -> {
+                if (result.executable != null) {
                     return String.format(
-                        "Code generation completed. The executable is located at %s", gr.executable
+                        "Code generation completed. The executable is located at %s", result.executable
                     );
                 }
                 return "Code generation completed.";
@@ -46,7 +45,7 @@ public class GeneratorResult {
         /** The {@code GetUserMessage} associated with this {@code Status}. */
         public final GetUserMessage gum;
 
-        /** Initializes a {@code Status} whose {@code gum} is {@code gum}. */
+        /** Initializes a {@code Status} whose {@code GetUserMessage} is {@code gum}. */
         Status(GetUserMessage gum) {
             this.gum = gum;
         }
