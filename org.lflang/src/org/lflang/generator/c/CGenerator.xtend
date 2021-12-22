@@ -3539,11 +3539,14 @@ class CGenerator extends GeneratorBase {
                 t | return currentFederate.contains(t.definition);
             ];
             
-        // Create an array to store all self structs.
+        // Create an array of arrays to store all self structs.
         // This is needed because connections cannot be established until
         // all reactor instances have self structs because ports that
         // receive data reference the self structs of the originating
         // reactors, which are arbitarily far away in the program graph.
+        generateSelfStructs(main);
+        
+        // FIXME FIXME get rid of self_structs everywhere.
         // The type of each struct type is different, so the type of this
         // array is vague.
         pr(initializeTriggerObjects, '''
@@ -3557,6 +3560,7 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, '''
             «CUtil.selfType(main)»* «CUtil.reactorRef(main)» = new_«main.name»();
             self_structs[0] = «CUtil.reactorRef(main)»;
+            «CUtil.reactorRef(main, "fixme")»[0] = «CUtil.reactorRef(main)»;
         ''')
 
         // Generate code for top-level parameters, actions, timers, and reactions that
@@ -3609,10 +3613,9 @@ class CGenerator extends GeneratorBase {
 
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
-        // Record the self struct on the big array of self structs.
-        // FIXME: only works for banks.
         pr(initializeTriggerObjects, '''
-            self_structs[«CUtil.indexExpression(instance)»] = new_«reactorClass.name»();
+            «CUtil.reactorRef(instance, "fixme")»[«CUtil.bankIndex(instance)»] = new_«reactorClass.name»();
+            self_structs[«CUtil.indexExpression(instance)»] = «CUtil.reactorRef(instance, "fixme")»[«CUtil.bankIndex(instance)»];
         ''')
 
         // Create a variable that will point to this new self struct in
@@ -5801,6 +5804,8 @@ class CGenerator extends GeneratorBase {
         deferredOutputNumDestinations(reactor); // NOTE: Does nothing for top level.
         deferredFillTriggerTable(reactions);
         
+        deferredOptimizeForSingleDominatingReaction(reactor);
+        
         pr('''// **** End of deferredInitialize for «reactor.getFullName()»''')
     }
     
@@ -5988,55 +5993,80 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * For each reaction of the specified reactor,
      * Set the last_enabling_reaction field of the reaction struct to point
      * to the single dominating upstream reaction, if there is one, or to be
      * NULL if not.
      * 
-     * @param reaction The reaction.
-     * @param reactionNumber The reaction number within the parent.
+     * @param reactor The reactor.
      */
-    def deferredOptimizeForSingleDominatingReaction (
-        ReactionInstance reaction,
-        int reactionNumber
-    ) {
-        val reactor = reaction.parent;
-        
-        // FIXME // This is called within a scoped block for the parent.
-        // Use the index variables for the parent to index into the Runtimes
-        // field of the reaction.  Do a run-length encoding of the result.
-        
-        // Record the number of reactions that this reaction depends on.
-        // This is used for optimization. When that number is 1, the reaction can
-        // be executed immediately when its triggering reaction has completed.
-        var dominatingReaction = null as ReactionInstance; // reaction.findSingleDominatingReaction();
-        
-        // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
-        while (dominatingReaction !== null 
-                && (!currentFederate.contains(dominatingReaction.definition))
-        ) {
-            dominatingReaction = null as ReactionInstance; // dominatingReaction.findSingleDominatingReaction();
-        }
-        val reactionRef = CUtil.reactionRef(reaction);
-        if (dominatingReaction !== null 
-                && currentFederate.contains(dominatingReaction.definition)
-                && currentFederate.contains(dominatingReaction.parent)
-        ) {
-            val temp = new StringBuilder();
-
-            val dominatingReactionRef = CUtil.reactionRef(dominatingReaction)
-            if (dominatingReaction.parent != reaction.parent) {
-                defineSelfStruct(temp, dominatingReaction.parent)
+    private def deferredOptimizeForSingleDominatingReaction (ReactorInstance r) {
+        for (reaction : r.reactions) {
+            var start = 0;
+            var end = 0;
+            var domStart = 0;
+            var domEnd = 0;
+            var dominating = null as ReactionInstance.Runtime;
+            for (runtime : reaction.getRuntimeInstances()) {
+                if (end > start // There is something to output.
+                    && (
+                        // Not equal and not a successor
+                        (runtime.dominatingReaction != dominating 
+                            && (
+                                runtime.dominatingReaction === null
+                                || runtime.dominatingReaction.id != domEnd + 1
+                            )
+                        )
+                    )
+                ) {
+                    // Change in value.
+                    printOptimizeForSingleDominatingReaction(reaction, start, end, dominating, domStart);
+                    start = end;
+                    domStart = domEnd;
+                }
+                dominating = runtime.dominatingReaction;
+                end++;
+                domEnd++;
             }
-            pr(temp, '''
-                // Reaction «reactionNumber» of «reactor.getFullName» depends on one maximal upstream reaction.
-                «reactionRef».last_enabling_reaction = &(«dominatingReactionRef»);
-            ''')
-            
-            encloseInBankIteration(code, dominatingReaction, reaction, temp);
-        } else {
+            if (end > start) {
+                printOptimizeForSingleDominatingReaction(reaction, start, end, dominating, domStart);
+            }
+        }
+    }
+    
+    /**
+     * Print statement that sets the last_enabling_reaction field of a reaction.
+     */
+    private def printOptimizeForSingleDominatingReaction(
+        ReactionInstance reaction, int start, int end, 
+        ReactionInstance.Runtime dominating, int domStart
+    ) {
+        var dominatingRef = "NULL";
+        
+        if (end > start + 1) {
+            val reactionRef = CUtil.reactionRef(reaction, "fixme", "i");
+            if (dominating !== null) {
+                dominatingRef =  "&(" + CUtil.reactionRef(dominating.reaction, "fixme", "j++") + ")";
+                pr('''
+                    int j = «domStart»;
+                ''')
+            }
+            startScopedBlock(code);
             pr('''
-                // Reaction «reactionNumber» of «reactor.getFullName» does not depend on one maximal upstream reaction.
-                «reactionRef».last_enabling_reaction = NULL;
+                // Reaction «reaction.index» of «reaction.getFullName» dominating upstream reaction.
+                for (int i = «start»; i < «end»; i++) {
+                    «reactionRef».last_enabling_reaction = «dominatingRef»;
+                }
+            ''')
+           endScopedBlock(code);
+        } else if (end == start + 1) {
+            val reactionRef = CUtil.reactionRef(reaction, "fixme", "" + start);
+            if (dominating !== null) {
+                dominatingRef =  "&(" + CUtil.reactionRef(dominating.reaction, "fixme", "" + domStart) + ")";
+            }
+            pr('''
+                // Reaction «reaction.index» of «reaction.getFullName» dominating upstream reaction.
+                «reactionRef».last_enabling_reaction = «dominatingRef»;
             ''')
         }
     }
@@ -6170,8 +6200,6 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        deferredOptimizeForSingleDominatingReaction(reaction, reaction.index);
-
         pr('''
             «init.toString»
             // ** End initialization for reaction «reaction.index» of «name»
@@ -6280,6 +6308,32 @@ class CGenerator extends GeneratorBase {
             }
         }
     }
+    
+    /**
+     * Generate an array of arrays for storing the self structs.
+     * @param r The reactor instance.
+     */
+    private def void generateSelfStructs(ReactorInstance r) {
+        if (r.depth == 0) {
+            // Top level, so generate main arrays.
+            // NOTE; these arrays are put on the stack and discarded after initialization.
+            val num = r.totalNumberOfChildren + 1;
+            pr(initializeTriggerObjects, '''
+                void* selfs[«num»];
+                size_t selfs_sizes[«num»];
+            ''')
+        }
+        // FIXME FIXME get rid of "fixme" everywhere.
+        pr(initializeTriggerObjects, '''
+            «CUtil.selfType(r)»* «CUtil.reactorRef(r, "fixme")»[«r.totalWidth»];
+            selfs[«r.id»] = «CUtil.reactorRef(r, "fixme")»;
+            selfs_sizes[«r.id»] = «r.totalWidth»;
+        ''')
+        for (child : r.children) {
+            generateSelfStructs(child);
+        }
+    }
+    
 
     //////////////////////////////////////////////////////////////
     // Inner class

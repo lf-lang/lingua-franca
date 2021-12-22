@@ -119,6 +119,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * bank members (which have bankIndex >= 0).
      */
     public final List<ReactorInstance> children = new ArrayList<ReactorInstance>();
+    
+    /**
+     * The ID of this reactor instance. This is 0 for a top-level (main) reactor
+     * and increases for each created reactor in the order created until it
+     * reaches main's {@link #totalNumberOfChildren()}.
+     */
+    public final int id;
 
     /** The input port instances belonging to this reactor instance. */
     public final List<PortInstance> inputs = new ArrayList<PortInstance>();
@@ -186,7 +193,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public void clearCaches() {
         cachedReactionLoopGraph = null;
-        totalNumberOfReactionsCache = -1;
+        totalNumChildrenCache = -1;
         for (ReactorInstance child : children) {
             child.clearCaches();
         }
@@ -210,6 +217,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * This assumes that index 0 refers to the parent, hence the "one plus."
      */
     public int getIndexOffset() {
+        // FIXME FIXME get rid of this.
         return indexOffset;
     }
     
@@ -243,6 +251,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * taking into account their bank widths if necessary.
      */
     public int getNumReactorInstances() {
+        // FIXME FIXME get rid of this.
         return numReactorInstances;
     }
     
@@ -294,6 +303,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * as returned by width().
      */
     public int getTotalNumReactorInstances() {
+        // FIXME FIXME: get rid of this.
         if (width < 0 || numReactorInstances < 0) return -1;
         return width * numReactorInstances;
     }
@@ -558,16 +568,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Return the total number of reactions in this reactor
-     * and all its contained reactors.
+     * Return the total number of children in this reactor
+     * and all its contained reactors. Each bank counts as one child.
      */
-    public int totalNumberOfReactions() {
-        if (totalNumberOfReactionsCache >= 0) return totalNumberOfReactionsCache;
-        totalNumberOfReactionsCache = reactions.size();
-        for (ReactorInstance containedReactor : children) {
-            totalNumberOfReactionsCache += containedReactor.totalNumberOfReactions();
+    public int totalNumberOfChildren() {
+        if (totalNumChildrenCache < 0) {
+            totalNumChildrenCache = children.size();
+            for (ReactorInstance containedReactor : children) {
+                totalNumChildrenCache += containedReactor.totalNumberOfChildren();
+            }
         }
-        return totalNumberOfReactionsCache;
+        return totalNumChildrenCache;
     }
 
     /** 
@@ -723,6 +734,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDefinition = ASTUtils.toDefinition(definition.getReactorClass());
+        this.id = root().childCount++;
         
         if (unorderedReactions != null) {
             this.unorderedReactions = unorderedReactions;
@@ -1004,6 +1016,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
     
+    /**
+     * Count of children created for assigning IDs. This should only be
+     * used by a top-level reactor.
+     */
+    private int childCount = 0;
+    
+    /**
+     * Cache of the deep number of children.
+     */
+    private int totalNumChildrenCache = -1;
+    
+    // FIXME FIXME: Get rid of the following.
+    
     /** 
      * One plus the number of contained reactor instances
      * (if a bank, in a bank element).
@@ -1017,10 +1042,4 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * this in the parent.
      */
     private int indexOffset = 0;
-    
-    /**
-     * Cached version of the total number of reactions within
-     * this reactor and its contained reactors.
-     */
-    private int totalNumberOfReactionsCache = -1;
 }
