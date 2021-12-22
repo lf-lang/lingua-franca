@@ -11,14 +11,9 @@ import org.eclipse.lsp4j.jsonrpc.CancelChecker;
 import org.eclipse.lsp4j.jsonrpc.CompletableFutures;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.WorkDoneProgressCreateParams;
-import org.eclipse.lsp4j.WorkDoneProgressBegin;
-import org.eclipse.lsp4j.WorkDoneProgressEnd;
-import org.eclipse.lsp4j.WorkDoneProgressNotification;
-import org.eclipse.lsp4j.WorkDoneProgressReport;
-import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.eclipse.xtext.ide.server.ILanguageServerAccess;
+import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.LFStandaloneSetup;
@@ -32,68 +27,13 @@ import org.lflang.LFRuntimeModule;
 class LFLanguageServerExtension implements ILanguageServerExtension {
 
     /**
-     * Reports the progress of an ongoing task.
-     */
-    private static class Progress {
-        private static int nextToken = 0;
-        private final String title;
-        private final int token;
-        private final LanguageClient client;
-        public Progress(LanguageClient client, String title) {
-            this.client = client;
-            this.token = nextToken++;
-            this.title = title;
-            client.createProgress(new WorkDoneProgressCreateParams(Either.forRight(token)));
-        }
-
-        /**
-         * Reports that the task tracked by {@code this} is done.
-         */
-        public void begin() {
-            WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
-            begin.setTitle(title);
-            notifyProgress(begin);
-        }
-
-        /**
-         * Reports the progress of the task tracked by {@code this}.
-         * @param message A message describing the progress of the task.
-         */
-        public void report(String message) {
-            // It is possible to report percent completion, but we choose not to support this feature (yet) because the
-            // editor we currently target (VS Code) only supports the feature if the progress bar's location is
-            // set to "ProgressLocation.Notification".
-            WorkDoneProgressReport report = new WorkDoneProgressReport();
-            report.setMessage(message);
-            notifyProgress(report);
-        }
-
-        /**
-         * Marks the task tracked by {@code this} as terminated.
-         * @param message A message describing the outcome of the task.
-         */
-        public void end(String message) {
-            WorkDoneProgressEnd end = new WorkDoneProgressEnd();
-            end.setMessage(message);
-            notifyProgress(end);
-        }
-
-        /**
-         * Sends the given progress notification to the client.
-         * @param notification
-         */
-        private void notifyProgress(WorkDoneProgressNotification notification) {
-            client.notifyProgress(new ProgressParams(Either.forRight(token), notification));
-        }
-    }
-
-    /**
      * Describes a build process that has a progress.
      */
     private static class BuildWithProgress implements Function<CancelChecker, String> {
         private final Progress progress;
         private final boolean mustComplete;
         private final String uri;
+        private final CancelIndicator cancelIndicator;
 
         /**
          * Instantiates the building of the file located at {@code uri}.
@@ -104,15 +44,20 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         public BuildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
             this.uri = uri;
             this.progress = new Progress(client, "Build \"" + Paths.get(uri).getFileName() + "\"");
+            this.cancelIndicator = progress.getCancelIndicator();
             this.mustComplete = mustComplete;
         }
 
         /**
          * Executes {@code this}.
+         * @param cancelChecker A useless parameter.
          */
-        public String apply(CancelChecker cancelToken) {
+        public String apply(CancelChecker cancelChecker) {
+            // cancelChecker is ignored because the framework appears to provide it but not use it.
             progress.begin();
-            String message = builder.run(URI.createURI(uri), mustComplete, progress::report).getUserMessage();
+            String message = builder.run(
+                URI.createURI(uri), mustComplete, progress::report, cancelIndicator
+            ).getUserMessage();
             progress.end(message);
             return message;
         }
@@ -127,7 +72,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
     @Override
     public void initialize(ILanguageServerAccess access) {
-        // This method is never invoked. It might be useful if it were invoked, but apparently that
+        // This method is never invoked. It might be useful if it were invoked, but seemingly that
         //  is just not how the framework works right now.
     }
 

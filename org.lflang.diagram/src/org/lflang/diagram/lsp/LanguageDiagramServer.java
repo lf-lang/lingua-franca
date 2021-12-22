@@ -2,7 +2,11 @@ package org.lflang.diagram.lsp;
 
 import java.util.List;
 
+import org.eclipse.xtext.ide.server.LanguageServerImpl;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
+import org.eclipse.xtext.service.AbstractGenericModule;
+import com.google.inject.Module;
+import com.google.inject.util.Modules;
 import de.cau.cs.kieler.klighd.lsp.KGraphLanguageClient;
 import de.cau.cs.kieler.klighd.lsp.interactive.layered.LayeredInteractiveLanguageServerExtension;
 import de.cau.cs.kieler.klighd.lsp.interactive.rectpacking.RectpackingInteractiveLanguageServerExtension;
@@ -23,6 +27,15 @@ import org.lflang.generator.LanguageServerErrorReporter;
 public class LanguageDiagramServer extends AbstractLanguageServer {
     
     private static class LFLsCreator extends AbstractLsCreator {
+
+        @Override
+        public Module createLSModules(boolean socket) {
+            return Modules.override(super.createLSModules(socket)).with(new AbstractGenericModule() {
+                public Class<? extends LanguageServerImpl> bindLanguageServerImpl() {
+                    return LFLanguageServer.class;
+                }
+            });
+        }
         
         LayeredInteractiveLanguageServerExtension constraints;
         RectpackingInteractiveLanguageServerExtension rectPack;
