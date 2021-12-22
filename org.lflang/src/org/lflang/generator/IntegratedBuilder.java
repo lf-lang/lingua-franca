@@ -26,6 +26,14 @@ import com.google.inject.Provider;
  * from the language server.
  */
 public class IntegratedBuilder {
+
+    /**
+     * A {@code ProgressReporter} reports the progress of a build.
+     */
+    public interface ProgressReporter {
+        void apply(String message);
+    }
+
     // Note: This class is not currently used in response to
     //  document edits, even though the validator and code
     //  generator are invoked by Xtext in response to
@@ -52,9 +60,10 @@ public class IntegratedBuilder {
 
     /**
      * Generates code from the Lingua Franca file {@code f}.
-     * @param uri the URI of a Lingua Franca file
+     * @param uri The URI of a Lingua Franca file.
+     * @param mustComplete Whether the build must be taken to completion.
      */
-    public GeneratorResult run(URI uri, boolean complete) {
+    public GeneratorResult run(URI uri, boolean mustComplete, ProgressReporter progressReporter) {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
         //  org.lflang.lfc.Main. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
@@ -63,18 +72,20 @@ public class IntegratedBuilder {
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
+        progressReporter.apply("Validating...");
         validate(uri, errorReporter);
-        if (!errorReporter.getErrorsOccurred()) return doGenerate(uri, complete);
-        else return GeneratorResult.FAILED;
+        progressReporter.apply("Code validation complete.");
+        if (errorReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
+        progressReporter.apply("Generating code...");
+        return doGenerate(uri, mustComplete);
     }
 
     /* ------------------------- PRIVATE METHODS ------------------------- */
 
     /**
      * Validates the Lingua Franca file {@code f}.
-     * @param uri the URI of a Lingua Franca file
-     * @param errorReporter the reporter with which to
-     *                      report errors
+     * @param uri The URI of a Lingua Franca file.
+     * @param errorReporter The error reporter.
      */
     private void validate(URI uri, ErrorReporter errorReporter) {
         for (Issue issue : validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
@@ -86,7 +97,7 @@ public class IntegratedBuilder {
 
     /**
      * Generates code from the contents of {@code f}.
-     * @param uri the URI of a Lingua Franca file
+     * @param uri The URI of a Lingua Franca file.
      */
     private GeneratorResult doGenerate(URI uri, boolean complete) {
         SlowIntegratedContext context = new SlowIntegratedContext(complete);
@@ -96,8 +107,8 @@ public class IntegratedBuilder {
 
     /**
      * Returns the resource corresponding to {@code uri}.
-     * @param uri the URI of a Lingua Franca file
-     * @return the resource corresponding to {@code uri}
+     * @param uri The URI of a Lingua Franca file.
+     * @return The resource corresponding to {@code uri}.
      */
     private Resource getResource(URI uri) {
         return resourceSetProvider.get().getResource(uri, true);
@@ -106,9 +117,9 @@ public class IntegratedBuilder {
     /**
      * Returns the appropriate reporting method for the
      * given {@code Severity}.
-     * @param severity an arbitrary {@code Severity}
-     * @return the appropriate reporting method for
-     * {@code severity}
+     * @param severity An arbitrary {@code Severity}.
+     * @return The appropriate reporting method for
+     * {@code severity}.
      */
     private ReportMethod getReportMethod(ErrorReporter errorReporter, Severity severity) {
         if (severity == Severity.ERROR) return errorReporter::reportError;
