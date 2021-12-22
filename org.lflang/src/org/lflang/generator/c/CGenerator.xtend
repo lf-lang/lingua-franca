@@ -4934,17 +4934,13 @@ class CGenerator extends GeneratorBase {
             unindent(builder);
             pr(builder, "}"); // End of predicate on range_count.
         }
-        if (range.width > 1) {
-            pr(builder, '''
-                range_count++;
-            ''')
-        }
+        pr(builder, '''
+            range_count++;
+        ''')
         
-        val iterationOrder = range.iterationOrder();
         
-        // We need to iterate backwards over the iteration order.
-        for (var i = iterationOrder.size() - 1; i >= 0; i--) {
-            val instance = iterationOrder.get(i);
+        // We need to iterate forwards over the iteration order.
+        for (instance : range.iterationOrder()) {
             if (instance === port && port.isMultiport) {
                 pr(builder, '''
                     if (range_count >= «range.start» + «range.width») break;
@@ -6005,16 +6001,20 @@ class CGenerator extends GeneratorBase {
     ) {
         val reactor = reaction.parent;
         
+        // FIXME // This is called within a scoped block for the parent.
+        // Use the index variables for the parent to index into the Runtimes
+        // field of the reaction.  Do a run-length encoding of the result.
+        
         // Record the number of reactions that this reaction depends on.
         // This is used for optimization. When that number is 1, the reaction can
         // be executed immediately when its triggering reaction has completed.
-        var dominatingReaction = reaction.findSingleDominatingReaction();
+        var dominatingReaction = null as ReactionInstance; // reaction.findSingleDominatingReaction();
         
         // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
         while (dominatingReaction !== null 
                 && (!currentFederate.contains(dominatingReaction.definition))
         ) {
-            dominatingReaction = dominatingReaction.findSingleDominatingReaction();
+            dominatingReaction = null as ReactionInstance; // dominatingReaction.findSingleDominatingReaction();
         }
         val reactionRef = CUtil.reactionRef(reaction);
         if (dominatingReaction !== null 
@@ -6206,10 +6206,8 @@ class CGenerator extends GeneratorBase {
                     // so that we can simultaneously calculate the size of the total array.
                     val sfx = "_dst";
                     for (SendRange srcRange : port.eventualDestinations()) {
-                        for (dstRange : srcRange.destinations) {
-                            startScopedRangeBlockOutside(code, dstRange, sfx);
-                        }
                         startScopedRangeBlock(code, srcRange, null);
+                        val triggerArray = '''«CUtil.reactionRef(reaction)».triggers[«channelCount» + «CUtil.channelIndex(port)»]'''
                         pr('''
                             // Reaction «reaction.index» of «name» triggers «srcRange.destinations.size» downstream reactions
                             // through port «port.getFullName».
@@ -6217,14 +6215,18 @@ class CGenerator extends GeneratorBase {
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
                             trigger_t** trigger_array = (trigger_t**)malloc(«srcRange.destinations.size» * sizeof(trigger_t*));
-                            «CUtil.reactionRef(reaction)».triggers[«channelCount» + «CUtil.channelIndex(port)»] = trigger_array;
-                            // Fill the trigger array.
-                            int destination_index = 0; // In case of multicast.
+                            «triggerArray» = trigger_array;
                         ''')
+                        endScopedRangeBlock(code, srcRange, null);
+                        channelCount += srcRange.width;
+                        
+                        var multicastCount = 0;
                         for (dstRange : srcRange.destinations) {
                             foundDestinations = true;
                             val dst = dstRange.instance;
                             
+                            startScopedRangeBlockOutside(code, dstRange, sfx);
+                            startScopedRangeBlock(code, srcRange, null);
                             startScopedRangeBlockInside(code, dstRange, sfx);
                                                             
                             if (dst.isOutput) {
@@ -6240,31 +6242,27 @@ class CGenerator extends GeneratorBase {
                                     pr('''
                                         // Port «port.getFullName» has reactions in its parent's parent.
                                         // Point to the trigger struct for those reactions.
-                                        trigger_array[destination_index++] = &«CUtil.triggerRefNested(dst, sfx)»;
+                                        «triggerArray»[«multicastCount»] = &«CUtil.triggerRefNested(dst, sfx)»;
                                     ''')
                                 } else {
                                     // Put in a NULL pointer.
                                     pr('''
                                         // Port «port.getFullName» has reactions in its parent's parent.
                                         // But those are not in the federation.
-                                        trigger_array[destination_index++] = NULL;
+                                        «triggerArray»[«multicastCount»] = NULL;
                                     ''')
                                 }
                             } else {
                                 // Destination is an input port.
                                 pr('''
                                     // Point to destination port «dst.getFullName»'s trigger struct.
-                                    trigger_array[destination_index++] = &«CUtil.triggerRef(dst, sfx)»;
+                                    «triggerArray»[«multicastCount»] = &«CUtil.triggerRef(dst, sfx)»;
                                 ''')
                             }
                             endScopedRangeBlockInside(code, dstRange, sfx);
-                        }
-                    
-                        channelCount += srcRange.width;
-                        
-                        endScopedRangeBlock(code, srcRange, null);
-                        for (dstRange : srcRange.destinations) {
+                            endScopedRangeBlock(code, srcRange, null);
                             endScopedRangeBlockOutside(code, dstRange, sfx);
+                            multicastCount++;
                         }
                     }
                 }

@@ -324,19 +324,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Return the single dominating reaction if this reaction has one, or
-     * null otherwise.
-     */
-    public ReactionInstance findSingleDominatingReaction() {
-        // FIXME: Temporary solution.
-        if (getRuntimeInstances().size() == 1 && dependsOnReactions().size() == 1) {
-            Iterator<ReactionInstance> upstream = dependsOnReactionsCache.iterator();
-            return upstream.next();
-        }
-        return null;
-    }
-    
-    /**
      * Return a set of levels that instances of this reaction have.
      * A ReactionInstance may have more than one level if it lies within
      * a bank and its dependencies on other reactions pass through multiports.
@@ -443,7 +430,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * of the containing reactors are w0, w1, and w2, and
      * we are interested in the instance at bank indexes
      * b0, b1, and b2.  That instance is in this array at
-     * location FIXME
+     * location given by the **natural ordering**, which
+     * is the mixed radix number b2%w2; b1%w1.
      */
     private List<Runtime> runtimeInstances;
 

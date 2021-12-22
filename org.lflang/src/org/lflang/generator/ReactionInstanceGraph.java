@@ -99,7 +99,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
     /**
      * Add to the graph edges between the given reaction and all the reactions
      * that depend on the specified port.
-     * @param port The port that the given reaction as as an effect.
+     * @param port The port that the given reaction has as an effect.
      * @param reaction The reaction to relate downstream reactions to.
      */
     protected void addDownstreamReactions(PortInstance port, ReactionInstance reaction) {
@@ -108,9 +108,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         // banks and multiports, each of these for loops iterates exactly once.
         List<Runtime> srcRuntimes = reaction.getRuntimeInstances();
         for (SendRange sendRange : port.eventualDestinations()) {
-            for (int srcIndex : sendRange.instances(reaction.parent)) {
+            int depth = (port.isInput())? 2 : 1;
+            for (int srcIndex : sendRange.parentInstances(depth)) {
                 for (Range<PortInstance> dstRange : sendRange.destinations) {
-                    for (int dstIndex : dstRange.instances(dstRange.instance.parent)) {
+                    for (int dstIndex : dstRange.parentInstances(1)) {
                         for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
                             List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                             Runtime srcRuntime = srcRuntimes.get(srcIndex);
