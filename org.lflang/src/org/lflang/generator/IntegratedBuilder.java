@@ -62,8 +62,14 @@ public class IntegratedBuilder {
      * Generates code from the Lingua Franca file {@code f}.
      * @param uri The URI of a Lingua Franca file.
      * @param mustComplete Whether the build must be taken to completion.
+     * @return The result of the build.
      */
-    public GeneratorResult run(URI uri, boolean mustComplete, ProgressReporter progressReporter) {
+    public GeneratorResult run(
+        URI uri,
+        boolean mustComplete,
+        ProgressReporter progressReporter,
+        CancelIndicator cancelIndicator
+    ) {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
         //  org.lflang.lfc.Main. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
@@ -75,9 +81,10 @@ public class IntegratedBuilder {
         progressReporter.apply("Validating...");
         validate(uri, errorReporter);
         progressReporter.apply("Code validation complete.");
+        if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
         if (errorReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
         progressReporter.apply("Generating code...");
-        return doGenerate(uri, mustComplete);
+        return doGenerate(uri, mustComplete, cancelIndicator);
     }
 
     /* ------------------------- PRIVATE METHODS ------------------------- */
@@ -98,9 +105,13 @@ public class IntegratedBuilder {
     /**
      * Generates code from the contents of {@code f}.
      * @param uri The URI of a Lingua Franca file.
+     * @param complete Whether the build must be taken to completion.
+     * @param cancelIndicator An indicator that returns true when the build is
+     *                        cancelled.
+     * @return The result of the build.
      */
-    private GeneratorResult doGenerate(URI uri, boolean complete) {
-        SlowIntegratedContext context = new SlowIntegratedContext(complete);
+    private GeneratorResult doGenerate(URI uri, boolean complete, CancelIndicator cancelIndicator) {
+        SlowIntegratedContext context = new SlowIntegratedContext(complete, cancelIndicator);
         generator.generate(getResource(uri), fileAccess, context);
         return context.getResult();
     }

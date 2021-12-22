@@ -27,19 +27,19 @@ public class SlowIntegratedContext implements IGeneratorContext {
 
     /** Initializes a context that cannot be cancelled. */
     public SlowIntegratedContext(boolean complete) {
-        this(CancelIndicator.NullImpl, complete);
+        this(complete, CancelIndicator.NullImpl);
     }
 
     /**
      * Initializes the context of a generation process whose
      * cancellation is indicated by {@code cancelIndicator}
+     * @param complete whether the requested build is
+     *                 required to be complete
      * @param cancelIndicator the cancel indicator of the
      *                        code generation process to
      *                        which this corresponds
-     * @param complete whether the requested build is
-     *                 required to be complete
      */
-    public SlowIntegratedContext(CancelIndicator cancelIndicator, boolean complete) {
+    public SlowIntegratedContext(boolean complete, CancelIndicator cancelIndicator) {
         this.cancelIndicator = cancelIndicator;
         this.complete = complete;
     }

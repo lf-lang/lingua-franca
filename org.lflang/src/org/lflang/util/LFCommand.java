@@ -138,7 +138,8 @@ public class LFCommand {
      */
     private void poll(Process process, CancelIndicator cancelIndicator) {
         if (cancelIndicator != null && cancelIndicator.isCanceled()) {
-            process.destroy();
+            process.descendants().forEach(ProcessHandle::destroyForcibly);
+            process.destroyForcibly();
         } else {
             collectOutput(process.getInputStream(), output, System.out);
             collectOutput(process.getErrorStream(), errors, System.err);
