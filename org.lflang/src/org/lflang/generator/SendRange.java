@@ -26,9 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -71,6 +72,22 @@ public class SendRange extends Range.Port {
     //// Public methods
 
     /**
+     * Add a destination to the list of destinations of this range.
+     * If the width of the destination is not a multiple of the width
+     * of this range, throw an exception.
+     * @throws IllegalArgumentException If the width doesn't match.
+     */
+    public void addDestination(Range<PortInstance> dst) {
+        if (dst.width % width != 0) {
+            throw new IllegalArgumentException(
+                    "Destination range width is not a multiple of sender's width");
+        }
+        destinations.add(dst);
+        // Void any precomputed number of destinations.
+        _numberOfDestinationReactors = -1;
+    }
+    
+    /**
      * Override the base class to add additional comparisons so that
      * ordering is never ambiguous. This means that sorting will be deterministic.
      * Note that this can return 0 even if equals() does not return true.
@@ -93,22 +110,28 @@ public class SendRange extends Range.Port {
 
     /**
      * Return the total number of destination reactors. Specifically, this
-     * is the number of distinct reactors that have one or more ports
-     * with dependent reactions in the reactor.
+     * is the number of distinct reactors that react to messages from this
+     * send range.
      */
     public int getNumberOfDestinationReactors() {
         if (_numberOfDestinationReactors < 0) {
             // Has not been calculated before. Calculate now.
-            Set<ReactorInstance> result = new HashSet<ReactorInstance>();
+            _numberOfDestinationReactors = 0;
+            Map<ReactorInstance, Set<Integer>> result = new HashMap<ReactorInstance, Set<Integer>>();
             for (Range<PortInstance> destination : this.destinations) {
-                for (NamedInstance<?> instance : destination.iterationOrder()) {
-                    if (instance instanceof PortInstance 
-                            && !((PortInstance)instance).dependentReactions.isEmpty()) {
-                        result.add(instance.getParent());
-                    }
+                // The following set contains unique identifiers the parent reactors
+                // of destination ports.
+                Set<Integer> parentIDs = destination.parentInstances(1);
+                Set<Integer> previousParentIDs = result.get(destination.instance.parent);
+                if (previousParentIDs == null) {
+                    result.put(destination.instance.parent, parentIDs);
+                } else {
+                    previousParentIDs.addAll(parentIDs);
                 }
             }
-            _numberOfDestinationReactors = result.size();
+            for (ReactorInstance parent : result.keySet()) {
+                _numberOfDestinationReactors += result.get(parent).size();
+            }
         }
         return _numberOfDestinationReactors;
     }

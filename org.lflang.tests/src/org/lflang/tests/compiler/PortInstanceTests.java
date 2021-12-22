@@ -111,6 +111,31 @@ public class PortInstanceTests {
         Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.F.t(0,1), .E.s(0,1)], .A.p(1,2)->[.C.r(0,2), .E.s(1,2), .E.G.u(0,2)]]", sr.toString());
     }
     
+    @Test
+    public void multiportDestination() throws Exception {
+        Reactor main = factory.createReactor();
+        ReactorInstance maini = new ReactorInstance(main, reporter);
+        
+        ReactorInstance a = newReactor("A", maini);
+        ReactorInstance b = newReactor("B", maini);
+        b.setWidth(4);
+        
+        PortInstance p = newOutputPort("p", a);
+        PortInstance q = newInputPort("q", b);
+
+        connect(p, 0, 1, q, 0, 4);
+
+        List<SendRange> sr = p.eventualDestinations();
+        // Destination has no reactions, so empty list is right.
+        Assertions.assertEquals("[]", sr.toString());
+
+        maini.clearCaches();
+        newReaction(q);
+        sr = p.eventualDestinations();
+        // FIXME: how to make order-independent?
+        Assertions.assertEquals("[.A.p(0,1)->[.B.q(0,1), .B.q(3,1), .B.q(2,1), .B.q(1,1)]]", sr.toString());
+}
+    
     /**
      * Clear connections. This recursively clears them for all contained reactors.
      */

@@ -10,6 +10,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.Range;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.SendRange;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
@@ -49,38 +50,53 @@ public class RangeTests {
 
         // The results expected below are derived from the class comment for Range,
         // which includes this example.
-        Set<Integer> instances = range.instances(pi);
-        Assertions.assertEquals(Set.of(3, 4, 5, 6), instances);
+        List<Integer> instances = range.instances();
+        Assertions.assertEquals(List.of(3, 4, 5, 6), instances);
         
-        instances = range.instances(bi);
-        Assertions.assertEquals(Set.of(1, 2, 3), instances);
-
-        instances = range.instances(ai);
-        Assertions.assertEquals(Set.of(0, 1), instances);
+        Set<Integer> parents = range.parentInstances(1);
+        Assertions.assertEquals(Set.of(1, 2, 3), parents);
+        
+        parents = range.parentInstances(2);
+        Assertions.assertEquals(Set.of(0, 1), parents);
         
         // Test startIndices.
         Assertions.assertEquals(List.of(1, 1, 0), range.startIndices());
         
+        // Create a SendRange sending from and to this range.
+        SendRange sendRange = new SendRange(pi, 3, 4);
+        sendRange.destinations.add(range);
+        
+        // Test getNumberOfDestinationReactors.
+        Assertions.assertEquals(3, sendRange.getNumberOfDestinationReactors());
+        
         // Make first interleaved version.
         range = range.toggleInterleaved(bi);
-        instances = range.instances(pi);
-        Assertions.assertEquals(Set.of(3, 4, 6, 5), instances);
+        instances = range.instances();
+        Assertions.assertEquals(List.of(3, 4, 6, 5), instances);
 
         // Test startIndices.
         Assertions.assertEquals(List.of(1, 1, 0), range.startIndices());
 
         // Make second interleaved version.
         range = range.toggleInterleaved(ai);
-        instances = range.instances(pi);
-        Assertions.assertEquals(Set.of(6, 1, 5, 3), instances);
+        instances = range.instances();
+        Assertions.assertEquals(List.of(6, 1, 5, 3), instances);
 
         // Test startIndices.
         Assertions.assertEquals(List.of(0, 1, 1), range.startIndices());
+        
+        // Test instances of the parent.
+        Assertions.assertEquals(Set.of(3, 0, 2, 1), range.parentInstances(1));
+        
+        // Add this range to the sendRange destinations and verify
+        // that the number of destination reactors becomes 4.
+        sendRange.addDestination(range);
+        Assertions.assertEquals(4, sendRange.getNumberOfDestinationReactors());
 
         // Make third interleaved version.
         range = range.toggleInterleaved(bi);
-        instances = range.instances(pi);
-        Assertions.assertEquals(Set.of(5, 2, 6, 3), instances);
+        instances = range.instances();
+        Assertions.assertEquals(List.of(5, 2, 6, 3), instances);
 
         // Test startIndices.
         Assertions.assertEquals(List.of(1, 0, 1), range.startIndices());
