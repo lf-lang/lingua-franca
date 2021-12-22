@@ -376,6 +376,19 @@ public class CUtil {
         return reactorRef(reaction.getParent(), suffix) + "->_lf__reaction_" + reaction.index;
     }
 
+    /**
+     * Return a reference to the reaction entry on the self struct
+     * of the parent of the specified reaction.
+     * @param reaction The reaction.
+     * @param suffix A suffix to use for the parent reactor or null for the default.
+     * @param index An index into the array of self structs for the parent.
+     */
+    static public String reactionRef(ReactionInstance reaction, String suffix, String index) {
+        return reactorRef(reaction.getParent(), suffix) 
+                + "[" + index + "]"
+                + "->_lf__reaction_" + reaction.index;
+    }
+
     /** 
      * Return a name for a pointer to the "self" struct of the specified
      * reactor instance.

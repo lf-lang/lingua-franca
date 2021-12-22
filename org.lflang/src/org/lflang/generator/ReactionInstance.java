@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -349,30 +348,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
         
     /**
-     * Purge 'portInstance' from this reaction, removing it from the list
-     * of triggers, sources, effects, and reads.
-     */
-    public void removePortInstance(PortInstance portInstance) {
-        this.triggers.remove(portInstance);
-        this.sources.remove(portInstance);
-        this.effects.remove(portInstance);
-        this.reads.remove(portInstance);
-        clearCaches();
-        portInstance.clearCaches();
-    }
-    
-    /**
-     * Return a descriptive string.
-     */
-    @Override
-    public String toString() {
-        return getName() + " of " + parent.getFullName();
-    }
-
-    //////////////////////////////////////////////////////
-    //// Protected methods.
-
-    /**
      * Return an array of runtime instances of this reaction in a
      * **natural order**, defined as follows.  The position within the
      * returned list of the runtime instance is given by a mixed-radix
@@ -392,23 +367,40 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * to determine and record levels and deadline for runtime instances
      * of reactors.
      */
-    protected List<Runtime> getRuntimeInstances() {
+    public List<Runtime> getRuntimeInstances() {
         if (runtimeInstances != null) return runtimeInstances;
-        int size = 1;
-        ReactorInstance p = parent;
-        while (p != null) {
-            size *= p.width;
-            p = p.parent;
-        }
+        int size = parent.getTotalWidth();
         runtimeInstances = new ArrayList<Runtime>(size);
         for (int i = 0; i < size; i++) {
             Runtime r = new Runtime();
+            r.id = i;
             if (declaredDeadline != null) {
                 r.deadline = declaredDeadline.maxDelay;
             }
             runtimeInstances.add(r);
         }
         return runtimeInstances;
+    }
+
+    /**
+     * Purge 'portInstance' from this reaction, removing it from the list
+     * of triggers, sources, effects, and reads.
+     */
+    public void removePortInstance(PortInstance portInstance) {
+        this.triggers.remove(portInstance);
+        this.sources.remove(portInstance);
+        this.effects.remove(portInstance);
+        this.reads.remove(portInstance);
+        clearCaches();
+        portInstance.clearCaches();
+    }
+    
+    /**
+     * Return a descriptive string.
+     */
+    @Override
+    public String toString() {
+        return getName() + " of " + parent.getFullName();
     }
 
     //////////////////////////////////////////////////////
@@ -440,9 +432,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Inner class representing a runtime instance. */
     public class Runtime {
-        public int level = 0;
         public TimeValue deadline = TimeValue.MAX_VALUE;
         public Runtime dominatingReaction = null;
+        /** ID ranging from 0 to parent.getTotalWidth() - 1. */
+        public int id = 0;
+        public int level = 0;
         
         public ReactionInstance getReaction() {
             return ReactionInstance.this;
