@@ -847,7 +847,7 @@ class PythonGenerator extends CGenerator {
         if (installCmd.run(context.cancelIndicator) == 0) {
             println("Successfully installed python extension.")
         } else {
-            errorReporter.reportError("Failed to install python extension.")
+            errorReporter.reportError("Failed to install python extension due to the following errors:\n" + installCmd.getErrors())
         }
     }
     
