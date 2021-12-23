@@ -43,7 +43,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
          */
         public BuildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
             this.uri = uri;
-            this.progress = new Progress(client, "Build \"" + Paths.get(uri).getFileName() + "\"");
+            this.progress = new Progress(client, "Build \"" + Paths.get(uri).getFileName() + "\"", mustComplete);
             this.cancelIndicator = progress.getCancelIndicator();
             this.mustComplete = mustComplete;
         }
