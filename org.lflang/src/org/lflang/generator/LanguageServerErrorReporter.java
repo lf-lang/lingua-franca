@@ -161,7 +161,6 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      * language client.
      */
     public void publishDiagnostics() {
-        if (diagnostics.isEmpty()) return;
         if (client == null) {
             System.err.println(
                 "WARNING: Cannot publish diagnostics because the language client has not yet been found."
