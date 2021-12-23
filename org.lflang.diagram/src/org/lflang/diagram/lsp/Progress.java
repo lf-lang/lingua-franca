@@ -19,21 +19,26 @@ import org.eclipse.xtext.util.CancelIndicator;
 public class Progress {
     private static int nextToken = 0;
     private static final Map<Integer, Boolean> cancellations = new HashMap<>();
+
+    private final LanguageClient client;
     private final String title;
     private final int token;
-    private final LanguageClient client;
+    private final boolean cancellable;
 
     /**
      * Initializes the {@code Progress} of a task titled {@code title} that is
      * triggered via {@code client}.
      * @param client A language client through which a task was triggered.
      * @param title The title of the task.
+     * @param cancellable Whether the task tracked by {@code this} can be
+     * cancelled.
      */
-    public Progress(LanguageClient client, String title) {
+    public Progress(LanguageClient client, String title, boolean cancellable) {
         this.client = client;
-        this.token = nextToken++;
-        cancellations.put(token, false);
         this.title = title;
+        this.token = nextToken++;
+        this.cancellable = cancellable;
+        if (cancellable) cancellations.put(token, false);
         client.createProgress(new WorkDoneProgressCreateParams(Either.forRight(token)));
     }
 
@@ -42,7 +47,7 @@ public class Progress {
      * {@code token}.
      */
     public static void cancel(int token) {
-        cancellations.put(token, true);
+        if (cancellations.containsKey(token)) cancellations.put(token, true);
     }
 
     /**
@@ -52,7 +57,8 @@ public class Progress {
      * {@code Progress}
      */
     public CancelIndicator getCancelIndicator() {
-        return () -> cancellations.get(token);
+        if (cancellable) return () -> cancellations.get(token);
+        return () -> false;
     }
 
     /**
@@ -61,7 +67,7 @@ public class Progress {
     public void begin() {
         WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
         begin.setTitle(title);
-        begin.setCancellable(true);
+        begin.setCancellable(cancellable);
         begin.setPercentage(0);
         notifyProgress(begin);
     }
@@ -73,7 +79,7 @@ public class Progress {
     public void report(String message, Integer percentage) {
         WorkDoneProgressReport report = new WorkDoneProgressReport();
         report.setMessage(message);
-        report.setCancellable(true);
+        report.setCancellable(cancellable);
         report.setPercentage(percentage);
         notifyProgress(report);
     }
