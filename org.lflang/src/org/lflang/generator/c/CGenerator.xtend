@@ -72,7 +72,6 @@ import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
-import org.lflang.generator.SlowIntegratedContext
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Action
@@ -901,7 +900,7 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
-                SlowIntegratedContext.reportProgress(
+                JavaGeneratorUtils.reportProgress(
                     context,
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
                     IntegratedBuilder.GENERATED_PERCENT_PROGRESS * federateCount / federates.size()
@@ -922,10 +921,8 @@ class CGenerator extends GeneratorBase {
                             threadFileConfig.deleteBinFiles()
                             // If finish has already been called, it is illegal and makes no sense. However,
                             //  if finish has already been called, then this must be a federated execution.
-                            if (!isFederated) SlowIntegratedContext.finish(
-                                context, GeneratorResult.Status.FAILED, null, fileConfig.binPath, null
-                            );
-                        } else if (!isFederated) SlowIntegratedContext.finish(
+                            if (!isFederated) JavaGeneratorUtils.unsuccessfulFinish(context);
+                        } else if (!isFederated) JavaGeneratorUtils.finish(
                             context, GeneratorResult.Status.COMPILED, execName, fileConfig.binPath, null
                         );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
@@ -952,16 +949,16 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand();
-                SlowIntegratedContext.finish(
+                JavaGeneratorUtils.finish(
                     context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
                 );
             } else if (isFederated) {
-                SlowIntegratedContext.finish(
+                JavaGeneratorUtils.finish(
                     context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
                 );
             }
         } else {
-            SlowIntegratedContext.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
+            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
         
         // In case we are in Eclipse, make sure the generated code is visible.

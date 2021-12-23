@@ -32,12 +32,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.TargetConfig.Mode
 import org.lflang.Target
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.TargetTypes
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.SlowIntegratedContext
-import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.*
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -65,31 +60,22 @@ class CppGenerator(
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
-        // stop if there are any errors found in the program by doGenerate() in GeneratorBase
-        if (errorsOccurred()) return
-
-        // abort if there is no main reactor
-        if (mainDef == null) {
-            errorReporter.reportWarning(
-                "WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated."
-            )
-            return
-        }
+        if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
         val codeMaps = generateFiles(fsa)
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
-            SlowIntegratedContext.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
         } else if (cppFileConfig.compilerMode == Mode.LSP_MEDIUM) {
-            SlowIntegratedContext.reportProgress(
-                context, "Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            JavaGeneratorUtils.reportProgress(
+                context, "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
-            SlowIntegratedContext.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
         } else {
-            SlowIntegratedContext.reportProgress(
-                context, "Compiling generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            JavaGeneratorUtils.reportProgress(
+                context, "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             doCompile(context, codeMaps)
         }
@@ -205,9 +191,9 @@ class CppGenerator(
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
         }
         if (errorReporter.errorsOccurred) {
-            SlowIntegratedContext.finish(context, GeneratorResult.FAILED)
+            JavaGeneratorUtils.unsuccessfulFinish(context)
         } else {
-            SlowIntegratedContext.finish(  // FIXME: cppFileConfig.name is not always guaranteed to be the right name.
+            JavaGeneratorUtils.finish(  // FIXME: cppFileConfig.name is not always guaranteed to be the right name.
                 context, GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
             )
         }

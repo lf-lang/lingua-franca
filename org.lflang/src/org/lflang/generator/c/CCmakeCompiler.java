@@ -129,7 +129,7 @@ public class CCmakeCompiler extends CCompiler {
         if (cMakeReturnCode != 0 && 
                 fileConfig.getCompilerMode() == Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
-            errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
+            errorReporter.reportError(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
         }
         
         // For warnings (vs. errors), the return code is 0.
@@ -150,7 +150,7 @@ public class CCmakeCompiler extends CCompiler {
             if (makeReturnCode != 0 && 
                     fileConfig.getCompilerMode() == Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-                errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
+                errorReporter.reportError(targetConfig.compiler + " failed with error code " + makeReturnCode);
             }
             
             // For warnings (vs. errors), the return code is 0.

@@ -1260,7 +1260,7 @@ class PythonGenerator extends CGenerator {
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
                 generatePythonFiles(fsa, federate)
-                if (targetConfig.noCompile !== true) {
+                if (!targetConfig.noCompile) {
                     // If there are no federates, compile and install the generated code
                     pythonCompileCode(context)
                 } else {
