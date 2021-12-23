@@ -62,6 +62,7 @@ public class Progress {
         WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
         begin.setTitle(title);
         begin.setCancellable(true);
+        begin.setPercentage(0);
         notifyProgress(begin);
     }
 
@@ -69,13 +70,11 @@ public class Progress {
      * Reports the progress of the task tracked by {@code this}.
      * @param message A message describing the progress of the task.
      */
-    public void report(String message) {
-        // It is possible to report percent completion, but we choose not to support this feature (yet) because the
-        // editor we currently target (VS Code) only supports the feature if the progress bar's location is
-        // set to "ProgressLocation.Notification".
+    public void report(String message, Integer percentage) {
         WorkDoneProgressReport report = new WorkDoneProgressReport();
         report.setMessage(message);
         report.setCancellable(true);
+        report.setPercentage(percentage);
         notifyProgress(report);
     }
 

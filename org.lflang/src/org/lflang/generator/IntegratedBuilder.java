@@ -26,12 +26,16 @@ import com.google.inject.Provider;
  * from the language server.
  */
 public class IntegratedBuilder {
+    public static final int START_PERCENT_PROGRESS = 0;
+    public static final int VALIDATED_PERCENT_PROGRESS = 33;
+    public static final int GENERATED_PERCENT_PROGRESS = 67;
+    public static final int COMPILED_PERCENT_PROGRESS = 100;
 
     /**
      * A {@code ProgressReporter} reports the progress of a build.
      */
     public interface ProgressReporter {
-        void apply(String message);
+        void apply(String message, Integer percentage);
     }
 
     // Note: This class is not currently used in response to
@@ -78,12 +82,12 @@ public class IntegratedBuilder {
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
-        progressReporter.apply("Validating...");
+        progressReporter.apply("Validating...", START_PERCENT_PROGRESS);
         validate(uri, errorReporter);
-        progressReporter.apply("Code validation complete.");
+        progressReporter.apply("Code validation complete.", VALIDATED_PERCENT_PROGRESS);
         if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
         if (errorReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
-        progressReporter.apply("Generating code...");
+        progressReporter.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
         return doGenerate(uri, mustComplete, cancelIndicator);
     }
 
