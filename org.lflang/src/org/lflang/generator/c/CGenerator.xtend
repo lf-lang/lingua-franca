@@ -66,6 +66,7 @@ import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
@@ -597,7 +598,9 @@ class CGenerator extends GeneratorBase {
             )
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
+        var federateCount = 0;
         for (federate : federates) {
+            federateCount++;
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
@@ -898,6 +901,12 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
+                SlowIntegratedContext.reportProgress(
+                    context,
+                    String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
+                    IntegratedBuilder.GENERATED_PERCENT_PROGRESS * federateCount / federates.size()
+                        + IntegratedBuilder.VALIDATED_PERCENT_PROGRESS * (federates.size() - federateCount) / federates.size()
+                );
                 compileThreadPool.execute(new Runnable() {
                     override void run() {
                         // Create the compiler to be used later
@@ -913,8 +922,12 @@ class CGenerator extends GeneratorBase {
                             threadFileConfig.deleteBinFiles()
                             // If finish has already been called, it is illegal and makes no sense. However,
                             //  if finish has already been called, then this must be a federated execution.
-                            if (!isFederated) finish(context, GeneratorResult.Status.FAILED, null);
-                        } else if (!isFederated) finish(context, GeneratorResult.Status.COMPILED, execName);
+                            if (!isFederated) SlowIntegratedContext.finish(
+                                context, GeneratorResult.Status.FAILED, null, fileConfig.binPath, null
+                            );
+                        } else if (!isFederated) SlowIntegratedContext.finish(
+                            context, GeneratorResult.Status.COMPILED, execName, fileConfig.binPath, null
+                        );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
@@ -939,33 +952,20 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand();
-                finish(context, GeneratorResult.Status.COMPILED, fileConfig.name);
+                SlowIntegratedContext.finish(
+                    context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                );
             } else if (isFederated) {
-                finish(context, GeneratorResult.Status.COMPILED, fileConfig.name);
+                SlowIntegratedContext.finish(
+                    context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                );
             }
         } else {
-            finish(context, GeneratorResult.Status.GENERATED, null);
+            SlowIntegratedContext.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
-    }
-
-    /**
-     * Informs the context of the result of this code generation process, if
-     * applicable.
-     * @param execName The name of the executable produced by this code
-     * generation process, or {@code null} if no executable was produced.
-     */
-    def finish(IGeneratorContext context, GeneratorResult.Status status, String execName) {
-        if (context instanceof SlowIntegratedContext) {
-            context.finish(new GeneratorResult(
-                status,
-                execName == null ? null : fileConfig.binPath.resolve(execName),
-                LFCommand.get("." + File.separator + execName, List.of(), fileConfig.binPath),
-                null
-            ));
-        }
     }
 
     /**

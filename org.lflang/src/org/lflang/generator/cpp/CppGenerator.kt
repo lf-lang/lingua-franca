@@ -35,6 +35,9 @@ import org.lflang.Target
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.SlowIntegratedContext
+import org.lflang.generator.IntegratedBuilder
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -77,9 +80,17 @@ class CppGenerator(
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
+            SlowIntegratedContext.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
         } else if (cppFileConfig.compilerMode == Mode.LSP_MEDIUM) {
+            SlowIntegratedContext.reportProgress(
+                context, "Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
             CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+            SlowIntegratedContext.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
         } else {
+            SlowIntegratedContext.reportProgress(
+                context, "Compiling generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
             doCompile(context, codeMaps)
         }
     }
@@ -192,6 +203,13 @@ class CppGenerator(
             }
         } else {
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
+        }
+        if (errorReporter.errorsOccurred) {
+            SlowIntegratedContext.finish(context, GeneratorResult.FAILED)
+        } else {
+            SlowIntegratedContext.finish(  // FIXME: cppFileConfig.name is not always guaranteed to be the right name.
+                context, GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
+            )
         }
     }
 
