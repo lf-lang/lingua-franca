@@ -34,7 +34,7 @@ public class IntegratedBuilder {
     /**
      * A {@code ProgressReporter} reports the progress of a build.
      */
-    public interface ProgressReporter {
+    public interface ReportProgress {
         void apply(String message, Integer percentage);
     }
 
@@ -71,7 +71,7 @@ public class IntegratedBuilder {
     public GeneratorResult run(
         URI uri,
         boolean mustComplete,
-        ProgressReporter progressReporter,
+        ReportProgress reportProgress,
         CancelIndicator cancelIndicator
     ) {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
@@ -82,13 +82,13 @@ public class IntegratedBuilder {
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
-        progressReporter.apply("Validating...", START_PERCENT_PROGRESS);
+        reportProgress.apply("Validating...", START_PERCENT_PROGRESS);
         validate(uri, errorReporter);
-        progressReporter.apply("Code validation complete.", VALIDATED_PERCENT_PROGRESS);
+        reportProgress.apply("Code validation complete.", VALIDATED_PERCENT_PROGRESS);
         if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
         if (errorReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
-        progressReporter.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
-        return doGenerate(uri, mustComplete, cancelIndicator);
+        reportProgress.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
+        return doGenerate(uri, mustComplete, reportProgress, cancelIndicator);
     }
 
     /* ------------------------- PRIVATE METHODS ------------------------- */
@@ -109,13 +109,18 @@ public class IntegratedBuilder {
     /**
      * Generates code from the contents of {@code f}.
      * @param uri The URI of a Lingua Franca file.
-     * @param complete Whether the build must be taken to completion.
+     * @param mustComplete Whether the build must be taken to completion.
      * @param cancelIndicator An indicator that returns true when the build is
      *                        cancelled.
      * @return The result of the build.
      */
-    private GeneratorResult doGenerate(URI uri, boolean complete, CancelIndicator cancelIndicator) {
-        SlowIntegratedContext context = new SlowIntegratedContext(complete, cancelIndicator);
+    private GeneratorResult doGenerate(
+        URI uri,
+        boolean mustComplete,
+        ReportProgress reportProgress,
+        CancelIndicator cancelIndicator
+    ) {
+        SlowIntegratedContext context = new SlowIntegratedContext(mustComplete, cancelIndicator, reportProgress);
         generator.generate(getResource(uri), fileAccess, context);
         return context.getResult();
     }

@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.lflang.util.LFCommand;
 
@@ -14,6 +15,8 @@ public class GeneratorResult {
     public static GeneratorResult NOTHING = incompleteGeneratorResult(Status.NOTHING);
     public static GeneratorResult CANCELLED = incompleteGeneratorResult(Status.CANCELLED);
     public static GeneratorResult FAILED = incompleteGeneratorResult(Status.FAILED);
+    public static Function<Map<Path, CodeMap>, GeneratorResult> GENERATED_NO_EXECUTABLE
+        = codeMaps -> new GeneratorResult(Status.GENERATED, null, null, codeMaps);
 
     /**
      * A {@code Status} is a level of completion of a code generation task.
@@ -34,7 +37,7 @@ public class GeneratorResult {
             GetUserMessage COMPLETED = result -> {
                 if (result.executable != null) {
                     return String.format(
-                        "Code generation completed. The executable is located at %s", result.executable
+                        "Code generation complete. The executable is at \"%s\".", result.executable
                     );
                 }
                 return "Code generation completed.";
