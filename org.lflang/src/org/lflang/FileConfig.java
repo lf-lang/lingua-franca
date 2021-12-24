@@ -777,11 +777,10 @@ public class FileConfig {
      * @param directory String representation of the director to search in.
      * @return A Java file or null if not found
      */
-     public static Path findFile(String fileName, Path directory) {
+    public static Path findFile(String fileName, Path directory) {
         Path foundFile;
 
         // Check in local directory
-
         foundFile = directory.resolve(fileName);
         if (Files.isRegularFile(foundFile)) {
             return foundFile;
@@ -805,54 +804,54 @@ public class FileConfig {
         // Not found.
         return null;
     }
-     
-     /**
-      * Return the name of the RTI executable.
-      * @return
-      */
-     public String getRTIBinName() {
-         return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
-     }
-     
-     public File getRTIBinFile() {
-         return this.binPath.resolve(getRTIBinName()).toFile();
-     }
-     
-     /**
-      * Return the name of the RTI distribution script.
-      * @return
-      */
-     public String getRTIDistributionScriptName() {
-         return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
-     }
-     
-     public File getRTIDistributionScriptFile() {
-         return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
-     }
-     
-     public static String nameWithoutExtension(Resource r) throws IOException {
-         return nameWithoutExtension(toPath(r));
-     }
-     
-     /**
-      * Determine which mode the compiler is running in.
-      * Integrated mode means that it is running within an IDE or text editor.
-      * Standalone mode means that it is running on the command line.
-      * 
-      * FIXME: Not sure if that us the right place for this function. But
-      *  the decision which mode we are in depends on a file (the resource),
-      *  thus it seems to fit here.
-      * FIXME: If/when we move away from Xtext, which limits our ability to
-      *  include info in the context about whether we are in Epoch or LSP_FAST,
-      *  it would be preferable not to rely on a method like this that has to
-      *  translate a weird assortment of data into an enum.
-      */
-     public Mode getCompilerMode() {
-         if (context instanceof StandaloneContext) return Mode.STANDALONE;
-         if (resource.getURI().isPlatform()) return Mode.EPOCH;
-         if (context instanceof SlowIntegratedContext) {
-             return ((SlowIntegratedContext) context).getMustBeComplete() ? Mode.LSP_SLOW : Mode.LSP_MEDIUM;
-         }
-         return Mode.LSP_FAST;
-     }
+
+    /**
+     * Return the name of the RTI executable.
+     * @return
+     */
+    public String getRTIBinName() {
+        return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
+    }
+
+    public File getRTIBinFile() {
+        return this.binPath.resolve(getRTIBinName()).toFile();
+    }
+
+    /**
+     * Return the name of the RTI distribution script.
+     * @return
+     */
+    public String getRTIDistributionScriptName() {
+        return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
+    }
+
+    public File getRTIDistributionScriptFile() {
+        return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
+    }
+
+    public static String nameWithoutExtension(Resource r) throws IOException {
+        return nameWithoutExtension(toPath(r));
+    }
+
+    /**
+     * Determine which mode the compiler is running in.
+     * Integrated mode means that it is running within an IDE or text editor.
+     * Standalone mode means that it is running on the command line.
+     *
+     * FIXME: Not sure if that us the right place for this function. But
+     *  the decision which mode we are in depends on a file (the resource),
+     *  thus it seems to fit here.
+     * FIXME: If/when we move away from Xtext, which limits our ability to
+     *  include info in the context about whether we are in Epoch or LSP_FAST,
+     *  it would be preferable not to rely on a method like this that has to
+     *  translate a weird assortment of data into an enum.
+     */
+    public Mode getCompilerMode() {
+        if (context instanceof StandaloneContext) return Mode.STANDALONE;
+        if (resource.getURI().isPlatform()) return Mode.EPOCH;
+        if (context instanceof SlowIntegratedContext) {
+            return ((SlowIntegratedContext) context).getMustBeComplete() ? Mode.LSP_SLOW : Mode.LSP_MEDIUM;
+        }
+        return Mode.LSP_FAST;
+    }
 }
