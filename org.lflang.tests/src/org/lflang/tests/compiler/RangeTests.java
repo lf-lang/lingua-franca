@@ -59,8 +59,8 @@ public class RangeTests {
         parents = range.parentInstances(2);
         Assertions.assertEquals(Set.of(0, 1), parents);
         
-        // Test startIndices.
-        Assertions.assertEquals(List.of(1, 1, 0), range.startIndices());
+        // Test startMRNatural().getDigits.
+        Assertions.assertEquals(List.of(1, 1, 0), range.startMRNatural().getDigits());
         
         // Create a SendRange sending from and to this range.
         SendRange sendRange = new SendRange(pi, 3, 4);
@@ -74,16 +74,16 @@ public class RangeTests {
         instances = range.instances();
         Assertions.assertEquals(List.of(3, 4, 6, 5), instances);
 
-        // Test startIndices.
-        Assertions.assertEquals(List.of(1, 1, 0), range.startIndices());
+        // Test startMRNatural().getDigits.
+        Assertions.assertEquals(List.of(1, 1, 0), range.startMRNatural().getDigits());
 
         // Make second interleaved version.
         range = range.toggleInterleaved(ai);
         instances = range.instances();
         Assertions.assertEquals(List.of(6, 1, 5, 3), instances);
 
-        // Test startIndices.
-        Assertions.assertEquals(List.of(0, 1, 1), range.startIndices());
+        // Test startMRNatural().getDigits.
+        Assertions.assertEquals(List.of(0, 1, 1), range.startMRNatural().getDigits());
         
         // Test instances of the parent.
         Assertions.assertEquals(Set.of(3, 0, 2, 1), range.parentInstances(1));
@@ -98,7 +98,7 @@ public class RangeTests {
         instances = range.instances();
         Assertions.assertEquals(List.of(5, 2, 6, 3), instances);
 
-        // Test startIndices.
-        Assertions.assertEquals(List.of(1, 0, 1), range.startIndices());
+        // Test startMRNatural().getDigits.
+        Assertions.assertEquals(List.of(1, 0, 1), range.startMRNatural().getDigits());
     }
 }

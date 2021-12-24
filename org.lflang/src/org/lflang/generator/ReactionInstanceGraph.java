@@ -131,9 +131,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
                         // If another upstream reaction shows up, then this will be
                         // reset to null.
                         if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1) {
-                            dstRuntime.dominatingReaction = srcRuntime;
+                            dstRuntime.dominating = srcRuntime;
                         } else {
-                            dstRuntime.dominatingReaction = null;
+                            dstRuntime.dominating = null;
                         }
                     }
                 }

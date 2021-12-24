@@ -369,27 +369,54 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
         } else {
             return instance.getParent();
         }
-
     }
+    
     /**
-     * Return a list of start indices for this instance and all its parents
-     * except the top-level reactor in hierarchy order, with this instance's
-     * start position listed first. For any instance that is neither a
-     * multiport nor a bank, the index will be 0.
+     * Return that permutation that will convert the mixed-radix number
+     * with digits given by {@link #startIndices()} into a mixed-radix
+     * number in natural order, i.e. with digits given by
+     * {@link #startIndicesNatural()}.
      */
-    public List<Integer> startIndices() {
+    public List<Integer> permutation() {
         List<Integer> result = new ArrayList<Integer>(instance.depth);
         // Populate the result with default zeros.
         for (int i = 0; i < instance.depth; i++) {
             result.add(0);
         }
+        int count = 0;
+        for (NamedInstance<?> i : iterationOrder()) {
+            result.set(instance.depth - i.depth, count++);
+        }
+        return result;
+    }
+    
+    /**
+     * Return the start as a mixed-radix number where the digits and
+     * radixes are in the order given by {@link #instances()}.
+     * For any instance that is neither a
+     * multiport nor a bank, the digit will be 0.
+     */
+    public MixedRadixInt startMR() {
+        List<Integer> digits = new ArrayList<Integer>(instance.depth);
+        List<Integer> radixes = new ArrayList<Integer>(instance.depth);
         int factor = 1;
         for (NamedInstance<?> i : iterationOrder()) {
             int iStart = (start / factor) % i.width;
             factor *= i.width;
-            result.set(instance.depth - i.depth, iStart);
+            digits.add(iStart);
+            radixes.add(i.width);
         }
-        return result;
+        return new MixedRadixInt(digits, radixes);
+    }
+
+    /**
+     * Return the start as a mixed-radix number where the digits and 
+     * radixes are in hierarchy order (natural order), with this instance's
+     * start position listed first. For any instance that is neither a
+     * multiport nor a bank, the digit will be 0.
+     */
+    public MixedRadixInt startMRNatural() {
+        return startMR().permute(permutation());
     }
 
     /**
@@ -441,7 +468,7 @@ public class Range<T extends NamedInstance<?>> implements Comparable<Range<?>> {
     /**
      * Return the list of MixedRadixInt identifiers for the runtime instances
      * in this range.  Each returned identifier is a mixed-radix number
-     * [d0, ... , dn] with radices [w0, ... , wn], where d0 is the bank or
+     * [d0, ... , dn] with radixes [w0, ... , wn], where d0 is the bank or
      * channel index of this Range's instance, which has width w0, and
      * dn is the bank index of its topmost parent below the top-level (main)
      * reactor, which has width wn. The depth of this Range's instance,
