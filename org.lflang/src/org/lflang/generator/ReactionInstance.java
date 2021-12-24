@@ -433,7 +433,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /** Inner class representing a runtime instance. */
     public class Runtime {
         public TimeValue deadline = TimeValue.MAX_VALUE;
-        public Runtime dominatingReaction = null;
+        public Runtime dominating = null;
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
         public int id = 0;
         public int level = 0;
@@ -448,8 +448,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (deadline != null && deadline != TimeValue.MAX_VALUE) {
                result += ", deadline: " + deadline.toString();
             }
-            if (dominatingReaction != null) {
-                result += ", dominating: " + dominatingReaction.getReaction();
+            if (dominating != null) {
+                result += ", dominating: " + dominating.getReaction();
             }
             result += ")";
             return result;

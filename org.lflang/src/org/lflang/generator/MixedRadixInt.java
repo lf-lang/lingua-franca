@@ -111,6 +111,20 @@ public class MixedRadixInt {
     }
     
     /**
+     * Return the digits.
+     */
+    public List<Integer> getDigits() {
+        return digits;
+    }
+    
+    /**
+     * Return the radixes.
+     */
+    public List<Integer> getRadixes() {
+        return radixes;
+    }
+    
+    /**
      * Increment the number by one.
      */
     public void increment() {
