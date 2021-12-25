@@ -95,13 +95,12 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Returns the {@code LFGeneratorContext} whose behavior
-     * and state best approximate that of {@code context}.
-     * @param context The context of a Lingua Franca build
-     *                process.
+     * Returns the {@code LFGeneratorContext} that best describes the given {@code context} when
+     * building {@code Resource}.
+     * @param context The context of a Lingua Franca build process.
      * @param resource The resource being built.
-     * @return The {@code LFGeneratorContext} whose behavior
-     * and state best approximate that of {@code context}.
+     * @return The {@code LFGeneratorContext} that best describes the given {@code context} when
+     * building {@code Resource}.
      */
     static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
