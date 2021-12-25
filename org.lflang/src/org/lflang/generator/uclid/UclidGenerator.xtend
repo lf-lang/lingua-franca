@@ -73,8 +73,8 @@ class UclidGenerator extends GeneratorBase {
     // relations between adjacent reactions.
     var CausalityGraph causalityGraph
 
-    // K
-    int k
+    // Trace size
+    int traceSize
     
     // Constructor
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -130,8 +130,8 @@ class UclidGenerator extends GeneratorBase {
      * @param reactor A reactor instance from which the search begins.
      */
     private def void populateStateVars(ReactorInstance reactor) {
-        // Set k
-        this.k = targetConfig.verification.steps
+        // Set traceSize
+        this.traceSize = targetConfig.verification.steps
         
         var defn = reactor.reactorDefinition
         var stateVars = defn.getStateVars
@@ -216,6 +216,9 @@ class UclidGenerator extends GeneratorBase {
 
         // Initial Condition
         pr_initial_condition()
+
+        // Reactor contracts
+        pr_reactor_contracts()
 
         // Reaction contracts
         pr_reaction_contracts()
@@ -384,14 +387,13 @@ class UclidGenerator extends GeneratorBase {
         newline()
     }
 
-    // FIXME: Accept k as an argument.
     def pr_trace_def_and_helper_macros() {
         pr('''
         /********************
         * Trace Definition *
         *******************/
         const START : integer = 0;
-        const END : integer = «k»;
+        const END : integer = «traceSize»;
         
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
@@ -401,13 +403,13 @@ class UclidGenerator extends GeneratorBase {
         ''')
         pr('')
         pr('''
-        // Generate «k+1» events for «k»-induction.
+        // Generate «traceSize» events.
         ''')
         pr("type trace_t = {")
         indent()
-        for (var i = 0; i < k + 1; i++) {
+        for (var i = 0; i < traceSize; i++) {
             pr("event_t" +
-                (i == k ? "" : ","))
+                (i == traceSize - 1 ? "" : ","))
         }
         unindent()
         pr('};')
@@ -431,13 +433,13 @@ class UclidGenerator extends GeneratorBase {
         // helper macro that returns an element based on index
         define get(tr : trace_t, i : step_t) : event_t =
         ''')
-        for (var j = 0; j < k+1; j++) {
+        for (var j = 0; j < traceSize; j++) {
             pr('''
             if (i == «j») then tr._«j+1» else (
             ''')
         } 
         pr('''
-        { NULL, inf(), { «integerInit» } } «")".repeat(k+1)»;
+        { NULL, inf(), { «integerInit» } } «")".repeat(traceSize)»;
         ''')
         newline()
         pr('''
@@ -525,6 +527,7 @@ class UclidGenerator extends GeneratorBase {
             ((start == 0) ==> (exists (i : integer) :: in_range(i)
                 && rxn(i) == n && tag_same(g(i), zero())))
             // Can ONLY be triggered at (0,0).
+            // FIXME: this case seems to be taken care of by an axiom below.
             && !(exists (j : integer) :: in_range(j) && rxn(j) == n
                 && !tag_same(g(j), zero()));
 
@@ -689,7 +692,32 @@ class UclidGenerator extends GeneratorBase {
         unindent()
     }
 
-        // Reaction contracts
+    def pr_reactor_contracts() {
+        pr('''
+        /*********************
+         * Reactor Contracts *
+         *********************/
+        ''')
+        newline()
+        for (r : this.reactors) {
+            // if (r.main) {
+            //     println("This is the main reactor: " + r)
+            // }
+            // else
+            //     println(r)
+            var attr = r.getAttributes
+            if (attr.length != 0) {
+                for (a : attr) {
+                    var parm = a.getAttrParms
+                    for (p : parm) {
+                        println(p)
+                    }
+                }
+            }
+        }
+    }
+
+    // Reaction contracts
     def pr_reaction_contracts() {
         pr('''
         /**********************
@@ -739,23 +767,17 @@ class UclidGenerator extends GeneratorBase {
     // K-induction
     def pr_k_induction() {
         pr('''
-        /***************
-        * K-induction *
-        ***************/
+        /*************
+         * Induction *
+         *************/
         // initialization
         property initialization : initial_condition() ==>
-            (forall (i : integer) ::
-                (i >= START && i <= END)
-                    ==> (
-                        inv(i)
-                        && auxiliary_invariant(i)
-                    ));
+            true; // TODO: replace this with a general temporal logic property.
 
         // Note: state 0 needs to be unconstrained.
         // consecution
-        property consecution : (forall (i : integer) ::
-            (i >= START && i < END) ==> (inv(i) && auxiliary_invariant(i)))
-                ==> (inv(END) && auxiliary_invariant(END));
+        property consecution : 
+            true; // TODO: replace this with a general temporal logic property.
         ''')
         newline()
     }
@@ -764,7 +786,7 @@ class UclidGenerator extends GeneratorBase {
     def pr_control_block() {
         pr('''
         control {
-            v = unroll(0);
+            v = bmc(0);
             check;
             print_results;
             v.print_cex;
