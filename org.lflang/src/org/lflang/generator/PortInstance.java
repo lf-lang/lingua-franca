@@ -300,7 +300,7 @@ public class PortInstance extends TriggerInstance<Port> {
             Range<PortInstance> wDstRange = dependentPorts.next();
             while(true) {
                 if (wSrcRange == null) {
-                    // Source range has been fully covered, but there are more
+                    // Source range has been fully covered, but there may be more
                     // destinations.  For multicast, start over with the source.
                     wSrcRange = srcRange;
                 }
