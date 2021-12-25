@@ -29,6 +29,7 @@ package org.lflang.generator;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -867,8 +868,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
             List<Range<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
             Iterator<Range<PortInstance>> srcRanges = leftPorts.iterator();
-            Iterator<Range<PortInstance>> dstRanges 
-                    = listPortInstances(connection.getRightPorts(), connection).iterator();
+            List<Range<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
+            Iterator<Range<PortInstance>> dstRanges = rightPorts.iterator();
             
             // Check for empty lists.
             if (!srcRanges.hasNext()) {
@@ -961,6 +962,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             List<VarRef> references, Connection connection
     ) {
         List<Range<PortInstance>> result = new ArrayList<Range<PortInstance>>();
+        List<Range<PortInstance>> tails = new LinkedList<Range<PortInstance>>();
+        int count = 0;
         for (VarRef portRef : references) {
             // Simple error checking first.
             if (!(portRef.getVariable() instanceof Port)) {
@@ -983,13 +986,48 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 if (portRef.isInterleaved()) {
                     // Toggle interleaving at the depth of the reactor
                     // that is the parent of the port.
-                    // FIXME: Here, we are assuming that the interleaved()
+                    // NOTE: Here, we are assuming that the interleaved()
                     // keyword is only allowed on the multiports contained by
                     // contained reactors.
                     range = range.toggleInterleaved(portInstance.parent);
                 }
+                // If this portRef is not the last one in the references list
+                // then we have to check whether the range can be incremented at
+                // the lowest two levels (port and container).  If not,
+                // split the range and add the tail to list to iterate over again.
+                // The reason for this is that the connection has only local visibility,
+                // but the range width may be reflective of bank structure higher
+                // in the hierarchy.
+                if (count < references.size() - 1) {
+                    int widthBound = portInstance.width * portInstance.parent.width;
+                    if (widthBound < range.width) {
+                        // Need to split the range.
+                        tails.add(range.tail(widthBound));
+                        range = range.head(widthBound);
+                    }
+                }
                 result.add(range);
             }
+        }
+        // Iterate over the tails.
+        while(tails.size() > 0) {
+            List<Range<PortInstance>> moreTails = new LinkedList<Range<PortInstance>>();
+            count = 0;
+            for (Range<PortInstance> tail : tails) {
+                if (count < tails.size() - 1) {
+                    int widthBound = tail.instance.width;
+                    if (tail._interleaved.contains(tail.instance.parent)) {
+                        widthBound = tail.instance.parent.width;
+                    }
+                    if (widthBound < tail.width) {
+                        // Need to split the range again
+                        moreTails.add(tail.tail(widthBound));
+                        tail = tail.head(widthBound);
+                    }
+                }
+                result.add(tail);
+            }
+            tails = moreTails;
         }
         return result;
     }
