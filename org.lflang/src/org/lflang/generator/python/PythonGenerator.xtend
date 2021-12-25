@@ -33,7 +33,6 @@ import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
@@ -49,6 +48,7 @@ import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
+import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.c.CCompiler
@@ -163,7 +163,7 @@ class PythonGenerator extends CGenerator {
     //// Public methods
     override printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** Mode: ' + fileConfig.compilerMode)
+        println('******** Mode: ' + fileConfig.context.mode)
         println('******** Generated sources: ' + fileConfig.getSrcGenPath)
     }
     
@@ -825,7 +825,7 @@ class PythonGenerator extends CGenerator {
     /**
      * Execute the command that compiles and installs the current Python module
      */
-    def pythonCompileCode(IGeneratorContext context) {
+    def pythonCompileCode(LFGeneratorContext context) {
         // if we found the compile command, we will also find the install command
         val installCmd = commandFactory.createCommand(
             '''python3''',
@@ -1229,7 +1229,7 @@ class PythonGenerator extends CGenerator {
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
         
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if(isFederated) {

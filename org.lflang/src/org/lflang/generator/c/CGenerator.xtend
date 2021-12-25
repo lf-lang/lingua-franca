@@ -32,7 +32,6 @@ import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
-import java.util.List
 import java.util.Set
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -41,7 +40,6 @@ import org.eclipse.emf.common.CommonPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
@@ -51,7 +49,6 @@ import org.lflang.InferredType
 import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -68,6 +65,7 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -92,7 +90,6 @@ import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 import org.lflang.util.XtendUtil
-import org.lflang.util.LFCommand
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -385,7 +382,7 @@ class CGenerator extends GeneratorBase {
      * Set the appropriate target properties based on the target properties of
      * the main .lf file.
      */
-    override setTargetConfig(IGeneratorContext context) {
+    override setTargetConfig(LFGeneratorContext context) {
         super.setTargetConfig(context);
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
@@ -476,7 +473,7 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-            IGeneratorContext context) {
+            LFGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
@@ -888,7 +885,7 @@ class CGenerator extends GeneratorBase {
                 && targetConfig.buildCommands.nullOrEmpty
                 && !federate.isRemote
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
-                && fileConfig.getCompilerMode() != Mode.LSP_MEDIUM
+                && context.getMode() != Mode.LSP_MEDIUM
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
@@ -916,7 +913,7 @@ class CGenerator extends GeneratorBase {
                             cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
                                 errorReporter, CppMode);
                         }
-                        if (!cCompiler.runCCompiler(execName, main === null, generator, context.cancelIndicator)) {
+                        if (!cCompiler.runCCompiler(execName, main === null, generator, context)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
                             // If finish has already been called, it is illegal and makes no sense. However,
@@ -960,8 +957,6 @@ class CGenerator extends GeneratorBase {
         } else {
             JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
-        
-        // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
 

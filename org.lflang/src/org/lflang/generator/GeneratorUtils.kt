@@ -1,10 +1,8 @@
 package org.lflang.generator
 
 import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.*
-import org.lflang.JavaAstUtils.getInferredType
 import org.lflang.lf.*
 
 
@@ -52,7 +50,7 @@ fun canGenerate(
     errorsOccurred: Boolean,
     mainDef: Instantiation?,
     errorReporter: ErrorReporter,
-    context: IGeneratorContext
+    context: LFGeneratorContext
 ): Boolean {
     // stop if there are any errors found in the program by doGenerate() in GeneratorBase
     if (errorsOccurred) {

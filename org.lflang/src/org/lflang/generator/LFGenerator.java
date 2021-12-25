@@ -15,6 +15,7 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
@@ -53,7 +54,7 @@ public class LFGenerator extends AbstractGenerator {
     private FileConfig createFileConfig(final Target target,
                                         Resource resource,
                                         IFileSystemAccess2 fsa,
-                                        IGeneratorContext context) throws IOException {
+                                        LFGeneratorContext context) throws IOException {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
         // import. Instead we look the class up at runtime and instantiate it if
@@ -61,21 +62,19 @@ public class LFGenerator extends AbstractGenerator {
         switch (target) {
         case CPP:
         case Rust:
-        case TS: {
+        case TS:
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, IGeneratorContext.class)
+                                         .getDeclaredConstructor(Resource.class, IFileSystemAccess2.class, LFGeneratorContext.class)
                                          .newInstance(resource, fsa, context);
             } catch (InvocationTargetException e) {
                 throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
             } catch (ReflectiveOperationException e) {
                 return new FileConfig(resource, fsa, context);
             }
-        }
-        default: {
+        default:
             return new FileConfig(resource, fsa, context);
-        }
         }
     }
 
@@ -83,8 +82,7 @@ public class LFGenerator extends AbstractGenerator {
      *  Create a generator object for the given target.
      *  Returns null if the generator could not be created.
      */
-    private GeneratorBase createGenerator(Target target, FileConfig fileConfig,
-            ErrorReporter errorReporter) {
+    private GeneratorBase createGenerator(Target target, FileConfig fileConfig, ErrorReporter errorReporter) {
         switch (target) {
         case C: return new CGenerator(fileConfig, errorReporter, false);
         case CCPP: return new CGenerator(fileConfig, errorReporter, true);
@@ -147,38 +145,22 @@ public class LFGenerator extends AbstractGenerator {
     @Override
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-        // Determine which target is desired.
+        final LFGeneratorContext lfContext = LFGeneratorContext.lfGeneratorContextOf(context, resource);
+        if (lfContext.getMode() == Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
         assert target != null;
 
         FileConfig fileConfig;
         try {
-            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, context));
+            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, lfContext));
         } catch (IOException e) {
             throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
-        final ErrorReporter errorReporter;
-        switch (fileConfig.getCompilerMode()) {
-        case EPOCH:
-            errorReporter = new EclipseErrorReporter(fileConfig);
-            break;
-        case LSP_FAST:
-            return;  // The fastest way to generate code is to... not generate any code.
-        case LSP_MEDIUM:
-        case LSP_SLOW:
-            errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0));
-            break;
-        case STANDALONE:
-            errorReporter = Objects.requireNonNull(((StandaloneContext) context).getReporter());
-            break;
-        default:
-            throw new RuntimeException("Unable to handle compiler mode " + fileConfig.getCompilerMode());
-        }
-
+        final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
-            generator.doGenerate(resource, fsa, context);
+            generator.doGenerate(resource, fsa, lfContext);
             generatorErrorsOccurred = generator.errorsOccurred();
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {

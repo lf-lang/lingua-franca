@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.generator.GeneratorContext;
+import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -44,8 +44,9 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.LFGenerator;
-import org.lflang.generator.StandaloneContext;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -369,15 +370,11 @@ public abstract class TestBase {
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private GeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
-        var context = new StandaloneContext();
-        // Update file config, which includes a fresh resource that has not
-        // been tampered with using AST transformations.
-        context.setCancelIndicator(CancelIndicator.NullImpl);
-        context.setArgs(new Properties());
-        context.setPackageRoot(test.packageRoot);
-        context.setHierarchicalBin(true);
-        context.setReporter(new DefaultErrorReporter());
+    private IGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+        var context = new LFGeneratorContext(
+            Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
+            fileConfig -> new DefaultErrorReporter()
+        );
         
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
@@ -388,7 +385,7 @@ public abstract class TestBase {
             throw new AssertionError("Test did not parse correctly.");
         }
 
-        fileAccess.setOutputPath(context.getPackageRoot().resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
         test.fileConfig = new FileConfig(r, fileAccess, context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
@@ -410,7 +407,7 @@ public abstract class TestBase {
     /**
      * Validate the given test. Throw an AssertionError if validation failed.
      */
-    private void validate(LFTest test, GeneratorContext context) {
+    private void validate(LFTest test, IGeneratorContext context) {
         // Validate the resource and store issues in the test object.
         try {
             var issues = validator.validate(test.fileConfig.resource,
