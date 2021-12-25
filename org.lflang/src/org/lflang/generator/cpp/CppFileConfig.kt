@@ -27,14 +27,14 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
+import org.lflang.generator.LFGeneratorContext
 import org.lflang.lf.Reactor
 import org.lflang.name
 import java.io.IOException
 import java.nio.file.Path
 
-class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
+class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) :
     FileConfig(resource, fsa, context) {
 
     /**

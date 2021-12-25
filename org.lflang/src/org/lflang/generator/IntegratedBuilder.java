@@ -2,6 +2,7 @@ package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
@@ -17,6 +18,7 @@ import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.TargetConfig.Mode;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -77,7 +79,7 @@ public class IntegratedBuilder {
         // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
         //  org.lflang.lfc.Main. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
-            FileConfig.findPackageRoot(Path.of(uri.path())).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
+            FileConfig.findPackageRoot(Path.of(uri.path()), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
         );
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
@@ -120,7 +122,10 @@ public class IntegratedBuilder {
         ReportProgress reportProgress,
         CancelIndicator cancelIndicator
     ) {
-        SlowIntegratedContext context = new SlowIntegratedContext(mustComplete, cancelIndicator, reportProgress);
+        LFGeneratorContext context = new LFGeneratorContext(
+            mustComplete ? Mode.LSP_SLOW : Mode.LSP_MEDIUM, cancelIndicator, reportProgress, new Properties(),
+            false, fileConfig -> new LanguageServerErrorReporter(fileConfig.resource.getContents().get(0))
+        );
         generator.generate(getResource(uri), fileAccess, context);
         return context.getResult();
     }

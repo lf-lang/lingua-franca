@@ -9,8 +9,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.xtext.generator.IGeneratorContext;
-
 import org.lflang.util.LFCommand;
 
 /**
@@ -49,7 +47,7 @@ public class JavaGeneratorUtils {
      * @param binPath The directory containing the executable (if applicable)
      */
     public static void finish(
-        IGeneratorContext context,
+        LFGeneratorContext context,
         GeneratorResult.Status status,
         String execName,
         Path binPath,
@@ -68,18 +66,16 @@ public class JavaGeneratorUtils {
      * @param context The context in which the build was performed.
      * @param result The result of the build.
      */
-    public static void finish(IGeneratorContext context, GeneratorResult result) {
-        if (context instanceof SlowIntegratedContext) {
-            reportProgress(context, "Build complete.", 100);
-            ((SlowIntegratedContext) context).finish(result);
-        }
+    public static void finish(LFGeneratorContext context, GeneratorResult result) {
+        reportProgress(context, "Build complete.", 100);
+        context.finish(result);
     }
 
     /**
      * Informs the context of that its build finished unsuccessfully.
      * @param context The context in which the build was performed.
      */
-    public static void unsuccessfulFinish(IGeneratorContext context) {
+    public static void unsuccessfulFinish(LFGeneratorContext context) {
         finish(context, context.getCancelIndicator().isCanceled() ? GeneratorResult.CANCELLED : GeneratorResult.FAILED);
     }
 
@@ -90,9 +86,7 @@ public class JavaGeneratorUtils {
      * @param message A message about the build's progress.
      * @param percentage The build's percent completion.
      */
-    public static void reportProgress(IGeneratorContext context, String message, int percentage) {
-        if (context instanceof SlowIntegratedContext) {
-            ((SlowIntegratedContext) context).getReportProgress().apply(message, percentage);
-        }
+    public static void reportProgress(LFGeneratorContext context, String message, int percentage) {
+        context.getReportProgress().apply(message, percentage);
     }
 }

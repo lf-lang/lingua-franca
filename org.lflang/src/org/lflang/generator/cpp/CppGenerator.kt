@@ -28,7 +28,6 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.TargetConfig.Mode
 import org.lflang.Target
@@ -57,7 +56,7 @@ class CppGenerator(
         const val defaultRuntimeVersion = "1d5ef9d9dc25bcf30bc4eb94b2316b32f456aaa2"
     }
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
@@ -67,7 +66,7 @@ class CppGenerator(
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
             JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
-        } else if (cppFileConfig.compilerMode == Mode.LSP_MEDIUM) {
+        } else if (context.mode == Mode.LSP_MEDIUM) {
             JavaGeneratorUtils.reportProgress(
                 context, "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
@@ -148,11 +147,11 @@ class CppGenerator(
         return null
     }
 
-    fun doCompile(context: IGeneratorContext) {
+    fun doCompile(context: LFGeneratorContext) {
         doCompile(context, HashMap())
     }
 
-    private fun doCompile(context: IGeneratorContext, codeMaps: Map<Path, CodeMap>) {
+    private fun doCompile(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
         val outPath = fileConfig.outPath
 
         val buildPath = cppFileConfig.buildPath

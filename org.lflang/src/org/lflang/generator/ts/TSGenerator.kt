@@ -27,8 +27,6 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.util.BufferedCancelIndicator
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
@@ -108,7 +106,7 @@ class TSGenerator(
      */
     // TODO(hokeun): Split this method into smaller methods.
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
-                            context: IGeneratorContext) {
+                            context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
@@ -185,11 +183,11 @@ class TSGenerator(
             }
         }
         // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
-        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_MEDIUM) compile(resource, context)
+        if (!targetConfig.noCompile && context.mode != Mode.LSP_MEDIUM) compile(resource, context)
         else JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
     }
 
-    private fun compile(resource: Resource, context: IGeneratorContext) {
+    private fun compile(resource: Resource, context: LFGeneratorContext) {
         if (!context.cancelIndicator.isCanceled) {
             JavaGeneratorUtils.reportProgress(
                 context,
@@ -244,7 +242,7 @@ class TSGenerator(
      * which to report any errors
      * @param context The context of this build.
      */
-    private fun collectDependencies(resource: Resource, context: IGeneratorContext) {
+    private fun collectDependencies(resource: Resource, context: LFGeneratorContext) {
 
         Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
 
@@ -401,7 +399,7 @@ class TSGenerator(
      * Inform the context of the results of a compilation.
      * @param context The context of the compilation.
      */
-    private fun concludeCompilation(context: IGeneratorContext) {
+    private fun concludeCompilation(context: LFGeneratorContext) {
         if (errorReporter.errorsOccurred) {
             JavaGeneratorUtils.unsuccessfulFinish(context)
         } else {

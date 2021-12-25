@@ -26,7 +26,6 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
@@ -57,7 +56,7 @@ class RustGenerator(
 ) : GeneratorBase(fileConfig, errorReporter),
     TargetTypes by RustTypes {
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
@@ -82,7 +81,7 @@ class RustGenerator(
         }
     }
 
-    private fun invokeRustCompiler(context: IGeneratorContext) {
+    private fun invokeRustCompiler(context: LFGeneratorContext) {
 
         val args = mutableListOf<String>().apply {
             this += listOf(

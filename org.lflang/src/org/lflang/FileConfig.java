@@ -10,6 +10,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,12 +23,9 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
-import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
 
-import org.lflang.TargetConfig.Mode;
-import org.lflang.generator.StandaloneContext;
-import org.lflang.generator.SlowIntegratedContext;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
 /**
@@ -81,7 +79,9 @@ public class FileConfig {
      * Object used for communication between the IDE or stand-alone compiler
      * and the code generator.
      */
-    public final IGeneratorContext context;
+    // FIXME: Delete this field? It is used, but it seems out of place, especially given that many methods where a
+    //  FileConfig is used also have access to the context (or their callers have access to the context)
+    public final LFGeneratorContext context;
 
     /**
      * The name of the main reactor, which has to match the file name (without
@@ -164,7 +164,7 @@ public class FileConfig {
     private final Path srcGenPkgPath;
 
 
-    public FileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
+    public FileConfig(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) throws IOException {
         this.resource = resource;
         this.fsa = fsa;
         this.context = context;
@@ -359,16 +359,9 @@ public class FileConfig {
     /**
      * Return the output directory for generated binary files.
      */
-    private static Path getBinPath(Path pkgPath, Path srcPath, Path outPath, IGeneratorContext context) {
+    private static Path getBinPath(Path pkgPath, Path srcPath, Path outPath, LFGeneratorContext context) {
         Path root = outPath.resolve(DEFAULT_BIN_DIR);
-        // The context might have a directive to structure the binary directory
-        // hierarchically (just like we do with the generated sources).
-        if (context instanceof StandaloneContext) {
-           if (((StandaloneContext) context).isHierarchicalBin()) {
-               return root.resolve(getSubPkgPath(pkgPath, srcPath));
-           }
-        }
-        return root;
+        return context.isHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
     }
     
     /**
@@ -570,13 +563,11 @@ public class FileConfig {
      * the clean step.
      */
     public void cleanIfNeeded() {
-        if (context instanceof StandaloneContext) {
-            if (((StandaloneContext) context).getArgs().containsKey("clean")) {
-                try {
-                    doClean();
-                } catch (IOException e) {
-                    System.err.println("WARNING: IO Error during clean");
-                }
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
             }
         }
     }
@@ -653,9 +644,9 @@ public class FileConfig {
         return idx < 0 ? name : name.substring(0, idx);
     }
     
-    private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
+    private static Path getPkgPath(Resource resource, LFGeneratorContext context) throws IOException {
         if (resource.getURI().isPlatform()) {
-            // Case 1: we are in the RCA.
+            // We are in the RCA.
             File srcFile = toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
@@ -664,12 +655,8 @@ public class FileConfig {
                     return p;
                 }
             }
-        } else if (context instanceof StandaloneContext) {
-            // Case 2: We are in the command-line compiler.
-            return ((StandaloneContext)context).getPackageRoot();
         }
-        // Case 3: We are in a language server.
-        return findPackageRoot(toPath(resource));
+        return findPackageRoot(toPath(resource), s -> {});
     }
 
     /**
@@ -682,11 +669,13 @@ public class FileConfig {
      * @return The package root, or the current working
      * directory if none exists.
      */
-    public static Path findPackageRoot(final Path input) {
+    public static Path findPackageRoot(final Path input, final Consumer<String> printWarning) {
         Path p = input;
         do {
             p = p.getParent();
             if (p == null) {
+                printWarning.accept("File '" + input.getFileName() + "' is not located in an 'src' directory.");
+                printWarning.accept("Adopting the current working directory as the package root.");
                 return Paths.get(".").toAbsolutePath();
             }
         } while (!p.toFile().getName().equals("src"));
@@ -831,27 +820,5 @@ public class FileConfig {
 
     public static String nameWithoutExtension(Resource r) throws IOException {
         return nameWithoutExtension(toPath(r));
-    }
-
-    /**
-     * Determine which mode the compiler is running in.
-     * Integrated mode means that it is running within an IDE or text editor.
-     * Standalone mode means that it is running on the command line.
-     *
-     * FIXME: Not sure if that us the right place for this function. But
-     *  the decision which mode we are in depends on a file (the resource),
-     *  thus it seems to fit here.
-     * FIXME: If/when we move away from Xtext, which limits our ability to
-     *  include info in the context about whether we are in Epoch or LSP_FAST,
-     *  it would be preferable not to rely on a method like this that has to
-     *  translate a weird assortment of data into an enum.
-     */
-    public Mode getCompilerMode() {
-        if (context instanceof StandaloneContext) return Mode.STANDALONE;
-        if (resource.getURI().isPlatform()) return Mode.EPOCH;
-        if (context instanceof SlowIntegratedContext) {
-            return ((SlowIntegratedContext) context).getMustBeComplete() ? Mode.LSP_SLOW : Mode.LSP_MEDIUM;
-        }
-        return Mode.LSP_FAST;
     }
 }
