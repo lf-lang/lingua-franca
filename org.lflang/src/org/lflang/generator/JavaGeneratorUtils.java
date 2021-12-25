@@ -87,6 +87,6 @@ public class JavaGeneratorUtils {
      * @param percentage The build's percent completion.
      */
     public static void reportProgress(LFGeneratorContext context, String message, int percentage) {
-        context.getReportProgress().apply(message, percentage);
+        context.reportProgress(message, percentage);
     }
 }
