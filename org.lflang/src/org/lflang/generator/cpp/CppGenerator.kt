@@ -65,16 +65,16 @@ class CppGenerator(
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
-            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
-            JavaGeneratorUtils.reportProgress(
-                context, "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            context.reportProgress(
+                "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
-            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
         } else {
-            JavaGeneratorUtils.reportProgress(
-                context, "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            context.reportProgress(
+                "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             doCompile(context, codeMaps)
         }
@@ -190,10 +190,10 @@ class CppGenerator(
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
         }
         if (errorReporter.errorsOccurred) {
-            JavaGeneratorUtils.unsuccessfulFinish(context)
+            context.unsuccessfulFinish()
         } else {
-            JavaGeneratorUtils.finish(  // FIXME: cppFileConfig.name is not always guaranteed to be the right name.
-                context, GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
+            context.finish(  // FIXME: cppFileConfig.name is not always guaranteed to be the right name.
+                GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
             )
         }
     }

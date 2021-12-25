@@ -54,13 +54,13 @@ fun canGenerate(
 ): Boolean {
     // stop if there are any errors found in the program by doGenerate() in GeneratorBase
     if (errorsOccurred) {
-        JavaGeneratorUtils.finish(context, GeneratorResult.FAILED)
+        context.finish(GeneratorResult.FAILED)
         return false
     }
     // abort if there is no main reactor
     if (mainDef == null) {
         errorReporter.reportWarning("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
-        JavaGeneratorUtils.finish(context, GeneratorResult.NOTHING)
+        context.finish(GeneratorResult.NOTHING)
         return false
     }
     return true
