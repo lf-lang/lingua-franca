@@ -5701,10 +5701,10 @@ class CGenerator extends GeneratorBase {
             for (sendingRange : output.eventualDestinations) {
                 pr("// For reference counting, set num_destinations for port " + output.fullName + ".");
                 
-                startScopedRangeBlock(code, sendingRange, "bank_index");
+                startScopedRangeBlock(code, sendingRange, "runtime_index");
                 
                 pr('''
-                    «CUtil.portRef(output, "bank_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                    «CUtil.portRef(output, "runtime_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
                 ''')
                 
                 endScopedRangeBlock(code, sendingRange);
@@ -5745,16 +5745,16 @@ class CGenerator extends GeneratorBase {
                     // The input port may itself have multiple destinations.
                     for (sendingRange : port.eventualDestinations) {
                     
-                        startScopedRangeBlock(code, sendingRange, "bank_index");
+                        startScopedRangeBlock(code, sendingRange, "runtime_index");
                         
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
                             pr('''
-                                «CUtil.portRefNested(port, "bank_index", null)»->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port, "runtime_index", null)»->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         } else {
                             pr('''
-                                «CUtil.portRefNested(port, "bank_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port, "runtime_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
                         endScopedRangeBlock(code, sendingRange);
@@ -6065,7 +6065,7 @@ class CGenerator extends GeneratorBase {
                 // its width will be 1.
                 // We generate the code to fill the triggers array first in a temporary code buffer,
                 // so that we can simultaneously calculate the size of the total array.
-                val bi = "bank_index";
+                val bi = "runtime_index";
                 for (SendRange srcRange : port.eventualDestinations()) {
                     startScopedRangeBlock(code, srcRange, bi);
                     
