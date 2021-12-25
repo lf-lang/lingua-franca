@@ -138,11 +138,12 @@ public class LFGeneratorContext implements IGeneratorContext {
     }
 
     /**
-     * Returns the progress reporter of this context.
-     * @return The progress reporter of this context.
+     * Reports the progress of a build.
+     * @param message A message for the LF programmer to read.
+     * @param percentage The approximate percent completion of the build.
      */
-    public ReportProgress getReportProgress() {
-        return reportProgress;
+    public void reportProgress(String message, int percentage) {
+        reportProgress.apply(message, percentage);
     }
 
     /**
