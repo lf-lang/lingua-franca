@@ -1,119 +1,46 @@
 package org.lflang.generator;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.util.CancelIndicator;
 
-import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig.Mode;
-import org.lflang.generator.IntegratedBuilder.ReportProgress;
+import org.lflang.util.LFCommand;
 
 /**
  * An {@code LFGeneratorContext} is the context of a Lingua Franca build process.
  */
-public class LFGeneratorContext implements IGeneratorContext {
-
-    /**
-     * The indicator that shows whether this build
-     * process is canceled.
-     */
-    private final CancelIndicator cancelIndicator;
-    /** The {@code ReportProgress} function of {@code this}. */
-    private final ReportProgress reportProgress;
-    /** Whether the requested build is required to be complete. */
-    private final Mode mode;
-    /** The result of the code generation process. */
-    private GeneratorResult result = null;
-    private final Properties args;
-    private final boolean hierarchicalBin;  // FIXME: The interface would be simpler if this were part of {@code args}, and in addition, a potentially useful feature would be exposed to the user.
-    private final Function<FileConfig, ErrorReporter> constructErrorReporter;
-    /* ------------------------- PUBLIC METHODS -------------------------- */
-
-    /**
-     * Initializes the context of a build process whose cancellation is
-     * indicated by {@code cancelIndicator}
-     * @param mode The mode of this build process.
-     * @param cancelIndicator The cancel indicator of the code generation
-     *                        process to which this corresponds.
-     */
-    public LFGeneratorContext(Mode mode, CancelIndicator cancelIndicator) {
-        this(
-            mode, cancelIndicator, (message, completion) -> {}, new Properties(), false,
-            fileConfig -> new DefaultErrorReporter()
-        );
-    }
-
-    /**
-     * Initializes the context of a build process whose cancellation is
-     * indicated by {@code cancelIndicator}
-     * @param mode The mode of this build process.
-     * @param cancelIndicator The cancel indicator of the code generation
-     *                        process to which this corresponds.
-     * @param reportProgress The {@code ReportProgress} function of
-     *                       {@code this}.
-     * @param args Any arguments that may be used to affect the product of the
-     *             build.
-     * @param hierarchicalBin Whether the bin directory should be structured
-     *                        hierarchically.
-     * @param constructErrorReporter A function that constructs the appropriate
-     *                               error reporter for the given FileConfig.
-     */
-    public LFGeneratorContext(
-        Mode mode,
-        CancelIndicator cancelIndicator,
-        ReportProgress reportProgress,
-        Properties args,
-        boolean hierarchicalBin,
-        Function<FileConfig, ErrorReporter> constructErrorReporter
-    ) {
-        this.mode = mode;
-        this.cancelIndicator = cancelIndicator;
-        this.reportProgress = reportProgress;
-        this.args = args;
-        this.hierarchicalBin = hierarchicalBin;
-        this.constructErrorReporter = constructErrorReporter;
-    }
-
-    @Override
-    public CancelIndicator getCancelIndicator() {
-        return cancelIndicator;
-    }
+public interface LFGeneratorContext extends IGeneratorContext {
 
     /**
      * Returns the mode of this.
      */
-    public Mode getMode() {
-        return mode;
-    }
+    Mode getMode();
 
     /**
      * Returns the arguments of this.
      */
-    public Properties getArgs() {
-        return args;
-    }
+    Properties getArgs();
 
     /**
      * Returns whether the bin directory should be hierarchical.
      * @return whether the bin directory should be hierarchical
      */
-    public boolean isHierarchicalBin() {
-        return hierarchicalBin;
-    }
+    boolean isHierarchicalBin();
 
     /**
      * Constructs the appropriate error reporter for {@code fileConfig}.
      * @param fileConfig The {@code FileConfig} used by a build process.
      * @return the appropriate error reporter for {@code fileConfig}
      */
-    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-        return constructErrorReporter.apply(fileConfig);
-    }
+    ErrorReporter constructErrorReporter(FileConfig fileConfig);
 
     /**
      * Marks the code generation process performed in this
@@ -122,10 +49,7 @@ public class LFGeneratorContext implements IGeneratorContext {
      *               process that was performed in this
      *               context.
      */
-    public void finish(GeneratorResult result) {
-        if (this.result != null) throw new IllegalStateException("A code generation process can only have one result.");
-        this.result = result;
-    }
+    void finish(GeneratorResult result);
 
     /**
      * Returns the result of the code generation process that was performed in
@@ -133,17 +57,41 @@ public class LFGeneratorContext implements IGeneratorContext {
      * @return the result of the code generation process that was performed in
      * this context
      */
-    public GeneratorResult getResult() {
-        return result != null ? result : GeneratorResult.NOTHING;
-    }
+    GeneratorResult getResult();
 
     /**
      * Reports the progress of a build.
      * @param message A message for the LF programmer to read.
      * @param percentage The approximate percent completion of the build.
      */
-    public void reportProgress(String message, int percentage) {
-        reportProgress.apply(message, percentage);
+    void reportProgress(String message, int percentage);
+
+    /**
+     * Informs the context of the result of its build, if applicable.
+     * @param status The status of the result.
+     * @param execName The name of the executable produced by this code
+     * generation process, or {@code null} if no executable was produced.
+     * @param binPath The directory containing the executable (if applicable)
+     */
+    default void finish(
+        GeneratorResult.Status status,
+        String execName,
+        Path binPath,
+        Map<Path, CodeMap> codeMaps
+    ) {
+        finish(new GeneratorResult(
+            status,
+            execName == null ? null : binPath.resolve(execName),
+            LFCommand.get("." + File.separator + execName, List.of(), binPath),
+            codeMaps
+        ));
+    }
+
+    /**
+     * Informs the context of that its build finished unsuccessfully.
+     */
+    default void unsuccessfulFinish() {
+        finish(getCancelIndicator().isCanceled() ? GeneratorResult.CANCELLED : GeneratorResult.FAILED);
     }
 
     /**
@@ -155,12 +103,12 @@ public class LFGeneratorContext implements IGeneratorContext {
      * @return The {@code LFGeneratorContext} whose behavior
      * and state best approximate that of {@code context}.
      */
-    public static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
+    static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
-        if (resource.getURI().isPlatform()) return new LFGeneratorContext(
+        if (resource.getURI().isPlatform()) return new OuterContext(
             Mode.EPOCH, context.getCancelIndicator(), (m, p) -> {}, new Properties(), false,
             EclipseErrorReporter::new
         );
-        return new LFGeneratorContext(Mode.LSP_FAST, context.getCancelIndicator());
+        return new OuterContext(Mode.LSP_FAST, context.getCancelIndicator());
     }
 }

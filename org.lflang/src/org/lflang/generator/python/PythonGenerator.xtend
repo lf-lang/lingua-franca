@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python
 
 import java.io.File
+import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.List
@@ -46,9 +47,12 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.NestedContext
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.c.CCompiler
@@ -68,6 +72,7 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
+import org.lflang.util.LFCommand
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.JavaAstUtils.*
@@ -1232,7 +1237,7 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, LFGeneratorContext context) {
         
         // If there are federates, assign the number of threads in the CGenerator to 1        
-        if(isFederated) {
+        if (isFederated) {
             targetConfig.threads = 1;
         }
         
@@ -1242,8 +1247,11 @@ class PythonGenerator extends CGenerator {
         targetConfig.noCompile = true;
         targetConfig.useCmake = false; // Force disable the CMake because 
                                        // it interferes with the Python target functionality
-        
-        super.doGenerate(resource, fsa, context)
+        val cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2
+        super.doGenerate(resource, fsa, new NestedContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, cGeneratedPercentProgress
+        ))
+        val compilingFederatesContext = new NestedContext(context, cGeneratedPercentProgress, 100)
         
         targetConfig.noCompile = compileStatus
 
@@ -1252,7 +1260,13 @@ class PythonGenerator extends CGenerator {
         var baseFileName = topLevelName
         // Keep a separate file config for each federate
         val oldFileConfig = fileConfig;
+        var federateCount = 0;
         for (federate : federates) {
+            compilingFederatesContext.reportProgress(
+                String.format("Installing Python modules. %d/%d complete...", federateCount, federates.size()),
+                100 * federateCount / federates.size()
+            )
+            federateCount++
             if (isFederated) {
                 topLevelName = baseFileName + '_' + federate.name
                 fileConfig = new FedFileConfig(fileConfig, federate.name);
@@ -1275,12 +1289,25 @@ class PythonGenerator extends CGenerator {
         }
         if (isFederated) {
             printFedRunInfo();
-        } 
+        }
         // Restore filename
         topLevelName = baseFileName
+        if (context.getCancelIndicator().isCanceled()) {
+            context.finish(GeneratorResult.CANCELLED)
+        } else if (errorReporter.getErrorsOccurred()) {
+            context.finish(GeneratorResult.FAILED)
+        } else if (!isFederated) {
+            context.finish(new GeneratorResult(
+                GeneratorResult.Status.COMPILED, null,
+                LFCommand.get("python3", List.of('''«topLevelName».py'''), fileConfig.srcGenPath), null
+            ))
+        } else {
+            context.finish(new GeneratorResult(
+                GeneratorResult.Status.COMPILED, Paths.get('''«fileConfig.binPath»«File.separator»«fileConfig.name»'''),
+                LFCommand.get("bash", List.of(fileConfig.name.toString()), fileConfig.binPath), null
+            ))
+        }
     }
-            
-            
     
     /**
      * Copy Python specific target code to the src-gen directory

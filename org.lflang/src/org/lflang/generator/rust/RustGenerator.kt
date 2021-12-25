@@ -69,11 +69,11 @@ class RustGenerator(
         RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
-            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
             println("Exiting before invoking target compiler.")
         } else {
-            JavaGeneratorUtils.reportProgress(
-                context, "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            context.reportProgress(
+                "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
@@ -120,14 +120,14 @@ class RustGenerator(
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
-            JavaGeneratorUtils.finish(
-                context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+            context.finish(
+                GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
             )
         } else if (context.cancelIndicator.isCanceled) {
-            JavaGeneratorUtils.finish(context, GeneratorResult.CANCELLED)
+            context.finish(GeneratorResult.CANCELLED)
         } else {
             errorReporter.reportError("cargo failed with error code $cargoReturnCode")
-            JavaGeneratorUtils.finish(context, GeneratorResult.FAILED)
+            context.finish(GeneratorResult.FAILED)
         }
     }
 

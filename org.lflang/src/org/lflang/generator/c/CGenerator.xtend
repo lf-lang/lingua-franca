@@ -897,8 +897,7 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
-                JavaGeneratorUtils.reportProgress(
-                    context,
+                context.reportProgress(
                     String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
                     IntegratedBuilder.GENERATED_PERCENT_PROGRESS * federateCount / federates.size()
                         + IntegratedBuilder.VALIDATED_PERCENT_PROGRESS * (federates.size() - federateCount) / federates.size()
@@ -918,9 +917,9 @@ class CGenerator extends GeneratorBase {
                             threadFileConfig.deleteBinFiles()
                             // If finish has already been called, it is illegal and makes no sense. However,
                             //  if finish has already been called, then this must be a federated execution.
-                            if (!isFederated) JavaGeneratorUtils.unsuccessfulFinish(context);
-                        } else if (!isFederated) JavaGeneratorUtils.finish(
-                            context, GeneratorResult.Status.COMPILED, execName, fileConfig.binPath, null
+                            if (!isFederated) context.unsuccessfulFinish();
+                        } else if (!isFederated) context.finish(
+                            GeneratorResult.Status.COMPILED, execName, fileConfig.binPath, null
                         );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
@@ -946,16 +945,16 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand();
-                JavaGeneratorUtils.finish(
-                    context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
                 );
             } else if (isFederated) {
-                JavaGeneratorUtils.finish(
-                    context, GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
                 );
             }
         } else {
-            JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
         refreshProject()
     }

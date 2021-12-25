@@ -27,7 +27,7 @@ public class GeneratorResult {
         FAILED(result -> ""),  // This may be due to a failed validation check, in which case the problem will be displayed
         // in the editor. This makes a message unnecessary.
         GENERATED(GetUserMessage.COMPLETED),
-        COMPILED(GetUserMessage.COMPLETED);  // Some targets (e.g., Python) will never have this status.
+        COMPILED(GetUserMessage.COMPLETED);
 
         /**
          * A {@code GetUserMessage} is a function that translates a

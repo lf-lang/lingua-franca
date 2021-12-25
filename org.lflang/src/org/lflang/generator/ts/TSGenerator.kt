@@ -184,13 +184,12 @@ class TSGenerator(
         }
         // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
         if (!targetConfig.noCompile && context.mode != Mode.LSP_MEDIUM) compile(resource, context)
-        else JavaGeneratorUtils.finish(context, GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+        else context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
     }
 
     private fun compile(resource: Resource, context: LFGeneratorContext) {
         if (!context.cancelIndicator.isCanceled) {
-            JavaGeneratorUtils.reportProgress(
-                context,
+            context.reportProgress(
                 "Code generation complete. Collecting dependencies...",
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
@@ -201,8 +200,7 @@ class TSGenerator(
 
         if (!context.cancelIndicator.isCanceled && targetConfig.protoFiles.size != 0) {
             if (context.cancelIndicator.isCanceled) return
-            JavaGeneratorUtils.reportProgress(
-                context,
+            context.reportProgress(
                 "Compiling protocol buffers...",
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 2 / 3
                         + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 1 / 3
@@ -213,8 +211,7 @@ class TSGenerator(
         }
 
         if (!context.cancelIndicator.isCanceled) {
-            JavaGeneratorUtils.reportProgress(
-                context,
+            context.reportProgress(
                 "Transpiling to JavaScript...",
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 3
                         + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 2 / 3
@@ -223,8 +220,7 @@ class TSGenerator(
         }
 
         if (!context.cancelIndicator.isCanceled && isFederated) {
-            JavaGeneratorUtils.reportProgress(
-                context,
+            context.reportProgress(
                 "Generating federation infrastructure...",
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 6
                         + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 5 / 6
@@ -401,9 +397,9 @@ class TSGenerator(
      */
     private fun concludeCompilation(context: LFGeneratorContext) {
         if (errorReporter.errorsOccurred) {
-            JavaGeneratorUtils.unsuccessfulFinish(context)
+            context.unsuccessfulFinish()
         } else {
-            JavaGeneratorUtils.finish(context, GeneratorResult(
+            context.finish(GeneratorResult(
                 GeneratorResult.Status.COMPILED,
                 fileConfig.srcGenPkgPath.resolve("src-gen").resolve(fileConfig.name),
                 LFCommand.get(
