@@ -90,12 +90,9 @@ public class GeneratorResult {
         return status;
     }
 
-    /**
-     * Returns the command needed to execute the executable, or `null` if
-     * there is no such command.
-     */
-    public List<String> getExecuteCommand() {
-        return command == null ? null : command.command();
+    /** Returns the command needed to execute the executable, or {@code null} if none exists. */
+    public LFCommand getCommand() {
+        return command;
     }
 
     /**

@@ -24,6 +24,7 @@
 
 package org.lflang.generator.rust
 
+import com.google.common.base.CaseFormat;
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
@@ -121,7 +122,9 @@ class RustGenerator(
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
             context.finish(
-                GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                GeneratorResult.Status.COMPILED,
+                CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileConfig.name),
+                fileConfig.binPath, null
             )
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
