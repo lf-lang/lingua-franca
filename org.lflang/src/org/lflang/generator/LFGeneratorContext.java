@@ -72,6 +72,50 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * @param execName The name of the executable produced by this code
      * generation process, or {@code null} if no executable was produced.
      * @param binPath The directory containing the executable (if applicable)
+     * @param codeMaps The generated files and their corresponding code maps.
+     * @param interpreter The interpreter needed to run the executable, if
+     *                    applicable.
+     */
+    default void finish(
+        GeneratorResult.Status status,
+        String execName,
+        Path binPath,
+        Map<Path, CodeMap> codeMaps,
+        String interpreter
+    ) {
+        if (execName != null && binPath != null) {
+            Path executable = binPath.resolve(execName);
+            Path start = binPath.getRoot();
+            Path end = null;
+            for (Path segment: binPath) {
+                if (end == null) {
+                    if (start.resolve("src").toFile().exists()) end = segment;
+                    else start = start.resolve(segment);
+                } else {
+                    end = end.resolve(segment);
+                    if (start.resolve(end).resolve("src").toFile().exists()) {
+                        start = start.resolve(end);
+                        end = null;
+                    }
+                }
+            }
+            if (end == null) end = Path.of(".");
+            String relativeExecutable = end.resolve(execName).toString();
+            LFCommand command = interpreter != null ? LFCommand.get(interpreter, List.of(relativeExecutable), start) :
+                LFCommand.get(relativeExecutable, List.of(), start);
+            finish(new GeneratorResult(status, executable, command, codeMaps));
+        } else {
+            finish(new GeneratorResult(status, null, null, codeMaps));
+        }
+    }
+
+    /**
+     * Informs the context of the result of its build, if applicable.
+     * @param status The status of the result.
+     * @param execName The name of the executable produced by this code
+     * generation process, or {@code null} if no executable was produced.
+     * @param binPath The directory containing the executable (if applicable)
+     * @param codeMaps The generated files and their corresponding code maps.
      */
     default void finish(
         GeneratorResult.Status status,
@@ -79,12 +123,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
         Path binPath,
         Map<Path, CodeMap> codeMaps
     ) {
-        finish(new GeneratorResult(
-            status,
-            execName == null ? null : binPath.resolve(execName),
-            LFCommand.get("." + File.separator + execName, List.of(), binPath),
-            codeMaps
-        ));
+        finish(status, execName, binPath, codeMaps, null);
     }
 
     /**

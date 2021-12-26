@@ -399,16 +399,10 @@ class TSGenerator(
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(GeneratorResult(
-                GeneratorResult.Status.COMPILED,
-                fileConfig.srcGenPkgPath.resolve("src-gen").resolve(fileConfig.name),
-                LFCommand.get(
-                    "node",
-                    listOf("." + File.separator + fileConfig.name),
-                    fileConfig.srcGenPkgPath.resolve("src-gen")
-                ),
-                null
-            ))
+            context.finish(
+                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
+                fileConfig.srcGenPkgPath.resolve("dist"), null, "node"
+            )
         }
     }
 

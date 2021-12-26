@@ -3,12 +3,12 @@ package org.lflang.diagram.lsp;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.ArrayList;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.jsonrpc.CancelChecker;
-import org.eclipse.lsp4j.jsonrpc.CompletableFutures;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
@@ -16,8 +16,10 @@ import org.eclipse.xtext.ide.server.ILanguageServerAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.generator.IntegratedBuilder;
+import org.lflang.generator.GeneratorResult;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.LFRuntimeModule;
+import org.lflang.util.LFCommand;
 
 /**
  * Provides Lingua-Franca-specific extensions to the
@@ -29,38 +31,14 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     /**
      * Describes a build process that has a progress.
      */
-    private static class BuildWithProgress implements Function<CancelChecker, String> {
-        private final Progress progress;
-        private final boolean mustComplete;
-        private final String uri;
-        private final CancelIndicator cancelIndicator;
-
-        /**
-         * Instantiates the building of the file located at {@code uri}.
-         * @param uri The location of the file to be built.
-         * @param mustComplete Whether the build process must be brought to
-         * completion.
-         */
-        public BuildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
-            this.uri = uri;
-            this.progress = new Progress(client, "Build \"" + Paths.get(uri).getFileName() + "\"", mustComplete);
-            this.cancelIndicator = progress.getCancelIndicator();
-            this.mustComplete = mustComplete;
-        }
-
-        /**
-         * Executes {@code this}.
-         * @param cancelChecker A useless parameter.
-         */
-        public String apply(CancelChecker cancelChecker) {
-            // cancelChecker is ignored because the framework appears to provide it but not use it.
-            progress.begin();
-            String message = builder.run(
-                URI.createURI(uri), mustComplete, progress::report, cancelIndicator
-            ).getUserMessage();
-            progress.end(message);
-            return message;
-        }
+    private GeneratorResult buildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
+        Progress progress = new Progress(client, "Build \"" + Paths.get(uri).getFileName() + "\"", mustComplete);
+        progress.begin();
+        GeneratorResult result = builder.run(
+            URI.createURI(uri), mustComplete, progress::report, progress.getCancelIndicator()
+        );
+        progress.end(result.getUserMessage());
+        return result;
     }
 
     /** The IntegratedBuilder instance that handles all build requests for the current session. */
@@ -72,8 +50,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
     @Override
     public void initialize(ILanguageServerAccess access) {
-        // This method is never invoked. It might be useful if it were invoked, but seemingly that
-        //  is just not how the framework works right now.
+        // This method is never invoked.
     }
 
     public void setClient(LanguageClient client) {
@@ -92,7 +69,9 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         if (client == null) return CompletableFuture.completedFuture(
             "Please wait for the Lingua Franca language server to be fully initialized."
         );
-        return CompletableFutures.computeAsync(new BuildWithProgress(client, uri, true));
+        return CompletableFuture.supplyAsync(
+            () -> buildWithProgress(client, uri, true).getUserMessage()
+        );
     }
 
     /**
@@ -104,6 +83,25 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     @JsonNotification("generator/partialBuild")
     public void partialBuild(String uri) {
         if (client == null) return;
-        new BuildWithProgress(client, uri, false).apply(null);
+        buildWithProgress(client, uri, false);
+    }
+
+    /**
+     * Completely builds the specified LF program and provides information that is sufficient to
+     * run it.
+     * @param uri The URI of the LF program to be built.
+     * @return An array consisting of the directory in which the execute command should be
+     * executed, the program of the execute command, and the arguments of the execute command.
+     */
+    @JsonNotification("generator/buildAndRun")
+    public CompletableFuture<String[]> buildAndRun(String uri) {
+        return new CompletableFuture<String[]>().completeAsync(() -> {
+            LFCommand result = buildWithProgress(client, uri, true).getCommand();
+            if (result == null) return null;
+            ArrayList<String> ret = new ArrayList<>();
+            ret.add(result.directory().toString());
+            ret.addAll(result.command());
+            return ret.toArray(new String[0]);
+        });
     }
 }
