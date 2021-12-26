@@ -70,8 +70,14 @@ class CppGenerator(
             context.reportProgress(
                 "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            if (!cppFileConfig.outPath.resolve("include").toFile().exists()) {
+                doCompile(context, codeMaps)
+            } else if (runCmake(context).first == 0) {
+                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            } else {
+                context.unsuccessfulFinish()
+            }
         } else {
             context.reportProgress(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
@@ -151,7 +157,7 @@ class CppGenerator(
         doCompile(context, HashMap())
     }
 
-    private fun doCompile(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
+    private fun runCmake(context: LFGeneratorContext): Pair<Int, String> {
         val outPath = fileConfig.outPath
 
         val buildPath = cppFileConfig.buildPath
@@ -167,24 +173,29 @@ class CppGenerator(
                 "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
-            return
+            return Pair(1, version ?: "")
         }
 
         // run cmake
         val cmakeCommand = createCmakeCommand(buildPath, outPath, reactorCppPath)
-        val cmakeReturnCode = cmakeCommand.run(context.cancelIndicator)
+        return Pair(cmakeCommand.run(context.cancelIndicator), version)
+    }
+
+    private fun doCompile(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
+        val (cmakeReturnCode, version) = runCmake(context)
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make
-            val makeCommand = createMakeCommand(buildPath, version)
-            val makeReturnCode = makeCommand.run(context.cancelIndicator)
+            val makeCommand = createMakeCommand(cppFileConfig.buildPath, version)
+            val makeReturnCode = CppValidator(cppFileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
                 println("Generated source code is in ${fileConfig.srcGenPath}")
                 println("Compiled binary is in ${fileConfig.binPath}")
             } else {
-                errorReporter.reportError("make failed with error code $makeReturnCode")
+                // If errors occurred but none were reported, then the following message is the best we can do.
+                if (!errorsOccurred()) errorReporter.reportError("make failed with error code $makeReturnCode")
             }
         } else {
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
@@ -192,7 +203,7 @@ class CppGenerator(
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(  // FIXME: cppFileConfig.name is not always guaranteed to be the right name.
+            context.finish(
                 GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
             )
         }
