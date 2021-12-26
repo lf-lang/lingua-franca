@@ -185,6 +185,9 @@ public class LFGenerator extends AbstractGenerator {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
         }
 
+        // FIXME: model generation needs to be done before the code generator
+        //        modifies the AST. Currently, the delay values are reset to
+        //        0 for code generation.
         // If the verification flag is true, generate a UCLID5 model from
         // the static information.
         if (generator.targetConfig.verification != null

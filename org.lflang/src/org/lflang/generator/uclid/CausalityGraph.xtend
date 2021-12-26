@@ -125,7 +125,27 @@ import java.util.Set
                     if (ds == ue) {
                         if (ds instanceof ActionInstance) {
                             // Add the delay info to the causality hashmap.
-                            var info = new CausalityInfo(false, ds.isPhysical, ds.minDelay.toNanoSeconds, null, null)
+                            var info = new CausalityInfo(false,                     // isConnection
+                                                         ds.isPhysical,             // isPhysical
+                                                         ds.minDelay.toNanoSeconds, // delay
+                                                         null,                      // upstreamPort
+                                                         null)                      // downstreamPort
+                            if (causality.get(key) === null) {
+                                causality.put(key, info)
+                                println("New causality info added")
+                                printInfo(key)
+                            }
+                        }
+                        else if (ds instanceof PortInstance) {
+                            // This case happens when a reaction in the main reactor
+                            // triggers a reaction in the nested reactor.
+                            // Can be interpreted as having a connection of 0 delay.
+                            // The upstream and downstream port instances are the same.
+                            var info = new CausalityInfo(true,  // isConnection
+                                                         false, // isPhysical
+                                                         0,     // delay
+                                                         ds,    // upstreamPort
+                                                         ds)    // downstreamPort
                             if (causality.get(key) === null) {
                                 causality.put(key, info)
                                 println("New causality info added")
@@ -138,12 +158,19 @@ import java.util.Set
                     }
                     else {
                         if (ds instanceof PortInstance && ue instanceof PortInstance) {
-                            var connection = main.getConnection(ue as PortInstance, ds as PortInstance)
+                            var connection = this.main.getConnection(ue as PortInstance, ds as PortInstance)
                             println("connection: " + connection)
                             if (connection !== null) {
                                 // FIXME: what is the relationship between delay and TimeValue.                                
                                 // FIXME: get delay
-                                var info = new CausalityInfo(true, connection.isPhysical, 0, ue as PortInstance, ds as PortInstance)
+                                println("Delay is")
+                                println(connection.delay)
+                                println(connection.isPhysical)
+                                var info = new CausalityInfo(true,                  // isConnection
+                                                             connection.isPhysical, // isPhysical
+                                                             0,                     // delay
+                                                             ue as PortInstance,    // upstreamPort
+                                                             ds as PortInstance)    // downstreamPort
                                 // causality.put(new Pair(s, e), new Pair(true, connection.getDelay.getInterval))
                                 if (causality.get(key) === null) {
                                     causality.put(key, info)
