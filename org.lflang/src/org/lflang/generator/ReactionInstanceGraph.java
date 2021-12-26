@@ -111,29 +111,33 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         for (SendRange sendRange : port.eventualDestinations()) {
             int depth = (port.isInput())? 2 : 1;
             for (Range<PortInstance> dstRange : sendRange.destinations) {
+                // If the destination instance is the same as the source instance,
+                // skip this. Such ranges show up whenever retrieving destinations
+                // for a port that has reactions.
+                if (dstRange.instance == sendRange.instance) continue; 
                 Iterator<Integer> sendParentIDs = sendRange.parentInstances(depth).iterator();
-                for (int dstIndex : dstRange.parentInstances(1)) {
+                while (sendParentIDs.hasNext()) {
                     int srcIndex = sendParentIDs.next();
-                    // Destination may be wider than the source (multicast).
-                    if (!sendParentIDs.hasNext()) sendParentIDs = sendRange.parentInstances(depth).iterator();
-                    for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
-                        List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
-                        Runtime srcRuntime = srcRuntimes.get(srcIndex);
-                        Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                        addEdge(dstRuntime, srcRuntime);
-                        
-                        // Propagate the deadlines, if any.
-                        if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
-                            srcRuntime.deadline = dstRuntime.deadline;
-                        }
-                        
-                        // If this seems to be a single dominating reaction, set it.
-                        // If another upstream reaction shows up, then this will be
-                        // reset to null.
-                        if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1) {
-                            dstRuntime.dominating = srcRuntime;
-                        } else {
-                            dstRuntime.dominating = null;
+                    for (int dstIndex : dstRange.parentInstances(1)) {
+                        for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
+                            List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
+                            Runtime srcRuntime = srcRuntimes.get(srcIndex);
+                            Runtime dstRuntime = dstRuntimes.get(dstIndex);
+                            addEdge(dstRuntime, srcRuntime);
+                            
+                            // Propagate the deadlines, if any.
+                            if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
+                                srcRuntime.deadline = dstRuntime.deadline;
+                            }
+                            
+                            // If this seems to be a single dominating reaction, set it.
+                            // If another upstream reaction shows up, then this will be
+                            // reset to null.
+                            if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1) {
+                                dstRuntime.dominating = srcRuntime;
+                            } else {
+                                dstRuntime.dominating = null;
+                            }
                         }
                     }
                 }
