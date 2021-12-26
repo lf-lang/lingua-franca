@@ -3334,32 +3334,20 @@ class CGenerator extends GeneratorBase {
      * @param timers The timers.
      */
     private def generateTimerInitializations(Iterable<TimerInstance> timers) {
-        var foundOne = null as TimerInstance;
-        val temp = new StringBuilder();
         for (timer : timers) {
             if (!timer.isStartup) {
-                foundOne = timer;
                 val triggerStructName = CUtil.reactorRef(timer.parent) + "->_lf__"  + timer.name;
                 val offset = CUtil.VG.getTargetTime(timer.offset)
                 val period = CUtil.VG.getTargetTime(timer.period)
-                pr(temp, '''
+                pr(initializeTriggerObjects, '''
+                    // Initializing timer «timer.fullName».
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
-                    _lf_timer_triggers[«timerCount» + count] = &«triggerStructName»;
+                    _lf_timer_triggers[_lf_timer_triggers_count++] = &«triggerStructName»;
                 ''')
-                timerCount += timer.parent.width;
+                timerCount += timer.parent.totalWidth;
             }
-            triggerCount += timer.parent.width;
-        }
-        if (foundOne !== null) {
-            pr(initializeTriggerObjects, '''// Initializing timer «foundOne.fullName».''');
-            startScopedBlock(initializeTriggerObjects);
-            pr(initializeTriggerObjects, "int count = 0;");
-            startScopedBlock(initializeTriggerObjects, foundOne.parent);
-            pr(initializeTriggerObjects, temp.toString);
-            pr(initializeTriggerObjects, "count++;");
-            endScopedBlock(initializeTriggerObjects);
-            endScopedBlock(initializeTriggerObjects);
+            triggerCount += timer.parent.totalWidth;
         }
     }
 
@@ -3564,6 +3552,7 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, '''
             int _lf_startup_reactions_count = 0;
             int _lf_shutdown_reactions_count = 0;
+            int _lf_timer_triggers_count = 0;
         ''');
         
         for (child: main.children) {
