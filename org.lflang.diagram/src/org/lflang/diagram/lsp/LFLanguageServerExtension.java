@@ -1,6 +1,5 @@
 package org.lflang.diagram.lsp;
 
-import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
      * Describes a build process that has a progress.
      */
     private GeneratorResult buildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
-        Progress progress = new Progress(client, "Build \"" + Paths.get(uri).getFileName() + "\"", mustComplete);
+        Progress progress = new Progress(client, "Build \"" + URI.createURI(uri).lastSegment() + "\"", mustComplete);
         progress.begin();
         GeneratorResult result = builder.run(
             URI.createURI(uri), mustComplete, progress::report, progress.getCancelIndicator()
