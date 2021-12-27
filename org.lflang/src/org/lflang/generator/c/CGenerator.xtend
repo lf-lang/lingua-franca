@@ -650,7 +650,7 @@ class CGenerator extends GeneratorBase {
             copyTargetHeaderFile()
             
             // Generate code for each reactor.
-            generateReactorDefinitionsForFederate();
+            generateReactorDefinitions();
         
             // Derive target filename from the .lf filename.
             val cFilename = CCompiler.getTargetFileName(topLevelName, this.CCppMode);
@@ -1128,14 +1128,14 @@ class CGenerator extends GeneratorBase {
      *  of cmake-include files.
      * - If there are any preambles, add them to the preambles of the reactor.
      */
-    private def void generateReactorDefinitionsForFederate() {
+    private def void generateReactorDefinitions() {
         val generatedReactorDecls = newLinkedHashSet
         if (this.main !== null) {
-            generateReactorChildrenForReactorInFederate(this.main, generatedReactorDecls);
+            generateReactorChildren(this.main, generatedReactorDecls);
         }
 
         if (this.mainDef !== null) {
-            generateReactorFederated(this.mainDef.reactorClass)
+            generateReactorClass(this.mainDef.reactorClass)
         }
 
         // Generate code for each reactor that was not instantiated in main or its children.
@@ -1147,7 +1147,7 @@ class CGenerator extends GeneratorBase {
             // generate code for it anyway (at a minimum, this means that the compiler is invoked
             // so that reaction bodies are checked).
             if (mainDef === null && declarations.isEmpty()) {
-                generateReactorFederated(r)
+                generateReactorClass(r)
             }
         }
     }
@@ -1164,7 +1164,7 @@ class CGenerator extends GeneratorBase {
      * 
      * @param reactor Used to extract children from
      */
-    private def void generateReactorChildrenForReactorInFederate(
+    private def void generateReactorChildren(
         ReactorInstance reactor,
         LinkedHashSet<ReactorDecl> generatedReactorDecls
     ) {
@@ -1175,9 +1175,9 @@ class CGenerator extends GeneratorBase {
                     for (d : declarations) {
                         if (!generatedReactorDecls.contains(d)) {
                             generatedReactorDecls.add(d);
-                            generateReactorChildrenForReactorInFederate(r, generatedReactorDecls);
+                            generateReactorChildren(r, generatedReactorDecls);
                             inspectReactorEResource(d);
-                            generateReactorFederated(d);
+                            generateReactorClass(d);
                         }
                     }
                 }
@@ -1770,7 +1770,7 @@ class CGenerator extends GeneratorBase {
      * data to contained reactors that are not in the federate.
      * @param reactor The parsed reactor data structure.
      */
-    private def generateReactorFederated(ReactorDecl reactor) {
+    private def generateReactorClass(ReactorDecl reactor) {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.
         
         val defn = reactor.toDefinition
@@ -5100,12 +5100,13 @@ class CGenerator extends GeneratorBase {
                         pr('''
                             «CUtil.portRef(dst, dstBank, null)» = («destStructType»*)«mod»«CUtil.portRefNested(src, srcBank, srcChannel)»;
                         ''')
-                    } else if (src == dst) {
+                    } else if (dst.isOutput) {
                         // An output port of a contained reactor is triggering a reaction.
                         pr('''
                             «CUtil.portRefNested(dst, dstBank, null)» = («destStructType»*)&«CUtil.portRef(src, srcBank, srcChannel)»;
                         ''')
                     } else {
+                        // An output port is triggering
                         pr('''
                             «CUtil.portRef(dst, dstBank, null)» = («destStructType»*)&«CUtil.portRef(src, srcBank, srcChannel)»;
                         ''')
