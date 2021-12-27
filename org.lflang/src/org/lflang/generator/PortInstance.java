@@ -50,7 +50,7 @@ public class PortInstance extends TriggerInstance<Port> {
     /**
      * Create a runtime instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param definition The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The parent.
      */
     public PortInstance(Port definition, ReactorInstance parent) {
@@ -60,7 +60,7 @@ public class PortInstance extends TriggerInstance<Port> {
     /**
      * Create a port instance from the specified definition
      * and with the specified parent that instantiated it.
-     * @param definition The Instance statement in the AST.
+     * @param definition The declaration in the AST.
      * @param parent The parent.
      * @param errorReporter An error reporter, or null to throw exceptions.
      */
@@ -89,13 +89,13 @@ public class PortInstance extends TriggerInstance<Port> {
         clearingCaches = true;
         try {
             if (eventualSourceRanges != null) {
-                for (Range<PortInstance> sourceRange : eventualSourceRanges) {
+                for (RuntimeRange<PortInstance> sourceRange : eventualSourceRanges) {
                     sourceRange.instance.clearCaches();
                 }
             }
             if (eventualDestinationRanges != null) {
                 for (SendRange sendRange : eventualDestinationRanges) {
-                    for (Range<PortInstance> destinationRange : sendRange.destinations) {
+                    for (RuntimeRange<PortInstance> destinationRange : sendRange.destinations) {
                         destinationRange.instance.clearCaches();
                     }
                 }
@@ -137,7 +137,7 @@ public class PortInstance extends TriggerInstance<Port> {
         }
         
         // Construct the full range for this port.
-        Range<PortInstance> range = new Range.Port(this);
+        RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
         eventualDestinationRanges = eventualDestinations(range);
         return eventualDestinationRanges;
     }
@@ -156,15 +156,15 @@ public class PortInstance extends TriggerInstance<Port> {
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
      */
-    public List<Range<PortInstance>> eventualSources() {
-        return eventualSources(new Range.Port(this));
+    public List<RuntimeRange<PortInstance>> eventualSources() {
+        return eventualSources(new RuntimeRange.Port(this));
     }
 
     /** 
      * Return the list of downstream ports that are connected to this port
      * or an empty list if there are none.
      */
-    public List<Range<PortInstance>> getDependentPorts() {
+    public List<RuntimeRange<PortInstance>> getDependentPorts() {
         return dependentPorts;
     }
 
@@ -174,7 +174,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * For an ordinary port, this list will have length 0 or 1.
      * For a multiport, it can have a larger size.
      */
-    public List<Range<PortInstance>> getDependsOnPorts() {
+    public List<RuntimeRange<PortInstance>> getDependsOnPorts() {
         return dependsOnPorts;
     }
     
@@ -235,7 +235,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * by the validator). Each channel of this port will be broadcast
      * to N recipients.
      */
-    List<Range<PortInstance>> dependentPorts = new ArrayList<Range<PortInstance>>();
+    List<RuntimeRange<PortInstance>> dependentPorts = new ArrayList<RuntimeRange<PortInstance>>();
 
     /** 
      * Upstream ports that are connected directly to this port, if there are any.
@@ -243,7 +243,7 @@ public class PortInstance extends TriggerInstance<Port> {
      * For a multiport, it can have a larger size.
      * This initially has capacity 1 because that is by far the most common case.
      */
-    List<Range<PortInstance>> dependsOnPorts = new ArrayList<Range<PortInstance>>(1);
+    List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<RuntimeRange<PortInstance>>(1);
     
     /** Indicator of whether this is a multiport. */
     boolean isMultiport = false;
@@ -252,7 +252,7 @@ public class PortInstance extends TriggerInstance<Port> {
     //// Private methods.
     
     /**
-     * Given a Range, return a list of SendRange that describes
+     * Given a RuntimeRange, return a list of SendRange that describes
      * the eventual destinations of the given range.
      * The sum of the total widths of the send ranges on the returned list
      * will equal the total width of the specified range.
@@ -260,12 +260,12 @@ public class PortInstance extends TriggerInstance<Port> {
      * the order in which they should be traversed (channels, then
      * banks if the specified range is not interleaved, or banks
      * then channels otherwise).  Each returned SendRange has a list
-     * of destinations Range, each of which represents a port that
+     * of destinations RuntimeRange, each of which represents a port that
      * has dependent reactions. Intermediate ports with no dependent
      * reactions are not listed.
      * @param srcRange The source range.
      */
-    private static List<SendRange> eventualDestinations(Range<PortInstance> srcRange) {
+    private static List<SendRange> eventualDestinations(RuntimeRange<PortInstance> srcRange) {
 
         // Getting the destinations is more complex than getting the sources
         // because of multicast, where there is more than one connection statement
@@ -294,10 +294,10 @@ public class PortInstance extends TriggerInstance<Port> {
         }
 
         // Start with ports that are downstream of the range.
-        Range<PortInstance> wSrcRange = srcRange;  // Working source range.
-        Iterator<Range<PortInstance>> dependentPorts = srcPort.dependentPorts.iterator();
+        RuntimeRange<PortInstance> wSrcRange = srcRange;  // Working source range.
+        Iterator<RuntimeRange<PortInstance>> dependentPorts = srcPort.dependentPorts.iterator();
         if (dependentPorts.hasNext()) {
-            Range<PortInstance> wDstRange = dependentPorts.next();
+            RuntimeRange<PortInstance> wDstRange = dependentPorts.next();
             while(true) {
                 if (wSrcRange == null) {
                     // Source range has been fully covered, but there may be more
@@ -313,7 +313,7 @@ public class PortInstance extends TriggerInstance<Port> {
                 int width = Math.min(wSrcRange.width, wDstRange.width);
                 
                 // Destinations may be a subset.
-                Range<PortInstance> subDst = wDstRange.head(width);
+                RuntimeRange<PortInstance> subDst = wDstRange.head(width);
                             
                 // At this point, dep is the subrange of the dependent port of interest.
                 // Recursively get the send ranges of that destination port.
@@ -349,7 +349,7 @@ public class PortInstance extends TriggerInstance<Port> {
                 if (candidate.width <= next.width) {
                     // Can use all of the channels of candidate.
                     // Import the destinations of next and split it.
-                    for (Range<PortInstance> destination : next.destinations) {
+                    for (RuntimeRange<PortInstance> destination : next.destinations) {
                         candidate.destinations.add(destination.head(candidate.width));
                     }
                     if (candidate.width < next.width) {
@@ -401,16 +401,16 @@ public class PortInstance extends TriggerInstance<Port> {
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
      */
-    private List<Range<PortInstance>> eventualSources(Range<PortInstance> range) {
+    private List<RuntimeRange<PortInstance>> eventualSources(RuntimeRange<PortInstance> range) {
         if (eventualSourceRanges == null) {
             // Cached result has not been created.
-            eventualSourceRanges = new ArrayList<Range<PortInstance>>();
+            eventualSourceRanges = new ArrayList<RuntimeRange<PortInstance>>();
             
             if (!dependsOnReactions.isEmpty()) {
-                eventualSourceRanges.add(new Range.Port(this));
+                eventualSourceRanges.add(new RuntimeRange.Port(this));
             } else {
                 var channelsCovered = 0;
-                for (Range<PortInstance> sourceRange : dependsOnPorts) {
+                for (RuntimeRange<PortInstance> sourceRange : dependsOnPorts) {
                     // Check whether the sourceRange overlaps with the range.
                     if (channelsCovered + sourceRange.width >= range.start
                             && channelsCovered < range.start + range.width) {
@@ -470,7 +470,7 @@ public class PortInstance extends TriggerInstance<Port> {
     private List<SendRange> eventualDestinationRanges;
 
     /** Cached list of source ports with channel ranges. */
-    private List<Range<PortInstance>> eventualSourceRanges;
+    private List<RuntimeRange<PortInstance>> eventualSourceRanges;
     
     /** Indicator that we are clearing the caches. */
     private boolean clearingCaches = false;

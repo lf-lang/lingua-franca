@@ -49,7 +49,7 @@ val Reaction.name
 
 
 /** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpression(time, unit)
+fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpr(this)
 
 /** Convert a value to a time representation in C++ code*
  *

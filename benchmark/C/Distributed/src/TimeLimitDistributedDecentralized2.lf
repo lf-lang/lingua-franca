@@ -43,7 +43,7 @@ reactor Destination(num_messages:int(10)) {
         info_print("Approximate time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
+federated reactor (period:time(1 usec)) {
 	c = new Source();
 	d = new Destination();
 	c.y -> d.x after 1 usec;

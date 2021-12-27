@@ -110,7 +110,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
         List<Runtime> srcRuntimes = reaction.getRuntimeInstances();
         for (SendRange sendRange : port.eventualDestinations()) {
             int depth = (port.isInput())? 2 : 1;
-            for (Range<PortInstance> dstRange : sendRange.destinations) {
+            for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {
                 // If the destination instance is the same as the source instance,
                 // skip this. Such ranges show up whenever retrieving destinations
                 // for a port that has reactions.

@@ -127,7 +127,7 @@ public class CCmakeCompiler extends CCompiler {
         int cMakeReturnCode = compile.run(cancelIndicator);
         
         if (cMakeReturnCode != 0 && 
-                fileConfig.getCompilerMode() != Mode.INTEGRATED && 
+                fileConfig.getCompilerMode() == Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler+" returns error code "+cMakeReturnCode);
         }
@@ -135,7 +135,7 @@ public class CCmakeCompiler extends CCompiler {
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
         if (compile.getErrors().toString().length() > 0 && 
-                fileConfig.getCompilerMode() == Mode.INTEGRATED &&
+                fileConfig.getCompilerMode() != Mode.STANDALONE &&
                 !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
@@ -148,7 +148,7 @@ public class CCmakeCompiler extends CCompiler {
             makeReturnCode = build.run(cancelIndicator);
             
             if (makeReturnCode != 0 && 
-                    fileConfig.getCompilerMode() != Mode.INTEGRATED &&
+                    fileConfig.getCompilerMode() == Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 errorReporter.reportError(targetConfig.compiler+" returns error code "+makeReturnCode);
             }
@@ -156,7 +156,7 @@ public class CCmakeCompiler extends CCompiler {
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
             if (build.getErrors().toString().length() > 0 && 
-                    fileConfig.getCompilerMode() == Mode.INTEGRATED &&
+                    fileConfig.getCompilerMode() != Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 generator.reportCommandErrors(build.getErrors().toString());
             }

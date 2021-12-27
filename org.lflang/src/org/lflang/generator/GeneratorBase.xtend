@@ -47,7 +47,9 @@ import org.lflang.InferredType
 import org.lflang.MainConflictChecker
 import org.lflang.Target
 import org.lflang.TargetConfig
+import org.lflang.TargetConfig.Mode
 import org.lflang.TargetProperty.CoordinationType
+import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.federated.FedASTUtils
 import org.lflang.federated.FederateInstance
@@ -58,11 +60,17 @@ import org.lflang.lf.Delay
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
+import org.lflang.lf.Parameter
+import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.StateVar
+import org.lflang.lf.Time
+import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Generator base class for specifying core functionality
@@ -299,7 +307,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         createMainInstance()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (mainDef !== null) {
+        if (fileConfig.compilerMode == Mode.STANDALONE && mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
@@ -433,7 +441,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * Return the TargetTypes instance associated with this.
      */
     abstract def TargetTypes getTargetTypes();
-
+    
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
@@ -523,6 +531,81 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         if (reactionBankIndices === null) return -1
         if (reactionBankIndices.get(reaction) === null) return -1
         return reactionBankIndices.get(reaction)
+    }
+    
+    /**
+     * Given a representation of time that may possibly include units, return
+     * a string that the target language can recognize as a value. In this base
+     * class, if units are given, e.g. "msec", then we convert the units to upper
+     * case and return an expression of the form "MSEC(value)". Particular target
+     * generators will need to either define functions or macros for each possible
+     * time unit or override this method to return something acceptable to the
+     * target language.
+     * @param time A TimeValue that represents a time.
+     * @return A string, such as "MSEC(100)" for 100 milliseconds.
+     */
+    def String timeInTargetLanguage(TimeValue time) {
+        if (time !== null) {
+            if (time.unit !== null) {
+                return time.unit.cMacroName + '(' + time.magnitude + ')'
+            } else {
+                return time.magnitude.toString()
+            }
+        }
+        return "0" // FIXME: do this or throw exception?
+    }
+
+    // note that this is moved out by #544
+    final def String cMacroName(TimeUnit unit) {
+        return unit.canonicalName.toUpperCase
+    }
+
+    /**
+     * Run the custom build command specified with the "build" parameter.
+     * This command is executed in the same directory as the source file.
+     * 
+     * The following environment variables will be available to the command:
+     * 
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
+     * 
+     */
+    protected def runBuildCommand() {
+        var commands = new ArrayList
+        for (cmd : targetConfig.buildCommands) {
+            val tokens = newArrayList(cmd.split("\\s+"))
+            if (tokens.size > 0) {
+                val buildCommand = commandFactory.createCommand(
+                    tokens.head,
+                    tokens.tail.toList,
+                    this.fileConfig.srcPath
+                )
+                // If the build command could not be found, abort.
+                // An error has already been reported in createCommand.
+                if (buildCommand === null) {
+                    return
+                }
+                commands.add(buildCommand)
+            }
+        }
+
+        for (cmd : commands) {
+            // execute the command
+            val returnCode = cmd.run()
+
+            if (returnCode != 0 && fileConfig.compilerMode === Mode.STANDALONE) {
+                errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
+                return
+            }
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (cmd.errors.toString.length > 0 && fileConfig.compilerMode !== Mode.STANDALONE) {
+                reportCommandErrors(cmd.errors.toString())
+                return
+            }
+        }
     }
 
     // //////////////////////////////////////////
@@ -689,7 +772,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
     def writeDockerFile(String dockerFileName) {
         throw new UnsupportedOperationException("This target does not support docker file generation.")
     }
-    
+
 
     /**
      * Parsed error message from a compiler is returned here.
@@ -700,6 +783,9 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         public var character = "0"
         public var message = ""
         public var isError = true // false for a warning.
+        override String toString() {
+          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+        }
     }
 
     /**
@@ -749,8 +835,8 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.  This should only be called if
-     * mode == INTEGRATED.
+     * marks on the appropriate lines. This should not be called in standalone
+     * mode.
      * 
      * @param stderr The output on standard error of executing a command.
      */
@@ -776,8 +862,8 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                         errorReporter.reportError(path, lineNumber, message.toString())
                     else
                         errorReporter.reportWarning(path, lineNumber, message.toString())
-                      
-                    if (originalPath.compareTo(path) != 0) {
+
+                    if (originalPath.toFile != path.toFile) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -829,7 +915,7 @@ abstract class GeneratorBase extends JavaGeneratorBase {
                 errorReporter.reportWarning(path, lineNumber, message.toString())
             }
 
-            if (originalPath.compareTo(path) != 0) {
+            if (originalPath.toFile != path.toFile) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
@@ -843,16 +929,26 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         }
     }
 
+    /**
+     * Generate target code for a parameter reference.
+     * 
+     * @param param The parameter to generate code for
+     * @return Parameter reference in target code
+     */
+    protected def String getTargetReference(Parameter param) {
+        return param.name
+    }
+
     // //////////////////////////////////////////////////
     // // Private functions
-    
+
     /**
      * Remove triggers in each federates' network reactions that are defined in remote federates.
-     * 
+     *
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
      * might reference data structures in remote federates and cause compile errors.
-     * 
+     *
      * @param instance The reactor instance to remove these ports from if any.
      *  Can be null.
      */
@@ -1141,4 +1237,72 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      * Return the Targets enum for the current target
      */
     abstract def Target getTarget()
+
+    protected def getTargetType(Parameter p) {
+        return getTargetTypes().getTargetType(p.inferredType)
+    }
+
+    protected def getTargetType(StateVar s) {
+        return getTargetTypes().getTargetType(s.inferredType)
+    }
+
+    protected def getTargetType(Action a) {
+        return getTargetTypes().getTargetType(a.inferredType)
+    }
+
+    protected def getTargetType(Port p) {
+        return getTargetTypes().getTargetType(p.inferredType)
+    }
+
+    /**
+     * Get textual representation of a time in the target language.
+     * 
+     * @param t A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Time t) {
+        val value = new TimeValue(t.interval, TimeUnit.fromName(t.unit))
+        return value.timeInTargetLanguage
+    }
+
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a normal value.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetValue(Value v) {
+        if (v.time !== null) {
+            return v.time.targetTime
+        }
+        return v.toText
+    }
+
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a time.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Value v) {
+        if (v.time !== null) {
+            return v.time.targetTime
+        } else if (v.isZero) {
+            val value = TimeValue.ZERO
+            return value.timeInTargetLanguage
+        }
+        return v.toText
+    }
+
+    protected def getTargetTime(Delay d) {
+        if (d.parameter !== null) {
+            return d.toText
+        } else {
+            return d.time.targetTime
+        }
+    }
 }
