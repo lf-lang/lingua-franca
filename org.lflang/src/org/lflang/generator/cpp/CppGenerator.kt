@@ -144,8 +144,7 @@ class CppGenerator(
 
     fun getCmakeVersion(buildPath: Path): String? {
         val cmd = commandFactory.createCommand("cmake", listOf("--version"), buildPath)
-        val res = cmd.run()
-        if (res == 0) {
+        if (cmd != null && cmd.run() == 0) {
             val regex = "\\d+(\\.\\d+)+".toRegex()
             val version = regex.find(cmd.output.toString())
             return version?.value
