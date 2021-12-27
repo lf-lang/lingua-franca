@@ -33,20 +33,20 @@ import org.lflang.generator.PortInstance;
  */
 public class CausalityInfo {
     
-    public boolean  isConnection;
-    public boolean  isPhysical;
-    public long     delay;
-    public PortInstance upstreamPort;
-    public PortInstance downstreamPort;
+    public String           type;
+    public boolean          isPhysical;
+    public long             delay;
+    public PortInstance     upstreamPort;
+    public PortInstance     downstreamPort;
     
     public CausalityInfo(
-        boolean _isConnection, 
-        boolean _isPhysical, 
-        long    _delay,
-        PortInstance _upstreamPort,
-        PortInstance _downstreamPort
+        String          _type, 
+        boolean         _isPhysical, 
+        long            _delay,
+        PortInstance    _upstreamPort,
+        PortInstance    _downstreamPort
     ){
-        isConnection    =   _isConnection;
+        type            =   _type;
         isPhysical      =   _isPhysical;
         delay           =   _delay;
         upstreamPort    =   _upstreamPort;

@@ -492,7 +492,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         var i = 0
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet()) {
+            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") ]) {
             pr('''
             if (r1 == «entry.getKey.getKey.getFullNameWithJoiner('_')» && r2 == «entry.getKey.getValue.getFullNameWithJoiner('_')») then nsec(«entry.getValue.delay») else (
             ''')
@@ -507,7 +507,7 @@ class UclidGenerator extends GeneratorBase {
         newline()
 
         // Non-federated "happened-before"
-        // FIXME: Would be nice if UCLID supports recursion of macros.
+        // FIXME: Need to compute the transitive closure.
         // Happened-before relation defined for a local reactor.
         // Used to preserve trace ordering.
         pr('''
@@ -522,7 +522,8 @@ class UclidGenerator extends GeneratorBase {
         || (tag_same(e1._2, e2._2) && (
         '''
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet()) {
+            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") ]
+        ) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
             str += '''
@@ -618,7 +619,7 @@ class UclidGenerator extends GeneratorBase {
             // Check if two reactions are linked by a connection
             // if so, the output port and the input port should
             // hold the same value.
-            if (entry.getValue.isConnection) {
+            if (entry.getValue.type.equals("connection")) {
                 var upstreamRxn    = entry.getKey.getKey.getFullNameWithJoiner('_')
                 var upstreamPort   = entry.getValue.upstreamPort.getFullNameWithJoiner('_')
                 var downstreamPort = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
@@ -648,12 +649,18 @@ class UclidGenerator extends GeneratorBase {
             var upstreamRxn     = entry.getKey.getKey
             var downstreamRxn   = entry.getKey.getValue
             var upstreamName    = upstreamRxn.getFullName
-            var downstreamName  = downstreamRxn.getFullName
+            var downstreamName  = downstreamRxn?.getFullName
             var upstreamId      = upstreamRxn.getFullNameWithJoiner('_')
-            var downstreamId    = downstreamRxn.getFullNameWithJoiner('_')
+            var downstreamId    = downstreamRxn?.getFullNameWithJoiner('_')
             var conn            = entry.getValue
             // Upstream triggers downstream via a logical connection.
-            if (conn.isConnection && !conn.isPhysical) {
+            if (conn.type.equals("startup")) {
+                pr('''
+                // «upstreamName» is triggered by startup.
+                axiom(startup_triggers(«upstreamId»));
+                ''')
+            }
+            else if (conn.type.equals("connection") && !conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a logical connection.
                 axiom(triggers_via_logical_connection(«upstreamId», «downstreamId»,
@@ -661,14 +668,14 @@ class UclidGenerator extends GeneratorBase {
                 ''')
             }
             // Upstream triggers downstream via a physical connection.
-            else if (conn.isConnection && conn.isPhysical) {
+            else if (conn.type.equals("connection") && conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a physical connection.
                 axiom(triggers_via_physical_connection(«upstreamId», «downstreamId»));
                 ''')
             }
             // Upstream triggers downstream via a logical action.
-            else if (!conn.isConnection && !conn.isPhysical) {
+            else if (conn.type.equals("action") && !conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a logical action.
                 axiom(triggers_via_logical_action(«upstreamId», «downstreamId»,
@@ -676,11 +683,14 @@ class UclidGenerator extends GeneratorBase {
                 ''')
             }
             // Upstream triggers downstream via a physical action.
-            else {
+            else if (conn.type.equals("action") && conn.isPhysical) {
                 pr('''
                 // «upstreamName» triggers «downstreamName» via a physical action.
                 axiom(triggers_via_physical_action(«upstreamId», «downstreamId»));
                 ''')
+            }
+            else {
+                throw new UnsupportedOperationException("Invalid topology.")
             }
             newline()
         }

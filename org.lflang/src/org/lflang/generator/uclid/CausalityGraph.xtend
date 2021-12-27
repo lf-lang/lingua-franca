@@ -29,6 +29,8 @@ package org.lflang.generator
 import org.lflang.lf.Delay
 import org.lflang.graph.DirectedGraph
 import org.lflang.CausalityInfo
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
@@ -84,16 +86,31 @@ import java.util.Set
     
     /**
      * @brief Build the graph by adding nodes and edges based on the reaction graph.
-     * 
-     * FIXME:
-     * 1. Do we need transitive edges?
-     *    No. Handle transitivity in the code generation logic.
      *
      * @param reaction The upstream reaction instance to be added to the graph.
      */
     protected def void addNodesAndEdges(ReactionInstance reaction) {
         // Add the current reaction to the causality graph.
         this.addNode(reaction)
+
+        // Check for startup triggers
+        // FIXME: Handle shutdown
+        for (t : reaction.triggers) {
+            if (t.isStartup) {
+                var key = new Pair(reaction, null)
+                var info = new CausalityInfo(
+                    "startup",  // type
+                    false,      // isPhysical
+                    0,          // delay
+                    null,       // upstreamPort
+                    null)       // downstreamPort
+                if (causality.get(key) === null) {
+                    causality.put(key, info)
+                    println("New causality info added")
+                    printInfo(key)
+                }
+            }
+        }
         
         // Collect port instances that can influence the upstream reaction
         // Note: The dangling ports are ignored in this case.
@@ -118,7 +135,7 @@ import java.util.Set
             // Logical delays can be induced by connections
             // or actions.
             var downstreamSources = downstream.sources      // Sources of the downstream element
-            var key     = new Pair(reaction, downstream)            
+            var key = new Pair(reaction, downstream)            
             for (ue : upstreamEffects) {
                 for (ds : downstreamSources) {
                     // If these two reactions are linked by an action,
@@ -127,7 +144,7 @@ import java.util.Set
                         if (ds instanceof ActionInstance) {
                             // Add the delay info to the causality hashmap.
                             var info = new CausalityInfo(
-                                false,                     // isConnection
+                                "action",                  // type
                                 ds.isPhysical,             // isPhysical
                                 ds.minDelay.toNanoSeconds, // delay
                                 null,                      // upstreamPort
@@ -144,11 +161,11 @@ import java.util.Set
                             // Can be interpreted as having a connection of 0 delay.
                             // The upstream and downstream port instances are the same.
                             var info = new CausalityInfo(
-                                true,   // isConnection
-                                false,  // isPhysical
-                                0,      // delay
-                                ds,     // upstreamPort
-                                ds)     // downstreamPort
+                                "connection",   // type
+                                false,          // isPhysical
+                                0,              // delay
+                                ds,             // upstreamPort
+                                ds)             // downstreamPort
                             if (causality.get(key) === null) {
                                 causality.put(key, info)
                                 println("New causality info added")
@@ -165,12 +182,15 @@ import java.util.Set
                             var connection = this.main.getConnection(ue as PortInstance, ds as PortInstance)
                             println("connection: " + connection)
                             if (connection !== null) {
+                                var delayInterval = connection.getDelay.getTime.getInterval
+                                var TimeUnit delayUnit = TimeUnit.fromName(connection.getDelay.getTime.getUnit)
+                                var TimeValue timeValue = new TimeValue(delayInterval, delayUnit)
                                 var info = new CausalityInfo(
-                                    true,                                  // isConnection
-                                    connection.isPhysical,                 // isPhysical
-                                    delayToInteger(connection.getDelay),   // delay
-                                    ue as PortInstance,                    // upstreamPort
-                                    ds as PortInstance)                    // downstreamPort
+                                    "connection",               // type
+                                    connection.isPhysical,      // isPhysical
+                                    timeValue.toNanoSeconds,    // delay
+                                    ue as PortInstance,         // upstreamPort
+                                    ds as PortInstance)         // downstreamPort
                                 if (causality.get(key) === null) {
                                     causality.put(key, info)
                                     println("New causality info added")
@@ -193,7 +213,7 @@ import java.util.Set
             + "------------------------------\n"
             + "upstream: " + key.getKey + "\n"
             + "downstream: " + key.getValue + "\n"
-            + "isConnection: " + info.isConnection + "\n"
+            + "type: " + info.type + "\n"
             + "isPhysical: " + info.isPhysical + "\n"
             + "delay (ns): " + info.delay)
     }
