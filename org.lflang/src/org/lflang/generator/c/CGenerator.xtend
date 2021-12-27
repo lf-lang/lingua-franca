@@ -3804,11 +3804,14 @@ class CGenerator extends GeneratorBase {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
             // memory allocations.
-            // Use an intermediate temporary variable so that parameter dependencies
+            // NOTE: Use an intermediate temporary variable so that parameter dependencies
             // are resolved correctly.
+            // NOTE: Use a static variable because if the initializer is an array, then
+            // at least some compliers (gcc) will put it on the stack and when it gets
+            // dereferenced, it will likely be corrupted.
             val temporaryVariableName = parameter.uniqueID
             pr(initializeTriggerObjects, '''
-                «types.getVariableDeclaration(parameter.type, temporaryVariableName)» = «parameter.getInitializer»;
+                static «types.getVariableDeclaration(parameter.type, temporaryVariableName)» = «parameter.getInitializer»;
                 «selfRef»->«parameter.name» = «temporaryVariableName»;
             ''')
         }
