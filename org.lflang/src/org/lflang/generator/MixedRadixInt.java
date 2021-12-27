@@ -70,20 +70,21 @@ public class MixedRadixInt {
             this.digits.add(0);
         }
     }
+    
+    public final static MixedRadixInt ZERO = new MixedRadixInt(List.of(0), List.of(1));
 
     //////////////////////////////////////////////////////////
     //// Public methods
 
     /**
      * Drop the first n digits and return the resulting mixed-radix number.
+     * If n is larger than or equal to the total number of digits, return ZERO.
      * @param n The number of digits to drop.
-     * @throws IllegalArgumentException If n is equal to or larger than the
-     *  number of digits.
      */
     public MixedRadixInt drop(int n) {
         if (n == 0) return this;
         if (n >= digits.size() || n < 0) {
-            throw new IllegalArgumentException("Cannot drop more digits than there are!");
+            return ZERO;
         }
         List<Integer> d = new ArrayList<Integer>(digits.size() - n);
         List<Integer> r = new ArrayList<Integer>(digits.size() - n);
