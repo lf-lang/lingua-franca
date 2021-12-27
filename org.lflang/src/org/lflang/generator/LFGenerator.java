@@ -175,6 +175,10 @@ public class LFGenerator extends AbstractGenerator {
             throw new RuntimeException("Unable to handle compiler mode " + fileConfig.getCompilerMode());
         }
 
+        // Has to be invoked before target Generator modifies the resources.
+        GeneratorBase uclidGen = new UclidGenerator(fileConfig, errorReporter);
+        uclidGen.doGenerate(resource, fsa, context);
+
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
         if (generator != null) {
@@ -183,23 +187,6 @@ public class LFGenerator extends AbstractGenerator {
         }
         if (errorReporter instanceof LanguageServerErrorReporter) {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
-        }
-
-        // FIXME: model generation needs to be done before the code generator
-        //        modifies the AST. Currently, the delay values are reset to
-        //        0 for code generation.
-        // If the verification flag is true, generate a UCLID5 model from
-        // the static information.
-        if (generator.targetConfig.verification != null
-            && generator.targetConfig.verification.engine != null
-            && generator.targetConfig.verification.tactic != null) {
-            if (generator.targetConfig.verification.engine.equals("uclid")
-                && generator.targetConfig.verification.tactic.equals("induction")) {
-                GeneratorBase uclidGen = new UclidGenerator(fileConfig, errorReporter);
-                uclidGen.doGenerate(resource, fsa, context);
-            } else {
-                throw new RuntimeException("The verification method is not supported.");
-            }
         }
     }
 

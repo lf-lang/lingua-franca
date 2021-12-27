@@ -86,10 +86,31 @@ class UclidGenerator extends GeneratorBase {
     
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
-            
-        // TODO: remove this.
-        super.doGenerate(resource, fsa, context)
         
+        // The following generates code needed by all the reactors.
+        super.doGenerate(resource, fsa, context)
+
+        if (this.targetConfig.verification !== null) {
+            if (this.targetConfig.verification.engine !== null) {
+                switch (this.targetConfig.verification.engine) {
+                    case "uclid": {
+                        generateModel(resource, fsa, context)
+                    }
+                    default: {
+                        throw new RuntimeException("The specified engine is not supported.")
+                    }
+                }
+            }
+        }
+        else {
+            // If verification flag is not specified, exit the generator.
+            return
+        }
+    }
+
+    def void generateModel(Resource resource, IFileSystemAccess2 fsa,
+        IGeneratorContext context) {
+
         // FIXME: Does this handle the federated reactor in case of federated execution?    
         for (federate : federates) {
             // Build the instantiation tree if a main reactor is present.
@@ -122,7 +143,7 @@ class UclidGenerator extends GeneratorBase {
         outputDir = Paths.get(dir.getAbsolutePath)
         
         // Generate the Uclid model.
-        generateModel()
+        printModelToFile()
     }
 
     /**
@@ -165,7 +186,7 @@ class UclidGenerator extends GeneratorBase {
     /**
      * Generate the Uclid model and a runner script.
      */
-    protected def generateModel() {     
+    protected def printModelToFile() {     
         // Generate main.ucl and print to file
         code = new StringBuilder()
         var filename = outputDir.resolve("main.ucl").toString
@@ -831,7 +852,16 @@ class UclidGenerator extends GeneratorBase {
     //// Functions from generatorBase
     
     override getTarget() {
-        return Target.C // FIXME: How to make this target independent?
+        return Target.C // FIXME: How to make this target independent? Target.ALL does not work.
+    }
+
+    override supportsGenerics() {
+        return false
+    }
+
+    // Intentionally preserve delays.
+    override transformDelays() {
+        return
     }
 
     override generateDelayBody(Action action, VarRef port) {
@@ -843,10 +873,6 @@ class UclidGenerator extends GeneratorBase {
     }
     
     override generateDelayGeneric() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
-    override supportsGenerics() {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
     
