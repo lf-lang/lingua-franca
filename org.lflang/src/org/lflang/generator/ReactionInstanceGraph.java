@@ -133,7 +133,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
                             // If this seems to be a single dominating reaction, set it.
                             // If another upstream reaction shows up, then this will be
                             // reset to null.
-                            if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1) {
+                            if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1
+                                    && (dstRuntime.getReaction().isUnordered
+                                            || dstRuntime.getReaction().index == 0)) {
                                 dstRuntime.dominating = srcRuntime;
                             } else {
                                 dstRuntime.dominating = null;
