@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.generator.PortInstance;
-import org.lflang.generator.Range;
+import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SendRange;
@@ -159,8 +159,8 @@ public class PortInstanceTests {
      * @param dst The receiving port.
      */
     protected void connect(PortInstance src, PortInstance dst) {
-        Range<PortInstance> srcRange = new Range.Port(src);
-        Range<PortInstance> dstRange = new Range.Port(dst);
+        RuntimeRange<PortInstance> srcRange = new RuntimeRange.Port(src);
+        RuntimeRange<PortInstance> dstRange = new RuntimeRange.Port(dst);
         ReactorInstance.connectPortInstances(srcRange, dstRange);
     }
     
@@ -175,8 +175,8 @@ public class PortInstanceTests {
             PortInstance src, int srcStart, int srcWidth,
             PortInstance dst, int dstStart, int dstWidth
     ) {
-        Range<PortInstance> srcRange = new Range.Port(src, srcStart, srcWidth, null);
-        Range<PortInstance> dstRange = new Range.Port(dst, dstStart, dstWidth, null);
+        RuntimeRange<PortInstance> srcRange = new RuntimeRange.Port(src, srcStart, srcWidth, null);
+        RuntimeRange<PortInstance> dstRange = new RuntimeRange.Port(dst, dstStart, dstWidth, null);
         ReactorInstance.connectPortInstances(srcRange, dstRange);
     }
 

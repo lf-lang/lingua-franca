@@ -1,7 +1,8 @@
 package org.lflang.generator;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -20,7 +21,6 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
@@ -45,7 +45,7 @@ import org.lflang.lf.TargetDecl;
  * instead be in GeneratorUtils.kt, but Eclipse cannot
  * handle Kotlin files.
  */
-public final class JavaGeneratorUtils {
+public class JavaGeneratorUtils {
 
     private JavaGeneratorUtils() {
         // utility class
@@ -300,11 +300,12 @@ public final class JavaGeneratorUtils {
      * @param code The code to be written.
      * @param path The file to write the code to.
      */
-    public static void writeSourceCodeToFile(byte[] code, String path) throws IOException {
-        // Write the generated code to the output file.
-        var fOut = new FileOutputStream(path, false);
-        fOut.write(code);
-        fOut.close();
+    public static void writeSourceCodeToFile(CharSequence code, String path) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
+            for (int i = 0; i < code.length(); i++) {
+                writer.write(code.charAt(i));
+            }
+        }
     }
 
     /** If the mode is INTEGRATED (the code generator is running in an
@@ -312,7 +313,7 @@ public final class JavaGeneratorUtils {
      *  any generated files become visible in the project.
      */
     public static void refreshProject(Mode compilerMode, String code) {
-        if (compilerMode == Mode.INTEGRATED) {
+        if (compilerMode == Mode.EPOCH) {
             // Find name of current project
             String id = "((:?[a-z]|[A-Z]|_\\w)*)";
             Pattern pattern;

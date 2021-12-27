@@ -233,7 +233,7 @@ class PythonGenerator extends CGenerator {
         switch(v.toText) {
             case "false": returnValue = "False"
             case "true": returnValue = "True"
-            default: returnValue = CUtil.VG.getTargetValue(v)
+            default: returnValue = v.targetValue
         }
         
         // Parameters in Python are always prepended with a 'self.'
@@ -263,7 +263,7 @@ class PythonGenerator extends CGenerator {
             if (i.parameter !== null) {
                 list.add(i.parameter.name)
             } else if (state.isOfTimeType) {
-                list.add(CUtil.VG.getTargetTime(i))
+                list.add(i.targetTime)
             } else {
                 list.add(i.pythonTargetValue)
             }
@@ -795,7 +795,7 @@ class PythonGenerator extends CGenerator {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
+        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonCode(federate), file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -807,7 +807,7 @@ class PythonGenerator extends CGenerator {
         }
             
         // Create the setup file
-        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath.toString)
+        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile, setupPath.toString)
              
         
     }
@@ -1880,11 +1880,11 @@ class PythonGenerator extends CGenerator {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
-     * @param The root filename (without any extension).
+     * @param The name of the docker file.
      */
-    override writeDockerFile(String filename) {
+    override writeDockerFile(String dockerFileName) {
         var srcGenPath = fileConfig.getSrcGenPath
-        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val dockerFile = srcGenPath + File.separator + dockerFileName
         // If a dockerfile exists, remove it.
         var file = new File(dockerFile)
         if (file.exists) {
@@ -1899,16 +1899,15 @@ class PythonGenerator extends CGenerator {
         pr(contents, '''
             # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM python:alpine
+            FROM python:slim
             WORKDIR /lingua-franca/«topLevelName»
+            RUN set -ex && apt-get update && apt-get install -y python3-pip
             COPY . src-gen
-            RUN set -ex && apk add --no-cache gcc musl-dev \
-             && cd src-gen && python3 setup.py install && cd .. \
-             && apk del gcc musl-dev
-            ENTRYPOINT ["python3", "src-gen/«filename».py"]
+            RUN cd src-gen && python3 setup.py install && cd ..
+            ENTRYPOINT ["python3", "src-gen/«topLevelName».py"]
         ''')
-        JavaGeneratorUtils.writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
-        println("Dockerfile written to " + dockerFile)
+        JavaGeneratorUtils.writeSourceCodeToFile(contents, dockerFile)
+        println("Dockerfile for «topLevelName» written to " + dockerFile)
         println('''
             #####################################
             To build the docker image, use:

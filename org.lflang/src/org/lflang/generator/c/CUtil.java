@@ -36,17 +36,14 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.Mode;
-import org.lflang.TimeValue;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.ValueGenerator;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.LFCommand;
@@ -58,19 +55,6 @@ import org.lflang.util.LFCommand;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class CUtil {
-
-    //////////////////////////////////////////////////////
-    //// Public fields.
-
-    /**
-     * Encapsulation of C-specific functions for representing values
-     * in C. Targets that derive from CGenerator must either reuse this
-     * ValueGenerator or create their own ValueGenerator instances.
-     */
-    public static final ValueGenerator VG = new ValueGenerator(
-            CUtil::timeInTargetLanguage,    // Time value readable in C.
-            CUtil::getTargetReference       // Name of a parameter.  FIXME: Not used. Edit: getTargetReference.apply is called in the implementation of ValueGenerator, so it is used?
-    );
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -529,7 +513,7 @@ public class CUtil {
 
         for (LFCommand cmd : commands) {
             int returnCode = cmd.run();
-            if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.INTEGRATED) {
+            if (returnCode != 0 && fileConfig.getCompilerMode() != Mode.EPOCH) {
                 errorReporter.reportError(String.format(
                     // FIXME: Why is the content of stderr not provided to the user in this error message?
                     "Build command \"%s\" failed with error code %d.",
@@ -539,7 +523,7 @@ public class CUtil {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (!cmd.getErrors().toString().isEmpty() && fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+            if (!cmd.getErrors().toString().isEmpty() && fileConfig.getCompilerMode() == Mode.EPOCH) {
                 reportCommandErrors.report(cmd.getErrors().toString());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
             }
@@ -621,24 +605,5 @@ public class CUtil {
             }
         }
         return result;
-    }
-
-    /**
-     * Given a representation of time that may include units, return
-     * a string that the target language can recognize as a value.
-     * If units are given, e.g. "msec", then we convert the units to upper
-     * case and return an expression of the form "MSEC(value)".
-     * @param time A TimeValue that represents a time.
-     * @return A string, such as "MSEC(100)" for 100 milliseconds.
-     */
-    private static String timeInTargetLanguage(TimeValue time) {
-        if (time != null) {
-            if (time.unit != TimeUnit.NONE) {
-                return time.unit.name() + '(' + time.time + ')';
-            } else {
-                return String.valueOf(time.time);
-            }
-        }
-        return "0"; // FIXME: do this or throw exception?
     }
 }

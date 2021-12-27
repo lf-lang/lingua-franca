@@ -35,9 +35,12 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.JavaAstUtils;
+import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -111,7 +114,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public fields.
 
     /** The action instances belonging to this reactor instance. */
-    public final List<ActionInstance> actions = new ArrayList<ActionInstance>();
+    public List<ActionInstance> actions = new ArrayList<>();
 
     /**
      * The contained reactor instances, in order of declaration.
@@ -119,7 +122,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
-    public final List<ReactorInstance> children = new ArrayList<ReactorInstance>();
+    public final List<ReactorInstance> children = new ArrayList<>();
     
     /**
      * The ID of this reactor instance. This is 0 for a top-level (main) reactor
@@ -129,19 +132,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public final int id;
 
     /** The input port instances belonging to this reactor instance. */
-    public final List<PortInstance> inputs = new ArrayList<PortInstance>();
+    public final List<PortInstance> inputs = new ArrayList<>();
 
     /** The output port instances belonging to this reactor instance. */
-    public final List<PortInstance> outputs = new ArrayList<PortInstance>();
+    public final List<PortInstance> outputs = new ArrayList<>();
 
     /** The parameters of this instance. */
-    public final List<ParameterInstance> parameters = new ArrayList<ParameterInstance>();
+    public final List<ParameterInstance> parameters = new ArrayList<>();
 
     /** List of reaction instances for this reactor instance. */
-    public final List<ReactionInstance> reactions = new ArrayList<ReactionInstance>();
+    public final List<ReactionInstance> reactions = new ArrayList<>();
 
     /** The timer instances belonging to this reactor instance. */
-    public final List<TimerInstance> timers = new ArrayList<TimerInstance>();
+    public final List<TimerInstance> timers = new ArrayList<>();
 
     /** The reactor definition in the AST. */
     public final Reactor reactorDefinition;
@@ -404,7 +407,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public List<Instantiation> instantiations() {
         if (_instantiations == null) {
-            _instantiations = new ArrayList<Instantiation>();
+            _instantiations = new ArrayList<>();
             if (definition != null) {
                 _instantiations.add(definition);
                 if (parent != null) {
@@ -598,6 +601,36 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         transitiveClosure(source, result);
         return result;
     }
+
+    /**
+     * Assuming that the given value denotes a valid time, return a time value.
+     *
+     * If the value is given as a parameter reference, this will look up the
+     * precise time value assigned to this reactor instance.
+     */
+    public TimeValue getTimeValue(Value v) {
+        Parameter p = v.getParameter();
+        if (p != null) {
+            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+        } else {
+            return JavaAstUtils.getLiteralTimeValue(v);
+        }
+    }
+
+    /**
+     * Assuming that the given delay denotes a valid time, return a time value.
+     *
+     * If the delay is given as a parameter reference, this will look up the
+     * precise time value assigned to this reactor instance.
+     */
+    public TimeValue getTimeValue(Delay d) {
+        Parameter p = d.getParameter();
+        if (p != null) {
+            return JavaAstUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+        } else {
+            return JavaAstUtils.toTimeValue(d.getTime());
+        }
+    }
     
     //////////////////////////////////////////////////////
     //// Protected fields.
@@ -618,7 +651,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * in any order and concurrently even though they are in the same reactor.
      * FIXME: Remove this when the language provides syntax.
      */
-    protected Set<Reaction> unorderedReactions = new LinkedHashSet<Reaction>();
+    protected Set<Reaction> unorderedReactions = new LinkedHashSet<>();
 
     /** The nested list of instantiations that created this reactor instance. */
     protected List<Instantiation> _instantiations;
@@ -656,8 +689,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected TriggerInstance<? extends Variable> getOrCreateStartup(TriggerRef trigger) {
         if (startupTrigger == null) {
-            startupTrigger = new TriggerInstance<BuiltinTriggerVariable>(
-                    TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
+            startupTrigger = new TriggerInstance<>(
+                TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
         }
         return startupTrigger;
     }
@@ -667,8 +700,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected TriggerInstance<? extends Variable> getOrCreateShutdown(TriggerRef trigger) {
         if (shutdownTrigger == null) {
-            shutdownTrigger = new TriggerInstance<BuiltinTriggerVariable>(
-                    TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
+            shutdownTrigger = new TriggerInstance<>(
+                TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
         }
         return shutdownTrigger;
     }
@@ -700,7 +733,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (source.isInput()) {
             destinations.add(source);
         }
-        for (Range<PortInstance> dst : source.dependentPorts) {
+        for (RuntimeRange<PortInstance> dst : source.dependentPorts) {
             PortInstance destination = dst.instance;
             destinations.add(destination);
             if (destination.isInput()) {
@@ -848,8 +881,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param dst The destination range.
      */
     public static void connectPortInstances(
-            Range<PortInstance> src,
-            Range<PortInstance> dst
+            RuntimeRange<PortInstance> src,
+            RuntimeRange<PortInstance> dst
     ) {
         src.instance.dependentPorts.add(dst);
         dst.instance.dependsOnPorts.add(src);
@@ -866,10 +899,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<Range<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
-            Iterator<Range<PortInstance>> srcRanges = leftPorts.iterator();
-            List<Range<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
-            Iterator<Range<PortInstance>> dstRanges = rightPorts.iterator();
+            List<RuntimeRange<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
+            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.iterator();
+            List<RuntimeRange<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
+            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.iterator();
             
             // Check for empty lists.
             if (!srcRanges.hasNext()) {
@@ -882,8 +915,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 return;
             }
             
-            Range<PortInstance> src = srcRanges.next();
-            Range<PortInstance> dst = dstRanges.next();
+            RuntimeRange<PortInstance> src = srcRanges.next();
+            RuntimeRange<PortInstance> dst = dstRanges.next();
 
             while(true) {
                 if (dst.width == src.width) {
@@ -958,11 +991,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param references The variable references on one side of the connection.
      * @param connection The connection.
      */
-    private List<Range<PortInstance>> listPortInstances(
+    private List<RuntimeRange<PortInstance>> listPortInstances(
             List<VarRef> references, Connection connection
     ) {
-        List<Range<PortInstance>> result = new ArrayList<Range<PortInstance>>();
-        List<Range<PortInstance>> tails = new LinkedList<Range<PortInstance>>();
+        List<RuntimeRange<PortInstance>> result = new ArrayList<RuntimeRange<PortInstance>>();
+        List<RuntimeRange<PortInstance>> tails = new LinkedList<RuntimeRange<PortInstance>>();
         int count = 0;
         for (VarRef portRef : references) {
             // Simple error checking first.
@@ -982,7 +1015,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             if (reactor != null) {
                 PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
                 
-                Range<PortInstance> range = new Range.Port(portInstance, connection);
+                RuntimeRange<PortInstance> range = new RuntimeRange.Port(portInstance, connection);
                 if (portRef.isInterleaved()) {
                     // Toggle interleaving at the depth of the reactor
                     // that is the parent of the port.
@@ -1011,9 +1044,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Iterate over the tails.
         while(tails.size() > 0) {
-            List<Range<PortInstance>> moreTails = new LinkedList<Range<PortInstance>>();
+            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<RuntimeRange<PortInstance>>();
             count = 0;
-            for (Range<PortInstance> tail : tails) {
+            for (RuntimeRange<PortInstance> tail : tails) {
                 if (count < tails.size() - 1) {
                     int widthBound = tail.instance.width;
                     if (tail._interleaved.contains(tail.instance.parent)) {

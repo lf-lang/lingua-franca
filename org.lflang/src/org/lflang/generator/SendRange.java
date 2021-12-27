@@ -42,11 +42,11 @@ import java.util.Set;
  * reactors.
  * 
  * This class and subclasses are designed to be immutable.
- * Modifications always return a new Range.
+ * Modifications always return a new RuntimeRange.
  *
  * @author{Edward A. Lee <eal@berkeley.edu>}
 */
-public class SendRange extends Range.Port {
+public class SendRange extends RuntimeRange.Port {
     
     /**
      * Create a new send range.
@@ -66,7 +66,7 @@ public class SendRange extends Range.Port {
     //// Public variables
 
     /** The list of destination ranges to which this broadcasts. */
-    public final List<Range<PortInstance>> destinations = new ArrayList<Range<PortInstance>>();
+    public final List<RuntimeRange<PortInstance>> destinations = new ArrayList<RuntimeRange<PortInstance>>();
 
     //////////////////////////////////////////////////////////
     //// Public methods
@@ -77,7 +77,7 @@ public class SendRange extends Range.Port {
      * of this range, throw an exception.
      * @throws IllegalArgumentException If the width doesn't match.
      */
-    public void addDestination(Range<PortInstance> dst) {
+    public void addDestination(RuntimeRange<PortInstance> dst) {
         if (dst.width % width != 0) {
             throw new IllegalArgumentException(
                     "Destination range width is not a multiple of sender's width");
@@ -93,7 +93,7 @@ public class SendRange extends Range.Port {
      * Note that this can return 0 even if equals() does not return true.
      */
     @Override
-    public int compareTo(Range<?> o) {
+    public int compareTo(RuntimeRange<?> o) {
         int result = super.compareTo(o);
         if (result == 0) {
             // Longer destination lists come first.
@@ -118,7 +118,7 @@ public class SendRange extends Range.Port {
             // Has not been calculated before. Calculate now.
             _numberOfDestinationReactors = 0;
             Map<ReactorInstance, Set<Integer>> result = new HashMap<ReactorInstance, Set<Integer>>();
-            for (Range<PortInstance> destination : this.destinations) {
+            for (RuntimeRange<PortInstance> destination : this.destinations) {
                 // The following set contains unique identifiers the parent reactors
                 // of destination ports.
                 Set<Integer> parentIDs = destination.parentInstances(1);
@@ -148,13 +148,13 @@ public class SendRange extends Range.Port {
      */
     @Override
     public SendRange head(int newWidth) {
-        // NOTE: Cannot use the superclass because it returns a Range, not a SendRange.
+        // NOTE: Cannot use the superclass because it returns a RuntimeRange, not a SendRange.
         // Also, cannot return this without applying head() to the destinations.
         if (newWidth <= 0) return null;
 
         SendRange result = new SendRange(instance, start, newWidth);
         
-        for (Range<PortInstance> destination : destinations) {
+        for (RuntimeRange<PortInstance> destination : destinations) {
             result.destinations.add(destination.head(newWidth));
         }
         return result;
@@ -171,12 +171,12 @@ public class SendRange extends Range.Port {
      */
     @Override
     public SendRange tail(int offset) {
-        // NOTE: Cannot use the superclass because it returns a Range, not a SendRange.
+        // NOTE: Cannot use the superclass because it returns a RuntimeRange, not a SendRange.
         // Also, cannot return this without applying tail() to the destinations.
         if (offset >= width) return null;
         SendRange result = new SendRange(instance, start + offset, width - offset);
 
-        for (Range<PortInstance> destination : destinations) {
+        for (RuntimeRange<PortInstance> destination : destinations) {
             result.destinations.add(destination.tail(offset));
         }
         return result;
@@ -188,7 +188,7 @@ public class SendRange extends Range.Port {
         result.append(super.toString());
         result.append("->[");
         List<String> dsts = new LinkedList<String>();
-        for (Range<PortInstance> dst : destinations) {
+        for (RuntimeRange<PortInstance> dst : destinations) {
             dsts.add(dst.toString());
         }
         result.append(String.join(", ", dsts));
@@ -208,7 +208,7 @@ public class SendRange extends Range.Port {
      * 
      * @param srcRange A new source range.
      */
-    protected SendRange newSendRange(Range<PortInstance> srcRange) {
+    protected SendRange newSendRange(RuntimeRange<PortInstance> srcRange) {
         SendRange reference = this;
         if (srcRange.width > width) {
             srcRange = srcRange.head(width);
@@ -217,7 +217,7 @@ public class SendRange extends Range.Port {
         }
         SendRange result = new SendRange(srcRange.instance, srcRange.start, srcRange.width);
         
-        for (Range<PortInstance> dst : reference.destinations) { 
+        for (RuntimeRange<PortInstance> dst : reference.destinations) { 
             result.destinations.add(dst.head(srcRange.width));
         }
         return result;

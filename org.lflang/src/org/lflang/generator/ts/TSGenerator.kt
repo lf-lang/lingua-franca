@@ -31,6 +31,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
+import org.lflang.TargetConfig.Mode
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
 import org.lflang.lf.*
@@ -189,7 +190,19 @@ class TSGenerator(
             tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
+            
+            if (targetConfig.dockerOptions != null) {
+                val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
+                val dockerGenerator = TSDockerGenerator(tsFileName)
+                println("docker file written to $dockerFilePath")
+                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
+            }
         }
+        // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
+        if (!targetConfig.noCompile && fileConfig.compilerMode != Mode.LSP_MEDIUM) compile(resource, context)
+    }
+
+    private fun compile(resource: Resource, context: IGeneratorContext) {
 
         // Run necessary commands.
 
@@ -357,7 +370,32 @@ class TSGenerator(
         }
     }
 
-    override fun getTargetTypes(): TargetTypes = TSTypes
+    /** Given a representation of time that may possibly include units,
+     *  return a string that TypeScript can recognize as a value.
+     *  @param value Literal that represents a time value.
+     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
+     */
+    override fun timeInTargetLanguage(value: TimeValue): String {
+        return if (value.unit != null) {
+            "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
+        } else {
+            // The value must be zero.
+            "TimeValue.zero()"
+        }
+    }
+
+    override fun getTargetType(s: StateVar): String {
+        val type = super.getTargetType(s)
+        return if (!isInitialized(s)) {
+            "$type | undefined"
+        } else {
+            type
+        }
+    }
+
+    override fun getTargetReference(param: Parameter): String {
+        return "this.${param.name}.get()"
+    }
 
     /**
      * Generate code for the body of a reaction that handles the

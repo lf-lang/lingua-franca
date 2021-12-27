@@ -1,5 +1,6 @@
 package org.lflang.util;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -166,6 +167,23 @@ public class CollectionUtil {
         } else {
             return new LinkedHashSet<>(set);
         }
+    }
+
+
+    /**
+     * Returns an immutable Set that contains all argument values.
+     * Duplicate elements are removed without error (contrary
+     * to {@link Set#of()} and friends).
+     */
+    @SafeVarargs
+    public static <T> Set<T> immutableSetOf(T first, T... rest) {
+        if (rest.length == 0) {
+            return Set.of(first);
+        }
+        Set<T> result = new LinkedHashSet<>();
+        result.add(first);
+        result.addAll(Arrays.asList(rest));
+        return result;
     }
 
 }

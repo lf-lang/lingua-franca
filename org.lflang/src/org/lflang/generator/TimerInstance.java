@@ -26,10 +26,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.ASTUtils;
+import org.lflang.JavaAstUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Timer;
 
 /**
@@ -39,8 +38,18 @@ import org.lflang.lf.Timer;
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 public class TimerInstance extends TriggerInstance<Timer> {
-    
-  	/**
+
+    /** The global default for offset. */
+    public static final TimeValue DEFAULT_OFFSET = TimeValue.ZERO;
+
+    /** The global default for period. */
+    public static final TimeValue DEFAULT_PERIOD = TimeValue.ZERO;
+
+    private TimeValue offset = DEFAULT_OFFSET;
+
+    private TimeValue period = DEFAULT_PERIOD;
+
+    /**
 	 * Create a new timer instance.
 	 * If the definition is null, then this is a startup timer.
 	 * @param definition The AST definition, or null for startup.
@@ -53,35 +62,13 @@ public class TimerInstance extends TriggerInstance<Timer> {
         }
         if (definition != null) {
             if (definition.getOffset() != null) {
-                if (definition.getOffset().getParameter() != null) {
-                    Parameter parm = definition.getOffset().getParameter();
-                    this.offset = ASTUtils.getTimeValue(parent.initialParameterValue(parm).get(0));
-                } else {
-                    this.offset = ASTUtils.getTimeValue(definition.getOffset());
-                }
+                this.offset = parent.getTimeValue(definition.getOffset());
             }
             if (definition.getPeriod() != null) {
-                if (definition.getPeriod().getParameter() != null) {
-                    Parameter parm = definition.getPeriod().getParameter();
-                    this.period = ASTUtils.getTimeValue(parent.initialParameterValue(parm).get(0));
-                } else {
-                    this.period = ASTUtils.getTimeValue(definition.getPeriod());
-                }
+                this.period = parent.getTimeValue(definition.getPeriod());
             }
         }
     }
-    
-    //////////////////////////////////////////////////////
-    //// Public fields.
-
-    /** The global default for offset. */
-    public static TimeValue DEFAULT_OFFSET = new TimeValue(0, TimeUnit.NONE);
-    
-    /** The global default for period. */
-    public static TimeValue DEFAULT_PERIOD = new TimeValue(0, TimeUnit.NONE);
-    
-    //////////////////////////////////////////////////////
-    //// Public methods.
 
     /**
      * Get the value of the offset parameter.
@@ -97,10 +84,4 @@ public class TimerInstance extends TriggerInstance<Timer> {
         return period;
     }
 
-    //////////////////////////////////////////////////////
-    //// Protected fields.
-
-    protected TimeValue offset = DEFAULT_OFFSET;
-    
-    protected TimeValue period = DEFAULT_PERIOD;
 }

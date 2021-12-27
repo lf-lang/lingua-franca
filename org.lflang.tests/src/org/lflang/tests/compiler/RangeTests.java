@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.generator.PortInstance;
-import org.lflang.generator.Range;
+import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SendRange;
 import org.lflang.lf.LfFactory;
@@ -42,13 +42,13 @@ public class RangeTests {
 
         Assertions.assertEquals(".A.B.P", pi.getFullName());
         
-        Range<PortInstance> range = new Range.Port(pi, 3, 4, null);
+        RuntimeRange<PortInstance> range = new RuntimeRange.Port(pi, 3, 4, null);
         
         Assertions.assertEquals(8, range.maxWidth);
         
         Assertions.assertEquals(".A.B.P(3,4)", range.toString());
 
-        // The results expected below are derived from the class comment for Range,
+        // The results expected below are derived from the class comment for RuntimeRange,
         // which includes this example.
         List<Integer> instances = range.instances();
         Assertions.assertEquals(List.of(3, 4, 5, 6), instances);

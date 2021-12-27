@@ -105,6 +105,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			setGridPlacement(1)
 			lineWidth = 1
 			foreground = Colors.GRAY
+			background = Colors.WHITE
 			boldLineSelectionStyle
 		]
 		
@@ -426,11 +427,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		).boldLineSelectionStyle
 		
 		val labelParts = newArrayList
-		if (timer.offset !== TimerInstance.DEFAULT_OFFSET) {
-			labelParts += timer.offset.toString
+		if (timer.offset !== TimerInstance.DEFAULT_OFFSET && timer.offset !== null) {
+            labelParts += timer.offset.toString
 		}
-		if (timer.period !== TimerInstance.DEFAULT_PERIOD) {
-			labelParts += timer.period.toString
+		if (timer.period !== TimerInstance.DEFAULT_PERIOD && timer.period !== null) {
+		    if (timer.offset === TimerInstance.DEFAULT_OFFSET) {
+		        labelParts += timer.offset.toString
+            }
+            labelParts += timer.period.toString
 		}
 		if (!labelParts.empty) {
 			node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)

@@ -31,11 +31,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
-import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -210,13 +210,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * Inferred deadline. Defaults to the maximum long value.
      */
-    public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC);
+    public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO);
 
     /**
      * Index of order of occurrence within the reactor definition.
      * The first reaction has index 0, the second index 1, etc.
      */
-    public int index = -1;
+    public int index;
 
     /**
      * Whether or not this reaction is ordered with respect to other
@@ -272,7 +272,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (effect instanceof PortInstance) {
                 for (SendRange senderRange
                         : ((PortInstance)effect).eventualDestinations()) {
-                    for (Range<PortInstance> destinationRange
+                    for (RuntimeRange<PortInstance> destinationRange
                             : senderRange.destinations) {
                         dependentReactionsCache.addAll(
                                 destinationRange.instance.dependentReactions);
@@ -311,7 +311,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         for (TriggerInstance<? extends Variable> source : sources) {
             if (source instanceof PortInstance) {
                 // First, add reactions that send data through an intermediate port.
-                for (Range<PortInstance> senderRange
+                for (RuntimeRange<PortInstance> senderRange
                         : ((PortInstance)source).eventualSources()) {
                     dependsOnReactionsCache.addAll(senderRange.instance.dependsOnReactions);
                 }

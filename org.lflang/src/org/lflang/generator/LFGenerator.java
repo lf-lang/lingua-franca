@@ -14,7 +14,6 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.TargetConfig.Mode;
 import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
@@ -159,11 +158,21 @@ public class LFGenerator extends AbstractGenerator {
             throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
         final ErrorReporter errorReporter;
-        if (fileConfig.getCompilerMode() == Mode.INTEGRATED) {
+        switch (fileConfig.getCompilerMode()) {
+        case EPOCH:
             errorReporter = new EclipseErrorReporter(fileConfig);
-        } else {
-            assert context instanceof StandaloneContext: "Running in standalone, wrong context type " + context;
+            break;
+        case LSP_FAST:
+            return;  // The fastest way to generate code is to... not generate any code.
+        case LSP_MEDIUM:
+        case LSP_SLOW:
+            errorReporter = new LanguageServerErrorReporter(resource.getContents().get(0));
+            break;
+        case STANDALONE:
             errorReporter = Objects.requireNonNull(((StandaloneContext) context).getReporter());
+            break;
+        default:
+            throw new RuntimeException("Unable to handle compiler mode " + fileConfig.getCompilerMode());
         }
 
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
@@ -171,6 +180,9 @@ public class LFGenerator extends AbstractGenerator {
         if (generator != null) {
             generator.doGenerate(resource, fsa, context);
             generatorErrorsOccurred = generator.errorsOccurred();
+        }
+        if (errorReporter instanceof LanguageServerErrorReporter) {
+            ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
         }
     }
 
