@@ -141,6 +141,7 @@ class UclidGenerator extends GeneratorBase {
         dir = fileConfig.getSrcGenPath.resolve("model").toFile
         if (!dir.exists()) dir.mkdirs()
         outputDir = Paths.get(dir.getAbsolutePath)
+        println("The models will be located in: " + outputDir)
         
         // Generate the Uclid model.
         printModelToFile()
