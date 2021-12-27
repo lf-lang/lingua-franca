@@ -3200,7 +3200,7 @@ class CGenerator extends GeneratorBase {
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].token
                                             = &«portRef»[i]->token;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].status
-                                            = (port_status_t*)&«portRef»[i].is_present;
+                                            = (port_status_t*)&«portRef»[i]->is_present;
                                     _lf_tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                 }
                             ''')
@@ -3210,7 +3210,7 @@ class CGenerator extends GeneratorBase {
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].token
                                         = &«portRef»->token;
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].status
-                                        = (port_status_t*)&«portRef».is_present;
+                                        = (port_status_t*)&«portRef»->is_present;
                                 _lf_tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
                             startTimeStepTokens++
