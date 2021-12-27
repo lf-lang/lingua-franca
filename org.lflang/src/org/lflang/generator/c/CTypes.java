@@ -82,10 +82,7 @@ public class CTypes implements TargetTypes {
      * is an array type.
      */
     public String getVariableDeclaration(InferredType type, String variableName) {
-        // FIXME: Same as for getTargetType.
-        // Array type has to be handled specially because C doesn't accept
-        // type[] as a type designator.
-        String t = TargetTypes.super.getTargetType(type);
+        String t = getTargetType(type);
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {
