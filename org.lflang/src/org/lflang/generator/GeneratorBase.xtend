@@ -964,25 +964,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements TargetTypes 
     }
 
     /**
-     * Copy the core files needed to build the RTI within a container.
-     *
-     * @param the directory where rti.Dockerfile is located.
-     * @param the core files used for code generation in the current target.
-     */
-    def copyRtiFiles(File rtiDir, ArrayList<String> coreFiles) {
-        var rtiFiles = newArrayList()
-        rtiFiles.addAll(coreFiles)
-
-        // add the RTI files on top of the coreFiles
-        rtiFiles.addAll(
-            "federated/RTI/rti.h",
-            "federated/RTI/rti.c",
-            "federated/RTI/CMakeLists.txt"
-        )
-        fileConfig.copyFilesFromClassPath("/lib/c/reactor-c/core", rtiDir + File.separator + "core", rtiFiles)
-    }
-
-    /**
      * Write a Dockerfile for the current federate as given by filename.
      * @param the name given to the docker file (without any extension).
      */
