@@ -47,6 +47,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.OuterContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -371,7 +372,7 @@ public abstract class TestBase {
      * @throws IOException if there is any file access problem
      */
     private IGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
-        var context = new LFGeneratorContext(
+        var context = new OuterContext(
             Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
             fileConfig -> new DefaultErrorReporter()
         );
