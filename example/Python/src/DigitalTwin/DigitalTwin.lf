@@ -1,0 +1,107 @@
+target Python;
+
+preamble {=
+    import curses
+    import threading
+=}
+
+reactor KeyFob {
+    state locked({=False=});
+    state window({=None=});
+    state log({=list()=});
+    state log_ptr(-1);
+    state max_log_len(3);
+    input get_lock_status;
+    output send_lock_status;
+    physical action press_lock;
+    physical action press_unlock;
+
+    preamble {=
+        def print_intro_message(self):
+            self.window.addstr(0, 0, "Press 'l' to lock, 'u' to unlock, 'q' to quit")
+            self.window.refresh()
+
+        def print_lock_status(self):
+            status = "Locked" if self.locked else "Unlocked"
+            self.window.addstr(1, 0, f"Lock Status: {status}")
+            self.window.clrtoeol()
+            self.window.refresh()
+
+        def print_log(self):
+            text = "Log is empty"
+            if len(self.log) > 0:
+                for i, line in enumerate(self.log):
+                    log_message = self.format_log_message(line)
+                    if i == self.log_ptr:
+                        log_message += " <-"
+                    self.window.addstr(2 + i, 0, log_message)
+                    self.window.clrtoeol()
+                self.window.refresh()
+        
+        def format_log_message(self, line):
+            elapsed_ptime, tag, remote, locked = line
+            return (f"At (elapsed physical time: {elapsed_ptime}, "
+                    f"tag: ({tag.time}, {tag.microstep})), "
+                    f"{'Received' if remote else 'Set'} lock state as: {'Locked' if locked else 'Unlocked'}")
+
+        # log structure: (elapsed_physical_time:int, tag:int, remote:bool, locked:bool)
+        def append_log(self, remote, locked):
+            log_entry = (get_elapsed_physical_time(), get_current_tag(), remote, locked)
+            self.log_ptr = (self.log_ptr + 1) % self.max_log_len
+            if len(self.log) < self.max_log_len:
+                self.log.append(log_entry)
+            else:
+                self.log[self.log_ptr] = log_entry
+
+        def listen_for_keypress(self, press_lock, press_unlock):
+            key = ""
+            while key != ord("q"):
+                key = self.window.getch()
+                if key == ord("l"): 
+                    press_lock.schedule(0)
+                elif key == ord("u"):
+                    press_unlock.schedule(0)
+            request_stop()
+    =}
+
+    reaction(startup) -> press_lock, press_unlock {=
+        self.window = curses.initscr()
+        curses.cbreak()
+        curses.noecho()
+        self.window.keypad(True)
+        self.print_intro_message()
+        self.print_lock_status()
+        self.print_log()
+        t = threading.Thread(target=self.listen_for_keypress, args=(press_lock, press_unlock))
+        t.start()
+    =}
+
+    reaction(get_lock_status) {=
+        self.locked = get_lock_status.value
+    =}
+
+    reaction(press_lock) {=
+        self.append_log(remote=False, locked=True)
+        self.locked = True
+        self.print_lock_status()
+        self.print_log()
+    =}
+
+    reaction(press_unlock) {=
+        self.append_log(remote=False, locked=False)
+        self.locked = False
+        self.print_lock_status()
+        self.print_log()
+    =}
+
+    reaction(shutdown) {=
+        curses.endwin()
+    =}
+}
+
+main reactor {
+    fob = new KeyFob();
+    // twin = new KeyFob();
+    // fob.send_lock_status -> twin.get_lock_status;
+    // twin.send_lock_status -> fob.get_lock_status;
+}
