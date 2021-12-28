@@ -92,7 +92,6 @@ import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TimerInstance
 import org.lflang.generator.TriggerInstance
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
-import org.lflang.lf.Connection
 import org.lflang.lf.Model
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
@@ -854,12 +853,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             }
         }
         if (reactorInstance.mainOrFederated) {
-            b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
-        } else if (reactorInstance.reactorDefinition === null) {
+            b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDeclaration.eResource))
+        } else if (reactorInstance.reactorDeclaration === null) {
             // There is an error in the graph.
             b.append("<Unresolved Reactor>")
         } else {
-            b.append(reactorInstance.reactorDefinition.name)
+            b.append(reactorInstance.reactorDeclaration.name)
         }
         if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
             if (reactorInstance.parameters.empty) {
