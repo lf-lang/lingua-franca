@@ -118,7 +118,10 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
                 Iterator<Integer> sendParentIDs = sendRange.parentInstances(depth).iterator();
                 while (sendParentIDs.hasNext()) {
                     int srcIndex = sendParentIDs.next();
-                    for (int dstIndex : dstRange.parentInstances(1)) {
+                    Set<Integer> parentInstances = (dstRange.instance.isOutput()) ?
+                            dstRange.parentInstances(2)
+                            : dstRange.parentInstances(1);
+                    for (int dstIndex : parentInstances) {
                         for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
                             List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                             Runtime srcRuntime = srcRuntimes.get(srcIndex);
