@@ -1,5 +1,6 @@
 package org.lflang.diagram.lsp;
 
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.ArrayList;
@@ -31,10 +32,20 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
      * Describes a build process that has a progress.
      */
     private GeneratorResult buildWithProgress(LanguageClient client, String uri, boolean mustComplete) {
-        Progress progress = new Progress(client, "Build \"" + URI.createURI(uri).lastSegment() + "\"", mustComplete);
+        URI parsedUri;
+        try {
+            parsedUri = URI.createFileURI(new java.net.URI(uri).getPath());
+        } catch (java.net.URISyntaxException e) {
+            // This error will appear as a silent failure to most users, but that is acceptable because this error
+            // should be impossible. The URI is not the result of user input -- the language client provides it --
+            // so it should be valid.
+            System.err.println(e);
+            return GeneratorResult.NOTHING;
+        }
+        Progress progress = new Progress(client, "Build \"" + parsedUri.lastSegment() + "\"", mustComplete);
         progress.begin();
         GeneratorResult result = builder.run(
-            URI.createURI(uri), mustComplete, progress::report, progress.getCancelIndicator()
+            parsedUri, mustComplete, progress::report, progress.getCancelIndicator()
         );
         progress.end(result.getUserMessage());
         return result;
