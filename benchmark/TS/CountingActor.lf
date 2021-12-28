@@ -37,6 +37,6 @@ main reactor CountingActor(limit:number(25000)) {
     reaction (c.done) {=
         let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
         console.log("Elapsed time: " + elapsedTime);
-        util.requestShutdown();
+        util.requestStop();
     =}
 }
