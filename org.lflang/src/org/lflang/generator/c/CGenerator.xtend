@@ -1138,16 +1138,18 @@ class CGenerator extends GeneratorBase {
             generateReactorClass(this.mainDef.reactorClass)
         }
 
-        // Generate code for each reactor that was not instantiated in main or its children.
-        for (r : reactors) {
-            // Get the declarations for reactors that are instantiated somewhere.
-            // A declaration is either a reactor definition or an import statement.
-            val declarations = this.instantiationGraph.getDeclarations(r);
-            // If the reactor has no instantiations and there is no main reactor, then
-            // generate code for it anyway (at a minimum, this means that the compiler is invoked
-            // so that reaction bodies are checked).
-            if (mainDef === null && declarations.isEmpty()) {
-                generateReactorClass(r)
+        if (mainDef === null) {
+            // Generate code for each reactor that was not instantiated in main or its children.
+            for (r : reactors) {
+                // Get the declarations for reactors that are instantiated somewhere.
+                // A declaration is either a reactor definition or an import statement.
+                val declarations = this.instantiationGraph.getDeclarations(r);
+                // If the reactor has no instantiations and there is no main reactor, then
+                // generate code for it anyway (at a minimum, this means that the compiler is invoked
+                // so that reaction bodies are checked).
+                if (declarations.isEmpty()) {
+                    generateReactorClass(r)
+                }
             }
         }
     }
@@ -1170,15 +1172,12 @@ class CGenerator extends GeneratorBase {
     ) {
         for (r : reactor.children) {
             if (currentFederate.contains(r)) {
-                val declarations = this.instantiationGraph.getDeclarations(r.reactorDefinition);
-                if (!declarations.isNullOrEmpty) {
-                    for (d : declarations) {
-                        if (!generatedReactorDecls.contains(d)) {
-                            generatedReactorDecls.add(d);
-                            generateReactorChildren(r, generatedReactorDecls);
-                            inspectReactorEResource(d);
-                            generateReactorClass(d);
-                        }
+                if (r.reactorDeclaration !== null) {
+                    if (!generatedReactorDecls.contains(r.reactorDeclaration)) {
+                        generatedReactorDecls.add(r.reactorDeclaration);
+                        generateReactorChildren(r, generatedReactorDecls);
+                        inspectReactorEResource(r.reactorDeclaration);
+                        generateReactorClass(r.reactorDeclaration);
                     }
                 }
             }
@@ -3524,7 +3523,7 @@ class CGenerator extends GeneratorBase {
      * @return The name of the self struct.
      */
     static def variableStructType(TriggerInstance<?> portOrAction) {
-        '''«portOrAction.parent.reactorDefinition.name.toLowerCase»_«portOrAction.name»_t'''
+        '''«portOrAction.parent.reactorDeclaration.name.toLowerCase»_«portOrAction.name»_t'''
     }
     
     /** 
