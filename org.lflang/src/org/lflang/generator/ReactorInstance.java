@@ -48,6 +48,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Value;
@@ -146,7 +147,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** The timer instances belonging to this reactor instance. */
     public final List<TimerInstance> timers = new ArrayList<>();
 
-    /** The reactor definition in the AST. */
+    /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
+    public final ReactorDecl reactorDeclaration;
+
+    /** The reactor after imports are resolve. */
     public final Reactor reactorDefinition;
 
     /** Indicator that this reactor has itself as a parent, an error condition. */
@@ -767,7 +771,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             Set<Reaction> unorderedReactions) {
         super(definition, parent);
         this.reporter = reporter;
-        this.reactorDefinition = ASTUtils.toDefinition(definition.getReactorClass());
+        this.reactorDeclaration = definition.getReactorClass();
+        this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
         this.id = root().childCount++;
         
         if (unorderedReactions != null) {
