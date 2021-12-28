@@ -78,7 +78,7 @@ class TSGenerator(
         private val VG = ValueGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
         private fun timeInTargetLanguage(value: TimeValue): String {
-            return if (value.unit != TimeUnit.NONE) {
+            return if (value.unit != null) {
                 "TimeValue.${value.unit}(${value.time})"
             } else {
                 // The value must be zero.
@@ -355,6 +355,8 @@ class TSGenerator(
 //        }
     }
 
+    override fun getTargetTypes(): TargetTypes = TSTypes
+
     /**
      * Return a TS type for the specified action.
      * If the type has not been specified, return
@@ -368,33 +370,6 @@ class TSGenerator(
         } else {
             "Present"
         }
-    }
-
-    /** Given a representation of time that may possibly include units,
-     *  return a string that TypeScript can recognize as a value.
-     *  @param value Literal that represents a time value.
-     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
-     */
-    override fun timeInTargetLanguage(value: TimeValue): String {
-        return if (value.unit != null) {
-            "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
-        } else {
-            // The value must be zero.
-            "TimeValue.zero()"
-        }
-    }
-
-    override fun getTargetType(s: StateVar): String {
-        val type = super.getTargetType(s)
-        return if (!isInitialized(s)) {
-            "$type | undefined"
-        } else {
-            type
-        }
-    }
-
-    override fun getTargetReference(param: Parameter): String {
-        return "this.${param.name}.get()"
     }
 
     /**

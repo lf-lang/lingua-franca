@@ -1238,22 +1238,6 @@ abstract class GeneratorBase extends JavaGeneratorBase {
      */
     abstract def Target getTarget()
 
-    protected def getTargetType(Parameter p) {
-        return getTargetTypes().getTargetType(p.inferredType)
-    }
-
-    protected def getTargetType(StateVar s) {
-        return getTargetTypes().getTargetType(s.inferredType)
-    }
-
-    protected def getTargetType(Action a) {
-        return getTargetTypes().getTargetType(a.inferredType)
-    }
-
-    protected def getTargetType(Port p) {
-        return getTargetTypes().getTargetType(p.inferredType)
-    }
-
     /**
      * Get textual representation of a time in the target language.
      * 
