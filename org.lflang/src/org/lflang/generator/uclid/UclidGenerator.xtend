@@ -415,7 +415,7 @@ class UclidGenerator extends GeneratorBase {
         * Trace Definition *
         *******************/
         const START : integer = 0;
-        const END : integer = «traceSize»;
+        const END : integer = «traceSize-1»;
         
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
@@ -625,7 +625,7 @@ class UclidGenerator extends GeneratorBase {
                 var downstreamPort = entry.getValue.downstreamPort.getFullNameWithJoiner('_')
                 pr('''
                 // «upstreamPort» -> «downstreamPort» 
-                axiom(forall (i : integer) :: (i >= START && i <= END)
+                axiom(forall (i : integer) :: (i > START && i <= END)
                     ==> (
                         (rxn(i) == «upstreamRxn» ==> «downstreamPort»(s(i)) == «upstreamPort»(s(i)))
                         && (rxn(i) != «upstreamRxn» ==> «downstreamPort»(s(i)) == «downstreamPort»(s(i - 1)))
