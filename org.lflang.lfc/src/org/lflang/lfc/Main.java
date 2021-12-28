@@ -269,7 +269,7 @@ public class Main {
 
             exitIfCollectedErrors();
 
-            LFGeneratorContext context = new LFGeneratorContext(
+            LFGeneratorContext context = new OuterContext(
                 Mode.STANDALONE,CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
                 fileConfig -> injector.getInstance(ErrorReporter.class)
             );
