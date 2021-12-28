@@ -82,7 +82,7 @@ public class CTypes implements TargetTypes {
      * is an array type.
      */
     public String getVariableDeclaration(InferredType type, String variableName) {
-        String t = getTargetType(type);
+        String t = TargetTypes.super.getTargetType(type);
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {
