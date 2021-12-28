@@ -59,12 +59,18 @@ public class CTypes implements TargetTypes {
         return String.format("/* %s */", errorReporter.reportError("undefined type"));
     }
 
+    /**
+     * Given a type, return a C representation of the type. Note that
+     * C types are very idiosyncratic. For example, {@code int[]} is not always accepted
+     * as a type, and {@code int*} must be used instead, except when initializing
+     * a variable using a static initializer, as in {@code int[] foo = {1, 2, 3};}.
+     * When initializing a variable using a static initializer, use
+     * {@link #getVariableDeclaration(InferredType, String)} instead.
+     * @param type The type.
+     */
     @Override
     public String getTargetType(InferredType type) {
         var result = TargetTypes.super.getTargetType(type);
-        // FIXME: This is brittle. Rather than patching up the results of almost-right calls
-        //  to other methods, we should have a more general implementation of the method that
-        //  takes more parameters.
         Matcher matcher = arrayPattern.matcher(result);
         if (matcher.find()) {
             return matcher.group(1) + '*';
@@ -73,23 +79,43 @@ public class CTypes implements TargetTypes {
     }
 
     /**
-     * Provides the same functionality as getTargetType, except with
-     * the array syntax {@code []} preferred over the pointer syntax
-     * {@code *} (if applicable), and with the variable name
-     * included.
-     * The result is of the form {@code type variable_name[]} or
+     * Return a variable declaration of the form "{@code type name}".
+     * The type is as returned by {@link #getTargetType(InferredType)}, except with
+     * the array syntax {@code [size]} preferred over the pointer syntax
+     * {@code *} (if applicable). This also includes the variable name
+     * because C requires the array type specification to be placed after
+     * the variable name rather than with the type.
+     * The result is of the form {@code type variable_name[size]} or
      * {@code type variable_name} depending on whether the given type
-     * is an array type.
+     * is an array type, unless the array type has no size (it is given
+     * as {@code []}. In that case, the returned form depends on the
+     * third argument, initializer. If true, the then the returned
+     * declaration will have the form {@code type variable_name[]},
+     * and otherwise it will have the form {@code type* variable_name}.
+     * @param type The type.
+     * @param variableName The name of the variable.
+     * @param initializer True to return a form usable in a static initializer.
      */
-    public String getVariableDeclaration(InferredType type, String variableName) {
+    public String getVariableDeclaration(
+            InferredType type, 
+            String variableName, 
+            boolean initializer
+    ) {
         String t = TargetTypes.super.getTargetType(type);
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {
-            // If the state type ends in [], then we have to move the []
+            // For array types, we have to move the []
             // because C is very picky about where this goes. It has to go
-            // after the variable name.
-            declaration = String.format("%s %s[%s]", matcher.group(1), variableName, matcher.group(2));
+            // after the variable name. Also, in an initializer, it has to have
+            // form [], and in a struct definition, it has to use *.
+            if (matcher.group(2).equals("") && !initializer) {
+                declaration = String.format("%s* %s",
+                        matcher.group(1), variableName);
+            } else {
+                declaration = String.format("%s %s[%s]",
+                        matcher.group(1), variableName, matcher.group(2));
+            }
         }
         return declaration;
     }

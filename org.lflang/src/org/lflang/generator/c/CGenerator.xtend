@@ -1978,7 +1978,7 @@ class CGenerator extends GeneratorBase {
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        return types.getVariableDeclaration(port.inferredType, "value") + ";"
+        return types.getVariableDeclaration(port.inferredType, "value", false) + ";"
     }
 
     /**
@@ -3862,7 +3862,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         pr(initializeTriggerObjects, '''
                             { // For scoping
-                                static «types.getVariableDeclaration(stateVar.inferredType, "_initial")» = «initializer»;
+                                static «types.getVariableDeclaration(stateVar.inferredType, "_initial", true)» = «initializer»;
                                 «selfRef»->«stateVar.name» = _initial;
                             } // End scoping.
                         '''
@@ -3908,7 +3908,7 @@ class CGenerator extends GeneratorBase {
             if (initializer.startsWith("{")) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects, '''
-                    static «types.getVariableDeclaration(parameter.type, temporaryVariableName)» = «initializer»;
+                    static «types.getVariableDeclaration(parameter.type, temporaryVariableName, true)» = «initializer»;
                     «selfRef»->«parameter.name» = «temporaryVariableName»;
                 ''')
             } else {
@@ -5481,7 +5481,8 @@ class CGenerator extends GeneratorBase {
     protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
-        val targetType = types.getVariableDeclaration(type, "") // This is a hacky way to do this. It is now considered to be a bug (#657)
+        // This is a hacky way to do this. It is now considered to be a bug (#657)
+        val targetType = types.getVariableDeclaration(type, "", false) 
         return type.isVariableSizeList || targetType.contains("*")
     }
     
