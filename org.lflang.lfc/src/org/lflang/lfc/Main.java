@@ -37,6 +37,7 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.OuterContext;
 import org.lflang.lfc.LFStandaloneModule;
 
 import com.google.inject.Inject;
