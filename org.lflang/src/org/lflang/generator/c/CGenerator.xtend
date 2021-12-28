@@ -6090,6 +6090,8 @@ class CGenerator extends GeneratorBase {
         var outputCount = 0;
         val init = new StringBuilder()
 
+        startScopedBlock(init);
+        pr(init, "int count = 0;")
         for (effect : reaction.effects.filter(PortInstance)) {
             // Create the entry in the output_produced array for this port.
             // If the port is a multiport, then we need to create an entry for each
@@ -6098,8 +6100,6 @@ class CGenerator extends GeneratorBase {
             // If the port is an input of a contained reactor, then, if that
             // contained reactor is a bank, we will have to iterate over bank
             // members.
-            startScopedBlock(init);
-            pr(init, "int count = 0;")
             var bankWidth = 1;
             var portRef = "";
             if (effect.isInput) {
@@ -6135,8 +6135,8 @@ class CGenerator extends GeneratorBase {
                 outputCount += bankWidth;
             }
             endScopedBlock(init);
-            endScopedBlock(init);
         }
+        endScopedBlock(init);
         pr('''
             // Total number of outputs (single ports and multiport channels)
             // produced by «reaction.toString».
