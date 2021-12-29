@@ -44,10 +44,14 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         }
         Progress progress = new Progress(client, "Build \"" + parsedUri.lastSegment() + "\"", mustComplete);
         progress.begin();
-        GeneratorResult result = builder.run(
-            parsedUri, mustComplete, progress::report, progress.getCancelIndicator()
-        );
-        progress.end(result.getUserMessage());
+        GeneratorResult result = null;
+        try {
+            result = builder.run(
+                parsedUri, mustComplete, progress::report, progress.getCancelIndicator()
+            );
+        } finally {
+            progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
+        }
         return result;
     }
 
@@ -80,7 +84,13 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
             "Please wait for the Lingua Franca language server to be fully initialized."
         );
         return CompletableFuture.supplyAsync(
-            () -> buildWithProgress(client, uri, true).getUserMessage()
+            () -> {
+                try {
+                    return buildWithProgress(client, uri, true).getUserMessage();
+                } catch (Exception e) {
+                    return "An internal error occurred:\n" + e;
+                }
+            }
         );
     }
 
