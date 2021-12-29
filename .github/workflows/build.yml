@@ -271,9 +271,6 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
@@ -284,21 +281,15 @@ jobs:
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
-      - name: Install RTI;
-        run: |
-          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
-          mkdir build
-          cd build
-          cmake ../
-          make
-          sudo make install
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Build RTI docker image;
         run: |
           cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
           docker build -t rti:rti -f rti.Dockerfile ../../../core/
         if: ${{ runner.os == 'Linux' }}
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
