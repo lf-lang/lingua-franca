@@ -181,11 +181,13 @@ class TSGenerator(
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
             
-            if (targetConfig.dockerOptions != null) {
+            if (targetConfig.dockerOptions != null && !isFederated) {
                 val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
+                val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml");
                 val dockerGenerator = TSDockerGenerator(tsFileName)
                 println("docker file written to $dockerFilePath")
                 fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
+                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerComposeFile).toString(), dockerGenerator.generateDockerComposeFileContent())
             }
         }
         // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
