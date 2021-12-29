@@ -6167,6 +6167,16 @@ class CGenerator extends GeneratorBase {
     private def void deferredFillTriggerTable(Iterable<ReactionInstance> reactions) {
         for (reaction: reactions) {
             val name = reaction.parent.getFullName;
+            
+            // The reaction may have multiple runtime instances, one in each bank member of the parent.
+            // Need a separate index for the triggers array for each bank member.
+            val triggersIndexInitializer = new LinkedList<Integer>();
+            for (var i = 0; i < reaction.parent.totalWidth; i++) triggersIndexInitializer.add(0);
+            startScopedBlock(code);
+            pr('''
+                int triggers_index[] = { «triggersIndexInitializer.join(", ")» };
+            ''')
+            
             for (port : reaction.effects.filter(PortInstance)) {
                 // If the port is a multiport, then its channels may have different sets
                 // of destinations. For ordinary ports, there will be only one range and
@@ -6177,7 +6187,7 @@ class CGenerator extends GeneratorBase {
                 for (SendRange srcRange : port.eventualDestinations()) {
                     startScopedRangeBlock(code, srcRange, bi);
                     
-                    var triggerArray = '''«CUtil.reactionRef(reaction, bi)».triggers[«CUtil.channelIndex(port)»]'''
+                    var triggerArray = '''«CUtil.reactionRef(reaction, bi)».triggers[triggers_index[«bi»]++]'''
                     // Skip ports whose parent is not in the federation.
                     // This can happen with reactions in the top-level that have
                     // as an effect a port in a bank.
@@ -6185,7 +6195,7 @@ class CGenerator extends GeneratorBase {
                         pr('''
                             // Reaction «reaction.index» of «name» triggers «srcRange.destinations.size» downstream reactions
                             // through port «port.getFullName».
-                            «CUtil.reactionRef(reaction, bi)».triggered_sizes[«CUtil.channelIndex(port)»] = «srcRange.destinations.size»;
+                            «CUtil.reactionRef(reaction, bi)».triggered_sizes[triggers_index[«bi»]] = «srcRange.destinations.size»;
                             // For reaction «reaction.index» of «name», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
                             trigger_t** trigger_array = (trigger_t**)malloc(«srcRange.destinations.size» * sizeof(trigger_t*));
@@ -6199,7 +6209,16 @@ class CGenerator extends GeneratorBase {
                         ''')
                     }
                     endScopedRangeBlock(code, srcRange);
+                }
+            }
+            endScopedBlock(code);
                         
+            startScopedBlock(code);
+            pr('''
+                int triggers_index[] = { «triggersIndexInitializer.join(", ")» };
+            ''')
+            for (port : reaction.effects.filter(PortInstance)) {
+                for (SendRange srcRange : port.eventualDestinations()) {
                     if (currentFederate.contains(port.parent)) {
                         var multicastCount = 0;
                         for (dstRange : srcRange.destinations) {
@@ -6211,7 +6230,7 @@ class CGenerator extends GeneratorBase {
                             startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank);
                             
                             // Need to reset triggerArray because of new channel and bank names.
-                            triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[«srcChannel»]'''
+                            val triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[src_bank]++]'''
                                                             
                             if (dst.isOutput) {
                                 // Include this destination port only if it has at least one
@@ -6249,6 +6268,7 @@ class CGenerator extends GeneratorBase {
                     }
                 }
             }
+            endScopedBlock(code);
         }
     }
     
