@@ -28,6 +28,7 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.*
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
@@ -499,6 +500,22 @@ class TSGenerator(
         return with(PrependOperator) {"""
         |// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody
         """.trimMargin()}
+    }
+
+    /**
+     * Add necessary code to the source and necessary build supports to
+     * enable the requested serializations in 'enabledSerializations'
+     */
+    override fun enableSupportForSerialization(cancelIndicator: CancelIndicator?) {
+        for (serializer in enabledSerializers) {
+            when (serializer) {
+                SupportedSerializers.NATIVE -> {
+                    // No need to do anything at this point.
+                    println("Native serializer is enabled.")
+                }
+                else -> println("Serializer $serializer is enabled.")
+            }
+        }
     }
 
     // Virtual methods.
