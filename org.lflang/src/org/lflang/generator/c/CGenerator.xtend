@@ -1394,9 +1394,6 @@ class CGenerator extends GeneratorBase {
         dockerComposeServices.append('''«tab»«tab»«tab»context: «context»«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»command: -i 1«System.lineSeparator»''')
-        if (isFederated) {
-            dockerComposeServices.append('''«tab»«tab»depends_on: [«rtiName»]«System.lineSeparator»''')
-        }
     }
 
     /**
