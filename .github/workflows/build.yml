@@ -281,6 +281,20 @@ jobs:
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
+      - name: Install RTI;
+        run: |
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
+          mkdir build
+          cd build
+          cmake ../
+          make
+          sudo make install
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Build RTI docker image;
+        run: |
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
+          docker build -t rti:rti -f rti.Dockerfile ../../../core/
+        if: ${{ runner.os == 'Linux' }}
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:

@@ -17,4 +17,19 @@ class TSDockerGenerator (
         """
         return dockerFileContent.trimMargin()
     }
+
+    fun generateDockerComposeFileContent(): String {
+        val dockerComposeFileContent = """
+        |version: "3.9"
+        |services:
+        |    ${tsFileName.toLowerCase()}:
+        |        build:
+        |            context: .
+        |            dockerfile: HelloWorldContainerized.Dockerfile
+        |networks:
+        |    default:
+        |        name: lf
+        """
+        return dockerComposeFileContent.trimMargin()
+    }
 }
