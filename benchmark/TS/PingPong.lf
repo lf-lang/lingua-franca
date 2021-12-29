@@ -29,7 +29,7 @@ reactor Ping(limit:number(100000)) {
     reaction (done) {=
         let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
         console.log("Elapsed time: " + elapsedTime);
-        util.requestShutdown();
+        util.requestStop();
     =}
 }
 reactor Pong {
