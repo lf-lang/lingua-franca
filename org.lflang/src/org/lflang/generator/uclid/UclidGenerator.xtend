@@ -33,16 +33,19 @@ import java.util.List
 import java.util.Map
 import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.CausalityInfo
-import org.lflang.ErrorReporter
-import org.lflang.FileConfig
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.generator.PortInstance
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.lf.Action
+import org.lflang.lf.Code
 import org.lflang.lf.VarRef
 import org.lflang.lf.StateVar
+import org.lflang.CausalityInfo
+import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.Target
 
 import static extension org.lflang.ASTUtils.*
@@ -731,18 +734,26 @@ class UclidGenerator extends GeneratorBase {
          *********************/
         ''')
         newline()
-        for (r : this.reactors) {
-            // if (r.main) {
-            //     println("This is the main reactor: " + r)
-            // }
-            // else
-            //     println(r)
-            var attr = r.getAttributes
-            if (attr.length != 0) {
-                for (a : attr) {
-                    var parm = a.getAttrParms
-                    for (p : parm) {
-                        println(p)
+        for (r : this.reactors.filter[!it.main]) {
+            var reactorAttr = r.getAttributes
+            if (reactorAttr.length != 0) {
+                for (attr : reactorAttr) {
+                    if (attr.getAttrName.toString.equals("inv")) {
+                        // Extract the invariant out of the attribute.
+                        var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                        // Print line number
+                        prSourceLineNumber(attr)
+                        pr('''
+                        /* Input/output relations for «r.getName» */
+                        axiom(forall (i : integer) :: (i > START && i <= END) ==>
+                        ''')
+                        indent()
+                        pr(inv)
+                        unindent()
+                        pr('''
+                        ));
+                        ''')
+                        newline()
                     }
                 }
             }
@@ -758,39 +769,101 @@ class UclidGenerator extends GeneratorBase {
         ''')
         newline()
         for (rxn : this.reactions) {
-            pr('''
-            /* Pre/post conditions for «rxn.getFullName» */
-            axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> (
-            ''')
-            indent()
-            // FIXME: Use LF macros to fill in this part.
-            // Currently users have to fill in manually.
-            pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
-            unindent()
-            pr('''
-            )));
-            ''')
-            newline()
+            var attrList = rxn.definition.getAttributes
+            if (attrList.length != 0) {
+                for (attr : attrList) {
+                    if (attr.getAttrName.toString.equals("inv")) {
+                        // Extract the invariant out of the attribute.
+                        var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                        // Print line number
+                        prSourceLineNumber(attr)
+                        pr('''
+                        /* Pre/post conditions for «rxn.getFullName» */
+                        axiom(forall (i : integer) :: (i > START && i <= END) ==>
+                            (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> (
+                        ''')
+                        indent()
+                        pr(inv)
+                        unindent()
+                        pr('''
+                        )));
+                        ''')
+                        newline()
+                    }
+                }
+            }
+            else {
+                pr('''
+                /* Pre/post conditions for «rxn.getFullName» */
+                axiom(forall (i : integer) :: (i > START && i <= END) ==>
+                    (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> (
+                ''')
+                indent()
+                pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
+                unindent()
+                pr('''
+                )));
+                ''')
+                newline()
+            }
         }
     }
 
     // Properties
     def pr_invariants() {
+        var String property
+        var int bound
+        var mainAttr = this.main.reactorDefinition.getAttributes
+        if (mainAttr.length != 0) {
+            for (attr : mainAttr) {
+                if (attr.getAttrName.toString.equals("property")) {
+                    property = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                    bound = Integer.parseInt(attr.getAttrParms.get(1))
+                }
+            }
+        }
         pr('''
         /**************
          * Invariants *
          **************/
+
+        // The property bound
+        const b : integer = «bound»;
+        
+        // max_k = trace end index - property bound - one consecution step
+        // Note: k is bounded by max_km which depends on the trace length.
+        //       The selection of k does not directly depend on max_k.
+        define max_k() : integer = END - b - 1; 
+        define k() : integer = max_k();
         ''')
         newline()
         pr('''
-        // [placeholder] Add user-defined properties here.
-        define inv(i : step_t) : boolean =
+        // The FOL property translated from user-defined MTL property
+        define P(i : step_t) : boolean =
+        ''')
+        indent()
+        if (property !== null) {
+            pr('''
+                «property»;
+            ''')
+        }
+        else {
+            pr("true;   // TODO: replace")
+        }
+        unindent()
+        newline()
+        pr('''
+        // Auxiliary invariant
+        define aux_inv(i : integer) : boolean =
             true;   // TODO: replace
 
-        // Auxiliary invariant
-        define auxiliary_invariant(i : integer) : boolean =
-            true;   // TODO: replace
+        // Strengthened property
+        define Q(i : step_t) : boolean =
+            P(i) && aux_inv(i);
+
+        // Helper macro for temporal induction
+        define Globally_Q(start, end : step_t) : boolean =
+            (forall (i : integer) :: (i >= start && i <= end) ==> Q(i));
         //////////////////////////////////////////////////
         ''')
         newline()
@@ -802,14 +875,17 @@ class UclidGenerator extends GeneratorBase {
         /*************
          * Induction *
          *************/
-        // initialization
-        property initialization : initial_condition() ==>
-            true; // TODO: replace this with a general temporal logic property.
+        // Initiation
+        property initiation : initial_condition() ==>
+            Globally_Q(0, k());
 
-        // Note: state 0 needs to be unconstrained.
-        // consecution
+        // Consecution
         property consecution : 
-            true; // TODO: replace this with a general temporal logic property.
+            Globally_Q(0, k()) ==> Q(k()+1);
+
+        // Make sure k is valid.
+        property N_is_valid :
+            k() <= max_k();
         ''')
         newline()
     }
@@ -836,13 +912,13 @@ class UclidGenerator extends GeneratorBase {
         rm -rf ./smt/ && mkdir -p smt
         
         echo '*** Generating SMT files from UCLID5'
-        uclid -g "smt/output" common.ucl main.ucl
+        uclid -g "smt/output" main.ucl
         
         echo '*** Append (get-model) to each file'
         ls smt | xargs -I {} bash -c 'echo "(get-model)" >> smt/{}'
         
         echo '*** Running Z3'
-        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -T:120 ./smt/{}'
+        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -v:10 ./smt/{}'
         ''')
     }
     
@@ -857,6 +933,19 @@ class UclidGenerator extends GeneratorBase {
 
     protected def newline() {
         pr('')
+    }
+
+    /**
+     * Leave a marker in the generated code that indicates the original line
+     * number in the LF source.
+     * @param eObject The node.
+     */
+    override prSourceLineNumber(EObject eObject) {
+        if (eObject instanceof Code) {
+            pr(code, '''//// From Line «NodeModelUtils.getNode(eObject).startLine +1» in the LF program''')
+        } else {
+            pr(code, '''//// From Line «NodeModelUtils.getNode(eObject).startLine» in the LF program''')
+        }
     }
     
     /////////////////////////////////////////////////

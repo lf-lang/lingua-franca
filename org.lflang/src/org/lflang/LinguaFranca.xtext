@@ -262,8 +262,9 @@ Attribute:
 // FIXME: Use the validator to make sure that first order logic is
 // used only when verification attributes are used.
 AttrParm:
-    STRING 
-    | PropositionalLogic
+    STRING
+    | SignedInt
+    // | PropositionalLogic // Disable logic for now
 ;
 
 /////////// For verification
