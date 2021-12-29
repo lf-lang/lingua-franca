@@ -271,6 +271,9 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
@@ -296,9 +299,6 @@ jobs:
           docker build -t rti:rti -f rti.Dockerfile ../../../core/
         if: ${{ runner.os == 'Linux' }}
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Run Python tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
