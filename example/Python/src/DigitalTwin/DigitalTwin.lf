@@ -1,4 +1,6 @@
-target Python;
+target Python {
+    docker: true
+};
 
 preamble {=
     import curses
@@ -107,7 +109,7 @@ reactor KeyFob {
     =}
 }
 
-federated reactor {
+federated reactor at rti {
     fob = new KeyFob();
     twin = new KeyFob();
     fob.send_lock_status -> twin.get_lock_status;
