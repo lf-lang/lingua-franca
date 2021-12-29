@@ -139,6 +139,11 @@ jobs:
           make
           sudo make install
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Build RTI docker image;
+        run: |
+          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
+          docker build -t rti -f rti.Dockerfile ../../../core/
+        if: ${{ runner.os == 'Linux' }}
       - name: Run C tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
