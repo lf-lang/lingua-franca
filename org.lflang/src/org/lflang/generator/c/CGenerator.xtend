@@ -545,8 +545,8 @@ class CGenerator extends GeneratorBase {
         addPlatformFiles(coreFiles);
 
         // TODO: Find a better way to come up with a unique network name.
-        var dockerComposeNetworkName = 'lf';
-
+        var dockerComposeNetworkName = "lf";
+        var rtiName = "rti";
         var dockerComposeServices = new StringBuilder();
 
         // If there are federates, copy the required files for that.
@@ -858,7 +858,11 @@ class CGenerator extends GeneratorBase {
             if (targetConfig.dockerOptions !== null) {
                 var dockerFileName = topLevelName + '.Dockerfile'
                 writeDockerFile(dockerFileName)
-                appendFederateToDockerComposeServices(dockerComposeServices, federate.name, dockerFileName)
+                if (isFederated) {
+                    appendFederateToDockerComposeServices(dockerComposeServices, federate.name, federate.name, rtiName, dockerFileName)
+                } else {
+                    appendFederateToDockerComposeServices(dockerComposeServices, topLevelName.toLowerCase(), ".", rtiName, dockerFileName)
+                }
             }
 
             // If this code generator is directly compiling the code, compile it now so that we
@@ -903,7 +907,7 @@ class CGenerator extends GeneratorBase {
 
         if (targetConfig.dockerOptions !== null) {
             if (isFederated) {
-                appendRtiToDockerComposeServices(dockerComposeServices, "rti", "rti");
+                appendRtiToDockerComposeServices(dockerComposeServices, rtiName, "rti:rti", federates.size);
             }
             writeFederatesDockerComposeFile(fileConfig.getSrcGenPath().toFile(), dockerComposeServices, dockerComposeNetworkName);
         }
@@ -1360,12 +1364,16 @@ class CGenerator extends GeneratorBase {
      * @param the name of the federate to be added to "services".
      * @param the name of the federate's Dockerfile.
      */
-    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String dockerFileName) {
+    def appendFederateToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String context, String rtiName, String dockerFileName) {
         val tab = '    '
         dockerComposeServices.append('''«tab»«federateName»:«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»build:«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»«tab»context: «federateName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»«tab»context: «context»«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»«tab»dockerfile: «dockerFileName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»command: -i 1«System.lineSeparator»''')
+        if (isFederated) {
+            dockerComposeServices.append('''«tab»«tab»depends_on: [«rtiName»]«System.lineSeparator»''')
+        }
     }
 
     /**
@@ -1373,12 +1381,14 @@ class CGenerator extends GeneratorBase {
      * @param the content of the "services" section of the docker-compose.yml file.
      * @param the name given to the RTI in the "services" section.
      * @param the tag of the RTI's image.
+     * @param the number of federates.
      */
-    def appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String federateName, String dockerImageName) {
+    def appendRtiToDockerComposeServices(StringBuilder dockerComposeServices, String rtiName, String dockerImageName, int n) {
         val tab = '    '
-        dockerComposeServices.append('''«tab»«federateName»:«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«rtiName»:«System.lineSeparator»''')
         dockerComposeServices.append('''«tab»«tab»image: «dockerImageName»«System.lineSeparator»''')
-        dockerComposeServices.append('''«tab»«tab»hostname: «federateName»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»hostname: «federationRTIProperties.get('host').toString»«System.lineSeparator»''')
+        dockerComposeServices.append('''«tab»«tab»command: -i 1 -n «n»«System.lineSeparator»''')
     }
 
     /**
