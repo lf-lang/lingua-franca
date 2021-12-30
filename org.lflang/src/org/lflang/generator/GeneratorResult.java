@@ -60,7 +60,7 @@ public class GeneratorResult {
     private final Map<Path, CodeMap> codeMaps;
 
     /**
-     * Initializes a GeneratorResult.
+     * Initialize a GeneratorResult.
      * @param status The level of completion of a code generation task.
      * @param executable The file that stores the final output of the code
      * generation task. Examples include a fully linked binary or a Python
@@ -76,7 +76,7 @@ public class GeneratorResult {
     }
 
     /**
-     * Returns the result of an incomplete generation task that terminated
+     * Return the result of an incomplete generation task that terminated
      * with status {@code status}.
      * @return the result of an incomplete generation task that terminated
      * with status {@code status}
@@ -85,18 +85,18 @@ public class GeneratorResult {
         return new GeneratorResult(status, null, null, Collections.emptyMap());
     }
 
-    /** Returns the status of {@code this}. */
+    /** Return the status of {@code this}. */
     public Status getStatus() {
         return status;
     }
 
-    /** Returns the command needed to execute the executable, or {@code null} if none exists. */
+    /** Return the command needed to execute the executable, or {@code null} if none exists. */
     public LFCommand getCommand() {
         return command;
     }
 
     /**
-     * Returns a message that can be relayed to the end user about this
+     * Return a message that can be relayed to the end user about this
      * {@code GeneratorResult}.
      */
     public String getUserMessage() {
@@ -104,7 +104,7 @@ public class GeneratorResult {
     }
 
     /**
-     * Returns a map from generated sources to their code maps. The
+     * Return a map from generated sources to their code maps. The
      * completeness of this resulting map is given on a best-effort
      * basis, but those mappings that it does contain are guaranteed
      * to be correct.
