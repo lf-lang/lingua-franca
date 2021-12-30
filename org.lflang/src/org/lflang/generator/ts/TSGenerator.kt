@@ -181,7 +181,9 @@ class TSGenerator(
             fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
                 tsCode.toString())
             
-            if (targetConfig.dockerOptions != null && !isFederated) {
+            if (targetConfig.dockerOptions != null && isFederated) {
+                println("WARNING: Federated Docker file generation is not supported on the Typescript target. No docker file is generated.");
+            } else if (targetConfig.dockerOptions != null) {
                 val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
                 val dockerComposeFile = fileConfig.srcGenPath.resolve("docker-compose.yml");
                 val dockerGenerator = TSDockerGenerator(tsFileName)
