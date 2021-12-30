@@ -24,7 +24,6 @@
 
 package org.lflang.generator.rust
 
-import com.google.common.base.CaseFormat;
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
@@ -78,11 +77,11 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            invokeRustCompiler(context)
+            invokeRustCompiler(context, gen.executableName)
         }
     }
 
-    private fun invokeRustCompiler(context: LFGeneratorContext) {
+    private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String) {
 
         val args = mutableListOf<String>().apply {
             this += listOf(
@@ -121,11 +120,7 @@ class RustGenerator(
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
-            context.finish(
-                GeneratorResult.Status.COMPILED,
-                CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileConfig.name),
-                fileConfig.binPath, null
-            )
+            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, null)
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {

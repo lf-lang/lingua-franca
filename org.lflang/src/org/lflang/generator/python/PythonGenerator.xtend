@@ -1297,9 +1297,9 @@ class PythonGenerator extends CGenerator {
         } else if (errorReporter.getErrorsOccurred()) {
             context.finish(GeneratorResult.FAILED)
         } else if (!isFederated) {
-            context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, null, "python3")
+            context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, fileConfig, null, "python3")
         } else {
-            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null, "bash")
+            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, fileConfig, null, "bash")
         }
     }
     

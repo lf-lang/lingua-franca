@@ -922,7 +922,7 @@ class CGenerator extends GeneratorBase {
                             //  if finish has already been called, then this must be a federated execution.
                             if (!isFederated) context.unsuccessfulFinish();
                         } else if (!isFederated) context.finish(
-                            GeneratorResult.Status.COMPILED, execName, fileConfig.binPath, null
+                            GeneratorResult.Status.COMPILED, execName, fileConfig, null
                         );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
@@ -949,11 +949,11 @@ class CGenerator extends GeneratorBase {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand();
                 context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             } else if (isFederated) {
                 context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             }
         } else {
