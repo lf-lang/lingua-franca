@@ -29,12 +29,14 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.Target
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.*
 import org.lflang.joinWithCommas
 import org.lflang.lf.*
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Generator for the Rust target language. The generation is
@@ -67,10 +69,10 @@ class RustGenerator(
         Files.createDirectories(fileConfig.srcGenPath)
 
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors)
-        RustEmitter.generateRustProject(fileConfig, gen)
+        val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
             println("Exiting before invoking target compiler.")
         } else {
             context.reportProgress(
@@ -78,11 +80,12 @@ class RustGenerator(
             )
             val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
             Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
-            invokeRustCompiler(context)
+            if (context.mode == TargetConfig.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+            else invokeRustCompiler(context, codeMaps)
         }
     }
 
-    private fun invokeRustCompiler(context: LFGeneratorContext) {
+    private fun invokeRustCompiler(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
             this += listOf(
@@ -108,6 +111,10 @@ class RustGenerator(
             }
 
             this += targetConfig.compilerFlags
+
+            if (context.mode != TargetConfig.Mode.STANDALONE) {
+                this += listOf("--message-format", "json")
+            }
         }
 
         val cargoCommand = commandFactory.createCommand(
@@ -115,7 +122,7 @@ class RustGenerator(
             fileConfig.srcGenPath.toAbsolutePath()
         ) ?: return
 
-        val cargoReturnCode = cargoCommand.run(context.cancelIndicator)
+        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             println("SUCCESS (compiling generated Rust code)")
@@ -124,12 +131,12 @@ class RustGenerator(
             context.finish(
                 GeneratorResult.Status.COMPILED,
                 CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileConfig.name),
-                fileConfig.binPath, null
+                fileConfig.binPath, codeMaps
             )
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {
-            errorReporter.reportError("cargo failed with error code $cargoReturnCode")
+            if (!errorsOccurred()) errorReporter.reportError("cargo failed with error code $cargoReturnCode")
             context.finish(GeneratorResult.FAILED)
         }
     }
