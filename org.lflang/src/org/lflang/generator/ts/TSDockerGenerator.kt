@@ -8,6 +8,9 @@ import java.util.StringJoiner
 class TSDockerGenerator (
     private val tsFileName: String
  ) {
+    /**
+    * Returns the content of the docker file for [tsFileName].
+    */
     fun generateDockerFileContent(): String {
         val dockerFileContent = """
         |FROM node:alpine
@@ -18,6 +21,9 @@ class TSDockerGenerator (
         return dockerFileContent.trimMargin()
     }
 
+    /**
+    * Returns the content of the docker compose file for [tsFileName].
+    */
     fun generateDockerComposeFileContent(): String {
         val dockerComposeFileContent = """
         |version: "3.9"
