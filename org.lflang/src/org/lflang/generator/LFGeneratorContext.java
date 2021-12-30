@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     Mode getMode();
 
     /**
-     * Returns the arguments of this.
+     * Returns any arguments that will override target properties.
      */
     Properties getArgs();
 
@@ -34,7 +33,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * Return whether the bin directory should be hierarchical.
      * @return whether the bin directory should be hierarchical
      */
-    boolean isHierarchicalBin();
+    boolean useHierarchicalBin();
 
     /**
      * Construct the appropriate error reporter for {@code fileConfig}.
@@ -68,7 +67,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     void reportProgress(String message, int percentage);
 
     /**
-     * Informs the context of the result of its build, if applicable.
+     * Conclude this build and record the result if necessary.
      * @param status The status of the result.
      * @param execName The name of the executable produced by this code
      * generation process, or {@code null} if no executable was produced.
@@ -111,7 +110,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Informs the context of the result of its build, if applicable.
+     * Conclude this build and record the result if necessary.
      * @param status The status of the result.
      * @param execName The name of the executable produced by this code
      * generation process, or {@code null} if no executable was produced.
@@ -128,7 +127,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Informs the context of that its build finished unsuccessfully.
+     * Conclude this build and record that it was unsuccessful.
      */
     default void unsuccessfulFinish() {
         finish(getCancelIndicator().isCanceled() ? GeneratorResult.CANCELLED : GeneratorResult.FAILED);
@@ -144,10 +143,10 @@ public interface LFGeneratorContext extends IGeneratorContext {
      */
     static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
-        if (resource.getURI().isPlatform()) return new OuterContext(
+        if (resource.getURI().isPlatform()) return new MainContext(
             Mode.EPOCH, context.getCancelIndicator(), (m, p) -> {}, new Properties(), false,
             EclipseErrorReporter::new
         );
-        return new OuterContext(Mode.LSP_FAST, context.getCancelIndicator());
+        return new MainContext(Mode.LSP_FAST, context.getCancelIndicator());
     }
 }

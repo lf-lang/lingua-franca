@@ -122,7 +122,7 @@ public class IntegratedBuilder {
         ReportProgress reportProgress,
         CancelIndicator cancelIndicator
     ) {
-        LFGeneratorContext context = new OuterContext(
+        LFGeneratorContext context = new MainContext(
             mustComplete ? Mode.LSP_SLOW : Mode.LSP_MEDIUM, cancelIndicator, reportProgress, new Properties(),
             false, fileConfig -> new LanguageServerErrorReporter(fileConfig.resource.getContents().get(0))
         );

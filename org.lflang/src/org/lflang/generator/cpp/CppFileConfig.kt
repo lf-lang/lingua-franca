@@ -43,11 +43,15 @@ class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGene
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(outPath.resolve("build"))
-        deleteDirectory(outPath.resolve("lib"))
-        deleteDirectory(outPath.resolve("include"))
-        deleteDirectory(outPath.resolve("share"))
+        cppBuildDirectories.forEach { deleteDirectory(it) }
     }
+
+    val cppBuildDirectories = listOf<Path>(
+        outPath.resolve("build"),
+        outPath.resolve("lib"),
+        outPath.resolve("include"),
+        outPath.resolve("share")
+    )
 
     /** Relative path to the directory where all source files for this resource should be generated in. */
     private fun getGenDir(r: Resource): Path = getDirectory(r).resolve(r.name)
