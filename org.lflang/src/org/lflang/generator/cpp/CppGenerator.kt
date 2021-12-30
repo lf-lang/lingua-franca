@@ -68,9 +68,12 @@ class CppGenerator(
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
             context.reportProgress(
-                "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+                "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (!cppFileConfig.outPath.resolve("include").toFile().exists()) {
+            if (!cppFileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
+                // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
+                //  that has been done in this LF package since the last time the package was cleaned.
+                //  We must compile in order to install the dependencies. Future validations will be faster.
                 doCompile(context, codeMaps)
             } else if (runCmake(context).first == 0) {
                 CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
@@ -156,6 +159,11 @@ class CppGenerator(
         doCompile(context, HashMap())
     }
 
+    /**
+     * Run CMake to generate build files.
+     * @return The CMake return code and the CMake version, or
+     * (1, "") if no acceptable version of CMake is installed.
+     */
     private fun runCmake(context: LFGeneratorContext): Pair<Int, String> {
         val outPath = fileConfig.outPath
 
@@ -172,7 +180,7 @@ class CppGenerator(
                 "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
-            return Pair(1, version ?: "")
+            return Pair(1, "")
         }
 
         // run cmake
@@ -196,7 +204,7 @@ class CppGenerator(
                 // If errors occurred but none were reported, then the following message is the best we can do.
                 if (!errorsOccurred()) errorReporter.reportError("make failed with error code $makeReturnCode")
             }
-        } else {
+        } else if (version.isNotBlank()) {
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
         }
         if (errorReporter.errorsOccurred) {

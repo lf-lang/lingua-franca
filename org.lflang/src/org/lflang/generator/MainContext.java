@@ -11,7 +11,12 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 
-public class OuterContext implements LFGeneratorContext {
+/**
+ * A {@code MainContext} is a context that is not nested in
+ * any other generator context. There is one {@code MainContext}
+ * for every build process.
+ */
+public class MainContext implements LFGeneratorContext {
     /**
      * The indicator that shows whether this build
      * process is canceled.
@@ -29,13 +34,13 @@ public class OuterContext implements LFGeneratorContext {
     private boolean hasConstructedErrorReporter;
 
     /**
-     * Initializes the context of a build process whose cancellation is
+     * Initialize the context of a build process whose cancellation is
      * indicated by {@code cancelIndicator}
      * @param mode The mode of this build process.
      * @param cancelIndicator The cancel indicator of the code generation
      *                        process to which this corresponds.
      */
-    public OuterContext(Mode mode, CancelIndicator cancelIndicator) {
+    public MainContext(Mode mode, CancelIndicator cancelIndicator) {
         this(
             mode, cancelIndicator, (message, completion) -> {}, new Properties(), false,
             fileConfig -> new DefaultErrorReporter()
@@ -43,7 +48,7 @@ public class OuterContext implements LFGeneratorContext {
     }
 
     /**
-     * Initializes the context of a build process whose cancellation is
+     * Initialize the context of a build process whose cancellation is
      * indicated by {@code cancelIndicator}
      * @param mode The mode of this build process.
      * @param cancelIndicator The cancel indicator of the code generation
@@ -57,7 +62,7 @@ public class OuterContext implements LFGeneratorContext {
      * @param constructErrorReporter A function that constructs the appropriate
      *                               error reporter for the given FileConfig.
      */
-    public OuterContext(
+    public MainContext(
         Mode mode,
         CancelIndicator cancelIndicator,
         ReportProgress reportProgress,
@@ -90,7 +95,7 @@ public class OuterContext implements LFGeneratorContext {
     }
 
     @Override
-    public boolean isHierarchicalBin() {
+    public boolean useHierarchicalBin() {
         return hierarchicalBin;
     }
 

@@ -361,7 +361,7 @@ public class FileConfig {
      */
     private static Path getBinPath(Path pkgPath, Path srcPath, Path outPath, LFGeneratorContext context) {
         Path root = outPath.resolve(DEFAULT_BIN_DIR);
-        return context.isHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
+        return context.useHierarchicalBin() ? root.resolve(getSubPkgPath(pkgPath, srcPath)) : root;
     }
     
     /**

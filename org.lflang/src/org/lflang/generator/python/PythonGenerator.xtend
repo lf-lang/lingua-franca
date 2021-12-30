@@ -52,7 +52,7 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.NestedContext
+import org.lflang.generator.SubContext
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.c.CCompiler
@@ -1248,10 +1248,10 @@ class PythonGenerator extends CGenerator {
         targetConfig.useCmake = false; // Force disable the CMake because 
                                        // it interferes with the Python target functionality
         val cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2
-        super.doGenerate(resource, fsa, new NestedContext(
+        super.doGenerate(resource, fsa, new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, cGeneratedPercentProgress
         ))
-        val compilingFederatesContext = new NestedContext(context, cGeneratedPercentProgress, 100)
+        val compilingFederatesContext = new SubContext(context, cGeneratedPercentProgress, 100)
         
         targetConfig.noCompile = compileStatus
 

@@ -66,7 +66,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.NestedContext
+import org.lflang.generator.SubContext
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -596,7 +596,7 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         var federateCount = 0;
-        val LFGeneratorContext compilingContext = new NestedContext(
+        val LFGeneratorContext compilingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
         )
         for (federate : federates) {

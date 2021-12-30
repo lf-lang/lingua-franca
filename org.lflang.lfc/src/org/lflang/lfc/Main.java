@@ -37,8 +37,7 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.TargetConfig.Mode;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.OuterContext;
-import org.lflang.lfc.LFStandaloneModule;
+import org.lflang.generator.MainContext;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -270,7 +269,7 @@ public class Main {
 
             exitIfCollectedErrors();
 
-            LFGeneratorContext context = new OuterContext(
+            LFGeneratorContext context = new MainContext(
                 Mode.STANDALONE,CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
                 fileConfig -> injector.getInstance(ErrorReporter.class)
             );
