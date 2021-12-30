@@ -14,7 +14,7 @@ import org.eclipse.lsp4j.WorkDoneProgressReport;
 import org.eclipse.xtext.util.CancelIndicator;
 
 /**
- * Reports the progress of an ongoing task.
+ * A class for reporting the progress of an ongoing task.
  */
 public class Progress {
     private static int nextToken = 0;
@@ -26,7 +26,7 @@ public class Progress {
     private final boolean cancellable;
 
     /**
-     * Initializes the {@code Progress} of a task titled {@code title} that is
+     * Initialize the {@code Progress} of a task titled {@code title} that is
      * triggered via {@code client}.
      * @param client A language client through which a task was triggered.
      * @param title The title of the task.
@@ -43,7 +43,7 @@ public class Progress {
     }
 
     /**
-     * Cancels the task tracked by the {@code Progress} that has token
+     * Cancel the task tracked by the {@code Progress} that has token
      * {@code token}.
      */
     public static void cancel(int token) {
@@ -62,7 +62,7 @@ public class Progress {
     }
 
     /**
-     * Reports that the task tracked by {@code this} is done.
+     * Report that the task tracked by {@code this} is done.
      */
     public void begin() {
         WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
@@ -73,7 +73,7 @@ public class Progress {
     }
 
     /**
-     * Reports the progress of the task tracked by {@code this}.
+     * Report the progress of the task tracked by {@code this}.
      * @param message A message describing the progress of the task.
      */
     public void report(String message, Integer percentage) {
@@ -95,7 +95,7 @@ public class Progress {
     }
 
     /**
-     * Sends the given progress notification to the client.
+     * Send the given progress notification to the client.
      * @param notification
      */
     private void notifyProgress(WorkDoneProgressNotification notification) {

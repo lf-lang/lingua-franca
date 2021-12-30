@@ -68,7 +68,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     }
 
     /**
-     * Handles a request for a complete build of the Lingua
+     * Handle a request for a complete build of the Lingua
      * Franca file specified by {@code uri}.
      * @param uri the URI of the LF file of interest
      * @return A message describing the outcome of the build
@@ -97,7 +97,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     }
 
     /**
-     * Completely builds the specified LF program and provides information that is sufficient to
+     * Completely build the specified LF program and provide information that is sufficient to
      * run it.
      * @param uri The URI of the LF program to be built.
      * @return An array consisting of the directory in which the execute command should be

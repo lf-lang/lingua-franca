@@ -20,7 +20,8 @@ import org.lflang.util.LFCommand;
 public interface LFGeneratorContext extends IGeneratorContext {
 
     /**
-     * Returns the mode of this.
+     * Return the mode of operation, which indicates how the compiler has been invoked 
+     * (e.g., from within Epoch, from the command line, or via a Language Server).
      */
     Mode getMode();
 
@@ -30,20 +31,20 @@ public interface LFGeneratorContext extends IGeneratorContext {
     Properties getArgs();
 
     /**
-     * Returns whether the bin directory should be hierarchical.
+     * Return whether the bin directory should be hierarchical.
      * @return whether the bin directory should be hierarchical
      */
     boolean isHierarchicalBin();
 
     /**
-     * Constructs the appropriate error reporter for {@code fileConfig}.
+     * Construct the appropriate error reporter for {@code fileConfig}.
      * @param fileConfig The {@code FileConfig} used by a build process.
      * @return the appropriate error reporter for {@code fileConfig}
      */
     ErrorReporter constructErrorReporter(FileConfig fileConfig);
 
     /**
-     * Marks the code generation process performed in this
+     * Mark the code generation process performed in this
      * context as finished with the result {@code result}.
      * @param result The result of the code generation
      *               process that was performed in this
@@ -52,7 +53,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     void finish(GeneratorResult result);
 
     /**
-     * Returns the result of the code generation process that was performed in
+     * Return the result of the code generation process that was performed in
      * this context.
      * @return the result of the code generation process that was performed in
      * this context
@@ -60,7 +61,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     GeneratorResult getResult();
 
     /**
-     * Reports the progress of a build.
+     * Report the progress of a build.
      * @param message A message for the LF programmer to read.
      * @param percentage The approximate percent completion of the build.
      */
@@ -134,7 +135,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Returns the {@code LFGeneratorContext} that best describes the given {@code context} when
+     * Return the {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
      * @param context The context of a Lingua Franca build process.
      * @param resource The resource being built.
