@@ -401,7 +401,7 @@ class TSGenerator(
         } else {
             context.finish(
                 GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                fileConfig.srcGenPkgPath.resolve("dist"), null, "node"
+                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, null, "node"
             )
         }
     }

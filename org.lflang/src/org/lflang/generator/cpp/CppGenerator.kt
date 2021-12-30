@@ -211,7 +211,7 @@ class CppGenerator(
             context.unsuccessfulFinish()
         } else {
             context.finish(
-                GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
+                GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig, codeMaps
             )
         }
     }
