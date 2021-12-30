@@ -4927,6 +4927,7 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 int «ci» = «ciValue»; // Channel index.
                 int «runtimeIndex» = «biValue»; // Bank index.
+                int range_count = 0;
             ''')
         }
     }
@@ -6213,24 +6214,31 @@ class CGenerator extends GeneratorBase {
             }
             endScopedBlock(code);
                         
-            startScopedBlock(code);
-            pr('''
-                int triggers_index[] = { «triggersIndexInitializer.join(", ")» };
-            ''')
+            // To get triggers_index right, have to duplicate the logic in deferredReactionOutputs().
+            var outputCount = 0;
+            
             for (port : reaction.effects.filter(PortInstance)) {
                 for (SendRange srcRange : port.eventualDestinations()) {
                     if (currentFederate.contains(port.parent)) {
                         var multicastCount = 0;
+                        val srcChannel = "src_channel";
+                        val srcBank = "src_bank";
+                        val dstBank = "dst_bank";
                         for (dstRange : srcRange.destinations) {
                             val dst = dstRange.instance;
                             
-                            val srcChannel = "src_channel";
-                            val srcBank = "src_bank";
-                            val dstBank = "dst_bank";
+                            // Each multicast target needs to start with the same indexes into triggers array.
+                            triggersIndexInitializer.clear();
+                            for (var i = 0; i < reaction.parent.totalWidth; i++) triggersIndexInitializer.add(outputCount);
+                            startScopedBlock(code);
+                            pr('''
+                                int triggers_index[] = { «triggersIndexInitializer.join(", ")» };
+                            ''')
+                            
                             startScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank);
                             
                             // Need to reset triggerArray because of new channel and bank names.
-                            val triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[src_bank]++]'''
+                            val triggerArray = '''«CUtil.reactionRef(reaction, srcBank)».triggers[triggers_index[«srcBank»]++]'''
                                                             
                             if (dst.isOutput) {
                                 // Include this destination port only if it has at least one
@@ -6264,11 +6272,16 @@ class CGenerator extends GeneratorBase {
                             }
                             endScopedRangeBlock(code, srcRange, dstRange, srcBank, srcChannel, dstBank);
                             multicastCount++;
+                            endScopedBlock(code);
                         }
                     }
                 }
+                var bankWidth = 1;
+                if (port.isInput) {
+                    bankWidth = port.parent.width;
+                }
+                outputCount += port.width * bankWidth;
             }
-            endScopedBlock(code);
         }
     }
     
