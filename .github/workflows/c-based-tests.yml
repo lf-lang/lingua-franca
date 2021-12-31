@@ -6,6 +6,7 @@ on:
       compiler-ref:
         required: false
         type: string
+        default: ''
       runtime-ref:
         required: false
         type: string
