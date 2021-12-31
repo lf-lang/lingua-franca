@@ -29,6 +29,7 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@modular-ci
     with:
       target: 'C'
+      runtime-ref: 'a08b5e765b3e2ec91ad46de3e47a08cfefe8cb47'
 
   # Run the C integration tests.
   c-tests:
