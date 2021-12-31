@@ -1,7 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
-
+name: Tests
 
 on:
   # Trigger this workflow on push events, but only on master.
@@ -81,43 +80,12 @@ jobs:
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@modular-ci
     with:
-      jdk-version: 11
       runtime-ref:
 
   ccpp-tests:
-    strategy:
-      matrix:
-        platform: [ ubuntu-latest, macos-latest ]
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Install Dependencies Ubuntu
-        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
-        if: runner.os == 'Linux'
-      - name: Install Dependencies OS X
-        run: |
-          brew install protobuf
-          brew install protobuf-c
-          brew install coreutils
-        if: runner.os == 'macOS'
-      - name: Install RTI;
-        run: |
-          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
-          mkdir build
-          cd build
-          cmake ../
-          make
-          sudo make install
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Run C tests;
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
+    uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@modular-ci
+    with:
+      use-cpp: true
 
   cpp-tests:
     strategy:
