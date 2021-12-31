@@ -1,0 +1,32 @@
+name: Standalone Compiler Tests
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Run standalone lfc tests
+        run: |
+          ./gradlew :org.lflang.lfc:test --stacktrace
+      - name: Test Bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lfc.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test PowerShell script (Windows only)
+        run: |
+          ./gradlew buildLfc
+          bin/lfc.ps1 --help
+        if: ${{ runner.os == 'Windows' }}
