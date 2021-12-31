@@ -3,9 +3,14 @@ package org.lflang.generator.rust
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.eclipse.lsp4j.DiagnosticSeverity
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
-import org.lflang.generator.*
+import org.lflang.generator.CodeMap
+import org.lflang.generator.DiagnosticReporting
+import org.lflang.generator.Position
+import org.lflang.generator.ValidationStrategy
+import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
 import java.nio.file.Path
 
@@ -48,7 +53,18 @@ class RustValidator(
         @Suppress("ArrayInDataClass") @JsonProperty("spans") val spans: Array<RustSpan>,  // Ignore warning. This will not be used in hashmaps etc.
         @Suppress("ArrayInDataClass") @JsonProperty("children") val children: Array<RustDiagnostic?>,
         @JsonProperty("rendered") val rendered: String?
-    )
+    ) {
+        val severity: DiagnosticSeverity
+            get() = when (level) {
+                "error" -> DiagnosticSeverity.Error
+                "warning" -> DiagnosticSeverity.Warning
+                "note" -> DiagnosticSeverity.Information
+                "help" -> DiagnosticSeverity.Hint
+                "failure-note" -> DiagnosticSeverity.Information
+                "error: internal compiler error" -> DiagnosticSeverity.Error
+                else -> DiagnosticSeverity.Warning // Should be impossible
+            }
+    }
     private data class RustDiagnosticCode(
         @JsonProperty("code") val code: String,
         @JsonProperty("explanation") val explanation: String?
@@ -67,7 +83,12 @@ class RustValidator(
         @JsonProperty("suggested_replacement") val suggestedReplacement: String?,
         @JsonProperty("suggestion_applicability") val suggestionApplicability: String?,
         @JsonProperty("expansion") val expansion: RustSpanExpansion?
-    )
+    ) {
+        val start: Position
+            get() = Position.fromOneBased(lineStart, columnStart)
+        val end: Position
+            get() = Position.fromOneBased(lineEnd, columnEnd)
+    }
     private data class RustSpanExpansion(
         @JsonProperty("span") val span: String,
         @JsonProperty("macro_decl_name") val macroDeclName: String,
@@ -84,36 +105,28 @@ class RustValidator(
             return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), fileConfig.srcGenPath)
         }
 
-        override fun getErrorReportingStrategy() = CommandErrorReportingStrategy { _, _, _ -> }
+        override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
 
-        override fun getOutputReportingStrategy() = CommandErrorReportingStrategy {
+        override fun getOutputReportingStrategy() = DiagnosticReporting.Strategy {
             validationOutput, errorReporter, map -> validationOutput.lines().forEach { messageLine ->
                 if (messageLine.isNotBlank() && mapper.readValue(messageLine, RustOutput::class.java).reason == COMPILER_MESSAGE_REASON) {
                     val message = mapper.readValue(messageLine, RustCompilerMessage::class.java).message
-                    System.err.println("DEBUG: $message")
-                    if (message.spans.isEmpty()) errorReporter.reportError(message.message)  // FIXME: This might not actually be an error!
+                    if (message.spans.isEmpty()) errorReporter.report(message.severity, message.message)
                     for (s: RustSpan in message.spans) {
                         val p: Path = fileConfig.srcGenPath.parent.resolve(s.fileName)
                         map[p]?.let {
-                            for (lfSourcePath: Path in it.lfSourcePaths()) getReport(message.level).invoke(
-                                p,
-                                it.adjusted(lfSourcePath, Position.fromOneBased(s.lineStart, s.columnStart)).oneBasedLine,
-                                message.message
-                            )
+                            for (lfSourcePath: Path in it.lfSourcePaths()) {
+                                errorReporter.report(
+                                    message.severity,
+                                    DiagnosticReporting.messageOf(message.message, p.toString(), s.start),
+                                    it.adjusted(lfSourcePath, s.start),
+                                    it.adjusted(lfSourcePath, s.end),
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-
-        private fun getReport(level: String): (Path, Int, String) -> Unit = when (level) {
-            "error" -> errorReporter::reportError
-            "warning" -> errorReporter::reportWarning
-            "note" -> errorReporter::reportWarning  // FIXME: errorReporter needs a bigger interface!
-            "help" -> errorReporter::reportWarning
-            "failure-note" -> errorReporter::reportWarning
-            "error: internal compiler error" -> errorReporter::reportError
-            else -> errorReporter::reportWarning
         }
 
         override fun getPriority(): Int = 0
@@ -121,7 +134,7 @@ class RustValidator(
         override fun isFullBatch(): Boolean = true
     })
 
-    override val buildReportingStrategies: Pair<CommandErrorReportingStrategy, CommandErrorReportingStrategy> = Pair(
+    override val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> = Pair(
         possibleStrategies.first().errorReportingStrategy, possibleStrategies.first().outputReportingStrategy
     )
 }

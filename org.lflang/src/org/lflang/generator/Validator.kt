@@ -95,5 +95,5 @@ abstract class Validator(
      * Returns the appropriate output and error reporting
      * strategies for the main build process.
      */
-    protected abstract val buildReportingStrategies: Pair<CommandErrorReportingStrategy, CommandErrorReportingStrategy>
+    protected abstract val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
 }
