@@ -27,7 +27,7 @@ jobs:
         run: |
           pushd org.lflang/src/lib/c/reactor-c
           git fetch --all
-          git checkout ${{ inputs.runtime-ref }}
+          git checkout -f ${{ inputs.runtime-ref }}
           popd
         if: ${{ inputs.runtime-ref }}
       - name: Install Dependencies Ubuntu
