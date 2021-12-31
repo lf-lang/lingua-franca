@@ -3,6 +3,9 @@ name: Run tests based on C runtime
 on:
   workflow_call:
     inputs:
+      compiler-ref:
+        required: false
+        type: string
       runtime-ref:
         required: false
         type: string
@@ -26,6 +29,7 @@ jobs:
           java-version: 11
       - uses: actions/checkout@v2
         with:
+          ref: {{ $inputs.compiler-ref }}
           submodules: true
           fetch-depth: 0 # NOTE: if this parameter is not used, fetching an alternative runtime fails.
       - name: Use alternative runtime version
