@@ -1,4 +1,4 @@
-name: Standalone Compiler Tests
+name: Run tests for standalone compiler
 
 on:
   workflow_call:
@@ -10,7 +10,6 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      # Setup Build dependencies
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
         with:
