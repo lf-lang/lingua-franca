@@ -83,7 +83,7 @@ jobs:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
-    uses: lf-lang/lingua-franca/.github/workflows/c-target-setup.yml@c5ae4bd2c4996eadd48c70e52ae6948a01d3071a
+    uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@c5ae4bd2c4996eadd48c70e52ae6948a01d3071a
 
   ccpp-tests:
     strategy:
