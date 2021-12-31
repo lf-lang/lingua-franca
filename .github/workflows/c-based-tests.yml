@@ -6,7 +6,6 @@ on:
       compiler-ref:
         required: false
         type: string
-        default: ''
       runtime-ref:
         required: false
         type: string
@@ -21,7 +20,7 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Install JDK ${{ inputs.runtime-ref }}
+      - name: Install JDK
         uses: actions/setup-java@v1.4.3
         with:
           # The Java version to make available on the path.
@@ -30,7 +29,7 @@ jobs:
           java-version: 11
       - uses: actions/checkout@v2
         with:
-          ref: {{ $inputs.compiler-ref }}
+          ref: ${{ $inputs.compiler-ref }}
           submodules: true
           fetch-depth: 0 # NOTE: if this parameter is not used, fetching an alternative runtime fails.
       - name: Use alternative runtime version
