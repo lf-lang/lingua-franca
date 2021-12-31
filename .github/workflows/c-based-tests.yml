@@ -29,7 +29,7 @@ jobs:
           java-version: 11
       - uses: actions/checkout@v2
         with:
-          ref: ${{ $inputs.compiler-ref }}
+          ref: ${{ inputs.compiler-ref }}
           submodules: true
           fetch-depth: 0 # NOTE: if this parameter is not used, fetching an alternative runtime fails.
       - name: Use alternative runtime version
