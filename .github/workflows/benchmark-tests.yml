@@ -1,4 +1,4 @@
-name: Benchmark Tests
+name: Run the benchmark tests
 
 on:
   workflow_call:
@@ -6,7 +6,8 @@ on:
       target:
         required: false
         type: string
-        default: 'Cpp'
+        default: Cpp
+
 jobs:
   run:
     runs-on: ubuntu-latest

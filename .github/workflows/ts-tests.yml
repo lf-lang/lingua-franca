@@ -1,4 +1,4 @@
-name: TypeScript Tests
+name: Run tests based on TypeScript runtime
 
 on:
   workflow_call:
@@ -34,7 +34,6 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
           submodules: true

@@ -1,4 +1,4 @@
-name: Rust Tests
+name: Run tests based on Rust runtime
 
 on:
   workflow_call:
@@ -6,6 +6,7 @@ on:
       runtime-ref:
         required: false
         type: string
+
 jobs:
   run:
     strategy:
