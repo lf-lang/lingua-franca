@@ -81,7 +81,7 @@ jobs:
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@cc1e3627e4979ee461cf22ac38ad3fe3c333a808
     with:
-      runtime-ref: 22edd162b13ddc3f31376d51e07cf71214badc6b
+      runtime-ref: a08b5e765b3e2ec91ad46de3e47a08cfefe8cb47
 
   ccpp-tests:
     strategy:
