@@ -1,0 +1,28 @@
+name: C++ Tests
+
+on:
+  workflow_call:
+    inputs:
+      runtime-ref:
+        required: false
+        type: string
+jobs:  
+  run-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 11
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Install Dependencies OS X
+        run: brew install coreutils
+        if: runner.os == 'macOS'
+      - uses: actions/checkout@v2
+      - name: Run C++ tests;
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CppTest.*
