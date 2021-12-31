@@ -27,8 +27,8 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
+import org.lflang.generator.LFGeneratorContext
 import java.io.IOException
 import java.nio.file.Path
 
@@ -41,9 +41,9 @@ import java.nio.file.Path
  *  @author {Christian Menard <christian.menard@tu-dresden.de>}
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
-class TSFileConfig(resource: Resource, fsa: IFileSystemAccess2,
-                   context: IGeneratorContext) :
-    FileConfig(resource, fsa, context) {
+class TSFileConfig(
+    resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext
+) : FileConfig(resource, fsa, context) {
 
     /**
      * Clean any artifacts produced by the TypeScript code generator.
