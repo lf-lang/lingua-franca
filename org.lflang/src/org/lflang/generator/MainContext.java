@@ -15,6 +15,8 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
  * A {@code MainContext} is an {@code LFGeneratorContext} that is
  * not nested in any other generator context. There is one
  * {@code MainContext} for every build process.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class MainContext implements LFGeneratorContext {
     /**

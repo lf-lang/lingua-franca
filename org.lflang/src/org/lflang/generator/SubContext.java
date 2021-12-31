@@ -12,6 +12,8 @@ import org.lflang.TargetConfig.Mode;
  * A {@code SubContext} is the context of a process within a build process. For example,
  * compilation of generated code may optionally be given a {@code SubContext} because
  * compilation is part of a complete build.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class SubContext implements LFGeneratorContext {
 

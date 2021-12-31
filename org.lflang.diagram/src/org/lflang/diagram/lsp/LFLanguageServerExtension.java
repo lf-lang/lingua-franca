@@ -24,6 +24,7 @@ import org.lflang.util.LFCommand;
 /**
  * Provides Lingua-Franca-specific extensions to the
  * language server's behavior.
+ *
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 class LFLanguageServerExtension implements ILanguageServerExtension {

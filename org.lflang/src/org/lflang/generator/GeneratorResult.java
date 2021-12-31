@@ -10,6 +10,8 @@ import org.lflang.util.LFCommand;
 
 /**
  * A {@code GeneratorResult} is the outcome of a code generation task.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class GeneratorResult {
     public static GeneratorResult NOTHING = incompleteGeneratorResult(Status.NOTHING);
