@@ -684,7 +684,7 @@ public class FileConfig {
     
     /**
      * Return a java.nio.Path object corresponding to the given URI.
-     * @throws IOException 
+     * @throws IOException If the given URI is invalid.
      */
     public static Path toPath(URI uri) throws IOException {
         return Paths.get(toIPath(uri).toFile().getAbsolutePath());
@@ -692,7 +692,7 @@ public class FileConfig {
 
     /**
      * Return a java.nio.Path object corresponding to the given Resource.
-     * @throws IOException 
+     * @throws IOException If the given resource has an invalid URI.
      */
     public static Path toPath(Resource resource) throws IOException {
         return FileConfig.toPath(resource.getURI());
@@ -701,7 +701,7 @@ public class FileConfig {
     /**
      * Return an org.eclipse.core.runtime.Path object corresponding to the
      * given URI.
-     * @throws IOException 
+     * @throws IOException If the given URI is invalid.
      */
     public static IPath toIPath(URI uri) throws IOException {
         if (uri.isPlatform()) {
@@ -796,28 +796,44 @@ public class FileConfig {
 
     /**
      * Return the name of the RTI executable.
-     * @return
+     * @return The name of the RTI executable.
      */
     public String getRTIBinName() {
         return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
     }
 
+    /**
+     * Return the file location of the RTI executable.
+     * @return The file location of the RTI executable.
+     */
     public File getRTIBinFile() {
         return this.binPath.resolve(getRTIBinName()).toFile();
     }
 
     /**
      * Return the name of the RTI distribution script.
-     * @return
+     * @return The name of the RTI distribution script.
      */
     public String getRTIDistributionScriptName() {
         return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
     }
 
+    /**
+     * Return the file location of the RTI distribution script.
+     * @return The file location of the RTI distribution script.
+     */
     public File getRTIDistributionScriptFile() {
         return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
     }
 
+    /**
+     * Return the name of the file associated with the given resource,
+     * excluding its file extension.
+     * @param r Any {@code Resource}.
+     * @return The name of the file associated with the given resource,
+     * excluding its file extension.
+     * @throws IOException If the resource has an invalid URI.
+     */
     public static String nameWithoutExtension(Resource r) throws IOException {
         return nameWithoutExtension(toPath(r));
     }
