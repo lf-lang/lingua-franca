@@ -4782,7 +4782,7 @@ class CGenerator extends GeneratorBase {
      */
     protected def void startScopedBlock(StringBuilder builder, ReactorInstance reactor) {
         // NOTE: This is protected because it is used by the PythonGenerator.
-        if (reactor !== null && reactor.width > 1) {
+        if (reactor !== null && reactor.isBank) {
             val index = CUtil.bankIndexName(reactor);            
             pr(builder, '''
                 // Reactor is a bank. Iterate over bank members.
@@ -5013,7 +5013,7 @@ class CGenerator extends GeneratorBase {
             
         if (srcRange.width > 1) {
             pr(builder, '''
-                int «srcChannelIndex» = src_range_mr.digits[permutation[0]]; // Channel index.
+                int «srcChannelIndex» = src_range_mr.digits[src_permutation[0]]; // Channel index.
                 int src_range_natural_start[] =  { «rangeMR.getDigits().join(", ")» };
                 int src_range_natural_radixes[] = { «rangeMR.getRadixes().join(", ")» };
                 mixed_radix_int_t src_range_natural = {

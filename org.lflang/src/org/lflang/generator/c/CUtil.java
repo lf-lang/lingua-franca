@@ -386,7 +386,7 @@ public class CUtil {
         int width = 0;
         int parens = 0;
         while (reactor != null) {
-            if (reactor.isBank()) {
+            if (reactor.isBank() && reactor.getWidth() > 1) {
                 if (width > 0) {
                     result.append(" + " + width + " * (");
                     parens++;
