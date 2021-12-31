@@ -575,6 +575,7 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
+        var text = ""
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
             if (node !== null) {
@@ -591,34 +592,16 @@ class ASTUtils {
                 str = str.substring(start + 2, end)
                 if (str.split('\n').length > 1) {
                     // multi line code
-                    return str.trimCodeBlock
+                    text = str.trimCodeBlock
                 } else {
                     // single line code
-                    return str.trim
+                    text = str.trim
                 }    
             } else if (code.body !== null) {
                 // Code must have been added as a simple string.
-                return code.body.toString
+                text = code.body.toString
             }
         }
-        return ""
-    }
-
-    /**
-     * Translate the given code into its textual representation,
-     * with a tag inserted to establish this representation's
-     * correspondence to the generated code. This tag is an
-     * implementation detail that is internal to the code
-     * generator.
-     * @param code the AST node to render as a string
-     * @return a textual representation of {@code code}
-     */
-    def static String toTaggedText(Code code) {
-        // FIXME: Duplicates work already done in
-        //  GeneratorBase::prSourceLineNumber. It does not
-        //  make sense for both methods to persist in the
-        //  code base at once.
-        val text = toText(code)
         return CodeMap.Correspondence.tag(code, text, true)
     }
     

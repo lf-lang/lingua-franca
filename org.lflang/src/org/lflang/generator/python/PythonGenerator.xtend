@@ -27,8 +27,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.python
 
 import java.io.File
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayList
+import java.util.HashMap
 import java.util.LinkedHashSet
 import java.util.List
 import java.util.regex.Pattern
@@ -47,6 +49,7 @@ import org.lflang.federated.PythonGeneratorExtension
 import org.lflang.federated.launcher.FedPyLauncher
 import org.lflang.federated.serialization.FedNativePythonSerialization
 import org.lflang.federated.serialization.SupportedSerializers
+import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
@@ -810,7 +813,8 @@ class PythonGenerator extends CGenerator {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        JavaGeneratorUtils.writeSourceCodeToFile(generatePythonCode(federate), file.absolutePath)
+        val codeMaps = #{file.toPath -> CodeMap.fromGeneratedCode(generatePythonCode(federate).toString)}
+        JavaGeneratorUtils.writeSourceCodeToFile(codeMaps.get(file.toPath).generatedCode, file.absolutePath)
         
         val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
@@ -824,7 +828,7 @@ class PythonGenerator extends CGenerator {
         // Create the setup file
         JavaGeneratorUtils.writeSourceCodeToFile(generatePythonSetupFile, setupPath.toString)
              
-        
+        return codeMaps
     }
     
     /**
@@ -1261,6 +1265,7 @@ class PythonGenerator extends CGenerator {
         // Keep a separate file config for each federate
         val oldFileConfig = fileConfig;
         var federateCount = 0;
+        val codeMaps = new HashMap<Path, CodeMap>
         for (federate : federates) {
             compilingFederatesContext.reportProgress(
                 String.format("Installing Python modules. %d/%d complete...", federateCount, federates.size()),
@@ -1273,7 +1278,7 @@ class PythonGenerator extends CGenerator {
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
-                generatePythonFiles(fsa, federate)
+                codeMaps.putAll(generatePythonFiles(fsa, federate))
                 if (!targetConfig.noCompile) {
                     // If there are no federates, compile and install the generated code
                     pythonCompileCode(context)
@@ -1297,9 +1302,9 @@ class PythonGenerator extends CGenerator {
         } else if (errorReporter.getErrorsOccurred()) {
             context.finish(GeneratorResult.FAILED)
         } else if (!isFederated) {
-            context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, null, "python3")
+            context.finish(GeneratorResult.Status.COMPILED, '''«topLevelName».py''', fileConfig.srcGenPath, codeMaps, "python3")
         } else {
-            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null, "bash")
+            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, codeMaps, "bash")
         }
     }
     
