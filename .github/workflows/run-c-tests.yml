@@ -25,9 +25,10 @@ jobs:
           submodules: true
       - name: Fetch particular runtime version
         run: |
-          cd org.lflang/src/lib/c/reactor-c
-          get fetch --all
+          pushd org.lflang/src/lib/c/reactor-c
+          git fetch --all
           git checkout ${{ inputs.runtime-ref }}
+          popd
         if: ${{ inputs.runtime-ref }}
       - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
