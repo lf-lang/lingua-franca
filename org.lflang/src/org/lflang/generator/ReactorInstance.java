@@ -589,23 +589,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return totalNumChildrenCache;
     }
 
-    /** 
-     * Return the set of all ports that receive data from the 
-     * specified source. This includes inputs and outputs at the same level 
-     * of hierarchy and input ports deeper in the hierarchy.
-     * It also includes inputs or outputs up the hierarchy (i.e., ones
-     * that are reached via any output port).
-     * If the argument is an input port, then it is included in the result.
-     * No port will appear more than once in the result.
-     * 
-     * @param source An output or input port.
-     */
-    public Set<PortInstance> transitiveClosure(PortInstance source) {
-        var result = new LinkedHashSet<PortInstance>();
-        transitiveClosure(source, result);
-        return result;
-    }
-
     /**
      * Assuming that the given value denotes a valid time, return a time value.
      *
@@ -708,46 +691,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
         }
         return shutdownTrigger;
-    }
-    
-    /** 
-     * Add to the specified destinations set all ports that receive data from the 
-     * specified source. This includes inputs and outputs at the same level 
-     * of hierarchy and input ports deeper in the hierarchy.
-     * It also includes inputs or outputs up the hierarchy (i.e., ones
-     * that are reached via any output port).
-     * @param source A port belonging to this reaction instance or one
-     *  of its children.
-     * @param destinations The set of destinations to populate.
-     */
-    protected void transitiveClosure(
-            PortInstance source,
-            LinkedHashSet<PortInstance> destinations
-    ) {
-        // Check that the specified port belongs to this reactor or one of its children.
-        // The following assumes that the main reactor has no ports, or else
-        // a NPE will occur.
-        if (source.parent != this && source.parent.parent != this) {
-            throw new InvalidSourceException(
-                "Internal error: port " + source + " does not belong to " +
-                    this + " nor any of its children."
-            );
-        }
-        // If the port is an input port, then include it in the result.
-        if (source.isInput()) {
-            destinations.add(source);
-        }
-        for (RuntimeRange<PortInstance> dst : source.dependentPorts) {
-            PortInstance destination = dst.instance;
-            destinations.add(destination);
-            if (destination.isInput()) {
-                // Destination may have further destinations lower in the hierarchy.
-                destination.parent.transitiveClosure(destination, destinations);
-            } else if (destination.parent.parent != null) {
-                // Destination may have further destinations higher in the hierarchy.
-                destination.parent.parent.transitiveClosure(destination, destinations);
-            }
-        }
     }
     
     ////////////////////////////////////////
