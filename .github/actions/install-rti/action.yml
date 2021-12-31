@@ -1,0 +1,13 @@
+name: install-jdk
+author: Marten Lohstroh
+description: Install the RTI
+runs:
+  using: 'composite'
+  steps:
+  run: |
+    cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
+    mkdir build
+    cd build
+    cmake ../
+    make
+    sudo make install

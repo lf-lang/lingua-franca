@@ -44,13 +44,7 @@ jobs:
           brew install coreutils
         if: runner.os == 'macOS'
       - name: Install RTI
-        run: |
-          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
-          mkdir build
-          cd build
-          cmake ../
-          make
-          sudo make install
+        uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform tests
         run: |
