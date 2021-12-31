@@ -81,7 +81,8 @@ jobs:
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@modular-ci
     with:
-      runtime-ref: 
+      jdk-version: 11
+      runtime-ref:
 
   ccpp-tests:
     strategy:
