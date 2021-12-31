@@ -39,12 +39,11 @@ jobs:
         with:
             submodules: true
       - name: Use alternative runtime version
-        run: |
-          pushd org.lflang/src/lib/ts/reactor-ts
-          git fetch --all
-          git checkout ${{ inputs.runtime-ref }}
-          popd
+        uses: ./.github/actions/checkout-ref
+        with:
+          path: 'org.lflang/src/lib/ts/reactor-ts'
+          ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Perform TypeScript tests;
+        - name: Perform TypeScript tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
