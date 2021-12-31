@@ -8,6 +8,7 @@ on:
         type: string
       target:
         required: false
+        type: string
         default: 'C'
 jobs:
   run-tests:
