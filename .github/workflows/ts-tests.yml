@@ -44,6 +44,6 @@ jobs:
           path: 'org.lflang/src/lib/ts/reactor-ts'
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-        - name: Perform TypeScript tests;
+      - name: Perform TypeScript tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
