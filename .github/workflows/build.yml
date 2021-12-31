@@ -1,5 +1,4 @@
-# This is a basic workflow to help you get started with Actions
-
+# Main workflow for testing the Lingua Franca compiler.
 name: Tests
 
 on:
@@ -16,21 +15,22 @@ env:
   # 2020.11
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+
+  # Run unit tests (and compute code coverage).
   compiler-tests:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      # Setup Build dependencies
+      # Setup Build dependencies.
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
         with:
-          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+
+      # Check out the lingua-franca repo under $GITHUB_WORKSPACE, so the job can access it.
       - uses: actions/checkout@v2
       - name: Run compiler tests
         run: |
@@ -47,7 +47,8 @@ jobs:
           # optional (default = false) 
           verbose: true # optional (default = false)
         if: runner.os == 'Linux'
-
+  
+  # Test the standalone compiler.
   standalone-lfc-tests:
     strategy:
       matrix:
@@ -89,55 +90,24 @@ jobs:
     with:
       target: 'CCpp'
   
+  # Run the Cpp tests.
+  c-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@modular-ci
+
+  # Run the Python tests.
   python-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
     with:
       target: 'Python'
 
+  # Run the Rust tests.
+  rust-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@modular-ci
+
   # Run the TypeScript tests.
   ts-tests:
     uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@modular-ci
-
-  cpp-tests:
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 11
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Install Dependencies OS X
-        run: brew install coreutils
-        if: runner.os == 'macOS'
-      - uses: actions/checkout@v2
-      - name: Run C++ tests;
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CppTest.*
                 
-  rust-tests:
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [nightly]
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 11
-      - name: Setup Rust
-        uses: ATiltedTree/setup-rust@v1
-        with:
-          rust-version: ${{ matrix.rust }}
-          components: clippy
-      - uses: actions/checkout@v2
-      - name: Run Rust tests
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
 
   c-benchmark-tests:
     runs-on: ubuntu-latest
@@ -153,18 +123,19 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Install python dependencies
+      - name: Install Python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
-      - name: Build lfc;
+      - name: Build lfc
         run: |
           ./gradlew buildLfc
-      - name: "Set LF_PATH environmental variable"
+      - name: Set LF_PATH environmental variable
         run: |
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       # This tests all benchmarks for the C target.
-      - name: run tests;
+      - name: Test all benchmarks
         run: |
           python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded iterations=1
+  
   cpp-benchmark-tests:
     runs-on: ubuntu-latest
     steps:
@@ -179,24 +150,21 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Install python dependencies
+      - name: Install Python dependencies
         run: pip3 install -r benchmark/runner/requirements.txt      
-      - name: Build lfc;
+      - name: Build lfc
         run: |
           ./gradlew buildLfc
-      - name: Build Minimal.lf to obtain reactor-cpp;
+      - name: Build Minimal.lf to obtain reactor-cpp
         run: |
           ./bin/lfc test/Cpp/src/Minimal.lf
-      - name: "Set LF_PATH environmental variable"
+      - name: Set LF_PATH environmental variable
         run: |
           echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-      - name: "Set LD_LIBRARY_PATH variable"
+      - name: Set LD_LIBRARY_PATH variable
         run: |
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
       # this tests all benchmarks using the pre-compiled reactor-cpp
-      - name: run tests;
+      - name: Test all benchmarks
         run: |
           python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 target.params.extra_args="[--external-runtime-path, ${GITHUB_WORKSPACE}/test/Cpp]"
-      
-
-    
