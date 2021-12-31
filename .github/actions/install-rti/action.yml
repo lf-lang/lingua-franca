@@ -1,7 +1,7 @@
-name: "Install RTI"
-description: "Invocation of installation script"
+name: Install RTI
+description: Build and install
 runs:
   using: "composite"
   steps: 
-    - run: ${{ github.action_path }}/install.sh
+    - run: .github/actions/install-rti/install.sh
       shell: bash
