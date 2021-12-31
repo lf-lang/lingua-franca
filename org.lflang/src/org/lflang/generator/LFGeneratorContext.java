@@ -25,7 +25,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     Mode getMode();
 
     /**
-     * Returns any arguments that will override target properties.
+     * Return any arguments that will override target properties.
      */
     Properties getArgs();
 
