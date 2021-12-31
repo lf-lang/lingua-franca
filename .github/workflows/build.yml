@@ -78,93 +78,42 @@ jobs:
           bin/lfc.ps1 --help
         if: ${{ runner.os == 'Windows' }}
   
-  # Run the C tests.
+  # Run the C benchmark tests. 
+  c-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@modular-ci
+    with:
+      target: 'C'
+
+  # Run the C integration tests.
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
     with:
       runtime-ref:
-
-  # Run the CCpp tests.
+  
+  # Run the CCpp integration tests.
   ccpp-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
     with:
       target: 'CCpp'
   
-  # Run the Cpp tests.
+  # Run the C++ benchmark tests.
+  cpp-benchmark-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/benchmark-tests.yml@modular-ci
+
+  # Run the C++ integration tests.
   cpp-tests:
     uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@modular-ci
 
-  # Run the Python tests.
-  python-tests:
+  # Run the Python integration tests.
+  py-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
     with:
       target: 'Python'
 
-  # Run the Rust tests.
-  rust-tests:
+  # Run the Rust integration tests.
+  rs-tests:
     uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@modular-ci
 
-  # Run the TypeScript tests.
+  # Run the TypeScript integration tests.
   ts-tests:
     uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@modular-ci
-                
-
-  c-benchmark-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 14
-      - name: Setup Python
-        uses: actions/setup-python@v2
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Install Python dependencies
-        run: pip3 install -r benchmark/runner/requirements.txt      
-      - name: Build lfc
-        run: |
-          ./gradlew buildLfc
-      - name: Set LF_PATH environmental variable
-        run: |
-          echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-      # This tests all benchmarks for the C target.
-      - name: Test all benchmarks
-        run: |
-          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-c,lf-c-unthreaded iterations=1
-  
-  cpp-benchmark-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 14
-      - name: Setup Python
-        uses: actions/setup-python@v2
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Install Python dependencies
-        run: pip3 install -r benchmark/runner/requirements.txt      
-      - name: Build lfc
-        run: |
-          ./gradlew buildLfc
-      - name: Build Minimal.lf to obtain reactor-cpp
-        run: |
-          ./bin/lfc test/Cpp/src/Minimal.lf
-      - name: Set LF_PATH environmental variable
-        run: |
-          echo "LF_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-      - name: Set LD_LIBRARY_PATH variable
-        run: |
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
-      # this tests all benchmarks using the pre-compiled reactor-cpp
-      - name: Test all benchmarks
-        run: |
-          python3 benchmark/runner/run_benchmark.py -m test_mode=True iterations=1 benchmark="glob(*)" target=lf-cpp iterations=1 target.params.extra_args="[--external-runtime-path, ${GITHUB_WORKSPACE}/test/Cpp]"
