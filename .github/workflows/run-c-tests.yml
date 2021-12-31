@@ -26,6 +26,7 @@ jobs:
       - name: Fetch particular runtime version
         run: |
           cd org.lflang/src/lib/c/reactor-c
+          get fetch --all
           git checkout ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Install Dependencies Ubuntu
