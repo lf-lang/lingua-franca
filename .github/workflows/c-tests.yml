@@ -11,7 +11,7 @@ on:
         type: string
         default: 'C'
 jobs:
-  run-tests:
+  run:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
