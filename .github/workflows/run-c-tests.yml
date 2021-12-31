@@ -13,14 +13,6 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: lf-lang/lingua-franca/.github/actions/install-jdk.yml@a3532e0649c82a6c01bfa1d8cfee38cb4e190a77
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1.4.3
-        with:
-          # The Java version to make available on the path. 
-          # Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). 
-          # Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 11
       - uses: actions/checkout@v2
         with:
           submodules: true
@@ -32,6 +24,7 @@ jobs:
           git checkout ${{ inputs.runtime-ref }}
           popd
         if: ${{ inputs.runtime-ref }}
+      - uses: lf-lang/lingua-franca/.github/actions/install-jdk.yml@a3532e0649c82a6c01bfa1d8cfee38cb4e190a77
       - name: Install dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: runner.os == 'Linux'
