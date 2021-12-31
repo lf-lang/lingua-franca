@@ -25,7 +25,7 @@ jobs:
       - name: Build lfc
         run: |
           ./gradlew buildLfc
-        - name: Setup C++ build environment
+      - name: Setup C++ build environment
         run: |
           ./bin/lfc test/Cpp/src/Minimal.lf
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/test/Cpp/lib" >> $GITHUB_ENV
