@@ -79,7 +79,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
 
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@0b018177ad909a51809c319ae4d53541024d7e2d
+    uses: lf-lang/lingua-franca/.github/workflows/run-c-tests.yml@a6c97d10f25a6e2cdd745f8e9efbeb25e434aa7d
     with:
       runtime-ref: 
 
