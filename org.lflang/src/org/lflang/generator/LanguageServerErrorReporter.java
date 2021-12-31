@@ -47,12 +47,12 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String reportError(String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Error, message);
+        return report(DiagnosticSeverity.Error, message);
     }
 
     @Override
     public String reportWarning(String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Warning, message);
+        return report(DiagnosticSeverity.Warning, message);
     }
 
     @Override
@@ -67,17 +67,41 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String reportError(Path file, Integer line, String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Error, message, line != null ? line - 1 : 0);  // TODO: document one-basedness
+        return report(DiagnosticSeverity.Error, message, line != null ? line - 1 : 0);
     }
 
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        return acceptDiagnostic(DiagnosticSeverity.Warning, message, line != null ? line - 1 : 0);
+        return report(DiagnosticSeverity.Warning, message, line != null ? line - 1 : 0);
     }
 
     @Override
     public boolean getErrorsOccurred() {
         return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error);
+    }
+
+    @Override
+    public String report(DiagnosticSeverity severity, String message) {
+        return report(severity, message, 0);
+    }
+
+    @Override
+    public String report(DiagnosticSeverity severity, String message, int line) {
+        Optional<String> text = getLine(line);
+        return report(
+            severity,
+            message,
+            Position.fromZeroBased(line, 0),
+            Position.fromZeroBased(line, text.isEmpty() ? 1 : text.get().length())
+        );
+    }
+
+    @Override
+    public String report(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+        diagnostics.add(new Diagnostic(
+            toRange(startPos, endPos), message, severity, "LF Language Server"
+        ));
+        return "" + severity + ": " + message;
     }
 
     /**
@@ -88,53 +112,24 @@ public class LanguageServerErrorReporter implements ErrorReporter {
         LanguageServerErrorReporter.client = client;
     }
 
+    /**
+     * Publishes diagnostics by forwarding them to the
+     * language client.
+     */
+    public void publishDiagnostics() {
+        if (client == null) {
+            System.err.println(
+                "WARNING: Cannot publish diagnostics because the language client has not yet been found."
+            );
+            return;
+        }
+        PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
+        publishDiagnosticsParams.setUri(parseRoot.eResource().getURI().toString());
+        publishDiagnosticsParams.setDiagnostics(diagnostics);
+        client.publishDiagnostics(publishDiagnosticsParams);
+    }
+
     /* -----------------------  PRIVATE METHODS  ------------------------ */
-
-    /**
-     * Reports a message of severity {@code severity}.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @return a string that describes the diagnostic
-     */
-    private String acceptDiagnostic(DiagnosticSeverity severity, String message) {
-        return acceptDiagnostic(severity, message, 0);
-    }
-
-    /**
-     * Reports a message of severity {@code severity}.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @param line the zero-based line number associated
-     *             with the message
-     * @return a string that describes the diagnostic
-     */
-    private String acceptDiagnostic(DiagnosticSeverity severity, String message, int line) {
-        Optional<String> text = getLine(line);
-        return acceptDiagnostic(
-            severity,
-            message,
-            Position.fromZeroBased(line, 0),
-            Position.fromZeroBased(line, text.isEmpty() ? 1 : text.get().length())
-        );
-    }
-
-    /**
-     * Reports a message of severity {@code severity}.
-     * @param severity the severity of the message
-     * @param message the message to send to the IDE
-     * @param startPos the position of the first character
-     *                 of the range of interest
-     * @param endPos the position immediately AFTER the
-     *               final character of the range of
-     *               interest
-     * @return a string that describes the diagnostic
-     */
-    private String acceptDiagnostic(DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        diagnostics.add(new Diagnostic(
-            toRange(startPos, endPos), message, severity, "LF Language Server"
-        ));
-        return "" + severity + ": " + message;
-    }
 
     /**
      * Returns the text of the document for which this is an
@@ -154,23 +149,6 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      */
     private Optional<String> getLine(int line) {
         return getText().lines().skip(line).findFirst();
-    }
-
-    /**
-     * Publishes diagnostics by forwarding them to the
-     * language client.
-     */
-    public void publishDiagnostics() {
-        if (client == null) {
-            System.err.println(
-                "WARNING: Cannot publish diagnostics because the language client has not yet been found."
-            );
-            return;
-        }
-        PublishDiagnosticsParams publishDiagnosticsParams = new PublishDiagnosticsParams();
-        publishDiagnosticsParams.setUri(parseRoot.eResource().getURI().toString());
-        publishDiagnosticsParams.setDiagnostics(diagnostics);
-        client.publishDiagnostics(publishDiagnosticsParams);
     }
 
     /**

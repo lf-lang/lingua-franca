@@ -153,21 +153,12 @@ public class CodeMap {
             Position lfStart = Position.fromOneBased(
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
             );
-            Position lfDisplacement;
-            final Position generatedCodeDisplacement = Position.displacementOf(representation);
             final Path lfPath = Path.of(astNode.eResource().getURI().path());
-            if (verbatim) {
-                lfStart = lfStart.plus(Position.displacementOf(
-                    node.getText().substring(0, indexOf(node.getText(), representation))
-                ));
-                lfDisplacement = generatedCodeDisplacement;
-            } else {
-                lfDisplacement = Position.displacementOf(node.getText());
-            }
+            if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
                 lfPath,
-                new Range(lfStart, lfStart.plus(lfDisplacement)),
-                new Range(Position.ORIGIN, generatedCodeDisplacement)
+                new Range(lfStart, lfStart.plus(verbatim ? representation : node.getText())),
+                new Range(Position.ORIGIN, Position.displacementOf(representation))
             ) + representation;
         }
 

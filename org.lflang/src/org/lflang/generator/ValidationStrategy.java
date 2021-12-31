@@ -19,13 +19,13 @@ public interface ValidationStrategy {
      * Returns a strategy for parsing the stderr of the validation command.
      * @return A strategy for parsing the stderr of the validation command.
      */
-    CommandErrorReportingStrategy getErrorReportingStrategy();
+    DiagnosticReporting.Strategy getErrorReportingStrategy();
 
     /**
      * Returns a strategy for parsing the stdout of the validation command.
      * @return A strategy for parsing the stdout of the validation command.
      */
-    CommandErrorReportingStrategy getOutputReportingStrategy();
+    DiagnosticReporting.Strategy getOutputReportingStrategy();
 
     /**
      * Returns whether this strategy validates all generated files, as

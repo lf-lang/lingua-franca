@@ -15,21 +15,6 @@ public class Position implements Comparable<Position> {
 
     private static final Pattern LINE_SEPARATOR = Pattern.compile("(\n)|(\r)|(\r\n)");
 
-    /*
-    Implementation note: This class is designed to remove
-    all ambiguity wrt zero-based and one-based line and
-    column indexing. The motivating philosophy is that all
-    indexing should be zero-based in any programming
-    context, unless one is forced to use one-based indexing
-    in order to interface with someone else's software. This
-    justifies the apparent ambivalence here wrt zero vs.
-    one: Zero should be used when possible, but one can be
-    used when necessary.
-    This philosophy (and the need to be Comparable)
-    explains the choice not to use
-    org.eclipse.xtext.util.LineAndColumn.
-     */
-
     private final int line;
     private final int column;
 
@@ -61,7 +46,8 @@ public class Position implements Comparable<Position> {
 
     /**
      * Returns the Position that equals the displacement
-     * caused by {@code text}.
+     * caused by {@code text}, assuming that {@code text}
+     * starts in column 0.
      * @param text an arbitrary string
      * @return the Position that equals the displacement
      * caused by {@code text}
@@ -166,6 +152,23 @@ public class Position implements Comparable<Position> {
     public int getOffset(String documentContent) {
         return documentContent.lines().limit(getZeroBasedLine()).mapToInt(String::length).sum()
             + getZeroBasedColumn() + getZeroBasedLine(); // Final term accounts for line breaks
+    }
+
+    /**
+     * Returns the Position that equals the displacement of
+     * ((text whose displacement equals {@code this})
+     * concatenated with {@code text}). Note that this is
+     * not necessarily equal to
+     * ({@code this} + displacementOf(text)).
+     * @param text an arbitrary string
+     * @return the Position that equals the displacement
+     * caused by {@code text}
+     */
+    public Position plus(String text) {
+        String[] lines = text.lines().toArray(String[]::new);
+        if (lines.length == 0) return this; // OK not to copy because Positions are immutable
+        int lastLineLength = lines[lines.length - 1].length();
+        return new Position(line + lines.length - 1, lines.length > 1 ? lastLineLength : column + lastLineLength);
     }
 
     /**

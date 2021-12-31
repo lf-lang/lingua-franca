@@ -3,8 +3,8 @@ package org.lflang.generator.cpp
 import org.lflang.ErrorReporter
 import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.CodeMap
-import org.lflang.generator.CommandErrorReportingStrategy
-import org.lflang.generator.PerLineReportingStrategy
+import org.lflang.generator.DiagnosticReporting
+import org.lflang.generator.HumanReadableReportingStrategy
 import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
 import java.io.File
@@ -33,8 +33,8 @@ class CppValidator(
     }
 
     private class CppValidationStrategy(
-        private val errorReportingStrategy: CommandErrorReportingStrategy,
-        private val outputReportingStrategy: CommandErrorReportingStrategy,
+        private val errorReportingStrategy: DiagnosticReporting.Strategy,
+        private val outputReportingStrategy: DiagnosticReporting.Strategy,
         private val time: Int,
         private val getCommand: (p: Path) -> LFCommand?
     ): ValidationStrategy {
@@ -58,7 +58,7 @@ class CppValidator(
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
         CLANG_TIDY({ cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
-            PerLineReportingStrategy(clangTidyErrorLine),
+            HumanReadableReportingStrategy(clangTidyErrorLine),
             5,
             { generatedFile: Path ->
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
@@ -67,7 +67,7 @@ class CppValidator(
             }
         )}),
         GXX({ cppValidator -> CppValidationStrategy(
-            PerLineReportingStrategy(gxxErrorLine),
+            HumanReadableReportingStrategy(gxxErrorLine),
             { _, _, _ -> },
             1,
             { generatedFile: Path ->
@@ -84,7 +84,7 @@ class CppValidator(
      * strategies for the build process carried out by
      * CMake and Make.
      */
-    override val buildReportingStrategies: Pair<CommandErrorReportingStrategy, CommandErrorReportingStrategy>
+    override val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
         get() = Pair(
             CppValidationStrategyFactory.GXX.create(this).errorReportingStrategy,
             CppValidationStrategyFactory.GXX.create(this).errorReportingStrategy
