@@ -13,5 +13,5 @@ inputs:
 runs:
   using: "composite"
   steps: 
-    - run: ${{ github.action_path }}/checkout.sh ${{ inputs.path }} ${{ inputs.ref }}
+    - run: .github/actions/checkout-ref/checkout.sh ${{ inputs.path }} ${{ inputs.ref }}
       shell: bash
