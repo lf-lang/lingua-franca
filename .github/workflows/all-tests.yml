@@ -33,8 +33,6 @@ jobs:
   # Run the C integration tests.
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
-    with:
-      runtime-ref: 'a08b5e765b3e2ec91ad46de3e47a08cfefe8cb47'
   
   # Run the CCpp integration tests.
   ccpp-tests:
