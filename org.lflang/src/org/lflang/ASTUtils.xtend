@@ -1214,7 +1214,7 @@ class ASTUtils {
     
     /**
      * Given the width specification of port or instantiation
-     * and an (optional) list of nested intantiations, return
+     * and an (optional) list of nested instantiations, return
      * the width if it can be determined and -1 if not.
      * It will not be able to be determined if either the
      * width is variable (in which case you should use
