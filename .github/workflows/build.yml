@@ -91,7 +91,7 @@ jobs:
       target: 'CCpp'
   
   # Run the Cpp tests.
-  c-tests:
+  cpp-tests:
     uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@modular-ci
 
   # Run the Python tests.
