@@ -29,9 +29,15 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
-import org.lflang.generator.*
+import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.TargetTypes
 import org.lflang.joinWithCommas
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 

@@ -31,7 +31,13 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.*
 import org.lflang.TargetConfig.Mode
 import org.lflang.Target
-import org.lflang.generator.*
+import org.lflang.generator.canGenerate
+import org.lflang.generator.CodeMap
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -97,9 +103,9 @@ class CppGenerator(
 
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        fileConfig.copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
-        fileConfig.copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        fileConfig.copyFileFromClassPath("${libDir}/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString())
+        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
+        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
+        fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString())
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
@@ -128,9 +134,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r.getEResource(), cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
+            val generator = CppPreambleGenerator(r.eResource, cppFileConfig, scopeProvider)
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r.eResource)
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = preambleCodeMap

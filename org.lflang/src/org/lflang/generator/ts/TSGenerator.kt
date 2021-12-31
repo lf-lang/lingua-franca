@@ -28,20 +28,33 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.*
+import org.lflang.ErrorReporter
+import org.lflang.inferredType
+import org.lflang.InferredType
+import org.lflang.TimeValue
 import org.lflang.ASTUtils.isInitialized
 import org.lflang.Target
 import org.lflang.TargetConfig.Mode
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.FederateInstance
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.Delay
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Parameter
+import org.lflang.lf.StateVar
+import org.lflang.lf.Type
+import org.lflang.lf.Value
+import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
-import java.util.*
+import java.util.LinkedList
 import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.*
-import org.lflang.util.LFCommand
-import java.io.File
+import org.lflang.generator.canGenerate
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.PrependOperator
 
 /**
  * Generator for TypeScript target.
