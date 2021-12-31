@@ -1,0 +1,17 @@
+name: "Checkout a particular ref"
+description: "Change to repo directory and check out ref"
+inputs:
+  path:
+    description: "Path to the repository or submodule"
+    required: true
+    type: string
+  ref:
+    description: "The ref to check out"
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps: 
+    - run: ${{ github.action_path }}/checkout.sh ${{ inputs.path }} ${{ inputs.ref }}
+      shell: bash
