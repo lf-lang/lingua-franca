@@ -1,15 +1,16 @@
+name: C Tests
+
 on:
   workflow_call:
     inputs:
-      jdk-version:
-        required: true
-        type: string
       runtime-ref:
         required: false
         type: string
-
+      use-cpp:
+        required: false
+        type: boolean
 jobs:
-  setup-env:
+  run-tests:
     name: Run C tests
     strategy:
       matrix:
@@ -22,7 +23,7 @@ jobs:
           # The Java version to make available on the path.
           # Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). 
           # Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: ${{ inputs.jdk-version }}
+          java-version: 11
       - uses: actions/checkout@v2
         with:
           submodules: true
@@ -46,6 +47,11 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Perform tests
+      - name: Perform C tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
+        if: ${{ !inputs.use-cpp }}
+      - name: Perform CCpp tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
+        if: ${{ inputs.use-cpp }}

@@ -1,8 +1,7 @@
-name: install-jdk
-author: Marten Lohstroh
-description: Install the RTI
+name: "Install RTI"
+description: "Invocation of installation script"
 runs:
-  using: 'composite'
+  using: "composite"
   steps: 
     - run: ${{ github.action_path }}/install.sh
       shell: bash
