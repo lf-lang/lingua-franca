@@ -24,7 +24,7 @@ jobs:
           git checkout ${{ inputs.runtime-ref }}
           popd
         if: ${{ inputs.runtime-ref }}
-      - uses: lf-lang/lingua-franca/.github/actions/install-jdk@modular-ci
+      - uses: .github/actions/install-jdk
       - name: Install dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: runner.os == 'Linux'
