@@ -37,7 +37,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
-            submodules: true
+          submodules: true
       - name: Use alternative runtime version
         uses: ./.github/actions/checkout-ref
         with:
