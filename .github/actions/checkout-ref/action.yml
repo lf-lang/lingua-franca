@@ -1,5 +1,5 @@
-name: "Checkout a particular ref"
-description: "Change to repo directory and check out ref"
+name: Checkout a particular ref
+description: Change to repo directory and check out ref
 inputs:
   path:
     description: "Path to the repository or submodule"
