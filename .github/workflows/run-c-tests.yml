@@ -7,8 +7,11 @@ on:
 
 jobs:
   setup-env:
-    name: Prepare a development environment for the C target
-    runs-on: [ubuntu-latest, macos-latest, windows-latest]
+    name: Prepare environment and run C tests
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
@@ -43,4 +46,6 @@ jobs:
           make
           sudo make install
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-        
+      - name: Run C tests;
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CTest.*
