@@ -17,6 +17,8 @@ import org.lflang.util.LFCommand;
  * An {@code LFGeneratorContext} is the context of a Lingua Franca build process.
  * It is the point of communication between a build process and the environment
  * in which it is executed.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 

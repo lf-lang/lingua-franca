@@ -26,6 +26,8 @@ import com.google.inject.Provider;
 /**
  * Manages Lingua Franca build processes that are requested
  * from the language server.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class IntegratedBuilder {
     public static final int START_PERCENT_PROGRESS = 0;

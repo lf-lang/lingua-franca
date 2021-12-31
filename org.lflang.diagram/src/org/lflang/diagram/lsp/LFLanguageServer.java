@@ -5,6 +5,8 @@ import de.cau.cs.kieler.klighd.lsp.KGraphLanguageServerExtension;
 
 /**
  * The Lingua Franca language and diagram server.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class LFLanguageServer extends KGraphLanguageServerExtension {
     @Override
