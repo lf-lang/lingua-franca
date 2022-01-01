@@ -24,20 +24,20 @@ jobs:
       - name: Install JDK
         uses: actions/setup-java@v1.4.3
         with:
-          # The Java version to make available on the path.
-          # Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). 
-          # Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 11
       - name: Check out lingua-franca repository
         uses: actions/checkout@v2
         with:
+          repository: lf-lang/lingua-franca
+          submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Check out reactor-c submodule
+      - name: Check out specific ref of reactor-c
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
       - name: Install dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: ${{ runner.os == 'Linux' }}
