@@ -9,6 +9,7 @@ on:
       runtime-ref:
         required: false
         type: string
+
 jobs:
   run:
     strategy:
@@ -31,12 +32,12 @@ jobs:
         run: sudo npm i -g pnpm
       - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
       - name: Install Dependencies OS X
         run: |
           brew install protobuf
           brew install coreutils
-        if: runner.os == 'macOS'
+        if: ${{ runner.os == 'macOS' }}
       - name: Check out lingua-franca repository
         uses: actions/checkout@v2
         with:
