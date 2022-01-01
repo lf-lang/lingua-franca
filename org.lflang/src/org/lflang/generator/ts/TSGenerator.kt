@@ -122,7 +122,7 @@ class TSGenerator(
      *  generation.
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: Undocumented argument. No idea what this is.
+     *  @param context The context of this build.
      */
     // TODO(hokeun): Split this method into smaller methods.
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
@@ -138,7 +138,7 @@ class TSGenerator(
         //  assigning levels.
         removeRemoteFederateConnectionPorts(null);
         
-        fileConfig.deleteDirectory(fileConfig.srcGenPath)
+        if (context.mode != Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
@@ -210,10 +210,10 @@ class TSGenerator(
                 "Code generation complete. Collecting dependencies...",
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            collectDependencies(resource, context)
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context)
             context.reportProgress(
                 "Validating generated code...",
-                (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2
+                (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2 // FIXME
             )
             if (
                 !context.cancelIndicator.isCanceled
@@ -265,6 +265,12 @@ class TSGenerator(
             generateFederationInfrastructure()
         }
     }
+
+    /**
+     * Return whether it is advisable to install dependencies.
+     */
+    private fun shouldCollectDependencies(context: LFGeneratorContext): Boolean
+        = context.mode != Mode.LSP_MEDIUM || !fileConfig.srcGenPkgPath.resolve("node_modules").toFile().exists()
 
     /**
      * Collect the dependencies in package.json and their
