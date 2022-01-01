@@ -39,8 +39,8 @@ public class DiagnosticReporting {
      * @param position The position where the message originates.
      * @return The given data as a human-readable message.
      */
-    public static String messageOf(String message, String path, Position position) {
-        return String.format("%s [%s:%s:%s]", message, path, position.getOneBasedLine(), position.getOneBasedColumn());
+    public static String messageOf(String message, Path path, Position position) {
+        return String.format("%s [%s:%s:%s]", message, path.getFileName().toString(), position.getOneBasedLine(), position.getOneBasedColumn());
     }
 
     /**

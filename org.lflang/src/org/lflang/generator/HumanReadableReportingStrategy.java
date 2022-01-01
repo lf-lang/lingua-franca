@@ -65,7 +65,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
                 Integer.parseInt(matcher.group("line")), Integer.parseInt(matcher.group("column"))
             );
             final String message = DiagnosticReporting.messageOf(
-                matcher.group("message"), path.getFileName().toString(), generatedFilePosition
+                matcher.group("message"), path, generatedFilePosition
             );
             final CodeMap map = maps.get(path);
             final DiagnosticSeverity severity = DiagnosticReporting.severityOf(matcher.group("severity"));

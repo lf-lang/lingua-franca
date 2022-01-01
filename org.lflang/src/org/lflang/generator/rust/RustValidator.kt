@@ -118,7 +118,7 @@ class RustValidator(
                             for (lfSourcePath: Path in it.lfSourcePaths()) {
                                 errorReporter.report(
                                     message.severity,
-                                    DiagnosticReporting.messageOf(message.message, p.toString(), s.start),
+                                    DiagnosticReporting.messageOf(message.message, p, s.start),
                                     it.adjusted(lfSourcePath, s.start),
                                     it.adjusted(lfSourcePath, s.end),
                                 )
