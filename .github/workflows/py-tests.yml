@@ -47,6 +47,7 @@ jobs:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v2
         with:
+          repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
       - name: Check out specific ref of reactor-c
