@@ -39,9 +39,15 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Files
 import java.util.*
 import org.lflang.federated.serialization.SupportedSerializers
-import org.lflang.generator.*
-import org.lflang.util.LFCommand
-import java.io.File
+import org.lflang.generator.canGenerate
+import org.lflang.generator.CodeMap
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.PrependOperator
+import java.nio.file.Path
+import kotlin.collections.HashMap
 
 /**
  * Generator for TypeScript target.
@@ -66,7 +72,7 @@ class TSGenerator(
          * Names of the configuration files to check for and copy to the generated
          * source package root if they cannot be found in the source directory.
          */
-        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js")
+        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
         /**
          * Files to be copied from the reactor-ts submodule into the generated
@@ -146,7 +152,7 @@ class TSGenerator(
                 fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
-
+        val codeMaps = HashMap<Path, CodeMap>()
         for (federate in federates) {
             var tsFileName = fileConfig.name
             // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
@@ -172,8 +178,9 @@ class TSGenerator(
                 tsCode.append(reactorGenerator.generateReactor(reactor, federate))
             }
             tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
-            fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(),
-                tsCode.toString())
+            val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
+            codeMaps[tsFilePath] = codeMap
+            fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(), codeMap.generatedCode)
             
             if (targetConfig.dockerOptions != null) {
                 val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
@@ -182,19 +189,25 @@ class TSGenerator(
                 fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
             }
         }
-        // The following check is omitted for Mode.LSP_FAST because this code is unreachable in LSP_FAST mode.
-        if (!targetConfig.noCompile && context.mode != Mode.LSP_MEDIUM) compile(resource, context)
-        else context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
-    }
-
-    private fun compile(resource: Resource, context: LFGeneratorContext) {
-        if (!context.cancelIndicator.isCanceled) {
+        if (targetConfig.noCompile) {
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+        } else {
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...",
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             collectDependencies(resource, context)
+            if (context.mode == Mode.LSP_MEDIUM) {
+                context.reportProgress("Validating generated code...", IntegratedBuilder.COMPILED_PERCENT_PROGRESS)
+                TSValidator(tsFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            } else {
+                compile(context)
+            }
         }
+    }
+
+    private fun compile(context: LFGeneratorContext) {
 
         refreshProject()
 
