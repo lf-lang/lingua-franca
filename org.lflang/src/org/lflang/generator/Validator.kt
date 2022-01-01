@@ -22,7 +22,7 @@ abstract class Validator(
      * current operation
      */
     fun doValidate(cancelIndicator: CancelIndicator) {
-        val tasks = getValidationStrategies().map { Callable {it.second.run(cancelIndicator); it} }
+        val tasks = getValidationStrategies().map { Callable {it.second.run(cancelIndicator, true); it} }
         val futures: List<Future<Pair<ValidationStrategy, LFCommand>>> = when (tasks.size) {
             0 -> listOf()
             1 -> listOf(CompletableFuture.completedFuture(tasks.first().call()))
@@ -42,7 +42,7 @@ abstract class Validator(
      * produces, and returns its return code.
      */
     fun run(compileCommand: LFCommand, cancelIndicator: CancelIndicator): Int {
-        val returnCode = compileCommand.run(cancelIndicator)
+        val returnCode = compileCommand.run(cancelIndicator, true)
         val (errorReportingStrategy, outputReportingStrategy) = buildReportingStrategies
         errorReportingStrategy.report(compileCommand.errors.toString(), errorReporter, codeMaps)
         outputReportingStrategy.report(compileCommand.output.toString(), errorReporter, codeMaps)
