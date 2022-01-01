@@ -1,4 +1,4 @@
-name: Run tests based on C runtime
+name: Run C/CCpp tests
 
 on:
   workflow_call:
@@ -9,10 +9,11 @@ on:
       runtime-ref:
         required: false
         type: string
-      target:
+      use-cpp:
         required: false
-        type: string
-        default: 'C'
+        type: boolean
+        default: false
+
 jobs:
   run:
     strategy:
@@ -44,32 +45,14 @@ jobs:
           brew install protobuf-c
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: protobuf
-          vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
-          vcpkgDirectory: ${{ github.workspace }}/vcpkg/
-          vcpkgTriplet: x64-windows-static
-        if: runner.os == 'Windows'
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        if: ${{ inputs.target == 'Python'}}
-      - name: Install Google API Python Client
-        run: pip3 install --upgrade google-api-python-client
-        if: ${{ inputs.target == 'Python'}}
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform tests for C target
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
-        if: ${{ inputs.target == 'C'}}
+        if: ${{ !inputs.use-cpp }}
       - name: Perform tests for CCpp target
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
-        if: ${{ inputs.target == 'CCpp' }}
-      - name: Perform tests for Python target
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-        if: ${{ inputs.target == 'Python'}}
+        if: ${{ inputs.use-cpp }}
