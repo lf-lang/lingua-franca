@@ -36,9 +36,12 @@ jobs:
         if: runner.os == 'macOS'
       - name: Check out lingua-franca repository
         uses: actions/checkout@v2
+        with:
+          ref: ${{ inputs.compiler-ref }}
       - name: Check out reactor-ts submodule
         uses: actions/checkout@v2
         with:
+          repository: lf-lang/reactor-ts
           path: org.lflang/src/lib/ts/reactor-ts
           ref: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests
