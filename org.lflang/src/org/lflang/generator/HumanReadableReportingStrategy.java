@@ -22,7 +22,9 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
     /** A pattern that matches lines that should be reported via this strategy. */
     private final Pattern diagnosticMessagePattern;
     /** A pattern that matches labels that show the exact range to which the diagnostic pertains. */
-    private static final Pattern labelPattern = Pattern.compile("(~*)(\\^~*)");  // TODO: Make this a parameter?
+    private final Pattern labelPattern;
+    /** The path against which any paths should be resolved. */
+    private final Path relativeTo;
 
     /**
      * Instantiates a reporting strategy for lines of
@@ -32,14 +34,47 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      *          must contain named capturing groups called
      *          "path", "line", "column", "message", and
      *          "severity".
+     * @param labelPattern a pattern that matches lines that act as labels, showing
+     *                     the location of the relevant piece of text. This pattern
+     *                     must contain two groups, the first of which must match
+     *                     characters that precede the location given by the "line"
+     *                     and "column" groups.
      */
-    public HumanReadableReportingStrategy(Pattern diagnosticMessagePattern) {
+    public HumanReadableReportingStrategy(Pattern diagnosticMessagePattern, Pattern labelPattern) {
         for (String groupName : new String[]{"path", "line", "column", "message", "severity"}) {
             assert diagnosticMessagePattern.pattern().contains(groupName) : String.format(
                 "Error line patterns must have a named capturing group called %s", groupName
             );
         }
         this.diagnosticMessagePattern = diagnosticMessagePattern;
+        this.labelPattern = labelPattern;
+        this.relativeTo = null;
+    }
+
+    /**
+     * Instantiates a reporting strategy for lines of
+     * validator output that match {@code diagnosticMessagePattern}.
+     * @param diagnosticMessagePattern a pattern that matches lines that should be
+     *          reported via this strategy. This pattern
+     *          must contain named capturing groups called
+     *          "path", "line", "column", "message", and
+     *          "severity".
+     * @param labelPattern a pattern that matches lines that act as labels, showing
+     *                     the location of the relevant piece of text. This pattern
+     *                     must contain two groups, the first of which must match
+     *                     characters that precede the location given by the "line"
+     *                     and "column" groups.
+     * @param relativeTo the path against which any paths should be resolved
+     */
+    public HumanReadableReportingStrategy(Pattern diagnosticMessagePattern, Pattern labelPattern, Path relativeTo) {
+        for (String groupName : new String[]{"path", "line", "column", "message", "severity"}) {
+            assert diagnosticMessagePattern.pattern().contains(groupName) : String.format(
+                "Error line patterns must have a named capturing group called %s", groupName
+            );
+        }
+        this.diagnosticMessagePattern = diagnosticMessagePattern;
+        this.labelPattern = labelPattern;
+        this.relativeTo = relativeTo;
     }
 
     @Override
@@ -58,7 +93,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      *             CodeMaps
      */
     private void reportErrorLine(String line, Iterator<String> it, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
-        Matcher matcher = diagnosticMessagePattern.matcher(line);
+        Matcher matcher = diagnosticMessagePattern.matcher(stripEscaped(line));
         if (matcher.matches()) {
             final Path path = Paths.get(matcher.group("path"));
             final Position generatedFilePosition = Position.fromOneBased(
@@ -67,7 +102,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
             final String message = DiagnosticReporting.messageOf(
                 matcher.group("message"), path, generatedFilePosition
             );
-            final CodeMap map = maps.get(path);
+            final CodeMap map = maps.get(relativeTo != null ? relativeTo.resolve(path) : path);
             final DiagnosticSeverity severity = DiagnosticReporting.severityOf(matcher.group("severity"));
             if (map == null) {
                 errorReporter.report(severity, message);
@@ -120,5 +155,14 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
             return;
         }
         reportAppropriateRange(report, lfFilePosition, it);
+    }
+
+    /**
+     * Strip the ANSI escape sequences from {@code s}.
+     * @param s Any string.
+     * @return {@code s}, with any escape sequences removed.
+     */
+    private static String stripEscaped(String s) {
+        return s.replaceAll("\u001B\\[[;\\d]*[ -/]*[@-~]", "");
     }
 }

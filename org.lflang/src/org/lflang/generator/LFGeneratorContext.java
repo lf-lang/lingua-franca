@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +129,10 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * Informs the context of that its build finished unsuccessfully.
      */
     default void unsuccessfulFinish() {
-        finish(getCancelIndicator().isCanceled() ? GeneratorResult.CANCELLED : GeneratorResult.FAILED);
+        finish(
+            getCancelIndicator() != null && getCancelIndicator().isCanceled() ?
+            GeneratorResult.CANCELLED : GeneratorResult.FAILED
+        );
     }
 
     /**

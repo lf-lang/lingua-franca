@@ -27,9 +27,11 @@ class CppValidator(
         private val gxxErrorLine: Pattern = Pattern.compile(
             "(?<path>.+\\.((cc)|(hh))):(?<line>\\d+):(?<column>\\d+): (?<severity>(error)|(warning)): (?<message>.*?) ?(?<type>(\\[.*])?)"
         )
+        private val gxxLabel: Pattern = Pattern.compile("(~*)(\\^~*)")
         // Happily, the two tools seem to produce errors that follow the same format.
         /** This matches a line of error reports from Clang-Tidy. */
         private val clangTidyErrorLine: Pattern = gxxErrorLine
+        private val clangTidyLabel: Pattern = gxxLabel
     }
 
     private class CppValidationStrategy(
@@ -58,7 +60,7 @@ class CppValidator(
         // Note: Clang-tidy is slow (on the order of tens of seconds) for checking C++ files.
         CLANG_TIDY({ cppValidator -> CppValidationStrategy(
             { _, _, _ -> },
-            HumanReadableReportingStrategy(clangTidyErrorLine),
+            HumanReadableReportingStrategy(clangTidyErrorLine, clangTidyLabel),
             5,
             { generatedFile: Path ->
                 val args = mutableListOf(generatedFile.toString(), "--checks=*", "--quiet", "--", "-std=c++${cppValidator.cppStandard}")
@@ -67,7 +69,7 @@ class CppValidator(
             }
         )}),
         GXX({ cppValidator -> CppValidationStrategy(
-            HumanReadableReportingStrategy(gxxErrorLine),
+            HumanReadableReportingStrategy(gxxErrorLine, gxxLabel),
             { _, _, _ -> },
             1,
             { generatedFile: Path ->
