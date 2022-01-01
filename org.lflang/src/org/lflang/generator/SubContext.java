@@ -9,9 +9,13 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig.Mode;
 
 /**
- * A {@code NestedContext} is the context of a process within a build process.
+ * A {@code SubContext} is the context of a process within a build process. For example,
+ * compilation of generated code may optionally be given a {@code SubContext} because
+ * compilation is part of a complete build.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
-public class NestedContext implements LFGeneratorContext {
+public class SubContext implements LFGeneratorContext {
 
     private final LFGeneratorContext containingContext;
     private final int startPercentProgress;
@@ -26,7 +30,7 @@ public class NestedContext implements LFGeneratorContext {
      * @param endPercentProgress The percent progress of the containing build process when this
      *                           nested process ends.
      */
-    public NestedContext(LFGeneratorContext containingContext, int startPercentProgress, int endPercentProgress) {
+    public SubContext(LFGeneratorContext containingContext, int startPercentProgress, int endPercentProgress) {
         this.containingContext = containingContext;
         this.startPercentProgress = startPercentProgress;
         this.endPercentProgress = endPercentProgress;
@@ -48,8 +52,8 @@ public class NestedContext implements LFGeneratorContext {
     }
 
     @Override
-    public boolean isHierarchicalBin() {
-        return containingContext.isHierarchicalBin();
+    public boolean useHierarchicalBin() {
+        return containingContext.useHierarchicalBin();
     }
 
     @Override

@@ -66,7 +66,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.NestedContext
+import org.lflang.generator.SubContext
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -596,7 +596,7 @@ class CGenerator extends GeneratorBase {
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
         var federateCount = 0;
-        val LFGeneratorContext compilingContext = new NestedContext(
+        val LFGeneratorContext compilingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
         )
         for (federate : federates) {
@@ -922,7 +922,7 @@ class CGenerator extends GeneratorBase {
                             //  if finish has already been called, then this must be a federated execution.
                             if (!isFederated) context.unsuccessfulFinish();
                         } else if (!isFederated) context.finish(
-                            GeneratorResult.Status.COMPILED, execName, fileConfig.binPath, null
+                            GeneratorResult.Status.COMPILED, execName, fileConfig, null
                         );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
@@ -949,11 +949,11 @@ class CGenerator extends GeneratorBase {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand();
                 context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             } else if (isFederated) {
                 context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig.binPath, null
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             }
         } else {

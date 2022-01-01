@@ -2,8 +2,11 @@ package org.lflang.generator
 
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.lflang.*
-import org.lflang.lf.*
+import org.lflang.ErrorReporter
+import org.lflang.toPath
+import org.lflang.toUnixString
+import org.lflang.toTextTokenBased
+import org.lflang.lf.Instantiation
 
 
 /** A transparent type alias to document when a string contains target code. */

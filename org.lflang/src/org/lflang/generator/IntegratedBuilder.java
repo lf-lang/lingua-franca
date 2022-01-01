@@ -26,6 +26,8 @@ import com.google.inject.Provider;
 /**
  * Manages Lingua Franca build processes that are requested
  * from the language server.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class IntegratedBuilder {
     public static final int START_PERCENT_PROGRESS = 0;
@@ -122,7 +124,7 @@ public class IntegratedBuilder {
         ReportProgress reportProgress,
         CancelIndicator cancelIndicator
     ) {
-        LFGeneratorContext context = new OuterContext(
+        LFGeneratorContext context = new MainContext(
             mustComplete ? Mode.LSP_SLOW : Mode.LSP_MEDIUM, cancelIndicator, reportProgress, new Properties(),
             false, fileConfig -> new LanguageServerErrorReporter(fileConfig.resource.getContents().get(0))
         );

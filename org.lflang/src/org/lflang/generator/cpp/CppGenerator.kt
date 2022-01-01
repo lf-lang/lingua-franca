@@ -31,7 +31,13 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.lflang.*
 import org.lflang.TargetConfig.Mode
 import org.lflang.Target
-import org.lflang.generator.*
+import org.lflang.generator.canGenerate
+import org.lflang.generator.CodeMap
+import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -68,9 +74,12 @@ class CppGenerator(
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
             context.reportProgress(
-                "Code generation complete. Validating...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+                "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (!cppFileConfig.outPath.resolve("include").toFile().exists()) {
+            if (!cppFileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
+                // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
+                //  that has been done in this LF package since the last time the package was cleaned.
+                //  We must compile in order to install the dependencies. Future validations will be faster.
                 doCompile(context, codeMaps)
             } else if (runCmake(context).first == 0) {
                 CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
@@ -94,9 +103,9 @@ class CppGenerator(
 
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        fileConfig.copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
-        fileConfig.copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
-        fileConfig.copyFileFromClassPath("${libDir}/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString())
+        fileConfig.copyFileFromClassPath("$libDir/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
+        fileConfig.copyFileFromClassPath("$libDir/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
+        fileConfig.copyFileFromClassPath("$libDir/3rd-party/cxxopts.hpp", genIncludeDir.resolve("CLI").resolve("cxxopts.hpp").toString())
 
         // keep a list of all source files we generate
         val cppSources = mutableListOf<Path>()
@@ -125,9 +134,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r.getEResource(), cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r.getEResource())
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r.getEResource())
+            val generator = CppPreambleGenerator(r.eResource, cppFileConfig, scopeProvider)
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r.eResource)
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[fileConfig.srcGenPath.resolve(sourceFile)] = preambleCodeMap
@@ -156,6 +165,11 @@ class CppGenerator(
         doCompile(context, HashMap())
     }
 
+    /**
+     * Run CMake to generate build files.
+     * @return The CMake return code and the CMake version, or
+     * (1, "") if no acceptable version of CMake is installed.
+     */
     private fun runCmake(context: LFGeneratorContext): Pair<Int, String> {
         val outPath = fileConfig.outPath
 
@@ -172,7 +186,7 @@ class CppGenerator(
                 "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
-            return Pair(1, version ?: "")
+            return Pair(1, "")
         }
 
         // run cmake
@@ -196,14 +210,14 @@ class CppGenerator(
                 // If errors occurred but none were reported, then the following message is the best we can do.
                 if (!errorsOccurred()) errorReporter.reportError("make failed with error code $makeReturnCode")
             }
-        } else {
+        } else if (version.isNotBlank()) {
             errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
         }
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
             context.finish(
-                GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig.binPath, codeMaps
+                GeneratorResult.Status.COMPILED, cppFileConfig.name, cppFileConfig, codeMaps
             )
         }
     }
