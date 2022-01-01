@@ -49,18 +49,20 @@ jobs:
         with:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Check out reactor-c submodule
+      - name: Check out specific ref of reactor-c
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.reactor-c-ref }}
-      - name: Check out reactor-c-py submodule
+        if: ${{ inputs.reactor-c-ref }}
+      - name: Check out specific ref of reactor-c-py
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c-py
           path: org.lflang/src/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
+        if: ${{ inputs.reactor-c-py-ref }}
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
