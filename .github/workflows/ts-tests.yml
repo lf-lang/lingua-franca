@@ -3,6 +3,9 @@ name: Run TypeScript tests
 on:
   workflow_call:
     inputs:
+      compiler-ref:
+        required: false
+        type: string
       runtime-ref:
         required: false
         type: string
