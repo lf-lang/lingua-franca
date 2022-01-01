@@ -1,4 +1,4 @@
-name: Run the benchmark tests
+name: Benchmark Tests
 
 on:
   workflow_call:

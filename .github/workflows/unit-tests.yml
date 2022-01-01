@@ -1,4 +1,4 @@
-name: Run unit tests (and compute code coverage)
+name: Unit Tests + CodeCov
 
 on:
   workflow_call:
