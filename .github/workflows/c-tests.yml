@@ -40,13 +40,13 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
       - name: Install dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
       - name: Install dependencies OS X
         run: |
           brew install protobuf
           brew install protobuf-c
           brew install coreutils
-        if: runner.os == 'macOS'
+        if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
