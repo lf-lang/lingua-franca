@@ -217,7 +217,7 @@ class TSGenerator(
             )
             if (
                 !context.cancelIndicator.isCanceled
-                && check(TSValidator(tsFileConfig, errorReporter, codeMaps), context.cancelIndicator)
+                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), context)
             ) {
                 if (context.mode == Mode.LSP_MEDIUM) {
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
@@ -359,10 +359,10 @@ class TSGenerator(
      * Run checks on the generated TypeScript.
      * @return whether the checks pass.
      */
-    private fun check(validator: TSValidator, cancelIndicator: CancelIndicator): Boolean {
-        validator.doLint(cancelIndicator)
+    private fun passesChecks(validator: TSValidator, context: LFGeneratorContext): Boolean {
+        if (context.mode != Mode.STANDALONE) validator.doLint(context.cancelIndicator)
         if (errorsOccurred()) return false
-        validator.doValidate(cancelIndicator)
+        validator.doValidate(context.cancelIndicator)
         return !errorsOccurred()
     }
 
