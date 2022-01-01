@@ -32,13 +32,13 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-based-tests.yml@modular-ci
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-based-tests.yml@modular-ci
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@modular-ci
     with:
-      target: 'CCpp'
+      use-cpp: true
   
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
@@ -50,9 +50,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-based-tests.yml@modular-ci
-    with:
-      target: 'Python'
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@modular-ci
 
   # Run the Rust integration tests.
   rs-tests:
