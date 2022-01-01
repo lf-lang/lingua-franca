@@ -28,12 +28,12 @@ jobs:
         uses: actions/setup-python@v2
       - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
       - name: Install Dependencies OS X
         run: |
           brew install protobuf
           brew install coreutils
-        if: runner.os == 'macOS'
+        if: ${{ runner.os == 'macOS' }}
       - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
@@ -41,7 +41,7 @@ jobs:
           vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
           vcpkgDirectory: ${{ github.workspace }}/vcpkg/
           vcpkgTriplet: x64-windows-static
-        if: runner.os == 'Windows'
+        if: ${{ runner.os == 'Windows' }}
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       - name: Check out lingua-franca repository
@@ -60,6 +60,6 @@ jobs:
           repository: lf-lang/reactor-c-py
           path: org.lflang/src/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
-      - name: Run Python tests;
+      - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
