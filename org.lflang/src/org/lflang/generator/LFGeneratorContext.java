@@ -15,34 +15,39 @@ import org.lflang.util.LFCommand;
 
 /**
  * An {@code LFGeneratorContext} is the context of a Lingua Franca build process.
+ * It is the point of communication between a build process and the environment
+ * in which it is executed.
+ *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 
     /**
-     * Returns the mode of this.
+     * Return the mode of operation, which indicates how the compiler has been invoked 
+     * (e.g., from within Epoch, from the command line, or via a Language Server).
      */
     Mode getMode();
 
     /**
-     * Returns the arguments of this.
+     * Return any arguments that will override target properties.
      */
     Properties getArgs();
 
     /**
-     * Returns whether the bin directory should be hierarchical.
+     * Return whether the bin directory should be hierarchical.
      * @return whether the bin directory should be hierarchical
      */
-    boolean isHierarchicalBin();
+    boolean useHierarchicalBin();
 
     /**
-     * Constructs the appropriate error reporter for {@code fileConfig}.
+     * Construct the appropriate error reporter for {@code fileConfig}.
      * @param fileConfig The {@code FileConfig} used by a build process.
      * @return the appropriate error reporter for {@code fileConfig}
      */
     ErrorReporter constructErrorReporter(FileConfig fileConfig);
 
     /**
-     * Marks the code generation process performed in this
+     * Mark the code generation process performed in this
      * context as finished with the result {@code result}.
      * @param result The result of the code generation
      *               process that was performed in this
@@ -51,7 +56,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     void finish(GeneratorResult result);
 
     /**
-     * Returns the result of the code generation process that was performed in
+     * Return the result of the code generation process that was performed in
      * this context.
      * @return the result of the code generation process that was performed in
      * this context
@@ -59,18 +64,19 @@ public interface LFGeneratorContext extends IGeneratorContext {
     GeneratorResult getResult();
 
     /**
-     * Reports the progress of a build.
+     * Report the progress of a build.
      * @param message A message for the LF programmer to read.
      * @param percentage The approximate percent completion of the build.
      */
     void reportProgress(String message, int percentage);
 
     /**
-     * Informs the context of the result of its build, if applicable.
+     * Conclude this build and record the result if necessary.
      * @param status The status of the result.
      * @param execName The name of the executable produced by this code
      * generation process, or {@code null} if no executable was produced.
-     * @param binPath The directory containing the executable (if applicable)
+     * @param binPath The directory containing the executable (if applicable).
+     * @param fileConfig The {@code FileConfig} instance used by the build.
      * @param codeMaps The generated files and their corresponding code maps.
      * @param interpreter The interpreter needed to run the executable, if
      *                    applicable.
@@ -79,29 +85,16 @@ public interface LFGeneratorContext extends IGeneratorContext {
         GeneratorResult.Status status,
         String execName,
         Path binPath,
+        FileConfig fileConfig,
         Map<Path, CodeMap> codeMaps,
         String interpreter
     ) {
         if (execName != null && binPath != null) {
             Path executable = binPath.resolve(execName);
-            Path start = binPath.getRoot();
-            Path end = null;
-            for (Path segment: binPath) {
-                if (end == null) {
-                    if (start.resolve("src").toFile().exists()) end = segment;
-                    else start = start.resolve(segment);
-                } else {
-                    end = end.resolve(segment);
-                    if (start.resolve(end).resolve("src").toFile().exists()) {
-                        start = start.resolve(end);
-                        end = null;
-                    }
-                }
-            }
-            if (end == null) end = Path.of(".");
-            String relativeExecutable = end.resolve(execName).toString();
-            LFCommand command = interpreter != null ? LFCommand.get(interpreter, List.of(relativeExecutable), start) :
-                LFCommand.get(relativeExecutable, List.of(), start);
+            String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();
+            LFCommand command = interpreter != null ?
+                LFCommand.get(interpreter, List.of(relativeExecutable), fileConfig.srcPkgPath) :
+                LFCommand.get(relativeExecutable, List.of(), fileConfig.srcPkgPath);
             finish(new GeneratorResult(status, executable, command, codeMaps));
         } else {
             finish(new GeneratorResult(status, null, null, codeMaps));
@@ -109,24 +102,24 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Informs the context of the result of its build, if applicable.
+     * Conclude this build and record the result if necessary.
      * @param status The status of the result.
      * @param execName The name of the executable produced by this code
      * generation process, or {@code null} if no executable was produced.
-     * @param binPath The directory containing the executable (if applicable)
+     * @param fileConfig The directory containing the executable (if applicable)
      * @param codeMaps The generated files and their corresponding code maps.
      */
     default void finish(
         GeneratorResult.Status status,
         String execName,
-        Path binPath,
+        FileConfig fileConfig,
         Map<Path, CodeMap> codeMaps
     ) {
-        finish(status, execName, binPath, codeMaps, null);
+        finish(status, execName, fileConfig.binPath, fileConfig, codeMaps, null);
     }
 
     /**
-     * Informs the context of that its build finished unsuccessfully.
+     * Conclude this build and record that it was unsuccessful.
      */
     default void unsuccessfulFinish() {
         finish(
@@ -136,7 +129,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Returns the {@code LFGeneratorContext} that best describes the given {@code context} when
+     * Return the {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
      * @param context The context of a Lingua Franca build process.
      * @param resource The resource being built.
@@ -145,10 +138,10 @@ public interface LFGeneratorContext extends IGeneratorContext {
      */
     static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
-        if (resource.getURI().isPlatform()) return new OuterContext(
+        if (resource.getURI().isPlatform()) return new MainContext(
             Mode.EPOCH, context.getCancelIndicator(), (m, p) -> {}, new Properties(), false,
             EclipseErrorReporter::new
         );
-        return new OuterContext(Mode.LSP_FAST, context.getCancelIndicator());
+        return new MainContext(Mode.LSP_FAST, context.getCancelIndicator());
     }
 }

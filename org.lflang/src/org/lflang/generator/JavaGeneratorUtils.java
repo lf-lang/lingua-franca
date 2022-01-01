@@ -1,15 +1,9 @@
 package org.lflang.generator;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.CharSequence;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-
-import org.lflang.util.LFCommand;
 
 /**
  * A helper class with functions that may be useful for code
