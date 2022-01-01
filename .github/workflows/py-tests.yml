@@ -44,17 +44,17 @@ jobs:
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
-      - name: Checkout lingua-franca repo
+      - name: Check out lingua-franca repository
         uses: actions/checkout@v2
         with:
           ref: ${{ inputs.compiler-ref }}
-      - name: Checkout reactor-c submodule
+      - name: Check out reactor-c submodule
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.reactor-c-ref }}
-      - name: Checkout reactor-c-py submodule
+      - name: Check out reactor-c-py submodule
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c-py
