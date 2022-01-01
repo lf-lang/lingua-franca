@@ -30,14 +30,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ inputs.compiler-ref }}
-          submodules: true
-          fetch-depth: 0 # NOTE: if this parameter is not used, fetching an alternative runtime fails.
-      - name: Use alternative runtime version
-        uses: ./.github/actions/checkout-ref
+      - uses: actions/checkout@v2
         with:
-          path: 'org.lflang/src/lib/c/reactor-c'
+          repository: lf-lang/reactor-c
+          path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
-        if: ${{ inputs.runtime-ref }}
       - name: Install dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
         if: runner.os == 'Linux'
