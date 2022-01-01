@@ -1,4 +1,4 @@
-name: Run Python tests
+name: Python Tests
 
 on:
   workflow_call:

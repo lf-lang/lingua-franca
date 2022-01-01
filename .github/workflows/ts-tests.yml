@@ -1,4 +1,4 @@
-name: Run TypeScript tests
+name: TypeScript Tests
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: Run C++ tests
+name: C++ Tests
 
 on:
   workflow_call:

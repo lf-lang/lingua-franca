@@ -1,4 +1,4 @@
-name: Run tests for standalone compiler
+name: CLI Tests
 
 on:
   workflow_call:
