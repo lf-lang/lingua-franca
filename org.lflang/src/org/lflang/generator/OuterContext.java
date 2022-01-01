@@ -66,7 +66,7 @@ public class OuterContext implements LFGeneratorContext {
         Function<FileConfig, ErrorReporter> constructErrorReporter
     ) {
         this.mode = mode;
-        this.cancelIndicator = cancelIndicator;
+        this.cancelIndicator = cancelIndicator == null ? () -> false : cancelIndicator;
         this.reportProgress = reportProgress;
         this.args = args;
         this.hierarchicalBin = hierarchicalBin;

@@ -49,6 +49,10 @@ import org.lflang.generator.PrependOperator
 import java.nio.file.Path
 import kotlin.collections.HashMap
 
+private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
+        "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
+        "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+
 /**
  * Generator for TypeScript target.
  *
@@ -197,12 +201,22 @@ class TSGenerator(
                 IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             collectDependencies(resource, context)
-            if (context.mode == Mode.LSP_MEDIUM) {
-                context.reportProgress("Validating generated code...", IntegratedBuilder.COMPILED_PERCENT_PROGRESS)
-                TSValidator(tsFileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
-                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.reportProgress(
+                "Validating generated code...",
+                (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2
+            )
+            if (
+                !context.cancelIndicator.isCanceled
+                && check(TSValidator(tsFileConfig, errorReporter, codeMaps), context.cancelIndicator)
+            ) {
+                if (context.mode == Mode.LSP_MEDIUM) {
+                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                } else {
+                    compile(context)
+                    concludeCompilation(context)
+                }
             } else {
-                compile(context)
+                context.unsuccessfulFinish()
             }
         }
     }
@@ -240,8 +254,6 @@ class TSGenerator(
             )
             generateFederationInfrastructure()
         }
-
-        concludeCompilation(context)
     }
 
     /**
@@ -277,10 +289,7 @@ class TSGenerator(
             val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.srcGenPkgPath)
 
             if (npmInstall == null) {
-                errorReporter.reportError(
-                    "The TypeScript target requires npm >= 6.14.4. " +
-                            "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
-                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+                errorReporter.reportError(NO_NPM_MESSAGE)
                 return
             }
 
@@ -337,43 +346,32 @@ class TSGenerator(
     }
 
     /**
+     * Run checks on the generated TypeScript.
+     * @return whether the checks pass.
+     */
+    private fun check(validator: TSValidator, cancelIndicator: CancelIndicator): Boolean {
+        validator.doLint(cancelIndicator)
+        if (errorsOccurred()) return false
+        validator.doValidate(cancelIndicator)
+        return !errorsOccurred()
+    }
+
+    /**
      * Transpiles TypeScript to JavaScript.
      */
     private fun transpile(cancelIndicator: CancelIndicator) {
-        val errorMessage = "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
-                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+        println("Compiling")
+        val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
-        // Invoke the compiler on the generated code.
-        println("Type Checking")
-        val tsc = commandFactory.createCommand("npm", listOf("run", "check-types"), fileConfig.srcGenPkgPath)
-        if (tsc == null) {
-            errorReporter.reportError(errorMessage);
+        if (babel == null) {
+            errorReporter.reportError(NO_NPM_MESSAGE)
             return
         }
 
-        if (tsc.run(cancelIndicator) == 0) {
-            // Babel will compile TypeScript to JS even if there are type errors
-            // so only run compilation if tsc found no problems.
-            //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
-            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
-            println("Compiling")
-            val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
-
-            if (babel == null) {
-                errorReporter.reportError(errorMessage);
-                return
-            }
-
-            if (babel.run(cancelIndicator) == 0) {
-                println("SUCCESS (compiling generated TypeScript code)")
-            } else {
-                errorReporter.reportError("Compiler failed.")
-            }
+        if (babel.run(cancelIndicator) == 0) {
+            println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            val errors: String = tsc.output.toString().lines().filter { it.contains("error") }.joinToString("\n")
-            errorReporter.reportError(
-                "Type checking failed" + if (errors.isBlank()) "." else " with the following errors:\n$errors"
-            )
+            errorReporter.reportError("Compiler failed.")
         }
     }
 
