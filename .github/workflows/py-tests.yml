@@ -26,15 +26,15 @@ jobs:
           java-version: 11
       - name: Setup Python
         uses: actions/setup-python@v2
-      - name: Install Dependencies Ubuntu
+      - name: Install dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
         if: ${{ runner.os == 'Linux' }}
-      - name: Install Dependencies OS X
+      - name: Install dependencies OS X
         run: |
           brew install protobuf
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
-      - name: Install Dependencies Windows
+      - name: Install dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
           vcpkgArguments: protobuf
@@ -47,6 +47,7 @@ jobs:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v2
         with:
+          submodules: true
           ref: ${{ inputs.compiler-ref }}
       - name: Check out reactor-c submodule
         uses: actions/checkout@v2
