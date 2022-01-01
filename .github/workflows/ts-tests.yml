@@ -1,4 +1,4 @@
-name: Run tests based on TypeScript runtime
+name: Run TypeScript tests
 
 on:
   workflow_call:
@@ -41,6 +41,6 @@ jobs:
         with:
           path: org.lflang/src/lib/ts/reactor-ts
           ref: ${{ inputs.runtime-ref }}
-      - name: Perform TypeScript tests;
+      - name: Perform TypeScript tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*

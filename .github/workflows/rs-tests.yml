@@ -1,4 +1,4 @@
-name: Run tests based on Rust runtime
+name: Run Rust tests
 
 on:
   workflow_call:
