@@ -51,8 +51,6 @@ jobs:
   # Run the Python integration tests.
   py-tests:
     uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@modular-ci
-    with:
-      reactor-c-py-ref: main
 
   # Run the Rust integration tests.
   rs-tests:
