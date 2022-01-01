@@ -439,9 +439,7 @@ class UclidGenerator extends GeneratorBase {
         unindent()
         pr('};')
         newline()
-        var varSize = this.stateVars.size + this.ports.size
-        var integerInit = "0, ".repeat(varSize)
-        integerInit = integerInit.substring(0, integerInit.length - 2)
+
         pr('''
         // mark the start of the trace.
         var start : timestamp_t;
@@ -454,6 +452,11 @@ class UclidGenerator extends GeneratorBase {
          ****************/
         ''')
 
+        // FIXME: Compilation issue occurs when there are
+        // no variables or ports in the system.
+        var varSize = this.stateVars.size + this.ports.size
+        var integerInit = "0, ".repeat(varSize)
+        integerInit = integerInit.substring(0, integerInit.length - 2)
         pr('''
         // helper macro that returns an element based on index
         define get(tr : trace_t, i : step_t) : event_t =
@@ -508,6 +511,15 @@ class UclidGenerator extends GeneratorBase {
         ''')
         unindent()
         newline()
+
+        // FIXME: Store timer offsets and timer periods
+        pr('''
+        // Store timer offsets and timer periods
+        define timer_offset(_rxn : rxn_t) : integer =
+            0;
+        define timer_period(_rxn : rxn_t) : integer =
+            0;
+        ''')
 
         // Non-federated "happened-before"
         // FIXME: Need to compute the transitive closure.
@@ -575,6 +587,33 @@ class UclidGenerator extends GeneratorBase {
                 ==> (exists (j : integer) :: in_range(j)
                     && rxn(j) == upstream 
                     && g(i) == tag_delay(g(j), delay)));
+
+        //// Encoding the behavior of timers
+        define is_multiple_of(a, b : integer) : boolean
+        = exists (c : integer) :: b * c == a;
+        
+        define is_closest_starting_point(t : tag_t, period : integer, offset : integer) : boolean
+        = (exists (c : integer) :: (period * c) + offset == pi1(t)
+            // Tick at the next valid instant.
+            && (period * (c - 1) + offset) < start)     
+            // Timer always has mstep of 0.
+            && pi2(t) == 0;
+        
+        define timer_triggers(_rxn : rxn_t) : boolean =
+            // 1. If the initial event is within frame, show it.
+            (exists (i : integer) :: in_range(i)
+            && rxn(i) == _rxn
+            && is_closest_starting_point(g(i), pi1(timer_period(_rxn)), // FIXME: store period
+                pi1(timer_offset(_rxn)))) // FIXME: store timer_offset
+            // 2. The SPACING between two consecutive timer firings is the period.
+            // FIXME: Is the use of two in_range() here appropriate?
+            // Shaokai: Seems so to me, since the first state is not actually constrained.
+            && (forall (i, j : integer) :: (in_range(i) && in_range(j) && i < j
+                && rxn(i) == _rxn && rxn(j) == _rxn
+                // ...and there does not exist a 3rd invocation in between
+                && !(exists (k : integer) :: rxn(k) == _rxn && i < k && k < j))
+                    ==> g(j) == tag_schedule(g(i), timer_period(_rxn)))
+            ;
         ''')
         newline()
     }
@@ -605,6 +644,17 @@ class UclidGenerator extends GeneratorBase {
         // Microsteps should be positive
         axiom(forall (i : integer) :: (i > START && i <= END)
             ==> pi2(g(i)) >= 0);
+
+        // Begin the frame at the start time specified.
+        define start_frame(i : step_t) : boolean =
+            (tag_same(g(i), {start, 0}) || tag_later(g(i), {start, 0}));
+        axiom(forall (i : integer) :: (i > START && i <= END)
+            ==> start_frame(i));
+
+        // NULL events should appear in the suffix, except for START
+        axiom(forall (j : integer) :: (j > START && j <= END) ==> (
+            (rxn(j)) != NULL) ==> 
+                (forall (i : integer) :: (i > START && i < j) ==> (rxn(i) != NULL)));
         ''')
         newline()
     }
@@ -855,7 +905,9 @@ class UclidGenerator extends GeneratorBase {
         pr('''
         // Auxiliary invariant
         define aux_inv(i : integer) : boolean =
-            true;   // TODO: replace
+            // Add this here, so that in the consecution step,
+            // the first state respects start.
+            start_frame(i);
 
         // Strengthened property
         define Q(i : step_t) : boolean =
@@ -912,13 +964,13 @@ class UclidGenerator extends GeneratorBase {
         rm -rf ./smt/ && mkdir -p smt
         
         echo '*** Generating SMT files from UCLID5'
-        uclid -g "smt/output" main.ucl
+        uclid -g "smt/output" $1
         
         echo '*** Append (get-model) to each file'
         ls smt | xargs -I {} bash -c 'echo "(get-model)" >> smt/{}'
         
         echo '*** Running Z3'
-        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -v:10 ./smt/{}'
+        ls smt | xargs -I {} bash -c 'echo "Checking {}" && z3 -T:120 ./smt/{}'
         ''')
     }
     
@@ -942,9 +994,9 @@ class UclidGenerator extends GeneratorBase {
      */
     override prSourceLineNumber(EObject eObject) {
         if (eObject instanceof Code) {
-            pr(code, '''//// From Line «NodeModelUtils.getNode(eObject).startLine +1» in the LF program''')
+            pr(code, '''//// Line «NodeModelUtils.getNode(eObject).startLine +1» in the LF program''')
         } else {
-            pr(code, '''//// From Line «NodeModelUtils.getNode(eObject).startLine» in the LF program''')
+            pr(code, '''//// Line «NodeModelUtils.getNode(eObject).startLine» in the LF program''')
         }
     }
     
