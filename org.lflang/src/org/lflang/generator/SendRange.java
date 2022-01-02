@@ -110,8 +110,8 @@ public class SendRange extends RuntimeRange.Port {
 
     /**
      * Return the total number of destination reactors. Specifically, this
-     * is the number of distinct reactors that react to messages from this
-     * send range.
+     * is the number of distinct runtime reactor instances that react to
+     * messages from this send range.
      */
     public int getNumberOfDestinationReactors() {
         if (_numberOfDestinationReactors < 0) {
