@@ -29,6 +29,9 @@ package org.lflang.generator
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayList
+import java.util.HashMap
+import java.util.LinkedHashMap
+import java.util.LinkedList
 import java.util.List
 import java.util.Map
 import java.util.Set
@@ -40,6 +43,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.generator.PortInstance
 import org.lflang.generator.JavaGeneratorUtils
 import org.lflang.lf.Action
+import org.lflang.lf.Attribute
 import org.lflang.lf.Code
 import org.lflang.lf.VarRef
 import org.lflang.lf.StateVar
@@ -66,18 +70,24 @@ class UclidGenerator extends GeneratorBase {
     // The reaction graph upon which the causality graph is built
     var ReactionInstanceGraph reactionGraph
 
-    // Data structures storing info about the runtime topology
+    // Data structures for storing info about the runtime instances
     var Set<ReactionInstance>                   reactions
     var Set<PortInstance>                       ports
     var List<Pair<ReactorInstance, StateVar>>   stateVars
-        = new ArrayList<Pair<ReactorInstance, StateVar>>()
+        = new ArrayList<Pair<ReactorInstance, StateVar>>
 
-    // The causality graph captures _counterfactual causality_
+    // The causality graph captures counterfactual causality
     // relations between adjacent reactions.
     var CausalityGraph causalityGraph
 
-    // Trace size
-    int traceSize
+    // Trace length
+    int traceLength
+
+    // Data structures for storing properties
+    var List<String>                        properties  = new ArrayList
+    var HashMap<String, List<Attribute>>    propertyMap = new LinkedHashMap
+    var HashMap<String, List<Attribute>>    auxInvMap   = new LinkedHashMap
+    var HashMap<String, Attribute>          boundMap    = new LinkedHashMap
     
     // Constructor
     new(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -104,8 +114,7 @@ class UclidGenerator extends GeneratorBase {
                     }
                 }
             }
-        }
-        else {
+        } else {
             // If verification flag is not specified, exit the generator.
             return
         }
@@ -126,8 +135,7 @@ class UclidGenerator extends GeneratorBase {
                         this.errorReporter
                     )
                 }   
-            }
-            else {
+            } else {
                 println("WARNING: No main reactor detected. No model is generated.")
                 return
             }
@@ -145,9 +153,56 @@ class UclidGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
         outputDir = Paths.get(dir.getAbsolutePath)
         println("The models will be located in: " + outputDir)
-        
-        // Generate the Uclid model.
-        printModelToFile()
+
+        // Identify properties and generate a model for each property.
+        var mainAttr = this.main.reactorDefinition.getAttributes
+        if (mainAttr.length != 0) {
+            for (attr : mainAttr) {
+                // Extract the property name.
+                // Add to the list if it doesn't exist.
+                var property = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                if (!this.properties.contains(property)) {
+                    this.properties.add(property)
+                }
+                // Check the type of the attribute,
+                // then populate the hashmap.
+                switch attr.getAttrName.toString {
+                    case 'property' : {
+                        if (this.propertyMap.get(property) === null) {
+                            this.propertyMap.put(property, new LinkedList)
+                        }
+                        this.propertyMap.get(property).add(attr)
+                    }
+                    case 'aux' : {
+                        if (this.auxInvMap.get(property) === null) {
+                            this.auxInvMap.put(property, new LinkedList)
+                        }
+                        this.auxInvMap.get(property).add(attr)
+                    }
+                    case 'bound' : {
+                        if (this.boundMap.get(property) === null) {
+                            this.boundMap.put(property, attr)
+                        } else {
+                            println("WARNING: Redundant bound specification for the same property.")
+                        }
+                    }
+                }
+            }
+        } else {
+            println("WARNING: No main reactor attribute detected. No model is generated.")
+            return
+        }
+
+        // Generate a Uclid model for each property.
+        for (property : this.properties) {
+            printModelToFile(property)
+        }
+
+        // Generate runner script
+        code = new StringBuilder()
+        var filename = outputDir.resolve("run.sh").toString
+        generateRunnerScript()
+        JavaGeneratorUtils.writeSourceCodeToFile(getCode, filename)
     }
 
     /**
@@ -155,8 +210,8 @@ class UclidGenerator extends GeneratorBase {
      * @param reactor A reactor instance from which the search begins.
      */
     private def void populateStateVars(ReactorInstance reactor) {
-        // Set traceSize
-        this.traceSize = targetConfig.verification.steps
+        // Set trace length
+        this.traceLength = targetConfig.verification.steps
         
         var defn = reactor.reactorDefinition
         var stateVars = defn.getStateVars
@@ -190,21 +245,15 @@ class UclidGenerator extends GeneratorBase {
     /**
      * Generate the Uclid model and a runner script.
      */
-    protected def printModelToFile() {     
+    protected def printModelToFile(String property) {     
         // Generate main.ucl and print to file
         code = new StringBuilder()
-        var filename = outputDir.resolve("main.ucl").toString
-        generateMain()
-        JavaGeneratorUtils.writeSourceCodeToFile(getCode, filename)
-        
-        // Generate run.sh
-        code = new StringBuilder()
-        filename = outputDir.resolve("run.sh").toString
-        generateRunScript()
+        var filename = outputDir.resolve("property_" + property + ".ucl").toString
+        generateMain(property)
         JavaGeneratorUtils.writeSourceCodeToFile(getCode, filename)
     }
     
-    protected def generateMain() {
+    protected def generateMain(String property) {
         pr('''
         /*******************************
          * Auto-generated UCLID5 model *
@@ -248,11 +297,11 @@ class UclidGenerator extends GeneratorBase {
         // Reaction contracts
         pr_reaction_contracts()
 
-        // Properties
-        pr_invariants()
-
         // K-induction
-        pr_k_induction()
+        var conjunctList    = this.propertyMap.get(property)
+        var auxInvList      = this.auxInvMap.get(property)
+        var bound           = this.boundMap.get(property)
+        pr_k_induction(property, conjunctList, auxInvList, bound)
 
         // Control block
         pr_control_block()
@@ -371,30 +420,36 @@ class UclidGenerator extends GeneratorBase {
         type state_t = {
         ''')
         indent()
-        println(this.stateVars)
-        println(this.ports)
-        var i = 0;
-        for (v : this.stateVars) {
-            pr(
-                "integer"
-                + ((ports.size() == 0 && i++ == stateVars.size - 1) ? "" : ",")
-                + " \t// " + stateVarFullNameWithJoiner(v, ".")
-            )
-        }
-        i = 0;
-        for (p : this.ports) {
-            pr(
-                "integer"
-                + ((i++ == ports.size - 1) ? "" : ",")
-                + " \t// " + p.getFullName
-            )
+        if (this.ports.size + this.stateVars.size > 0) {
+            var i = 0;
+            for (v : this.stateVars) {
+                pr(
+                    "integer"
+                    + ((this.ports.size == 0 && i++ == this.stateVars.size - 1) ? "" : ",")
+                    + " \t// " + stateVarFullNameWithJoiner(v, ".")
+                )
+            }
+            i = 0;
+            for (p : this.ports) {
+                pr(
+                    "integer"
+                    + ((i++ == ports.size - 1) ? "" : ",")
+                    + " \t// " + p.getFullName
+                )
+            }
+        } else {
+            pr('''
+            // There are no ports or state variables.
+            // Insert a dummy integer to make the model compile.
+            integer
+            ''')
         }
         unindent()
         pr('};')
         pr('''
         // State variable projection macros
         ''')
-        i = 0;
+        var i = 0;
         for (v : this.stateVars) {
             pr('''
             define «stateVarFullNameWithJoiner(v, "_")»(s : state_t) : integer = s._«i+1»;
@@ -415,10 +470,10 @@ class UclidGenerator extends GeneratorBase {
     def pr_trace_def_and_helper_macros() {
         pr('''
         /********************
-        * Trace Definition *
-        *******************/
+         * Trace Definition *
+         *******************/
         const START : integer = 0;
-        const END : integer = «traceSize-1»;
+        const END : integer = «traceLength-1»;
         
         define in_range(num : integer) : boolean
         = num >= START && num <= END;
@@ -428,13 +483,13 @@ class UclidGenerator extends GeneratorBase {
         ''')
         pr('')
         pr('''
-        // Generate «traceSize» events.
+        // Create a bounded trace of «traceLength» events.
         ''')
         pr("type trace_t = {")
         indent()
-        for (var i = 0; i < traceSize; i++) {
+        for (var i = 0; i < traceLength; i++) {
             pr("event_t" +
-                (i == traceSize - 1 ? "" : ","))
+                (i == traceLength - 1 ? "" : ","))
         }
         unindent()
         pr('};')
@@ -448,26 +503,30 @@ class UclidGenerator extends GeneratorBase {
         var trace : trace_t;
 
         /*****************
-         * helper macros *
+         * Helper Macros *
          ****************/
         ''')
 
-        // FIXME: Compilation issue occurs when there are
-        // no variables or ports in the system.
+        // Generate a getter for the finite trace.
+        var String integerInit
         var varSize = this.stateVars.size + this.ports.size
-        var integerInit = "0, ".repeat(varSize)
-        integerInit = integerInit.substring(0, integerInit.length - 2)
+        if (varSize > 0) {
+            integerInit = "0, ".repeat(varSize)
+            integerInit = integerInit.substring(0, integerInit.length - 2)
+        } else {
+            integerInit = "0"
+        }
         pr('''
         // helper macro that returns an element based on index
         define get(tr : trace_t, i : step_t) : event_t =
         ''')
-        for (var j = 0; j < traceSize; j++) {
+        for (var j = 0; j < traceLength; j++) {
             pr('''
             if (i == «j») then tr._«j+1» else (
             ''')
         } 
         pr('''
-        { NULL, inf(), { «integerInit» } } «")".repeat(traceSize)»;
+        { NULL, inf(), { «integerInit» } } «")".repeat(traceLength)»;
         ''')
         newline()
         pr('''
@@ -659,10 +718,15 @@ class UclidGenerator extends GeneratorBase {
         axiom(forall (i : integer) :: (i > START && i <= END)
             ==> start_frame(i));
 
-        // NULL events should appear in the suffix, except for START
+        // NULL events should appear in the suffix, except for START.
         axiom(forall (j : integer) :: (j > START && j <= END) ==> (
             (rxn(j)) != NULL) ==> 
                 (forall (i : integer) :: (i > START && i < j) ==> (rxn(i) != NULL)));
+
+        // When a NULL event occurs, the state stays the same.
+        axiom(forall (j : integer) :: (j > START && j <= END) ==> (
+            (rxn(j) == NULL) ==> (s(j) == s(j-1))
+        ));
         ''')
         newline()
     }
@@ -835,6 +899,12 @@ class UclidGenerator extends GeneratorBase {
         ''')
         newline()
         for (rxn : this.reactions) {
+            pr('''
+            /* Pre/post conditions for «rxn.getFullName» */
+            axiom(forall (i : integer) :: (i > START && i <= END) ==>
+                (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> ( true
+            ''')
+            indent()
             var attrList = rxn.definition.getAttributes
             if (attrList.length != 0) {
                 for (attr : attrList) {
@@ -844,57 +914,33 @@ class UclidGenerator extends GeneratorBase {
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''
-                        /* Pre/post conditions for «rxn.getFullName» */
-                        axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                            (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> (
+                        && «inv»
                         ''')
-                        indent()
-                        pr(inv)
-                        unindent()
-                        pr('''
-                        )));
-                        ''')
-                        newline()
                     }
                 }
             }
-            else {
-                pr('''
-                /* Pre/post conditions for «rxn.getFullName» */
-                axiom(forall (i : integer) :: (i > START && i <= END) ==>
-                    (rxn(i) == «rxn.getFullNameWithJoiner('_')» ==> (
-                ''')
-                indent()
-                pr('true // Change "true" to pre/post conditions that hold for the reaction body.')
-                unindent()
-                pr('''
-                )));
-                ''')
-                newline()
-            }
+            unindent()
+            pr('''
+            )));
+            ''')
+            newline()
         }
     }
 
     // Properties
-    def pr_invariants() {
-        var String property
-        var int bound
-        var mainAttr = this.main.reactorDefinition.getAttributes
-        if (mainAttr.length != 0) {
-            for (attr : mainAttr) {
-                if (attr.getAttrName.toString.equals("property")) {
-                    property = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
-                    bound = Integer.parseInt(attr.getAttrParms.get(1))
-                }
-            }
-        }
+    def pr_k_induction(String propertyName, List<Attribute> conjunctList, List<Attribute> auxInvList, Attribute bound) {
+        // Set the property bound, and set k to the maximum allowed by the trace.
         pr('''
-        /**************
-         * Invariants *
-         **************/
-
-        // The property bound
-        const b : integer = «bound»;
+        /************
+         * Property *
+         ************/
+        ''')
+        // Extract the property bound out of the attribute.
+        var boundValue = Integer.parseInt(bound.getAttrParms.get(1))
+        // Print line number
+        prSourceLineNumber(bound)
+        pr('''
+        const b : integer = «boundValue»; // The property bound
         
         // max_k = trace end index - property bound - one consecution step
         // Note: k is bounded by max_km which depends on the trace length.
@@ -903,28 +949,51 @@ class UclidGenerator extends GeneratorBase {
         define k() : integer = max_k();
         ''')
         newline()
+
+        // Print the property in the form of a conjunction.
         pr('''
-        // The FOL property translated from user-defined MTL property
+        // The FOL property translated from user-defined LTL property
         define P(i : step_t) : boolean =
+            true
         ''')
         indent()
-        if (property !== null) {
+        for (conjunct : conjunctList) {
+            // Extract the invariant out of the attribute.
+            var formula = conjunct.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+            // Print line number
+            prSourceLineNumber(conjunct)
             pr('''
-                «property»;
+            && «formula»
             ''')
         }
-        else {
-            pr("true;   // TODO: replace")
-        }
         unindent()
+        pr(";")
         newline()
+
+        // Print auxiliary invariants.
         pr('''
         // Auxiliary invariant
         define aux_inv(i : integer) : boolean =
             // Add this here, so that in the consecution step,
             // the first state respects start.
-            start_frame(i);
+            start_frame(i)
+        ''');
+        indent()
+        for (auxInv : auxInvList) {
+            // Extract the invariant out of the attribute.
+            var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+            // Print line number
+            prSourceLineNumber(auxInv)
+            pr('''
+            && «formula»
+            ''')
+        }
+        unindent()
+        pr(";")
+        newline()
 
+        // Compose the property and the auxiliary invariants.
+        pr('''
         // Strengthened property
         define Q(i : step_t) : boolean =
             P(i) && aux_inv(i);
@@ -932,27 +1001,24 @@ class UclidGenerator extends GeneratorBase {
         // Helper macro for temporal induction
         define Globally_Q(start, end : step_t) : boolean =
             (forall (i : integer) :: (i >= start && i <= end) ==> Q(i));
-        //////////////////////////////////////////////////
         ''')
         newline()
-    }
 
-    // K-induction
-    def pr_k_induction() {
+        // Print k-induction formulae.
         pr('''
-        /*************
-         * Induction *
-         *************/
+        /***************
+         * K-Induction *
+         ***************/
         // Initiation
-        property initiation : initial_condition() ==>
+        property initiation_«propertyName» : initial_condition() ==>
             Globally_Q(0, k());
 
         // Consecution
-        property consecution : 
+        property consecution_«propertyName» : 
             Globally_Q(0, k()) ==> Q(k()+1);
 
         // Make sure k is valid.
-        property N_is_valid :
+        property N_is_valid_«propertyName» :
             k() <= max_k();
         ''')
         newline()
@@ -968,10 +1034,9 @@ class UclidGenerator extends GeneratorBase {
             v.print_cex;
         }
         ''')
-        newline()
     }
     
-    protected def generateRunScript() {
+    protected def generateRunnerScript() {
         pr('''
         #!/bin/bash
         set -e # Terminate on error
