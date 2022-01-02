@@ -40,7 +40,6 @@ import org.eclipse.emf.common.CommonPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
@@ -50,7 +49,6 @@ import org.lflang.InferredType
 import org.lflang.TargetConfig
 import org.lflang.TargetConfig.Mode
 import org.lflang.Target
-import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
@@ -64,7 +62,11 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization
 import org.lflang.federated.serialization.SupportedSerializers
 import org.lflang.generator.ActionInstance
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.GeneratorResult
+import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.JavaGeneratorUtils
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.SubContext
 import org.lflang.generator.ParameterInstance
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
@@ -381,7 +383,7 @@ class CGenerator extends GeneratorBase {
      * Set the appropriate target properties based on the target properties of
      * the main .lf file.
      */
-    override setTargetConfig(IGeneratorContext context) {
+    override setTargetConfig(LFGeneratorContext context) {
         super.setTargetConfig(context);
         // Set defaults for the compiler after parsing the target properties
         // of the main .lf file.
@@ -472,7 +474,7 @@ class CGenerator extends GeneratorBase {
      *     whether it is a standalone context
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-            IGeneratorContext context) {
+            LFGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
@@ -593,7 +595,12 @@ class CGenerator extends GeneratorBase {
             )
         val compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads.");
+        var federateCount = 0;
+        val LFGeneratorContext compilingContext = new SubContext(
+            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100
+        )
         for (federate : federates) {
+            federateCount++;
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
@@ -882,7 +889,7 @@ class CGenerator extends GeneratorBase {
                 && targetConfig.buildCommands.nullOrEmpty
                 && !federate.isRemote
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
-                && fileConfig.getCompilerMode() != Mode.LSP_MEDIUM
+                && context.getMode() != Mode.LSP_MEDIUM
             ) {
                 // FIXME: Currently, a lack of main is treated as a request to not produce
                 // a binary and produce a .o file instead. There should be a way to control
@@ -894,6 +901,10 @@ class CGenerator extends GeneratorBase {
                 val threadFileConfig = fileConfig;
                 val generator = this; // FIXME: currently only passed to report errors with line numbers in the Eclipse IDE
                 val CppMode = CCppMode;
+                compilingContext.reportProgress(
+                    String.format("Generated code for %d/%d executables. Compiling...", federateCount, federates.size()),
+                    100 * federateCount / federates.size()
+                );
                 compileThreadPool.execute(new Runnable() {
                     override void run() {
                         // Create the compiler to be used later
@@ -904,10 +915,15 @@ class CGenerator extends GeneratorBase {
                             cCompiler = new CCmakeCompiler(targetConfig, threadFileConfig,
                                 errorReporter, CppMode);
                         }
-                        if (!cCompiler.runCCompiler(execName, main === null, generator, context.cancelIndicator)) {
+                        if (!cCompiler.runCCompiler(execName, main === null, generator, context)) {
                             // If compilation failed, remove any bin files that may have been created.
                             threadFileConfig.deleteBinFiles()
-                        }
+                            // If finish has already been called, it is illegal and makes no sense. However,
+                            //  if finish has already been called, then this must be a federated execution.
+                            if (!isFederated) context.unsuccessfulFinish();
+                        } else if (!isFederated) context.finish(
+                            GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                        );
                         JavaGeneratorUtils.writeSourceCodeToFile(cleanCode, targetFile)
                     }
                 });
@@ -926,16 +942,23 @@ class CGenerator extends GeneratorBase {
         
         // Restore the base filename.
         topLevelName = baseFilename
-        
+
         // If a build directive has been given, invoke it now.
         // Note that the code does not get cleaned in this case.
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
-                runBuildCommand()
+                runBuildCommand();
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
+                );
+            } else if (isFederated) {
+                context.finish(
+                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
+                );
             }
+        } else {
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
-        
-        // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
 
