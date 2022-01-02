@@ -100,7 +100,7 @@ class RustValidator(
         @JsonProperty("highlight_end") val highlightEnd: Int
     )
 
-    override val possibleStrategies: Iterable<ValidationStrategy> = listOf(object: ValidationStrategy {
+    override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
         override fun getCommand(generatedFile: Path?): LFCommand {
             return LFCommand.get("cargo", listOf("clippy", "--message-format", "json"), fileConfig.srcGenPath)
         }
@@ -134,7 +134,7 @@ class RustValidator(
         override fun isFullBatch(): Boolean = true
     })
 
-    override val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> = Pair(
+    override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy> = Pair(
         possibleStrategies.first().errorReportingStrategy, possibleStrategies.first().outputReportingStrategy
     )
 }

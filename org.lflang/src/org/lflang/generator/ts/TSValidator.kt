@@ -75,7 +75,7 @@ class TSValidator(
             @JsonProperty("text") val text: String
         )
 
-        override val possibleStrategies: Iterable<ValidationStrategy> = listOf(object: ValidationStrategy {
+        override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
             override fun getCommand(generatedFile: Path?): LFCommand? {
                 return generatedFile?.let {
                     LFCommand.get(
@@ -119,13 +119,13 @@ class TSValidator(
             override fun getPriority(): Int = 0
 
         })
-        override val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
-            get() = Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })  // Not applicable
+        override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
+            = Pair(DiagnosticReporting.Strategy { _, _, _ -> }, DiagnosticReporting.Strategy { _, _, _ -> })  // Not applicable
     }
 
-    override val possibleStrategies: Iterable<ValidationStrategy>
-        get() = listOf(object: ValidationStrategy {
-            override fun getCommand(generatedFile: Path?): LFCommand? {
+    override fun getPossibleStrategies(): Collection<ValidationStrategy>
+        = listOf(object: ValidationStrategy {
+            override fun getCommand(generatedFile: Path?): LFCommand? {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
                 return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), fileConfig.srcGenPath)
             }
 
@@ -141,8 +141,8 @@ class TSValidator(
 
         })
 
-    override val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
-        get() = Pair(possibleStrategies.first().errorReportingStrategy, possibleStrategies.first().outputReportingStrategy)
+    override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
+        = Pair(possibleStrategies.first().errorReportingStrategy, possibleStrategies.first().outputReportingStrategy)
 
     fun doLint(cancelIndicator: CancelIndicator) {
         TSLinter(fileConfig, errorReporter, codeMaps).doValidate(cancelIndicator)

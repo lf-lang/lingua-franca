@@ -86,8 +86,8 @@ class CppValidator(
      * strategies for the build process carried out by
      * CMake and Make.
      */
-    override val buildReportingStrategies: Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
-        get() = Pair(
+    override fun getBuildReportingStrategies(): Pair<DiagnosticReporting.Strategy, DiagnosticReporting.Strategy>
+        = Pair(
             CppValidationStrategyFactory.GXX.create(this).errorReportingStrategy,
             CppValidationStrategyFactory.GXX.create(this).errorReportingStrategy
         )
@@ -124,5 +124,5 @@ class CppValidator(
     /** The CMake cache. */
     private val cmakeCache: File = fileConfig.buildPath.resolve("CMakeCache.txt").toFile()
 
-    override val possibleStrategies: Iterable<ValidationStrategy> = CppValidationStrategyFactory.values().map { it.create(this) }
+    override fun getPossibleStrategies(): Collection<ValidationStrategy> = CppValidationStrategyFactory.values().map { it.create(this) }
 }
