@@ -27,14 +27,14 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
+import org.lflang.generator.LFGeneratorContext
 import org.lflang.lf.Reactor
 import org.lflang.name
 import java.io.IOException
 import java.nio.file.Path
 
-class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
+class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: LFGeneratorContext) :
     FileConfig(resource, fsa, context) {
 
     /**
@@ -43,11 +43,15 @@ class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGener
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        deleteDirectory(outPath.resolve("build"))
-        deleteDirectory(outPath.resolve("lib"))
-        deleteDirectory(outPath.resolve("include"))
-        deleteDirectory(outPath.resolve("share"))
+        cppBuildDirectories.forEach { deleteDirectory(it) }
     }
+
+    val cppBuildDirectories = listOf<Path>(
+        outPath.resolve("build"),
+        outPath.resolve("lib"),
+        outPath.resolve("include"),
+        outPath.resolve("share")
+    )
 
     /** Relative path to the directory where all source files for this resource should be generated in. */
     private fun getGenDir(r: Resource): Path = getDirectory(r).resolve(r.name)
