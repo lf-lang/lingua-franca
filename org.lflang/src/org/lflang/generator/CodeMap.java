@@ -30,7 +30,7 @@ public class CodeMap {
             "/\\*Correspondence: (?<lfRange>%s) \\-> (?<generatedRange>%s) \\(src=(?<path>%s)\\)\\*/",
             Position.removeNamedCapturingGroups(Range.PATTERN),
             Position.removeNamedCapturingGroups(Range.PATTERN),
-            ".*"
+            ".*?"
         ));
 
         // TODO(peter): Add "private final boolean verbatim;" and make corresponding enhancements
