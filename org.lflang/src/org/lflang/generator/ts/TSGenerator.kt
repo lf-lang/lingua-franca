@@ -589,7 +589,7 @@ class TSGenerator(
                     // No need to do anything at this point.
                     println("Native serializer is enabled.")
                 }
-                else -> println("Serializer $serializer is enabled.")
+                else -> throw UnsupportedOperationException("Unsupported serializer: $serializer");
             }
         }
     }
