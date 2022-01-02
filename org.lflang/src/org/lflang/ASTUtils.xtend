@@ -575,6 +575,12 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
+        return CodeMap.Correspondence.tag(code, toUntaggedText(code), true)
+    }
+
+    def private static String toUntaggedText(Code code) {
+        // FIXME: This function should not be necessary, but it is because we currently
+        //  parse the content of code blocks in the validator and generator. See #810, #657.
         var text = ""
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
@@ -596,13 +602,13 @@ class ASTUtils {
                 } else {
                     // single line code
                     text = str.trim
-                }    
+                }
             } else if (code.body !== null) {
                 // Code must have been added as a simple string.
                 text = code.body.toString
             }
         }
-        return CodeMap.Correspondence.tag(code, text, true)
+        return text
     }
     
     def static toText(TypeParm t) {
@@ -891,7 +897,7 @@ class ASTUtils {
     }
     
     def static boolean isZero(Code code) {
-        if (code !== null && code.toText.isZero) {
+        if (code !== null && code.toUntaggedText.isZero) {
             return true
         }
         return false
@@ -932,7 +938,7 @@ class ASTUtils {
      * @return True if the given code is an integer, false otherwise.
      */
 	def static boolean isInteger(Code code) {
-        return code.toText.isInteger
+        return code.toUntaggedText.isInteger
     }
     
     /**
