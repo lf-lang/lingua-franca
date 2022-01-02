@@ -914,7 +914,7 @@ class UclidGenerator extends GeneratorBase {
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''
-                        && «inv»
+                        && («inv»)
                         ''')
                     }
                 }
@@ -963,7 +963,7 @@ class UclidGenerator extends GeneratorBase {
             // Print line number
             prSourceLineNumber(conjunct)
             pr('''
-            && «formula»
+            && («formula»)
             ''')
         }
         unindent()
@@ -985,7 +985,7 @@ class UclidGenerator extends GeneratorBase {
             // Print line number
             prSourceLineNumber(auxInv)
             pr('''
-            && «formula»
+            && («formula»)
             ''')
         }
         unindent()
