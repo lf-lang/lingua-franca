@@ -56,6 +56,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.SubContext
 import java.nio.file.Path
 import kotlin.collections.HashMap
 
@@ -96,6 +97,12 @@ class TSGenerator(
             "command-line-usage.d.ts", "component.ts", "federation.ts", "reaction.ts",
             "reactor.ts", "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts",
             "util.ts")
+
+        /**
+         * The percent progress associated with having collected all JS/TS dependencies.
+         */
+        private const val COLLECTED_DEPENDENCIES_PERCENT_PROGRESS
+            = (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2
     }
 
     init {
@@ -124,7 +131,6 @@ class TSGenerator(
      *  @param fsa The file system access (used to write the result).
      *  @param context The context of this build.
      */
-    // TODO(hokeun): Split this method into smaller methods.
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2,
                             context: LFGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -138,19 +144,68 @@ class TSGenerator(
         //  assigning levels.
         removeRemoteFederateConnectionPorts(null);
         
+        clean(context)
+        copyRuntime()
+        copyConfigFiles(fsa)
+
+        val codeMaps = HashMap<Path, CodeMap>()
+        for (federate in federates) generateCode(fsa, federate, codeMaps)
+        // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
+        // progress reporting, and IDE responsiveness become real considerations.
+        if (targetConfig.noCompile) {
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+        } else {
+            context.reportProgress(
+                "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
+            )
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context)
+            if (targetConfig.protoFiles.size != 0) {
+                protoc()
+            } else {
+                println("No .proto files have been imported. Skipping protocol buffer compilation.")
+            }
+            val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
+            if (
+                !context.cancelIndicator.isCanceled
+                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
+            ) {
+                if (context.mode == Mode.LSP_MEDIUM) {
+                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                } else {
+                    compile(parsingContext)
+                    concludeCompilation(context)
+                }
+            } else {
+                context.unsuccessfulFinish()
+            }
+        }
+    }
+
+    /**
+     * Clean up the src-gen directory as needed to prepare for code generation.
+     */
+    private fun clean(context: LFGeneratorContext) {
+        // Dirty shortcut for integrated mode: Delete nothing, saving the node_modules directory to avoid re-running pnpm.
         if (context.mode != Mode.LSP_MEDIUM) fileConfig.deleteDirectory(fileConfig.srcGenPath)
+    }
+
+    /**
+     * Copy the TypeScript runtime so that it is accessible to the generated code.
+     */
+    private fun copyRuntime() {
         for (runtimeFile in RUNTIME_FILES) {
             fileConfig.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString())
+                tsFileConfig.tsCoreGenPath().resolve(runtimeFile).toString()
+            )
         }
+    }
 
-        /**
-         * Check whether configuration files are present in the same directory
-         * as the source file. For those that are missing, install a default
-         * If the given filename is not present in the same directory as the source
-         * file, copy a default version of it from $LIB_PATH/.
-         */
+    /**
+     * For each configuration file that is not present in the same directory
+     * as the source file, copy a default version from $LIB_PATH/.
+     */
+    private fun copyConfigFiles(fsa: IFileSystemAccess2) {
         for (configFile in CONFIG_FILES) {
             val configFileDest = fileConfig.srcGenPath.resolve(configFile).toString()
             val configFileInSrc = fileConfig.srcPath.resolve(configFile).toString()
@@ -166,102 +221,59 @@ class TSGenerator(
                 fileConfig.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
-        val codeMaps = HashMap<Path, CodeMap>()
-        for (federate in federates) {
-            var tsFileName = fileConfig.name
-            // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
-            // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
-            if (isFederated) {
-                tsFileName += '_' + federate.name
-            }
+    }
 
-            val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
-
-            val tsCode = StringBuilder()
-
-            val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-                targetConfig.protoFiles)
-            tsCode.append(preambleGenerator.generatePreamble())
-
-            val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
-            val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
-            tsCode.append(parameterCode)
-
-            val reactorGenerator = TSReactorGenerator(this, errorReporter)
-            for (reactor in reactors) {
-                tsCode.append(reactorGenerator.generateReactor(reactor, federate))
-            }
-            tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
-            val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
-            codeMaps[tsFilePath] = codeMap
-            fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(), codeMap.generatedCode)
-            
-            if (targetConfig.dockerOptions != null) {
-                val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
-                val dockerGenerator = TSDockerGenerator(tsFileName)
-                println("docker file written to $dockerFilePath")
-                fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
-            }
+    /**
+     * Generate the code corresponding to [federate], recording any resulting mappings in [codeMaps].
+     */
+    private fun generateCode(fsa: IFileSystemAccess2, federate: FederateInstance, codeMaps: MutableMap<Path, CodeMap>) {
+        var tsFileName = fileConfig.name
+        // TODO(hokeun): Consider using FedFileConfig when enabling federated execution for TypeScript.
+        // For details, see https://github.com/icyphy/lingua-franca/pull/431#discussion_r676302102
+        if (isFederated) {
+            tsFileName += '_' + federate.name
         }
-        if (targetConfig.noCompile) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
-        } else {
-            context.reportProgress(
-                "Code generation complete. Collecting dependencies...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS
-            )
-            if (shouldCollectDependencies(context)) collectDependencies(resource, context)
-            context.reportProgress(
-                "Validating generated code...",
-                (IntegratedBuilder.GENERATED_PERCENT_PROGRESS + IntegratedBuilder.COMPILED_PERCENT_PROGRESS) / 2 // FIXME
-            )
-            if (
-                !context.cancelIndicator.isCanceled
-                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), context)
-            ) {
-                if (context.mode == Mode.LSP_MEDIUM) {
-                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
-                } else {
-                    compile(context)
-                    concludeCompilation(context)
-                }
-            } else {
-                context.unsuccessfulFinish()
-            }
+
+        val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
+
+        val tsCode = StringBuilder()
+
+        val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
+            targetConfig.protoFiles)
+        tsCode.append(preambleGenerator.generatePreamble())
+
+        val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
+        val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
+        tsCode.append(parameterCode)
+
+        val reactorGenerator = TSReactorGenerator(this, errorReporter)
+        for (reactor in reactors) {
+            tsCode.append(reactorGenerator.generateReactor(reactor, federate))
+        }
+        tsCode.append(reactorGenerator.generateReactorInstanceAndStart(this.mainDef, mainParameters))
+        val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
+        codeMaps[tsFilePath] = codeMap
+        fsa.generateFile(fileConfig.srcGenBasePath.relativize(tsFilePath).toString(), codeMap.generatedCode)
+
+        if (targetConfig.dockerOptions != null) {
+            val dockerFilePath = fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile");
+            val dockerGenerator = TSDockerGenerator(tsFileName)
+            println("docker file written to $dockerFilePath")
+            fsa.generateFile(fileConfig.srcGenBasePath.relativize(dockerFilePath).toString(), dockerGenerator.generateDockerFileContent())
         }
     }
 
-    private fun compile(context: LFGeneratorContext) {
+    private fun compile(parsingContext: LFGeneratorContext) {
 
         refreshProject()
 
-        if (!context.cancelIndicator.isCanceled && targetConfig.protoFiles.size != 0) {
-            if (context.cancelIndicator.isCanceled) return
-            context.reportProgress(
-                "Compiling protocol buffers...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 2 / 3
-                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 1 / 3
-            )
-            protoc()
-        } else {
-            println("No .proto files have been imported. Skipping protocol buffer compilation.")
-        }
+        if (parsingContext.cancelIndicator.isCanceled) return
+        parsingContext.reportProgress("Transpiling to JavaScript...", 70)
+        transpile(parsingContext.cancelIndicator)
 
-        if (!context.cancelIndicator.isCanceled) {
-            context.reportProgress(
-                "Transpiling to JavaScript...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 3
-                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 2 / 3
-            )
-            transpile(context.cancelIndicator)
-        }
-
-        if (!context.cancelIndicator.isCanceled && isFederated) {
-            context.reportProgress(
-                "Generating federation infrastructure...",
-                IntegratedBuilder.GENERATED_PERCENT_PROGRESS * 1 / 6
-                        + IntegratedBuilder.COMPILED_PERCENT_PROGRESS * 5 / 6
-            )
+        if (parsingContext.cancelIndicator.isCanceled) return
+        if (isFederated) {
+            parsingContext.reportProgress("Generating federation infrastructure...", 90)
             generateFederationInfrastructure()
         }
     }
@@ -365,10 +377,12 @@ class TSGenerator(
      * Run checks on the generated TypeScript.
      * @return whether the checks pass.
      */
-    private fun passesChecks(validator: TSValidator, context: LFGeneratorContext): Boolean {
-        if (context.mode != Mode.STANDALONE) validator.doLint(context.cancelIndicator)
+    private fun passesChecks(validator: TSValidator, parsingContext: LFGeneratorContext): Boolean {
+        parsingContext.reportProgress("Linting generated code...", 0)
+        if (parsingContext.mode != Mode.STANDALONE) validator.doLint(parsingContext.cancelIndicator)
         if (errorsOccurred()) return false
-        validator.doValidate(context.cancelIndicator)
+        parsingContext.reportProgress("Validating generated code...", 25)
+        validator.doValidate(parsingContext.cancelIndicator)
         return !errorsOccurred()
     }
 
