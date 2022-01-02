@@ -25,6 +25,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.TriggerInstance;
 
 /**
  * Connectivity info class
@@ -34,19 +35,22 @@ import org.lflang.generator.PortInstance;
 public class CausalityInfo {
     
     public String           type;
+    public TriggerInstance  triggerInstance;
     public boolean          isPhysical;
     public long             delay;
     public PortInstance     upstreamPort;
     public PortInstance     downstreamPort;
     
     public CausalityInfo(
-        String          _type, 
+        String          _type,
+        TriggerInstance _triggerInstance,
         boolean         _isPhysical, 
         long            _delay,
         PortInstance    _upstreamPort,
         PortInstance    _downstreamPort
     ){
         type            =   _type;
+        triggerInstance =   _triggerInstance;
         isPhysical      =   _isPhysical;
         delay           =   _delay;
         upstreamPort    =   _upstreamPort;

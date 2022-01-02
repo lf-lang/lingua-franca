@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import org.lflang.lf.Delay
+import org.lflang.generator.TimerInstance
 import org.lflang.graph.DirectedGraph
 import org.lflang.CausalityInfo
 import org.lflang.TimeUnit
@@ -100,15 +100,23 @@ import java.util.Set
                 var key = new Pair(reaction, null)
                 var info = new CausalityInfo(
                     "startup",  // type
+                    t,          // triggerInstance
                     false,      // isPhysical
                     0,          // delay
                     null,       // upstreamPort
                     null)       // downstreamPort
-                if (causality.get(key) === null) {
-                    causality.put(key, info)
-                    println("New causality info added")
-                    printInfo(key)
-                }
+                addKeyInfoToCausalityMap(key, info)
+            }
+            else if (t instanceof TimerInstance) {
+                var key = new Pair(reaction, null)
+                var info = new CausalityInfo(
+                    "timer",    // type
+                    t,          // triggerInstance
+                    false,      // isPhysical
+                    0,          // delay
+                    null,       // upstreamPort
+                    null)       // downstreamPort
+                addKeyInfoToCausalityMap(key, info)
             }
         }
         
@@ -144,16 +152,13 @@ import java.util.Set
                         if (ds instanceof ActionInstance) {
                             // Add the delay info to the causality hashmap.
                             var info = new CausalityInfo(
-                                "action",                  // type
-                                ds.isPhysical,             // isPhysical
-                                ds.minDelay.toNanoSeconds, // delay
-                                null,                      // upstreamPort
-                                null)                      // downstreamPort
-                            if (causality.get(key) === null) {
-                                causality.put(key, info)
-                                println("New causality info added")
-                                printInfo(key)
-                            }
+                                "action",                   // type
+                                ds,                         // triggerInstance
+                                ds.isPhysical,              // isPhysical
+                                ds.minDelay.toNanoSeconds,  // delay
+                                null,                       // upstreamPort
+                                null)                       // downstreamPort
+                            addKeyInfoToCausalityMap(key, info)
                         }
                         else if (ds instanceof PortInstance) {
                             // This case happens when a reaction in the main reactor
@@ -162,15 +167,12 @@ import java.util.Set
                             // The upstream and downstream port instances are the same.
                             var info = new CausalityInfo(
                                 "connection",   // type
+                                null,           // triggerInstance
                                 false,          // isPhysical
                                 0,              // delay
                                 ds,             // upstreamPort
                                 ds)             // downstreamPort
-                            if (causality.get(key) === null) {
-                                causality.put(key, info)
-                                println("New causality info added")
-                                printInfo(key)
-                            }
+                            addKeyInfoToCausalityMap(key, info)
                         }
                         else {
                             throw new RuntimeException('Unhandled case: The source is equal to the effect, 
@@ -187,15 +189,12 @@ import java.util.Set
                                 var TimeValue timeValue = new TimeValue(delayInterval, delayUnit)
                                 var info = new CausalityInfo(
                                     "connection",               // type
+                                    null,                       // triggerInstance
                                     connection.isPhysical,      // isPhysical
                                     timeValue.toNanoSeconds,    // delay
                                     ue as PortInstance,         // upstreamPort
                                     ds as PortInstance)         // downstreamPort
-                                if (causality.get(key) === null) {
-                                    causality.put(key, info)
-                                    println("New causality info added")
-                                    printInfo(key)
-                                }
+                                addKeyInfoToCausalityMap(key, info)
                             }
                         }
                     }
@@ -204,6 +203,18 @@ import java.util.Set
 
             // Recursively add downstream nodes to the graph.
             addNodesAndEdges(downstream)
+        }
+    }
+
+    protected def void addKeyInfoToCausalityMap(Pair key, CausalityInfo info) {
+        if (causality.get(key) === null) {
+            causality.put(key, info)
+            println("New causality info added:")
+            printInfo(key)
+        }
+        else {
+            println("Key-info pair was not added. Causality info already exists:")
+            printInfo(key)
         }
     }
 
@@ -216,30 +227,5 @@ import java.util.Set
             + "type: " + info.type + "\n"
             + "isPhysical: " + info.isPhysical + "\n"
             + "delay (ns): " + info.delay)
-    }
-
-    protected def int delayToInteger(Delay delay) {
-        var interval = delay.getTime.getInterval
-        var unit = delay.getTime.getUnit
-        switch (unit) {
-            case "week", case "weeks":
-                return interval * 1000000000 * 60 * 60 * 24 * 7
-            case "day", case "d", case "days":
-                return interval * 1000000000 * 60 * 60 * 24
-            case "hour", case "h", case "hours":
-                return interval * 1000000000 * 60 * 60
-            case "min", case "mins", case "minute", case "minutes":
-                return interval * 1000000000 * 60
-            case "sec", case "s", case "secs", case "second", case "seconds":
-                return interval * 1000000000
-            case "msec", case "ms", case "msecs":
-                return interval * 1000000
-            case "usec", case "us", case "usecs":
-                return interval * 1000
-            case "nsec", case "ns", case "nsecs":
-                return interval
-            default:
-                throw new UnsupportedOperationException("Invalid unit: " + unit)
-        }
     }
  }

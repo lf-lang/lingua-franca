@@ -498,7 +498,7 @@ class UclidGenerator extends GeneratorBase {
         indent()
         var i = 0
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") ]) {
+            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") && !it.getValue.type.equals("timer") ]) {
             pr('''
             if (r1 == «entry.getKey.getKey.getFullNameWithJoiner('_')» && r2 == «entry.getKey.getValue.getFullNameWithJoiner('_')») then nsec(«entry.getValue.delay») else (
             ''')
@@ -511,15 +511,6 @@ class UclidGenerator extends GeneratorBase {
         ''')
         unindent()
         newline()
-
-        // FIXME: Store timer offsets and timer periods
-        pr('''
-        // Store timer offsets and timer periods
-        define timer_offset(_rxn : rxn_t) : integer =
-            0;
-        define timer_period(_rxn : rxn_t) : integer =
-            0;
-        ''')
 
         // Non-federated "happened-before"
         // FIXME: Need to compute the transitive closure.
@@ -537,7 +528,7 @@ class UclidGenerator extends GeneratorBase {
         || (tag_same(e1._2, e2._2) && (
         '''
         for (Map.Entry<Pair<ReactionInstance, ReactionInstance>, CausalityInfo> entry :
-            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") ]
+            causalityGraph.causality.entrySet.filter[ !it.getValue.type.equals("startup") && !it.getValue.type.equals("timer") ]
         ) {
             var upstream    = entry.getKey.getKey.getFullNameWithJoiner('_')
             var downstream  = entry.getKey.getValue.getFullNameWithJoiner('_')
@@ -592,19 +583,24 @@ class UclidGenerator extends GeneratorBase {
         define is_multiple_of(a, b : integer) : boolean
         = exists (c : integer) :: b * c == a;
         
-        define is_closest_starting_point(t : tag_t, period : integer, offset : integer) : boolean
+        define is_closest_starting_point(t : tag_t, period, offset : integer) : boolean
         = (exists (c : integer) :: (period * c) + offset == pi1(t)
             // Tick at the next valid instant.
             && (period * (c - 1) + offset) < start)     
             // Timer always has mstep of 0.
             && pi2(t) == 0;
+
+        // Can directly use index as HB since this only applies to events
+        // on the same federate.
+        define is_latest_invocation_in_same_fed_wrt(a, b : integer) : boolean
+        = !(exists (c : integer) :: in_range(c)
+            && rxn(c) == rxn(a) && a < c && c < b);
         
-        define timer_triggers(_rxn : rxn_t) : boolean =
+        define timer_triggers(_rxn : rxn_t, offset, period : integer) : boolean =
             // 1. If the initial event is within frame, show it.
             (exists (i : integer) :: in_range(i)
             && rxn(i) == _rxn
-            && is_closest_starting_point(g(i), pi1(timer_period(_rxn)), // FIXME: store period
-                pi1(timer_offset(_rxn)))) // FIXME: store timer_offset
+            && is_closest_starting_point(g(i), period, offset))
             // 2. The SPACING between two consecutive timer firings is the period.
             // FIXME: Is the use of two in_range() here appropriate?
             // Shaokai: Seems so to me, since the first state is not actually constrained.
@@ -612,8 +608,20 @@ class UclidGenerator extends GeneratorBase {
                 && rxn(i) == _rxn && rxn(j) == _rxn
                 // ...and there does not exist a 3rd invocation in between
                 && !(exists (k : integer) :: rxn(k) == _rxn && i < k && k < j))
-                    ==> g(j) == tag_schedule(g(i), timer_period(_rxn)))
-            ;
+                    ==> g(j) == tag_schedule(g(i), {period, 0}))
+            // 3. There does not exist other events in the same federate that 
+            // differ by the last timer invocation by g(last_timer) + period.
+            // In other words, this axiom ensures a timer fires when it needs to.
+            //
+            // a := index of the offending event that occupy the spot of a timer tick.
+            // b := index of non-timer event on the same federate
+            // both in_range's are needed due to !(exists), which turns into a forall.
+            && !(exists (b, a : integer) :: in_range(a) && in_range(b)
+                && rxn(b) != _rxn
+                // && _id_same_fed(elem(b), {_id, zero()})
+                && rxn(a) == _rxn
+                && (is_latest_invocation_in_same_fed_wrt(a, b)
+                    && tag_later(g(b), tag_schedule(g(a), {period, 0}))));
         ''')
         newline()
     }
@@ -711,6 +719,14 @@ class UclidGenerator extends GeneratorBase {
                 pr('''
                 // «upstreamName» is triggered by startup.
                 axiom(startup_triggers(«upstreamId»));
+                ''')
+            }
+            else if (conn.type.equals("timer")) {
+                var offset = (conn.triggerInstance as TimerInstance).getOffset.toNanoSeconds
+                var period = (conn.triggerInstance as TimerInstance).getPeriod.toNanoSeconds
+                pr('''
+                // «upstreamName» is triggered by timer.
+                axiom(timer_triggers(«upstreamId», «offset», «period»));
                 ''')
             }
             else if (conn.type.equals("connection") && !conn.isPhysical) {
