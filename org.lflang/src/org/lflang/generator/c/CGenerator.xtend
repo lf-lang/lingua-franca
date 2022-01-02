@@ -4894,39 +4894,23 @@ class CGenerator extends GeneratorBase {
                 mixed_radix_int_t range_mr = {
                     «rangeMR.getDigits().size()»,
                     range_start,
-                    range_radixes
+                    range_radixes,
+                    permutation
                 };
                 for (int range_count = «range.start»; range_count < «range.start» + «range.width»; range_count++) {
             ''');
             indent(builder);
-            // FIXME: Following could be much simpler when there is no interleaving.
             pr(builder, '''
-                int «ci» = range_mr.digits[permutation[0]]; // Channel index.
-                int range_natural_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int range_natural_radixes[] = { «rangeMR.getRadixes().join(", ")» };
-                mixed_radix_int_t range_natural = {
-                    «rangeMR.getDigits().size()»,
-                    range_natural_start,
-                    range_natural_radixes
-                };
-                int banks_natural_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int banks_natural_radixes[] = { «rangeMR.getRadixes().join(", ")» };
-                mixed_radix_int_t banks_natural = {
-                    «rangeMR.getDigits().size()» - 1,
-                    banks_natural_start,
-                    banks_natural_radixes
-                };
-                mixed_radix_permute(&range_natural, &range_mr, permutation);
-                mixed_radix_drop(&banks_natural, &range_natural, 1);
-                int «runtimeIndex» = mixed_radix_to_int(&banks_natural);
+                int «ci» = range_mr.digits[0]; // Channel index.
+                    int «runtimeIndex» = mixed_radix_parent(&range_mr, 1);
             ''')
         } else {
-            val mr = range.startMRNatural();
+            val mr = range.startMR();
             val ciValue = mr.getDigits().get(0);
-            val biValue = mr.drop(1).get();
+            val biValue = mr.get(1);
             pr(builder, '''
                 int «ci» = «ciValue»; // Channel index.
-                int «runtimeIndex» = «biValue»; // Bank index.
+                int «runtimeIndex» = «biValue»; // Bank(s) identifier.
                 int range_count = 0;
             ''')
         }
@@ -4991,21 +4975,23 @@ class CGenerator extends GeneratorBase {
         if (srcRange.width > 1) {
             pr(builder, '''
                 int src_start[] =  { «rangeMR.getDigits().join(", ")» };
+                int src_value[] =  { «rangeMR.getDigits().join(", ")» }; // Will be incremented.
                 int src_radixes[] = { «rangeMR.getRadixes().join(", ")» };
                 int src_permutation[] = { «srcRange.permutation().join(", ")» };
                 mixed_radix_int_t src_range_mr = {
                     «rangeMR.getDigits().size()»,
-                    src_start,
-                    src_radixes
+                    src_value,
+                    src_radixes,
+                    src_permutation
                 };
             ''');
         } else {
-            val mr = srcRange.startMRNatural();
+            val mr = srcRange.startMR();
             val ciValue = mr.getDigits().get(0);
-            val biValue = mr.drop(1).get();
+            val biValue = mr.get(1);
             pr(builder, '''
                 int «srcChannelIndex» = «ciValue»; // Channel index.
-                int «srcRuntimeIndex» = «biValue»; // Bank index.
+                int «srcRuntimeIndex» = «biValue»; // Bank(s) identifier.
             ''')
         }
                 
@@ -5013,24 +4999,8 @@ class CGenerator extends GeneratorBase {
             
         if (srcRange.width > 1) {
             pr(builder, '''
-                int «srcChannelIndex» = src_range_mr.digits[src_permutation[0]]; // Channel index.
-                int src_range_natural_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int src_range_natural_radixes[] = { «rangeMR.getRadixes().join(", ")» };
-                mixed_radix_int_t src_range_natural = {
-                    «rangeMR.getDigits().size()»,
-                    src_range_natural_start,
-                    src_range_natural_radixes
-                };
-                int src_banks_natural_start[] =  { «rangeMR.getDigits().join(", ")» };
-                int src_banks_natural_radixes[] = { «rangeMR.getRadixes().join(", ")» };
-                mixed_radix_int_t src_banks_natural = {
-                    «rangeMR.getDigits().size()» - 1,
-                    src_banks_natural_start,
-                    src_banks_natural_radixes
-                };
-                mixed_radix_permute(&src_range_natural, &src_range_mr, src_permutation);
-                mixed_radix_drop(&src_banks_natural, &src_range_natural, 1);
-                int «srcRuntimeIndex» = mixed_radix_to_int(&src_banks_natural);
+                int «srcChannelIndex» = src_range_mr.digits[0]; // Channel index.
+                int «srcRuntimeIndex» = mixed_radix_parent(&src_range_mr, 1);
             ''')
         }
     }
@@ -5058,7 +5028,9 @@ class CGenerator extends GeneratorBase {
                 mixed_radix_incr(&src_range_mr);
                 if (mixed_radix_to_int(&src_range_mr) >= «srcRange.start» + «srcRange.width») {
                     // Start over with the source.
-                    src_range_mr.digits = src_start;
+                    for (int i = 0; i < src_range_mr.size; i++) {
+                        src_range_mr.digits[i] = src_start[i];
+                    }
                 }
             ''');
         }

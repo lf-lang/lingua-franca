@@ -65,9 +65,10 @@ import org.lflang.lf.Connection;
  * 
  * This class and its subclasses give a more compact representation of the
  * RIG in most common cases where collections of runtime instances all have
- * the same dependencies.
+ * the same dependencies or dependencies form a range that can be represented
+ * compactly.
  * 
- * A Range represents an adjacent set of RIG objects (port channels, reactions
+ * A RuntimeRange represents an adjacent set of RIG objects (port channels, reactions
  * reactors). For example, it can represent port channels 2 through 5 in a multiport
  * of width 10.  The width in this case is 4. If such a port is
  * contained by one or more banks of reactors, then channels 2 through 5
@@ -89,7 +90,7 @@ import org.lflang.lf.Connection;
  * 
  * The simplest Ranges are those where the corresponding CIG node represents
  * only one runtime instance (its instance is not (deeply) within a bank 
- * and is not a multiport). In this case, the Range and all the objects
+ * and is not a multiport). In this case, the RuntimeRange and all the objects
  * returned by iterationOrder will have width 1.
  * 
  * In a more complex instance, consider a bank A of width 2 that contains a
@@ -146,14 +147,26 @@ import org.lflang.lf.Connection;
  *      A0.B1.P1
  *      A1.B1.P1
  * 
- * A Range is a contiguous subset of one of the above lists, given by
+ * A RuntimeRange is a contiguous subset of one of the above lists, given by
  * a start offset and a width that is less than or equal to maxWidth.
  * 
- * For a Range with width greater than 1,
+ * Each element of the above lists can be represented as a permuted mixed-radix (PMR) number,
+ * where the low-order digit has radix equal to the width of P, the second digit
+ * has radix equal to the width of B, and the final digit has radix equal to the
+ * width of A. Each PMR has a permutation vector that defines how to increment
+ * PMR number. This permutation vector is derived from the iteration order as
+ * follows.  When there is no interleaving, the iteration order is [P, B, A],
+ * and the permutation vector is [0, 1, 2].  When there is interleaving, the permutation
+ * vector simply specifies the iteration order. For example, if the iteration order
+ * is [A, P, B], then the permutation vector is [2, 0, 1], indicating that digit 2
+ * of the PMR (corresponding to A) should be incremented first, then digit 0 (for P),
+ * then digit 1 (for B).
+ * 
+ * For a RuntimeRange with width greater than 1,
  * the head() and tail() functions split the range.
  * 
  * This class and subclasses are designed to be immutable.
- * Modifications always return a new Range.
+ * Modifications always return a new RuntimeRange.
  *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
@@ -254,7 +267,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     }
     
     /**
-     * Return a new Range that is identical to this range but
+     * Return a new RuntimeRange that is identical to this range but
      * with width reduced to the specified width.
      * If the new width is greater than or equal to the width
      * of this range, then return this range.
@@ -271,17 +284,19 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * Return the list of **natural identifiers** for the runtime instances
      * in this range.  Each returned identifier is an integer representation
      * of the mixed-radix number [d0, ... , dn] with radices [w0, ... , wn],
-     * where d0 is the bank or channel index of this Range's instance, which
+     * where d0 is the bank or channel index of this RuntimeRange's instance, which
      * has width w0, and dn is the bank index of its topmost parent below the 
-     * top-level (main) reactor, which has width wn. The depth of this Range's 
+     * top-level (main) reactor, which has width wn. The depth of this RuntimeRange's 
      * instance, therefore, is n - 1.  The order of the returned list is the order
      * in which the runtime instances should be iterated.
      */
     public List<Integer> instances() {
         List<Integer> result = new ArrayList<Integer>(width);
-        List<MixedRadixInt> mr = instancesMR();
-        for (MixedRadixInt i : mr) {
-            result.add(i.get());
+        MixedRadixInt mr = startMR();
+        int count = 0;
+        while (count++ < width) {
+            result.add(mr.get());
+            mr.increment();
         }
         return result;
     }
@@ -314,14 +329,14 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     
     /**
      * Return a set of identifiers for runtime instances of a parent of this
-     * Range's instance n levels above this Range's instance. If n == 1, for
+     * RuntimeRange's instance n levels above this RuntimeRange's instance. If n == 1, for
      * example, then this return the identifiers for the parent ReactorInstance.
      * 
      * This returns a list of **natural identifiers**,
      * as defined below, for the instances within the range.
      * 
      * The resulting list can be used to count the number of distinct
-     * runtime instances of this Range's instance (using n == 0) or any of its parents that
+     * runtime instances of this RuntimeRange's instance (using n == 0) or any of its parents that
      * lie within the range and to provide an index into an array of runtime
      * instances.
      * 
@@ -347,13 +362,15 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * runtime instances that is assumed to be in a **natural order**.
      * 
      * @param n The number of levels up of the parent. This is required to be
-     *  less than the depth of this Range's instance or an exception will be thrown.
+     *  less than the depth of this RuntimeRange's instance or an exception will be thrown.
      */
     public Set<Integer> parentInstances(int n) {
         Set<Integer> result = new LinkedHashSet<Integer>(width);        
-        List<MixedRadixInt> mr = instancesMR();
-        for (MixedRadixInt m : mr) {
-            result.add(m.drop(n).get());
+        MixedRadixInt mr = startMR();
+        int count = 0;
+        while (count++ < width) {
+            result.add(mr.get(n));
+            mr.increment();
         }
         return result;
     }
@@ -372,10 +389,9 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     }
     
     /**
-     * Return that permutation that will convert the mixed-radix number
-     * with digits given by {@link #startIndices()} into a mixed-radix
-     * number in natural order, i.e. with digits given by
-     * {@link #startIndicesNatural()}.
+     * Return the permutation vector that indicates the order in which the digits
+     * of the permuted mixed-radix representations of indices in this range should
+     * be incremented.
      */
     public List<Integer> permutation() {
         List<Integer> result = new ArrayList<Integer>(instance.depth);
@@ -385,38 +401,36 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
         }
         int count = 0;
         for (NamedInstance<?> i : iterationOrder()) {
-            result.set(instance.depth - i.depth, count++);
+            result.set(count++, instance.depth - i.depth);
         }
         return result;
     }
     
     /**
-     * Return the start as a mixed-radix number where the digits and
-     * radixes are in the order given by {@link #instances()}.
-     * For any instance that is neither a
-     * multiport nor a bank, the digit will be 0.
+     * Return the radixes vector containing the width of this instance followed
+     * by the widths of its containers, not including the top level, which always
+     * has radix 1 and value 0.
      */
-    public MixedRadixInt startMR() {
-        List<Integer> digits = new ArrayList<Integer>(instance.depth);
-        List<Integer> radixes = new ArrayList<Integer>(instance.depth);
-        int factor = 1;
-        for (NamedInstance<?> i : iterationOrder()) {
-            int iStart = (start / factor) % i.width;
-            factor *= i.width;
-            digits.add(iStart);
-            radixes.add(i.width);
+    public List<Integer> radixes() {
+        List<Integer> result = new ArrayList<Integer>(instance.depth);
+        result.add(instance.width);
+        ReactorInstance p = instance.getParent();
+        while (p != null && p.getDepth() > 0) {
+            result.add(p.getWidth());
+            p = p.getParent();
         }
-        return new MixedRadixInt(digits, radixes);
+        return result;
     }
 
     /**
-     * Return the start as a mixed-radix number where the digits and 
-     * radixes are in hierarchy order (natural order), with this instance's
-     * start position listed first. For any instance that is neither a
-     * multiport nor a bank, the digit will be 0.
+     * Return the start as a new permuted mixed-radix number.
+     * For any instance that is neither a multiport nor a bank, the
+     * corresponding digit will be 0.
      */
-    public MixedRadixInt startMRNatural() {
-        return startMR().permute(permutation());
+    public MixedRadixInt startMR() {
+        MixedRadixInt result = new MixedRadixInt(null, radixes(), permutation());
+        result.setMagnitude(start);
+        return result;
     }
 
     /**
@@ -436,7 +450,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * Toggle the interleaved status of the specified reactor, which is assumed
      * to be a parent of the instance of this range.
      * If it was previously interleaved, make it not interleaved
-     * and vice versa.  This returns a new Range.
+     * and vice versa.  This returns a new RuntimeRange.
      * @param reactor The parent reactor at which to toggle interleaving.
      */
     public RuntimeRange<T> toggleInterleaved(ReactorInstance reactor) {
@@ -463,58 +477,10 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     Set<ReactorInstance> _interleaved = new HashSet<ReactorInstance>();
     
     //////////////////////////////////////////////////////////
-    //// Protected methods
-
-    /**
-     * Return the list of MixedRadixInt identifiers for the runtime instances
-     * in this range.  Each returned identifier is a mixed-radix number
-     * [d0, ... , dn] with radixes [w0, ... , wn], where d0 is the bank or
-     * channel index of this Range's instance, which has width w0, and
-     * dn is the bank index of its topmost parent below the top-level (main)
-     * reactor, which has width wn. The depth of this Range's instance,
-     * therefore, is n - 1.  The order of the returned list is the order
-     * in which the runtime instances should be iterated.
-     */
-    protected List<MixedRadixInt> instancesMR() {
-        List<MixedRadixInt> result = new ArrayList<MixedRadixInt>(width);
-        
-        // First, build mixed-radix number with value 0.
-        List<Integer> radixes = new ArrayList<Integer>(instance.depth);
-        List<Integer> digits = new ArrayList<Integer>(instance.depth);
-        List<Integer> permutation = new ArrayList<Integer>(instance.depth);
-        
-        // Pre-fill the permutation array with the natural order.
-        for (int j = 0; j < instance.depth; j++) permutation.add(j);
-                
-        // Construct the radix and permutation arrays.
-        int count = 0;
-        for (NamedInstance<?> io : iterationOrder()) {
-            radixes.add(io.width);
-            permutation.set(instance.depth - io.depth, count);
-            digits.add(0);
-            count++;
-        }
-                
-        // Iterate over the range in its own order.
-        count = 0;
-        MixedRadixInt indices = new MixedRadixInt(digits, radixes);
-        while (count < start + width) {
-            if (count >= start) {
-                // Found an instance to include in the list.
-                // Permute it to get natural order.
-                result.add(indices.permute(permutation));
-            }
-            indices.increment();
-            count++;
-        }
-        return result;
-    }
-
-    //////////////////////////////////////////////////////////
     //// Public inner classes
     
     /**
-     * Special case of Range for PortInstance.
+     * Special case of RuntimeRange for PortInstance.
      */
     public static class Port extends RuntimeRange<PortInstance> {
         public Port(PortInstance instance) {
