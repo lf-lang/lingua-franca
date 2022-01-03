@@ -3,7 +3,7 @@ name: Extract ref from file
 on:
   workflow_call:
     inputs:
-      name:
+      sha1-file:
         description: Name of the sha1 file to extract the ref from
         type: string
         required: false
@@ -20,6 +20,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
-      - name: Extract ref from ${{ inputs.name }}.sha1
+      - name: Extract ref from ${{ inputs.sha1-file }}
         id: read
-        run: echo "::set-output name=ref::$(head -n 1 ${{ inputs.name }}.sha1)"
+        run: echo "::set-output name=ref::$(head -n 1 ${{ inputs.sha1-file }})"
