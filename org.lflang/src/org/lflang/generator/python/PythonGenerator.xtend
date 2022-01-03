@@ -33,6 +33,7 @@ import java.util.ArrayList
 import java.util.HashMap
 import java.util.LinkedHashSet
 import java.util.List
+import java.util.Map
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -834,7 +835,9 @@ class PythonGenerator extends CGenerator {
     /**
      * Execute the command that compiles and installs the current Python module
      */
-    def pythonCompileCode(LFGeneratorContext context) {
+    def pythonCompileCode(LFGeneratorContext context, Map<Path, CodeMap> codeMaps) {
+        new PythonValidator(fileConfig, errorReporter, codeMaps).doValidate(context.cancelIndicator)
+        if (errorsOccurred()) return;
         // if we found the compile command, we will also find the install command
         val installCmd = commandFactory.createCommand(
             '''python3''',
@@ -1281,7 +1284,7 @@ class PythonGenerator extends CGenerator {
                 codeMaps.putAll(generatePythonFiles(fsa, federate))
                 if (!targetConfig.noCompile) {
                     // If there are no federates, compile and install the generated code
-                    pythonCompileCode(context)
+                    pythonCompileCode(context, codeMaps)
                 } else {
                     printSetupInfo();
                 }
