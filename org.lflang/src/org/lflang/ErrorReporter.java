@@ -98,7 +98,7 @@ public interface ErrorReporter {
      * pertains to line {@code line} of an LF source file.
      * @param severity the severity of the message
      * @param message the message to send to the IDE
-     * @param line the zero-based line number associated
+     * @param line the one-based line number associated
      *             with the message
      * @return a string that describes the diagnostic
      */

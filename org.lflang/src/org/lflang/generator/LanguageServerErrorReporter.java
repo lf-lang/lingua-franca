@@ -67,12 +67,12 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String reportError(Path file, Integer line, String message) {
-        return report(DiagnosticSeverity.Error, message, line != null ? line - 1 : 0);
+        return report(DiagnosticSeverity.Error, message, line != null ? line : 1);
     }
 
     @Override
     public String reportWarning(Path file, Integer line, String message) {
-        return report(DiagnosticSeverity.Warning, message, line != null ? line - 1 : 0);
+        return report(DiagnosticSeverity.Warning, message, line != null ? line : 1);
     }
 
     @Override
@@ -82,17 +82,17 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public String report(DiagnosticSeverity severity, String message) {
-        return report(severity, message, 0);
+        return report(severity, message, 1);
     }
 
     @Override
     public String report(DiagnosticSeverity severity, String message, int line) {
-        Optional<String> text = getLine(line);
+        Optional<String> text = getLine(line - 1);
         return report(
             severity,
             message,
-            Position.fromZeroBased(line, 0),
-            Position.fromZeroBased(line, text.isEmpty() ? 1 : text.get().length())
+            Position.fromOneBased(line, 1),
+            Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length()))
         );
     }
 
