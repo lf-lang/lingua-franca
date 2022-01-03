@@ -36,5 +36,11 @@ This workflow has the following (optional) arguments:
 ### Unit tests
 Several parts of the compiler are probed using unit tests. These tests are carried out using the [unit-tests.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/unit-tests.yml) workflow. This workflow also collects code coverage statistics based on these unit tests _as well as_ the joint coverage achieved by the target-specific integration tests. It does this using an [extra JUnit test](https://github.com/lf-lang/lingua-franca/blob/master/org.lflang.tests/src/org/lflang/tests/compiler/CodeGenCoverage.java) that carries out a lighter version of all the integration tests (skipping the target compilation and program execution parts, which do not involve much of our own compiler code).
 
+### Utilities
+Satellite repositories that make use of Lingua Franca may want to reuse workflows that are of general utility. These workflows can be found in `.github/workflows/util`.
+#### Extract a ref from a .sha1 file ([extract-ref.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/util/extract-ref.yml))
+If a repository has a `.sha1` file (that stores a SHA1 hash) and wants to use its contents as variable in a workflow, then [extract-ref.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/util/extract-ref.yml) can be used to accomplish this. This workflow takes a single (required) parameter:
+ - `sha1-file`: a string that specifies the path to the `.sha1` file.
+After workflow execution, the value of the output `ref` will be equal to the first line in the given `sha1-file`.
 ## Nightly Build
 See [nightly-build.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/nightly-build.yml).
