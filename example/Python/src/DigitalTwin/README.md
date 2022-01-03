@@ -4,23 +4,31 @@ This example shows two federates, one hosted locally and the other hosted on Goo
 
 ## Before we start
 
-Make sure you have a Google Cloud Platform (GCP) account and project set up. 
+Make sure you have a Google Cloud Platform (GCP) account and a project set up. 
 
-Set up an account here:
+To set up an account, see here:
 https://console.cloud.google.com
 
 To set up a GCP project, see here:
 https://cloud.google.com/resource-manager/docs/creating-managing-projects
 
-We will be working with the Google Cloud command line interface. Mac users can download it using brew.
+We will be working with the Google Cloud SDK. Mac users can download it using brew.
 
 ```bash
 user$ brew install --cask google-cloud-sdk
 ```
 
+After downloading the Google Cloud SDK, do the following and follow the [guide](
+https://cloud.google.com/sdk/docs/quickstart) to finish initializing the SDK:
+
+```bash
+user$ gcloud init
+```
+
+
 This tutorial also assumes that you have built a docker image for the RTI. You can refer to the README at `org.lflang/src/lib/c/reactor-c/core/federated/RTI/README.md` for instructions related to building the RTI image. 
 
-For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-vm ~ $ ` to denote a terminal of the virtual machine instance on the cloud, and `/lingua-franca/core/federated/RTI # ` to denote the terminal inside the container that has the RTI. 
+For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-vm ~ $ ` to denote the terminal RTI VM, and `user@twin-vm ~ $ ` to denote the terminal inside the digital twin VM. 
 
 
 ## Instructions
@@ -45,13 +53,21 @@ user$ docker tag rti:rti gcr.io/$PROJECT_ID/rti
 user$ docker push gcr.io/$PROJECT_ID/rti
 ```
 
-Creating a virtual machine instance using the docker image:
+Set up firewall rules to allow ingress and egress traffic to VMs:
+```bash
+user$ gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
+user$ gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
+```
+
+Create a VM for the RTI:
 ```bash
 user$ gcloud compute instances create-with-container rti-vm \
-  --coetainer-image=gcr.io/$PROJECT_ID/rti \
-  --container-command=ash \
-  --container-stdin \
-  --container-tty
+  --container-image=gcr.io/$PROJECT_ID/rti \
+  --container-command=RTI \
+  --container-arg="-i" \
+  --container-arg=1 \
+  --container-arg="-n" \
+  --container-arg=2
 ```
 
 A list of statuses for the newly created virtual machine instance should pop up, which looks like this:
@@ -61,46 +77,7 @@ NAME    ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     
 rti-vm  us-central1-a  n1-standard-1               10.128.0.7   34.133.143.163  RUNNING
 ```
 
-Export the external IP of the vm instance:
-```bash
-user$ export RTI_IP=YOUR_EXTERNAL_IP
-```
-
-Set up firewall rules to allow ingress and egress traffic to the VM:
-```bash
-user$ gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
-user$ gcloud compute firewall-rules create rti-firewall-ingress --direction=ingress --action=allow --rules=all
-```
-
-Double check that the virtual machine instance is accepting connection:
-```bash
-user$ ping -c 1 $RTI_IP
-```
-
-ssh into the container:
-```bash
-user$ gcloud compute ssh --project=$PROJECT_ID rti-vm
-```
-
-In the VM, find the container ID of the container running the RTI:
-```bash
-user@rti-vm ~ $ docker container list
-CONTAINER ID   IMAGE                                                       COMMAND                  CREATED          STATUS          PORTS     NAMES
-9917d5201ed8   gcr.io/linguafranca-333319/rti                              "ash"                    37 minutes ago   Up 2 seconds              klt-rti-vm-fxpe
-675602cedb90   gcr.io/stackdriver-agents/stackdriver-logging-agent:1.8.9   "/entrypoint.sh /usr…"   37 minutes ago   Up 37 minutes             stackdriver-logging-agent
-```
-
-Attach to the container running the RTI:
-```bash
-user@rti-vm ~ $ docker attach YOUR_RTI_CONTAINER_ID
-```
-
-Run the RTI inside the container:
-```bash
-/lingua-franca/core/federated/RTI # RTI -i 1 -n 2
-```
-
-### Running the key fob federates
+### Running the digital twin
 
 Build Digital Twin example locally, after changing the “at” line of the federated reactor:
 ```bash
@@ -112,34 +89,77 @@ Go to the directory where the generated code is located, which is usually locate
 user$ docker compose build fob twin —no-cache
 ```
 
-Open two terminals. In the first terminal, run:
+Tag and push the digital twin's docker image to the cloud:
 ```bash
-user$ docker compose run --rm fob
+user$ docker tag digitaltwin_twin gcr.io/$PROJECT_ID/twin
+user$ docker push gcr.io/$PROJECT_ID/twin
 ```
 
-In the second one, run:
+Create a VM for the digital twin:
 ```bash
-user$ docker compose run --rm twin
+user$ gcloud compute instances create-with-container twin-vm \
+  --container-image=gcr.io/$PROJECT_ID/twin \
+  --container-arg="-i" \
+  --container-arg=1 \
+  --container-stdin \
+  --container-tty
+```
+
+ssh into the digital twin:
+```bash
+user$ gcloud compute ssh --project=$PROJECT_ID twin-vm
+```
+
+Find the container ID of the digital twin:
+```bash
+user@twin-vm ~ $ docker container list
+```
+
+Attach the digital twin container using the container ID from the previous step:
+```bash
+user@twin-vm ~ $ docker container attach CONTAINER_ID
+```
+
+### Running the local key fob
+
+Open another terminal in the directory where the `docker-compose.yml` is located. Run:
+```bash
+user$ docker compose run --rm fob
 ```
 
 Now you should see the key fobs in each terminal syncing with each other through the RTI on the cloud.
 
 ### Clean up
 
-Delete firewall rules (type `Y` when prompted):
-```bash
-user$ gcloud compute firewall-rules delete rti-firewall-egress
-user$ gcloud compute firewall-rules delete rti-firewall-ingress
-```
-
 Remove the virtual machine instance running the RTI:
 ```bash
 user$ gcloud compute instances delete rti-vm
 ```
 
+Remove the RTI VM:
+```bash
+user$ gcloud compute instances delete rti-vm --quiet
+```
+
+Remove the digital twin VM:
+```bash
+user$ gcloud compute instances delete twin-vm --quiet
+```
+
 Remove the RTI image from google cloud:
 ```bash
-user$ gcloud container images delete gcr.io/$PROJECT_ID/rti
+user$ gcloud container images delete gcr.io/$PROJECT_ID/rti --quiet
+```
+
+Remove the digital twin image from google cloud:
+```bash
+user$ gcloud container images delete gcr.io/$PROJECT_ID/twin --quiet
+```
+
+Delete firewall rules:
+```bash
+user$ gcloud compute firewall-rules delete rti-firewall-egress --quiet
+user$ gcloud compute firewall-rules delete rti-firewall-ingress --quiet
 ```
 
 ### Conclusion
