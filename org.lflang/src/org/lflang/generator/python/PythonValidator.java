@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,12 +13,17 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DiagnosticReporting;
 import org.lflang.generator.DiagnosticReporting.Strategy;
 import org.lflang.generator.Position;
 import org.lflang.generator.ValidationStrategy;
 import org.lflang.generator.Validator;
 import org.lflang.util.LFCommand;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 public class PythonValidator extends Validator {
@@ -33,10 +39,71 @@ public class PythonValidator extends Validator {
         "\\*\\*\\*.*Error:.*line (?<line>\\d+)\\)"
     );
 
+    /** The JSON parser. */
+    private static final ObjectMapper mapper = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    /**
+     * The message format of Pylint's JSON output.
+     */
+    @SuppressWarnings( {"FieldCanBeLocal", "unused"})  // Unused fields are included for completeness.
+    private static final class PylintMessage {
+        private String type;
+        private String module;
+        private String obj;
+        private int line;
+        private int column;
+        private int endLine;
+        private int endColumn;
+        private Path path;
+        private String symbol;
+        private String message;
+        private String messageId;
+        public void setType(String type) { this.type = type; }
+        public void setModule(String module) { this.module = module; }
+        public void setObj(String obj) { this.obj = obj; }
+        public void setLine(int line) { this.line = line; }
+        public void setColumn(int column) { this.column = column; }
+        public void setEndLine(int endLine) { this.endLine = endLine; }
+        public void setEndColumn(int endColumn) { this.endColumn = endColumn; }
+        public void setPath(String path) { this.path = Path.of(path); }
+        public void setSymbol(String symbol) { this.symbol = symbol; }
+        public void setMessage(String message) { this.message = message; }
+        @JsonProperty("message-id")
+        public void setMessageId(String messageId) { this.messageId = messageId; }
+        public Position getStart() { return Position.fromZeroBased(line - 1, column); }
+        public Position getEnd() { return Position.fromZeroBased(endLine - 1, endColumn); }
+        public Path getPath(Path relativeTo) { return relativeTo.resolve(path); }
+        public DiagnosticSeverity getSeverity() {
+            // The following is consistent with VS Code's default behavior for pure Python:
+            // https://code.visualstudio.com/docs/python/linting#_pylint
+            switch (type.toLowerCase()) {
+            case "refactor":
+                return DiagnosticSeverity.Hint;
+            case "warning":
+                return DiagnosticSeverity.Warning;
+            case "error":
+            case "fatal":
+                return DiagnosticSeverity.Error;
+            case "convention":
+            default:
+                return DiagnosticSeverity.Information;
+            }
+        }
+    }
+
     private final FileConfig fileConfig;
     private final ErrorReporter errorReporter;
     private final ImmutableMap<Path, CodeMap> codeMaps;
 
+    /**
+     * Initializes a {@code PythonValidator} for a build process using {@code fileConfig} and
+     * reports errors to {@code errorReporter}.
+     * @param fileConfig The file configuration of this build.
+     * @param errorReporter The reporter to which diagnostics should be sent.
+     * @param codeMaps A mapping from generated file paths to code maps that map them back to
+     *                 LF sources.
+     */
     public PythonValidator(FileConfig fileConfig, ErrorReporter errorReporter, Map<Path, CodeMap> codeMaps) {
         super(errorReporter, codeMaps);
         this.fileConfig = fileConfig;
@@ -45,8 +112,8 @@ public class PythonValidator extends Validator {
     }
 
     @Override
-    protected Collection<ValidationStrategy> getPossibleStrategies() {
-        return List.of(new ValidationStrategy() {
+    protected Collection<ValidationStrategy> getPossibleStrategies() { return List.of(
+        new ValidationStrategy() {
             @Override
             public LFCommand getCommand(Path generatedFile) {
                 return LFCommand.get("python3", List.of("-m", "compileall"), fileConfig.getSrcGenPath());
@@ -62,16 +129,20 @@ public class PythonValidator extends Validator {
                 return (String validationOutput, ErrorReporter errorReporter, Map<Path, CodeMap> map) -> {
                     String[] lines = (validationOutput + "\n\n\n").lines().toArray(String[]::new);
                     for (int i = 0; i < lines.length - 3; i++) {
-                        if (!tryReportTypical(lines, i)) tryReportAlternative(lines, i);
+                        if (!tryReportTypical(lines, i)) {
+                            tryReportAlternative(lines, i);
+                        }
                     }
                 };
             }
 
             /**
              * Try to report a typical error message from the Python compiler.
+             *
              * @param lines The lines of output from the compiler.
-             * @param i The current index at which a message may start. Guaranteed to be less than
-             *          {@code lines.length - 3}.
+             * @param i     The current index at which a message may start. Guaranteed to be less
+             *              than
+             *              {@code lines.length - 3}.
              * @return Whether an error message was reported.
              */
             private boolean tryReportTypical(String[] lines, int i) {
@@ -87,6 +158,8 @@ public class PythonValidator extends Validator {
                     } else {
                         for (Path lfFile : map.lfSourcePaths()) {
                             Position lfPosition = map.adjusted(lfFile, genPosition);
+                            // TODO: We could be more precise than just getting the right line, but the way the output
+                            //  is formatted (with leading whitespace possibly trimmed) does not make it easy.
                             errorReporter.report(DiagnosticSeverity.Error, message, lfPosition.getOneBasedLine());
                         }
                     }
@@ -97,16 +170,17 @@ public class PythonValidator extends Validator {
 
             /**
              * Try to report an alternative error message from the Python compiler.
+             *
              * @param lines The lines of output from the compiler.
-             * @param i The current index at which a message may start.
+             * @param i     The current index at which a message may start.
              */
             private void tryReportAlternative(String[] lines, int i) {
                 Matcher main = ALT_DIAGNOSTIC_MESSAGE_PATTERN.matcher(lines[i]);
                 if (main.matches()) {
                     int line = Integer.parseInt(main.group("line"));
                     Iterable<CodeMap> relevantMaps = codeMaps.keySet().stream()
-                        .filter(p -> main.group().contains(p.getFileName().toString()))
-                        .map(codeMaps::get)::iterator;
+                                                             .filter(p -> main.group().contains(p.getFileName().toString()))
+                                                             .map(codeMaps::get)::iterator;
                     for (CodeMap map : relevantMaps) {  // There should almost always be exactly one of these
                         for (Path lfFile : map.lfSourcePaths()) {
                             errorReporter.report(
@@ -128,8 +202,85 @@ public class PythonValidator extends Validator {
             public int getPriority() {
                 return 0;
             }
-        });
-    }
+        },
+        new ValidationStrategy() {
+            private Path relativeTo = null;
+            @Override
+            public LFCommand getCommand(Path generatedFile) {
+                relativeTo = generatedFile.getParent();
+                return LFCommand.get(
+                    "pylint",
+                    List.of("--output-format=json", generatedFile.getFileName().toString()),
+                    relativeTo
+                );
+            }
+
+            @Override
+            public Strategy getErrorReportingStrategy() {
+                return (a, b, c) -> {};
+            }
+
+            @Override
+            public Strategy getOutputReportingStrategy() {
+                return (validationOutput, errorReporter, codeMaps) -> {
+                    try {
+                        for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
+                            assert relativeTo != null : "This should have been set when getCommand() was called.";
+                            CodeMap map = codeMaps.get(message.getPath(relativeTo));
+                            if (map != null) {
+                                for (Path lfFile : map.lfSourcePaths()) {
+                                    Function<Position, Position> adjust = p -> map.adjusted(lfFile, p);
+                                    String humanMessage = DiagnosticReporting.messageOf(
+                                        message.message, message.getPath(relativeTo), message.getStart()
+                                    );
+                                    Position lfStart = adjust.apply(message.getStart());
+                                    Position lfEnd = adjust.apply(message.getEnd());
+                                    bestEffortReport(
+                                        errorReporter, adjust, lfStart, lfEnd, message.getSeverity(), humanMessage
+                                    );
+                                }
+                            }
+                        }
+                    } catch (JsonProcessingException e) {
+                        // This should be impossible unless Pylint's API changes. Maybe it's fine to fail quietly
+                        // like this in case that happens -- this will go to stderr, so you can see it if you look.
+                        e.printStackTrace();
+                    }
+                };
+            }
+
+            /** Make a best-effort attempt to place the diagnostic on the correct line. */
+            private void bestEffortReport(
+                ErrorReporter errorReporter,
+                Function<Position, Position> adjust,
+                Position lfStart,
+                Position lfEnd,
+                DiagnosticSeverity severity,
+                String humanMessage
+            ) {
+                if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
+                    errorReporter.report(severity, humanMessage, lfStart, lfEnd);
+                } else {  // Fallback: Try to report on the correct line, or failing that, just line 1.
+                    if (lfStart.equals(Position.ORIGIN)) lfStart = adjust.apply(
+                        Position.fromZeroBased(lfStart.getZeroBasedLine(), Integer.MAX_VALUE)
+                    );
+                    // FIXME: It would be better to improve style of generated code instead of returning here.
+                    if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
+                    errorReporter.report(severity, humanMessage, lfStart.getOneBasedLine());
+                }
+            }
+
+            @Override
+            public boolean isFullBatch() {
+                return false;
+            }
+
+            @Override
+            public int getPriority() {
+                return 1;
+            }
+        }
+    ); }
 
     @Override
     protected Pair<Strategy, Strategy> getBuildReportingStrategies() {
