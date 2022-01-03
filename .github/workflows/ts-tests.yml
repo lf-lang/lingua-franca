@@ -44,11 +44,11 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
-      - name: Check out specific ref of reactor-c
+      - name: Check out specific ref of reactor-ts
         uses: actions/checkout@v2
         with:
-          repository: lf-lang/reactor-c
-          path: org.lflang/src/lib/c/reactor-c
+          repository: lf-lang/reactor-ts
+          path: org.lflang/src/lib/ts/reactor-ts
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests
