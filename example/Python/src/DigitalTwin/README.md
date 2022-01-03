@@ -131,11 +131,6 @@ Now you should see the key fobs in each terminal syncing with each other through
 
 ### Clean up
 
-Remove the virtual machine instance running the RTI:
-```bash
-user$ gcloud compute instances delete rti-vm
-```
-
 Remove the RTI VM:
 ```bash
 user$ gcloud compute instances delete rti-vm --quiet
