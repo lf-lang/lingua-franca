@@ -39,8 +39,8 @@ Several parts of the compiler are probed using unit tests. These tests are carri
 ### Utilities
 Satellite repositories that make use of Lingua Franca may want to reuse workflows that are of general utility.
 #### Extract a ref from a .sha1 file ([extract-ref.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/extract-ref.yml))
-If a repository has a `.sha1` file (that stores a SHA1 hash) and its contents must be used as variable in a workflow, then [extract-ref.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/extract-ref.yml) can be used to accomplish this. This workflow takes a single (required) parameter:
- - `sha1-file`: a string that specifies the path to the `.sha1` file.
-After workflow execution, the value of the output `ref` will be equal to the first line in the given `sha1-file`.
+If a repository has a text file that stores a ref (e.g., a SHA1 hash of a commit) and its contents must be used as a variable in a workflow, then [extract-ref.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/extract-ref.yml) can be used to accomplish this. This workflow takes a single (required) parameter:
+ - `file`: a string that specifies the path to the text file that has the ref.
+After workflow execution, the value of the output `ref` will be equal to the first line in the given `file`.
 ## Nightly Build
 See [nightly-build.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/nightly-build.yml).
