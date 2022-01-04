@@ -21,8 +21,8 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
   
   # Run tests for the standalone compiler.
-  lfc-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/lfc-tests.yml@master
+  cli-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
 
   # Run the C benchmark tests. 
   c-benchmark-tests:
