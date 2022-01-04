@@ -132,11 +132,6 @@ Remove the digital twin VM:
 user$ gcloud compute instances delete twin-vm --quiet
 ```
 
-Remove the RTI image from google cloud:
-```bash
-user$ gcloud container images delete gcr.io/$PROJECT_ID/rti --quiet
-```
-
 Remove the digital twin image from google cloud:
 ```bash
 user$ gcloud container images delete gcr.io/$PROJECT_ID/twin --quiet
