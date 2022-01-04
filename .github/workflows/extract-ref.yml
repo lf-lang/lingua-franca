@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       file:
-        description: Name of the file to extract the ref from
+        description: Path to the file to extract the ref from
         type: string
         required: false
     outputs:
