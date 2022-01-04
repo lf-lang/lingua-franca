@@ -1,4 +1,4 @@
-name: Python Tests
+name: Python tests
 
 on:
   workflow_call:
@@ -64,10 +64,8 @@ jobs:
           path: org.lflang/src/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
-      - name: Build RTI docker image;
-        run: |
-          cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
-          docker build -t rti:rti -f rti.Dockerfile ../../../core/
+      - name: Build RTI docker image
+        uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
       - name: Run Python tests
         run: |
