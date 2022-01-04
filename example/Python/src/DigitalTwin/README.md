@@ -25,9 +25,6 @@ https://cloud.google.com/sdk/docs/quickstart) to finish initializing the SDK:
 user$ gcloud init
 ```
 
-
-This tutorial also assumes that you have built a docker image for the RTI. You can refer to the README at `org.lflang/src/lib/c/reactor-c/core/federated/RTI/README.md` for instructions related to building the RTI image. 
-
 For clarity purposes, I will use `user$ ` to denote a local terminal, `user@rti-vm ~ $ ` to denote the terminal RTI VM, and `user@twin-vm ~ $ ` to denote the terminal inside the digital twin VM. 
 
 
@@ -47,9 +44,10 @@ user$ gcloud projects list
 user$ export PROJECT_ID=YOUR_PROJECT_ID
 ```
 
-Tag and push the local RTI image to Google cloud:
+Pull, tag and push the RTI to the cloud:
 ```bash
-user$ docker tag rti:rti gcr.io/$PROJECT_ID/rti
+user$ docker pull lflang/rti:rti
+user$ docker tag lflang/rti:rti gcr.io/$PROJECT_ID/rti
 user$ docker push gcr.io/$PROJECT_ID/rti
 ```
 
