@@ -1,4 +1,4 @@
-name: CLI Tests
+name: CLI tests
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: Unit Tests + CodeCov
+name: Unit tests + CodeCov
 
 on:
   workflow_call:
