@@ -5,4 +5,3 @@ runs:
   steps: 
     - run: .github/actions/build-rti-docker/build-rti-image.sh
       shell: bash
-      
