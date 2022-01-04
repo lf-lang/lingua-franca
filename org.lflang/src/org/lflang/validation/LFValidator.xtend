@@ -1113,7 +1113,7 @@ class LFValidator extends BaseLFValidator {
 
     @Check(FAST)
     def checkState(StateVar stateVar) {
-        checkName(stateVar.name, Literals.STATE_VAR__NAME)
+        checkName(stateVar.name, Literals.VARIABLE__NAME)
 
         if (stateVar.isOfTimeType) {
             // If the state is declared to be a time,

@@ -73,11 +73,12 @@ public class LFSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
                                     .collect(Collectors.toSet());
                             
                         }
+                        // FIXME: Disable this check for annotations.
                         // Describe situation where a keyword is used as an identifier.
-                        if (keywords.contains(text)) {
-                            return new SyntaxErrorMessage("'" + text + "' is a reserved keyword "
-                                    + "which cannot be used as an identifier.", USED_RESERVED_KEYWORD);
-                        }
+                        // if (keywords.contains(text)) {
+                        //     return new SyntaxErrorMessage("'" + text + "' is a reserved keyword "
+                        //             + "which cannot be used as an identifier.", USED_RESERVED_KEYWORD);
+                        // }
                     }
                 }
             }

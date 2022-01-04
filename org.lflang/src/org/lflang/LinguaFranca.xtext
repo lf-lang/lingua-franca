@@ -259,12 +259,16 @@ Attribute:
     '@' attrName=AttrName '(' attrParms+=AttrParm (',' attrParms+=AttrParm)* ')'
 ;
 
+ComponentRef:
+    var=[Variable]
+    | 'reaction' '[' rxn=SignedInt ']';
+
 // FIXME: Use the validator to make sure that first order logic is
 // used only when verification attributes are used.
 AttrParm:
     STRING
     | SignedInt
-    // | PropositionalLogic // Disable logic for now
+    | PropositionalLogic
 ;
 
 /////////// For verification
@@ -273,40 +277,35 @@ PropositionalLogic:
 ;
 
 LogicalExpr:
-    Equivalence
-;
+    Equivalence;
 
-Equivalence:
-    Implication ('<==>' Implication)*;
+Equivalence returns LogicalExpr:
+    left=Implication ('<==>' right=Implication)?;
 
-Implication:
-    Disjunction ('==>' Disjunction)*;
+Implication returns LogicalExpr:
+    left=Disjunction ('==>' right=Disjunction)?;
 
-Disjunction:
-    Conjunction ('\\/' Conjunction)*;
+Disjunction returns LogicalExpr:
+    left=Conjunction ('\\/' right=Conjunction)?;
 
-Conjunction:
-    Inversion ('/\\' Inversion)*;
+Conjunction returns LogicalExpr:
+    left=Inversion ('/\\' right=Inversion)?;
 
-Inversion:
-    LogicalAtom
-    | '!' LogicalAtom
+Inversion returns LogicalExpr:
+    atom=LogicalAtom
+    | '!' negatom=LogicalAtom
 ;
 
 // FIXME: putting () here instead of [] does not work.
-LogicalAtom:
+LogicalAtom returns LogicalExpr:
     BooleanAtom
-    | '[' LogicalExpr ']'
+    | '[' expr=LogicalExpr ']'
 ;
 
-BooleanAtom:
+BooleanAtom returns LogicalExpr:
     TRUE | FALSE
-    | IDRef
-    | ArithExpr RelOp ArithExpr
-;
-
-IDRef:
-    ID // FIXME: Enable reference to a past variable value
+    | ComponentRef
+    | left=ArithExpr RelOp right=ArithExpr
 ;
 
 RelOp:
@@ -317,25 +316,25 @@ ArithExpr:
     Subtraction
 ;
 
-Subtraction:
-    Addition ('-' Addition)*
+Subtraction returns ArithExpr:
+    operands+=Addition ('-' operands+=Addition)*
 ;
 
-Addition:
-    Division ('+' Division)*
+Addition returns ArithExpr:
+    operands+=Division ('+' operands+=Division)*
 ;
 
-Division:
-    Multiplication ('/' Multiplication)*
+Division returns ArithExpr:
+    operands+=Multiplication ('/' operands+=Multiplication)*
 ;
 
-Multiplication:
-    ArithAtom ('*' ArithAtom)*
+Multiplication returns ArithExpr:
+    operands+=ArithAtom ('*' operands+=ArithAtom)*
 ;
 
-ArithAtom:
+ArithAtom returns ArithExpr:
     SignedInt
-    | IDRef
+    | ComponentRef
     | '(' ArithExpr ')'
 ;
 
@@ -363,7 +362,7 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer;
+    TypedVariable | Timer | StateVar;
 
 Trigger:
     Action | Input;
@@ -614,7 +613,7 @@ Token:
     // Visibility modifiers
     'private' | 'public' |
     // Verification
-    'property' | 'aux' | 'inv' | 'bound' |
+    'property' | 'aux' | 'inv' | 'bound' | 'rxn' |
     '!' | '==>' | '<==>' | '/\\' | '\\/' |
     '<=' | '==' | '>=' | 
     // Braces

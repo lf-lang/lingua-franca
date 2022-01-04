@@ -160,7 +160,8 @@ class UclidGenerator extends GeneratorBase {
             for (attr : mainAttr) {
                 // Extract the property name.
                 // Add to the list if it doesn't exist.
-                var property = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                // var property = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                var property = ""
                 if (!this.properties.contains(property)) {
                     this.properties.add(property)
                 }
@@ -868,9 +869,12 @@ class UclidGenerator extends GeneratorBase {
             var reactorAttr = r.getAttributes
             if (reactorAttr.length != 0) {
                 for (attr : reactorAttr) {
+                    println(attr) // FIXME: to delete
+                    println(attr.getAttrParms.get(0))
                     if (attr.getAttrName.toString.equals("inv")) {
                         // Extract the invariant out of the attribute.
-                        var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                        // var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                        var inv = ""
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''
@@ -910,7 +914,8 @@ class UclidGenerator extends GeneratorBase {
                 for (attr : attrList) {
                     if (attr.getAttrName.toString.equals("inv")) {
                         // Extract the invariant out of the attribute.
-                        var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                        // var inv = attr.getAttrParms.get(0).replaceAll("^\"|\"$", "")
+                        var inv = ""
                         // Print line number
                         prSourceLineNumber(attr)
                         pr('''
@@ -936,7 +941,8 @@ class UclidGenerator extends GeneratorBase {
          ************/
         ''')
         // Extract the property bound out of the attribute.
-        var boundValue = Integer.parseInt(bound.getAttrParms.get(1))
+        // var boundValue = Integer.parseInt(bound.getAttrParms.get(1))
+        var boundValue = ""
         // Print line number
         prSourceLineNumber(bound)
         pr('''
@@ -959,7 +965,8 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (conjunct : conjunctList) {
             // Extract the invariant out of the attribute.
-            var formula = conjunct.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+            // var formula = conjunct.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+            var formula = ""
             // Print line number
             prSourceLineNumber(conjunct)
             pr('''
@@ -981,7 +988,8 @@ class UclidGenerator extends GeneratorBase {
         indent()
         for (auxInv : auxInvList) {
             // Extract the invariant out of the attribute.
-            var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+            // var formula = auxInv.getAttrParms.get(1).replaceAll("^\"|\"$", "")
+            var formula = ""
             // Print line number
             prSourceLineNumber(auxInv)
             pr('''
