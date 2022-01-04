@@ -3,6 +3,6 @@ description: Build and install
 runs:
   using: "composite"
   steps: 
-    - run: .github/actions/install-rti/build-rti-image.sh
+    - run: .github/actions/build-rti-docker/build-rti-image.sh
       shell: bash
       
