@@ -43,13 +43,14 @@ reactor KeyFob {
         
         def format_log_message(self, line):
             elapsed_ptime, tag, remote, locked = line
-            return (f"At (elapsed physical time: {elapsed_ptime}, "
-                    f"tag: ({tag.time}, {tag.microstep})), "
+            return (f"At (elapsed tag: ({'{:,}'.format(tag.time // 1000)} ms, {tag.microstep}), "
+                    f"elapsed physical time: {'{:,}'.format(elapsed_ptime // 1000)} ms), "
                     f"{'Received' if remote else 'Set'} lock state as: {'Locked' if locked else 'Unlocked'}")
 
         # log structure: (elapsed_physical_time:int, tag:int, remote:bool, locked:bool)
         def append_log(self, remote, locked):
-            log_entry = (get_elapsed_physical_time(), get_current_tag(), remote, locked)
+            elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
+            log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, locked)
             self.log_ptr = (self.log_ptr + 1) % self.max_log_len
             if len(self.log) < self.max_log_len:
                 self.log.append(log_entry)
