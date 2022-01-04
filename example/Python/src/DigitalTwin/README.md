@@ -44,13 +44,6 @@ user$ gcloud projects list
 user$ export PROJECT_ID=YOUR_PROJECT_ID
 ```
 
-Pull, tag and push the RTI to the cloud:
-```bash
-user$ docker pull lflang/rti:rti
-user$ docker tag lflang/rti:rti gcr.io/$PROJECT_ID/rti
-user$ docker push gcr.io/$PROJECT_ID/rti
-```
-
 Set up firewall rules to allow ingress and egress traffic to VMs:
 ```bash
 user$ gcloud compute firewall-rules create rti-firewall-egress --direction=egress --action=allow --rules=all
@@ -60,7 +53,7 @@ user$ gcloud compute firewall-rules create rti-firewall-ingress --direction=ingr
 Create a VM for the RTI:
 ```bash
 user$ gcloud compute instances create-with-container rti-vm \
-  --container-image=gcr.io/$PROJECT_ID/rti \
+  --container-image=lflang/rti:rti \
   --container-command=RTI \
   --container-arg="-i" \
   --container-arg=1 \
