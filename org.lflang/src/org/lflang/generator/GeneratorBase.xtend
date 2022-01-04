@@ -61,16 +61,13 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
 import org.lflang.lf.Parameter
-import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
-import org.lflang.lf.StateVar
 import org.lflang.lf.Time
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import static extension org.lflang.JavaAstUtils.*
 
 /**
  * Generator base class for specifying core functionality
@@ -1113,92 +1110,107 @@ abstract class GeneratorBase extends JavaGeneratorBase {
         val mainInstance = new ReactorInstance(mainReactor, errorReporter, 1)
 
         for (federateReactor : mainInstance.children) {
-            // FIXME: This used to Skip banks and just process the individual instances.
             val federateInstances = federatesByInstantiation.get(federateReactor.definition);
             for (federateInstance : federateInstances) {
-                for (input : federateReactor.inputs) {
-                    replaceConnectionFromSource(input, federateInstance, federateReactor, mainInstance)
+                for (output : federateReactor.outputs) {
+                    replaceConnectionFromFederate(output, federateReactor, mainInstance)
                 }
             }
         }
     }
     
     /**
-     * Replace the connections to the specified input port for the specified federate reactor.
-     * @param input The input port instance.
-     * @param destinationFederate The federate for which this port is an input.
+     * Replace the connections from the specified output port for the specified federate reactor.
+     * @param output The output port instance.
+     * @param srcFederate The federate for which this port is an output.
      * @param federateReactor The reactor instance for that federate.
      * @param mainInstance The main reactor instance.
      */
-    def void replaceConnectionFromSource(
-        PortInstance input, FederateInstance destinationFederate, ReactorInstance federateReactor, ReactorInstance mainInstance
+    private def void replaceConnectionFromFederate(
+        PortInstance output,
+        ReactorInstance federateReactor,
+        ReactorInstance mainInstance
     ) {
-        var channel = 0; // Next input channel to be replaced.
-        // If the port is not an input, ignore it.
-        if (input.isInput) {
-            for (source : input.dependsOnPorts) {
-                // FIXME: How to determine the bank index of the source?
-                // Need ReactorInstance support for ranges.
-                // val sourceBankIndex = (source.getPort().parent.bankIndex >= 0) ? source.getPort().parent.bankIndex : 0
-                val sourceBankIndex = 0
-                val sourceFederate = federatesByInstantiation.get(source.instance.parent.definition).get(sourceBankIndex);
+        for (srcRange : output.dependentPorts) {
+            for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+                
+                var srcID = srcRange.startMR();
+                val dstID = dstRange.startMR();
+                var dstCount = 0;
+                var srcCount = 0;
+                
+                while (dstCount++ < dstRange.width) {
+                    val srcChannel = srcID.digits.get(0);
+                    val srcBank = srcID.get(1);
+                    val dstChannel = dstID.digits.get(0);
+                    val dstBank = dstID.get(1);
 
-                // Set up dependency information.
-                var connection = source.connection;
-                if (connection === null) {
-                    // This should not happen.
-                    errorReporter.reportError(input.definition, "Unexpected error. Cannot find input connection for port")
-                } else {
-                    if (sourceFederate !== destinationFederate
-                            && !connection.physical 
-                            && targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
-                        // Map the delays on connections between federates.
-                        // First see if the cache has been created.
-                        var dependsOnDelays = destinationFederate.dependsOn.get(sourceFederate)
-                        if (dependsOnDelays === null) {
-                            // If not, create it.
-                            dependsOnDelays = new LinkedHashSet<Delay>()
-                            destinationFederate.dependsOn.put(sourceFederate, dependsOnDelays)
+                    val srcFederate = federatesByInstantiation.get(
+                        srcRange.instance.parent.definition
+                    ).get(srcBank);
+                    val dstFederate = federatesByInstantiation.get(
+                        dstRange.instance.parent.definition
+                    ).get(dstBank);
+                    
+                    val connection = srcRange.connection;
+                
+                    if (connection === null) {
+                        // This should not happen.
+                        errorReporter.reportError(output.definition, 
+                                "Unexpected error. Cannot find output connection for port")
+                    } else {
+                        if (srcFederate !== dstFederate
+                                && !connection.physical 
+                                && targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
+                            // Map the delays on connections between federates.
+                            // First see if the cache has been created.
+                            var dependsOnDelays = dstFederate.dependsOn.get(srcFederate)
+                            if (dependsOnDelays === null) {
+                                // If not, create it.
+                                dependsOnDelays = new LinkedHashSet<Delay>()
+                                dstFederate.dependsOn.put(srcFederate, dependsOnDelays)
+                            }
+                            // Put the delay on the cache.
+                            if (connection.delay !== null) {
+                                dependsOnDelays.add(connection.delay)
+                            } else {
+                                // To indicate that at least one connection has no delay, add a null entry.
+                                dependsOnDelays.add(null)
+                            }
+                            // Map the connections between federates.
+                            var sendsToDelays = srcFederate.sendsTo.get(dstFederate)
+                            if (sendsToDelays === null) {
+                                sendsToDelays = new LinkedHashSet<Delay>()
+                                srcFederate.sendsTo.put(dstFederate, sendsToDelays)
+                            }
+                            if (connection.delay !== null) {
+                                sendsToDelays.add(connection.delay)
+                            } else {
+                                // To indicate that at least one connection has no delay, add a null entry.
+                                sendsToDelays.add(null)
+                            }
                         }
-                        // Put the delay on the cache.
-                        if (connection.delay !== null) {
-                            dependsOnDelays.add(connection.delay)
-                        } else {
-                            // To indicate that at least one connection has no delay, add a null entry.
-                            dependsOnDelays.add(null)
-                        }
-                        // Map the connections between federates.
-                        var sendsToDelays = sourceFederate.sendsTo.get(destinationFederate)
-                        if (sendsToDelays === null) {
-                            sendsToDelays = new LinkedHashSet<Delay>()
-                            sourceFederate.sendsTo.put(destinationFederate, sendsToDelays)
-                        }
-                        if (connection.delay !== null) {
-                            sendsToDelays.add(connection.delay)
-                        } else {
-                            // To indicate that at least one connection has no delay, add a null entry.
-                            sendsToDelays.add(null)
-                        }
-                    }
-
-                    // Make one communication for each channel.
-                    // FIXME: There is an opportunity for optimization here by aggregating channels.
-                    for (var i = 0; i < source.width; i++) {
+    
                         FedASTUtils.makeCommunication(
-                            source.instance,
-                            input,
+                            srcRange.instance,
+                            dstRange.instance,
                             connection,
-                            sourceFederate,
-                            0, // FIXME: source.getPort().parent.bankIndex,
-                            source.start + i,
-                            destinationFederate,
-                            0, // FIXME: input.parent.bankIndex,
-                            channel + i,
+                            srcFederate,
+                            srcBank,
+                            srcChannel,
+                            dstFederate,
+                            dstBank,
+                            dstChannel,
                             this,
                             targetConfig.coordination
                         );
+                    }                    
+                    dstID.increment();
+                    srcID.increment();
+                    srcCount++;
+                    if (srcCount == srcRange.width) {
+                        srcID = srcRange.startMR(); // Multicast. Start over.
                     }
-                    channel += source.width;
                 }
             }
         }

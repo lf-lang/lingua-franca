@@ -838,13 +838,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * 
      * @param src The source range.
      * @param dst The destination range.
+     * @param connection The connection establishing this relationship.
      */
     public static void connectPortInstances(
             RuntimeRange<PortInstance> src,
             RuntimeRange<PortInstance> dst,
             Connection connection
     ) {
-        SendRange range = new SendRange(src, dst, connection);
+        SendRange range = new SendRange(src, dst, src._interleaved, connection);
         src.instance.dependentPorts.add(range);
         dst.instance.dependsOnPorts.add(src);
     }
@@ -974,17 +975,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // The reactor can be null only if there is an error in the code.
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
-                PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
+                PortInstance portInstance = reactor.lookupPortInstance(
+                        (Port) portRef.getVariable());
                 
-                RuntimeRange<PortInstance> range = new RuntimeRange.Port(portInstance, connection);
+                Set<ReactorInstance> interleaved = new LinkedHashSet<ReactorInstance>();
                 if (portRef.isInterleaved()) {
-                    // Toggle interleaving at the depth of the reactor
-                    // that is the parent of the port.
                     // NOTE: Here, we are assuming that the interleaved()
                     // keyword is only allowed on the multiports contained by
                     // contained reactors.
-                    range = range.toggleInterleaved(portInstance.parent);
+                    interleaved.add(portInstance.parent);
                 }
+                RuntimeRange<PortInstance> range = new RuntimeRange.Port(
+                        portInstance, interleaved);
                 // If this portRef is not the last one in the references list
                 // then we have to check whether the range can be incremented at
                 // the lowest two levels (port and container).  If not,

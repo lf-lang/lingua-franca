@@ -115,7 +115,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
                 PortInstance orig = (PortInstance) effect;
                 for (SendRange sendRange : orig.getDependentPorts()) {
                     sendRange.destinations.forEach(dest -> {
-                        recordDependency(reaction, orig, dest.instance, dest.connection);
+                        recordDependency(reaction, orig, dest.instance, sendRange.connection);
                     });
                 }
             }
@@ -136,7 +136,9 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
                 addEdge(reaction, source);
                 PortInstance dest = (PortInstance) source;
                 dest.getDependsOnPorts().forEach(orig -> {
-                    recordDependency(reaction, orig.instance, dest, orig.connection);
+                    // FIXME: Don't have connection information here, hence the null argument.
+                    // This will like result in invalid cycle detection.
+                    recordDependency(reaction, orig.instance, dest, null);
                 });
             }
         }

@@ -31,8 +31,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.lflang.lf.Connection;
-
 /**
  * Class representing a range of runtime instance objects
  * (port channels, reactors, reactions, etc.). This class and its derived classes
@@ -178,13 +176,13 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * first, its parent next, and on up the hierarchy until the depth 1 parent (the
      * top-level reactor is not included because it can never be a bank).
      * @param instance The instance.
-     * @param connection The connection establishing this range or null if not unique.
+     * @param interleaved A list of parents that are interleaved or null if none.
      */
     public RuntimeRange(
             T instance,
-            Connection connection
+            Set<ReactorInstance> interleaved
     ) {
-        this(instance, 0, 0, connection);
+        this(instance, 0, 0, interleaved);
     }
 
     /**
@@ -195,17 +193,19 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
      * @param instance The instance over which this is a range (port, reaction, etc.)
      * @param start The starting index for the range.
      * @param width The width of the range or 0 to specify the maximum possible width.
-     * @param connection The connection establishing this range or null if not unique.
+     * @param interleaved A list of parents that are interleaved or null if none.
      */
     public RuntimeRange(
             T instance,
             int start,
             int width,
-            Connection connection
+            Set<ReactorInstance> interleaved
     ) {
         this.instance = instance;
         this.start = start;
-        this.connection = connection;
+        if (interleaved != null) {
+            this._interleaved.addAll(interleaved);
+        }
         
         int maxWidth = instance.width; // Initial value.
         NamedInstance<?> parent = instance.parent;
@@ -225,9 +225,6 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     //////////////////////////////////////////////////////////
     //// Public variables
     
-    /** The connection establishing this range or null if not unique. */
-    public final Connection connection;
-
     /** The instance that this is a range of. */
     public final T instance;
     
@@ -277,7 +274,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     public RuntimeRange<T> head(int newWidth) {
         if (newWidth >= width) return this;
         if (newWidth <= 0) return null;
-        return new RuntimeRange<T>(instance, start, newWidth, connection);
+        return new RuntimeRange<T>(instance, start, newWidth, _interleaved);
     }
     
     /**
@@ -463,7 +460,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     public RuntimeRange<T> tail(int offset) {
         if (offset == 0) return this;
         if (offset >= width) return null;
-        return new RuntimeRange<T>(instance, start + offset, width - offset, connection);
+        return new RuntimeRange<T>(instance, start + offset, width - offset, _interleaved);
     }
     
     /**
@@ -480,9 +477,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
         } else {
             newInterleaved.add(reactor);
         }
-        RuntimeRange<T> result = new RuntimeRange<T>(instance, start, width, connection);
-        result._interleaved = newInterleaved;
-        return result;
+        return new RuntimeRange<T>(instance, start, width, newInterleaved);
     }
         
     @Override
@@ -506,11 +501,11 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
         public Port(PortInstance instance) {
             super(instance, null);
         }
-        public Port(PortInstance instance, Connection connection) {
-            super(instance, connection);
+        public Port(PortInstance instance, Set<ReactorInstance> interleaved) {
+            super(instance, interleaved);
         }
-        public Port(PortInstance instance, int start, int width, Connection connection) {
-            super(instance, start, width, connection);
+        public Port(PortInstance instance, int start, int width, Set<ReactorInstance> interleaved) {
+            super(instance, start, width, interleaved);
         }
     }
 }

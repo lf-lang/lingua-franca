@@ -27,6 +27,7 @@ package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -53,13 +54,18 @@ public class SendRange extends RuntimeRange.Port {
      * @param instance The instance over which this is a range of.
      * @param start The starting index.
      * @param width The width.
+     * @param interleaved A list of parents that are interleaved or null if none.
+     * @param connection The connection that establishes this send or null if not unique or none.
      */
     public SendRange(
             PortInstance instance,
             int start,
-            int width
+            int width,
+            Set<ReactorInstance> interleaved,
+            Connection connection
     ) {
-        super(instance, start, width, null);
+        super(instance, start, width, interleaved);
+        this.connection = connection;
     }
 
     /**
@@ -68,23 +74,27 @@ public class SendRange extends RuntimeRange.Port {
      * of both the src and dst.
      * @param src The source range.
      * @param dst The destination range.
-     * @param connection The connection.
+     * @param interleaved A list of parents that are interleaved or null if none.
+     * @param connection The connection that establishes this send or null if not unique or none.
      */
     public SendRange(
             RuntimeRange<PortInstance> src,
             RuntimeRange<PortInstance> dst,
+            Set<ReactorInstance> interleaved,
             Connection connection
     ) {
-        super(src.instance, src.start, src.width, connection);
+        super(src.instance, src.start, src.width, interleaved);
         destinations.add(dst);
-        for (ReactorInstance i : src._interleaved) {
-            toggleInterleaved(i);
-        }
+        _interleaved.addAll(src._interleaved);
+        this.connection = connection;
     }
 
     //////////////////////////////////////////////////////////
     //// Public variables
 
+    /** The connection that establishes this relationship or null if not unique or none. */
+    public final Connection connection;
+    
     /** The list of destination ranges to which this broadcasts. */
     public final List<RuntimeRange<PortInstance>> destinations 
             = new ArrayList<RuntimeRange<PortInstance>>();
@@ -173,7 +183,7 @@ public class SendRange extends RuntimeRange.Port {
         // Also, cannot return this without applying head() to the destinations.
         if (newWidth <= 0) return null;
 
-        SendRange result = new SendRange(instance, start, newWidth);
+        SendRange result = new SendRange(instance, start, newWidth, _interleaved, connection);
         
         for (RuntimeRange<PortInstance> destination : destinations) {
             result.destinations.add(destination.head(newWidth));
@@ -192,19 +202,21 @@ public class SendRange extends RuntimeRange.Port {
         int newStart = Math.max(start, range.start);
         int newEnd = Math.min(start + width, range.start + range.width);
         int newWidth = newEnd - newStart;
-        SendRange result = new SendRange(instance, newStart, newWidth);
+        SendRange result = new SendRange(instance, newStart, newWidth, _interleaved, connection);
+        result._interleaved.addAll(_interleaved);
         for (RuntimeRange<PortInstance> destination : destinations) {
             // The destination width is a multiple of this range's width.
             // If the multiple is greater than 1, then the destination needs to
             // split into multiple destinations.
             while (destination != null) {
                 int dstStart = destination.start + (newStart - start);
-                result.addDestination(new RuntimeRange.Port(
+                RuntimeRange.Port dst = new RuntimeRange.Port(
                         destination.instance,
                         dstStart,
                         newWidth,
-                        destination.connection
-                ));
+                        destination._interleaved
+                );
+                result.addDestination(dst);
                 destination = destination.tail(width);
             }
         }
@@ -225,7 +237,8 @@ public class SendRange extends RuntimeRange.Port {
         // NOTE: Cannot use the superclass because it returns a RuntimeRange, not a SendRange.
         // Also, cannot return this without applying tail() to the destinations.
         if (offset >= width) return null;
-        SendRange result = new SendRange(instance, start + offset, width - offset);
+        SendRange result = new SendRange(
+                instance, start + offset, width - offset, _interleaved, connection);
 
         for (RuntimeRange<PortInstance> destination : destinations) {
             result.destinations.add(destination.tail(offset));
@@ -277,14 +290,18 @@ public class SendRange extends RuntimeRange.Port {
                 // If this width is greater than the srcRange width,
                 // then assume srcRange is multicasting via this.
                 int newWidth = Math.min(width,  srcRange.width);
-                SendRange result = new SendRange(srcRange.instance, srcRange.start + srcRangeOffset, newWidth);
+                // The interleaving of the result is the union of the two interleavings.
+                Set<ReactorInstance> interleaving = new LinkedHashSet<ReactorInstance>();
+                interleaving.addAll(_interleaved);
+                interleaving.addAll(srcRange._interleaved);
+                SendRange result = new SendRange(
+                        srcRange.instance,
+                        srcRange.start + srcRangeOffset,
+                        newWidth,
+                        interleaving,
+                        connection);
                 for (RuntimeRange<PortInstance> dst : destinations) {
                     result.addDestination(dst);
-                }
-                for (ReactorInstance i : _interleaved) {
-                    if (result.instance.getParent().isParent(i)) {
-                        result.toggleInterleaved(i);
-                    }
                 }
                 return result;
             }

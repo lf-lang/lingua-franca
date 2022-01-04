@@ -269,7 +269,9 @@ public class PortInstance extends TriggerInstance<Port> {
             SendRange candidate = new SendRange(
                     srcRange.instance,
                     srcRange.start, 
-                    srcRange.width
+                    srcRange.width,
+                    null, // No interleaving for this range.
+                    null  // No connection for this range.
             );
             candidate.destinations.add(srcRange);
             queue.add(candidate);
