@@ -478,7 +478,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
 		} else { // only detect dependency cycles if not recursive
 			try {
-			    /* FIXME
 				val hasCycle = reactorInstance.detectAndHighlightCycles(allReactorNodes, [
 					if (it instanceof KNode) {
 						val renderings = it.data.filter(typeof(KRendering)).toList
@@ -497,9 +496,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						//it.reverseTrianglePort()
 					}
 				])
-				* 
-				*/
-				val hasCycle = false;
 	            
 	            if (hasCycle) {
 	                val err = node.addErrorComment(TEXT_ERROR_CONTAINS_CYCLE)
@@ -747,7 +743,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 } else {
                     outputPorts.get(leftPort.parent, leftPort)
                 }
-            for (rightSendRange : leftPort.dependentPortsFIXME) {
+            for (rightSendRange : leftPort.dependentPorts) {
                 for (rightRange : rightSendRange.destinations) {
                     val rightPort = rightRange.instance;
                     val target = if (rightPort.parent == reactorInstance) {
