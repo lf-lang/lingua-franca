@@ -1,8 +1,8 @@
-name: Install RTI
+name: Build RTI docker image
 description: Build and install
 runs:
   using: "composite"
   steps: 
-    - run: .github/actions/install-rti/install.sh
+    - run: .github/actions/install-rti/build-rti-image.sh
       shell: bash
       

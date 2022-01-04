@@ -64,6 +64,9 @@ jobs:
           path: org.lflang/src/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
+      - name: Build RTI docker image
+        uses: ./.github/actions/build-rti-docker
+        if: ${{ runner.os == 'Linux' }}
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
