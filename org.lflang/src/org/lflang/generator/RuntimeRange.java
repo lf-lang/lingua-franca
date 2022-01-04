@@ -328,6 +328,26 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     }
     
     /**
+     * Return a range that is the subset of this range that overlaps with the
+     * specified range or null if there is no overlap.
+     */
+    public RuntimeRange<?> overlap(RuntimeRange<?> range) {
+        if (!overlaps(range)) return null;
+        int newStart = Math.max(start, range.start);
+        int newEnd = Math.min(start + width, range.start + range.width);
+        return tail(newStart - start).head(newEnd - newStart);
+    }
+    
+    /**
+     * Return true if the specified range has the same instance as this range
+     * and the ranges overlap.
+     */
+    public boolean overlaps(RuntimeRange<?> range) {
+        if (!instance.equals(range.instance)) return false;
+        return (start < range.start + range.width && start + width > range.start);
+    }
+    
+    /**
      * Return a set of identifiers for runtime instances of a parent of this
      * RuntimeRange's instance n levels above this RuntimeRange's instance. If n == 1, for
      * example, then this return the identifiers for the parent ReactorInstance.
