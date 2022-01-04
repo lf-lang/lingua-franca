@@ -108,7 +108,8 @@ public class PortInstanceTests {
         connect(s, 1, 2, u, 0, 2);
 
         sr = p.eventualDestinations();
-        Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.F.t(0,1), .E.s(0,1)], .A.p(1,2)->[.C.r(0,2), .E.s(1,2), .E.G.u(0,2)]]", sr.toString());
+        // FIXME: Multicast destinations should be able to be reported in arbitrary order.
+        Assertions.assertEquals("[.A.p(0,1)->[.E.F.t(0,1), .E.s(0,1), .B.q(2,1)], .A.p(1,2)->[.E.G.u(0,2), .E.s(1,2), .C.r(0,2)]]", sr.toString());
     }
     
     @Test
@@ -132,8 +133,7 @@ public class PortInstanceTests {
         maini.clearCaches();
         newReaction(q);
         sr = p.eventualDestinations();
-        // FIXME: how to make order-independent?
-        Assertions.assertEquals("[.A.p(0,1)->[.B.q(0,1), .B.q(3,1), .B.q(2,1), .B.q(1,1)]]", sr.toString());
+        Assertions.assertEquals("[.A.p(0,1)->[.B.q(0,4)]]", sr.toString());
 }
     
     /**
@@ -161,7 +161,7 @@ public class PortInstanceTests {
     protected void connect(PortInstance src, PortInstance dst) {
         RuntimeRange<PortInstance> srcRange = new RuntimeRange.Port(src);
         RuntimeRange<PortInstance> dstRange = new RuntimeRange.Port(dst);
-        ReactorInstance.connectPortInstances(srcRange, dstRange);
+        ReactorInstance.connectPortInstances(srcRange, dstRange, null);
     }
     
     /**
@@ -177,7 +177,7 @@ public class PortInstanceTests {
     ) {
         RuntimeRange<PortInstance> srcRange = new RuntimeRange.Port(src, srcStart, srcWidth, null);
         RuntimeRange<PortInstance> dstRange = new RuntimeRange.Port(dst, dstStart, dstWidth, null);
-        ReactorInstance.connectPortInstances(srcRange, dstRange);
+        ReactorInstance.connectPortInstances(srcRange, dstRange, null);
     }
 
     protected PortInstance newPort(String name, ReactorInstance container) {

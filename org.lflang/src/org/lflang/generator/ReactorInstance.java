@@ -439,6 +439,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 && (reactorDefinition.isMain() || reactorDefinition.isFederated());
     }
     
+    /**
+     * Return true if the specified reactor instance is either equal to this
+     * reactor instance or a parent of it.
+     * @param r The reactor instance.
+     */
+    public boolean isParent(ReactorInstance r) {
+        ReactorInstance p = this;
+        while (p != null) {
+            if (p == r) return true;
+            p = p.getParent();
+        }
+        return false;
+    }
+    
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
@@ -817,22 +831,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Connect the given left port range to the given right port range.
-     * This method consolidates the interleaved state on the destination
-     * side.  That is, it sets the interleaved state of the destination
-     * to the exclusive OR of the interleaved state of the two ranges,
-     * and sets the interleaved state of the source to false.
      * 
      * NOTE: This method is public to enable its use in unit tests.
-     * Otherwise, it should be private. This is why it is defined here.
+     * Otherwise, it should be private. This is why it is defined here,
+     * in the section labeled "Private methods."
      * 
      * @param src The source range.
      * @param dst The destination range.
      */
     public static void connectPortInstances(
             RuntimeRange<PortInstance> src,
-            RuntimeRange<PortInstance> dst
+            RuntimeRange<PortInstance> dst,
+            Connection connection
     ) {
-        src.instance.dependentPorts.add(dst);
+        SendRange range = new SendRange(src, dst, connection);
+        src.instance.dependentPorts.add(range);
         dst.instance.dependsOnPorts.add(src);
     }
 
@@ -868,7 +881,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
             while(true) {
                 if (dst.width == src.width) {
-                    connectPortInstances(src, dst);
+                    connectPortInstances(src, dst, connection);
                     if (!dstRanges.hasNext()) {
                         if (srcRanges.hasNext()) {
                             // Should not happen (checked by the validator).
@@ -893,7 +906,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     src = srcRanges.next();
                 } else if (dst.width < src.width) {
                     // Split the left (src) range in two.
-                    connectPortInstances(src.head(dst.width), dst);
+                    connectPortInstances(src.head(dst.width), dst, connection);
                     src = src.tail(dst.width);
                     if (!dstRanges.hasNext()) {
                         // Should not happen (checked by the validator).
@@ -904,7 +917,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     dst = dstRanges.next();
                 } else if (src.width < dst.width) {
                     // Split the right (dst) range in two.
-                    connectPortInstances(src, dst.head(src.width));
+                    connectPortInstances(src, dst.head(src.width), connection);
                     dst = dst.tail(src.width);
                     if (!srcRanges.hasNext()) {
                         if (connection.isIterated()) {
