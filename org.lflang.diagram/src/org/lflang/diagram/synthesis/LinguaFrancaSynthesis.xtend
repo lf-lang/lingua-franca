@@ -478,6 +478,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
 		} else { // only detect dependency cycles if not recursive
 			try {
+			    /* FIXME
 				val hasCycle = reactorInstance.detectAndHighlightCycles(allReactorNodes, [
 					if (it instanceof KNode) {
 						val renderings = it.data.filter(typeof(KRendering)).toList
@@ -496,6 +497,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						//it.reverseTrianglePort()
 					}
 				])
+				* 
+				*/
+				val hasCycle = false;
 	            
 	            if (hasCycle) {
 	                val err = node.addErrorComment(TEXT_ERROR_CONTAINS_CYCLE)
@@ -738,58 +742,60 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		for (leftPort : sourcePorts) {
-            for (rightRange : leftPort.dependentPorts) {
-                val source = if (leftPort.parent == reactorInstance) {
-                        parentInputPorts.get(leftPort)
-                    } else {
-                        outputPorts.get(leftPort.parent, leftPort)
-                    }
-                val rightPort = rightRange.instance;
-                val target = if (rightPort.parent == reactorInstance) {
-                        parentOutputPorts.get(rightPort)
-                    } else {
-                        inputPorts.get(rightPort.parent, rightPort)
-                    }
-                // There should be a connection, but skip if not.
-                val connection = rightRange.connection;
-                if (connection !== null) {
-                    val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
-                    if (connection.delay !== null) {
-                        edge.addCenterEdgeLabel(connection.delay.toText) => [
-                            associateWith(connection.delay)
-                            if (connection.physical) {
-                                applyOnEdgePysicalDelayStyle(
-                                    reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
-                            } else {
-                                applyOnEdgeDelayStyle()
-                            }
-                        ]
-                    } else if (connection.physical) {
-                        edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
-                            reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
-                    }
-                    if (source !== null && target !== null) {
-                        // check for inside loop (direct in -> out connection with delay)
-                        if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
-                            // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
-                            // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
-                            var dummy = createNode()
-                            if (directConnectionDummyNodes.containsKey(target)) {
-                                dummy = directConnectionDummyNodes.get(target)
-                            } else {
-                                nodes += dummy
-                                directConnectionDummyNodes.put(target, dummy)
-
-                                dummy.addInvisibleContainerRendering()
-                                dummy.setNodeSize(0, 0)
-
-                                val extraEdge = createIODependencyEdge(null,
-                                    leftPort.isMultiport() || rightPort.isMultiport())
-                                extraEdge.connect(dummy, target)
-                            }
-                            edge.connect(source, dummy)
+            val source = if (leftPort.parent == reactorInstance) {
+                    parentInputPorts.get(leftPort)
+                } else {
+                    outputPorts.get(leftPort.parent, leftPort)
+                }
+            for (rightSendRange : leftPort.dependentPortsFIXME) {
+                for (rightRange : rightSendRange.destinations) {
+                    val rightPort = rightRange.instance;
+                    val target = if (rightPort.parent == reactorInstance) {
+                            parentOutputPorts.get(rightPort)
                         } else {
-                            edge.connect(source, target)
+                            inputPorts.get(rightPort.parent, rightPort)
+                        }
+                    // There should be a connection, but skip if not.
+                    val connection = rightRange.connection;
+                    if (connection !== null) {
+                        val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
+                        if (connection.delay !== null) {
+                            edge.addCenterEdgeLabel(connection.delay.toText) => [
+                                associateWith(connection.delay)
+                                if (connection.physical) {
+                                    applyOnEdgePysicalDelayStyle(
+                                        reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                                } else {
+                                    applyOnEdgeDelayStyle()
+                                }
+                            ]
+                        } else if (connection.physical) {
+                            edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+                                reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                        }
+                        if (source !== null && target !== null) {
+                            // check for inside loop (direct in -> out connection with delay)
+                            if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
+                                // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
+                                // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
+                                var dummy = createNode()
+                                if (directConnectionDummyNodes.containsKey(target)) {
+                                    dummy = directConnectionDummyNodes.get(target)
+                                } else {
+                                    nodes += dummy
+                                    directConnectionDummyNodes.put(target, dummy)
+    
+                                    dummy.addInvisibleContainerRendering()
+                                    dummy.setNodeSize(0, 0)
+    
+                                    val extraEdge = createIODependencyEdge(null,
+                                        leftPort.isMultiport() || rightPort.isMultiport())
+                                    extraEdge.connect(dummy, target)
+                                }
+                                edge.connect(source, dummy)
+                            } else {
+                                edge.connect(source, target)
+                            }
                         }
                     }
                 }
