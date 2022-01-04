@@ -260,19 +260,23 @@ Attribute:
 ;
 
 ComponentRef:
-    var=[Variable]
-    | 'reaction' '[' rxn=SignedInt ']';
+    // var=[Variable] works...
+    // We want to include instantiations.
+    // var=VarRef // Does not work.
+    variable=[Variable] // Ports, actions, timers, stateVar
+    | container=[Instantiation] '.' id=ID // Would like to use VarRef but doesn't work.
+    | 'reaction' '[' number=SignedInt ']';
 
 // FIXME: Use the validator to make sure that first order logic is
 // used only when verification attributes are used.
 AttrParm:
     STRING
     | SignedInt
-    | PropositionalLogic
+    | LTLFormula
 ;
 
 /////////// For verification
-PropositionalLogic:
+LTLFormula:
     (propositions+=LogicalExpr)+
 ;
 
@@ -289,53 +293,33 @@ Disjunction returns LogicalExpr:
     left=Conjunction ('\\/' right=Conjunction)?;
 
 Conjunction returns LogicalExpr:
-    left=Inversion ('/\\' right=Inversion)?;
+    left=LTLBinary ('/\\' right=LTLBinary)?;
 
-Inversion returns LogicalExpr:
-    atom=LogicalAtom
-    | '!' negatom=LogicalAtom
+LTLBinary returns LogicalExpr:
+    left=LTLUnary ('U' right=LTLUnary)?;
+
+LTLUnary returns LogicalExpr:
+    LogicalAtom
+    | '!' LogicalAtom
+    | 'G' LogicalAtom
+    | 'F' LogicalAtom
+    | 'X' LogicalAtom
 ;
 
 // FIXME: putting () here instead of [] does not work.
 LogicalAtom returns LogicalExpr:
     BooleanAtom
-    | '[' expr=LogicalExpr ']'
+    | '[' LogicalExpr ']'
 ;
 
 BooleanAtom returns LogicalExpr:
     TRUE | FALSE
     | ComponentRef
-    | left=ArithExpr RelOp right=ArithExpr
+    | left=Expr RelOp right=Expr
 ;
 
 RelOp:
     '<' | '<=' | '==' | '>=' | '>'
-;
-
-ArithExpr:
-    Subtraction
-;
-
-Subtraction returns ArithExpr:
-    operands+=Addition ('-' operands+=Addition)*
-;
-
-Addition returns ArithExpr:
-    operands+=Division ('+' operands+=Division)*
-;
-
-Division returns ArithExpr:
-    operands+=Multiplication ('/' operands+=Multiplication)*
-;
-
-Multiplication returns ArithExpr:
-    operands+=ArithAtom ('*' operands+=ArithAtom)*
-;
-
-ArithAtom returns ArithExpr:
-    SignedInt
-    | ComponentRef
-    | '(' ArithExpr ')'
 ;
 
 /////////// For target parameters
@@ -369,6 +353,7 @@ Trigger:
 
 Effect:
     Action | Output;
+
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
@@ -405,8 +390,12 @@ Product:
 Quotient:
     terms+=Expr ('/' terms += Expr)*;
 
-Expr :
-  Value | '(' Sum ')';
+// FIXME: the original "Value | '(' Sum ')';" does not work.
+// There are alternatives to Value that can be matched.
+Expr:
+    INT // FIXME: In general Signed-Int/Float causes problem here.
+    | ComponentRef 
+    | '(' Sum ')';
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
@@ -414,7 +403,6 @@ Expr :
 // is non-zero, it is accompanied by a unit.
 Value:
     (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
-
 
 Time:
     (interval=INT unit=TimeUnit)
@@ -612,9 +600,12 @@ Token:
     'logical' | 'physical' |
     // Visibility modifiers
     'private' | 'public' |
-    // Verification
-    'property' | 'aux' | 'inv' | 'bound' | 'rxn' |
+    // Verification attributes
+    'property' | 'aux' | 'inv' | 'bound' |
+    // Temporal logic operators
     '!' | '==>' | '<==>' | '/\\' | '\\/' |
+    'G' | 'F' | 'X' | 'U' |
+    // Comparison
     '<=' | '==' | '>=' | 
     // Braces
     '(' | ')' | '{' | '}' |
