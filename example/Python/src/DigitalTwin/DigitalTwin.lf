@@ -12,7 +12,6 @@ reactor KeyFob {
     state window({=None=});
     state listener({=None=});
     state log({=list()=});
-    state log_ptr(-1);
     state max_log_len(3);
     input get_lock_status;
     output send_lock_status;
@@ -35,27 +34,23 @@ reactor KeyFob {
             if len(self.log) > 0:
                 for i, line in enumerate(self.log):
                     log_message = self.format_log_message(line)
-                    if i == self.log_ptr:
-                        log_message += " <-"
                     self.window.addstr(2 + i, 0, log_message)
                     self.window.clrtoeol()
                 self.window.refresh()
         
         def format_log_message(self, line):
             elapsed_ptime, tag, remote, locked = line
-            return (f"At (elapsed tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
-                    f"elapsed physical time: {'{:,}'.format(elapsed_ptime)} ns), "
+            return (f"At (tag: ({'{:,}'.format(tag.time)} ns, {tag.microstep}), "
+                    f"lag: {'{:,}'.format(elapsed_ptime - tag.time)} ns), "
                     f"{'Received' if remote else 'Set'} lock state as: {'Locked' if locked else 'Unlocked'}")
 
         # log structure: (elapsed_physical_time:int, tag:int, remote:bool, locked:bool)
         def append_log(self, remote, locked):
             elapsed_tag = Tag(get_elapsed_logical_time(), get_microstep())
             log_entry = (get_elapsed_physical_time(), elapsed_tag, remote, locked)
-            self.log_ptr = (self.log_ptr + 1) % self.max_log_len
-            if len(self.log) < self.max_log_len:
-                self.log.append(log_entry)
-            else:
-                self.log[self.log_ptr] = log_entry
+            self.log.append(log_entry)
+            if len(self.log) > self.max_log_len:
+                self.log.pop(0)
 
         def listen_for_keypress(self, press_lock, press_unlock):
             key = ""
@@ -110,7 +105,7 @@ reactor KeyFob {
     =}
 }
 
-federated reactor at rti {
+federated reactor {
     fob = new KeyFob();
     twin = new KeyFob();
     fob.send_lock_status -> twin.get_lock_status;
