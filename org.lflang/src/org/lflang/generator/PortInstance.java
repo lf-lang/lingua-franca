@@ -161,10 +161,12 @@ public class PortInstance extends TriggerInstance<Port> {
     }
 
     /** 
-     * Return the list of downstream ports that are connected to this port
-     * or an empty list if there are none.
+     * Return the list of ranges of this port together with the
+     * downstream ports that are connected to this port.
+     * The total with of the ranges in the returned list is a
+     * multiple N >= 0 of the total width of this port.
      */
-    public List<RuntimeRange<PortInstance>> getDependentPorts() {
+    public List<SendRange> getDependentPorts() {
         return dependentPorts;
     }
 
@@ -199,22 +201,6 @@ public class PortInstance extends TriggerInstance<Port> {
         return (definition instanceof Output);
     }
     
-    /** 
-     * Return the number of destination reactors for this port instance.
-     * This can be used to initialize reference counting, but not for
-     * multiport.  For multiports, the number of destinations can vary
-     * by channel, and hence must be obtained from the ranges reported
-     * by eventualDestinations();
-     */
-    public int numDestinationReactors() {
-        List<SendRange> sourceChannelRanges = eventualDestinations();
-        int result = 0;
-        for (SendRange ranges : sourceChannelRanges) {
-            result += ranges.getNumberOfDestinationReactors();
-        }
-        return result;
-    }
-    
     @Override
     public String toString() {
         return "PortInstance " + getFullName();
@@ -224,18 +210,17 @@ public class PortInstance extends TriggerInstance<Port> {
     //// Protected fields.
 
     /** 
-     * Downstream ports that are connected directly to this port.
-     * These are listed in the order they appear in connections.
-     * If this port is input port, then the connections are those
-     * in the parent reactor of this port (inside connections).
-     * If the port is an output port, then the connections are those
-     * in the parent's parent (outside connections).
-     * The sum of the widths of the dependent ports is required to
-     * be an integer multiple N of the width of this port (this is checked
+     * Ranges of this port together with downstream ports that
+     * are connected directly to this port. When there are multiple destinations,
+     * the destinations are listed in the order they appear in connections
+     * in the parent reactor instance of this port (inside connections),
+     * followed by the order in which they appear in the parent's parent (outside
+     * connections). The total of the widths of these SendRanges is an integer
+     * multiple N >= 0 of the width of this port (this is checked
      * by the validator). Each channel of this port will be broadcast
-     * to N recipients.
+     * to N recipients (or, if there are no connections to zero recipients).
      */
-    List<RuntimeRange<PortInstance>> dependentPorts = new ArrayList<RuntimeRange<PortInstance>>();
+    List<SendRange> dependentPorts = new ArrayList<SendRange>();
 
     /** 
      * Upstream ports that are connected directly to this port, if there are any.
@@ -255,12 +240,9 @@ public class PortInstance extends TriggerInstance<Port> {
      * Given a RuntimeRange, return a list of SendRange that describes
      * the eventual destinations of the given range.
      * The sum of the total widths of the send ranges on the returned list
-     * will equal the total width of the specified range.
-     * The returned list will be non-overlapping ranges in
-     * the order in which they should be traversed (channels, then
-     * banks if the specified range is not interleaved, or banks
-     * then channels otherwise).  Each returned SendRange has a list
-     * of destinations RuntimeRange, each of which represents a port that
+     * will be an integer multiple N of the total width of the specified range.
+     * Each returned SendRange has a list
+     * of destination RuntimeRanges, each of which represents a port that
      * has dependent reactions. Intermediate ports with no dependent
      * reactions are not listed.
      * @param srcRange The source range.
@@ -271,8 +253,8 @@ public class PortInstance extends TriggerInstance<Port> {
         // because of multicast, where there is more than one connection statement
         // for a source of data. The strategy we follow here is to first get all
         // the ports that this port eventually sends to. Then, if needed, split
-        // the resulting ranges so that each source range width matches all the
-        // destination range widths.  We make two passes. First, we build
+        // the resulting ranges so that the resulting list covers exactly
+        // srcRange, possibly in pieces.  We make two passes. First, we build
         // a queue of ranges that may overlap, then we split those ranges
         // and consolidate their destinations.
 
@@ -290,48 +272,25 @@ public class PortInstance extends TriggerInstance<Port> {
                     srcRange.width
             );
             candidate.destinations.add(srcRange);
-            result.add(candidate);
+            queue.add(candidate);
         }
 
-        // Start with ports that are downstream of the range.
-        RuntimeRange<PortInstance> wSrcRange = srcRange;  // Working source range.
-        Iterator<RuntimeRange<PortInstance>> dependentPorts = srcPort.dependentPorts.iterator();
-        if (dependentPorts.hasNext()) {
-            RuntimeRange<PortInstance> wDstRange = dependentPorts.next();
-            while(true) {
-                if (wSrcRange == null) {
-                    // Source range has been fully covered, but there may be more
-                    // destinations.  For multicast, start over with the source.
-                    wSrcRange = srcRange;
-                }
-                if (wDstRange == null) {
-                    // Destination range is covered.
-                    if (!dependentPorts.hasNext()) break; // All done.
-                    wDstRange = dependentPorts.next();
-                }
-                // Cover the minimum of the two widths.
-                int width = Math.min(wSrcRange.width, wDstRange.width);
-                
-                // Destinations may be a subset.
-                RuntimeRange<PortInstance> subDst = wDstRange.head(width);
-                            
-                // At this point, dep is the subrange of the dependent port of interest.
+        // Need to find send ranges that overlap with this srcRange.
+        Iterator<SendRange> sendRanges = srcPort.dependentPorts.iterator();
+        while (sendRanges.hasNext()) {
+            SendRange wSendRange = sendRanges.next().overlap(srcRange);
+            if (wSendRange == null) {
+                // This send range does not overlap with the desired range. Try the next one.
+                continue;
+            }
+            for (RuntimeRange<PortInstance> dstRange : wSendRange.destinations) {
                 // Recursively get the send ranges of that destination port.
-                List<SendRange> dstSendRanges = eventualDestinations(subDst);
-                // Widths of these ranges add up to the width of subDst.
-                
-                // For each returned SendRange, convert it to a SendRange
-                // for the srcRange port rather than the dep port.
-                int sendOffset = 0;
+                List<SendRange> dstSendRanges = eventualDestinations(dstRange);
+                int sendRangeStart = 0;
                 for (SendRange dstSend : dstSendRanges) {
-                    queue.add(dstSend.newSendRange(wSrcRange.tail(sendOffset).head(dstSend.width)));
-                    sendOffset += dstSend.width;
-                    if (sendOffset >= subDst.width) {
-                        sendOffset = 0;
-                    }
+                    queue.add(dstSend.newSendRange(wSendRange, sendRangeStart));
+                    sendRangeStart += dstSend.width;
                 }
-                wSrcRange = wSrcRange.tail(width);
-                wDstRange = wDstRange.tail(width);
             }
         }
 

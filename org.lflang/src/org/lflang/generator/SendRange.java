@@ -32,14 +32,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.lflang.lf.Connection;
+
 /**
  * Class representing a range of a port that sources data
  * together with a list of destination ranges of other ports that should all
  * receive the same data sent in this range.
- * All ranges in the destinations list have the same width as this range,
- * but not necessarily the same start offsets.
- * This class also includes a field representing the number of destination
- * reactors.
+ * All ranges in the destinations list have widths that are an integer
+ * multiple N of this range but not necessarily the same start offsets.
  * 
  * This class and subclasses are designed to be immutable.
  * Modifications always return a new RuntimeRange.
@@ -62,11 +62,32 @@ public class SendRange extends RuntimeRange.Port {
         super(instance, start, width, null);
     }
 
+    /**
+     * Create a new send range representing sending from the specified
+     * src to the specified dst.  This preserves the interleaved status
+     * of both the src and dst.
+     * @param src The source range.
+     * @param dst The destination range.
+     * @param connection The connection.
+     */
+    public SendRange(
+            RuntimeRange<PortInstance> src,
+            RuntimeRange<PortInstance> dst,
+            Connection connection
+    ) {
+        super(src.instance, src.start, src.width, connection);
+        destinations.add(dst);
+        for (ReactorInstance i : src._interleaved) {
+            toggleInterleaved(i);
+        }
+    }
+
     //////////////////////////////////////////////////////////
     //// Public variables
 
     /** The list of destination ranges to which this broadcasts. */
-    public final List<RuntimeRange<PortInstance>> destinations = new ArrayList<RuntimeRange<PortInstance>>();
+    public final List<RuntimeRange<PortInstance>> destinations 
+            = new ArrayList<RuntimeRange<PortInstance>>();
 
     //////////////////////////////////////////////////////////
     //// Public methods
@@ -109,9 +130,9 @@ public class SendRange extends RuntimeRange.Port {
     }
 
     /**
-     * Return the total number of destination reactors. Specifically, this
-     * is the number of distinct runtime reactor instances that react to
-     * messages from this send range.
+     * Return the total number of destination reactors for this range.
+     * Specifically, this is the number of distinct runtime reactor instances
+     * that react to messages from this send range.
      */
     public int getNumberOfDestinationReactors() {
         if (_numberOfDestinationReactors < 0) {
@@ -161,6 +182,36 @@ public class SendRange extends RuntimeRange.Port {
     }
 
     /**
+     * Return a range that is the subset of this range that overlaps with the
+     * specified range or null if there is no overlap.
+     */
+    @Override
+    public SendRange overlap(RuntimeRange<?> range) {
+        if (!overlaps(range)) return null;
+        if (range.start == start && range.width == width) return this;
+        int newStart = Math.max(start, range.start);
+        int newEnd = Math.min(start + width, range.start + range.width);
+        int newWidth = newEnd - newStart;
+        SendRange result = new SendRange(instance, newStart, newWidth);
+        for (RuntimeRange<PortInstance> destination : destinations) {
+            // The destination width is a multiple of this range's width.
+            // If the multiple is greater than 1, then the destination needs to
+            // split into multiple destinations.
+            while (destination != null) {
+                int dstStart = destination.start + (newStart - start);
+                result.addDestination(new RuntimeRange.Port(
+                        destination.instance,
+                        dstStart,
+                        newWidth,
+                        destination.connection
+                ));
+                destination = destination.tail(width);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Return a new SendRange that represents the leftover elements
      * starting at the specified offset. If the offset is greater
      * than or equal to the width, then this returns null.
@@ -200,27 +251,47 @@ public class SendRange extends RuntimeRange.Port {
     //// Protected methods
 
     /**
-     * Return a new SendRange that is like this one, but
-     * converted to the specified upstream range. The returned
-     * SendRange inherits the destinations of this range.
-     * The width of the resulting range is
-     * the minimum of the two widths.
+     * Assuming that this SendRange is completely contained by one
+     * of the destinations of the specified srcRange, return a new SendRange
+     * where the send range is the subrange of the specified srcRange that
+     * overlaps with this SendRange and the destinations include all the
+     * destinations of this SendRange. If the assumption is not satisfied,
+     * throw an IllegalArgumentException.
+     * 
+     * If any parent of this range is marked interleaved and is also a parent of the
+     * specified srcRange, then that parent will be marked interleaved
+     * in the result.
      * 
      * @param srcRange A new source range.
+     * @param srcRangeOffset An offset into the source range.
      */
-    protected SendRange newSendRange(RuntimeRange<PortInstance> srcRange) {
-        SendRange reference = this;
-        if (srcRange.width > width) {
-            srcRange = srcRange.head(width);
-        } else if (srcRange.width < width) {
-            reference = head(srcRange.width);
+    protected SendRange newSendRange(SendRange srcRange, int srcRangeOffset) {
+        // Every destination of srcRange receives all channels of srcRange (multicast).
+        // Find which multicast destination overlaps with this srcRange.
+        for (RuntimeRange<PortInstance> srcDestination : srcRange.destinations) {
+            RuntimeRange<?> overlap = srcDestination.overlap(this);
+            if (overlap == null) continue; // Not this one.
+            
+            if (overlap.width == width) {
+                // Found an overlap that is completely contained.
+                // If this width is greater than the srcRange width,
+                // then assume srcRange is multicasting via this.
+                int newWidth = Math.min(width,  srcRange.width);
+                SendRange result = new SendRange(srcRange.instance, srcRange.start + srcRangeOffset, newWidth);
+                for (RuntimeRange<PortInstance> dst : destinations) {
+                    result.addDestination(dst);
+                }
+                for (ReactorInstance i : _interleaved) {
+                    if (result.instance.getParent().isParent(i)) {
+                        result.toggleInterleaved(i);
+                    }
+                }
+                return result;
+            }
         }
-        SendRange result = new SendRange(srcRange.instance, srcRange.start, srcRange.width);
-        
-        for (RuntimeRange<PortInstance> dst : reference.destinations) { 
-            result.destinations.add(dst.head(srcRange.width));
-        }
-        return result;
+        throw new IllegalArgumentException(
+                "Expected this SendRange " + this.toString()
+                + " to be completely contained by a destination of " + srcRange.toString());
     }
 
     //////////////////////////////////////////////////////////

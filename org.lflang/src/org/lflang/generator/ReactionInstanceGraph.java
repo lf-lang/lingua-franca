@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -104,49 +103,58 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
      * @param reaction The reaction to relate downstream reactions to.
      */
     protected void addDownstreamReactions(PortInstance port, ReactionInstance reaction) {
-        // This is a scary piece of code because of the richness of possible
-        // interconnections using banks and multiports. For any program without
-        // banks and multiports, each of these for loops iterates exactly once.
+        // Use mixed-radix numbers to increment over the ranges.
         List<Runtime> srcRuntimes = reaction.getRuntimeInstances();
-        for (SendRange sendRange : port.eventualDestinations()) {
-            int depth = (port.isInput())? 2 : 1;
+        List<SendRange> eventualDestinations = port.eventualDestinations();
+        
+        int srcDepth = (port.isInput())? 2 : 1;
+        
+        for (SendRange sendRange : eventualDestinations) {
             for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {
-                // If the destination instance is the same as the source instance,
-                // skip this. Such ranges show up whenever retrieving destinations
-                // for a port that has reactions.
                 if (dstRange.instance == sendRange.instance) continue; 
-                Iterator<Integer> sendParentIDs = sendRange.parentInstances(depth).iterator();
-                while (sendParentIDs.hasNext()) {
-                    int srcIndex = sendParentIDs.next();
-                    Set<Integer> parentInstances = (dstRange.instance.isOutput()) ?
-                            dstRange.parentInstances(2)
-                            : dstRange.parentInstances(1);
-                    for (int dstIndex : parentInstances) {
-                        for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
-                            List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
-                            Runtime srcRuntime = srcRuntimes.get(srcIndex);
-                            Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                            addEdge(dstRuntime, srcRuntime);
-                            
-                            // Propagate the deadlines, if any.
-                            if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
-                                srcRuntime.deadline = dstRuntime.deadline;
-                            }
-                            
-                            // If this seems to be a single dominating reaction, set it.
-                            // If another upstream reaction shows up, then this will be
-                            // reset to null.
-                            if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1
-                                    && (dstRuntime.getReaction().isUnordered
-                                            || dstRuntime.getReaction().index == 0)) {
-                                dstRuntime.dominating = srcRuntime;
-                            } else {
-                                dstRuntime.dominating = null;
-                            }
+                
+                int dstDepth = (dstRange.instance.isOutput())? 2 : 1;
+                MixedRadixInt dstRangePosition = dstRange.startMR();
+                int dstRangeCount = 0;
+
+                MixedRadixInt sendRangePosition = sendRange.startMR();
+                int sendRangeCount = 0;
+                
+                while (dstRangeCount++ < dstRange.width) {
+                    int srcIndex = sendRangePosition.get(srcDepth);
+                    int dstIndex = dstRangePosition.get(dstDepth);
+                    for (ReactionInstance dstReaction : dstRange.instance.dependentReactions) {
+                        List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
+                        Runtime srcRuntime = srcRuntimes.get(srcIndex);
+                        Runtime dstRuntime = dstRuntimes.get(dstIndex);
+                        addEdge(dstRuntime, srcRuntime);
+
+                        // Propagate the deadlines, if any.
+                        if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
+                            srcRuntime.deadline = dstRuntime.deadline;
+                        }
+                        
+                        // If this seems to be a single dominating reaction, set it.
+                        // If another upstream reaction shows up, then this will be
+                        // reset to null.
+                        if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1
+                                && (dstRuntime.getReaction().isUnordered
+                                        || dstRuntime.getReaction().index == 0)) {
+                            dstRuntime.dominating = srcRuntime;
+                        } else {
+                            dstRuntime.dominating = null;
                         }
                     }
+                    dstRangePosition.increment();
+                    sendRangePosition.increment();
+                    sendRangeCount++;
+                    if (sendRangeCount >= sendRange.width) {
+                        // Reset to multicast.
+                        sendRangeCount = 0;
+                        sendRangePosition = sendRange.startMR();
+                    }
                 }
-            } 
+            }
         }
     }
 

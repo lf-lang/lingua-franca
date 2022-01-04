@@ -26,12 +26,14 @@
 
 package org.lflang.graph;
 
-import java.util.Collection;
 import java.util.Arrays;
+import java.util.Collection;
+
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.SendRange;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Variable;
@@ -111,9 +113,11 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
             if (effect instanceof PortInstance) {
                 addEdge(effect, reaction);
                 PortInstance orig = (PortInstance) effect;
-                orig.getDependentPorts().forEach(dest -> {
-                    recordDependency(reaction, orig, dest.instance, dest.connection);
-                });
+                for (SendRange sendRange : orig.getDependentPorts()) {
+                    sendRange.destinations.forEach(dest -> {
+                        recordDependency(reaction, orig, dest.instance, dest.connection);
+                    });
+                }
             }
         }
     }

@@ -4902,7 +4902,7 @@ class CGenerator extends GeneratorBase {
             indent(builder);
             pr(builder, '''
                 int «ci» = range_mr.digits[0]; // Channel index.
-                    int «runtimeIndex» = mixed_radix_parent(&range_mr, 1);
+                int «runtimeIndex» = mixed_radix_parent(&range_mr, 1);
             ''')
         } else {
             val mr = range.startMR();
@@ -5785,7 +5785,7 @@ class CGenerator extends GeneratorBase {
                 startScopedRangeBlock(code, sendingRange, "runtime_index");
                 
                 pr('''
-                    «CUtil.portRef(output, "runtime_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors()»;
+                    «CUtil.portRef(output, "runtime_index", null)».num_destinations += «sendingRange.getNumberOfDestinationReactors()»;
                 ''')
                 
                 endScopedRangeBlock(code, sendingRange);
@@ -5831,11 +5831,11 @@ class CGenerator extends GeneratorBase {
                         // Syntax is slightly different for a multiport output vs. single port.
                         if (port.isMultiport()) {
                             pr('''
-                                «CUtil.portRefNested(port, "runtime_index", null)»->num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port, "runtime_index", null)»->num_destinations += «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         } else {
                             pr('''
-                                «CUtil.portRefNested(port, "runtime_index", null)».num_destinations = «sendingRange.getNumberOfDestinationReactors»;
+                                «CUtil.portRefNested(port, "runtime_index", null)».num_destinations += «sendingRange.getNumberOfDestinationReactors»;
                             ''')
                         }
                         endScopedRangeBlock(code, sendingRange);
@@ -6141,7 +6141,6 @@ class CGenerator extends GeneratorBase {
         for (reaction: reactions) {
             val name = reaction.parent.getFullName;
             
-            // The reaction may have multiple runtime instances, one in each bank member of the parent.
             // Need a separate index for the triggers array for each bank member.
             val triggersIndexInitializer = new LinkedList<Integer>();
             for (var i = 0; i < reaction.parent.totalWidth; i++) triggersIndexInitializer.add(0);
